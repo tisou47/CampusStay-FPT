@@ -30,6 +30,7 @@ public class SignInService {
     private final AccountStore accounts;
     private final SessionService sessions;
     private final GoogleIdTokenVerifier google;
+    private final GoogleCodeExchanger googleCodes;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository users;
     private final Clock clock;
@@ -37,10 +38,11 @@ public class SignInService {
     private final String dummyHash;
 
     public SignInService(AccountStore accounts, SessionService sessions, GoogleIdTokenVerifier google,
-            PasswordEncoder passwordEncoder, UserRepository users, Clock clock) {
+            GoogleCodeExchanger googleCodes, PasswordEncoder passwordEncoder, UserRepository users, Clock clock) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.google = google;
+        this.googleCodes = googleCodes;
         this.passwordEncoder = passwordEncoder;
         this.users = users;
         this.clock = clock;
@@ -69,6 +71,12 @@ public class SignInService {
         return finish(user.getId(), remember, SessionEntity.Method.PASSWORD, null);
     }
 
+    /** Web: authorization code from the Google popup, exchanged for an ID token first (ADR-14). */
+    public SignInResult signInWithGoogleCode(String code, boolean remember) {
+        return signInWithGoogle(googleCodes.exchange(code), remember);
+    }
+
+    /** Android (and the web after the code exchange): a Google ID token. */
     public SignInResult signInWithGoogle(String credential, boolean remember) {
         GoogleIdTokenVerifier.GoogleIdentity identity = google.verify(credential);
         UserEntity user = users.findByGoogleSub(identity.subject())

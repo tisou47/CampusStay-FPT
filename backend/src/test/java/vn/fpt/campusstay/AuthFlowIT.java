@@ -40,6 +40,7 @@ class AuthFlowIT {
                 .content(json("manager.a@campusstay.test", PASSWORD, false)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value(not(emptyString())))
+                .andExpect(jsonPath("$.user.id").isString())
                 .andExpect(jsonPath("$.user.role").value("manager"))
                 .andExpect(jsonPath("$.user.blocks[0]").value("A"))
                 .andExpect(jsonPath("$.user.studentCode").doesNotExist());
@@ -65,6 +66,7 @@ class AuthFlowIT {
         String token = signIn("se190002@student.campusstay.test");
         mvc.perform(get("/auth/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isString())
                 .andExpect(jsonPath("$.role").value("student"))
                 .andExpect(jsonPath("$.studentCode").value("SE190002"));
         mvc.perform(post("/auth/sign-out").header("Authorization", "Bearer " + token))
@@ -110,13 +112,15 @@ class AuthFlowIT {
                 .andExpect(jsonPath("$.details.fields.password").exists());
     }
 
-    /** TC-CFG-001: published Terms with ISO dates. */
+    /** TC-CFG-001: published Terms with string ids, ISO dates and the list total. */
     @Test
     void termsAreListed() throws Exception {
         String token = signIn("se190004@student.campusstay.test");
         mvc.perform(get("/terms").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.items[0].id").isString())
                 .andExpect(jsonPath("$.items[0].name").value("Spring 2027"))
                 .andExpect(jsonPath("$.items[0].stayStart").value("2027-01-04"))
                 .andExpect(jsonPath("$.items[0].depositWindowHours").value(48));
@@ -131,6 +135,36 @@ class AuthFlowIT {
         mvc.perform(post("/auth/password/forgot").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"se190005@student.campusstay.test\"}"))
                 .andExpect(status().isNoContent());
+    }
+
+    /** TC-AUTH-008: "remember" may be left out (Jackson 3 would reject a missing primitive). */
+    @Test
+    void rememberIsOptional() throws Exception {
+        mvc.perform(post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"se190006@student.campusstay.test\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(not(emptyString())));
+    }
+
+    /** TC-AUTH-009 (negative): Google sign-in needs exactly one of code and credential. */
+    @Test
+    void googleNeedsExactlyOneOfCodeAndCredential() throws Exception {
+        for (String body : new String[] { "{\"remember\":true}", "{\"code\":\"c\",\"credential\":\"t\"}" }) {
+            mvc.perform(post("/auth/google").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                    .andExpect(jsonPath("$.details.fields.code").exists());
+        }
+    }
+
+    /** TC-AUTH-010: without Google configuration both flows answer 503 GOOGLE_SIGN_IN_DISABLED. */
+    @Test
+    void googleDisabledWithoutConfiguration() throws Exception {
+        for (String body : new String[] { "{\"code\":\"c\"}", "{\"credential\":\"t\"}" }) {
+            mvc.perform(post("/auth/google").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.code").value("GOOGLE_SIGN_IN_DISABLED"));
+        }
     }
 
     private String signIn(String email) throws Exception {

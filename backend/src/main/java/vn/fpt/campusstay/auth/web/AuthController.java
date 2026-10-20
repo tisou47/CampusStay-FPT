@@ -1,11 +1,14 @@
 package vn.fpt.campusstay.auth.web;
 
+import java.util.Map;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,19 +23,22 @@ import vn.fpt.campusstay.auth.internal.SessionService;
 import vn.fpt.campusstay.auth.internal.SignInService;
 import vn.fpt.campusstay.auth.internal.UserView;
 import vn.fpt.campusstay.auth.internal.UserViewMapper;
+import vn.fpt.campusstay.shared.error.ApiException;
 
 /** Session endpoints of the API contract plus the Google and password additions (see API contract changes). */
 @RestController
 @RequestMapping("/auth")
 class AuthController {
 
+    // "remember" is optional (missing = false). It is a Boolean because Jackson 3 rejects a missing primitive.
     record SignInRequest(
             @NotBlank(message = "Enter your email.") @Email(message = "Enter a valid email.") @Size(max = 254) String email,
             @NotBlank(message = "Enter your password.") @Size(max = 128) String password,
-            boolean remember) {
+            Boolean remember) {
     }
 
-    record GoogleSignInRequest(@NotBlank @Size(max = 4096) String credential, boolean remember) {
+    /** Exactly one of {@code code} (web popup) and {@code credential} (Android ID token), ADR-14. */
+    record GoogleSignInRequest(@Size(max = 4096) String code, @Size(max = 4096) String credential, Boolean remember) {
     }
 
     record SignInResponse(String token, UserView user) {
@@ -66,13 +72,20 @@ class AuthController {
 
     @PostMapping("/sign-in")
     SignInResponse signIn(@Valid @RequestBody SignInRequest body) {
-        var result = signIn.signInWithPassword(body.email(), body.password(), body.remember());
+        var result = signIn.signInWithPassword(body.email(), body.password(), Boolean.TRUE.equals(body.remember()));
         return new SignInResponse(result.token(), views.of(result.user()));
     }
 
     @PostMapping("/google")
     SignInResponse google(@Valid @RequestBody GoogleSignInRequest body) {
-        var result = signIn.signInWithGoogle(body.credential(), body.remember());
+        boolean hasCode = StringUtils.hasText(body.code());
+        if (hasCode == StringUtils.hasText(body.credential())) {
+            throw ApiException.badRequest("VALIDATION_FAILED", "Google sign-in could not start. Try again.",
+                    Map.of("fields", Map.of("code", "Send either the Google authorization code or the ID token.")));
+        }
+        boolean remember = Boolean.TRUE.equals(body.remember());
+        var result = hasCode ? signIn.signInWithGoogleCode(body.code(), remember)
+                : signIn.signInWithGoogle(body.credential(), remember);
         return new SignInResponse(result.token(), views.of(result.user()));
     }
 

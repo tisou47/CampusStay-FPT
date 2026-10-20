@@ -21,7 +21,7 @@ public class UserViewMapper {
         var codes = user.role() == Role.STAFF || user.role() == Role.MANAGER
                 ? new ArrayList<>(blocks.codesByIds(user.blockIds()).values())
                 : null;
-        return new UserView(user.userId(), user.name(), user.email(), user.role(), user.studentCode(), user.title(),
+        return new UserView(String.valueOf(user.userId()), user.name(), user.email(), user.role(), user.studentCode(), user.title(),
                 codes);
     }
 }

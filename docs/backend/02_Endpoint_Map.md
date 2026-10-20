@@ -1,8 +1,8 @@
 # CampusStay FPT — Backend endpoint map
 
-Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md`; **B-03** marks a coded endpoint that still returns numeric IDs and must switch to string IDs (ADR-15).
+Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded.
+Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded, 5 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -19,14 +19,14 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded.
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | A-01: `credential` done, `code` exchange to add (ADR-14). B-03 |
-| AUTH | GET | `/auth/me` | Must | Coded | B-03 |
-| AUTH | POST | `/auth/password/change` | Must | Coded | A-04 |
-| AUTH | POST | `/auth/password/forgot` | Must | Coded | A-02 |
-| AUTH | POST | `/auth/password/reset` | Must | Coded | A-03 |
-| AUTH | POST | `/auth/sign-in` | Must | Coded | B-02: body `{ email, password, remember }` (already so). B-03 |
-| AUTH | POST | `/auth/sign-out` | Must | Coded |  |
-| CFG | GET | `/terms` | Must | Coded | C-10 (`total`) done. B-03 |
+| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled" in `AuthFlowIT`, code exchange in `GoogleCodeExchangerTest`; the success path needs a real Google account (manual test) |
+| AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
+| AUTH | POST | `/auth/password/change` | Must | Coded | A-04; no integration test yet |
+| AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007 |
+| AUTH | POST | `/auth/password/reset` | Must | Coded | A-03; no integration test yet |
+| AUTH | POST | `/auth/sign-in` | Must | Verified | B-02; TC-AUTH-001, 002, 005, 006, 008 |
+| AUTH | POST | `/auth/sign-out` | Must | Verified | TC-AUTH-003 |
+| CFG | GET | `/terms` | Must | Verified | C-10; TC-CFG-001 |
 
 ## S1 — Admin configuration, inventory, users, Audit Log, in-app notification list
 

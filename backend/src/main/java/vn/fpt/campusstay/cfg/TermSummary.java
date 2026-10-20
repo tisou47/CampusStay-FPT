@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Contract item of {@code GET /terms}. Also the CFG public view of a Term for
- * other modules (APP checks the registration window with it).
+ * CFG public view of a published Term for other modules (APP checks the
+ * registration window with it). {@code GET /terms} maps it to its contract
+ * item, which carries the id as a string (ADR-15).
  *
  * @param current          the Term the apps should show by default: the published Term whose stay
  *                         includes today, otherwise the next one to start

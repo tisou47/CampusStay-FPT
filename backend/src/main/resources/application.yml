@@ -63,8 +63,10 @@ campusstay:
     web-base-url: ${WEB_BASE_URL:http://localhost:5173}
     google:
       client-id: ${GOOGLE_CLIENT_ID:}          # blank = Google sign-in disabled
+      client-secret: ${GOOGLE_CLIENT_SECRET:}  # blank = web code flow disabled (Android ID tokens still work)
       hosted-domain: ${GOOGLE_HOSTED_DOMAIN:fpt.edu.vn}
       jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+      token-uri: https://oauth2.googleapis.com/token
   mail:
     from: ${MAIL_FROM:CampusStay FPT <no-reply@campusstay.test>}
     batch-size: 20

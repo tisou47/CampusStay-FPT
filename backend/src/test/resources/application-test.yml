@@ -5,3 +5,7 @@ spring:
 campusstay:
   mail:
     dispatch-interval: 1h
+  auth:
+    google:             # pinned off, so a developer's GOOGLE_* variables cannot change test results
+      client-id: ""
+      client-secret: ""

@@ -14,13 +14,14 @@ mvn verify                                                  # + *IT integration 
 ```
 `mvn verify` must pass before every commit. Mail inbox: http://localhost:8025. Seed password: `CampusStay@2026`.
 
-## First build after this skeleton (known risk R-11)
-The skeleton was written without compiling. If the first build fails, fix it before adding features. Likely spots:
+## Spring Boot 4 / Jackson 3 notes (R-11 closed 20/10/2026: the build and `mvn verify` pass)
 - Spring Boot 4 test packages: `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc`, `org.springframework.boot.testcontainers.service.connection.ServiceConnection`.
 - Testcontainers 2: `org.testcontainers.postgresql.PostgreSQLContainer`, artifacts `testcontainers-postgresql`, `testcontainers-junit-jupiter`.
 - Jackson 3: `tools.jackson.databind.json.JsonMapper` (AuditLog); annotations stay `com.fasterxml.jackson.annotation`.
-- `HandlerMethodValidationException#getParameterValidationResults`, `HttpStatus.CONTENT_TOO_LARGE`.
-Fix by checking the real API (do not guess); keep the design unchanged.
+- Jackson 3 rejects a missing or `null` primitive in a request body (`400 BAD_REQUEST_BODY`). Optional request fields use wrapper types (`Boolean remember`); do not turn the check off globally.
+- Jackson 3 binds both `"42"` and `42` to a `long` request field, so request records may keep IDs as `long`.
+- Outbound HTTP: `RestClient.builder()` directly (Boot 4 has no `RestClient.Builder` bean without the restclient starter); tests bind it to `MockRestServiceServer` (see `GoogleCodeExchangerTest`).
+When something does not compile, check the real API (do not guess); keep the design unchanged.
 
 ## Module rules (enforced by `ModularityTests`)
 - Packages: `vn.fpt.campusstay.<module>` with modules `auth cfg inv app asg bil req mnt ntf rpt` + open `shared`.
@@ -55,4 +56,4 @@ Fix by checking the real API (do not guess); keep the design unchanged.
 - Webhook keys: compare with `Tokens.constantTimeEquals`.
 
 ## Slice order
-S0 done (AUTH session, `/terms`), except the open items marked in the map: Google `code` exchange (A-01) and string IDs (B-03). Next: S1 Admin configuration + inventory + users + Audit Log + `/notifications` → S2 Application wizard + Deposit + VietQR/SePay → S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).
+S0 done (AUTH session, `/terms`, Google code or ID token, string IDs); `/auth/password/reset` and `/auth/password/change` still need integration tests. Next: S1 Admin configuration + inventory + users + Audit Log + `/notifications` → S2 Application wizard + Deposit + VietQR/SePay → S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).

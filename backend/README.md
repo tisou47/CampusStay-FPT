@@ -36,7 +36,7 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
 
 ### Google sign-in (optional)
 1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID, type *Web application*; add `http://localhost:5173` as an authorized JavaScript origin.
-2. Set `GOOGLE_CLIENT_ID` for the backend (and `VITE_GOOGLE_CLIENT_ID` for the web app).
+2. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for the backend (environment variables, never in a committed file), and `VITE_GOOGLE_CLIENT_ID` for the web app. The web popup sends an authorization code that the backend exchanges with the secret (`redirect_uri=postmessage`, no redirect URI to register); Android sends an ID token and needs only the client id. Without the secret the web button answers `503 GOOGLE_SIGN_IN_DISABLED`.
 3. Link a seed account to your Google account by giving it your FPT email, e.g. in psql:
    `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'se190001@student.campusstay.test';`
 Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for accounts that already exist.
