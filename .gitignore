@@ -20,3 +20,7 @@ Thumbs.db
 
 # School report templates (kept locally, not versioned)
 /templates/
+
+# Local settings
+.claude/
+.postman/
