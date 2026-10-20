@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded, 5 of them verified.
+Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 41 coded, 40 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -21,9 +21,9 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded, 5
 |---|---|---|---|---|---|
 | AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled" in `AuthFlowIT`, code exchange in `GoogleCodeExchangerTest`; the success path needs a real Google account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
-| AUTH | POST | `/auth/password/change` | Must | Coded | A-04; no integration test yet |
+| AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012 |
 | AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007 |
-| AUTH | POST | `/auth/password/reset` | Must | Coded | A-03; no integration test yet |
+| AUTH | POST | `/auth/password/reset` | Must | Verified | A-03; TC-AUTH-012 (invitation link, single use) |
 | AUTH | POST | `/auth/sign-in` | Must | Verified | B-02; TC-AUTH-001, 002, 005, 006, 008 |
 | AUTH | POST | `/auth/sign-out` | Must | Verified | TC-AUTH-003 |
 | CFG | GET | `/terms` | Must | Verified | C-10; TC-CFG-001 |
@@ -32,39 +32,39 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded, 5
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | GET | `/admin/audit-log` | Must | Planned |  |
-| AUTH | GET | `/admin/permissions` | Must | Planned |  |
-| AUTH | GET | `/admin/users` | Must | Planned |  |
-| AUTH | POST | `/admin/users` | Must | Planned |  |
-| AUTH | PUT | `/admin/users/{id}` | Must | Planned |  |
-| CFG | GET, PUT | `/admin/eligibility` | Must | Planned |  |
-| CFG | GET, PUT | `/admin/fees` | Must | Planned |  |
-| CFG | GET, PUT | `/admin/matching` | Must | Planned |  |
-| CFG | POST | `/admin/matching/preview` | Must | Planned |  |
-| CFG | GET | `/admin/room-classes` | Must | Planned |  |
-| CFG | POST | `/admin/room-classes` | Must | Planned |  |
-| CFG | PUT | `/admin/room-classes/{id}` | Must | Planned |  |
-| CFG | GET | `/admin/room-types` | Must | Planned |  |
-| CFG | POST | `/admin/room-types` | Must | Planned |  |
-| CFG | PUT | `/admin/room-types/{id}` | Must | Planned |  |
-| CFG | GET, PUT | `/admin/system-parameters` | Must | Planned |  |
-| CFG | GET | `/admin/terms` | Must | Planned |  |
-| CFG | POST | `/admin/terms` | Must | Planned |  |
-| CFG | PUT | `/admin/terms/{id}` | Must | Planned |  |
-| CFG | POST | `/admin/terms/{id}/publish` | Must | Planned |  |
-| INV | GET | `/admin/buildings` | Must | Planned |  |
-| INV | POST | `/admin/buildings` | Must | Planned |  |
-| INV | PUT | `/admin/buildings/{id}` | Must | Planned |  |
-| INV | GET | `/admin/buildings/{id}/floors/{floor}/rooms` | Must | Planned |  |
-| INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Planned |  |
-| INV | GET | `/inventory/rooms` | Must | Planned |  |
-| INV | GET | `/inventory/rooms/{code}` | Must | Planned |  |
-| INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Planned |  |
-| INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Planned |  |
-| INV | GET | `/inventory/structure` | Must | Planned |  |
-| NTF | GET | `/notifications` | Must | Planned | Moved from S2: every layout calls it |
-| NTF | POST | `/notifications/read-all` | Must | Planned | Moved from S2 |
-| NTF | POST | `/notifications/{id}/read` | Must | Planned | Moved from S2 |
+| AUTH | GET | `/admin/audit-log` | Must | Verified | C-18; TC-AUTH-014, 018, TC-CFG-008, TC-INV-006 |
+| AUTH | GET | `/admin/permissions` | Must | Verified | Built from `auth.Permission`; TC-AUTH-017 |
+| AUTH | GET | `/admin/users` | Must | Verified | C-15; TC-AUTH-011 |
+| AUTH | POST | `/admin/users` | Must | Verified | C-15; invitation email via outbox; TC-AUTH-012, 013 |
+| AUTH | PUT | `/admin/users/{id}` | Must | Verified | C-15; disabling signs the user out; TC-AUTH-014, 015 |
+| CFG | GET, PUT | `/admin/eligibility` | Must | Verified | C-16; TC-CFG-009 |
+| CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; TC-CFG-008 |
+| CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16; TC-CFG-010 |
+| CFG | POST | `/admin/matching/preview` | Must | Verified | Answers "nobody to place" until ASG implements `cfg.MatchingPreviewer` (S3); TC-CFG-010 |
+| CFG | GET | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
+| CFG | POST | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
+| CFG | PUT | `/admin/room-classes/{id}` | Must | Verified | TC-CFG-007 |
+| CFG | GET | `/admin/room-types` | Must | Verified | TC-CFG-005, TC-INV-005 |
+| CFG | POST | `/admin/room-types` | Must | Verified | TC-CFG-005 |
+| CFG | PUT | `/admin/room-types/{id}` | Must | Verified | Beds change adds/retires Beds (event to INV); TC-CFG-006, TC-INV-005 |
+| CFG | GET, PUT | `/admin/system-parameters` | Must | Verified | C-16; TC-CFG-011 |
+| CFG | GET | `/admin/terms` | Must | Verified | TC-CFG-002 |
+| CFG | POST | `/admin/terms` | Must | Verified | C-11; TC-CFG-003, 004 |
+| CFG | PUT | `/admin/terms/{id}` | Must | Verified | TC-CFG-004 |
+| CFG | POST | `/admin/terms/{id}/publish` | Must | Verified | TC-CFG-004 |
+| INV | GET | `/admin/buildings` | Must | Verified | C-15; TC-INV-001 |
+| INV | POST | `/admin/buildings` | Must | Verified | TC-INV-002 |
+| INV | PUT | `/admin/buildings/{id}` | Must | Verified | TC-INV-002, 005 |
+| INV | GET | `/admin/buildings/{id}/floors/{floor}/rooms` | Must | Verified | TC-INV-002 |
+| INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Verified | Range up to parameter `inventory.max_floor` (V11); TC-INV-002 |
+| INV | GET | `/inventory/rooms` | Must | Verified | C-17; TC-INV-004, 005, 006 |
+| INV | GET | `/inventory/rooms/{code}` | Must | Verified | TC-INV-004 |
+| INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Verified | TC-INV-006 |
+| INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Verified | C-17; TC-INV-005, 006 |
+| INV | GET | `/inventory/structure` | Must | Verified | TC-INV-003, 007 |
+| NTF | GET | `/notifications` | Must | Verified | Moved from S2: every layout calls it; C-18; TC-NTF-001, 003 |
+| NTF | POST | `/notifications/read-all` | Must | Verified | Moved from S2; TC-NTF-002 |
+| NTF | POST | `/notifications/{id}/read` | Must | Verified | Moved from S2; TC-NTF-002 |
 
 ## S2 — Application wizard, Deposit Invoice, VietQR/SePay
 

@@ -30,7 +30,13 @@ public final class ConstraintMessages {
             Map.entry("ux_swap_post_one_active", new Entry("SWAP_POST_EXISTS", "You already have an active swap post.")),
             Map.entry("ux_escalation_open", new Entry("ESCALATION_OPEN", "This item is already escalated.")),
             Map.entry("ux_floor", new Entry("FLOOR_EXISTS", "This Floor already exists in the Building.")),
-            Map.entry("inv_room_code_key", new Entry("ROOM_CODE_TAKEN", "A Room with this code already exists.")));
+            Map.entry("inv_room_code_key", new Entry("ROOM_CODE_TAKEN", "A Room with this code already exists.")),
+            Map.entry("inv_building_code_key", new Entry("BLOCK_EXISTS", "A Block with this name already exists.")),
+            Map.entry("cfg_term_code_key", new Entry("TERM_EXISTS", "A Term with this name already exists.")),
+            Map.entry("cfg_room_type_name_key", new Entry("ROOM_TYPE_EXISTS", "A Room Type with this name already exists.")),
+            Map.entry("cfg_room_class_name_key", new Entry("ROOM_CLASS_EXISTS", "A Room Class with this name already exists.")),
+            Map.entry("cfg_priority_group_key_key", new Entry("PRIORITY_GROUP_EXISTS", "A priority group with this name already exists.")),
+            Map.entry("ux_matching_one_active", new Entry("STALE_DATA", "Someone else saved the matching criteria a moment ago. Reload the page and try again.")));
 
     private ConstraintMessages() {
     }

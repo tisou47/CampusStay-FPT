@@ -155,3 +155,14 @@ SELECT u.id,
 FROM generate_series(1, 48) AS s(n)
 JOIN auth_user u ON u.email = 'se19' || lpad(s.n::text, 4, '0') || '@student.campusstay.test'
 ON CONFLICT (user_id) DO NOTHING;
+
+-- ---------- in-app notifications (one welcome note per account) ----------
+INSERT INTO ntf_notification (user_id, event_key, title, body, link, created_at)
+SELECT u.id, 'WELCOME', 'Welcome to CampusStay',
+       CASE WHEN u.role = 'STUDENT'
+            THEN 'Your account is ready. Updates on your Application, Invoices and requests appear here.'
+            ELSE 'Your account is ready. Work that needs you appears here.' END,
+       CASE WHEN u.role = 'STUDENT' THEN '/student' ELSE NULL END,
+       '2026-10-01 01:00:00+00'
+FROM auth_user u
+WHERE NOT EXISTS (SELECT 1 FROM ntf_notification n WHERE n.user_id = u.id AND n.event_key = 'WELCOME');
