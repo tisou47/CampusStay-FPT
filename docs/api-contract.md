@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.1 (20/10/2026): the mentor-confirmed contract plus the changes A-01…A-07, B-01…B-03 and C-01…C-14 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.2 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-07, B-01…B-03 and C-01…C-18 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -149,6 +149,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 - `GET /inventory/rooms?termId&block&floor` → `{ roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity, outOfService: { since, reason, by, note } | null, beds: [{ id, state: 'allocated'|'available'|'oos', occupant: { name, studentCode } | null }] }], summary: { beds, allocated, available, outOfService } }`
 - `GET /inventory/rooms/{code}` → `{ code, block, floor }`
 - `POST /inventory/rooms/{code}/out-of-service` `{ reason, note? }` · `POST /inventory/rooms/{code}/back-in-service`
+- `floor` is required; `block` may be empty only when the user has one Block; without `termId` the current Term fills the Beds. A Bed `id` is its code (`A-305-B`). `reason` is one of `outOfServiceReasons`. A Room whose Bed holds an active Allocation cannot go out of service (`409 ROOM_OCCUPIED`). See C-17.
 
 ### Maintenance
 
@@ -238,6 +239,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 - `GET /admin/buildings` → `{ items: [{ id, name, gender, status, floors: [{ floor, roomClassName, twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }], genders, floorOptions, layoutNote }` · `POST` · `PUT /admin/buildings/{id}` · `POST /admin/buildings/{id}/rooms/bulk` `{ fromFloor, toFloor }` → `{ created, skipped }` · `GET /admin/buildings/{id}/floors/{floor}/rooms` → `{ items: [{ code, roomTypeName, roomClassName, outOfService }] }`
 - `GET /admin/users?q&role&block&status&page&pageSize` → `{ items: [{ id, name, email, role, scope, lastSignInAt, status }], total, roles, blocks, scopeOptions }` · `POST /admin/users` (invite) · `PUT /admin/users/{id}`
 - `GET /admin/permissions` → `{ roles: [{ key, short }], rows: [{ action, allowed: [bool] }] }`
+- Admin screens exchange display labels (roles, Block scope `All Blocks`/`A`/`A, B`, statuses, `gender` Male/Female, Block `name` = code); saves return `{ id }` (`PUT /admin/users/{id}`: the updated item). Fees: rules left out of a PUT are kept. Eligibility: `applied` = students in the group. Matching: `weights[].value` in whole percent (total 100), `boost` a multiplier (1 = off). See C-15, C-16; Audit Log labels and `/notifications?limit` (default 20, max 100): C-18.
 - `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }` · `POST /inspection-checklists` `{ name }` · `POST /inspection-checklists/{id}/publish` `{ items }` · `POST /inspection-checklists/{id}/archive`
 - `GET /reports/occupancy?termId` → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 - `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`

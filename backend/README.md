@@ -61,10 +61,11 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 ```
 src/main/java/vn/fpt/campusstay/
   shared/   error model, paging, audit log, clock, tokens (open module)
-  auth/     sign-in, sessions, users, Block scope           (S0 implemented)
-  cfg/      Terms and configuration                        (GET /terms implemented)
-  inv/      Buildings, Floors, Rooms, Beds                  (Block directory implemented)
-  app/ asg/ bil/ req/ mnt/ ntf/ rpt/                        (to be implemented slice by slice)
-src/main/resources/db/migration/   Flyway schema V1–V10
+  auth/     sign-in, sessions, users, roles, Block scope, Audit Log screen   (S0, S1)
+  cfg/      Terms, Room Types/Classes, fees, eligibility, matching, parameters (S0, S1)
+  inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
+  ntf/      in-app notifications, email outbox                              (S0, S1)
+  app/ asg/ bil/ req/ mnt/ rpt/   (asg: Bed occupancy port only; the rest slice by slice)
+src/main/resources/db/migration/   Flyway schema V1–V11
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

@@ -94,11 +94,11 @@ Table prefix = owning module. Only the owning module reads or writes its tables 
 
 | Module | Responsibility | Owns tables | Public API (top-level package) |
 |---|---|---|---|
-| AUTH | Sign-in (password, Google), sessions, users and roles, Block scope, student directory (mock SIS), staff profiles, invitations, password reset | `auth_*` | `CurrentUser`, `AuthenticatedUser`, `Role`, `BlockScope`, `BlockDirectory` (port), events `PasswordResetRequested` |
-| CFG | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary` (more added per slice: `Catalog`, `FeePolicy`, `Parameters`) |
-| INV | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation | `inv_*` | Implements `BlockDirectory`; `Inventory` queries (Bed availability, Room of a Bed) |
+| AUTH | Sign-in (password, Google), sessions, users and roles, Block scope, student directory (mock SIS), staff profiles, invitations, password reset | `auth_*` | `CurrentUser`, `AuthenticatedUser`, `Role`, `Permission` (role-by-action table, also the Admin permission matrix), `BlockScope`, `UserDirectory` (names, student codes, priority-group counts), ports `BlockDirectory` (INV) and `AuditLogSettings` (CFG), events `PasswordResetRequested` |
+| CFG | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary`, `Catalog` (Room Types, Room Classes), `Parameters`, `Lookups`, ports `RoomUsage` (INV) and `MatchingPreviewer` (ASG, S3), implements AUTH's `AuditLogSettings`, events `RoomTypeBedsChanged` (more added per slice: `FeePolicy`) |
+| INV | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation | `inv_*` | Implements `BlockDirectory` and CFG's `RoomUsage`; port `BedOccupancy` (ASG); `Inventory` queries (Bed availability, Room of a Bed) |
 | APP | Application wizard, eligibility check, roommate invitations and code check, Application review, Round-2 offers | `app_*` | `Applications` (status transitions used by BIL/ASG), events `ApplicationCreated`, `ApplicationSubmitted`, `ApplicationRejected` |
-| ASG | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | `Allocations` queries, events `AllocationsCommitted`, `CheckedIn`, `CheckedOut` |
+| ASG | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`; `Allocations` queries, events `AllocationsCommitted`, `CheckedIn`, `CheckedOut` |
 | BIL | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue Invoice, outstanding balance), events `PaymentConfirmed`, `InvoiceOverdue` |
 | REQ | Room-Change Requests, swaps and swap board, routing rules, SLA timers, escalations | `req_*` | `Routing` (assignee for a request type), events `RoomChangeDecided`, `SwapApproved` |
 | MNT | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | events `MaintenanceUpdated` |
@@ -305,7 +305,7 @@ Fit of a student in a Room = weighted share of matching attributes (major, cohor
 
 Conventions: module prefix; `BIGINT` identity keys; money `BIGINT` VND; `TIMESTAMPTZ` in UTC; statuses as `UPPER_SNAKE` text with `CHECK`; `version` for optimistic locking; JSONB only for snapshots and display payloads (contact snapshot, Invoice lines, matching snapshot), never for data that is filtered or joined.
 
-Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data. Dev/demo data: `db/seed/R__dev_seed.sql` (profiles `dev` and `test` only; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
+Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation). Dev/demo data: `db/seed/R__dev_seed.sql` (profiles `dev` and `test` only; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
 
 ### 13.1 Core entities
 

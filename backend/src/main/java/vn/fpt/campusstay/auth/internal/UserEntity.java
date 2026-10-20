@@ -68,6 +68,14 @@ public class UserEntity {
     protected UserEntity() {
     }
 
+    /** A back-office account invited by the Admin; it becomes Active when the password is set. */
+    UserEntity(String email, String displayName, Role role) {
+        this.email = email;
+        this.displayName = displayName;
+        this.role = role;
+        this.status = Status.INVITED;
+    }
+
     @PreUpdate
     void touch() {
         updatedAt = Instant.now();
@@ -97,6 +105,23 @@ public class UserEntity {
 
     public void linkGoogle(String sub) {
         googleSub = sub;
+    }
+
+    void rename(String newName) {
+        displayName = newName;
+    }
+
+    void changeRole(Role newRole) {
+        role = newRole;
+    }
+
+    void disable() {
+        status = Status.DISABLED;
+    }
+
+    /** Re-enables a disabled account: Active if the user ever set a password or linked Google, else Invited. */
+    void restore() {
+        status = passwordHash != null || googleSub != null ? Status.ACTIVE : Status.INVITED;
     }
 
     public Long getId() {
@@ -133,5 +158,9 @@ public class UserEntity {
 
     public Instant getLockedUntil() {
         return lockedUntil;
+    }
+
+    public Instant getLastSignInAt() {
+        return lastSignInAt;
     }
 }
