@@ -1,0 +1,77 @@
+# CampusStay FPT backend — base configuration. Secrets come from environment
+# variables (see infra/.env.example); never commit real values.
+spring:
+  application:
+    name: campusstay
+  profiles:
+    default: dev
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/campusstay}
+    username: ${DB_USER:campusstay}
+    password: ${DB_PASSWORD:campusstay}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none          # schema is owned by Flyway (ADR-11)
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 30MB
+
+server:
+  servlet:
+    context-path: /api        # contract base URL; the Vite dev proxy forwards /api here
+  error:
+    include-stacktrace: never
+    include-message: never
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+campusstay:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  auth:
+    session-ttl: 12h                 # idle timeout without "remember me"
+    remember-ttl: 30d                # idle timeout with "remember me"
+    session-absolute-max: 30d        # hard limit after sign-in
+    touch-interval: 5m               # how often last_used_at / expiry are refreshed
+    max-failed-attempts: 5
+    lock-duration: 15m
+    reset-token-ttl: 30m
+    invite-token-ttl: 72h
+    reset-requests-per-hour: 3
+    web-base-url: ${WEB_BASE_URL:http://localhost:5173}
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}          # blank = Google sign-in disabled
+      hosted-domain: ${GOOGLE_HOSTED_DOMAIN:fpt.edu.vn}
+      jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+  mail:
+    from: ${MAIL_FROM:CampusStay FPT <no-reply@campusstay.test>}
+    batch-size: 20
+    max-attempts: 5
+    retry-base: 1m
+    dispatch-interval: 30s
+
+logging:
+  level:
+    root: INFO

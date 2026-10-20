@@ -1,0 +1,320 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
+import { Ban, Building, Check, Download, Wrench } from 'lucide-react'
+import { api } from '@/api/endpoints'
+import { useMutation, useQuery } from '@/api/hooks'
+import { useSession } from '@/app/session'
+import { useToast } from '@/app/toast'
+import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { Button } from '@/components/ui/Button'
+import { Alert, Card, Note } from '@/components/ui/Display'
+import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
+import { EmptyBlock, QueryState } from '@/components/ui/States'
+import { Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
+import { formatDateTime, formatNumber } from '@/lib/format'
+import { useRoleBase } from '@/lib/useRoleBase'
+
+// SCR-INV-10 Room and Bed Inventory (Figma 37:2075). Shared with the Manager portal.
+// GET /inventory/structure?block → { blocks: [{ block, floors }], outOfServiceReasons }
+// GET /inventory/rooms?termId&block&floor → { roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity,
+//   outOfService: { since, reason, by, note } | null, beds: [{ id, state, occupant: { name, studentCode } | null }] }],
+//   summary: { beds, allocated, available, outOfService } }
+// GET /inventory/rooms/:code → { code, block, floor } (deep link ?room=)
+// POST /inventory/rooms/:code/out-of-service { reason, note } · POST /inventory/rooms/:code/back-in-service
+
+const bedLook = {
+  allocated: 'bg-accent',
+  available: 'border-[1.5px] border-success bg-surface',
+  oos: 'bg-line-strong',
+}
+const bedLabel = { allocated: 'Allocated', available: 'Available', oos: 'Out of service' }
+
+function BedMark({ state }) {
+  return <span aria-hidden="true" className={cx('size-3.5 shrink-0 rounded-sm', bedLook[state])} />
+}
+
+function Legend() {
+  return (
+    <ul aria-label="Legend" className="flex items-center gap-4">
+      {Object.keys(bedLook).map((s) => (
+        <li key={s} className="flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-secondary">
+          <BedMark state={s} />
+          {bedLabel[s]}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+const allocatedOf = (room) => room.beds.filter((b) => b.state === 'allocated').length
+
+function RoomCard({ room, selected, onSelect }) {
+  const allocated = allocatedOf(room)
+  const caption = room.outOfService ? 'Out of service' : `${allocated} / ${room.capacity} allocated`
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      aria-label={`Room ${room.code}, ${room.roomTypeName}, ${caption}`}
+      className={cx(
+        'flex min-w-0 flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-colors',
+        selected ? 'border-primary bg-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong',
+      )}
+    >
+      <span className="flex w-full items-center justify-between gap-2 whitespace-nowrap">
+        <span className="text-base font-medium text-fg">{room.code}</span>
+        <span className="text-sm text-fg-tertiary">{room.roomTypeName}</span>
+      </span>
+      <span className="flex flex-wrap gap-1">
+        {room.beds.map((b) => (
+          <BedMark key={b.id} state={b.state} />
+        ))}
+      </span>
+      <span className={cx('text-sm whitespace-nowrap', room.outOfService ? 'text-error-fg' : 'text-fg-secondary')}>{caption}</span>
+    </button>
+  )
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start justify-between gap-4 text-base">
+      <dt className="shrink-0 text-fg-secondary">{label}</dt>
+      <dd className="min-w-0 text-right font-medium text-fg">{children}</dd>
+    </div>
+  )
+}
+
+function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
+  const { notify, notifyError } = useToast()
+  const back = useMutation(() => api.inventory.backInService(room.code), {
+    invalidates: ['inventory', 'dashboard'],
+    onSuccess: () => notify({ title: `Room ${room.code} is back in service`, message: `${room.capacity} Beds can be allocated again.` }),
+    onError: (e) => notifyError(e, 'Could not update the Room'),
+  })
+  const allocated = allocatedOf(room)
+  const free = room.beds.filter((b) => b.state === 'available').length
+  const oos = room.outOfService
+  const rows = oos
+    ? [
+        ['Room Type', room.roomTypeName],
+        ['Room Class', room.roomClassName],
+        ['Since', formatDateTime(oos.since)],
+        ['Reason', oos.reason],
+        ['Set by', oos.by],
+      ]
+    : [
+        ['Room Type', room.roomTypeName],
+        ['Room Class', room.roomClassName],
+        ['Location', `Block ${room.block} · Floor ${room.floor}`],
+        ['Allocated', `${allocated} / ${room.capacity}`],
+      ]
+
+  return (
+    <Card className="flex min-h-0 w-90 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={`Room ${room.code} details`}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-h2 font-semibold text-fg">Room {room.code}</h2>
+        {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{free} free {free === 1 ? 'Bed' : 'Beds'}</Tag>}
+      </div>
+      <dl className="flex flex-col gap-3.5">
+        {rows.map(([label, value]) => (
+          <Row key={label} label={label}>
+            {value ?? '—'}
+          </Row>
+        ))}
+      </dl>
+      {oos?.note && <Alert title="Note">{oos.note}</Alert>}
+      <p className="text-base font-medium text-fg">Beds</p>
+      <ul className="flex flex-col gap-3">
+        {room.beds.map((bed) => (
+          <li key={bed.id} className="flex items-center gap-2.5">
+            <BedMark state={bed.state} />
+            <span className="text-base whitespace-nowrap text-fg">{bed.id}</span>
+            <span className={cx('ml-auto min-w-0 truncate text-sm', bed.occupant ? 'text-fg-secondary' : 'text-fg-tertiary')}>
+              {bed.occupant ? `${bed.occupant.name} · ${bed.occupant.studentCode}` : oos ? 'No occupant' : 'Available'}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
+        {oos ? (
+          <Button variant="primary" icon={Check} onClick={() => back.run()} disabled={back.pending}>
+            Back in service
+          </Button>
+        ) : (
+          <Button icon={Ban} onClick={onSetOutOfService} disabled={allocated > 0}>
+            Set out of service
+          </Button>
+        )}
+        <Button icon={Wrench} onClick={onMaintenance}>
+          Maintenance
+        </Button>
+      </div>
+      {!oos && allocated > 0 && (
+        <Note>
+          Move the {allocated} {allocated === 1 ? 'resident' : 'residents'} before you set this Room out of service.
+        </Note>
+      )}
+    </Card>
+  )
+}
+
+function OutOfServiceModal({ room, reasons, onClose }) {
+  const { notify } = useToast()
+  const [reason, setReason] = useState(reasons[0] ?? '')
+  const [note, setNote] = useState('')
+  const save = useMutation(() => api.inventory.setOutOfService(room.code, { reason, note: note.trim() || undefined }), {
+    invalidates: ['inventory', 'dashboard'],
+    onSuccess: () => {
+      notify({ type: 'warning', title: `Room ${room.code} is out of service`, message: 'Its Beds are skipped by the next assignment run.' })
+      onClose()
+    },
+    onError: () => {},
+  })
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Set Room ${room.code} out of service`}
+      description="The assignment engine skips this Room and its Beds until it is back in service."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="danger" icon={Ban} onClick={() => save.run()} disabled={!reason || save.pending}>
+            Set out of service
+          </Button>
+        </>
+      }
+    >
+      {save.error && <Alert type="error" title="Could not update the Room">{save.error.message}</Alert>}
+      <Field label="Reason" required>
+        {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={reasons} />}
+      </Field>
+      <Field label="Note" helper="Shown to Staff and the Block Manager.">
+        {(id) => <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What happened and what is needed to fix it" />}
+      </Field>
+    </Modal>
+  )
+}
+
+export default function Inventory() {
+  const { term, block: scopeBlock } = useSession()
+  const { notifyError } = useToast()
+  const base = useRoleBase()
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const structure = useQuery(['inventory', 'structure', scopeBlock], ({ signal }) => api.inventory.structure({ block: scopeBlock ?? undefined }, { signal }))
+  const blocks = structure.data?.blocks ?? []
+  const [block, setBlock] = useState(null)
+  const [floor, setFloor] = useState(null)
+  const [selected, setSelected] = useState(params.get('room'))
+  const [settingOos, setSettingOos] = useState(false)
+
+  // Deep link (?room=A-0712) opens that Room's Block and floor; otherwise the first Block and floor.
+  const deepLink = useQuery(['inventory', 'room', params.get('room')], ({ signal }) => api.inventory.room(params.get('room'), { signal }), { enabled: Boolean(params.get('room')) })
+  useEffect(() => {
+    if (block) return
+    if (deepLink.data) {
+      setBlock(deepLink.data.block)
+      setFloor(deepLink.data.floor)
+    } else if (blocks.length && (!params.get('room') || deepLink.error)) {
+      setBlock(blocks[0].block)
+      setFloor(blocks[0].floors[0])
+    }
+  }, [block, blocks, deepLink.data, deepLink.error, params])
+
+  const floors = blocks.find((b) => b.block === block)?.floors ?? []
+  const floorQuery = useQuery(['inventory', 'floor', term?.id, block, floor], ({ signal }) => api.inventory.floor({ termId: term?.id, block, floor }, { signal }), { enabled: Boolean(block && floor != null) })
+  const rooms = floorQuery.data?.rooms ?? []
+  const room = rooms.find((r) => r.code === selected) ?? rooms.find((r) => r.outOfService) ?? rooms[0]
+  const summary = floorQuery.data?.summary
+
+  const exporting = useMutation(() => api.exports.download('inventory', { termId: term?.id, block }, `inventory-block-${block}.csv`), { onError: (e) => notifyError(e, 'Export failed') })
+
+  return (
+    <>
+      <PageHeader
+        title="Inventory"
+        description="Rooms and Beds in your Blocks. Click a Room for details."
+        actions={
+          <Button icon={Download} onClick={() => exporting.run()} disabled={!block || exporting.pending}>
+            Export
+          </Button>
+        }
+      />
+
+      <div className="flex shrink-0 items-center gap-2">
+        <Select
+          aria-label="Block"
+          wrapperClassName="w-30 shrink-0"
+          value={block ?? ''}
+          onChange={(e) => {
+            const b = blocks.find((x) => x.block === e.target.value)
+            setBlock(b.block)
+            setFloor(b.floors[0])
+            setSelected(null)
+          }}
+          options={blocks.map((b) => ({ value: b.block, label: `Block ${b.block}` }))}
+          disabled={!blocks.length}
+        />
+        <div role="group" aria-label="Floor" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+          {floors.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={f === floor}
+              aria-label={`Floor ${f}`}
+              onClick={() => {
+                setFloor(f)
+                setSelected(null)
+              }}
+              className={cx(
+                'flex h-8 w-9 shrink-0 items-center justify-center rounded-md border text-base transition-colors',
+                f === floor ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <span className="flex-1" />
+        <Legend />
+      </div>
+
+      <div className="flex min-h-0 flex-1 items-stretch gap-4">
+        <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+          <div className="flex shrink-0 items-center justify-between gap-4 whitespace-nowrap">
+            <h2 className="text-h3 font-semibold text-fg">{block ? [`Block ${block}`, floor != null && `Floor ${floor}`, floorQuery.data?.roomClassName].filter(Boolean).join(' · ') : 'Inventory'}</h2>
+            {summary && (
+              <p className="text-sm text-fg-secondary">
+                {formatNumber(summary.beds)} Beds · {formatNumber(summary.allocated)} allocated · {formatNumber(summary.available)} available
+                {summary.outOfService > 0 && ` · ${formatNumber(summary.outOfService)} out of service`}
+              </p>
+            )}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <QueryState
+              query={block ? floorQuery : structure}
+              isEmpty={(d) => (block ? !d.rooms?.length : !d.blocks?.length)}
+              empty={<EmptyBlock icon={Building} title={block ? 'No Rooms on this floor' : 'No Blocks in your scope'} />}
+            >
+              {() => (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+                  {rooms.map((r) => (
+                    <RoomCard key={r.code} room={r} selected={r.code === room?.code} onSelect={() => setSelected(r.code)} />
+                  ))}
+                </div>
+              )}
+            </QueryState>
+          </div>
+        </Card>
+
+        {room && <RoomDetail room={room} onSetOutOfService={() => setSettingOos(true)} onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}`)} />}
+      </div>
+
+      {settingOos && room && <OutOfServiceModal room={room} reasons={structure.data?.outOfServiceReasons ?? []} onClose={() => setSettingOos(false)} />}
+    </>
+  )
+}

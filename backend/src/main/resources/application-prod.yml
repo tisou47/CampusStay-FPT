@@ -1,0 +1,10 @@
+# Demo / production. Set SPRING_MAIL_HOST etc. for Gmail SMTP:
+#   SPRING_MAIL_HOST=smtp.gmail.com  SPRING_MAIL_PORT=587
+#   SPRING_MAIL_USERNAME=<account>   SPRING_MAIL_PASSWORD=<16-char App Password>
+#   SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+#   SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+server:
+  forward-headers-strategy: framework   # behind the reverse proxy / tunnel
+
+# Seed data is not loaded in prod. To demo with sample data, start once with
+# SPRING_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/seed

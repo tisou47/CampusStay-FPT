@@ -1,0 +1,22 @@
+# Each app keeps its own ignore file too: backend/.gitignore, web/.gitignore.
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# Secrets and machine-local settings
+.env
+.env.*
+!.env.example
+*.local
+.claude/settings.local.json
+
+# Logs
+*.log
+
+# School report templates (kept locally, not versioned)
+/templates/

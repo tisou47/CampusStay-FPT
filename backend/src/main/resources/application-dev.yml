@@ -1,0 +1,11 @@
+# Local development: Docker Compose Postgres + Mailpit (infra/docker-compose.yml).
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+
+logging:
+  level:
+    vn.fpt.campusstay: DEBUG

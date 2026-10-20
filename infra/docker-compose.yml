@@ -1,0 +1,52 @@
+# Local stack. Usage (from the repo root):
+#   docker compose -f infra/docker-compose.yml up -d db mail          # dependencies only, run the API from IntelliJ
+#   docker compose -f infra/docker-compose.yml --profile app up -d     # everything in containers
+name: campusstay
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: campusstay
+      POSTGRES_USER: ${DB_USER:-campusstay}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-campusstay}
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-campusstay} -d campusstay"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mail:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # web inbox: http://localhost:8025
+
+  api:
+    profiles: ["app"]
+    build: ../backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_URL: jdbc:postgresql://db:5432/campusstay
+      DB_USER: ${DB_USER:-campusstay}
+      DB_PASSWORD: ${DB_PASSWORD:-campusstay}
+      MAIL_HOST: mail
+      MAIL_PORT: 1025
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:5173}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - api-files:/app/data/files
+
+volumes:
+  db-data:
+  api-files:
