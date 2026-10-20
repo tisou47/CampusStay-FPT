@@ -1,6 +1,6 @@
 # CampusStay web app — API contract
 
-What the web app sends and expects from the CampusStay backend. Every call goes through `src/api/client.js`; the endpoint list lives in `src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
+What the web app sends and expects from the CampusStay backend. Every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
 ## Conventions
 

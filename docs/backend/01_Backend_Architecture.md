@@ -7,7 +7,7 @@
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
 | Feeds | Report 4 (SDD) §1 System Design and §2 Database Design; Report 3 §4 Non-Functional Requirements |
-| Related | `docs/00_Project_Brief.md` (ADRs), `02_Endpoint_Map.md`, `03_API_Contract_Changes.md`, `web/docs/api-contract.md` |
+| Related | `docs/00_Project_Brief.md` (ADRs), `02_Endpoint_Map.md`, `03_API_Contract_Changes.md`, `docs/api-contract.md` |
 
 ---
 

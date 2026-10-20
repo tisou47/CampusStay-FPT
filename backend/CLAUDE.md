@@ -1,6 +1,6 @@
 # CLAUDE.md — CampusStay FPT backend
 
-Instructions for Claude Code working in `backend/` (IntelliJ IDEA). Read this file, then `docs/backend/01_Backend_Architecture.md` before changing code. Scope and decisions: `docs/00_Project_Brief.md`. Endpoint shapes: `web/docs/api-contract.md` + `docs/backend/03_API_Contract_Changes.md`. Progress: `docs/backend/02_Endpoint_Map.md`.
+Instructions for Claude Code working in `backend/` (IntelliJ IDEA). Paths below are relative to the repository root. Read this file, then `docs/backend/01_Backend_Architecture.md` before changing code. Scope and decisions: `docs/00_Project_Brief.md`. Endpoint shapes: `docs/api-contract.md` + `docs/backend/03_API_Contract_Changes.md`. Progress: `docs/backend/02_Endpoint_Map.md`.
 
 ## Stack
 Java 21 · Spring Boot 4.1.x (Spring Framework 7, Spring Security 7, Hibernate 7, Jackson 3) · Maven · PostgreSQL 17 · Flyway · Spring Modulith 2.1 · JUnit 5 + Testcontainers.

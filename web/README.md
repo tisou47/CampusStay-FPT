@@ -26,7 +26,7 @@ Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), Reac
 
 ## Connecting the backend
 
-- The API the app expects is described in [docs/api-contract.md](docs/api-contract.md): conventions (auth, errors, lists, dates, money) and every endpoint with its request and response shape.
+- The API the app expects is described in [docs/api-contract.md](../docs/api-contract.md) at the repository root: conventions (auth, errors, lists, dates, money) and every endpoint with its request and response shape.
 - `src/api/endpoints.js` lists the calls; each page also repeats the shapes it reads in a comment at the top of the file.
 - Sign-in uses the account username (not an email) and password (`POST /auth/sign-in`) or Google (`POST /auth/google` with the authorization code from the popup; the server must reject accounts outside @fpt.edu.vn). The returned token is stored; a `401` signs the user out. Each portal (`/student`, `/staff`, `/manager`, `/admin`) only opens for its role.
 - Every list and panel shows a loading state, an error with **Retry**, or an empty state, so screens stay usable while endpoints are being built.
@@ -56,6 +56,6 @@ src/
   dev/          development-only screen index
   lib/          formatting and small helpers
   pages/        student/, staff/, manager/, admin/, auth/, common/
-docs/
-  api-contract.md
 ```
+
+The API contract lives in the repository's shared `docs/` folder, next to the backend design.

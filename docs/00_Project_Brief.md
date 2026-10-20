@@ -9,7 +9,7 @@
 
 > This file overrides the original registration form (`Ref_Original_Proposal_FA26SE260`). Update this file whenever a decision changes scope, architecture, schedule or conventions, and add a Decision Log entry.
 >
-> Detailed backend design lives in `docs/backend/01_Backend_Architecture.md`. The web API contract lives in `web/docs/api-contract.md`.
+> Detailed backend design lives in `docs/backend/01_Backend_Architecture.md`. The web API contract lives in `docs/api-contract.md`.
 
 ---
 
@@ -165,7 +165,7 @@ Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Intro
 | OI-13 | Bank account to link with SePay for the live demo (small real transfers) | Open — owner: Tisou |
 
 ## 10a. Repository layout
-Monorepo `campusstay/` with `backend/`, `web/`, `mobile/`, `docs/`, `infra/`. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
+One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md` and the backend design in `docs/backend/`), `infra/` (Docker Compose) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
 
 ## 11. Decision Log
 | ID | Date | Decision | Reason |

@@ -1,6 +1,6 @@
 # CampusStay FPT — Backend endpoint map
 
-Every endpoint of `web/docs/api-contract.md` (plus the additions in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code.
+Every endpoint of `docs/api-contract.md` (plus the additions in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code.
 
 Total: 158 endpoints (8 coded).
 

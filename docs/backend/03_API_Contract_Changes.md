@@ -4,10 +4,10 @@
 |---|---|
 | Version | 1.0 |
 | Date | 20/10/2026 |
-| Base | `web/docs/api-contract.md` (mentor-confirmed) |
+| Base | `docs/api-contract.md` (mentor-confirmed) |
 | Rule | Additive changes are applied by the backend directly. Breaking changes are listed here for Claude Code (VS Code) to apply in `web/` in the same PR as the backend change. |
 
-Apply the "Web action" column in `web/`, then copy the new endpoints into `web/docs/api-contract.md` and `src/api/endpoints.js`.
+Apply the "Web action" column in `web/`, then copy the new endpoints into `docs/api-contract.md` and `web/src/api/endpoints.js`.
 
 ## 1. Additions (non-breaking)
 

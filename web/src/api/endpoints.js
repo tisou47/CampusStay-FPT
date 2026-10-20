@@ -2,7 +2,7 @@ import { download, http } from './client'
 
 /*
  * CampusStay API endpoints used by the web app. Paths are relative to VITE_API_BASE_URL.
- * The expected request and response shapes are listed in docs/api-contract.md.
+ * The expected request and response shapes are listed in docs/api-contract.md (repository root).
  *
  * Conventions
  *  - Lists return { items: [...], total } and accept page, pageSize, q and filters as query parameters.
