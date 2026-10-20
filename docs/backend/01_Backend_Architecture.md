@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.0 |
+| Version | 1.1 (adds ADR-13…15: email sign-in, Google code or ID token, string IDs) |
 | Date | 20/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
@@ -35,7 +35,7 @@ flowchart LR
 
     DB[("PostgreSQL 17<br/>Flyway schema")]
     FS[("File volume<br/>photos · receipts")]
-    GOOG["Google Identity<br/>(JWKS)"]
+    GOOG["Google Identity<br/>(token endpoint · JWKS)"]
     SEPAY["SePay<br/>bank-feed webhook"]
     BANK["Bank account<br/>(VietQR)"]
     FCM["Firebase Cloud<br/>Messaging"]
@@ -49,7 +49,7 @@ flowchart LR
     JOBS --> Modules
     APP -. events .-> NTF
     BIL -. events .-> NTF
-    AUTH -->|verify ID token| GOOG
+    AUTH -->|exchange code · verify ID token| GOOG
     BANK -->|transaction| SEPAY -->|POST /webhooks/sepay| BIL
     NTF --> FCM --> MOB
     NTF --> SMTP
@@ -67,7 +67,7 @@ flowchart LR
 | Scheduled jobs | Expiry of Deposit windows and invitations, overdue Invoices, SLA timers, email outbox, housekeeping (§11). |
 | PostgreSQL | Single database, schema owned by Flyway; constraints enforce the critical invariants (§9). |
 | SePay | Watches the receiving bank account and posts each incoming transfer to the webhook (§10). |
-| Google Identity | Issues ID tokens for `@fpt.edu.vn` accounts; the API verifies them with Google's public keys. |
+| Google Identity | Issues ID tokens for `@fpt.edu.vn` accounts (directly to Android, or in exchange for the web's authorization code); the API verifies them with Google's public keys. |
 | FCM / SMTP | Push to Android; email through an outbox table. |
 
 ## 3. Key decisions
@@ -84,6 +84,9 @@ Full entries are in the Brief's Decision Log. Summary with the argument for the 
 | ADR-09 | Email via SMTP behind a port (Mailpit dev, Gmail demo) | Free. A personal Gmail account allows 500 messages per rolling 24 hours, enough for a demo; the provider can be swapped without touching modules. |
 | ADR-10 | Spring Modulith verifies module boundaries | Turns "strict boundaries" into a failing test, and generates the package diagrams for Report 4. |
 | ADR-11 | PostgreSQL 17 + Flyway SQL; JPA for writes, SQL for reads/reports | Constraints and partial indexes carry the critical invariants; migrations are the "Database Script(s)" deliverable. |
+| ADR-13 | Password sign-in by email with CampusStay's own password | CampusStay cannot check FPT Wi-Fi credentials (no SIS access, ADR-02), so asking for that username would invite users to type their FPT password into another system. Reset and invitation links go to the email anyway. |
+| ADR-14 | Google sign-in by authorization code (web) or ID token (Android) | The web keeps the custom Google button of the approved design (code flow); Android's Google Sign-In returns an ID token. The code exchange needs a client secret, which stays on the server; both paths end in the same ID-token checks. |
+| ADR-15 | IDs are JSON strings | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion. Java and the database keep `long`/`BIGINT`; the change is only in the contract DTOs. |
 
 ## 4. Modules
 
@@ -132,7 +135,8 @@ Rules (checked by `ModularityTests` with Spring Modulith; the build fails on a v
 | Errors `{ message, code?, details? }` | `ApiException` + `GlobalExceptionHandler`. `message` is written for end users. Unexpected errors return `INTERNAL_ERROR` with an `errorId` that is also in the log. DB constraint names map to friendly messages (`ConstraintMessages`). |
 | Lists `{ items, total }` | `ListResponse<T>`, or an endpoint-specific record with `items`, `total` first. `PageQuery.of(page, pageSize)`: 1-based, default 20, max 100. |
 | Scope `termId`, `block` | `BlockScope.resolve(block)` on every Staff/Manager endpoint: blank = all Blocks the user may see; a Block outside scope = `403 BLOCK_OUT_OF_SCOPE`. |
-| Dates ISO 8601 UTC | `Instant` for timestamps, `LocalDate` for date-only fields; JDBC time zone UTC; campus zone `Asia/Ho_Chi_Minh` only for "today" logic and email texts. |
+| IDs are strings (ADR-15) | Contract records expose every `id` / `…Id` component as `String` (`String.valueOf(entity.getId())`); services, entities and SQL keep `long`. Request records accept both `"42"` and `42`: bind to `long` only if an integration test proves that Jackson 3 coerces the string, otherwise bind `String` and parse in the controller. Never register a global `Long` → string serializer: amounts and counts are `long` too. |
+| Dates ISO 8601 UTC | `Instant` for fields ending in `At`, `LocalDate` (`YYYY-MM-DD`) for calendar days (`stayStart`, `checkOutBy`, `deadline` …); JDBC time zone UTC; campus zone `Asia/Ho_Chi_Minh` only for "today" logic and email texts. |
 | Money integer VND | `long` / `BIGINT` everywhere; never `double`. Rounding steps come from `cfg_parameter`. |
 | Rates fractions | `NUMERIC(5,4)` / `BigDecimal`. |
 | Statuses | DB stores `UPPER_SNAKE`; each module's status enum has a `@JsonValue` label equal to the contract text. |
@@ -168,13 +172,13 @@ sequenceDiagram
 ### 8.1 Authentication
 | Topic | Design |
 |---|---|
-| Accounts | No self sign-up. Students come from the seeded student directory (mock SIS, ADR-02); Staff/Managers are invited by the Admin (one-time `INVITE` link, 72 h). |
-| Password sign-in | BCrypt (cost 10). Unknown email and wrong password return the same `401 INVALID_CREDENTIALS` and take similar time (dummy hash). |
+| Accounts | No self sign-up. Students come from the seeded student directory (mock SIS, ADR-02); Staff/Managers are invited by the Admin (one-time `INVITE` link to the web page `/set-password?token=…`, 72 h). |
+| Password sign-in | By **email** and CampusStay's own password (ADR-13); never the FPT Wi-Fi credentials. BCrypt (cost 10). Unknown email and wrong password return the same `401 INVALID_CREDENTIALS` and take similar time (dummy hash). |
 | Lockout | 5 consecutive failures lock the account for 15 minutes. Counters are updated atomically in their own transaction. |
-| Google sign-in | Web/Android obtain an ID token from Google Identity Services; `POST /auth/google` verifies signature (Google JWKS), `iss`, `aud` (our client id), `exp`, `email_verified` and `hd = fpt.edu.vn`, as Google recommends. The account must already exist (matched by Google `sub`, else by email, then linked). |
+| Google sign-in | `POST /auth/google` takes either `code` or `credential` (ADR-14). **Web:** the Google Identity Services popup (`initCodeClient`, `ux_mode: popup`) returns an authorization code; the API exchanges it at Google's token endpoint (`grant_type=authorization_code`, `redirect_uri=postmessage`, client secret `GOOGLE_CLIENT_SECRET`) and takes the returned `id_token`. **Android:** Google Sign-In returns the ID token, sent as `credential`. Either way the API verifies signature (Google JWKS), `iss`, `aud` (our client id), `exp`, `email_verified` and `hd = fpt.edu.vn`, as Google recommends. The account must already exist (matched by Google `sub`, else by email, then linked). |
 | Sessions | 256-bit random token, only its SHA-256 stored. Idle timeout 12 h (30 days with "remember me"), sliding, hard cap 30 days. Revoked on sign-out; all sessions revoked on password reset; other sessions revoked on password change. |
 | Password rules | 8–64 characters, a letter and a digit, not containing the email name, ≤ 72 bytes (BCrypt limit). |
-| Reset links | 30 minutes, single use (row lock), max 3 per hour per account, older links invalidated. The endpoint always answers `204`. |
+| Reset links | Web page `/reset-password?token=…`; 30 minutes, single use (row lock), max 3 per hour per account, older links invalidated. The endpoint always answers `204`. |
 
 ### 8.2 Authorization
 Three layers, each one checked on the server:
@@ -211,7 +215,7 @@ The legal basis is the **Personal Data Protection Law 91/2025/QH15** (effective 
 | Access limited to purpose | Block scope for staff; students only see their own data; roommates see names and Beds only. |
 | Accountability | Audit Log of who saw/changed/exported what; exports are logged. |
 | Retention | Audit Log retention parameter (24 months default); expired sessions purged nightly. |
-| No personal data in URLs | Contract change B-01 (`/check-out/{allocationId}`). |
+| No personal data in URLs | URL paths carry ids, never student codes (contract change B-01, `/check-out/{allocationId}`). Search values (`q`, check-in lookup) can hold names or student codes, so the API never logs query strings and the reverse proxy / tunnel access log is configured without them (C-14). |
 
 ## 9. Consistency and concurrency
 
@@ -294,7 +298,7 @@ A deterministic, rule-based batch job, run per Term by Staff (`POST /assignment-
 | 4 | Conflicts | No Bed of the requested type/class → `NO_BED` (options: waitlist, other Room Class, other Room Type); partner not ready → `PARTNER_NOT_READY`; low fit → `LOW_FIT` (info). Nothing is resolved silently. |
 | 5 | Proposal | Counts, average fit; per-Block review by Staff → submit → Manager approves or returns → commit creates Allocations, Balance Invoices and notifications in one transaction per Block. |
 
-Fit of a student in a Room = weighted share of matching attributes (major, cohort, region; Admin weights) with the other occupants, averaged; multiplied by the boost (Admin, e.g. 1.2) when the student opted into Roommate preferences and they match; capped at 1. Ties break on the lowest Room code → identical input gives an identical proposal.
+Fit of a student in a Room = weighted share of matching attributes (major, cohort, region; Admin weights) with the other occupants, averaged; multiplied by the boost (Admin, e.g. 1.2) when the student opted into Roommate preferences (region, semester, major) and they match; capped at 1. Ties break on the lowest Room code → identical input gives an identical proposal.
 
 ## 13. Database design
 
@@ -354,7 +358,7 @@ Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, 
 | `test` | `mvn verify` | Testcontainers Postgres 17 | log sender | yes |
 | `prod` | demo server | env `DB_URL` … | Gmail SMTP (App Password, 500/day) | no (one-off flag) |
 
-Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`. Business values live in the database (Admin screens), never in YAML.
+Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`. Business values live in the database (Admin screens), never in YAML.
 
 Deployment: Docker image (multi-stage, non-root), `infra/docker-compose.yml`; public HTTPS for the webhook via Cloudflare Tunnel until a free VM is chosen (OI-07). Health: `/api/actuator/health` (liveness/readiness probes).
 
@@ -374,7 +378,7 @@ Deployment: Docker image (multi-stage, non-root), `infra/docker-compose.yml`; pu
 |---|---|---|---|
 | R-11 | Backend code was written in a sandbox without access to Maven Central, so it was not compiled there | First build may need small fixes (mainly Spring Boot 4 package names) | Run `mvn verify` in IntelliJ first; Claude Code fixes and commits; list of APIs to watch in `backend/CLAUDE.md` |
 | R-12 | Spring Boot 4 ecosystem still settling (e.g. springdoc 3.x targets Boot 4.0) | OpenAPI UI may lag | Add springdoc only after checking compatibility; the endpoint map is the API reference meanwhile |
-| R-13 | Scope: 158 endpoints for about 9 remaining weeks | Should/Could items at risk | Build by slice (Must first); 501 `NOT_IMPLEMENTED` keeps the web app usable |
+| R-13 | Scope: 159 endpoints for about 9 remaining weeks | Should/Could items at risk | Build by slice (Must first). An endpoint not built yet answers `404 NOT_FOUND` and the web shows its error state with Retry (C-12); `GET /notifications`, which every layout calls, is built early (S1) |
 | R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | Mock gateway + manual confirmation; test the tunnel before each review |
 | R-15 | Domain events are in-memory (no event publication registry yet) | An async listener could miss an event on a crash | Emails already go through the outbox in the same transaction; add Spring Modulith's JDBC event registry when async listeners appear |
 | R-16 | Cross-module foreign keys | Harder future split into services | Accepted for integrity; documented in §5 |

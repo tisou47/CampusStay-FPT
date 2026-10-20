@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.1 |
+| Version | 1.2 |
 | Last updated | 20/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Team Leader) |
-| Status | Aligned with the mentor-confirmed API contract and UI; backend started |
+| Status | Aligned with the mentor-confirmed API contract and UI, plus ADR-13…15; backend started. Sign-in by email (ADR-13) to be confirmed with the mentor (OI-14) |
 
 > This file overrides the original registration form (`Ref_Original_Proposal_FA26SE260`). Update this file whenever a decision changes scope, architecture, schedule or conventions, and add a Decision Log entry.
 >
@@ -31,7 +31,7 @@ Scope below is confirmed by the mentor through the API contract and UI (ADR-12).
 ### 3.1 Student (Resident) — Web + Mobile (Android)
 1. Submit an Application for the upcoming Term only (the system sets the Term; the student cannot choose it): eligibility check → Room Type + Room Class → roommate step → contact → consent.
 2. Choose a **Room Type** (2/4/6 Beds) and **Room Class** (Basic/Standard/Premium); never a specific Room or Bed (ADR-06).
-3. 2-bed Room Types: invite one roommate by student code (mutual confirmation within a time window; each pays their own Deposit) or *Match me automatically* with optional free Roommate preferences (region, cohort, major). 4/6-bed Room Types are always auto-matched.
+3. 2-bed Room Types: invite one roommate by student code (mutual confirmation within a time window; each pays their own Deposit) or *Match me automatically* with optional free Roommate preferences (region, semester, major). 4/6-bed Room Types are always auto-matched.
 4. Pay the Deposit to move the Application into processing; pay the Balance, Utility and Room-Change Invoices via VietQR; download receipts.
 5. Respond to Round-2 offers when waitlisted.
 6. View Allocation, roommates, check-in window; submit Maintenance Requests (with photos) and Room-Change Requests; post on the swap board and accept swap invitations.
@@ -76,7 +76,7 @@ All items below are in scope (mentor-confirmed). MoSCoW now sets the **build ord
 ## 5. Technology stack
 | Layer | Choice |
 |---|---|
-| Web client | React 19 + Vite 8 + Tailwind CSS 4, React Router, lucide-react (JavaScript/JSX, see OI-11) |
+| Web client | React 19 + Vite 8 + Tailwind CSS 4, React Router, lucide-react (JavaScript/JSX, OI-11) |
 | Mobile client | Flutter (Dart, null-safe), Android only |
 | Backend | Spring Boot 4.1.x, Java 21, Maven, REST API (ADR-04) |
 | Database | PostgreSQL 17, Flyway migrations (ADR-11) |
@@ -160,9 +160,10 @@ Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Intro
 | OI-08 | Official dates for Review 2, Review 3, final defense | Open (Review 2 expected 27/10 – 03/11/2026) |
 | OI-09 | M4 role in team table | Open |
 | OI-10 | Spring Boot version | **Closed 20/10/2026:** ADR-04 |
-| OI-11 | Web app is JavaScript (JSX) with Tailwind CSS, while earlier documents say "ReactJS + TypeScript" and "Ant Design 5". Keep JS or migrate to TypeScript? | Open — recommendation: keep JS for this term, document the deviation |
+| OI-11 | Web app is JavaScript (JSX) with Tailwind CSS, while earlier documents say "ReactJS + TypeScript" and "Ant Design 5". Keep JS or migrate to TypeScript? | **Closed 20/10/2026:** keep JavaScript (JSX) + Tailwind CSS for this term; Reports 3 and 4 describe the actual stack (§5) |
 | OI-12 | Personal-data regulation basis: Decree 13/2023/NĐ-CP has been replaced by the Personal Data Protection Law 91/2025/QH15 (effective 01/01/2026) and Decree 356/2025/NĐ-CP. Update NFRs and reports. | Open — documents to update |
 | OI-13 | Bank account to link with SePay for the live demo (small real transfers) | Open — owner: Tisou |
+| OI-14 | The mentor-confirmed contract signs in with a username; ADR-13 changes it to the email (contract change B-02). Inform the mentor. | Open — owner: Tisou |
 
 ## 10a. Repository layout
 One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md` and the backend design in `docs/backend/`), `infra/` (Docker Compose) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
@@ -182,3 +183,6 @@ One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` 
 | ADR-10 | 20/10/2026 | Spring Modulith verifies module boundaries; contract areas mapped onto the 10 existing module codes (see §6) | Makes "strict boundaries" testable; keeps ID conventions stable |
 | ADR-11 | 20/10/2026 | PostgreSQL 17 with Flyway SQL migrations; JPA for CRUD, `JdbcClient` SQL for reports and batch | Migrations double as the "Database Script(s)" deliverable; SQL gives control over report queries |
 | ADR-12 | 20/10/2026 | Scope extended to the mentor-confirmed API contract: utility billing, swaps, Round-2 offers, refunds, late check-ins, routing/escalation, inspections, email campaigns; Period of Stay and renewal removed | Mentor confirmation after UI review |
+| ADR-13 | 20/10/2026 | Password sign-in uses the account **email** and CampusStay's own password (ADR-07); the contract's `username` becomes `email` (B-02). The web app gets Forgot password, Reset password, Set password (invitation) and Change password pages | CampusStay has no access to FPT accounts (ADR-02), so it keeps its own passwords; asking for the Wi-Fi username would suggest typing the FPT password into another system; reset links and invitations are sent by email anyway |
+| ADR-14 | 20/10/2026 | `POST /auth/google` accepts either an authorization `code` (web popup, keeps the custom Google button of the approved design) or an ID token `credential` (Android). The server exchanges the code with Google using a client secret, then verifies the ID token the same way in both cases (`hd = fpt.edu.vn`) | The web keeps its Figma design; Android's Google Sign-In returns an ID token; the client secret stays on the server |
+| ADR-15 | 20/10/2026 | IDs are **strings** in JSON: every field named `id` or ending in `Id` (B-03, replaces clarification C-01). Java keeps `long`, the database keeps `BIGINT`; amounts and counts stay numbers | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion; the contract examples already used strings |

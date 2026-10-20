@@ -1,14 +1,14 @@
 # CampusStay FPT — Backend endpoint map
 
-Every endpoint of `docs/api-contract.md` (plus the additions in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code.
+Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md`; **B-03** marks a coded endpoint that still returns numeric IDs and must switch to string IDs (ADR-15).
 
-Total: 158 endpoints (8 coded).
+Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 8 coded.
 
 | Slice | Focus |
 |---|---|
 | S0 | Foundation, AUTH session, Terms |
-| S1 | Admin configuration, inventory, users, Audit Log |
-| S2 | Application wizard, Deposit Invoice, VietQR/SePay, in-app notifications |
+| S1 | Admin configuration, inventory, users, Audit Log, in-app notification list |
+| S2 | Application wizard, Deposit Invoice, VietQR/SePay |
 | S3 | Review, assignment engine, approval, commit, Allocation, Balance Invoice |
 | S4 | Check-in/out desk, Maintenance Requests, push notifications |
 | S5 | Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue |
@@ -19,16 +19,16 @@ Total: 158 endpoints (8 coded).
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | Added (see 03_API_Contract_Changes.md) |
-| AUTH | GET | `/auth/me` | Must | Coded |  |
-| AUTH | POST | `/auth/password/change` | Must | Coded | Added (see 03_API_Contract_Changes.md) |
-| AUTH | POST | `/auth/password/forgot` | Must | Coded | Added (see 03_API_Contract_Changes.md) |
-| AUTH | POST | `/auth/password/reset` | Must | Coded | Added (see 03_API_Contract_Changes.md) |
-| AUTH | POST | `/auth/sign-in` | Must | Coded |  |
+| AUTH | POST | `/auth/google` | Must | Coded | A-01: `credential` done, `code` exchange to add (ADR-14). B-03 |
+| AUTH | GET | `/auth/me` | Must | Coded | B-03 |
+| AUTH | POST | `/auth/password/change` | Must | Coded | A-04 |
+| AUTH | POST | `/auth/password/forgot` | Must | Coded | A-02 |
+| AUTH | POST | `/auth/password/reset` | Must | Coded | A-03 |
+| AUTH | POST | `/auth/sign-in` | Must | Coded | B-02: body `{ email, password, remember }` (already so). B-03 |
 | AUTH | POST | `/auth/sign-out` | Must | Coded |  |
-| CFG | GET | `/terms` | Must | Coded |  |
+| CFG | GET | `/terms` | Must | Coded | C-10 (`total`) done. B-03 |
 
-## S1 — Admin configuration, inventory, users, Audit Log
+## S1 — Admin configuration, inventory, users, Audit Log, in-app notification list
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
@@ -62,8 +62,11 @@ Total: 158 endpoints (8 coded).
 | INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Planned |  |
 | INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Planned |  |
 | INV | GET | `/inventory/structure` | Must | Planned |  |
+| NTF | GET | `/notifications` | Must | Planned | Moved from S2: every layout calls it |
+| NTF | POST | `/notifications/read-all` | Must | Planned | Moved from S2 |
+| NTF | POST | `/notifications/{id}/read` | Must | Planned | Moved from S2 |
 
-## S2 — Application wizard, Deposit Invoice, VietQR/SePay, in-app notifications
+## S2 — Application wizard, Deposit Invoice, VietQR/SePay
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
@@ -82,11 +85,8 @@ Total: 158 endpoints (8 coded).
 | BIL | POST | `/invoices/{id}/payment/refresh` | Must | Planned |  |
 | BIL | GET | `/invoices/{id}/receipt` | Must | Planned |  |
 | BIL | GET | `/students/me/invoices` | Must | Planned |  |
-| BIL | POST | `/webhooks/sepay` | Must | Planned | Added (see 03_API_Contract_Changes.md) |
+| BIL | POST | `/webhooks/sepay` | Must | Planned | A-07 |
 | CFG | GET | `/catalog` | Must | Planned |  |
-| NTF | GET | `/notifications` | Must | Planned |  |
-| NTF | POST | `/notifications/read-all` | Must | Planned |  |
-| NTF | POST | `/notifications/{id}/read` | Must | Planned |  |
 
 ## S3 — Review, assignment engine, approval, commit, Allocation, Balance Invoice
 
@@ -117,8 +117,8 @@ Total: 158 endpoints (8 coded).
 | ASG | GET | `/check-in/lookup` | Must | Planned |  |
 | ASG | GET | `/check-in/today` | Must | Planned |  |
 | ASG | GET | `/check-out` | Must | Planned |  |
-| ASG | GET | `/check-out/{studentCode}` | Must | Planned |  |
-| ASG | POST | `/check-out/{studentCode}` | Must | Planned |  |
+| ASG | GET | `/check-out/{allocationId}` | Must | Planned | B-01 (was `{studentCode}`) |
+| ASG | POST | `/check-out/{allocationId}` | Must | Planned | B-01 (was `{studentCode}`) |
 | MNT | GET | `/maintenance-requests` | Must | Planned |  |
 | MNT | POST | `/maintenance-requests` | Must | Planned |  |
 | MNT | GET | `/maintenance-requests/options` | Must | Planned |  |
@@ -126,8 +126,8 @@ Total: 158 endpoints (8 coded).
 | MNT | PATCH | `/maintenance-requests/{id}` | Must | Planned |  |
 | MNT | POST | `/maintenance-requests/{id}/confirm` | Must | Planned |  |
 | MNT | POST | `/maintenance-requests/{id}/updates` | Must | Planned |  |
-| NTF | POST | `/devices` | Must | Planned | Added (see 03_API_Contract_Changes.md) |
-| NTF | POST | `/devices/unregister` | Must | Planned | Added (see 03_API_Contract_Changes.md) |
+| NTF | POST | `/devices` | Must | Planned | A-05 |
+| NTF | POST | `/devices/unregister` | Must | Planned | A-06 |
 | REQ | GET | `/students/me/requests` | Must | Planned |  |
 
 ## S5 — Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue
@@ -171,6 +171,7 @@ Total: 158 endpoints (8 coded).
 | BIL | GET | `/meter-periods/{id}/readings` | Should | Planned |  |
 | BIL | GET | `/meter-periods/{id}/readings/{room}` | Should | Planned |  |
 | BIL | PUT | `/meter-periods/{id}/readings/{room}` | Should | Planned |  |
+| BIL | POST | `/meter-periods/{id}/readings/{room}/confirm` | Should | Planned | Was missing from this map (in the contract, used by the web) |
 | CFG | GET, PUT | `/admin/utility` | Should | Planned |  |
 | CFG | GET | `/block-settings` | Should | Planned |  |
 | CFG | PUT | `/block-settings` | Should | Planned |  |

@@ -1,20 +1,24 @@
-# CampusStay web app — API contract
+# CampusStay — API contract
 
-What the web app sends and expects from the CampusStay backend. Every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
+What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
+
+Version 1.1 (20/10/2026): the mentor-confirmed contract plus the changes A-01…A-07, B-01…B-03 and C-01…C-14 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
 | Topic | Rule |
 | --- | --- |
 | Base URL | `VITE_API_BASE_URL` (default `/api`). In development Vite proxies `/api` to `VITE_API_PROXY_TARGET`. |
-| Auth | `POST /auth/sign-in` returns a token. Every other call sends `Authorization: Bearer <token>`. A `401` signs the user out. |
-| Errors | Non-2xx responses return JSON `{ message, code?, details? }`. `message` is shown to the user as is, so write it for them. |
-| Lists | Return `{ items: [...], total }`. Accept `page` (1-based), `pageSize`, `q` and the filters named below. Extra fields (`summary`, `counts`, options) sit next to `items`. |
-| Scope | Term-scoped calls take `termId`. Staff and Manager calls take `block` (empty = every Block the user may see). The server enforces the user's scope. |
-| Dates | ISO 8601 strings (UTC). The app formats them as `dd/mm/yyyy` and `dd/mm/yyyy hh:mm`. |
+| Auth | `POST /auth/sign-in` or `POST /auth/google` returns a token. Every other call sends `Authorization: Bearer <token>`. A `401` signs the user out. |
+| Errors | Non-2xx responses return JSON `{ message, code?, details? }`. `message` is shown to the user as is, so write it for them. Validation: `400 VALIDATION_FAILED` with `details.fields = { fieldName: message }`, shown under each input. `409 STALE_DATA`: someone changed the record since it was loaded; show the message and reload. |
+| IDs | JSON **strings**: every field named `id` or ending in `Id`, at any depth (`"id": "42"`). Send them back as strings (numbers are accepted). Amounts, counts and rates are numbers. |
+| Lists | Return `{ items: [...], total }`. Accept `page` (1-based), `pageSize` (default 20, max 100, else `400 BAD_PAGE`), `q` and the filters named below. Extra fields (`summary`, `counts`, options) sit next to `items`. |
+| Scope | Term-scoped calls take `termId`. Staff and Manager calls take `block` (empty = every Block the user may see; a Block outside the user's scope = `403 BLOCK_OUT_OF_SCOPE`). The server enforces the user's scope. |
+| Dates | A field ending in `At` is an ISO 8601 instant in UTC. A field that holds a calendar day (`stayStart`, `stayEnd`, `checkInStart`, `checkInEnd`, `checkOutBy`, `requestedFor`, `suggestedDeadline`, `deadline`, `date` …) is `YYYY-MM-DD`: show it without time-zone conversion and send it back in the same form. The app formats them as `dd/mm/yyyy` and `dd/mm/yyyy hh:mm`. |
 | Money | Integer VND. |
 | Rates | Fractions (`0.2` = 20%), except fields named `…Percent`. |
-| Uploads | `multipart/form-data` where noted (photos, receipts, CSV). |
+| Uploads | `multipart/form-data` where noted (photos, receipts, CSV). A list of files repeats the same part name (`photos`). Photos: max 5 MB each, max 5 per Maintenance Request (Admin › System parameters); a request is at most 30 MB. Too large → `413 FILE_TOO_LARGE`. |
+| Not built yet | An endpoint that the backend has not built yet answers `404 NOT_FOUND`; the screen shows its error state with **Retry**. |
 | Exports | `GET /exports/{report}?…filters` returns the file with `Content-Disposition: attachment; filename="…"`. The server writes each export to the Audit Log. |
 | Statuses | Application: Draft, Awaiting Roommate, Awaiting Deposit, Submitted, Under Review, Approved, Waitlisted, Allocated, Rejected, Cancelled, Expired. Invoice: Unpaid, Paid, Overdue, Awaiting confirmation, Refunded, Void, Upcoming. Request: Submitted, Assigned, In progress, Resolved, Closed, Pending, Approved, Rejected. |
 
@@ -26,13 +30,21 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
-| POST | `/auth/sign-in` | `{ username, password, remember }` — `username` is the account name (as used for campus Wi-Fi), not an email; the client sends it as typed (trimmed) and does not check its format | `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string] } }` |
-| POST | `/auth/google` | `{ code, remember }` — authorization code from the Google Identity Services popup (`ux_mode: popup`, so exchange it with `redirect_uri=postmessage`) | Same as sign-in. Reject with `403 { message }` when the Google account is not `@fpt.edu.vn` or has no CampusStay access. |
+| POST | `/auth/sign-in` | `{ email, password, remember }` — the account email and the CampusStay password (not the FPT Wi-Fi credentials) | `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string] } }` |
+| POST | `/auth/google` | `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`) or `{ credential, remember }` (Android: Google ID token) | Same as sign-in. Only accounts that already exist; only `@fpt.edu.vn` Google Workspace accounts. |
 | POST | `/auth/sign-out` | — | `204` |
 | GET | `/auth/me` | — | `user` |
-| GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }] }` |
+| POST | `/auth/password/forgot` | `{ email }` | `204` always (does not reveal whether the email exists) |
+| POST | `/auth/password/reset` | `{ token, newPassword }` — used by both the reset and the set-password (invitation) page | `204`; every session of the user is signed out |
+| POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `204`; the user's other sessions are signed out |
+| POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204` |
+| GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }` |
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read }], unread }` |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | — | `204` |
+
+- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `401 GOOGLE_TOKEN_INVALID`, `503 GOOGLE_SIGN_IN_DISABLED`.
+- **Password rule:** 8–64 characters, at least one letter and one number, not containing the email name; otherwise `400 WEAK_PASSWORD` with a message to show as is.
+- **Email links:** invitation and reset emails open the web pages `/set-password?token=…` (valid 72 hours) and `/reset-password?token=…` (valid 30 minutes). Both call `POST /auth/password/reset`, then go to Sign In. Each token works once. There is no self sign-up.
 
 ## Student
 
@@ -45,7 +57,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 ### Application wizard
 
 - `GET /applications/eligibility?termId` → `{ term, eligible, checks: [{ title, detail, passed }] }`
-- `POST /applications/roommate-check` `{ termId, studentCode }` → `{ valid, checksLeft }`. Return the same answer for every unusable code (privacy).
+- `POST /applications/roommate-check` `{ termId, studentCode }` → `{ valid, checksLeft }`. Return the same answer for every unusable code (privacy). When `checksLeft` is 0 the next check answers `429 ROOMMATE_CHECKS_EXHAUSTED`.
 - `POST /applications` → `{ id, depositInvoiceId, depositDueAt }`
 
 ```json
@@ -90,7 +102,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
   - maintenance item: `{ id, title, location, category, reportedAt, status, assignee, visitWindow }`
   - room-change item: `{ id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }`
 - `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
-- `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos[]` → `{ id }`
+- `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
 - `GET /maintenance-requests/{id}` (student view) → `{ id, title, status, room, category, location, reportedAt, assignee, visitWindow, description, events: [{ who, at, message }] }` (public updates only)
 - `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }`
 - `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null, roomTypes, roomClasses, prices, remainingDays, termDays, reasons, hasOpenRequest }`
@@ -158,9 +170,10 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 - `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }`
 - `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
 - `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
-- `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
-- `GET /check-out/{studentCode}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }`
-- `POST /check-out/{studentCode}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
+- `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
+- `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }`
+- `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
+- The URL carries the Allocation id, never the student code (personal data, B-01).
 
 ### Meter readings
 
@@ -188,7 +201,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 - `GET /assignment-runs/{runId}/rooms?block&page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, students, note, score, flag: { label, tone } | null }], total }`
 - `POST /assignment-runs/{runId}/approve` `{ block }` · `POST /assignment-runs/{runId}/return` `{ block, comment }`
 - `GET /late-check-ins?termId&block` → `{ items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor, evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null }] }`
-- `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }`
+- `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
 - `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
 - `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception)
@@ -210,10 +223,10 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 ## Admin
 
 - `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }`
-- `GET /admin/terms` → `{ items: [{ id, name, status, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy }] }` · `POST /admin/terms` · `PUT /admin/terms/{id}` · `POST /admin/terms/{id}/publish`
+- `GET /admin/terms` → `{ items: [{ id, name, status, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy }] }` · `POST /admin/terms` · `PUT /admin/terms/{id}` · `POST /admin/terms/{id}/publish`. Instants: `registrationOpensAt`, `registrationClosesAt`, `resultsPublishedAt`, `balanceDueAt`; dates (`YYYY-MM-DD`): `stayStart`, `stayEnd`, `checkInStart`, `checkInEnd`, `checkOutBy`. The Term's `depositHours` is the Deposit window used for its Applications (`/terms` returns it as `depositWindowHours`).
 - `GET /admin/room-types` → `{ items: [{ id, name, beds, basePrice, roommateSelection: 'auto'|'mutual', rooms, status, hasAllocations }], roomClasses: [{ id, name, surchargeRate }], totals: { rooms, beds } }` · `POST` · `PUT /admin/room-types/{id}`
 - `GET /admin/room-classes` → `{ items: [{ id, name, surchargeRate, amenities, floors, rooms, status }], roomTypes: [{ id, name, basePrice }], depositRate }` · `POST` · `PUT /admin/room-classes/{id}`
-- `GET|PUT /admin/fees` → `{ depositPercent, depositHours, balanceDays, blockCheckIn, manualConfirm, policyConfirmed, rules: [{ id, when, refundPercent, approver, active }], approverOptions }`
+- `GET|PUT /admin/fees` → `{ depositPercent, depositHours, balanceDays, blockCheckIn, manualConfirm, policyConfirmed, rules: [{ id, when, refundPercent, approver, active }], approverOptions }`. `depositHours` here is only the default proposed for a new Term; each Term keeps its own.
 - `GET|PUT /admin/utility` → `{ priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }`
 - `GET|PUT /admin/eligibility` → `{ criteria: [{ key, title, note, on }], groups: [{ id?, title, note, applied }], appliesFromTermName }`
 - `GET|PUT /admin/matching` → `{ snapshot, hardConstraints: [string], order: [{ key, title, note }], weights: [{ key, label, note, on, value }], boost, preview }`. `PUT` saves a new snapshot and returns `{ snapshot }`. `boost` multiplies the score when a 2-bed student's Roommate preferences match.

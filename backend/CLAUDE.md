@@ -41,7 +41,7 @@ Fix by checking the real API (do not guess); keep the design unchanged.
 
 ## Conventions
 - Statuses: DB `UPPER_SNAKE`; enums expose `@JsonValue` labels exactly as the contract (`Awaiting Deposit`, `Awaiting confirmation`, `In progress`).
-- IDs: `long` in Java, JSON numbers. Money: `long` VND, never `double`. Rates: `BigDecimal` fractions. Times: `Instant` (UTC); date-only: `LocalDate`. "Today" uses `TimeConfig.CAMPUS_ZONE`. Inject `Clock`, never call `Instant.now()` without it in services.
+- IDs: `long` in Java and `BIGINT` in the DB, but **JSON strings** (ADR-15, contract change B-03): every `id` / `…Id` component of a contract response record is a `String`. Request bodies may send `"42"` or `42`. Never add a global `Long` → string serializer (money is `long` too). Money: `long` VND, never `double`. Rates: `BigDecimal` fractions. Times: `Instant` (UTC) for fields ending in `At`; calendar days: `LocalDate` (`YYYY-MM-DD`). "Today" uses `TimeConfig.CAMPUS_ZONE`. Inject `Clock`, never call `Instant.now()` without it in services.
 - No hard-coded business values (prices, percentages, windows, limits): read CFG (`cfg_*` tables, `cfg_parameter`).
 - Lists: `PageQuery.of(page, pageSize)`, return `{ items, total, ... }`.
 - Concurrency: check rules first, then rely on the DB constraint; lock Beds with `SELECT … FOR UPDATE` when moving students; `@Version` on aggregates.
@@ -50,9 +50,9 @@ Fix by checking the real API (do not guess); keep the design unchanged.
 
 ## Security must-nots
 - Never log tokens, passwords, webhook keys or full request bodies with personal data.
-- Never put personal data (student code, phone, email) in URLs or log lines.
+- Never put personal data (student code, phone, email) in URL paths or log lines. Search values (`q`) may hold them, so never log query strings.
 - Never trust `block`, `termId` or ids from the client without the scope check.
 - Webhook keys: compare with `Tokens.constantTimeEquals`.
 
 ## Slice order
-S0 done (AUTH session, `/terms`). Next: S1 Admin configuration + inventory + users + Audit Log → S2 Application wizard + Deposit + VietQR/SePay → S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).
+S0 done (AUTH session, `/terms`), except the open items marked in the map: Google `code` exchange (A-01) and string IDs (B-03). Next: S1 Admin configuration + inventory + users + Audit Log + `/notifications` → S2 Application wizard + Deposit + VietQR/SePay → S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).

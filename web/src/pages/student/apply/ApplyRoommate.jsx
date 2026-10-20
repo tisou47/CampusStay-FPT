@@ -13,7 +13,7 @@ import { WizardActions, WizardLayout, isTwoBed, useWizard } from './wizard'
 
 // SCR-APP-01 Application Wizard – Roommate (2-bed only), states "code accepted" (15:811) and "code rejected" (33:1068).
 // "Match me automatically" can add the free Roommate preferences service: the matcher then also weighs
-// region, cohort and major when it pairs the student with another 2-bed applicant.
+// region, semester and major when it pairs the student with another 2-bed applicant.
 // POST /applications/roommate-check { termId, studentCode } → { valid, checksLeft }
 export default function ApplyRoommate() {
   const navigate = useNavigate()

@@ -38,7 +38,7 @@ Every screen fits one window (checked at 1440×900 and 1366×768): the page itse
 ## What changed in this version
 
 - **Period of Stay and renewal removed.** Applications are for one Term; there is no renewal screen, renewal setting or renewal email. Admin › Utility keeps the utility billing and Utility Deposit rules.
-- **Roommate preferences** (region, cohort, major) is a free, optional add-on for 2-bed Rooms. It appears on the Roommate step when the student chooses *Match me automatically*, and is no longer part of the Room preference step.
+- **Roommate preferences** (region, semester, major) is a free, optional add-on for 2-bed Rooms. It appears on the Roommate step when the student chooses *Match me automatically*, and is no longer part of the Room preference step.
 - **No sample data.** Everything comes from the API; the demo presets and the demo navigator were removed.
 
 ## Development tools
