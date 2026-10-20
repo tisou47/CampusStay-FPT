@@ -19,9 +19,9 @@ import { DeskModeSwitch } from './CheckInDesk'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
 // GET /check-out?termId&block&q&reason&page&pageSize → { date, pendingCount, reasons,
-//   items: [{ studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }
-// GET /check-out/:studentCode → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }
-// POST /check-out/:studentCode { electricity, water, conditionGood, keyReturned, damageCharge, draft } → { refund, refundStatus }
+//   items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }
+// GET /check-out/:allocationId → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }
+// POST /check-out/:allocationId { electricity, water, conditionGood, keyReturned, damageCharge, draft } → { refund, refundStatus }
 
 const tones = { 'Pending check-out': 'warning', 'Settlement due': 'error', 'Checked out': 'success' }
 const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
@@ -55,7 +55,7 @@ function CheckOutPanel({ d }) {
 
   const submit = useMutation(
     (draft) =>
-      api.desk.checkOut(d.studentCode, { electricity: toNumber(electricity), water: toNumber(water), conditionGood: good, keyReturned: key, damageCharge: damageAmount, draft }),
+      api.desk.checkOut(d.allocationId, { electricity: toNumber(electricity), water: toNumber(water), conditionGood: good, keyReturned: key, damageCharge: damageAmount, draft }),
     {
       invalidates: ['check-out', 'dashboard', 'refunds'],
       onSuccess: (res, draft) => {
@@ -144,7 +144,7 @@ export default function CheckOutDesk() {
   const [reason, setReason] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [selectedCode, setSelectedCode] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -157,8 +157,9 @@ export default function CheckOutDesk() {
   const filters = { ...scope, q: search, reason, page, pageSize }
   const list = useQuery(['check-out', filters], ({ signal }) => api.desk.checkOutList(filters, { signal }))
   const items = list.data?.items ?? []
-  const code = items.find((r) => r.studentCode === selectedCode)?.studentCode ?? items[0]?.studentCode
-  const detail = useQuery(['check-out', 'detail', code], ({ signal }) => api.desk.checkOutDetail(code, { signal }), { enabled: Boolean(code), keepPrevious: false })
+  // Rows are keyed by Allocation id: the student code never goes into a URL (contract change B-01).
+  const allocationId = items.find((r) => r.allocationId === selectedId)?.allocationId ?? items[0]?.allocationId
+  const detail = useQuery(['check-out', 'detail', allocationId], ({ signal }) => api.desk.checkOutDetail(allocationId, { signal }), { enabled: Boolean(allocationId), keepPrevious: false })
 
   return (
     <>
@@ -196,7 +197,7 @@ export default function CheckOutDesk() {
             <TBody>
               <TableStatus query={list} colSpan={4} emptyIcon={LogOut} emptyTitle="No Allocations match these filters" />
               {items.map((r) => (
-                <Tr key={r.studentCode} selected={r.studentCode === code} onClick={() => setSelectedCode(r.studentCode)} className="[&>td]:h-15.5">
+                <Tr key={r.allocationId} selected={r.allocationId === allocationId} onClick={() => setSelectedId(r.allocationId)} className="[&>td]:h-15.5">
                   <Td>
                     <TwoLine primary={r.name} secondary={r.studentCode} />
                   </Td>
@@ -225,9 +226,9 @@ export default function CheckOutDesk() {
           </div>
         </div>
 
-        {code ? (
+        {allocationId ? (
           <QueryState query={detail} className="w-105 shrink-0 rounded-lg border border-line bg-surface">
-            {(d) => <CheckOutPanel key={`${d.studentCode}-${d.status}`} d={d} />}
+            {(d) => <CheckOutPanel key={`${d.allocationId}-${d.status}`} d={d} />}
           </QueryState>
         ) : (
           <Card className="flex w-105 shrink-0 flex-col">

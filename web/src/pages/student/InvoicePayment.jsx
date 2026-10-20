@@ -13,7 +13,7 @@ import { StudentPage } from './shared'
 
 // SCR-BIL-02 Invoice Payment (VietQR) — deposit (17:701), balance (39:1362), utility and room-change Invoices.
 // GET /invoices/:id/payment → {
-//   invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference, applicationId },
+//   invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference },
 //   qr: { image, expiresAt } | null, bank: { name, accountName, accountNumber }, transferContent }
 // POST /invoices/:id/payment/refresh → new { qr }
 // While unpaid, the page asks the server every 5 seconds whether the bank has confirmed the transfer.

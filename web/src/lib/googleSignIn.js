@@ -41,7 +41,7 @@ function openPopup(resolve, reject) {
 
 /** Opens the Google popup and resolves with the authorization code. */
 export function requestGoogleCode() {
-  if (!googleConfigured) return Promise.reject(new Error('Google sign-in is not set up for this site yet. Use your username and password.'))
+  if (!googleConfigured) return Promise.reject(new Error('Google sign-in is not set up for this site yet. Use your email and password.'))
   return new Promise((resolve, reject) => {
     // Open the popup in the same click when the script is ready, so browsers do not block it.
     if (window.google?.accounts?.oauth2) openPopup(resolve, reject)

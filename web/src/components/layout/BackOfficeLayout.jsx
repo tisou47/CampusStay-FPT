@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Building, Calendar, Check, ChevronDown, LogOut, Search } from 'lucide-react'
+import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
 import { backOffice, isNavActive } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
 import { cx } from '@/lib/cx'
+import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 import { LanguageToggle } from './StudentLayout'
@@ -18,8 +19,10 @@ function Sidebar({ role }) {
   const navigate = useNavigate()
   const config = backOffice[role]
   const { user, signOut } = useSession()
+  const [changingPassword, setChangingPassword] = useState(false)
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col justify-between border-r border-line bg-surface">
+      <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <div className="flex min-h-0 flex-col">
         <div className="p-4">
           <Link to={`/${role}`} aria-label="Dashboard">
@@ -61,6 +64,15 @@ function Sidebar({ role }) {
           <span className="truncate text-base font-medium text-fg">{user?.name ?? 'Not signed in'}</span>
           <span className="truncate text-sm text-fg-tertiary">{user?.title ?? roleTitles[role]}</span>
         </div>
+        <button
+          type="button"
+          onClick={() => setChangingPassword(true)}
+          aria-label="Change password"
+          title="Change password"
+          className="rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg"
+        >
+          <KeyRound size={16} aria-hidden="true" />
+        </button>
         <button
           type="button"
           onClick={async () => {

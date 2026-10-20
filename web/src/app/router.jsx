@@ -5,6 +5,8 @@ import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
 import { ScreenIndex } from '@/dev/ScreenIndex'
 
+import ForgotPassword from '@/pages/auth/ForgotPassword'
+import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
 import NotInScope from '@/pages/common/NotInScope'
@@ -99,6 +101,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/signin" replace /> },
       { path: 'signin', element: <SignIn /> },
+      // Public pages opened from emails (contract C-13): /reset-password?token=… and /set-password?token=…
+      { path: 'forgot-password', element: <ForgotPassword /> },
+      { path: 'reset-password', element: <ResetPassword mode="reset" /> },
+      { path: 'set-password', element: <ResetPassword mode="invite" /> },
 
       portal('student', <StudentLayout />, [
         { index: true, element: <StudentHome /> },

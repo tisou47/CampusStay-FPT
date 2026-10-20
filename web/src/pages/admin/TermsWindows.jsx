@@ -20,28 +20,33 @@ import { FormSection } from './shared'
 
 const tone = { 'Registration open': 'success', Draft: 'neutral', Published: 'info', 'In stay': 'info', Closed: 'neutral' }
 
-// Field key → input type. Dates are sent back to the server as ISO strings.
+// Field key → input type (contract C-02): "date" fields are calendar days sent as YYYY-MM-DD (the value of
+// <input type="date"> as is); "datetime" fields end in "At" and are sent as ISO instants in UTC.
 const fields = {
   name: 'text',
   stayStart: 'date',
   stayEnd: 'date',
   registrationOpensAt: 'datetime',
   registrationClosesAt: 'datetime',
-  resultsPublishedAt: 'date',
+  resultsPublishedAt: 'datetime',
   roommateHours: 'number',
   depositHours: 'number',
   balanceDueAt: 'datetime',
   checkInStart: 'date',
   checkInEnd: 'date',
-  checkOutBy: 'datetime',
+  checkOutBy: 'date',
 }
 
 const toForm = (t) =>
   Object.fromEntries(Object.entries(fields).map(([k, type]) => [k, type === 'date' ? toDateInput(t[k]) : type === 'datetime' ? toDateTimeInput(t[k]) : t[k] ?? '']))
-const toBody = (f) =>
-  Object.fromEntries(
-    Object.entries(fields).map(([k, type]) => [k, type === 'number' ? Number(f[k]) || 0 : (type === 'date' || type === 'datetime') && f[k] ? new Date(f[k]).toISOString() : f[k] || null]),
-  )
+// An empty field is sent as null, never 0: the server then uses its default (an empty "Deposit payment"
+// takes the default payment window of Admin › Fees, contract C-11) or names the missing field.
+const toValue = (type, value) => {
+  if (value === '' || value == null) return null
+  if (type === 'number') return Number(value)
+  return type === 'datetime' ? new Date(value).toISOString() : value
+}
+const toBody = (f) => Object.fromEntries(Object.entries(fields).map(([k, type]) => [k, toValue(type, f[k])]))
 
 function TermForm({ term, onCreated }) {
   const { notify } = useToast()
@@ -67,8 +72,8 @@ function TermForm({ term, onCreated }) {
     },
     { ...options, onSuccess: () => notify({ title: `${form.name} published`, message: 'Students see the Term and its windows in the app.' }), onError: () => {} },
   )
-  const field = (key, label) => (
-    <Field label={label}>
+  const field = (key, label, helper) => (
+    <Field label={label} helper={helper}>
       {(id) => (
         <Input
           id={id}
@@ -101,7 +106,7 @@ function TermForm({ term, onCreated }) {
       </FormSection>
       <FormSection title="Payment windows">
         {field('roommateHours', 'Roommate confirmation (hours)')}
-        {field('depositHours', 'Deposit payment (hours)')}
+        {field('depositHours', 'Deposit payment (hours)', 'Leave empty to use the default payment window of Fees and Rules.')}
         {field('balanceDueAt', 'Balance due')}
       </FormSection>
       <FormSection title="Check-in and check-out">

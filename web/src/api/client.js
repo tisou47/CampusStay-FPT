@@ -4,18 +4,24 @@
  * Base URL: VITE_API_BASE_URL (default "/api"; in development Vite proxies /api to VITE_API_PROXY_TARGET).
  * Auth: the session token is sent as "Authorization: Bearer <token>". A 401 clears the session.
  * Errors: every non-2xx response, network failure or non-JSON body throws an ApiError.
+ *   400 VALIDATION_FAILED carries details.fields = { fieldName: message }: forms show error.fields under their
+ *   inputs, and error.message also lists them, so screens that only show the message still say what to fix.
  */
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 const SESSION_KEY = 'campusstay-session'
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, code, details } = {}) {
+  constructor(message, { status = 0, code, details, summary } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.details = details
+    /** Per-field messages of a validation error: { fieldName: message }. */
+    this.fields = details?.fields ?? {}
+    /** The server's message without the field messages (for forms that show those under the inputs). */
+    this.summary = summary ?? message
   }
 }
 
@@ -75,7 +81,8 @@ export async function request(path, { method = 'GET', query, body, signal, heade
   const data = type.includes('application/json') ? await res.json().catch(() => null) : null
   if (!res.ok) {
     const message = data?.message ?? (res.status >= 500 ? 'The server could not complete the request. Try again later.' : `Request failed (${res.status}).`)
-    throw new ApiError(message, { status: res.status, code: data?.code, details: data?.details })
+    const fieldText = Object.values(data?.details?.fields ?? {}).filter(Boolean).join(' ')
+    throw new ApiError(fieldText ? `${message} ${fieldText}` : message, { status: res.status, code: data?.code, details: data?.details, summary: message })
   }
   if (data == null && type && !type.includes('application/json')) {
     throw new ApiError('The server returned an unexpected response.', { status: res.status })

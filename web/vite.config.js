@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
           changeOrigin: true,
+          // Browsers send "Origin: http://localhost:5173" with every POST. After changeOrigin the API would see a
+          // cross-origin call and its CORS check (closed unless CORS_ALLOWED_ORIGINS is set) answers 403.
+          // Through this proxy the call is same-origin, so the header is dropped.
+          configure: (proxy) => proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin')),
         },
       },
     },

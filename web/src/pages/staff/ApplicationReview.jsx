@@ -16,7 +16,7 @@ import { useRoleBase } from '@/lib/useRoleBase'
 // SCR-APP-11 Application Review (Figma 22:732)
 // GET /applications/:id (back-office view) → { id, status, termName,
 //   student: { name, studentCode, gender, cohort, major, hometown, phone, emergencyContact, syncedAt },
-//   roomTypeName, roomClassName, surchargeRate, termPrice, roommate: { mode, studentCode, status } | null, pair,
+//   roomTypeName, roomClassName, surchargeRate, termPrice, roommate: { mode, studentCode, status } | null,
 //   eligibility: [{ title, passed }], deposit: { invoiceId, amount, method, paidAt, status } | null, activity: [{ text, at }] }
 // POST /applications/:id/review { decision, note }
 

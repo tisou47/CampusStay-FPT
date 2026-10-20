@@ -16,7 +16,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatNumber, formatPercent, formatVnd, toDateTimeInput } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatPercent, formatVnd, toDateInput } from '@/lib/format'
 
 // SCR-ASG-20 Approvals – Assignment Proposal (Figma 99:1705) and SCR-REQ-20 Approvals – Late Check-in (Figma 99:2192).
 // GET /approvals/summary?termId&block → { assignment, lateCheckIn, swaps, refunds }
@@ -26,7 +26,7 @@ import { formatDate, formatDateTime, formatNumber, formatPercent, formatVnd, toD
 // POST /assignment-runs/:runId/approve { block } · POST /assignment-runs/:runId/return { block, comment }
 // GET /late-check-ins?termId&block → { items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor,
 //   evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null }] }
-// POST /late-check-ins/:id/decision { decision, deadline, reason }
+// POST /late-check-ins/:id/decision { decision, deadline, reason } — deadline is a calendar day YYYY-MM-DD (contract C-02)
 // Cross-Block swaps: GET /swaps?status=To Manager · POST /swaps/:id/decision. Refunds: GET /refunds?status=Pending.
 
 function Row({ label, children }) {
@@ -165,21 +165,21 @@ function AssignmentDecision({ item }) {
 
 function LateDecision({ req }) {
   const { notify, notifyError } = useToast()
-  const [deadline, setDeadline] = useState(toDateTimeInput(req.suggestedDeadline))
+  const [deadline, setDeadline] = useState(toDateInput(req.suggestedDeadline))
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   useEffect(() => {
-    setDeadline(toDateTimeInput(req.suggestedDeadline))
+    setDeadline(toDateInput(req.suggestedDeadline))
     setRejecting(false)
     setReason('')
   }, [req])
-  const decide = useMutation((decision) => api.approvals.decideLateCheckIn(req.id, { decision, deadline: decision === 'Approved' ? new Date(deadline).toISOString() : undefined, reason: reason.trim() || undefined }), {
+  const decide = useMutation((decision) => api.approvals.decideLateCheckIn(req.id, { decision, deadline: decision === 'Approved' ? deadline : undefined, reason: reason.trim() || undefined }), {
     invalidates: ['approvals'],
     onSuccess: (_, decision) =>
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
         title: `Late check-in ${decision.toLowerCase()}`,
-        message: decision === 'Approved' ? `${req.name} can check in until ${formatDateTime(deadline)}.` : `${req.name}'s Allocation is released if they do not arrive.`,
+        message: decision === 'Approved' ? `${req.name} can check in until ${formatDate(deadline)}.` : `${req.name}'s Allocation is released if they do not arrive.`,
       }),
     onError: (e) => notifyError(e, 'Could not save the decision'),
   })
@@ -208,12 +208,12 @@ function LateDecision({ req }) {
       </dl>
       <Divider />
       {d ? (
-        <Alert type={d.status === 'Approved' ? 'success' : 'warning'} title={d.status === 'Approved' ? `Approved until ${formatDateTime(d.deadline)}` : 'Rejected'}>
+        <Alert type={d.status === 'Approved' ? 'success' : 'warning'} title={d.status === 'Approved' ? `Approved until ${formatDate(d.deadline)}` : 'Rejected'}>
           {d.status === 'Approved' ? 'Staff see the new deadline at the check-in desk.' : d.reason || 'The student was notified.'}
         </Alert>
       ) : (
         <>
-          <Field label="New check-in deadline">{(id) => <Input id={id} type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />}</Field>
+          <Field label="New check-in deadline">{(id) => <Input id={id} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />}</Field>
           {rejecting && (
             <Field label="Reason shown to the student" required>
               {(id) => <Textarea id={id} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}

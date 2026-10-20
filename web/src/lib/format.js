@@ -26,7 +26,16 @@ export function initials(fullName) {
 }
 
 const pad = (n) => String(n).padStart(2, '0')
-const toDate = (value) => (value instanceof Date ? value : value ? new Date(value) : null)
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+// A calendar day ("2027-01-20", contract C-02) is read as that day in the local calendar, never as
+// midnight UTC, so it shows the same day in every time zone. Instants ("…At") are parsed as ISO.
+const toDate = (value) => {
+  if (value instanceof Date) return value
+  if (!value) return null
+  const day = typeof value === 'string' && DATE_ONLY.exec(value)
+  return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value)
+}
 const valid = (d) => d && !Number.isNaN(d.getTime())
 
 /** ISO date → "20/01/2027". */

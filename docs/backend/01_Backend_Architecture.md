@@ -59,7 +59,7 @@ flowchart LR
 
 | Component | Responsibility |
 |---|---|
-| Web app | All four roles. Talks only to `/api`; in development through the Vite proxy (same origin). |
+| Web app | All four roles. Talks only to `/api`; in development through the Vite proxy (same origin). The proxy drops the browser's `Origin` header: with `changeOrigin` the API would otherwise see a cross-origin POST and its CORS check (closed unless `CORS_ALLOWED_ORIGINS` is set) answers `403 Invalid CORS request`. A web app served from another origin needs `CORS_ALLOWED_ORIGINS`. |
 | Android app | Student tracking, push notifications, check-in pass. Uses the same API. |
 | Security filter | Resolves the bearer token to a session, applies role rules by URL prefix. |
 | Modules | Business logic, one package per module code (§4). |

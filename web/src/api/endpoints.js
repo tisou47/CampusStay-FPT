@@ -15,12 +15,18 @@ const g = (path) => (query, opts) => http.get(path, query, opts)
 export const api = {
   /* ---------------------------------------------------------------- Session and shared */
   auth: {
-    /** Account username (not an email) and password: { username, password, remember }. */
+    /** Account email and CampusStay password: { email, password, remember }. */
     signIn: (body) => http.post('/auth/sign-in', body),
     /** Google authorization code from the popup: { code, remember }. The server only accepts @fpt.edu.vn accounts. */
     google: (body) => http.post('/auth/google', body),
     signOut: () => http.post('/auth/sign-out'),
     me: g('/auth/me'),
+    /** { email } → 204 whether or not the account exists. */
+    forgotPassword: (body) => http.post('/auth/password/forgot', body),
+    /** { token, newPassword } from a reset or invitation link → 204; every session of the user is signed out. */
+    resetPassword: (body) => http.post('/auth/password/reset', body),
+    /** { currentPassword, newPassword } → 204; the user's other sessions are signed out. */
+    changePassword: (body) => http.post('/auth/password/change', body),
   },
   terms: {
     list: (opts) => http.get('/terms', undefined, opts),
@@ -53,11 +59,10 @@ export const api = {
     cancel: (id, body) => http.post(`/applications/${id}/cancel`, body),
     // Back office
     list: g('/applications'),
-    /** Staff decision on one Application: { decision: 'Approved'|'Rejected'|'Under Review', reason, note }. */
+    /** Staff decision on one Application: { decision: 'Approved'|'Rejected', note } (note required when rejecting). */
     review: (id, body) => http.post(`/applications/${id}/review`, body),
     /** Staff decision on several Applications: { ids, decision }. */
     bulkReview: (body) => http.post('/applications/bulk-review', body),
-    addNote: (id, body) => http.post(`/applications/${id}/notes`, body),
   },
   roommateInvitations: {
     respond: (id, body) => http.post(`/roommate-invitations/${id}/respond`, body),
@@ -115,7 +120,7 @@ export const api = {
     proposal: (runId, query, opts) => http.get(`/assignment-runs/${runId}/proposal`, query, opts),
     conflict: (runId, applicationId, opts) => http.get(`/assignment-runs/${runId}/conflicts/${applicationId}`, undefined, opts),
     resolveConflict: (runId, applicationId, body) => http.post(`/assignment-runs/${runId}/conflicts/${applicationId}/resolve`, body),
-    /** Staff commits a Block and sends it to the Manager: { block, note }. */
+    /** Staff commits a Block and sends it to the Manager: { block }. */
     commit: (runId, body) => http.post(`/assignment-runs/${runId}/commit`, body),
     // Manager
     /** Rooms of a committed Block. */
@@ -138,8 +143,9 @@ export const api = {
     checkInLookup: g('/check-in/lookup'),
     checkIn: (body) => http.post('/check-in', body),
     checkOutList: g('/check-out'),
-    checkOutDetail: (studentCode, opts) => http.get(`/check-out/${studentCode}`, undefined, opts),
-    checkOut: (studentCode, body) => http.post(`/check-out/${studentCode}`, body),
+    /** By Allocation id: the student code is personal data and never goes into a URL. */
+    checkOutDetail: (allocationId, opts) => http.get(`/check-out/${allocationId}`, undefined, opts),
+    checkOut: (allocationId, body) => http.post(`/check-out/${allocationId}`, body),
   },
   meters: {
     periods: g('/meter-periods'),

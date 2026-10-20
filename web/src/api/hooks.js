@@ -5,14 +5,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *   useQuery(key, fetcher)  → { data, error, loading, reload }
  *   useMutation(fn)         → { run, pending, error }
  *   invalidate(name)        → refetches every mounted query whose key starts with `name`
+ *   invalidateAll()         → refetches every mounted query
  *
  * A key is an array: ['maintenance', { status, page }]. The first item names the resource.
+ * A mutation that fails with 409 STALE_DATA (someone else changed the record) reloads every mounted query,
+ * so the screen shows the current data next to the error message.
  */
 
 const listeners = new Set()
 
 export function invalidate(...names) {
   for (const listener of listeners) listener(names)
+}
+
+export function invalidateAll() {
+  for (const listener of listeners) listener(null)
 }
 
 export function useQuery(key, fetcher, { enabled = true, keepPrevious = true } = {}) {
@@ -40,7 +47,7 @@ export function useQuery(key, fetcher, { enabled = true, keepPrevious = true } =
 
   useEffect(() => {
     const name = key[0]
-    const listener = (names) => names.includes(name) && setVersion((v) => v + 1)
+    const listener = (names) => (names === null || names.includes(name)) && setVersion((v) => v + 1)
     listeners.add(listener)
     return () => listeners.delete(listener)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,6 +76,7 @@ export function useMutation(fn, options = {}) {
       return result
     } catch (error) {
       setState({ pending: false, error })
+      if (error?.code === 'STALE_DATA') invalidateAll()
       if (onError) {
         onError(error, ...args)
         return undefined

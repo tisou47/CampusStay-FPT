@@ -13,6 +13,9 @@ export const roles = {
 export const screens = [
   // 05 Web – Student
   { code: 'SCR-AUTH-01', title: 'Sign In', role: 'student', path: '/signin' },
+  { code: 'SCR-AUTH-02', title: 'Forgot password', role: 'student', path: '/forgot-password' },
+  { code: 'SCR-AUTH-03', title: 'Reset password (from the email link)', role: 'student', path: '/reset-password?token=preview' },
+  { code: 'SCR-AUTH-04', title: 'Set password (invitation link)', role: 'student', path: '/set-password?token=preview' },
   { code: 'SCR-HOME-01', title: 'Student Home', role: 'student', path: '/student' },
   { code: 'SCR-APP-01', title: 'Application Wizard – 1 Term and eligibility', role: 'student', path: '/student/apply/term' },
   { code: 'SCR-APP-01', title: 'Application Wizard – 2 Room preference', role: 'student', path: '/student/apply/room' },

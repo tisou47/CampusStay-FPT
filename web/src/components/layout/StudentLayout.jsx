@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Calendar, ChevronDown, Globe, LogOut, User } from 'lucide-react'
+import { Calendar, ChevronDown, Globe, KeyRound, LogOut, User } from 'lucide-react'
 import { isNavActive, studentNav } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
 import { MenuItem, Popover } from '@/components/ui/Popover'
 import { cx } from '@/lib/cx'
+import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 
@@ -34,8 +35,10 @@ function StudentTopBar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, term, signOut } = useSession()
+  const [changingPassword, setChangingPassword] = useState(false)
   return (
     <header className="z-30 shrink-0 border-b border-line bg-surface">
+      <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <StudentContainer className="flex h-16 items-center justify-between gap-6">
         <div className="flex items-center gap-10">
           <Link to="/student" aria-label="CampusStay home">
@@ -93,6 +96,9 @@ function StudentTopBar() {
                 )}
                 <MenuItem icon={User} onClick={() => { close(); navigate('/student/room') }}>
                   My Room
+                </MenuItem>
+                <MenuItem icon={KeyRound} onClick={() => { close(); setChangingPassword(true) }}>
+                  Change password
                 </MenuItem>
                 <MenuItem
                   icon={LogOut}

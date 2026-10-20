@@ -47,8 +47,8 @@ export function SessionProvider({ children }) {
     }
   }, [])
 
-  const signIn = useCallback(async (username, password, remember) => {
-    const result = await api.auth.signIn({ username, password, remember })
+  const signIn = useCallback(async (email, password, remember) => {
+    const result = await api.auth.signIn({ email, password, remember })
     writeSession({ token: result.token, user: result.user })
     return result.user
   }, [])
