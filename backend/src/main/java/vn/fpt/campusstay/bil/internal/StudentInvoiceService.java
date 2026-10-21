@@ -153,9 +153,12 @@ public class StudentInvoiceService {
         InvoiceStore.Invoice i = visible(idOrCode);
         List<Line> lines = i.lines() == null ? null : json.readValue(i.lines(), new TypeReference<List<Line>>() {
         });
+        Map<String, Object> breakdown = i.breakdown() == null ? null
+                : json.readValue(i.breakdown(), new TypeReference<Map<String, Object>>() {
+                });
         return new InvoiceDetail(i.code(), i.title(), InvoiceLabels.type(i.type()), InvoiceLabels.typeLabel(i.type()),
-                i.amount(), InvoiceLabels.status(i.status()), i.issuedAt(), i.dueAt(), i.paidAt(), null,
-                i.utilityDeposit(), lines, null);
+                i.amount(), InvoiceLabels.status(i.status()), i.issuedAt(), i.dueAt(), i.paidAt(),
+                breakdown == null ? null : (String) breakdown.get("room"), i.utilityDeposit(), lines, breakdown);
     }
 
     /** The payment page; the first visit starts the QR validity window. */

@@ -281,6 +281,32 @@ class AdminConfigIT {
                 .andExpect(jsonPath("$.sections[*].fields[?(@.key == 'upload.max_photos')].value", contains(6)));
     }
 
+    /** TC-CFG-013: Admin › Utility loads with its option lists, rejects values outside them and audits a change. */
+    @Test
+    void utilityPolicy() throws Exception {
+        mvc.perform(as(get("/admin/utility")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priceKwh").value(3500))
+                .andExpect(jsonPath("$.rounding").value("ROUND_UP_1000"))
+                .andExpect(jsonPath("$.options.rounding[*].value").value(hasItem("NONE")))
+                .andExpect(jsonPath("$.options.paymentDueDays[*].value").value(hasItem("7")));
+        String valid = """
+                {"priceKwh":3800,"priceM3":16000,"readingDay":25,"paymentDueDays":10,"rounding":"ROUND_UP_500",
+                 "overdueReminder":"WEEKLY","estimateMonthly":300000,"monthsHeld":2,"blockChangesWhenOverdue":true}""";
+        mvc.perform(as(put("/admin/utility")).contentType(MediaType.APPLICATION_JSON)
+                .content(valid.replace("\"paymentDueDays\":10", "\"paymentDueDays\":9").replace("ROUND_UP_500", "HALF")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.paymentDueDays").exists())
+                .andExpect(jsonPath("$.details.fields.rounding").exists());
+        mvc.perform(as(put("/admin/utility")).contentType(MediaType.APPLICATION_JSON).content(valid))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priceKwh").value(3800))
+                .andExpect(jsonPath("$.paymentDueDays").value(10));
+        mvc.perform(as(get("/admin/audit-log")).param("action", "Utility updated"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)));
+    }
+
     /** TC-CFG-012 (permission): a Manager cannot open Admin configuration. */
     @Test
     void managerCannotConfigure() throws Exception {

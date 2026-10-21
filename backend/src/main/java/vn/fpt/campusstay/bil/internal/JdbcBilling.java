@@ -255,6 +255,20 @@ class JdbcBilling implements Billing {
         return issued;
     }
 
+    /** A monthly Utility Invoice with its meter breakdown (Meter readings › Close period). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    IssuedInvoice issueUtility(long termId, long studentId, long allocationId, long buildingId, String periodLabel,
+            long amount, List<Map<String, Object>> lines, Map<String, Object> breakdown, Instant dueAt, String reference) {
+        TermSummary term = term(termId);
+        String title = "Utility · " + periodLabel;
+        IssuedInvoice issued = insert(new Draft(term, studentId, null, allocationId, buildingId, "UTILITY", title, amount,
+                lines, dueAt, reference, 0));
+        jdbc.sql("UPDATE bil_invoice SET breakdown = CAST(:breakdown AS jsonb) WHERE id = :id")
+                .param("breakdown", json.writeValueAsString(breakdown)).param("id", issued.id()).update();
+        events.publishEvent(new InvoiceIssued(issued.id(), issued.code(), studentId, title, amount, dueAt));
+        return issued;
+    }
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public long requestCredit(long termId, long studentId, Long buildingId, String sourceType, long sourceId,

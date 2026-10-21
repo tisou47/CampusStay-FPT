@@ -80,6 +80,7 @@ campusstay:
     expiry-interval: 5m                 # Deposit windows and roommate invitations
   req:
     expiry-interval: 5m                 # swap invitations and swap-board posts
+    sla-interval: 15m                   # routing SLA checks: escalations open and close
   bil:
     overdue-interval: 1h                # unpaid Invoices past their due date become Overdue
   files:

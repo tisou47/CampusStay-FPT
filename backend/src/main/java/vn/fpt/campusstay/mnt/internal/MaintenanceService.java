@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import vn.fpt.campusstay.auth.Role;
 import vn.fpt.campusstay.auth.UserDirectory;
 import vn.fpt.campusstay.cfg.Lookups;
 import vn.fpt.campusstay.cfg.Parameters;
+import vn.fpt.campusstay.mnt.MaintenanceReported;
 import vn.fpt.campusstay.shared.error.ApiException;
 import vn.fpt.campusstay.shared.error.FieldErrors;
 import vn.fpt.campusstay.shared.files.FileStore;
@@ -70,11 +72,12 @@ public class MaintenanceService {
     private final Lookups lookups;
     private final Parameters parameters;
     private final FileStore files;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public MaintenanceService(JdbcClient jdbc, RequestStore requests, CurrentUser currentUser, BlockScope blockScope,
             Residences residences, UserDirectory users, Lookups lookups, Parameters parameters, FileStore files,
-            Clock clock) {
+            ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.requests = requests;
         this.currentUser = currentUser;
@@ -84,6 +87,7 @@ public class MaintenanceService {
         this.lookups = lookups;
         this.parameters = parameters;
         this.files = files;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -170,6 +174,7 @@ public class MaintenanceService {
                     .param("request", row.id()).param("file", fileId).update();
         }
         requests.event(row.id(), me, "STUDENT", "Request submitted", null, false, now);
+        events.publishEvent(new MaintenanceReported(row.id(), row.code(), home.buildingId(), category, urgency));
         return new Created(row.code());
     }
 

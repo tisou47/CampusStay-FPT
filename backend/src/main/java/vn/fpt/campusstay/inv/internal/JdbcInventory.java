@@ -56,6 +56,12 @@ class JdbcInventory implements Inventory {
                 .query(JdbcInventory::slot).list();
     }
 
+    @Override
+    public List<BedSlot> bedsOfBuilding(long buildingId) {
+        return jdbc.sql(SLOT + " WHERE r.building_id = :b AND b.status <> 'RETIRED' ORDER BY r.code, b.label")
+                .param("b", buildingId).query(JdbcInventory::slot).list();
+    }
+
     private static BedSlot slot(ResultSet rs, int i) throws SQLException {
         return new BedSlot(rs.getLong("bed_id"), rs.getString("label"), rs.getLong("room_id"), rs.getString("room_code"),
                 rs.getLong("building_id"), rs.getString("block"), rs.getString("gender"), rs.getInt("floor_no"),

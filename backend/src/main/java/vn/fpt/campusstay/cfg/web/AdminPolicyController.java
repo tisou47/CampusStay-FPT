@@ -9,13 +9,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.cfg.MatchingPreviewer;
 import vn.fpt.campusstay.cfg.internal.AdminPolicyService;
+import vn.fpt.campusstay.cfg.internal.AdminUtilityService;
 import vn.fpt.campusstay.cfg.internal.MatchingService;
 import vn.fpt.campusstay.cfg.internal.SystemParameterService;
 
 /**
  * Admin configuration screens that load and save one document each
  * ({@code GET|PUT}, the PUT body has the GET shape): fees, eligibility,
- * matching criteria and system parameters. The services validate the values.
+ * matching criteria, utility and system parameters. The services validate the values.
  */
 @RestController
 @RequestMapping("/admin")
@@ -24,11 +25,24 @@ class AdminPolicyController {
     private final AdminPolicyService policies;
     private final MatchingService matching;
     private final SystemParameterService parameters;
+    private final AdminUtilityService utility;
 
-    AdminPolicyController(AdminPolicyService policies, MatchingService matching, SystemParameterService parameters) {
+    AdminPolicyController(AdminPolicyService policies, MatchingService matching, SystemParameterService parameters,
+            AdminUtilityService utility) {
         this.policies = policies;
         this.matching = matching;
         this.parameters = parameters;
+        this.utility = utility;
+    }
+
+    @GetMapping("/utility")
+    AdminUtilityService.Utility utility() {
+        return utility.get();
+    }
+
+    @PutMapping("/utility")
+    AdminUtilityService.Utility saveUtility(@RequestBody AdminUtilityService.Utility body) {
+        return utility.save(body);
     }
 
     @GetMapping("/fees")

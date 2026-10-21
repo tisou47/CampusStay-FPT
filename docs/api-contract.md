@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.6 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-12, B-01…B-03 and C-01…C-28 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.7 (22/10/2026): the mentor-confirmed contract plus the changes A-01…A-13, B-01…B-03 and C-01…C-33 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -197,6 +197,8 @@ Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: 
 - `PUT /meter-periods/{id}/readings/{room}` `{ electricity, water }` · `POST …/readings/{room}/confirm`
 - `POST /meter-periods/{id}/import` (multipart `file` CSV) → `{ imported }` · `POST /meter-periods/{id}/close` → `{ invoicesIssued }`
 
+Meter readings, Utility Invoices and Admin › Utility: C-29.
+
 ### Inspections
 
 - `GET /inspection-runs/current?termId&block` → `{ run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName, checklist: { name, version, items: [{ id, label, category, severity }] } } | null }`
@@ -225,13 +227,15 @@ Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: 
 
 Late check-ins, refunds, overdue Invoices and reminders: C-28.
 - `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
-- `PUT /block-staff/{id}` `{ handles, onDuty }` · `POST /staff-account-requests` `{ name, email, role }`
+- `PUT /block-staff/{id}` `{ handles, onDuty }` · `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
 - `GET /routing-rules?block` → `{ rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }], staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }], timers: { urgent, normal, roomChange }, timerOptions: { urgent, normal, roomChange } }`
 - `POST /routing-rules` · `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }` · `PUT /routing-rules/timers` `{ block, urgent, normal, roomChange }`
 - `GET /escalations?termId&block` → `{ items: [{ id, kind, title, subtitle, room, why, tone, openFor, ownerName, handled: { action, at, note } | null, events: [{ text, at }], suggestedAssigneeId, link, canOfferTemporaryBed }], assignees: [{ id, name }] }`
 - `POST /escalations/{id}/actions` `{ action: 'reassign', assigneeId, note? }` or `{ action: 'temporary-bed', note? }`
 - `GET /reports/block?termId&block` → `{ allocated, weekly: [{ label, value }], notCheckedIn, followUpBy }`; exports `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`
-- `GET /block-settings?block` → `{ deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy, limits: { visitWindow, quietStartsBy }, quietOptions }` · `PUT /block-settings`
+- `GET /block-settings?block` → `{ deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy, limits: { visitWindow, quietStartsBy }, quietOptions }` · `PUT /block-settings` `{ block, deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules }` → the `GET` shape
+
+Block staff: C-32 and A-13. Routing rules and timers: C-30. Escalations: C-31. Block settings: C-33.
 - `GET /inspection-schedules?block` → `{ items: [{ id, name, checklistId, scope, scopeLabel, repeat, repeatLabel, assignee, dueWithinDays, createRequests, notifyResidents, nextRunAt, status, createdAt }], runs: [{ id, assigneeName, inspected, rooms, failed, status }], options: { checklists, scopes, repeats, assignees } }` (options are `{ value, label }` lists)
 - `POST /inspection-schedules` · `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`)
 

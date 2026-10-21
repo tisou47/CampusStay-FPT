@@ -64,6 +64,12 @@ Staff approve Applications (`/applications`), start a run (`POST /assignment-run
 - **Round 2:** when the Block Manager approves a Block, Waitlisted students get held Room options; declining or not answering cancels the Application and refunds the Deposit after approval.
 - **Late check-ins** are recorded at the desk and decided by the Block Manager. **Refunds** wait for the Block Manager. Every hour unpaid Invoices past due become Overdue; the Manager can send reminders (in-app, push, email).
 
+### Utility billing, routing and Block management (S6)
+- **Meter readings (Staff › Meter readings):** each Block gets one period per calendar month, opened on first visit. Enter or import (CSV `room,electricity,water`) the readings of every Room someone lived in; values more than three times the Room's last month are flagged and must be confirmed. Closing the month issues one Utility Invoice per resident, split by time in the Room between meter cuts; students who checked out already settled from their Utility Deposit. Prices and rounding: Admin › Utility.
+- **Routing rules (Block Manager):** new Maintenance Requests (by category, then All) and Room-Change Requests go to the rule's assignee while on duty, else its fallback. The seed has no rules, so requests wait unassigned until the Manager adds them.
+- **Escalations:** every 15 minutes (`campusstay.req.sla-interval`) requests past the Block's timers, still unassigned or reopened appear on Manager › Escalations; the Manager reassigns them (the new owner is notified) or offers a temporary Bed for a room change.
+- **Block staff and settings:** the Manager sets what each person handles and who is on duty, asks Admin for new accounts, and edits desk, visitor and quiet hours within Admin › System parameters (`block.*`, `sla.*`).
+
 ## Tests
 ```bash
 mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
@@ -84,16 +90,16 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 ```
 src/main/java/vn/fpt/campusstay/
   shared/   error model, paging, audit log, clock, tokens, file store and signed links (open module)
-  auth/     sign-in, sessions, users, roles, Block scope, Audit Log screen   (S0, S1)
-  cfg/      Terms, Room Types/Classes, fees, eligibility, matching, parameters (S0, S1)
+  auth/     sign-in, sessions, users, roles, Block scope, Audit Log, staff   (S0, S1, S6)
+  cfg/      Terms, Room Types/Classes, fees, utility, parameters, Block settings (S0, S1, S6)
   inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
   ntf/      in-app notifications, push (FCM), devices, email outbox          (S0–S4)
   app/      Application wizard, roommate pairs, Home, profile, review       (S2, S3)
-  bil/      Invoices, VietQR, SePay webhook, receipts, Staff payments       (S2, S3)
+  bil/      Invoices, VietQR, SePay webhook, receipts, payments, meters     (S2, S3, S5, S6)
   asg/      assignment engine, runs, approval, Allocations, My Room, desk  (S3, S4)
-  mnt/      Maintenance Requests, photos, updates                          (S4)
-  req/      Room-Change Requests, swaps, the student's requests screen     (S4, S5)
+  mnt/      Maintenance Requests, photos, updates                          (S4, S6)
+  req/      Room-Change Requests, swaps, routing rules, escalations        (S4–S6)
   rpt/      (S7)
-src/main/resources/db/migration/   Flyway schema V1–V18
+src/main/resources/db/migration/   Flyway schema V1–V21
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

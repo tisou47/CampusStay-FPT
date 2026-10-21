@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); 116 coded, 115 of them verified.
+Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); 135 coded, 134 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -167,25 +167,25 @@ Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-p
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | GET | `/block-staff` | Should | Planned |  |
-| AUTH | PUT | `/block-staff/{id}` | Should | Planned |  |
-| AUTH | POST | `/staff-account-requests` | Should | Planned |  |
-| BIL | GET | `/meter-periods` | Should | Planned |  |
-| BIL | POST | `/meter-periods/{id}/close` | Should | Planned |  |
-| BIL | POST | `/meter-periods/{id}/import` | Should | Planned |  |
-| BIL | GET | `/meter-periods/{id}/readings` | Should | Planned |  |
-| BIL | GET | `/meter-periods/{id}/readings/{room}` | Should | Planned |  |
-| BIL | PUT | `/meter-periods/{id}/readings/{room}` | Should | Planned |  |
-| BIL | POST | `/meter-periods/{id}/readings/{room}/confirm` | Should | Planned | Was missing from this map (in the contract, used by the web) |
-| CFG | GET, PUT | `/admin/utility` | Should | Planned |  |
-| CFG | GET | `/block-settings` | Should | Planned |  |
-| CFG | PUT | `/block-settings` | Should | Planned |  |
-| REQ | GET | `/escalations` | Should | Planned |  |
-| REQ | POST | `/escalations/{id}/actions` | Should | Planned |  |
-| REQ | GET | `/routing-rules` | Should | Planned |  |
-| REQ | POST | `/routing-rules` | Should | Planned |  |
-| REQ | PUT | `/routing-rules/timers` | Should | Planned |  |
-| REQ | PUT | `/routing-rules/{id}` | Should | Planned |  |
+| AUTH | GET | `/block-staff` | Should | Verified | C-32; TC-AUTH-019 |
+| AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32; TC-AUTH-020 |
+| AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
+| BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |
+| BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022); TC-BIL-024, 026 |
+| BIL | POST | `/meter-periods/{id}/import` | Should | Verified | C-29; TC-BIL-025 |
+| BIL | GET | `/meter-periods/{id}/readings` | Should | Verified | C-29; TC-BIL-023, 024 |
+| BIL | GET | `/meter-periods/{id}/readings/{room}` | Should | Verified | C-29; TC-BIL-024 |
+| BIL | PUT | `/meter-periods/{id}/readings/{room}` | Should | Verified | C-29; TC-BIL-024, 026 |
+| BIL | POST | `/meter-periods/{id}/readings/{room}/confirm` | Should | Verified | Was missing from this map (in the contract, used by the web); C-29; TC-BIL-024 |
+| CFG | GET, PUT | `/admin/utility` | Should | Verified | C-29; TC-CFG-013 |
+| CFG | GET | `/block-settings` | Should | Verified | C-33; TC-CFG-014 |
+| CFG | PUT | `/block-settings` | Should | Verified | C-33; TC-CFG-014, 015 |
+| REQ | GET | `/escalations` | Should | Verified | C-31; scan every 15 minutes; TC-REQ-016…018 |
+| REQ | POST | `/escalations/{id}/actions` | Should | Verified | C-31; TC-REQ-016, 018 |
+| REQ | GET | `/routing-rules` | Should | Verified | C-30; TC-REQ-013 |
+| REQ | POST | `/routing-rules` | Should | Verified | C-30; new requests follow the rules: TC-REQ-013…015 |
+| REQ | PUT | `/routing-rules/timers` | Should | Verified | C-30; TC-REQ-013 |
+| REQ | PUT | `/routing-rules/{id}` | Should | Verified | C-30; TC-REQ-013 |
 
 ## S7 — Dashboards, reports, exports, inspections, email campaigns, templates
 

@@ -16,6 +16,7 @@ campusstay:
     expiry-interval: 1h
   req:
     expiry-interval: 1h
+    sla-interval: 1h
   bil:
     overdue-interval: 1h
   files:

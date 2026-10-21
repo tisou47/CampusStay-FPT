@@ -142,13 +142,14 @@ public class RoomChangeService {
     private final UserDirectory users;
     private final Billing billing;
     private final ChangePrices prices;
+    private final RoutingService routing;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public RoomChangeService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, TermCatalog terms,
             Catalog catalog, FeePolicy fees, UtilityPolicy utility, Lookups lookups, Moves moves, Residences residences,
-            Inventory inventory, UserDirectory users, Billing billing, ChangePrices prices,
+            Inventory inventory, UserDirectory users, Billing billing, ChangePrices prices, RoutingService routing,
             ApplicationEventPublisher events, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
@@ -164,6 +165,7 @@ public class RoomChangeService {
         this.users = users;
         this.billing = billing;
         this.prices = prices;
+        this.routing = routing;
         this.events = events;
         this.audit = audit;
         this.clock = clock;
@@ -235,26 +237,25 @@ public class RoomChangeService {
         long currentPrice = fees.termPrice(p.roomTypeId(), p.roomClassId()).orElse(newPrice);
         long difference = prices.difference(newPrice, currentPrice, term);
         Instant now = Instant.now(clock);
-        Instant slaDue = jdbc.sql("SELECT room_change_hours FROM req_sla_policy WHERE building_id = :b")
-                .param("b", p.buildingId()).query(Integer.class).optional()
-                .map(h -> now.plus(Duration.ofHours(h))).orElse(null);
+        Instant slaDue = now.plus(Duration.ofHours(routing.sla(p.buildingId()).roomChange()));
+        Long assignee = routing.route("ROOM_CHANGE", p.buildingId(), null).orElse(null);
         try {
             return new Created(jdbc.sql("""
                     WITH next AS (SELECT nextval(pg_get_serial_sequence('req_room_change', 'id')) AS id)
                     INSERT INTO req_room_change (id, code, term_id, student_id, allocation_id, building_id, kind,
                                                  target_room_type_id, target_room_class_id, reason_code, details,
-                                                 price_difference, sla_due_at, submitted_at)
+                                                 price_difference, assignee_id, sla_due_at, submitted_at)
                     OVERRIDING SYSTEM VALUE
                     SELECT id, 'RC-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term,
-                           :student, :allocation, :building, :kind, :type, :class, :reason, :details, :difference, :sla,
-                           :now
+                           :student, :allocation, :building, :kind, :type, :class, :reason, :details, :difference,
+                           :assignee, :sla, :now
                     FROM next
                     RETURNING code
                     """)
                     .param("termCode", term.code()).param("term", term.id()).param("student", me)
                     .param("allocation", p.allocationId()).param("building", p.buildingId()).param("kind", kind)
                     .param("type", typeId).param("class", classId).param("reason", reason).param("details", details)
-                    .param("difference", difference).param("sla", slaDue == null ? null : Timestamp.from(slaDue))
+                    .param("difference", difference).param("assignee", assignee).param("sla", Timestamp.from(slaDue))
                     .param("now", Timestamp.from(now))
                     .query(String.class).single());
         } catch (DuplicateKeyException e) {

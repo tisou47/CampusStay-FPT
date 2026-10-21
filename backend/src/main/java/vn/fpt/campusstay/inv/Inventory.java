@@ -30,4 +30,7 @@ public interface Inventory {
 
     /** Every non-retired Bed of a Room, by label. */
     List<BedSlot> bedsOfRoom(long roomId);
+
+    /** Every non-retired Bed of a Block, by Room code then label (Rooms out of service included). */
+    List<BedSlot> bedsOfBuilding(long buildingId);
 }
