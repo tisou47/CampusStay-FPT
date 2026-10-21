@@ -68,7 +68,7 @@ public class SecurityConfig {
     /**
      * In development the web app calls through the Vite proxy (same origin), so
      * CORS matters only when the API is served from another origin. Entries are
-     * origin patterns, so one entry such as {@code https://campusstay-fpt-*.vercel.app}
+     * origin patterns, so one entry such as {@code https://campusstay-*-tisou.vercel.app}
      * also admits the Vercel preview deployments. Auth is a bearer token, not a
      * cookie, so an admitted origin still cannot act as a signed-in user.
      */

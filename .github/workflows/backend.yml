@@ -7,7 +7,7 @@ name: backend
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'infra/prod/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'infra/prod/**', '!infra/prod/README.md', '!infra/prod/.env.example', '.github/workflows/backend.yml']
   pull_request:
     paths: ['backend/**', '.github/workflows/backend.yml']
   workflow_dispatch:

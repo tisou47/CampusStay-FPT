@@ -3,7 +3,7 @@
 Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL on one Oracle Cloud Always Free VM** behind Caddy (HTTPS). The Android app calls the same API.
 
 ```
-Browser ──► https://campusstay-fpt.vercel.app        (Vercel: static build of web/)
+Browser ──► https://campusstay-fpt-ten.vercel.app    (Vercel: static build of web/)
 Browser, Android, SePay ──► https://<API_DOMAIN>/api ──► Caddy :443 ──► api :8080 ──► db :5432   (Oracle VM, Docker Compose)
 ```
 
@@ -93,7 +93,7 @@ The demo seed (`db/seed`) fills an **empty** database with a fictional campus: 8
 `scp "ubuntu@<API_DOMAIN>:/opt/campusstay/backups/*-<stamp>*" .`
 
 ## 2. One-time setup: Vercel (web)
-1. vercel.com → Add New → Project → import `tisou47/CampusStay-FPT`. **Root Directory: `web`**; framework, build command and output come from `web/vercel.json`. Project name `campusstay-fpt` gives `https://campusstay-fpt.vercel.app` if the name is free.
+1. Done on 22/10/2026: project `campusstay-fpt` in the Vercel scope `tisou`, linked to `tisou47/CampusStay-FPT`, **Root Directory `web`**; framework, build command and output come from `web/vercel.json`. Production URL: `https://campusstay-fpt-ten.vercel.app` (`campusstay-fpt.vercel.app` was taken; another free `*.vercel.app` name or your own domain can be set under Settings → Domains, then update `WEB_BASE_URL`, `CORS_ALLOWED_ORIGINS` and the Google origin). Previews are `campusstay-<hash>-tisou.vercel.app` and need a Vercel sign-in (deployment protection).
 2. Environment Variables (Production and Preview):
 
    | Name | Value |
