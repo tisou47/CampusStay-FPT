@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 58 coded, 57 of them verified.
+Total: 160 endpoints (165 when the five `GET, PUT` rows count twice); 75 coded, 74 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -40,7 +40,7 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 58 coded, 
 | CFG | GET, PUT | `/admin/eligibility` | Must | Verified | C-16; TC-CFG-009 |
 | CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; TC-CFG-008 |
 | CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16; TC-CFG-010 |
-| CFG | POST | `/admin/matching/preview` | Must | Verified | Answers "nobody to place" until ASG implements `cfg.MatchingPreviewer` (S3); TC-CFG-010 |
+| CFG | POST | `/admin/matching/preview` | Must | Verified | Runs the assignment engine over the Term's approved Applications (ASG implements `cfg.MatchingPreviewer`, S3); TC-CFG-010 (nobody to place) |
 | CFG | GET | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
 | CFG | POST | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
 | CFG | PUT | `/admin/room-classes/{id}` | Must | Verified | TC-CFG-007 |
@@ -73,14 +73,14 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 58 coded, 
 | APP | POST | `/applications` | Must | Verified | C-19, C-20; TC-APP-002, 003, 005 |
 | APP | GET | `/applications/eligibility` | Must | Verified | C-20; TC-APP-001, 008 |
 | APP | POST | `/applications/roommate-check` | Must | Verified | C-08; TC-APP-004 |
-| APP | GET | `/applications/{id}` | Must | Verified | Student view; the back-office view comes with S3 (404 until then); TC-APP-002, 005, 006, 009 |
+| APP | GET | `/applications/{id}` | Must | Verified | Student view and back-office view (C-21); TC-APP-002, 005, 006, 009, 010, 011 |
 | APP | POST | `/applications/{id}/cancel` | Must | Verified | Voids an unpaid Deposit, refunds a paid one by rule; TC-APP-007, 009 |
 | APP | POST | `/roommate-invitations/{id}/respond` | Must | Verified | TC-APP-005, 006 |
 | APP | GET | `/students/me/applications` | Must | Verified | TC-APP-002, 005 |
-| APP | GET | `/students/me/home` | Must | Verified | `allocation`, `checkedIn`, `openRequests` filled from S3/S4; TC-APP-002, 009 |
+| APP | GET | `/students/me/home` | Must | Verified | `allocation`, `checkedIn` from S3; `openRequests` from S4; TC-APP-002, 009, TC-ASG-010 |
 | APP | GET | `/students/me/profile` | Must | Verified | TC-APP-009 |
 | APP | GET | `/students/me/roommate-invitation` | Must | Verified | TC-APP-005, 006 |
-| BIL | GET | `/invoices/{id}` | Must | Verified | Student (own) and Admin; Staff/Manager with S3; TC-BIL-001, 004, 006 |
+| BIL | GET | `/invoices/{id}` | Must | Verified | Student (own), Admin, Staff/Manager of the Block (C-22); TC-BIL-001, 004, 006, 010 |
 | BIL | GET | `/invoices/{id}/payment` | Must | Verified | TC-BIL-001, 003, 006 |
 | BIL | POST | `/invoices/{id}/payment/refresh` | Must | Verified | TC-BIL-001 |
 | BIL | GET | `/invoices/{id}/receipt` | Must | Verified | One-page PDF; TC-BIL-003, 004 |
@@ -94,22 +94,23 @@ Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-p
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| APP | GET | `/applications` | Must | Planned |  |
-| APP | POST | `/applications/bulk-review` | Must | Planned |  |
-| APP | POST | `/applications/{id}/review` | Must | Planned |  |
-| ASG | GET | `/approvals/assignment` | Must | Planned |  |
-| ASG | GET | `/assignment-runs` | Must | Planned |  |
-| ASG | POST | `/assignment-runs` | Must | Planned |  |
-| ASG | POST | `/assignment-runs/{runId}/approve` | Must | Planned |  |
-| ASG | POST | `/assignment-runs/{runId}/commit` | Must | Planned |  |
-| ASG | GET | `/assignment-runs/{runId}/conflicts/{applicationId}` | Must | Planned |  |
-| ASG | POST | `/assignment-runs/{runId}/conflicts/{applicationId}/resolve` | Must | Planned |  |
-| ASG | GET | `/assignment-runs/{runId}/proposal` | Must | Planned |  |
-| ASG | POST | `/assignment-runs/{runId}/return` | Must | Planned |  |
-| ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Planned |  |
-| ASG | GET | `/students/me/allocation` | Must | Planned |  |
-| BIL | GET | `/payments` | Must | Planned |  |
-| BIL | POST | `/payments/{invoiceId}/confirm` | Must | Planned |  |
+| APP | GET | `/applications` | Must | Verified | C-21; TC-APP-010, 011 |
+| APP | POST | `/applications/bulk-review` | Must | Verified | Approves only; TC-ASG-010 |
+| APP | POST | `/applications/{id}/review` | Must | Verified | C-21; TC-APP-010, 011 |
+| ASG | GET | `/approvals/assignment` | Must | Verified | TC-ASG-010, 011 |
+| ASG | GET | `/assignment-runs` | Must | Verified | Run ids `RUN-<n>` (C-21); TC-ASG-010, 011 |
+| ASG | POST | `/assignment-runs` | Must | Verified | Engine unit tests TC-ASG-001…006; TC-ASG-010, 011 |
+| ASG | POST | `/assignment-runs/{runId}/approve` | Must | Verified | Allocations + Balance Invoices + notifications; TC-ASG-010 |
+| ASG | POST | `/assignment-runs/{runId}/commit` | Must | Verified | Staff submit the Block to its Manager; TC-ASG-010, 011 |
+| ASG | GET | `/assignment-runs/{runId}/conflicts/{applicationId}` | Must | Verified | TC-ASG-010 |
+| ASG | POST | `/assignment-runs/{runId}/conflicts/{applicationId}/resolve` | Must | Verified | TC-ASG-010 |
+| ASG | GET | `/assignment-runs/{runId}/proposal` | Must | Verified | TC-ASG-010, 011 |
+| ASG | POST | `/assignment-runs/{runId}/return` | Must | Verified | TC-ASG-010 |
+| ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Verified | TC-ASG-010, 011 |
+| ASG | GET | `/students/me/allocation` | Must | Verified | C-21; TC-ASG-010, 011 |
+| BIL | GET | `/payments` | Must | Verified | C-22; TC-BIL-010, 011 |
+| BIL | POST | `/payments/{invoiceId}/confirm` | Must | Verified | C-22; TC-BIL-011, 012 |
+| BIL | GET | `/payments/{invoiceId}/receipt-file` | Must | Verified | A-09; TC-BIL-011 |
 
 ## S4 — Check-in/out desk, Maintenance Requests, push notifications
 

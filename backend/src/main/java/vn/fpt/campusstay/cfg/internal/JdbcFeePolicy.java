@@ -70,6 +70,16 @@ class JdbcFeePolicy implements FeePolicy {
                 .optional();
     }
 
+    @Override
+    public boolean manualConfirmAllowed() {
+        return jdbc.sql("SELECT allow_manual_confirm FROM cfg_fee_policy WHERE id = 1").query(Boolean.class).single();
+    }
+
+    @Override
+    public int balanceDays() {
+        return jdbc.sql("SELECT balance_days FROM cfg_fee_policy WHERE id = 1").query(Integer.class).single();
+    }
+
     /** {@code 10,350,001} with step 1,000 → {@code 10,351,000}. */
     static long roundUp(BigDecimal amount, int step) {
         BigDecimal s = BigDecimal.valueOf(Math.max(1, step));

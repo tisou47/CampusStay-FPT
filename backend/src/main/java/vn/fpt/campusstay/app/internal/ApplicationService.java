@@ -206,8 +206,9 @@ public class ApplicationService {
         Instant now = Instant.now(clock);
         Instant depositDueAt = now.plus(Duration.ofHours(term.depositWindowHours()));
 
-        NewApplication created = insert(term, me.userId(), type.id(), roomClass.id(), termPrice,
-                roomClass.surchargeRate(), deposit, invite ? "INVITE" : "AUTO", preferences, contact, depositDueAt, null);
+        UserDirectory.StudentProfile student = users.studentProfile(me.userId()).orElseThrow();
+        NewApplication created = insert(term, student, type.id(), roomClass.id(), termPrice, roomClass.surchargeRate(),
+                deposit, invite ? "INVITE" : "AUTO", preferences, contact, depositDueAt, null);
         Billing.IssuedInvoice invoice = billing.issueDeposit(new Billing.DepositRequest(term.id(), me.userId(),
                 created.id(), created.code(), termPrice, deposit, depositDueAt));
         applications.event(created.id(), "AWAITING_DEPOSIT", "Application created", null, me.userId());
@@ -236,26 +237,30 @@ public class ApplicationService {
     private record NewApplication(long id, String code) {
     }
 
-    private NewApplication insert(TermSummary term, long studentId, long roomTypeId, long roomClassId, long termPrice,
-            BigDecimal surchargeRate, long deposit, String mode, Map<String, String> preferences,
-            Map<String, String> contact, Instant depositDueAt, Long partnerId) {
+    private NewApplication insert(TermSummary term, UserDirectory.StudentProfile student, long roomTypeId,
+            long roomClassId, long termPrice, BigDecimal surchargeRate, long deposit, String mode,
+            Map<String, String> preferences, Map<String, String> contact, Instant depositDueAt, Long partnerId) {
         Timestamp now = Timestamp.from(Instant.now(clock));
         return jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('app_application', 'id')) AS id)
                 INSERT INTO app_application (id, code, term_id, student_id, room_type_id, room_class_id, term_price,
                                              surcharge_rate, deposit_amount, status, roommate_mode, partner_application_id,
                                              roommate_preferences, contact, consent_matching, consent_rules, consented_at,
-                                             deposit_due_at, created_at, updated_at)
+                                             deposit_due_at, created_at, updated_at, student_name, student_code, gender)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'APP-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'),
                        :term, :student, :type, :class, :price, :surcharge, :deposit, 'AWAITING_DEPOSIT', :mode, :partner,
-                       CAST(:preferences AS jsonb), CAST(:contact AS jsonb), TRUE, TRUE, :now, :due, :now, :now
+                       CAST(:preferences AS jsonb), CAST(:contact AS jsonb), TRUE, TRUE, :now, :due, :now, :now,
+                       :studentName, :studentCode, :gender
                 FROM next
                 RETURNING id, code
                 """)
                 .param("termCode", term.code())
                 .param("term", term.id())
-                .param("student", studentId)
+                .param("student", student.userId())
+                .param("studentName", student.name())
+                .param("studentCode", student.studentCode())
+                .param("gender", student.gender())
                 .param("type", roomTypeId)
                 .param("class", roomClassId)
                 .param("price", termPrice)
@@ -314,7 +319,7 @@ public class ApplicationService {
         contact.put("emergencyPhone", profile.emergencyPhone());
         Instant depositDueAt = now.plus(Duration.ofHours(term.depositWindowHours()));
         // Accepting the invitation on its screen is the consent to matching and the rules (it states both).
-        NewApplication created = insert(term, me.userId(), inviter.roomTypeId(), inviter.roomClassId(),
+        NewApplication created = insert(term, profile, inviter.roomTypeId(), inviter.roomClassId(),
                 inviter.termPrice(), inviter.surchargeRate(), inviter.depositAmount(), "INVITE", null, contact,
                 depositDueAt, inviter.id());
         Billing.IssuedInvoice invoice = billing.issueDeposit(new Billing.DepositRequest(term.id(), me.userId(),
@@ -476,7 +481,7 @@ public class ApplicationService {
     // ---------------------------------------------------------------- helpers
 
     /** The pair is off: the remaining Application is matched automatically and, if paid, submitted. */
-    private void dropRoommate(ApplicationStore.Application app, String text) {
+    void dropRoommate(ApplicationStore.Application app, String text) {
         if (!app.live() || !app.roommateMode().equals("INVITE")) {
             return;
         }
@@ -491,7 +496,7 @@ public class ApplicationService {
         }
     }
 
-    private void cancelPendingInvitation(long inviterApplicationId) {
+    void cancelPendingInvitation(long inviterApplicationId) {
         jdbc.sql("""
                 UPDATE app_roommate_invitation SET status = 'CANCELLED', responded_at = :now, version = version + 1
                 WHERE inviter_application_id = :app AND status = 'PENDING'

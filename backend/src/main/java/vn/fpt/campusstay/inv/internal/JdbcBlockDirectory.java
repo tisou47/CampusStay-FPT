@@ -54,4 +54,13 @@ class JdbcBlockDirectory implements BlockDirectory, Buildings {
         return jdbc.sql("SELECT count(*) FROM inv_building WHERE status = 'ACTIVE' AND gender = :gender")
                 .param("gender", gender).query(Long.class).single() > 0;
     }
+
+    @Override
+    public Set<String> gendersOf(Collection<Long> buildingIds) {
+        if (buildingIds == null || buildingIds.isEmpty()) {
+            return Set.of();
+        }
+        return new LinkedHashSet<>(jdbc.sql("SELECT DISTINCT trim(gender) FROM inv_building WHERE id IN (:ids)")
+                .param("ids", java.util.List.copyOf(buildingIds)).query(String.class).list());
+    }
 }

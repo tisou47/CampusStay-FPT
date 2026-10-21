@@ -35,7 +35,7 @@ class ApplicationStore {
     record Application(long id, String code, long termId, long studentId, long roomTypeId, long roomClassId,
             long termPrice, BigDecimal surchargeRate, long depositAmount, String status, String roommateMode,
             Long partnerApplicationId, String preferences, String contact, Instant depositDueAt, Instant submittedAt,
-            String decisionNote, Instant createdAt) {
+            String decisionNote, Instant createdAt, String studentName, String studentCode, String gender) {
 
         boolean live() {
             return LIVE.contains(status);
@@ -45,7 +45,8 @@ class ApplicationStore {
     private static final String COLUMNS = """
             id, code, term_id, student_id, room_type_id, room_class_id, term_price, surcharge_rate, deposit_amount,
             status, roommate_mode, partner_application_id, roommate_preferences::text AS preferences,
-            contact::text AS contact, deposit_due_at, submitted_at, decision_note, created_at
+            contact::text AS contact, deposit_due_at, submitted_at, decision_note, created_at, student_name, student_code,
+            gender
             """;
 
     private final JdbcClient jdbc;
@@ -118,7 +119,8 @@ class ApplicationStore {
                 rs.getBigDecimal("surcharge_rate"), rs.getLong("deposit_amount"), rs.getString("status"),
                 rs.getString("roommate_mode"), rs.getObject("partner_application_id", Long.class),
                 rs.getString("preferences"), rs.getString("contact"), instant(rs, "deposit_due_at"),
-                instant(rs, "submitted_at"), rs.getString("decision_note"), instant(rs, "created_at"));
+                instant(rs, "submitted_at"), rs.getString("decision_note"), instant(rs, "created_at"),
+                rs.getString("student_name"), rs.getString("student_code"), rs.getString("gender").trim());
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

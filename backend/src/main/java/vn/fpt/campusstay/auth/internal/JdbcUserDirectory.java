@@ -76,13 +76,25 @@ class JdbcUserDirectory implements UserDirectory {
     private static final String PROFILE = """
             SELECT u.id, u.display_name, u.email, s.student_code, s.gender, s.major, s.cohort, s.semester_no, s.hometown,
                    s.region, s.enrollment_status, s.priority_groups, s.phone, s.emergency_name,
-                   s.emergency_relationship, s.emergency_phone
+                   s.emergency_relationship, s.emergency_phone, s.synced_at
             FROM auth_user u JOIN auth_student s ON s.user_id = u.id
             """;
 
     @Override
     public Optional<StudentProfile> studentProfile(long userId) {
         return jdbc.sql(PROFILE + " WHERE u.id = :id").param("id", userId).query(JdbcUserDirectory::profile).optional();
+    }
+
+    @Override
+    public Map<Long, StudentProfile> studentProfiles(Collection<Long> userIds) {
+        Map<Long, StudentProfile> result = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return result;
+        }
+        jdbc.sql(PROFILE + " WHERE u.id IN (:ids)").param("ids", List.copyOf(userIds))
+                .query(JdbcUserDirectory::profile).list()
+                .forEach(p -> result.put(p.userId(), p));
+        return result;
     }
 
     @Override
@@ -115,6 +127,7 @@ class JdbcUserDirectory implements UserDirectory {
                 rs.getString("cohort"), rs.getObject("semester_no", Integer.class), rs.getString("hometown"),
                 rs.getString("region"), rs.getString("enrollment_status"),
                 groups == null ? List.of() : List.of((String[]) groups.getArray()), rs.getString("phone"),
-                rs.getString("emergency_name"), rs.getString("emergency_relationship"), rs.getString("emergency_phone"));
+                rs.getString("emergency_name"), rs.getString("emergency_relationship"), rs.getString("emergency_phone"),
+                rs.getTimestamp("synced_at").toInstant());
     }
 }

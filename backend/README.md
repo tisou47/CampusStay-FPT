@@ -48,6 +48,10 @@ The payment page shows a VietQR image for the receiving account set in `PAYMENT_
   ```bash
   curl -X POST http://localhost:8080/api/dev/invoices/INV-SP27-000001/simulate-payment -H "Authorization: Bearer <token>"
   ```
+- **Manual confirmation (Staff › Payments):** a transfer the feed could not match is confirmed by hand with the bank reference and an optional receipt (JPEG, PNG or PDF). Receipts are stored under `FILES_DIR` (default `data/files`, git-ignored); back that folder up with the database. Admin › Fees can turn manual confirmation off.
+
+### Assignment (S3)
+Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally with the seed: apply as a few students of one gender, pay with the dev simulation, approve them as `staff.a1` (Block A, male students) and run.
 
 ## Tests
 ```bash
@@ -68,14 +72,15 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 ## Layout
 ```
 src/main/java/vn/fpt/campusstay/
-  shared/   error model, paging, audit log, clock, tokens (open module)
+  shared/   error model, paging, audit log, clock, tokens, file store (open module)
   auth/     sign-in, sessions, users, roles, Block scope, Audit Log screen   (S0, S1)
   cfg/      Terms, Room Types/Classes, fees, eligibility, matching, parameters (S0, S1)
   inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
-  ntf/      in-app notifications, email outbox                              (S0, S1, S2)
-  app/      Application wizard, roommate pairs, student Home and profile    (S2)
-  bil/      Invoices, VietQR payment page, SePay webhook, receipts          (S2)
-  asg/ req/ mnt/ rpt/   (asg: Bed occupancy port only; the rest slice by slice)
-src/main/resources/db/migration/   Flyway schema V1–V12
+  ntf/      in-app notifications, email outbox                              (S0–S3)
+  app/      Application wizard, roommate pairs, Home, profile, review       (S2, S3)
+  bil/      Invoices, VietQR, SePay webhook, receipts, Staff payments       (S2, S3)
+  asg/      assignment engine, runs, approval, Allocations, My Room         (S3)
+  req/ mnt/ rpt/   (slice by slice)
+src/main/resources/db/migration/   Flyway schema V1–V13
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

@@ -87,6 +87,7 @@ public class StudentInvoiceService {
 
     private final JdbcClient jdbc;
     private final InvoiceStore invoices;
+    private final InvoiceScope scope;
     private final CurrentUser currentUser;
     private final UserDirectory users;
     private final TermCatalog terms;
@@ -95,10 +96,12 @@ public class StudentInvoiceService {
     private final JsonMapper json;
     private final Clock clock;
 
-    public StudentInvoiceService(JdbcClient jdbc, InvoiceStore invoices, CurrentUser currentUser, UserDirectory users,
-            TermCatalog terms, Parameters parameters, PaymentProperties payment, JsonMapper json, Clock clock) {
+    public StudentInvoiceService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
+            UserDirectory users, TermCatalog terms, Parameters parameters, PaymentProperties payment, JsonMapper json,
+            Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
+        this.scope = scope;
         this.currentUser = currentUser;
         this.users = users;
         this.terms = terms;
@@ -207,8 +210,8 @@ public class StudentInvoiceService {
     private InvoiceStore.Invoice visible(String idOrCode) {
         AuthenticatedUser user = currentUser.get();
         Optional<InvoiceStore.Invoice> invoice = invoices.find(idOrCode);
-        if (invoice.isPresent() && (user.is(Role.ADMIN)
-                || user.is(Role.STUDENT) && invoice.get().studentId() == user.userId())) {
+        if (invoice.isPresent() && (user.is(Role.STUDENT) ? invoice.get().studentId() == user.userId()
+                : scope.visible(invoice.get()))) {
             return invoice.get();
         }
         throw ApiException.notFound("This Invoice does not exist.");

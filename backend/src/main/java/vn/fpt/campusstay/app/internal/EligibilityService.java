@@ -84,13 +84,26 @@ public class EligibilityService {
     }
 
     Result check(long studentId, TermSummary term) {
+        return check(studentId, term, null);
+    }
+
+    /**
+     * The checks again at Staff review: the registration window no longer matters and the Application
+     * under review does not count as "another live Application".
+     */
+    List<Check> reviewChecks(long studentId, TermSummary term, long applicationId) {
+        return check(studentId, term, applicationId).checks();
+    }
+
+    private Result check(long studentId, TermSummary term, Long reviewedApplicationId) {
         List<Check> checks = new ArrayList<>();
         boolean eligible = true;
-        if (term == null || !term.registrationOpen()) {
+        boolean applying = reviewedApplicationId == null; // at review time registration may have closed
+        if (applying && (term == null || !term.registrationOpen())) {
             checks.add(new Check("Registration is open", term == null ? "No Term is open for registration now."
                     : "Registration for " + term.name() + " is not open.", false));
             eligible = false;
-        } else {
+        } else if (applying) {
             checks.add(new Check("Registration is open",
                     term.name() + " registration closes on " + WHEN.format(term.registrationClosesAt()) + ".", true));
         }
@@ -104,7 +117,8 @@ public class EligibilityService {
                         profile.enrollmentStatus().equals("ENROLLED"));
                 case "ONE_APPLICATION" -> {
                     var live = term == null ? Optional.<ApplicationStore.Application>empty()
-                            : applications.live(studentId, term.id());
+                            : applications.live(studentId, term.id())
+                                    .filter(a -> !Long.valueOf(a.id()).equals(reviewedApplicationId));
                     yield new Check(c.title(), live.map(a -> "You already have Application " + a.code()
                             + " for this Term.").orElse(c.note()), live.isEmpty());
                 }

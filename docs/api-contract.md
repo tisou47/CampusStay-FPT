@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.3 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-08, B-01…B-03 and C-01…C-20 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.4 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-09, B-01…B-03 and C-01…C-22 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -102,7 +102,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 ### My Room and requests
 
-- `GET /students/me/allocation?termId` → `{ term, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl }`
+- `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl }`
 - `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges }, room }`
   - maintenance item: `{ id, title, location, category, reportedAt, status, assignee, visitWindow }`
   - room-change item: `{ id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }`
@@ -134,10 +134,13 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 - `GET /applications?termId&block&q&status&roomTypeId&roomClassId&submittedWithin&page&pageSize` → `{ items: [{ id, studentName, studentCode, pair, roomTypeName, roomClassName, depositStatus, depositPaidAt, status }], total, counts: { [status]: number } }`. `status` may be a comma-separated list.
 - `GET /applications/{id}` (back-office view) → `{ id, status, termName, student: { name, studentCode, gender, cohort, major, hometown, phone, emergencyContact, syncedAt }, roomTypeName, roomClassName, surchargeRate, termPrice, roommate, eligibility: [{ title, passed }], deposit: { invoiceId, amount, method, paidAt, status } | null, activity: [{ text, at }] }`
-- `POST /applications/{id}/review` `{ decision: 'Approved'|'Rejected', note? }` (note required when rejecting)
-- `POST /applications/bulk-review` `{ ids, decision }`
+- `POST /applications/{id}/review` `{ decision: 'Approved'|'Rejected', note? }` (note required when rejecting) → `204`
+- `POST /applications/bulk-review` `{ ids, decision }` → `{ approved, skipped }`
 - `GET /payments?termId&block&q&type&status&method&date=today|7d|term&page&pageSize` → `{ items: [{ invoiceId, studentName, studentCode, type, typeLabel, amount, method, paidAt, dueAt, status, reference, transferContent, receipt: { name, size, url } | null }], total, summary: { collectedToday, collectedTodayCount, awaitingConfirmation, unpaidDeposits, depositsPaid, depositsSubmitted } }`
-- `POST /payments/{invoiceId}/confirm` (multipart) `amount, reference, receipt?`
+- `POST /payments/{invoiceId}/confirm` (multipart) `amount, reference, receipt?` → `204`
+- `GET /payments/{invoiceId}/receipt-file` → the attached receipt (A-09)
+
+Scope, review rules and errors: C-21; payment filters, summary and confirmation rules: C-22.
 
 ### Assignment
 
@@ -145,8 +148,8 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `POST /assignment-runs` `{ termId, dryRun }` → `{ id }`
 - `GET /assignment-runs/{runId}/proposal?block&view=conflicts|proposed|all&q&page&pageSize` → `{ run: { id, status, snapshot }, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount, items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total, commitSummary: { students, balanceDueAt } }`. `block=waitlisted` lists waitlisted Applications.
 - `GET /assignment-runs/{runId}/conflicts/{applicationId}` → `{ applicationId, studentName, preference, bed, issue: { label, title, detail, tone }, options: [{ key, label, detail, recommended }] }`
-- `POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve` `{ optionKey }` or `{ waitlist: true }`
-- `POST /assignment-runs/{runId}/commit` `{ block }`
+- `POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve` `{ optionKey }` or `{ waitlist: true }` → `{ applicationId, bed, resolved, waitlisted }`
+- `POST /assignment-runs/{runId}/commit` `{ block }` → `204` (sends the Block to its Manager)
 
 ### Inventory
 
@@ -205,7 +208,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `GET /approvals/summary?termId&block` → `{ assignment, lateCheckIn, swaps, refunds }`
 - `GET /approvals/assignment?termId&block` → `{ item: { runId, block, blockLabel, termName, submittedBy, submittedAt, bedsOffered, conflictsResolved, conflictsTotal, applications, allocated, toRound2, averageScore, status: 'Waiting'|'Approved'|'Returned', comment } | null }`
 - `GET /assignment-runs/{runId}/rooms?block&page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, students, note, score, flag: { label, tone } | null }], total }`
-- `POST /assignment-runs/{runId}/approve` `{ block }` · `POST /assignment-runs/{runId}/return` `{ block, comment }`
+- `POST /assignment-runs/{runId}/approve` `{ block }` → `{ allocated, waitlisted }` · `POST /assignment-runs/{runId}/return` `{ block, comment }` → `204` (C-21)
 - `GET /late-check-ins?termId&block` → `{ items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor, evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null }] }`
 - `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`

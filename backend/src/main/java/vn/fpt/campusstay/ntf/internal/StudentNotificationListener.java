@@ -10,12 +10,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.app.ApplicationCreated;
+import vn.fpt.campusstay.app.ApplicationRejected;
 import vn.fpt.campusstay.app.ApplicationSubmitted;
 import vn.fpt.campusstay.app.RoommateInvited;
+import vn.fpt.campusstay.asg.AllocationCreated;
 import vn.fpt.campusstay.bil.PaymentConfirmed;
 import vn.fpt.campusstay.shared.time.TimeConfig;
 
-/** Turns APP and BIL events into the student's in-app notifications (synchronous: same transaction). */
+/** Turns APP, ASG and BIL events into the student's in-app notifications (synchronous: same transaction). */
 @Component
 class StudentNotificationListener {
 
@@ -56,6 +58,20 @@ class StudentNotificationListener {
     void on(PaymentConfirmed e) {
         notifier.notify(e.studentId(), "PAYMENT_CONFIRMED", Map.of("amount", vnd(e.amount()), "title", e.title()),
                 "/student/invoices");
+    }
+
+    @EventListener
+    void on(ApplicationRejected e) {
+        notifier.notify(e.studentId(), "APPLICATION_REJECTED", Map.of("term", e.termName(), "note", e.note()),
+                "/student/applications/" + e.applicationCode());
+    }
+
+    @EventListener
+    void on(AllocationCreated e) {
+        notifier.notify(e.studentId(), "ALLOCATION_PUBLISHED",
+                Map.of("room", e.room(), "bed", e.bed(), "term", e.termName(), "dueAt",
+                        e.balanceDueAt() == null ? "the date shown in Invoices" : WHEN.format(e.balanceDueAt())),
+                "/student/room");
     }
 
     private static String vnd(long amount) {

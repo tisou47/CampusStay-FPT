@@ -11,4 +11,7 @@ public interface EligibilityRules {
 
     /** Switched-on criteria in display order. */
     List<Criterion> enabled();
+
+    /** Keys of the applied priority groups, highest priority first (the engine's processing order). */
+    List<String> priorityGroupKeys();
 }

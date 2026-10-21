@@ -6,6 +6,8 @@ import java.sql.Timestamp;
 import java.text.NumberFormat;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.json.JsonMapper;
+import vn.fpt.campusstay.auth.UserDirectory;
 import vn.fpt.campusstay.bil.Billing;
 import vn.fpt.campusstay.cfg.FeePolicy;
 import vn.fpt.campusstay.cfg.TermCatalog;
@@ -34,17 +37,19 @@ class JdbcBilling implements Billing {
     private final JdbcClient jdbc;
     private final InvoiceStore invoices;
     private final TermCatalog terms;
+    private final UserDirectory users;
     private final FeePolicy fees;
     private final PaymentProperties payment;
     private final JsonMapper json;
     private final AuditLog audit;
     private final Clock clock;
 
-    JdbcBilling(JdbcClient jdbc, InvoiceStore invoices, TermCatalog terms, FeePolicy fees, PaymentProperties payment,
-            JsonMapper json, AuditLog audit, Clock clock) {
+    JdbcBilling(JdbcClient jdbc, InvoiceStore invoices, TermCatalog terms, UserDirectory users, FeePolicy fees,
+            PaymentProperties payment, JsonMapper json, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.terms = terms;
+        this.users = users;
         this.fees = fees;
         this.payment = payment;
         this.json = json;
@@ -55,36 +60,77 @@ class JdbcBilling implements Billing {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public IssuedInvoice issueDeposit(DepositRequest r) {
-        TermSummary term = terms.findPublished(r.termId())
-                .orElseThrow(() -> new IllegalStateException("Deposit for a Term that is not published: " + r.termId()));
+        TermSummary term = term(r.termId());
         BigDecimal rate = fees.depositRate();
         String line = "Deposit " + rate.movePointRight(2).stripTrailingZeros().toPlainString() + "% of the Term price "
                 + vnd(r.termPrice());
-        var issued = jdbc.sql("""
+        return insert(new Draft(term, r.studentId(), r.applicationId(), null, null, "DEPOSIT", "Deposit · " + term.name(),
+                r.amount(), List.of(Map.of("label", line, "amount", r.amount())), r.dueAt(),
+                "Application " + r.applicationCode()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<IssuedInvoice> issueBalance(BalanceRequest r) {
+        long amount = r.termPrice() - r.depositAmount();
+        if (amount <= 0) {
+            return Optional.empty();
+        }
+        TermSummary term = term(r.termId());
+        List<Map<String, Object>> lines = List.of(
+                Map.of("label", "Term price · Room " + r.room(), "amount", r.termPrice()),
+                Map.of("label", "Deposit already invoiced", "amount", -r.depositAmount()));
+        return Optional.of(insert(new Draft(term, r.studentId(), r.applicationId(), r.allocationId(), r.buildingId(),
+                "BALANCE", "Balance · " + term.name(), amount, lines, r.dueAt(),
+                "Application " + r.applicationCode() + " · Room " + r.room())));
+    }
+
+    private record Draft(TermSummary term, long studentId, Long applicationId, Long allocationId, Long buildingId,
+            String type, String title, long amount, List<? extends Map<String, ?>> lines, Instant dueAt,
+            String reference) {
+    }
+
+    /** One statement: the code and transfer content come from the new row id. */
+    private IssuedInvoice insert(Draft d) {
+        UserDirectory.StudentProfile student = users.studentProfile(d.studentId())
+                .orElseThrow(() -> new IllegalStateException("Invoice for a user who is not a student: " + d.studentId()));
+        return jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('bil_invoice', 'id')) AS id)
-                INSERT INTO bil_invoice (id, code, term_id, student_id, application_id, type, title, amount, status,
-                                         lines, transfer_content, issued_at, due_at, reference)
+                INSERT INTO bil_invoice (id, code, term_id, student_id, application_id, allocation_id, building_id, type,
+                                         title, amount, status, lines, transfer_content, issued_at, due_at, reference,
+                                         student_name, student_code, gender)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'INV-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'),
-                       :term, :student, :application, 'DEPOSIT', :title, :amount, 'UNPAID', CAST(:lines AS jsonb),
-                       :prefix || lpad(id::text, greatest(6, length(id::text)), '0'), :now, :due, :reference
+                       :term, :student, :application, :allocation, :building, :type, :title, :amount, 'UNPAID',
+                       CAST(:lines AS jsonb), :prefix || lpad(id::text, greatest(6, length(id::text)), '0'), :now, :due,
+                       :reference, :studentName, :studentCode, :gender
                 FROM next
                 RETURNING id, code
                 """)
-                .param("termCode", term.code())
-                .param("term", r.termId())
-                .param("student", r.studentId())
-                .param("application", r.applicationId())
-                .param("title", "Deposit · " + term.name())
-                .param("amount", r.amount())
-                .param("lines", json.writeValueAsString(List.of(Map.of("label", line, "amount", r.amount()))))
+                .param("termCode", d.term().code())
+                .param("term", d.term().id())
+                .param("student", d.studentId())
+                .param("application", d.applicationId())
+                .param("allocation", d.allocationId())
+                .param("building", d.buildingId())
+                .param("type", d.type())
+                .param("title", d.title())
+                .param("amount", d.amount())
+                .param("lines", json.writeValueAsString(d.lines()))
                 .param("prefix", payment.transferPrefix())
                 .param("now", Timestamp.from(Instant.now(clock)))
-                .param("due", Timestamp.from(r.dueAt()))
-                .param("reference", "Application " + r.applicationCode())
-                .query((rs, i) -> new IssuedInvoice(rs.getLong("id"), rs.getString("code"), r.amount(), r.dueAt()))
+                .param("due", Timestamp.from(d.dueAt()))
+                .param("reference", d.reference())
+                .param("studentName", student.name())
+                .param("studentCode", student.studentCode())
+                .param("gender", student.gender())
+                .query((rs, i) -> new IssuedInvoice(rs.getLong("id"), rs.getString("code"), d.amount(), d.dueAt()))
                 .single();
-        return issued;
+    }
+
+    private TermSummary term(long termId) {
+        return terms.findPublished(termId)
+                .orElseThrow(() -> new IllegalStateException("Invoice for a Term that is not published: " + termId));
     }
 
     @Override
@@ -108,6 +154,20 @@ class JdbcBilling implements Billing {
     @Transactional(readOnly = true)
     public List<InvoiceLine> invoicesOfApplication(long applicationId) {
         return invoices.ofApplication(applicationId).stream().map(JdbcBilling::line).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, InvoiceLine> depositsOf(Collection<Long> applicationIds) {
+        Map<Long, InvoiceLine> result = new HashMap<>();
+        if (applicationIds == null || applicationIds.isEmpty()) {
+            return result;
+        }
+        jdbc.sql("SELECT " + InvoiceStore.COLUMNS + """
+                 FROM bil_invoice WHERE application_id IN (:apps) AND type = 'DEPOSIT' AND status <> 'VOID'
+                """).param("apps", List.copyOf(applicationIds)).query(InvoiceStore::map).list()
+                .forEach(i -> result.put(i.applicationId(), line(i)));
+        return result;
     }
 
     @Override
@@ -167,7 +227,7 @@ class JdbcBilling implements Billing {
 
     static InvoiceLine line(InvoiceStore.Invoice i) {
         return new InvoiceLine(i.id(), i.code(), InvoiceLabels.type(i.type()), i.title(), i.amount(),
-                InvoiceLabels.status(i.status()), i.dueAt(), i.paidAt());
+                InvoiceLabels.status(i.status()), i.dueAt(), i.paidAt(), InvoiceLabels.method(i.paymentMethod()));
     }
 
     static String vnd(long amount) {

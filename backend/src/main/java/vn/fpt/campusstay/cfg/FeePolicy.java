@@ -27,4 +27,10 @@ public interface FeePolicy {
     long utilityDeposit();
 
     Optional<RefundRule> refundRule(String triggerCode);
+
+    /** Staff may confirm a transfer by hand when the bank feed cannot (Admin › Fees). */
+    boolean manualConfirmAllowed();
+
+    /** Days after an Allocation the Balance Invoice is due (Admin › Fees). */
+    int balanceDays();
 }

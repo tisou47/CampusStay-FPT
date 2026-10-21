@@ -26,4 +26,10 @@ class JdbcEligibilityRules implements EligibilityRules {
                 .query((rs, i) -> new Criterion(rs.getString("key"), rs.getString("title"), rs.getString("note")))
                 .list();
     }
+
+    @Override
+    public List<String> priorityGroupKeys() {
+        return jdbc.sql("SELECT key FROM cfg_priority_group WHERE applied ORDER BY sort_order, id")
+                .query(String.class).list();
+    }
 }

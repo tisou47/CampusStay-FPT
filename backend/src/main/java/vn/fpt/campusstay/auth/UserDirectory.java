@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.auth;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public interface UserDirectory {
     record StudentProfile(long userId, String name, String email, String studentCode, String gender, String major,
             String cohort, Integer semesterNo, String hometown, String region, String enrollmentStatus,
             List<String> priorityGroups, String phone, String emergencyName, String emergencyRelationship,
-            String emergencyPhone) {
+            String emergencyPhone, Instant syncedAt) {
     }
 
     Map<Long, String> displayNames(Collection<Long> userIds);
@@ -38,6 +39,9 @@ public interface UserDirectory {
     Map<String, Long> studentsPerPriorityGroup();
 
     Optional<StudentProfile> studentProfile(long userId);
+
+    /** Profiles by user id; unknown ids are left out. */
+    Map<Long, StudentProfile> studentProfiles(Collection<Long> userIds);
 
     /** Exact student code, case-insensitive. Callers must not reveal whether a code exists (privacy). */
     Optional<StudentProfile> studentByCode(String studentCode);

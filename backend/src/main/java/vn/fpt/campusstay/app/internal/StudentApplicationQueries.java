@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
+import vn.fpt.campusstay.app.StudentAllocations;
 import vn.fpt.campusstay.auth.AuthenticatedUser;
 import vn.fpt.campusstay.auth.CurrentUser;
 import vn.fpt.campusstay.auth.Role;
@@ -118,12 +119,14 @@ public class StudentApplicationQueries {
     private final FeePolicy fees;
     private final Lookups lookups;
     private final Billing billing;
+    private final StudentAllocations allocations;
     private final JsonMapper json;
     private final Clock clock;
 
     public StudentApplicationQueries(JdbcClient jdbc, ApplicationStore applications, ApplicationService service,
             CurrentUser currentUser, UserDirectory users, TermCatalog terms, Catalog catalog, FeePolicy fees,
-            Lookups lookups, Billing billing, JsonMapper json, Clock clock) {
+            Lookups lookups, Billing billing, StudentAllocations allocations, JsonMapper json, Clock clock) {
+        this.allocations = allocations;
         this.jdbc = jdbc;
         this.applications = applications;
         this.service = service;
@@ -165,11 +168,14 @@ public class StudentApplicationQueries {
             due = summary.next().map(i -> new DueInvoice(i.code(), i.type(), i.title(), i.amount(), i.dueAt()))
                     .orElse(null);
         }
+        Optional<StudentAllocations.Placement> placement = app.flatMap(a -> allocations.ofApplication(a.id()));
         String[] words = me.name().trim().split("\\s+");
         return new Home(words[words.length - 1], TermView.of(term),
                 app.map(a -> new HomeApplication(a.code(), ApplicationStore.label(a.status()), names.type(a.roomTypeId()),
                         names.roomClass(a.roomClassId()))).orElse(null),
-                null, false, due, count, 0);
+                placement.map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
+                        .orElse(null),
+                placement.map(p -> p.checkedInAt() != null).orElse(false), due, count, 0);
     }
 
     /** The Term of a live Application that has not ended, else the one open for registration, else current. */
@@ -227,7 +233,6 @@ public class StudentApplicationQueries {
     public ApplicationDetail detail(String idOrCode) {
         AuthenticatedUser me = currentUser.get();
         if (!me.is(Role.STUDENT)) {
-            // The back-office view of this endpoint comes with the review slice (S3).
             throw ApiException.notFound("This Application does not exist.");
         }
         ApplicationStore.Application app = applications.find(idOrCode).filter(a -> a.studentId() == me.userId())
@@ -243,7 +248,11 @@ public class StudentApplicationQueries {
         return new ApplicationDetail(app.code(), ApplicationStore.label(app.status()), term.name(),
                 names.type(app.roomTypeId()), names.roomClass(app.roomClassId()),
                 plain(app.surchargeRate()),
-                twoBed, twoBed ? roommate(app) : null, null, events(app, term), invoices, canCancel,
+                twoBed, twoBed ? roommate(app) : null,
+                allocations.ofApplication(app.id())
+                        .map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
+                        .orElse(null),
+                events(app, term), invoices, canCancel,
                 cancelPolicy(term), term.resultsPublishedAt(), term.registrationClosesAt(), app.decisionNote());
     }
 

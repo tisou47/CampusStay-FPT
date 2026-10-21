@@ -78,6 +78,8 @@ campusstay:
     retry-interval: 1m
   app:
     expiry-interval: 5m                 # Deposit windows and roommate invitations
+  files:
+    dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
   mail:
     from: ${MAIL_FROM:CampusStay FPT <no-reply@campusstay.test>}
     batch-size: 20

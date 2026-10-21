@@ -12,7 +12,7 @@ final class InvoiceLabels {
     private static final Map<String, String> STATUSES = Map.of("UPCOMING", "Upcoming", "UNPAID", "Unpaid",
             "AWAITING_CONFIRMATION", "Awaiting confirmation", "PAID", "Paid", "OVERDUE", "Overdue", "REFUNDED",
             "Refunded", "VOID", "Void");
-    private static final Map<String, String> METHODS = Map.of("VIETQR", "VietQR", "MANUAL", "Manual");
+    private static final Map<String, String> METHODS = Map.of("VIETQR", "VietQR", "MANUAL", "Manual transfer");
 
     private InvoiceLabels() {
     }

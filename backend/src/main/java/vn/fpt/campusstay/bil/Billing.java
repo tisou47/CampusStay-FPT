@@ -1,7 +1,9 @@
 package vn.fpt.campusstay.bil;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -24,16 +26,25 @@ public interface Billing {
      *
      * @param type   contract type: {@code deposit}, {@code balance}, {@code utility}, {@code roomChange}, {@code damage}
      * @param status contract label, e.g. {@code Unpaid}, {@code Paid}
+     * @param method {@code VietQR}, {@code Manual transfer} or null while unpaid
      */
     record InvoiceLine(long id, String code, String type, String title, long amount, String status, Instant dueAt,
-            Instant paidAt) {
+            Instant paidAt, String method) {
     }
 
     /** Invoices of a student in a Term: how many are due and the next one to pay. */
     record DueSummary(long due, long total, Optional<InvoiceLine> next) {
     }
 
+    /** @param depositAmount the Deposit already invoiced; the Balance is the Term price minus it */
+    record BalanceRequest(long termId, long studentId, long applicationId, String applicationCode, long allocationId,
+            long buildingId, String room, long termPrice, long depositAmount, Instant dueAt) {
+    }
+
     IssuedInvoice issueDeposit(DepositRequest request);
+
+    /** The Balance Invoice for a new Allocation; empty when the Deposit already covers the Term price. */
+    Optional<IssuedInvoice> issueBalance(BalanceRequest request);
 
     /** Voids an Invoice that is not paid; a paid one is left alone. @return whether it was voided */
     boolean voidUnpaid(long invoiceId, String reason);
@@ -41,6 +52,9 @@ public interface Billing {
     boolean isPaid(long invoiceId);
 
     List<InvoiceLine> invoicesOfApplication(long applicationId);
+
+    /** Application id → its live Deposit Invoice. */
+    Map<Long, InvoiceLine> depositsOf(Collection<Long> applicationIds);
 
     DueSummary dueSummary(long studentId, long termId);
 

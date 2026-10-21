@@ -1,7 +1,10 @@
 package vn.fpt.campusstay.app.web;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -14,9 +17,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import vn.fpt.campusstay.app.internal.ApplicationReviewService;
 import vn.fpt.campusstay.app.internal.ApplicationService;
 import vn.fpt.campusstay.app.internal.EligibilityService;
 import vn.fpt.campusstay.app.internal.StudentApplicationQueries;
+import vn.fpt.campusstay.auth.CurrentUser;
+import vn.fpt.campusstay.shared.web.PageQuery;
 
 /**
  * Application wizard and the student's Application. Applications are addressed
@@ -58,15 +64,27 @@ class ApplicationController {
     record RespondRequest(@NotNull(message = "Accept or decline the invitation.") Boolean accept) {
     }
 
+    record ReviewRequest(@NotBlank(message = "Choose Approved or Rejected.") String decision,
+            @Size(max = 500, message = "Keep the note under 500 characters.") String note) {
+    }
+
+    record BulkReviewRequest(@NotEmpty(message = "Select at least one Application.") @Size(max = 200) List<String> ids,
+            @NotBlank(message = "Choose a decision.") String decision) {
+    }
+
     private final ApplicationService applications;
     private final EligibilityService eligibility;
     private final StudentApplicationQueries queries;
+    private final ApplicationReviewService reviews;
+    private final CurrentUser currentUser;
 
     ApplicationController(ApplicationService applications, EligibilityService eligibility,
-            StudentApplicationQueries queries) {
+            StudentApplicationQueries queries, ApplicationReviewService reviews, CurrentUser currentUser) {
         this.applications = applications;
         this.eligibility = eligibility;
         this.queries = queries;
+        this.reviews = reviews;
+        this.currentUser = currentUser;
     }
 
     @GetMapping("/applications/eligibility")
@@ -85,9 +103,31 @@ class ApplicationController {
                 body.roomClassId(), roommate(body.roommate()), contact(body.contact()), consent(body.consent())));
     }
 
+    /** Student: their own Application. Staff and Manager: the review view (the same path, C-21). */
     @GetMapping("/applications/{id}")
-    StudentApplicationQueries.ApplicationDetail detail(@PathVariable String id) {
-        return queries.detail(id);
+    Object detail(@PathVariable String id) {
+        return currentUser.get().role().isBackOffice() ? reviews.detail(id) : queries.detail(id);
+    }
+
+    @GetMapping("/applications")
+    ApplicationReviewService.QueuePage queue(@RequestParam(required = false) Long termId,
+            @RequestParam(required = false) String block, @RequestParam(required = false) String q,
+            @RequestParam(required = false) String status, @RequestParam(required = false) Long roomTypeId,
+            @RequestParam(required = false) Long roomClassId, @RequestParam(required = false) String submittedWithin,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return reviews.queue(new ApplicationReviewService.Filter(termId, block, q, status, roomTypeId, roomClassId,
+                submittedWithin), PageQuery.of(page, pageSize));
+    }
+
+    @PostMapping("/applications/{id}/review")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void review(@PathVariable String id, @Valid @RequestBody ReviewRequest body) {
+        reviews.review(id, body.decision(), body.note());
+    }
+
+    @PostMapping("/applications/bulk-review")
+    ApplicationReviewService.BulkResult bulkReview(@Valid @RequestBody BulkReviewRequest body) {
+        return reviews.bulkReview(body.ids(), body.decision());
     }
 
     @PostMapping("/applications/{id}/cancel")

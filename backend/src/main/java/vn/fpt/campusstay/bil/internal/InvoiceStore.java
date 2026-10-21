@@ -19,7 +19,8 @@ class InvoiceStore {
 
     record Invoice(long id, String code, long termId, long studentId, Long applicationId, String type, String title,
             long amount, String status, String lines, long utilityDeposit, String transferContent, Instant qrExpiresAt,
-            Instant issuedAt, Instant dueAt, Instant paidAt, String paymentMethod, String reference) {
+            Instant issuedAt, Instant dueAt, Instant paidAt, String paymentMethod, String reference, String gender,
+            Long buildingId) {
 
         boolean payable() {
             return status.equals("UNPAID") || status.equals("OVERDUE") || status.equals("AWAITING_CONFIRMATION");
@@ -28,7 +29,8 @@ class InvoiceStore {
 
     static final String COLUMNS = """
             id, code, term_id, student_id, application_id, type, title, amount, status, lines::text AS lines,
-            utility_deposit, transfer_content, qr_expires_at, issued_at, due_at, paid_at, payment_method, reference
+            utility_deposit, transfer_content, qr_expires_at, issued_at, due_at, paid_at, payment_method, reference,
+            gender, building_id
             """;
 
     private final JdbcClient jdbc;
@@ -70,7 +72,8 @@ class InvoiceStore {
                 rs.getObject("application_id", Long.class), rs.getString("type"), rs.getString("title"),
                 rs.getLong("amount"), rs.getString("status"), rs.getString("lines"), rs.getLong("utility_deposit"),
                 rs.getString("transfer_content"), instant(rs, "qr_expires_at"), instant(rs, "issued_at"),
-                instant(rs, "due_at"), instant(rs, "paid_at"), rs.getString("payment_method"), rs.getString("reference"));
+                instant(rs, "due_at"), instant(rs, "paid_at"), rs.getString("payment_method"), rs.getString("reference"),
+                rs.getString("gender"), rs.getObject("building_id", Long.class));
     }
 
     static Instant instant(ResultSet rs, String column) throws SQLException {
