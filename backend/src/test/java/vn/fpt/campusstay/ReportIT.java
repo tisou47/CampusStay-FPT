@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** Dashboards, reports and exports, read from the reporting views (TC-RPT-001…008). */
+/** Dashboards, reports and exports, read from the reporting views (TC-RPT-001…008, TC-RPT-010). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -199,6 +199,57 @@ class ReportIT {
         getAs("/reports/block", bearer(mvc, MANAGER_A)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.notCheckedIn").value((int) notCheckedIn))
                 .andExpect(jsonPath("$.followUpBy").value("2031-01-05"));
+    }
+
+    /**
+     * TC-RPT-010: a Term that has ended still reports who lived there (Allocations ended by check-out, not by a room
+     * change), and a refunded Deposit without a Bed counts in the row of its own.
+     */
+    @Test
+    void pastTermReports() throws Exception {
+        jdbc.sql("""
+                INSERT INTO cfg_term (code, name, status, stay_start, stay_end, registration_opens_at,
+                                      registration_closes_at, results_published_at, roommate_hours, deposit_hours,
+                                      balance_due_at, check_in_start, check_in_end, check_out_by, published_at)
+                VALUES ('FA20', 'Fall 2020', 'PUBLISHED', DATE '2020-09-07', DATE '2020-12-27', '2020-07-01 01:00+00',
+                        '2020-07-31 16:59+00', '2020-08-10 01:00+00', 48, 48, '2020-08-25 16:59+00',
+                        DATE '2020-09-03', DATE '2020-09-06', DATE '2020-12-28', '2020-06-20 01:00+00')
+                """).update();
+        long past = jdbc.sql("SELECT id FROM cfg_term WHERE code = 'FA20'").query(Long.class).single();
+        jdbc.sql("""
+                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, status, allocated_at, checked_in_at,
+                                            ended_at, end_reason)
+                SELECT :term, u.id, b.id, 'MANUAL', 'ENDED', TIMESTAMPTZ '2020-08-10 09:00+07',
+                       TIMESTAMPTZ '2020-09-04 10:00+07', TIMESTAMPTZ '2020-12-27 10:00+07', v.reason
+                FROM (VALUES ('A-204', 'ROOM_CHANGE'), ('A-205', 'CHECK_OUT')) AS v (room, reason)
+                JOIN auth_user u ON u.email = :email
+                JOIN inv_room r ON r.code = v.room JOIN inv_bed b ON b.room_id = r.id AND b.label = 'A'
+                """).param("term", past).param("email", StayFlow.student(13)).update();
+        jdbc.sql("""
+                INSERT INTO bil_refund (term_id, student_id, source_type, reason, paid_amount, amount, status, decided_at,
+                                        student_name, student_code, gender)
+                SELECT :term, u.id, 'APPLICATION_CANCEL', 'Application cancelled', 1000000, 1000000, 'PAID',
+                       TIMESTAMPTZ '2020-08-01 09:00+07', u.display_name, s.student_code, s.gender
+                FROM auth_user u JOIN auth_student s ON s.user_id = u.id WHERE u.email = :email
+                """).param("term", past).param("email", StayFlow.student(14)).update();
+        String admin = bearer(mvc, ADMIN);
+
+        mvc.perform(get("/reports/occupancy").param("termId", String.valueOf(past)).header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.allocated").value(1))
+                .andExpect(jsonPath("$.summary.checkedIn").value(1));
+        mvc.perform(get("/dashboards/admin").param("termId", String.valueOf(past)).header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.term.statusLabel").value("ended"))
+                .andExpect(jsonPath("$.kpis.residents").value(1));
+        mvc.perform(get("/reports/block").param("termId", String.valueOf(past)).param("block", "A")
+                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)))
+                .andExpect(jsonPath("$.allocated").value(1))
+                .andExpect(jsonPath("$.notCheckedIn").value(0))
+                .andExpect(jsonPath("$.followUpBy").value((Object) null));
+        mvc.perform(get("/reports/financial").param("termId", String.valueOf(past)).header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.rows[?(@.block == 'Not allocated')].refunded").value(hasItem(1000000)))
+                .andExpect(jsonPath("$.summary.refunded").value(1000000))
+                .andExpect(jsonPath("$.summary.refundCount").value(1));
     }
 
     /** TC-RPT-008: exports are CSV files with the screen's columns, written to the Audit Log; scope and permissions. */

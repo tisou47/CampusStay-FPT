@@ -96,11 +96,13 @@ public class ReportService {
         Map<String, Object> p = ReportScope.params(term, blocks);
         record Slot(long buildingId, long typeId, long classId, long capacity, long allocated, long checkedIn) {
         }
+        // A Bed of a past Term may have been held twice (a student left early, another one moved in): count Beds once.
         List<Slot> slots = jdbc.sql("""
-                SELECT b.building_id, b.room_type_id, b.room_class_id, count(*) AS capacity,
-                       count(a.id) AS allocated, count(a.checked_in_at) AS checked_in
+                SELECT b.building_id, b.room_type_id, b.room_class_id, count(DISTINCT b.bed_id) AS capacity,
+                       count(DISTINCT a.bed_id) AS allocated,
+                       count(DISTINCT a.bed_id) FILTER (WHERE a.checked_in_at IS NOT NULL) AS checked_in
                 FROM rpt_v_bed b
-                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND a.status = 'ACTIVE'
+                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.building_id IN (:b) AND """ + ReportScope.inService("b")
                 + " GROUP BY b.building_id, b.room_type_id, b.room_class_id").params(p).query((rs, i) -> new Slot(rs.getLong("building_id"), rs.getLong("room_type_id"),
                         rs.getLong("room_class_id"), rs.getLong("capacity"), rs.getLong("allocated"),
@@ -145,7 +147,8 @@ public class ReportService {
 
     /**
      * Invoiced (not Void), collected (Paid and Refunded), outstanding (Unpaid, Overdue, Awaiting confirmation) and
-     * refunded (approved or paid refunds) per Block; Invoices of students without a Bed are a row of their own.
+     * refunded (approved or paid refunds) per Block; Invoices and refunds of students without a Bed are a row of
+     * their own.
      */
     @Transactional(readOnly = true)
     public Financial financial(Long termId, String block) {
@@ -173,7 +176,9 @@ public class ReportService {
         }
         List<Refunds> refunds = jdbc.sql("""
                 SELECT building_id, coalesce(sum(amount), 0) AS amount, count(*) AS n FROM rpt_v_refund
-                WHERE term_id = :term AND building_id IN (:b) AND status IN ('APPROVED', 'PAID') GROUP BY building_id
+                WHERE term_id = :term AND (building_id IN (:b) OR (building_id IS NULL AND gender IN (:genders)))
+                  AND status IN ('APPROVED', 'PAID')
+                GROUP BY building_id
                 """).params(p).query((rs, i) -> new Refunds(rs.getObject("building_id", Long.class), rs.getLong("amount"),
                         rs.getLong("n"))).list();
         List<MoneyRow> rows = new ArrayList<>();
@@ -183,8 +188,12 @@ public class ReportService {
             rows.add(new MoneyRow(code, m == null ? 0 : m.invoiced(), m == null ? 0 : m.collected(),
                     m == null ? 0 : m.outstanding(), r == null ? 0 : r.amount()));
         });
-        money.stream().filter(m -> m.buildingId() == null).findFirst().ifPresent(m -> rows.add(
-                new MoneyRow(NO_BLOCK, m.invoiced(), m.collected(), m.outstanding(), 0)));
+        Money noBlock = money.stream().filter(m -> m.buildingId() == null).findFirst().orElse(null);
+        Refunds noBlockRefunds = refunds.stream().filter(r -> r.buildingId() == null).findFirst().orElse(null);
+        if (noBlock != null || noBlockRefunds != null) {
+            rows.add(new MoneyRow(NO_BLOCK, noBlock == null ? 0 : noBlock.invoiced(), noBlock == null ? 0 : noBlock.collected(),
+                    noBlock == null ? 0 : noBlock.outstanding(), noBlockRefunds == null ? 0 : noBlockRefunds.amount()));
+        }
         return new Financial(Instant.now(clock), List.copyOf(blocks.codes().values()), rows,
                 new MoneySummary(rows.stream().mapToLong(MoneyRow::invoiced).sum(),
                         rows.stream().mapToLong(MoneyRow::collected).sum(),
@@ -206,7 +215,8 @@ public class ReportService {
         Map<String, Object> p = ReportScope.params(term, scope.blocks(block));
         long allocated = count("""
                 SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.term_id = :term AND a.status = 'ACTIVE' AND b.building_id IN (:b)
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND b.building_id IN (:b)
                 """, p);
         List<LocalDate> checkIns = jdbc.sql("""
                 SELECT a.checked_in_at FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
@@ -215,7 +225,8 @@ public class ReportService {
                         TimeConfig.CAMPUS_ZONE)).list();
         long notCheckedIn = count("""
                 SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.term_id = :term AND a.status = 'ACTIVE' AND b.building_id IN (:b) AND a.checked_in_at IS NULL
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND b.building_id IN (:b) AND a.checked_in_at IS NULL
                 """, p);
         List<Week> weekly = new ArrayList<>();
         LocalDate start = term.checkInStart() != null ? term.checkInStart()
@@ -277,10 +288,11 @@ public class ReportService {
         Map<Long, String> types = typeNames();
         Map<Long, String> classes = classNames();
         List<List<Object>> rows = jdbc.sql("""
-                SELECT b.block, b.floor, b.room, b.room_type_id, b.room_class_id, b.room_status, count(*) AS beds,
-                       count(a.id) AS allocated, count(a.checked_in_at) AS checked_in
+                SELECT b.block, b.floor, b.room, b.room_type_id, b.room_class_id, b.room_status,
+                       count(DISTINCT b.bed_id) AS beds, count(DISTINCT a.bed_id) AS allocated,
+                       count(DISTINCT a.bed_id) FILTER (WHERE a.checked_in_at IS NOT NULL) AS checked_in
                 FROM rpt_v_bed b
-                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND a.status = 'ACTIVE'
+                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.building_id IN (:b) AND b.bed_status <> 'RETIRED' AND b.room_status <> 'RETIRED'
                 GROUP BY b.block, b.floor, b.room, b.room_type_id, b.room_class_id, b.room_status
                 ORDER BY b.block, b.room
@@ -325,7 +337,7 @@ public class ReportService {
                 "Priority", "Source", "Status", "Reported at", "Resolved at"), rows);
     }
 
-    /** Students holding a Bed in the Block(s) this Term, with their check-in. */
+    /** Students holding a Bed in the Block(s) this Term (in a past Term: until check-out), with their check-in. */
     ReportExport.Table blockResidents(Long termId, String block) {
         currentUser.require(Permission.VIEW_REPORTS);
         TermSummary term = scope.term(termId);
@@ -336,8 +348,9 @@ public class ReportService {
                 LEFT JOIN LATERAL (SELECT x.student_name, x.student_code FROM rpt_v_application x
                                    WHERE x.term_id = a.term_id AND x.student_id = a.student_id
                                    ORDER BY x.created_at DESC LIMIT 1) s ON TRUE
-                WHERE a.term_id = :term AND a.status = 'ACTIVE' AND b.building_id IN (:b)
-                ORDER BY b.block, b.room, b.bed
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND b.building_id IN (:b)
+                ORDER BY b.block, b.room, b.bed, a.allocated_at
                 """).params(p).query((rs, i) -> Arrays.<Object>asList(rs.getString("block"), rs.getString("room"),
                         rs.getString("bed"), rs.getString("student_name"), rs.getString("student_code"),
                         rs.getTimestamp("allocated_at").toInstant(),

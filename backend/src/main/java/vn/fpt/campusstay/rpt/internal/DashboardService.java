@@ -126,6 +126,11 @@ public class DashboardService {
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(TimeConfig.CAMPUS_ZONE);
     private static final List<String> PIPELINE = List.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
             "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "REJECTED", "CANCELLED", "EXPIRED");
+    /** Refunds to decide, as on the Manager's refund list: the Blocks', and those without a Bed by gender. */
+    private static final String PENDING_REFUNDS = """
+            SELECT count(*) FROM rpt_v_refund WHERE term_id = :term
+              AND (building_id IN (:b) OR (building_id IS NULL AND gender IN (:genders))) AND status = 'PENDING'
+            """;
 
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
@@ -287,7 +292,8 @@ public class DashboardService {
                 + ReportScope.inService(null) + " GROUP BY building_id", p);
         Map<Long, Long> allocated = perBlock("""
                 SELECT b.building_id AS k, count(*) AS n FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.term_id = :term AND a.status = 'ACTIVE' AND b.building_id IN (:b) GROUP BY b.building_id
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND b.building_id IN (:b) GROUP BY b.building_id
                 """, p);
         Map<Long, Long> pending = new LinkedHashMap<>();
         if (proposal != null) {
@@ -318,7 +324,8 @@ public class DashboardService {
         long beds = count("SELECT count(*) FROM rpt_v_bed WHERE building_id IN (:b) AND " + ReportScope.inService(null), p);
         long allocated = count("""
                 SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.term_id = :term AND a.status = 'ACTIVE' AND b.building_id IN (:b)
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND b.building_id IN (:b)
                 """, p);
         long[] money = money(p, "building_id IN (:b)");
         int slaHours = jdbc.sql("SELECT normal_hours FROM rpt_v_sla_policy WHERE building_id IN (:b) ORDER BY normal_hours")
@@ -333,14 +340,14 @@ public class DashboardService {
                 SELECT count(*) FROM rpt_v_maintenance WHERE building_id IN (:b) AND resolved_at >= :since
                   AND resolved_at <= reported_at + make_interval(hours => :hours)
                 """, p);
-        long refunds = count("SELECT count(*) FROM rpt_v_refund WHERE term_id = :term AND building_id IN (:b) AND status = 'PENDING'", p);
+        long refunds = count(PENDING_REFUNDS, p);
         long escalations = count("SELECT count(*) FROM rpt_v_escalation WHERE building_id IN (:b) AND status = 'OPEN'", p);
 
         List<FloorBeds> floors = jdbc.sql("""
-                SELECT b.floor, count(*) FILTER (WHERE """ + ReportScope.inService("b") + """
-                ) AS beds, count(a.id) AS allocated
+                SELECT b.floor, count(DISTINCT b.bed_id) FILTER (WHERE """ + ReportScope.inService("b") + """
+                ) AS beds, count(DISTINCT a.bed_id) AS allocated
                 FROM rpt_v_bed b
-                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND a.status = 'ACTIVE'
+                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.building_id IN (:b) GROUP BY b.floor ORDER BY b.floor
                 """).params(p)
                 .query((rs, i) -> new FloorBeds(rs.getInt("floor"), rs.getLong("allocated"), rs.getLong("beds"))).list();
@@ -352,7 +359,8 @@ public class DashboardService {
         p.put("limit", WAITING_ITEMS);
         jdbc.sql("""
                 SELECT id, amount, source_type FROM rpt_v_refund
-                WHERE term_id = :term AND building_id IN (:b) AND status = 'PENDING' ORDER BY id LIMIT :limit
+                WHERE term_id = :term AND (building_id IN (:b) OR (building_id IS NULL AND gender IN (:genders)))
+                  AND status = 'PENDING' ORDER BY id LIMIT :limit
                 """).params(p).query((rs, i) -> new Attention("refund-" + rs.getLong("id"), "refund", "warning",
                         "Refund of " + vnd(rs.getLong("amount")), refundSource(rs.getString("source_type")),
                         "/manager/finance", "Decide")).list().forEach(waiting::add);
@@ -405,7 +413,7 @@ public class DashboardService {
                         SELECT count(*) FROM rpt_v_swap WHERE term_id = :term AND status = 'TO_MANAGER'
                           AND (a_building_id IN (:b) OR b_building_id IN (:b))
                         """, p),
-                count("SELECT count(*) FROM rpt_v_refund WHERE term_id = :term AND building_id IN (:b) AND status = 'PENDING'", p));
+                count(PENDING_REFUNDS, p));
     }
 
     // ---------------------------------------------------------------- Admin
@@ -418,7 +426,8 @@ public class DashboardService {
         p.put("term", term.id());
         p.put("since", Timestamp.from(Instant.now(clock).minus(Duration.ofDays(ACTIVE_DAYS))));
         long residents = count("""
-                SELECT count(*) FROM rpt_v_allocation WHERE term_id = :term AND status = 'ACTIVE' AND checked_in_at IS NOT NULL
+                SELECT count(*) FROM rpt_v_allocation a WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND a.checked_in_at IS NOT NULL
                 """, p);
         long beds = count("SELECT count(*) FROM rpt_v_bed WHERE " + ReportScope.inService(null), p);
         long[] money = money(p, "TRUE");
@@ -449,10 +458,10 @@ public class DashboardService {
                 + " Deposits expired";
 
         List<BlockOccupancy> blocks = jdbc.sql("""
-                SELECT b.block, b.gender, count(*) FILTER (WHERE """ + ReportScope.inService("b") + """
-                ) AS beds, count(a.id) AS allocated
+                SELECT b.block, b.gender, count(DISTINCT b.bed_id) FILTER (WHERE """ + ReportScope.inService("b") + """
+                ) AS beds, count(DISTINCT a.bed_id) AS allocated
                 FROM rpt_v_bed b
-                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND a.status = 'ACTIVE'
+                LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.block_status = 'ACTIVE' GROUP BY b.block, b.gender ORDER BY b.block
                 """).params(p).query((rs, i) -> new BlockOccupancy(rs.getString("block"),
                         rs.getString("gender").equals("M") ? "Male" : "Female", rs.getLong("allocated"), rs.getLong("beds")))

@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.rpt.internal;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +18,7 @@ import vn.fpt.campusstay.auth.BlockSelection;
 import vn.fpt.campusstay.cfg.TermCatalog;
 import vn.fpt.campusstay.cfg.TermSummary;
 import vn.fpt.campusstay.shared.error.ApiException;
+import vn.fpt.campusstay.shared.time.TimeConfig;
 
 /**
  * The Term and Blocks a dashboard or report covers. Blocks come from the user's
@@ -50,11 +53,26 @@ class ReportScope {
     private final JdbcClient jdbc;
     private final BlockScope blockScope;
     private final TermCatalog terms;
+    private final Clock clock;
 
-    ReportScope(JdbcClient jdbc, BlockScope blockScope, TermCatalog terms) {
+    ReportScope(JdbcClient jdbc, BlockScope blockScope, TermCatalog terms, Clock clock) {
         this.jdbc = jdbc;
         this.blockScope = blockScope;
         this.terms = terms;
+        this.clock = clock;
+    }
+
+    /**
+     * Allocations that count in the Term ({@code alias} of {@code rpt_v_allocation}): the ones holding a Bed; once the
+     * stay is over, also the ones ended by check-out (or at the end of the Term), so a past Term still shows who lived
+     * there. Room changes and swaps end an Allocation for another one, which is counted instead.
+     */
+    String held(TermSummary term, String alias) {
+        String a = alias + ".";
+        boolean over = term.stayEnd() != null
+                && LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)).isAfter(term.stayEnd());
+        return over ? " (" + a + "status = 'ACTIVE' OR (" + a + "status = 'ENDED' AND " + a
+                + "end_reason IN ('CHECK_OUT', 'TERM_END'))) " : " " + a + "status = 'ACTIVE' ";
     }
 
     /** Query parameters {@code term}, {@code b} (Block ids) and {@code genders} (never empty, so {@code IN} stays valid). */
