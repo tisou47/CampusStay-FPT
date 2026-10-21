@@ -24,6 +24,10 @@ spring:
           time_zone: UTC
   flyway:
     locations: classpath:db/migration
+    placeholders:
+      # Demo seed (db/seed) emails: blank = <name>@example.com (never delivered); set SEED_MAILBOX to
+      # your own Gmail name to receive every demo email as <name>+<account>@gmail.com.
+      "[seed_mailbox]": ${SEED_MAILBOX:}
   servlet:
     multipart:
       max-file-size: 5MB
