@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.2 |
-| Last updated | 20/10/2026 (Week 7, Sprint 4) |
+| Version | 1.3 |
+| Last updated | 22/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Team Leader) |
-| Status | Aligned with the mentor-confirmed API contract and UI, plus ADR-13…15; backend started. Sign-in by email (ADR-13) to be confirmed with the mentor (OI-14) |
+| Status | Aligned with the mentor-confirmed API contract and UI, plus ADR-13…16; backend started. Sign-in by email (ADR-13) to be confirmed with the mentor (OI-14) |
 
 > This file overrides the original registration form (`Ref_Original_Proposal_FA26SE260`). Update this file whenever a decision changes scope, architecture, schedule or conventions, and add a Decision Log entry.
 >
@@ -84,7 +84,7 @@ All items below are in scope (mentor-confirmed). MoSCoW now sets the **build ord
 | Assignment engine | Rule-based batch engine inside the backend (module ASG) |
 | Notifications | Firebase Cloud Messaging (firebase-admin), in-app, SMTP email (ADR-09) |
 | Payment | VietQR via SePay bank-feed webhook; mock gateway; manual confirmation (ADR-08) |
-| Packaging / deploy | Docker, Docker Compose |
+| Packaging / deploy | Docker, Docker Compose; web on Vercel, API + PostgreSQL on an Oracle Cloud Always Free VM behind Caddy, GitHub Actions → GHCR (ADR-16) |
 | Tooling | GitHub, GitHub Projects, Google Docs / Word, IntelliJ IDEA + Claude Code (backend), VS Code + Claude Code (web) |
 
 ## 6. Architecture baseline
@@ -156,7 +156,7 @@ Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Intro
 | OI-04 | Room Type vs Room Class | **Closed 20/10/2026:** Room Type = number of Beds with a base term price; Room Class = Basic/Standard/Premium with a surcharge rate set per Floor; term price = base price × (1 + surcharge rate), rounded per system parameter. |
 | OI-05 | Eligibility rules | **Partly closed:** Admin toggles eligibility criteria and priority groups; source data is the seeded student directory (mock SIS). Exact criteria list follows the Admin › Eligibility screen. |
 | OI-06 | VietQR provider | **Closed 20/10/2026:** SePay bank-feed webhook (ADR-08). |
-| OI-07 | Free deployment target with public HTTPS (needed for the SePay webhook) | Open — demo fallback: local Docker Compose + Cloudflare Tunnel |
+| OI-07 | Free deployment target with public HTTPS (needed for the SePay webhook) | **Closed 20/10/2026:** ADR-16 (runbook `infra/prod/README.md`); local Docker Compose + Cloudflare Tunnel stays the fallback |
 | OI-08 | Official dates for Review 2, Review 3, final defense | Open (Review 2 expected 27/10 – 03/11/2026) |
 | OI-09 | M4 role in team table | Open |
 | OI-10 | Spring Boot version | **Closed 20/10/2026:** ADR-04 |
@@ -166,7 +166,7 @@ Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Intro
 | OI-14 | The mentor-confirmed contract signs in with a username; ADR-13 changes it to the email (contract change B-02). Inform the mentor. | Open — owner: Tisou |
 
 ## 10a. Repository layout
-One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md` and the backend design in `docs/backend/`), `infra/` (Docker Compose) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
+One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md` and the backend design in `docs/backend/`), `infra/` (Docker Compose; `infra/prod/` is the production stack), `.github/workflows/` (CI/CD) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
 
 ## 11. Decision Log
 | ID | Date | Decision | Reason |
@@ -186,3 +186,4 @@ One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` 
 | ADR-13 | 20/10/2026 | Password sign-in uses the account **email** and CampusStay's own password (ADR-07); the contract's `username` becomes `email` (B-02). The web app gets Forgot password, Reset password, Set password (invitation) and Change password pages | CampusStay has no access to FPT accounts (ADR-02), so it keeps its own passwords; asking for the Wi-Fi username would suggest typing the FPT password into another system; reset links and invitations are sent by email anyway |
 | ADR-14 | 20/10/2026 | `POST /auth/google` accepts either an authorization `code` (web popup, keeps the custom Google button of the approved design) or an ID token `credential` (Android). The server exchanges the code with Google using a client secret, then verifies the ID token the same way in both cases (`hd = fpt.edu.vn`) | The web keeps its Figma design; Android's Google Sign-In returns an ID token; the client secret stays on the server |
 | ADR-15 | 20/10/2026 | IDs are **strings** in JSON: every field named `id` or ending in `Id` (B-03, replaces clarification C-01). Java keeps `long`, the database keeps `BIGINT`; amounts and counts stay numbers | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion; the contract examples already used strings |
+| ADR-16 | 20/10/2026 | Deployment: the web app on **Vercel** (Hobby, Git integration, a preview per pull request); the API and PostgreSQL 17 on one **Oracle Cloud Always Free** Ampere VM with Docker Compose and Caddy (Let's Encrypt HTTPS). GitHub Actions runs `mvn verify`, builds the arm64 image to GHCR and deploys over SSH; daily `pg_dump` on the VM. CORS takes origin patterns so Vercel previews can call the API | Free with no expiry and no sleep, so the 30-second email outbox job, the local `FileStorage` volume and Gmail SMTP work unchanged, and the SePay webhook gets a stable HTTPS URL (OI-07). Vercel cannot host the long-running Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database |

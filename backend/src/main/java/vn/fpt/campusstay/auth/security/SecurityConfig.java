@@ -67,13 +67,16 @@ public class SecurityConfig {
 
     /**
      * In development the web app calls through the Vite proxy (same origin), so
-     * CORS matters only when the API is served from another origin.
+     * CORS matters only when the API is served from another origin. Entries are
+     * origin patterns, so one entry such as {@code https://campusstay-fpt-*.vercel.app}
+     * also admits the Vercel preview deployments. Auth is a bearer token, not a
+     * cookie, so an admitted origin still cannot act as a signed-in user.
      */
     @Bean
     CorsConfigurationSource corsConfigurationSource(
             @Value("${campusstay.cors.allowed-origins:}") List<String> allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins.stream().filter(o -> !o.isBlank()).toList());
+        config.setAllowedOriginPatterns(allowedOrigins.stream().map(String::trim).filter(o -> !o.isBlank()).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Content-Disposition"));

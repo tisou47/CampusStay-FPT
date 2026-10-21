@@ -6,5 +6,6 @@
 server:
   forward-headers-strategy: framework   # behind the reverse proxy / tunnel
 
-# Seed data is not loaded in prod. To demo with sample data, start once with
-# SPRING_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/seed
+# Seed data is not loaded in prod. To demo with sample data, start once on an empty database with
+# SPRING_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/seed, then drop that variable and set
+# SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing (infra/prod/README.md §1.9).

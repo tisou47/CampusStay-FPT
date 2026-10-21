@@ -363,7 +363,7 @@ Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, 
 
 Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`, `FILES_LINK_SECRET`. The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
 
-Deployment: Docker image (multi-stage, non-root), `infra/docker-compose.yml`; public HTTPS for the webhook via Cloudflare Tunnel until a free VM is chosen (OI-07). Health: `/api/actuator/health` (liveness/readiness probes).
+Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose.yml` locally; in production `infra/prod/` (Postgres + API + Caddy HTTPS) on an Oracle Cloud Always Free VM, deployed by `.github/workflows/backend.yml`. Health: `/api/actuator/health` (liveness/readiness probes).
 
 ## 15. Testing strategy (feeds Report 5)
 

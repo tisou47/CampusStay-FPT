@@ -9,7 +9,8 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | `backend/` | Spring Boot 4.1 REST API (Java 21, PostgreSQL 17, Flyway). See [backend/README.md](backend/README.md) and [backend/CLAUDE.md](backend/CLAUDE.md). |
 | `web/` | React 19 + Vite web app for Student, Staff, Manager and Admin. See [web/README.md](web/README.md). |
 | `docs/` | Project Brief (source of truth), API contract and backend design. |
-| `infra/` | Docker Compose for Postgres, Mailpit and the API. |
+| `infra/` | Docker Compose for Postgres, Mailpit and the API; `infra/prod/` is the production stack (Postgres, API, Caddy). |
+| `.github/workflows/` | CI/CD: backend verify, image build and deploy to the VM. |
 | `postman/` | Postman workspace files. |
 
 ## Documents
@@ -31,3 +32,7 @@ cd web && npm install && npm run dev                       # web app on http://l
 ```
 
 Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must pass.
+
+## Deploy
+
+The web app runs on Vercel (Root Directory `web/`), the API and PostgreSQL on an Oracle Cloud Always Free VM behind Caddy (ADR-16). Pushing to `main` deploys both: Vercel builds `web/`, and `.github/workflows/backend.yml` verifies, builds and ships the backend. One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).
