@@ -64,11 +64,13 @@ class DeskIT {
     void openTerm() {
         flow = new ApplyFlow(mvc, jdbc);
         termId = flow.openTerm();
-        // The desk opens today for the test Term.
+        // The desk opens today (campus date, whatever the JVM's zone) for the test Term.
+        LocalDate today = LocalDate.now(TimeConfig.CAMPUS_ZONE);
         jdbc.sql("""
-                UPDATE cfg_term SET check_in_start = CURRENT_DATE - 1, check_in_end = CURRENT_DATE + 5
+                UPDATE cfg_term SET check_in_start = :start, check_in_end = :end
                 WHERE code = :code
-                """).param("code", ApplyFlow.TERM_CODE).update();
+                """).param("start", today.minusDays(1)).param("end", today.plusDays(5))
+                .param("code", ApplyFlow.TERM_CODE).update();
     }
 
     private static String student(int n) {
@@ -210,13 +212,13 @@ class DeskIT {
         flow.pay(p.auth(), p.balanceInvoiceId());
         postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
                 .andExpect(status().isOk());
-        // The Room's last reading, two days ago: 50 kWh and 5 m³.
+        // The Room's last reading, two days ago (campus date): 50 kWh and 5 m³.
+        LocalDate cut = LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(2);
         jdbc.sql("""
                 INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason)
-                SELECT id, CURRENT_DATE - 2, 50, 5, 'CHECK_IN' FROM inv_room WHERE code = :room
-                """).param("room", p.room()).update();
-        String since = "since " + LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(2)
-                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                SELECT id, :cut, 50, 5, 'CHECK_IN' FROM inv_room WHERE code = :room
+                """).param("cut", cut).param("room", p.room()).update();
+        String since = "since " + cut.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
         getAs("/check-out?termId=" + termId + "&q=" + p.studentCode(), staff)
                 .andExpect(status().isOk())
