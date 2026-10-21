@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); 135 coded, 134 of them verified.
+Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 coded, 161 of them verified (`POST /auth/google` needs a real Google account).
 
 | Slice | Focus |
 |---|---|
@@ -191,30 +191,30 @@ Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-p
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| MNT | GET | `/inspection-checklists` | Could | Planned |  |
-| MNT | POST | `/inspection-checklists` | Could | Planned |  |
-| MNT | POST | `/inspection-checklists/{id}/archive` | Could | Planned |  |
-| MNT | POST | `/inspection-checklists/{id}/publish` | Could | Planned |  |
-| MNT | GET | `/inspection-runs/current` | Could | Planned |  |
-| MNT | GET | `/inspection-runs/upcoming` | Could | Planned |  |
-| MNT | GET | `/inspection-runs/{id}/rooms` | Could | Planned |  |
-| MNT | PUT | `/inspection-runs/{id}/rooms/{room}` | Could | Planned |  |
-| MNT | POST | `/inspection-runs/{id}/rooms/{room}/unreachable` | Could | Planned |  |
-| MNT | POST | `/inspection-runs/{id}/submit` | Could | Planned |  |
-| MNT | GET | `/inspection-schedules` | Could | Planned |  |
-| MNT | POST | `/inspection-schedules` | Could | Planned |  |
-| MNT | PUT | `/inspection-schedules/{id}` | Could | Planned |  |
-| NTF | POST | `/admin/emails` | Could | Planned |  |
-| NTF | GET | `/admin/emails/options` | Could | Planned |  |
-| NTF | POST | `/admin/emails/preview` | Could | Planned |  |
-| NTF | GET | `/admin/notification-templates` | Could | Planned |  |
-| NTF | PUT | `/admin/notification-templates/{key}` | Could | Planned |  |
-| NTF | POST | `/admin/notification-templates/{key}/test` | Could | Planned |  |
-| RPT | GET | `/approvals/summary` | Should | Planned |  |
-| RPT | GET | `/dashboards/admin` | Should | Planned |  |
-| RPT | GET | `/dashboards/manager` | Should | Planned |  |
-| RPT | GET | `/dashboards/staff` | Should | Planned |  |
-| RPT | GET | `/exports/{report}` | Must | Planned |  |
-| RPT | GET | `/reports/block` | Must | Planned |  |
-| RPT | GET | `/reports/financial` | Must | Planned |  |
-| RPT | GET | `/reports/occupancy` | Must | Planned |  |
+| MNT | GET | `/inspection-checklists` | Could | Verified | C-34; TC-MNT-004 |
+| MNT | POST | `/inspection-checklists` | Could | Verified | C-34; TC-MNT-004 |
+| MNT | POST | `/inspection-checklists/{id}/archive` | Could | Verified | C-34; pauses the schedules: TC-MNT-004, 006 |
+| MNT | POST | `/inspection-checklists/{id}/publish` | Could | Verified | A-14, C-34; TC-MNT-004, 006 |
+| MNT | GET | `/inspection-runs/current` | Could | Verified | C-34; TC-MNT-005, 007 |
+| MNT | GET | `/inspection-runs/upcoming` | Could | Verified | C-34; TC-MNT-005 |
+| MNT | GET | `/inspection-runs/{id}/rooms` | Could | Verified | C-34; TC-MNT-005 |
+| MNT | PUT | `/inspection-runs/{id}/rooms/{room}` | Could | Verified | C-34; a failed item creates a Maintenance Request: TC-MNT-005 |
+| MNT | POST | `/inspection-runs/{id}/rooms/{room}/unreachable` | Could | Verified | C-34; TC-MNT-005 |
+| MNT | POST | `/inspection-runs/{id}/submit` | Could | Verified | C-34; TC-MNT-005 |
+| MNT | GET | `/inspection-schedules` | Could | Verified | C-34; TC-MNT-005…007 |
+| MNT | POST | `/inspection-schedules` | Could | Verified | C-34; starts the first run; job at 06:00: TC-MNT-005, 006 |
+| MNT | PUT | `/inspection-schedules/{id}` | Could | Verified | C-34; TC-MNT-006, 007 |
+| NTF | POST | `/admin/emails` | Could | Verified | C-35; TC-NTF-033 |
+| NTF | GET | `/admin/emails/options` | Could | Verified | C-35; TC-NTF-032 |
+| NTF | POST | `/admin/emails/preview` | Could | Verified | C-35; TC-NTF-032 |
+| NTF | GET | `/admin/notification-templates` | Could | Verified | C-35; TC-NTF-030 |
+| NTF | PUT | `/admin/notification-templates/{key}` | Could | Verified | C-35; TC-NTF-030 |
+| NTF | POST | `/admin/notification-templates/{key}/test` | Could | Verified | C-35; TC-NTF-031 |
+| RPT | GET | `/approvals/summary` | Should | Verified | C-36; TC-RPT-003 |
+| RPT | GET | `/dashboards/admin` | Should | Verified | C-36; TC-RPT-004 |
+| RPT | GET | `/dashboards/manager` | Should | Verified | C-36; TC-RPT-002 |
+| RPT | GET | `/dashboards/staff` | Should | Verified | C-36; TC-RPT-001 |
+| RPT | GET | `/exports/{report}` | Must | Verified | C-37; CSV; each screen export is implemented by its module: TC-RPT-008, 009 |
+| RPT | GET | `/reports/block` | Must | Verified | C-37; TC-RPT-007 |
+| RPT | GET | `/reports/financial` | Must | Verified | C-37; TC-RPT-006 |
+| RPT | GET | `/reports/occupancy` | Must | Verified | A-14, C-37; TC-RPT-005 |

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -70,6 +71,17 @@ class JdbcApplications implements Applications {
     @Transactional(readOnly = true)
     public Optional<Candidate> live(long studentId, long termId) {
         return applications.live(studentId, termId).map(this::candidate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, String> applicants(long termId) {
+        return jdbc.sql("""
+                SELECT student_id, status FROM app_application
+                WHERE term_id = :term AND status NOT IN ('DRAFT', 'REJECTED', 'CANCELLED', 'EXPIRED')
+                """).param("term", termId)
+                .query((rs, i) -> Map.entry(rs.getLong("student_id"), rs.getString("status"))).list().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
     }
 
     @Override

@@ -70,6 +70,11 @@ Staff approve Applications (`/applications`), start a run (`POST /assignment-run
 - **Escalations:** every 15 minutes (`campusstay.req.sla-interval`) requests past the Block's timers, still unassigned or reopened appear on Manager › Escalations; the Manager reassigns them (the new owner is notified) or offers a temporary Bed for a room change.
 - **Block staff and settings:** the Manager sets what each person handles and who is on duty, asks Admin for new accounts, and edits desk, visitor and quiet hours within Admin › System parameters (`block.*`, `sla.*`).
 
+### Inspections, messages, dashboards and reports (S7)
+- **Inspections:** Admin › Inspection checklists versions each checklist (the seed has "Room safety check"). A Block Manager's schedule starts its first run at once and the next ones at 06:00 (`campusstay.mnt.inspection-cron`); Staff record each Room, and a failed item becomes a Maintenance Request with the item's category and a priority from its severity.
+- **Messages:** Admin › Notification templates edits the in-app and push texts (test sends go to the Admin). Admin › Send email reaches one student or a group of the Term (residents, not checked in, unpaid, waitlisted, applicants); emails go through the outbox at the chosen time.
+- **Dashboards and reports** read only the reporting views (`rpt_v_*`, migrations V23–V30). **Exports** (`/api/exports/{report}`) are CSV files with the screen's filters; each one is written to the Audit Log.
+
 ## Tests
 ```bash
 mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
@@ -89,17 +94,17 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 ## Layout
 ```
 src/main/java/vn/fpt/campusstay/
-  shared/   error model, paging, audit log, clock, tokens, file store and signed links (open module)
+  shared/   error model, paging, audit log, clock, tokens, file store and signed links, exports (open module)
   auth/     sign-in, sessions, users, roles, Block scope, Audit Log, staff   (S0, S1, S6)
   cfg/      Terms, Room Types/Classes, fees, utility, parameters, Block settings (S0, S1, S6)
-  inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
-  ntf/      in-app notifications, push (FCM), devices, email outbox          (S0–S4)
+  inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1, S7 export)
+  ntf/      notifications, push (FCM), devices, email outbox, templates, campaigns (S0–S4, S7)
   app/      Application wizard, roommate pairs, Home, profile, review       (S2, S3)
   bil/      Invoices, VietQR, SePay webhook, receipts, payments, meters     (S2, S3, S5, S6)
   asg/      assignment engine, runs, approval, Allocations, My Room, desk  (S3, S4)
-  mnt/      Maintenance Requests, photos, updates                          (S4, S6)
+  mnt/      Maintenance Requests, photos, updates, inspections             (S4, S6, S7)
   req/      Room-Change Requests, swaps, routing rules, escalations        (S4–S6)
-  rpt/      (S7)
-src/main/resources/db/migration/   Flyway schema V1–V21
+  rpt/      dashboards, reports, CSV exports (reads rpt_v_* views only)   (S7)
+src/main/resources/db/migration/   Flyway schema V1–V30
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -214,6 +215,14 @@ class JdbcBilling implements Billing {
         List<InvoiceStore.Invoice> due = all.stream()
                 .filter(i -> i.status().equals("UNPAID") || i.status().equals("OVERDUE")).toList();
         return new DueSummary(due.size(), all.size(), due.stream().findFirst().map(JdbcBilling::line));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> withUnpaid(long termId) {
+        return Set.copyOf(jdbc.sql("""
+                SELECT DISTINCT student_id FROM bil_invoice WHERE term_id = :term AND status IN ('UNPAID', 'OVERDUE')
+                """).param("term", termId).query(Long.class).list());
     }
 
     @Override

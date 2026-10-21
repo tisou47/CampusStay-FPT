@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.ntf.internal;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Map;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -32,5 +34,16 @@ class EmailOutbox {
                 .param("subject", Templates.render(template[0], values, false))
                 .param("body", Templates.render(template[1], values, true))
                 .update();
+    }
+
+    /** Queues an email already rendered (an Admin campaign), sent from {@code notBefore}. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void enqueue(long campaignId, String toEmail, String subject, String bodyHtml, Instant notBefore) {
+        jdbc.sql("""
+                INSERT INTO ntf_email_outbox (campaign_id, to_email, subject, body_html, not_before)
+                VALUES (:campaign, :to, :subject, :body, :notBefore)
+                """)
+                .param("campaign", campaignId).param("to", toEmail).param("subject", subject).param("body", bodyHtml)
+                .param("notBefore", Timestamp.from(notBefore)).update();
     }
 }

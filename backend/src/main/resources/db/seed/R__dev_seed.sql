@@ -166,3 +166,20 @@ SELECT u.id, 'WELCOME', 'Welcome to CampusStay',
        '2026-10-01 01:00:00+00'
 FROM auth_user u
 WHERE NOT EXISTS (SELECT 1 FROM ntf_notification n WHERE n.user_id = u.id AND n.event_key = 'WELCOME');
+
+-- ---------- inspection checklist (Admin publishes it, Block Managers schedule runs) ----------
+INSERT INTO mnt_checklist (family_key, name, version, status, published_at, updated_at)
+SELECT 'CL-ROOM', 'Room safety check', 1, 'PUBLISHED', '2026-10-01 01:00:00+00', '2026-10-01 01:00:00+00'
+WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist WHERE family_key = 'CL-ROOM');
+
+INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
+SELECT c.id, v.label, v.category, v.severity, v.n
+FROM mnt_checklist c,
+     (VALUES ('Smoke detector works', 'ELECTRICAL', 'CRITICAL', 1),
+             ('Lights and sockets work', 'ELECTRICAL', 'MAJOR', 2),
+             ('No leaks under the sink or in the shower', 'PLUMBING', 'MAJOR', 3),
+             ('Air conditioner cools and drains', 'AIR_CONDITIONING', 'MINOR', 4),
+             ('Beds, desks and wardrobes are intact', 'FURNITURE', 'MINOR', 5),
+             ('Room is clean', 'CLEANING', 'TRIVIAL', 6)) AS v (label, category, severity, n)
+WHERE c.family_key = 'CL-ROOM' AND c.version = 1
+  AND NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);

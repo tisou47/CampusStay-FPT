@@ -19,6 +19,8 @@ campusstay:
     sla-interval: 1h
   bil:
     overdue-interval: 1h
+  mnt:
+    inspection-cron: "-"           # tests start runs themselves
   files:
     dir: target/test-files
     link-secret: test-link-secret

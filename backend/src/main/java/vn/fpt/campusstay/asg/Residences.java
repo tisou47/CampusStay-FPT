@@ -1,5 +1,8 @@
 package vn.fpt.campusstay.asg;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** ASG public API: where a student lives now, and who lives in a Room (MNT reports and Room summaries). */
@@ -19,4 +22,18 @@ public interface Residences {
 
     /** Students checked in to the Room in the Term. */
     int residents(long roomId, long termId);
+
+    /**
+     * A student with an active Allocation in the Term.
+     *
+     * @param checkedIn whether the student has checked in
+     */
+    record TermResident(long studentId, long buildingId, boolean checkedIn) {
+    }
+
+    /** Students with an active Allocation in the Term (NTF email groups). */
+    List<TermResident> ofTerm(long termId);
+
+    /** Bed id → student checked in to it now (an active Allocation of any Term), for the given Beds. */
+    Map<Long, Long> checkedIn(Collection<Long> bedIds);
 }

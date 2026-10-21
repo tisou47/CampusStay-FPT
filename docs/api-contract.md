@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.7 (22/10/2026): the mentor-confirmed contract plus the changes A-01…A-13, B-01…B-03 and C-01…C-33 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.8 (22/10/2026): the mentor-confirmed contract plus the changes A-01…A-14, B-01…B-03 and C-01…C-37 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -207,12 +207,16 @@ Meter readings, Utility Invoices and Admin › Utility: C-29.
 - `POST /inspection-runs/{id}/rooms/{room}/unreachable` · `POST /inspection-runs/{id}/submit`
 - `GET /inspection-runs/upcoming?block` → `{ items: [{ id, date, scope, scheduleName }] }`
 
+Inspections (checklists, schedules, runs): C-34.
+
 ---
 
 ## Manager
 
 - `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, beds, collected, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing', severity, title, body, link, cta }] }`
 - `GET /approvals/summary?termId&block` → `{ assignment, lateCheckIn, swaps, refunds }`
+
+Dashboards and approval counts: C-36.
 - `GET /approvals/assignment?termId&block` → `{ item: { runId, block, blockLabel, termName, submittedBy, submittedAt, bedsOffered, conflictsResolved, conflictsTotal, applications, allocated, toRound2, averageScore, status: 'Waiting'|'Approved'|'Returned', comment } | null }`
 - `GET /assignment-runs/{runId}/rooms?block&page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, students, note, score, flag: { label, tone } | null }], total }`
 - `POST /assignment-runs/{runId}/approve` `{ block }` → `{ allocated, waitlisted }` · `POST /assignment-runs/{runId}/return` `{ block, comment }` → `204` (C-21)
@@ -256,15 +260,17 @@ Block staff: C-32 and A-13. Routing rules and timers: C-30. Escalations: C-31. B
 - `GET /admin/notification-templates` → `{ items: [{ key, event, push, inApp, titleEn, titleVi, body, variables }], sampleValues }` · `PUT /admin/notification-templates/{key}` · `POST /admin/notification-templates/{key}/test`
 - `GET /admin/emails/options` → `{ templates: [{ key, name, subject }], groups: [{ key, label }], blocks, genders, channels: [{ value, label }], sendTimes: [{ value, label }] }`
 - `POST /admin/emails/preview` `{ mode, studentCode?, termId, group, block?, gender?, templateKey, subject }` → `{ count, preview: { recipientName, subject, lines } | null }` · `POST /admin/emails` (same + `channel, sendAt`) → `{ queued }`
+
+Notification templates and Send email: C-35.
 - `GET /admin/buildings` → `{ items: [{ id, name, gender, status, floors: [{ floor, roomClassName, twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }], genders, floorOptions, layoutNote }` · `POST` · `PUT /admin/buildings/{id}` · `POST /admin/buildings/{id}/rooms/bulk` `{ fromFloor, toFloor }` → `{ created, skipped }` · `GET /admin/buildings/{id}/floors/{floor}/rooms` → `{ items: [{ code, roomTypeName, roomClassName, outOfService }] }`
 - `GET /admin/users?q&role&block&status&page&pageSize` → `{ items: [{ id, name, email, role, scope, lastSignInAt, status }], total, roles, blocks, scopeOptions }` · `POST /admin/users` (invite) · `PUT /admin/users/{id}`
 - `GET /admin/permissions` → `{ roles: [{ key, short }], rows: [{ action, allowed: [bool] }] }`
 - Admin screens exchange display labels (roles, Block scope `All Blocks`/`A`/`A, B`, statuses, `gender` Male/Female, Block `name` = code); saves return `{ id }` (`PUT /admin/users/{id}`: the updated item). Fees: rules left out of a PUT are kept. Eligibility: `applied` = students in the group. Matching: `weights[].value` in whole percent (total 100), `boost` a multiplier (1 = off). See C-15, C-16; Audit Log labels and `/notifications?limit` (default 20, max 100): C-18.
-- `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }` · `POST /inspection-checklists` `{ name }` · `POST /inspection-checklists/{id}/publish` `{ items }` · `POST /inspection-checklists/{id}/archive`
-- `GET /reports/occupancy?termId` → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
+- `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }` · `POST /inspection-checklists` `{ name }` · `POST /inspection-checklists/{id}/publish` `{ items }` → `{ id, version }` (A-14) · `POST /inspection-checklists/{id}/archive`
+- `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 - `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`
 - `GET /admin/audit-log?q&actor&action&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
 
 ## Exports
 
-`GET /exports/{report}` with the same filters as the screen: `applications`, `payments`, `maintenance`, `room-changes`, `inventory`, `assignment-proposal`, `block-finance`, `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`, `occupancy`, `financial`, `audit-log`.
+`GET /exports/{report}` with the same filters as the screen: `applications`, `payments`, `maintenance`, `room-changes`, `inventory`, `assignment-proposal`, `block-finance`, `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`, `occupancy`, `financial`, `audit-log`. Reports and exports: C-37.

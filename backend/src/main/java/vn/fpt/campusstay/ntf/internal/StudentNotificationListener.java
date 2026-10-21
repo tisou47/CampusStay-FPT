@@ -17,6 +17,7 @@ import vn.fpt.campusstay.app.RoommateInvited;
 import vn.fpt.campusstay.asg.AllocationCreated;
 import vn.fpt.campusstay.bil.InvoiceIssued;
 import vn.fpt.campusstay.bil.PaymentConfirmed;
+import vn.fpt.campusstay.mnt.InspectionScheduled;
 import vn.fpt.campusstay.mnt.MaintenanceUpdated;
 import vn.fpt.campusstay.req.RoomChangeDecided;
 import vn.fpt.campusstay.req.SwapDecided;
@@ -114,6 +115,14 @@ class StudentNotificationListener {
     void on(Round2Offered e) {
         notifier.notify(e.studentId(), "ROUND2_OFFER", Map.of("expiresAt", WHEN.format(e.expiresAt())),
                 "/student/round-2-offer");
+    }
+
+    @EventListener
+    void on(InspectionScheduled e) {
+        // dueAt is the start of the day after the last day.
+        Map<String, String> values = Map.of("from", DAY.format(e.from()),
+                "until", DAY.format(e.dueAt().minusSeconds(1)));
+        e.studentIds().forEach(student -> notifier.notify(student, "INSPECTION_SCHEDULED", values, "/student/room"));
     }
 
     private static String vnd(long amount) {

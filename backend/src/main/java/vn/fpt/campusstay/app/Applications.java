@@ -38,6 +38,9 @@ public interface Applications {
     /** The student's live Application in the Term (not rejected, cancelled or expired). */
     Optional<Candidate> live(long studentId, long termId);
 
+    /** Student → status code of their live Application in the Term, Drafts left out (NTF email groups). */
+    Map<Long, String> applicants(long termId);
+
     /** Approved → Allocated, when the Block's proposal is committed. */
     void allocated(long applicationId, String room, String bed);
 

@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * BIL public API: issuing and reading Invoices for other modules. Invoices are
@@ -136,6 +137,9 @@ public interface Billing {
 
     /** Any Invoice of the student, from any Term, that is Overdue. */
     boolean hasOverdueInvoice(long studentId);
+
+    /** Students with an unpaid or overdue Invoice in the Term (NTF email groups). */
+    Set<Long> withUnpaid(long termId);
 
     /**
      * Records a refund of a paid Invoice by an active refund rule (Admin › Fees). Rules approved by

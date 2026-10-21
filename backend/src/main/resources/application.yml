@@ -83,6 +83,8 @@ campusstay:
     sla-interval: 15m                   # routing SLA checks: escalations open and close
   bil:
     overdue-interval: 1h                # unpaid Invoices past their due date become Overdue
+  mnt:
+    inspection-cron: "0 0 6 * * *"      # inspection runs of active schedules start (campus time)
   files:
     dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
     link-secret: ${FILES_LINK_SECRET:}  # signs the short-lived file links; blank = random per start
