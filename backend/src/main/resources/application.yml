@@ -78,6 +78,10 @@ campusstay:
     retry-interval: 1m
   app:
     expiry-interval: 5m                 # Deposit windows and roommate invitations
+  req:
+    expiry-interval: 5m                 # swap invitations and swap-board posts
+  bil:
+    overdue-interval: 1h                # unpaid Invoices past their due date become Overdue
   files:
     dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
     link-secret: ${FILES_LINK_SECRET:}  # signs the short-lived file links; blank = random per start

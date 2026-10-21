@@ -11,14 +11,19 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.app.ApplicationCreated;
 import vn.fpt.campusstay.app.ApplicationRejected;
+import vn.fpt.campusstay.app.Round2Offered;
 import vn.fpt.campusstay.app.ApplicationSubmitted;
 import vn.fpt.campusstay.app.RoommateInvited;
 import vn.fpt.campusstay.asg.AllocationCreated;
+import vn.fpt.campusstay.bil.InvoiceIssued;
 import vn.fpt.campusstay.bil.PaymentConfirmed;
 import vn.fpt.campusstay.mnt.MaintenanceUpdated;
+import vn.fpt.campusstay.req.RoomChangeDecided;
+import vn.fpt.campusstay.req.SwapDecided;
+import vn.fpt.campusstay.req.SwapInvited;
 import vn.fpt.campusstay.shared.time.TimeConfig;
 
-/** Turns APP, ASG, BIL and MNT events into the student's in-app notifications (synchronous: same transaction). */
+/** Turns APP, ASG, BIL, MNT and REQ events into the student's in-app notifications (synchronous: same transaction). */
 @Component
 class StudentNotificationListener {
 
@@ -79,6 +84,36 @@ class StudentNotificationListener {
     void on(MaintenanceUpdated e) {
         notifier.notify(e.reporterId(), "MAINTENANCE_UPDATED", Map.of("title", e.title(), "status", e.status()),
                 "/student/requests");
+    }
+
+    @EventListener
+    void on(InvoiceIssued e) {
+        notifier.notify(e.studentId(), "INVOICE_ISSUED",
+                Map.of("title", e.title(), "amount", vnd(e.amount()), "dueAt", WHEN.format(e.dueAt())),
+                "/student/invoices/" + e.code() + "/pay");
+    }
+
+    @EventListener
+    void on(RoomChangeDecided e) {
+        notifier.notify(e.studentId(), "ROOM_CHANGE_DECIDED", Map.of("decision", e.decision()), "/student/requests");
+    }
+
+    @EventListener
+    void on(SwapInvited e) {
+        notifier.notify(e.inviteeId(), "SWAP_INVITATION",
+                Map.of("fromName", e.fromName(), "expiresAt", WHEN.format(e.expiresAt())),
+                "/student/requests/swap/invitations/" + e.code());
+    }
+
+    @EventListener
+    void on(SwapDecided e) {
+        notifier.notify(e.studentId(), "SWAP_DECIDED", Map.of("decision", e.decision()), "/student/requests");
+    }
+
+    @EventListener
+    void on(Round2Offered e) {
+        notifier.notify(e.studentId(), "ROUND2_OFFER", Map.of("expiresAt", WHEN.format(e.expiresAt())),
+                "/student/round-2-offer");
     }
 
     private static String vnd(long amount) {

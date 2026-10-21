@@ -72,7 +72,30 @@ public interface Billing {
     record SettledCheckOut(Settlement settlement, Optional<Long> refundId, Optional<IssuedInvoice> invoice) {
     }
 
+    /** A line of a charge Invoice. */
+    record ChargeLine(String label, long amount) {
+    }
+
+    /**
+     * A charge for a student who holds a Bed: a room-change difference ({@code ROOM_CHANGE}) or what is
+     * still owed at check-out ({@code DAMAGE}). {@code title} is suffixed with the Term name.
+     */
+    record ChargeRequest(long termId, long studentId, Long allocationId, long buildingId, String type, String title,
+            long amount, List<ChargeLine> lines, Instant dueAt, String reference) {
+    }
+
     IssuedInvoice issueDeposit(DepositRequest request);
+
+    /** Issues a charge Invoice and tells the student (in-app and push). */
+    IssuedInvoice issueCharge(ChargeRequest request);
+
+    /**
+     * Money the dormitory owes a student outside a refund rule (a cheaper Room after a change or swap, a
+     * Deposit after a declined Round-2 offer): a refund waiting for the Block Manager. {@code buildingId}
+     * is null when the student holds no Bed. @return the refund id
+     */
+    long requestCredit(long termId, long studentId, Long buildingId, String sourceType, long sourceId, String reason,
+            long amount);
 
     /** Allocation id → its unpaid Balance; Allocations whose Balance is paid (or not issued) are left out. */
     Map<Long, CheckInDue> checkInDues(Collection<Long> allocationIds);
@@ -105,6 +128,9 @@ public interface Billing {
 
     /** Application id → its live Deposit Invoice. */
     Map<Long, InvoiceLine> depositsOf(Collection<Long> applicationIds);
+
+    /** Invoices by id; unknown ids are left out. */
+    Map<Long, InvoiceLine> invoices(Collection<Long> invoiceIds);
 
     DueSummary dueSummary(long studentId, long termId);
 

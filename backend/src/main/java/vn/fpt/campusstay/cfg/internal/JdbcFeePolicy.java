@@ -2,6 +2,8 @@ package vn.fpt.campusstay.cfg.internal;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 
@@ -55,6 +57,20 @@ class JdbcFeePolicy implements FeePolicy {
     public long utilityDeposit() {
         return jdbc.sql("SELECT estimate_monthly * months_held FROM cfg_utility_policy WHERE id = 1")
                 .query(Long.class).single();
+    }
+
+    @Override
+    public Map<Long, RefundRule> refundRules() {
+        Map<Long, RefundRule> result = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT id, trigger_code, description, refund_percent, approver_role FROM cfg_refund_rule
+                ORDER BY sort_order, id
+                """)
+                .query((rs, i) -> new RefundRule(rs.getLong("id"), rs.getString("trigger_code"),
+                        rs.getString("description"), Decimals.plain(rs.getBigDecimal("refund_percent")),
+                        rs.getString("approver_role")))
+                .list().forEach(r -> result.put(r.id(), r));
+        return result;
     }
 
     @Override

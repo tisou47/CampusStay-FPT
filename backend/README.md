@@ -59,6 +59,11 @@ Staff approve Applications (`/applications`), start a run (`POST /assignment-run
 - **Photos and receipts** open through short-lived signed links (`/api/files/{id}?exp&sig`). Set `FILES_LINK_SECRET` in production so links survive a restart.
 - **Push:** set `FIREBASE_CREDENTIALS_FILE` to a Firebase service account key (JSON). Without it only in-app notifications are written.
 
+### Changes during the stay (S5)
+- **Room changes and swaps:** a checked-in student asks for another Room or proposes a swap (directly by student code or on the anonymous swap board). Staff of the Block decide; a swap between Blocks also needs the Block Manager. The price difference for the days left is invoiced or refunded.
+- **Round 2:** when the Block Manager approves a Block, Waitlisted students get held Room options; declining or not answering cancels the Application and refunds the Deposit after approval.
+- **Late check-ins** are recorded at the desk and decided by the Block Manager. **Refunds** wait for the Block Manager. Every hour unpaid Invoices past due become Overdue; the Manager can send reminders (in-app, push, email).
+
 ## Tests
 ```bash
 mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
@@ -87,8 +92,8 @@ src/main/java/vn/fpt/campusstay/
   bil/      Invoices, VietQR, SePay webhook, receipts, Staff payments       (S2, S3)
   asg/      assignment engine, runs, approval, Allocations, My Room, desk  (S3, S4)
   mnt/      Maintenance Requests, photos, updates                          (S4)
-  req/      the student's requests screen (room changes from S5)          (S4)
+  req/      Room-Change Requests, swaps, the student's requests screen     (S4, S5)
   rpt/      (S7)
-src/main/resources/db/migration/   Flyway schema V1–V15
+src/main/resources/db/migration/   Flyway schema V1–V18
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 161 endpoints (166 when the five `GET, PUT` rows count twice); 92 coded, 91 of them verified.
+Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); 116 coded, 115 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -131,36 +131,37 @@ Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-p
 | MNT | POST | `/maintenance-requests/{id}/updates` | Must | Verified | TC-MNT-002 |
 | NTF | POST | `/devices` | Must | Verified | A-05; push after commit (C-25); TC-NTF-010…012, 020, 021 |
 | NTF | POST | `/devices/unregister` | Must | Verified | A-06; TC-NTF-020 |
-| REQ | GET | `/students/me/requests` | Must | Verified | Room-change tab empty until S5; TC-MNT-001 |
+| REQ | GET | `/students/me/requests` | Must | Verified | Room-change tab: Room-Change Requests and swaps (S5); TC-MNT-001, TC-REQ-001, 010 |
 | shared | GET | `/files/{id}` | Must | Verified | A-10 signed links (receipts, photos); TC-BIL-011, TC-MNT-002 |
 
 ## S5 — Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| APP | POST | `/round2-offers/{id}/respond` | Should | Planned |  |
-| APP | GET | `/students/me/round2-offer` | Should | Planned |  |
-| ASG | GET | `/late-check-ins` | Should | Planned |  |
-| ASG | POST | `/late-check-ins/{id}/decision` | Should | Planned |  |
-| BIL | GET | `/finance/overdue` | Should | Planned |  |
-| BIL | POST | `/finance/reminders` | Should | Planned |  |
-| BIL | GET | `/finance/summary` | Should | Planned |  |
-| BIL | GET | `/invoices` | Should | Planned |  |
-| BIL | GET | `/refunds` | Should | Planned |  |
-| BIL | POST | `/refunds/{id}/decision` | Should | Planned |  |
-| REQ | GET | `/room-changes` | Should | Planned |  |
-| REQ | POST | `/room-changes` | Should | Planned |  |
-| REQ | GET | `/room-changes/options` | Should | Planned |  |
-| REQ | POST | `/room-changes/{id}/decision` | Should | Planned |  |
-| REQ | GET | `/room-changes/{id}/matching-beds` | Should | Planned |  |
-| REQ | GET | `/swap-board` | Should | Planned |  |
-| REQ | PUT | `/swap-board/my-post` | Should | Planned |  |
-| REQ | POST | `/swap-board/posts/{id}/request` | Should | Planned |  |
-| REQ | GET | `/swap-invitations/{id}` | Should | Planned |  |
-| REQ | POST | `/swap-invitations/{id}/respond` | Should | Planned |  |
-| REQ | GET | `/swaps` | Should | Planned |  |
-| REQ | POST | `/swaps` | Should | Planned |  |
-| REQ | POST | `/swaps/{id}/decision` | Should | Planned |  |
+| APP | POST | `/round2-offers/{id}/respond` | Should | Verified | C-27; TC-APP-020, 021 |
+| APP | GET | `/students/me/round2-offer` | Should | Verified | Offers made when a Block is approved (C-27); TC-APP-020 |
+| ASG | GET | `/late-check-ins` | Should | Verified | C-28; TC-ASG-030, 031 |
+| ASG | POST | `/late-check-ins` | Should | Verified | A-12 (recorded at the desk); TC-ASG-030 |
+| ASG | POST | `/late-check-ins/{id}/decision` | Should | Verified | TC-ASG-030, 031 |
+| BIL | GET | `/finance/overdue` | Should | Verified | Hourly overdue job (C-28); TC-BIL-020 |
+| BIL | POST | `/finance/reminders` | Should | Verified | In-app, push and email; TC-BIL-020 |
+| BIL | GET | `/finance/summary` | Should | Verified | TC-BIL-020, 021 |
+| BIL | GET | `/invoices` | Should | Verified | TC-BIL-020 |
+| BIL | GET | `/refunds` | Should | Verified | C-28; TC-BIL-021 |
+| BIL | POST | `/refunds/{id}/decision` | Should | Verified | TC-BIL-021 |
+| REQ | GET | `/room-changes` | Should | Verified | C-26; TC-REQ-002, 003 |
+| REQ | POST | `/room-changes` | Should | Verified | TC-REQ-001 |
+| REQ | GET | `/room-changes/options` | Should | Verified | TC-REQ-001 |
+| REQ | POST | `/room-changes/{id}/decision` | Should | Verified | Moves the student; Invoice or refund (C-26); TC-REQ-002, 003 |
+| REQ | GET | `/room-changes/{id}/matching-beds` | Should | Verified | TC-REQ-002 |
+| REQ | GET | `/swap-board` | Should | Verified | TC-REQ-011 |
+| REQ | PUT | `/swap-board/my-post` | Should | Verified | TC-REQ-011 |
+| REQ | POST | `/swap-board/posts/{id}/request` | Should | Verified | TC-REQ-011 |
+| REQ | GET | `/swap-invitations/{id}` | Should | Verified | TC-REQ-010 |
+| REQ | POST | `/swap-invitations/{id}/respond` | Should | Verified | TC-REQ-010, 011 |
+| REQ | GET | `/swaps` | Should | Verified | C-26; TC-REQ-010…012 |
+| REQ | POST | `/swaps` | Should | Verified | TC-REQ-010 |
+| REQ | POST | `/swaps/{id}/decision` | Should | Verified | Cross-Block swaps go to the Manager; TC-REQ-010…012 |
 
 ## S6 — Utility billing, routing rules, SLA, escalations, Block staff/settings
 

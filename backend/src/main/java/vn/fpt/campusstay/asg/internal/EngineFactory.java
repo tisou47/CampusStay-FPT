@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -97,8 +98,9 @@ class EngineFactory {
                 occupied.computeIfAbsent(slot.roomId(), k -> new ArrayList<>()).add(profile(p));
             }
         });
+        Set<Long> held = applications.heldRound2Beds(termId);
         List<AssignmentEngine.Bed> free = assignable.stream()
-                .filter(b -> !takenBedStudent.containsKey(b.bedId()))
+                .filter(b -> !takenBedStudent.containsKey(b.bedId()) && !held.contains(b.bedId()))
                 .map(b -> new AssignmentEngine.Bed(b.bedId(), b.bedLabel(), b.roomId(), b.roomCode(), b.buildingId(),
                         b.gender(), bedsPerType.getOrDefault(b.roomTypeId(), 0), b.roomTypeId(), b.roomClassId()))
                 .toList();

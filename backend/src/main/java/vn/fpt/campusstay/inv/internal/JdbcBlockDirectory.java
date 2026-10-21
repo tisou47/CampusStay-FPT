@@ -3,6 +3,7 @@ package vn.fpt.campusstay.inv.internal;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -56,11 +57,21 @@ class JdbcBlockDirectory implements BlockDirectory, Buildings {
     }
 
     @Override
+    public Map<Long, String> activeBlocksFor(String gender) {
+        Map<Long, String> result = new LinkedHashMap<>();
+        jdbc.sql("SELECT id, code FROM inv_building WHERE status = 'ACTIVE' AND gender = :gender ORDER BY code")
+                .param("gender", gender)
+                .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getString("code"))).list()
+                .forEach(e -> result.put(e.getKey(), e.getValue()));
+        return result;
+    }
+
+    @Override
     public Set<String> gendersOf(Collection<Long> buildingIds) {
         if (buildingIds == null || buildingIds.isEmpty()) {
             return Set.of();
         }
         return new LinkedHashSet<>(jdbc.sql("SELECT DISTINCT trim(gender) FROM inv_building WHERE id IN (:ids)")
-                .param("ids", java.util.List.copyOf(buildingIds)).query(String.class).list());
+                .param("ids", List.copyOf(buildingIds)).query(String.class).list());
     }
 }

@@ -14,6 +14,10 @@ campusstay:
     retry-interval: 1h
   app:
     expiry-interval: 1h
+  req:
+    expiry-interval: 1h
+  bil:
+    overdue-interval: 1h
   files:
     dir: target/test-files
     link-secret: test-link-secret

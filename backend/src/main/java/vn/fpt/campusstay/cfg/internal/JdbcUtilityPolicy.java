@@ -24,4 +24,10 @@ class JdbcUtilityPolicy implements UtilityPolicy {
                         rs.getInt("payment_due_days")))
                 .single();
     }
+
+    @Override
+    public boolean blockChangesWhenOverdue() {
+        return jdbc.sql("SELECT block_changes_when_overdue FROM cfg_utility_policy WHERE id = 1").query(Boolean.class)
+                .single();
+    }
 }

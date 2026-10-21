@@ -1,10 +1,12 @@
 package vn.fpt.campusstay.app;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /** APP public API for the assignment engine (ASG): Approved Applications and their outcome. */
 public interface Applications {
@@ -41,4 +43,20 @@ public interface Applications {
 
     /** Approved → Waitlisted: no Bed of the chosen kind in this run (Round 2 may offer one). */
     void waitlisted(long applicationId, String reason);
+
+    /** Beds of the Term held by open Round-2 options: nobody else may be placed there. */
+    Set<Long> heldRound2Beds(long termId);
+
+    /**
+     * A Bed a Round-2 offer holds for a Waitlisted student.
+     *
+     * @param fillRate   share of the Room's Beds already taken, 0–1
+     * @param difference Term price minus the Application's Term price
+     */
+    record Round2Option(long roomTypeId, long roomClassId, long buildingId, long bedId, String note,
+            BigDecimal fillRate, long termPrice, long difference) {
+    }
+
+    /** Offers Beds to a Waitlisted Application until {@code expiresAt}; an earlier open offer is withdrawn. */
+    void offerRound2(long applicationId, List<Round2Option> options, Instant expiresAt);
 }

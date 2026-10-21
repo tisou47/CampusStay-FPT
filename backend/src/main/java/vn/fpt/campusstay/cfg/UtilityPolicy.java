@@ -20,4 +20,7 @@ public interface UtilityPolicy {
     }
 
     Prices prices();
+
+    /** Students with an overdue Invoice may not ask for a room change or swap (Admin › Utility). */
+    boolean blockChangesWhenOverdue();
 }

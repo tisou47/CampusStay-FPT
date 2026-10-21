@@ -1,9 +1,9 @@
 package vn.fpt.campusstay.req.internal;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,8 +15,8 @@ import vn.fpt.campusstay.shared.error.FieldErrors;
 import vn.fpt.campusstay.shared.web.PageQuery;
 
 /**
- * The student's requests screen: Maintenance Requests (MNT) and Room-Change
- * Requests. Room changes are built in S5; until then that tab lists nothing.
+ * The student's requests screen: Maintenance Requests (MNT) and, in the
+ * room-changes tab, Room-Change Requests and swaps, newest first.
  */
 @Service
 public class StudentRequestsService {
@@ -27,16 +27,18 @@ public class StudentRequestsService {
     public record Page(List<?> items, long total, Counts counts, String room) {
     }
 
-    private final JdbcClient jdbc;
     private final CurrentUser currentUser;
     private final MaintenanceRequests maintenance;
+    private final RoomChangeService roomChanges;
+    private final SwapService swaps;
     private final Residences residences;
 
-    public StudentRequestsService(JdbcClient jdbc, CurrentUser currentUser, MaintenanceRequests maintenance,
-            Residences residences) {
-        this.jdbc = jdbc;
+    public StudentRequestsService(CurrentUser currentUser, MaintenanceRequests maintenance,
+            RoomChangeService roomChanges, SwapService swaps, Residences residences) {
         this.currentUser = currentUser;
         this.maintenance = maintenance;
+        this.roomChanges = roomChanges;
+        this.swaps = swaps;
         this.residences = residences;
     }
 
@@ -48,15 +50,13 @@ public class StudentRequestsService {
         if (!k.equals("maintenance") && !k.equals("room-changes")) {
             throw FieldErrors.single("kind", "Choose maintenance or room-changes.");
         }
-        List<MaintenanceRequests.StudentItem> mine = maintenance.ofStudent(me, termId);
-        long roomChanges = jdbc.sql("SELECT count(*) FROM req_room_change WHERE student_id = :me"
-                + (termId != null ? " AND term_id = :term" : ""))
-                .params(termId != null ? Map.of("me", me, "term", termId) : Map.of("me", me))
-                .query(Long.class).single();
-        List<?> items = k.equals("maintenance") ? mine.stream().skip(page.offset()).limit(page.limit()).toList()
-                : List.of();
-        long total = k.equals("maintenance") ? mine.size() : 0;
+        List<MaintenanceRequests.StudentItem> repairs = maintenance.ofStudent(me, termId);
+        List<RoomChangeService.StudentItem> changes = new ArrayList<>(roomChanges.ofStudent(me, termId));
+        changes.addAll(swaps.ofStudent(me, termId));
+        changes.sort(Comparator.comparing(RoomChangeService.StudentItem::submittedAt).reversed());
+        List<?> all = k.equals("maintenance") ? repairs : changes;
         String room = residences.current(me).map(Residences.Residence::room).orElse(null);
-        return new Page(items, total, new Counts(mine.size(), roomChanges), room);
+        return new Page(all.stream().skip(page.offset()).limit(page.limit()).toList(), all.size(),
+                new Counts(repairs.size(), changes.size()), room);
     }
 }

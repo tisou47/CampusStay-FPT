@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -75,12 +76,13 @@ public class AssignmentService {
     private final BlockDirectory blocks;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
+    private final Round2Offers round2;
     private final Clock clock;
 
     public AssignmentService(JdbcClient jdbc, RunStore runs, EngineFactory engines, Applications applications,
             Inventory inventory, Catalog catalog, MatchingCriteria criteria, TermCatalog terms, FeePolicy fees,
             Billing billing, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
-            ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ApplicationEventPublisher events, AuditLog audit, Round2Offers round2, Clock clock) {
         this.jdbc = jdbc;
         this.runs = runs;
         this.engines = engines;
@@ -96,6 +98,7 @@ public class AssignmentService {
         this.blocks = blocks;
         this.events = events;
         this.audit = audit;
+        this.round2 = round2;
         this.clock = clock;
     }
 
@@ -284,6 +287,7 @@ public class AssignmentService {
         Instant balanceDueAt = now.plus(Duration.ofDays(fees.balanceDays()));
         int allocated = 0;
         int waitlisted = 0;
+        List<Applications.Candidate> toRound2 = new ArrayList<>();
         for (RunStore.Item item : items) {
             Applications.Candidate app = apps.get(item.applicationId());
             if (app == null || !app.status().equals("APPROVED")) {
@@ -292,6 +296,9 @@ public class AssignmentService {
             if (item.waitlisted() || item.bedId() == null) {
                 applications.waitlisted(app.applicationId(),
                         item.reason() == null ? "No free Bed of the chosen kind" : item.reason());
+                if (!"NOT_ELIGIBLE".equals(item.issue())) {
+                    toRound2.add(app);
+                }
                 waitlisted++;
                 continue;
             }
@@ -316,6 +323,7 @@ public class AssignmentService {
                     bed.bedLabel(), balance.map(Billing.IssuedInvoice::dueAt).orElse(null)));
             allocated++;
         }
+        round2.offer(run.termId(), toRound2);
         Timestamp at = Timestamp.from(now);
         jdbc.sql("""
                 UPDATE asg_run_block SET status = 'COMMITTED', decided_by = :by, decided_at = :now, committed_at = :now,

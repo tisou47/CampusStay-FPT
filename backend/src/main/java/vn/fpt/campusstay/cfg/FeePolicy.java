@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.cfg;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 
@@ -27,6 +28,9 @@ public interface FeePolicy {
     long utilityDeposit();
 
     Optional<RefundRule> refundRule(String triggerCode);
+
+    /** Every refund rule (inactive ones too, so old refunds still name their rule), by id. */
+    Map<Long, RefundRule> refundRules();
 
     /** Staff may confirm a transfer by hand when the bank feed cannot (Admin › Fees). */
     boolean manualConfirmAllowed();

@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.app.internal;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 import vn.fpt.campusstay.app.Applications;
+import vn.fpt.campusstay.app.Round2Offered;
 
 /** Implements {@link Applications} for the assignment engine. */
 @Component
@@ -23,11 +27,14 @@ class JdbcApplications implements Applications {
     private final JdbcClient jdbc;
     private final ApplicationStore applications;
     private final JsonMapper json;
+    private final ApplicationEventPublisher events;
 
-    JdbcApplications(JdbcClient jdbc, ApplicationStore applications, JsonMapper json) {
+    JdbcApplications(JdbcClient jdbc, ApplicationStore applications, JsonMapper json,
+            ApplicationEventPublisher events) {
         this.jdbc = jdbc;
         this.applications = applications;
         this.json = json;
+        this.events = events;
     }
 
     @Override
@@ -71,6 +78,45 @@ class JdbcApplications implements Applications {
         if (applications.transition(applicationId, Set.of("APPROVED", "WAITLISTED"), "ALLOCATED")) {
             applications.event(applicationId, "ALLOCATED", "Room and Bed assigned", room + " · Bed " + bed, null);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> heldRound2Beds(long termId) {
+        return Set.copyOf(jdbc.sql("""
+                SELECT o.bed_id FROM app_round2_option o
+                JOIN app_round2_offer f ON f.id = o.offer_id
+                JOIN app_application a ON a.id = f.application_id
+                WHERE a.term_id = :term AND o.held
+                """).param("term", termId).query(Long.class).list());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void offerRound2(long applicationId, List<Round2Option> options, Instant expiresAt) {
+        ApplicationStore.Application app = applications.find(applicationId, true).orElseThrow();
+        jdbc.sql("""
+                UPDATE app_round2_option SET held = FALSE
+                WHERE offer_id IN (SELECT id FROM app_round2_offer WHERE application_id = :app AND status = 'PENDING')
+                """).param("app", applicationId).update();
+        jdbc.sql("UPDATE app_round2_offer SET status = 'WITHDRAWN', version = version + 1 WHERE application_id = :app AND status = 'PENDING'")
+                .param("app", applicationId).update();
+        long offerId = jdbc.sql("""
+                INSERT INTO app_round2_offer (application_id, expires_at) VALUES (:app, :expires) RETURNING id
+                """).param("app", applicationId).param("expires", Timestamp.from(expiresAt)).query(Long.class).single();
+        for (Round2Option o : options) {
+            jdbc.sql("""
+                    INSERT INTO app_round2_option (offer_id, room_type_id, room_class_id, building_id, bed_id, note,
+                                                   fill_rate, term_price, difference)
+                    VALUES (:offer, :type, :class, :building, :bed, :note, :fill, :price, :difference)
+                    """)
+                    .param("offer", offerId).param("type", o.roomTypeId()).param("class", o.roomClassId())
+                    .param("building", o.buildingId()).param("bed", o.bedId()).param("note", o.note())
+                    .param("fill", o.fillRate()).param("price", o.termPrice()).param("difference", o.difference())
+                    .update();
+        }
+        applications.event(applicationId, app.status(), "Round 2 offer", options.size() + " Room options", null);
+        events.publishEvent(new Round2Offered(applicationId, app.studentId(), expiresAt));
     }
 
     @Override

@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.5 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-11, B-01…B-03 and C-01…C-25 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.6 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-12, B-01…B-03 and C-01…C-28 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -91,7 +91,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `GET /students/me/roommate-invitation` → `{ invitation: { id, fromName, expiresAt, termName, stayStart, stayEnd, roomTypeName, roomClassName, surchargeRate, termPrice, deposit, depositWindowHours, registrationClosesAt } | null }`
 - `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`
 - `GET /students/me/round2-offer` → `{ offer: { id, expiresAt, termName, application: { id, roomTypeName, roomClassName, termPrice, depositPaid }, options: [{ id, roomTypeName, roomClassName, block, note, fill, termPrice, difference }] } | null }`
-- `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }`
+- `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
 
 ### Invoices and payment
 
@@ -118,10 +118,12 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 - `POST /swaps` `{ studentCode, reason? }` → `{ id }`
 - `GET /swap-board?termId` → `{ blocks, myPost: { block, roomTypeId, roomClassId, expiresAt } | null, items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, priceDifference, requested, crossBlock }] }`
-- `PUT /swap-board/my-post` `{ termId, block|null, roomTypeId, roomClassId }`
-- `POST /swap-board/posts/{id}/request`
+- `PUT /swap-board/my-post` `{ termId, block|null, roomTypeId, roomClassId }` → `204` (without `roomTypeId` the post comes down)
+- `POST /swap-board/posts/{id}/request` → `{ id }`
 - `GET /swap-invitations/{id}` → `{ id, status, expiresAt, crossBlock, priceDifference, give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }`
-- `POST /swap-invitations/{id}/respond` `{ accept }`
+- `POST /swap-invitations/{id}/respond` `{ accept }` → `204`
+
+Room changes, swaps and their errors: C-26.
 
 ---
 
@@ -175,7 +177,7 @@ Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: 
 - `GET /room-changes/{id}/matching-beds` → `{ items: [{ bedId, floor, roommates }] }`
 - `POST /room-changes/{id}/decision` `{ decision: 'Approved', bedId }` or `{ decision: 'Rejected', reason, message? }` → `{ note }`
 - `GET /swaps?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, agreedAt, crossBlock, status, a: { name, studentCode, room, bed, roomTypeName, roomClassName }, b: { … }, checks: [{ label, passed }], decision: { by, at, reason } | null }], total }`
-- `POST /swaps/{id}/decision` `{ decision: 'Approved'|'Rejected', reason? }`
+- `POST /swaps/{id}/decision` `{ decision: 'Approved'|'Rejected', reason? }` → `204`; a swap across Blocks goes to the Block Manager (C-26)
 
 ### Desk
 
@@ -212,13 +214,16 @@ Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: 
 - `GET /approvals/assignment?termId&block` → `{ item: { runId, block, blockLabel, termName, submittedBy, submittedAt, bedsOffered, conflictsResolved, conflictsTotal, applications, allocated, toRound2, averageScore, status: 'Waiting'|'Approved'|'Returned', comment } | null }`
 - `GET /assignment-runs/{runId}/rooms?block&page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, students, note, score, flag: { label, tone } | null }], total }`
 - `POST /assignment-runs/{runId}/approve` `{ block }` → `{ allocated, waitlisted }` · `POST /assignment-runs/{runId}/return` `{ block, comment }` → `204` (C-21)
+- `POST /late-check-ins` (multipart, Staff at the desk) `studentCode, reason, requestedFor, evidence?` → `{ id }` (A-12)
 - `GET /late-check-ins?termId&block` → `{ items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor, evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null }] }`
-- `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`
+- `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` → `204` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
 - `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
-- `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception)
-- `GET /finance/overdue?termId&block&page&pageSize` → `{ items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }` · `POST /finance/reminders` `{ invoiceIds }`
+- `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception) → `204`
+- `GET /finance/overdue?termId&block&page&pageSize` → `{ items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }` · `POST /finance/reminders` `{ invoiceIds }` → `{ sent }`
 - `GET /invoices?termId&block&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }`
+
+Late check-ins, refunds, overdue Invoices and reminders: C-28.
 - `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
 - `PUT /block-staff/{id}` `{ handles, onDuty }` · `POST /staff-account-requests` `{ name, email, role }`
 - `GET /routing-rules?block` → `{ rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }], staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }], timers: { urgent, normal, roomChange }, timerOptions: { urgent, normal, roomChange } }`
