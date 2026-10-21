@@ -56,7 +56,7 @@ When something does not compile, check the real API (do not guess); keep the des
 - Webhook keys: compare with `Tokens.constantTimeEquals`.
 
 ## Slice order
-S0 done (AUTH session, `/terms`, Google code or ID token, string IDs, password reset/change). S1 done (Admin configuration, Buildings + bulk Rooms, Inventory, users + permission matrix + Audit Log, `/notifications`; contract clarifications C-15…C-18). The matching dry run answers "nobody to place" until ASG implements `cfg.MatchingPreviewer` (S3). Next: S2 Application wizard + Deposit + VietQR/SePay → S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).
+S0 done (AUTH session, `/terms`, Google code or ID token, string IDs, password reset/change). S1 done (Admin configuration, Buildings + bulk Rooms, Inventory, users + permission matrix + Audit Log, `/notifications`; contract clarifications C-15…C-18). The matching dry run answers "nobody to place" until ASG implements `cfg.MatchingPreviewer` (S3). S2 done (Application wizard, roommate pairs, Deposit Invoice, VietQR page, SePay webhook, receipt PDF, expiry job, in-app notifications; C-19, C-20, A-08). Application and Invoice ids are their codes. Next: S3 review + assignment engine + approval + commit → S4 desk + maintenance + push → S5 → S7 (see the map).
 
 ## Tests
 - Integration tests share one Spring context (and one Testcontainers database) per configuration. A class that changes shared reference data (Terms, prices, users, Rooms) carries `@DirtiesContext(classMode = AFTER_CLASS)` so the next class starts from the seed. Never sign in as `staff.b1` (AuthFlowIT locks it).

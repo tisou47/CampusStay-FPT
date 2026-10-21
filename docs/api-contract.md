@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.2 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-07, B-01…B-03 and C-01…C-18 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.3 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-08, B-01…B-03 and C-01…C-20 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -39,6 +39,8 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `204`; the user's other sessions are signed out |
 | POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204` |
 | GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }` |
+| POST | `/webhooks/sepay` | SePay bank-feed payload (server to server, `Authorization: Apikey <key>`) | `{ "success": true }` (A-07) |
+| POST | `/dev/invoices/{id}/simulate-payment` | Dev profile only (A-08) | `204` |
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read }], unread }` |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | — | `204` |
 
@@ -78,6 +80,9 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 `roommate` is sent only for Room Types with 2 Beds. `roommate.preferences` is the free, optional **Roommate preferences** service: it is sent only when the student chose *Match me automatically* and turned the service on. The matcher weighs it on top of the Admin Matching Criteria (see the boost setting).
 
 ### Applications
+
+Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-000123`); for a student `GET /terms` marks their own Term as `current`, and the Application endpoints always use the Term open for registration (C-19). Wizard rules, errors and payment behaviour: C-20.
+
 
 - `GET /students/me/applications?page&pageSize` → `{ items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }`
 - `GET /applications/{id}` (student view) → `{ id, status, termName, roomTypeName, roomClassName, surchargeRate, twoBed, roommate: { mode, studentCode, status, preferences } | null, allocation: { room, bed, block } | null, events: [{ title, at, state: 'done'|'current'|'upcoming', note }], invoices: [{ id, type, title, amount, status, dueAt, paidAt }], canCancel, cancelPolicy, resultsPublishedAt, registrationClosesAt, decisionNote }`

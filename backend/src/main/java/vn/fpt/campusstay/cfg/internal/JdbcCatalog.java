@@ -24,10 +24,12 @@ class JdbcCatalog implements Catalog {
     @Override
     public List<RoomTypeInfo> roomTypes() {
         return jdbc.sql("""
-                SELECT id, name, beds, base_price, status FROM cfg_room_type ORDER BY sort_order, beds, name
+                SELECT id, name, beds, base_price, status, description, roommate_selection
+                FROM cfg_room_type ORDER BY sort_order, beds, name
                 """)
                 .query((rs, i) -> new RoomTypeInfo(rs.getLong("id"), rs.getString("name"), rs.getInt("beds"),
-                        rs.getLong("base_price"), "ACTIVE".equals(rs.getString("status"))))
+                        rs.getLong("base_price"), "ACTIVE".equals(rs.getString("status")), rs.getString("description"),
+                        "MUTUAL".equals(rs.getString("roommate_selection"))))
                 .list();
     }
 

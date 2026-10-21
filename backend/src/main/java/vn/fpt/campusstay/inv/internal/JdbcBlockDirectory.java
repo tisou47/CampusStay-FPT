@@ -11,10 +11,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.auth.BlockDirectory;
+import vn.fpt.campusstay.inv.Buildings;
 
-/** Block code ↔ Building id lookups for AUTH (Block scope) and other modules. */
+/** Block code ↔ Building id lookups for AUTH (Block scope), and Block facts for other modules. */
 @Component
-class JdbcBlockDirectory implements BlockDirectory {
+class JdbcBlockDirectory implements BlockDirectory, Buildings {
 
     private final JdbcClient jdbc;
 
@@ -46,5 +47,11 @@ class JdbcBlockDirectory implements BlockDirectory {
     public Set<Long> allActiveIds() {
         return new LinkedHashSet<>(jdbc.sql("SELECT id FROM inv_building WHERE status = 'ACTIVE' ORDER BY code")
                 .query(Long.class).list());
+    }
+
+    @Override
+    public boolean anyActiveBlockFor(String gender) {
+        return jdbc.sql("SELECT count(*) FROM inv_building WHERE status = 'ACTIVE' AND gender = :gender")
+                .param("gender", gender).query(Long.class).single() > 0;
     }
 }

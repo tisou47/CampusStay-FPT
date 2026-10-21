@@ -67,6 +67,17 @@ campusstay:
       hosted-domain: ${GOOGLE_HOSTED_DOMAIN:fpt.edu.vn}
       jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
       token-uri: https://oauth2.googleapis.com/token
+  payment:                           # receiving account and SePay link (ADR-08); see infra/.env.example
+    bank-name: ${PAYMENT_BANK_NAME:MB Bank}
+    bank-code: ${PAYMENT_BANK_CODE:MBBank}         # bank short name for the VietQR image service
+    account-number: ${PAYMENT_ACCOUNT_NUMBER:0000000000}
+    account-name: ${PAYMENT_ACCOUNT_NAME:CAMPUSSTAY FPT DEMO}
+    qr-image-url: https://qr.sepay.vn/img
+    transfer-prefix: CSTAY                # must equal the payment-code prefix set in SePay
+    sepay-api-key: ${SEPAY_WEBHOOK_API_KEY:}  # blank = webhook disabled
+    retry-interval: 1m
+  app:
+    expiry-interval: 5m                 # Deposit windows and roommate invitations
   mail:
     from: ${MAIL_FROM:CampusStay FPT <no-reply@campusstay.test>}
     batch-size: 20

@@ -6,11 +6,14 @@ import java.time.LocalDate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import vn.fpt.campusstay.auth.CurrentUser;
+import vn.fpt.campusstay.auth.Role;
 import vn.fpt.campusstay.cfg.TermCatalog;
 import vn.fpt.campusstay.cfg.TermSummary;
+import vn.fpt.campusstay.cfg.internal.TermFocus;
 import vn.fpt.campusstay.shared.web.ListResponse;
 
-/** {@code GET /terms} — every signed-in role. */
+/** {@code GET /terms} — every signed-in role; for a student {@code current} is their own Term (C-19). */
 @RestController
 class TermController {
 
@@ -27,13 +30,20 @@ class TermController {
     }
 
     private final TermCatalog terms;
+    private final TermFocus focus;
+    private final CurrentUser currentUser;
 
-    TermController(TermCatalog terms) {
+    TermController(TermCatalog terms, TermFocus focus, CurrentUser currentUser) {
         this.terms = terms;
+        this.focus = focus;
+        this.currentUser = currentUser;
     }
 
     @GetMapping("/terms")
     ListResponse<TermItem> list() {
-        return ListResponse.of(terms.publishedTerms().stream().map(TermItem::of).toList());
+        var user = currentUser.get();
+        var published = user.is(Role.STUDENT) ? focus.forStudent(user.userId(), terms.publishedTerms())
+                : terms.publishedTerms();
+        return ListResponse.of(published.stream().map(TermItem::of).toList());
     }
 }

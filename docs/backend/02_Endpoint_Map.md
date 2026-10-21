@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 41 coded, 40 of them verified.
+Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 58 coded, 57 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -70,23 +70,25 @@ Total: 159 endpoints (164 when the five `GET, PUT` rows count twice); 41 coded, 
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| APP | POST | `/applications` | Must | Planned |  |
-| APP | GET | `/applications/eligibility` | Must | Planned |  |
-| APP | POST | `/applications/roommate-check` | Must | Planned |  |
-| APP | GET | `/applications/{id}` | Must | Planned |  |
-| APP | POST | `/applications/{id}/cancel` | Must | Planned |  |
-| APP | POST | `/roommate-invitations/{id}/respond` | Must | Planned |  |
-| APP | GET | `/students/me/applications` | Must | Planned |  |
-| APP | GET | `/students/me/home` | Must | Planned |  |
-| APP | GET | `/students/me/profile` | Must | Planned |  |
-| APP | GET | `/students/me/roommate-invitation` | Must | Planned |  |
-| BIL | GET | `/invoices/{id}` | Must | Planned |  |
-| BIL | GET | `/invoices/{id}/payment` | Must | Planned |  |
-| BIL | POST | `/invoices/{id}/payment/refresh` | Must | Planned |  |
-| BIL | GET | `/invoices/{id}/receipt` | Must | Planned |  |
-| BIL | GET | `/students/me/invoices` | Must | Planned |  |
-| BIL | POST | `/webhooks/sepay` | Must | Planned | A-07 |
-| CFG | GET | `/catalog` | Must | Planned |  |
+| APP | POST | `/applications` | Must | Verified | C-19, C-20; TC-APP-002, 003, 005 |
+| APP | GET | `/applications/eligibility` | Must | Verified | C-20; TC-APP-001, 008 |
+| APP | POST | `/applications/roommate-check` | Must | Verified | C-08; TC-APP-004 |
+| APP | GET | `/applications/{id}` | Must | Verified | Student view; the back-office view comes with S3 (404 until then); TC-APP-002, 005, 006, 009 |
+| APP | POST | `/applications/{id}/cancel` | Must | Verified | Voids an unpaid Deposit, refunds a paid one by rule; TC-APP-007, 009 |
+| APP | POST | `/roommate-invitations/{id}/respond` | Must | Verified | TC-APP-005, 006 |
+| APP | GET | `/students/me/applications` | Must | Verified | TC-APP-002, 005 |
+| APP | GET | `/students/me/home` | Must | Verified | `allocation`, `checkedIn`, `openRequests` filled from S3/S4; TC-APP-002, 009 |
+| APP | GET | `/students/me/profile` | Must | Verified | TC-APP-009 |
+| APP | GET | `/students/me/roommate-invitation` | Must | Verified | TC-APP-005, 006 |
+| BIL | GET | `/invoices/{id}` | Must | Verified | Student (own) and Admin; Staff/Manager with S3; TC-BIL-001, 004, 006 |
+| BIL | GET | `/invoices/{id}/payment` | Must | Verified | TC-BIL-001, 003, 006 |
+| BIL | POST | `/invoices/{id}/payment/refresh` | Must | Verified | TC-BIL-001 |
+| BIL | GET | `/invoices/{id}/receipt` | Must | Verified | One-page PDF; TC-BIL-003, 004 |
+| BIL | GET | `/students/me/invoices` | Must | Verified | TC-BIL-001, 003, 006 |
+| BIL | POST | `/webhooks/sepay` | Must | Verified | A-07; TC-BIL-002, 003, 004, 005 |
+| CFG | GET | `/catalog` | Must | Verified | TC-APP-001 |
+
+Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay reported the exact transfer.
 
 ## S3 — Review, assignment engine, approval, commit, Allocation, Balance Invoice
 

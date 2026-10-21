@@ -32,8 +32,8 @@ class JdbcTermCatalog implements TermCatalog {
     @Override
     public List<TermSummary> publishedTerms() {
         List<Row> rows = jdbc.sql("""
-                SELECT id, name, stay_start, stay_end, registration_opens_at, registration_closes_at,
-                       results_published_at, balance_due_at, check_in_start, check_in_end, deposit_hours
+                SELECT id, code, name, stay_start, stay_end, registration_opens_at, registration_closes_at,
+                       results_published_at, balance_due_at, check_in_start, check_in_end, deposit_hours, roommate_hours
                 FROM cfg_term WHERE status = 'PUBLISHED' ORDER BY stay_start DESC
                 """).query(JdbcTermCatalog::map).list();
         Instant now = Instant.now(clock);
@@ -44,7 +44,7 @@ class JdbcTermCatalog implements TermCatalog {
             boolean open = !now.isBefore(r.registrationOpensAt) && now.isBefore(r.registrationClosesAt);
             result.add(new TermSummary(r.id, r.name, currentId != null && currentId == r.id, open, r.stayStart,
                     r.stayEnd, r.registrationOpensAt, r.registrationClosesAt, r.resultsPublishedAt, r.balanceDueAt,
-                    r.checkInStart, r.checkInEnd, r.depositHours));
+                    r.checkInStart, r.checkInEnd, r.depositHours, r.code, r.roommateHours));
         }
         return result;
     }
@@ -82,11 +82,11 @@ class JdbcTermCatalog implements TermCatalog {
                 rs.getTimestamp("registration_closes_at").toInstant(),
                 rs.getTimestamp("results_published_at").toInstant(), rs.getTimestamp("balance_due_at").toInstant(),
                 rs.getObject("check_in_start", LocalDate.class), rs.getObject("check_in_end", LocalDate.class),
-                rs.getInt("deposit_hours"));
+                rs.getInt("deposit_hours"), rs.getString("code"), rs.getInt("roommate_hours"));
     }
 
     private record Row(long id, String name, LocalDate stayStart, LocalDate stayEnd, Instant registrationOpensAt,
             Instant registrationClosesAt, Instant resultsPublishedAt, Instant balanceDueAt, LocalDate checkInStart,
-            LocalDate checkInEnd, int depositHours) {
+            LocalDate checkInEnd, int depositHours, String code, int roommateHours) {
     }
 }

@@ -41,6 +41,14 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
    `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'se190001@student.campusstay.test';`
 Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for accounts that already exist.
 
+### Payments (VietQR and SePay)
+The payment page shows a VietQR image for the receiving account set in `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (bank short name of SePay's QR service, e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` (see `infra/.env.example`). Every Invoice has a transfer content `CSTAY` + its id; set the same prefix as the payment-code prefix in SePay.
+- **Real bank feed:** in SePay add a webhook to `https://<public host>/api/webhooks/sepay` with API-key authentication and set the same key in `SEPAY_WEBHOOK_API_KEY`. Blank key = webhook off (`503`).
+- **Without a bank (dev profile only):** pay an Invoice as if SePay had reported it, signed in as its student or as the Admin:
+  ```bash
+  curl -X POST http://localhost:8080/api/dev/invoices/INV-SP27-000001/simulate-payment -H "Authorization: Bearer <token>"
+  ```
+
 ## Tests
 ```bash
 mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
@@ -64,8 +72,10 @@ src/main/java/vn/fpt/campusstay/
   auth/     sign-in, sessions, users, roles, Block scope, Audit Log screen   (S0, S1)
   cfg/      Terms, Room Types/Classes, fees, eligibility, matching, parameters (S0, S1)
   inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
-  ntf/      in-app notifications, email outbox                              (S0, S1)
-  app/ asg/ bil/ req/ mnt/ rpt/   (asg: Bed occupancy port only; the rest slice by slice)
-src/main/resources/db/migration/   Flyway schema V1–V11
+  ntf/      in-app notifications, email outbox                              (S0, S1, S2)
+  app/      Application wizard, roommate pairs, student Home and profile    (S2)
+  bil/      Invoices, VietQR payment page, SePay webhook, receipts          (S2)
+  asg/ req/ mnt/ rpt/   (asg: Bed occupancy port only; the rest slice by slice)
+src/main/resources/db/migration/   Flyway schema V1–V12
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

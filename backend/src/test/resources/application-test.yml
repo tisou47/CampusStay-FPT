@@ -9,3 +9,8 @@ campusstay:
     google:             # pinned off, so a developer's GOOGLE_* variables cannot change test results
       client-id: ""
       client-secret: ""
+  payment:
+    sepay-api-key: test-sepay-key
+    retry-interval: 1h
+  app:
+    expiry-interval: 1h

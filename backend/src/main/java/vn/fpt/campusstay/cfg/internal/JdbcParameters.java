@@ -31,6 +31,13 @@ class JdbcParameters implements Parameters, AuditLogSettings {
     }
 
     @Override
+    public String textValue(String key) {
+        return jdbc.sql("SELECT value FROM cfg_parameter WHERE key = :key").param("key", key)
+                .query(String.class).optional()
+                .orElseThrow(() -> new IllegalStateException("Missing system parameter " + key));
+    }
+
+    @Override
     public int retentionMonths() {
         return intValue("audit.retention_months");
     }
