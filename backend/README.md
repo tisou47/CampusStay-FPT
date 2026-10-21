@@ -53,6 +53,12 @@ The payment page shows a VietQR image for the receiving account set in `PAYMENT_
 ### Assignment (S3)
 Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally with the seed: apply as a few students of one gender, pay with the dev simulation, approve them as `staff.a1` (Block A, male students) and run.
 
+### Desk, maintenance and push (S4)
+- **Check-in** needs the Balance paid (it includes the Utility Deposit) and today inside the Term's check-in window. The desk looks students up by code, name or the pass `CSTAY-PASS:<allocationId>` shown in the mobile app.
+- **Check-out** records the final meter reading; the Utility Deposit is settled against the Room's consumption since its last reading, and a refund waits for the Block Manager.
+- **Photos and receipts** open through short-lived signed links (`/api/files/{id}?exp&sig`). Set `FILES_LINK_SECRET` in production so links survive a restart.
+- **Push:** set `FIREBASE_CREDENTIALS_FILE` to a Firebase service account key (JSON). Without it only in-app notifications are written.
+
 ## Tests
 ```bash
 mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
@@ -72,15 +78,17 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 ## Layout
 ```
 src/main/java/vn/fpt/campusstay/
-  shared/   error model, paging, audit log, clock, tokens, file store (open module)
+  shared/   error model, paging, audit log, clock, tokens, file store and signed links (open module)
   auth/     sign-in, sessions, users, roles, Block scope, Audit Log screen   (S0, S1)
   cfg/      Terms, Room Types/Classes, fees, eligibility, matching, parameters (S0, S1)
   inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1)
-  ntf/      in-app notifications, email outbox                              (S0–S3)
+  ntf/      in-app notifications, push (FCM), devices, email outbox          (S0–S4)
   app/      Application wizard, roommate pairs, Home, profile, review       (S2, S3)
   bil/      Invoices, VietQR, SePay webhook, receipts, Staff payments       (S2, S3)
-  asg/      assignment engine, runs, approval, Allocations, My Room         (S3)
-  req/ mnt/ rpt/   (slice by slice)
-src/main/resources/db/migration/   Flyway schema V1–V13
+  asg/      assignment engine, runs, approval, Allocations, My Room, desk  (S3, S4)
+  mnt/      Maintenance Requests, photos, updates                          (S4)
+  req/      the student's requests screen (room changes from S5)          (S4)
+  rpt/      (S7)
+src/main/resources/db/migration/   Flyway schema V1–V15
 src/main/resources/db/seed/        demo data (dev/test only)
 ```

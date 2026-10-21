@@ -261,7 +261,7 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.roommateCapacity").value(1))
                 .andExpect(jsonPath("$.checkIn.start").value("2031-01-02"))
                 .andExpect(jsonPath("$.checkIn.deskHours").value("07:30–21:00"))
-                .andExpect(jsonPath("$.balance.amount").value(8_280_000))
+                .andExpect(jsonPath("$.balance.amount").value(8_880_000))
                 .andExpect(jsonPath("$.balance.status").value("Unpaid"))
                 .andExpect(jsonPath("$.balance.invoiceId", startsWith("INV-" + ApplyFlow.TERM_CODE + "-")))
                 .andExpect(jsonPath("$.application.id").value(a1))

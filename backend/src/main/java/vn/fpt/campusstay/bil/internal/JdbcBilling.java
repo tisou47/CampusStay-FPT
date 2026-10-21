@@ -5,7 +5,10 @@ import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.text.NumberFormat;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +27,9 @@ import vn.fpt.campusstay.bil.Billing;
 import vn.fpt.campusstay.cfg.FeePolicy;
 import vn.fpt.campusstay.cfg.TermCatalog;
 import vn.fpt.campusstay.cfg.TermSummary;
+import vn.fpt.campusstay.cfg.UtilityPolicy;
 import vn.fpt.campusstay.shared.audit.AuditLog;
+import vn.fpt.campusstay.shared.time.TimeConfig;
 
 /**
  * Implements {@link Billing}. Invoice code and transfer content come from the
@@ -42,10 +47,13 @@ class JdbcBilling implements Billing {
     private final PaymentProperties payment;
     private final JsonMapper json;
     private final AuditLog audit;
+    private final CheckOutSettlements settlements;
+    private final UtilityPolicy utility;
     private final Clock clock;
 
     JdbcBilling(JdbcClient jdbc, InvoiceStore invoices, TermCatalog terms, UserDirectory users, FeePolicy fees,
-            PaymentProperties payment, JsonMapper json, AuditLog audit, Clock clock) {
+            PaymentProperties payment, JsonMapper json, AuditLog audit, CheckOutSettlements settlements,
+            UtilityPolicy utility, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.terms = terms;
@@ -54,6 +62,8 @@ class JdbcBilling implements Billing {
         this.payment = payment;
         this.json = json;
         this.audit = audit;
+        this.settlements = settlements;
+        this.utility = utility;
         this.clock = clock;
     }
 
@@ -66,28 +76,32 @@ class JdbcBilling implements Billing {
                 + vnd(r.termPrice());
         return insert(new Draft(term, r.studentId(), r.applicationId(), null, null, "DEPOSIT", "Deposit · " + term.name(),
                 r.amount(), List.of(Map.of("label", line, "amount", r.amount())), r.dueAt(),
-                "Application " + r.applicationCode()));
+                "Application " + r.applicationCode(), 0));
     }
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<IssuedInvoice> issueBalance(BalanceRequest r) {
-        long amount = r.termPrice() - r.depositAmount();
+        long utility = fees.utilityDeposit();
+        long amount = r.termPrice() - r.depositAmount() + utility;
         if (amount <= 0) {
             return Optional.empty();
         }
         TermSummary term = term(r.termId());
-        List<Map<String, Object>> lines = List.of(
+        List<Map<String, Object>> lines = new ArrayList<>(List.of(
                 Map.of("label", "Term price · Room " + r.room(), "amount", r.termPrice()),
-                Map.of("label", "Deposit already invoiced", "amount", -r.depositAmount()));
+                Map.of("label", "Deposit already invoiced", "amount", -r.depositAmount())));
+        if (utility > 0) {
+            lines.add(Map.of("label", "Utility Deposit (held until check-out)", "amount", utility));
+        }
         return Optional.of(insert(new Draft(term, r.studentId(), r.applicationId(), r.allocationId(), r.buildingId(),
                 "BALANCE", "Balance · " + term.name(), amount, lines, r.dueAt(),
-                "Application " + r.applicationCode() + " · Room " + r.room())));
+                "Application " + r.applicationCode() + " · Room " + r.room(), utility)));
     }
 
     private record Draft(TermSummary term, long studentId, Long applicationId, Long allocationId, Long buildingId,
             String type, String title, long amount, List<? extends Map<String, ?>> lines, Instant dueAt,
-            String reference) {
+            String reference, long utilityDeposit) {
     }
 
     /** One statement: the code and transfer content come from the new row id. */
@@ -97,11 +111,11 @@ class JdbcBilling implements Billing {
         return jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('bil_invoice', 'id')) AS id)
                 INSERT INTO bil_invoice (id, code, term_id, student_id, application_id, allocation_id, building_id, type,
-                                         title, amount, status, lines, transfer_content, issued_at, due_at, reference,
-                                         student_name, student_code, gender)
+                                         title, amount, utility_deposit, status, lines, transfer_content, issued_at, due_at,
+                                         reference, student_name, student_code, gender)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'INV-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'),
-                       :term, :student, :application, :allocation, :building, :type, :title, :amount, 'UNPAID',
+                       :term, :student, :application, :allocation, :building, :type, :title, :amount, :utility, 'UNPAID',
                        CAST(:lines AS jsonb), :prefix || lpad(id::text, greatest(6, length(id::text)), '0'), :now, :due,
                        :reference, :studentName, :studentCode, :gender
                 FROM next
@@ -116,6 +130,7 @@ class JdbcBilling implements Billing {
                 .param("type", d.type())
                 .param("title", d.title())
                 .param("amount", d.amount())
+                .param("utility", d.utilityDeposit())
                 .param("lines", json.writeValueAsString(d.lines()))
                 .param("prefix", payment.transferPrefix())
                 .param("now", Timestamp.from(Instant.now(clock)))
@@ -223,6 +238,84 @@ class JdbcBilling implements Billing {
         audit.record("REFUND_REQUESTED", AuditLog.Tone.INFO, "Invoice", invoice.id(), invoice.code(),
                 Map.of("amount", amount, "rule", rule.get().description(), "status", automatic ? "Approved" : "Pending"));
         return Optional.of(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, CheckInDue> checkInDues(Collection<Long> allocationIds) {
+        return settlements.dues(allocationIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Settlement estimateCheckOut(SettlementRequest request) {
+        return settlements.compute(request).settlement();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public SettledCheckOut settleCheckOut(SettlementRequest r, long recordedBy) {
+        if (r.electricity() == null || r.water() == null) {
+            throw new IllegalArgumentException("A check-out settlement needs the final meter reading");
+        }
+        CheckOutSettlements.Computed computed = settlements.compute(r);
+        Settlement s = computed.settlement();
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason, allocation_id, recorded_by)
+                VALUES (:room, :day, :electricity, :water, 'CHECK_OUT', :allocation, :by)
+                """)
+                .param("room", r.roomId()).param("day", LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE))
+                .param("electricity", r.electricity()).param("water", r.water()).param("allocation", r.allocationId())
+                .param("by", recordedBy).update();
+        if (!computed.unpaidUtilityIds().isEmpty()) {
+            jdbc.sql("""
+                    UPDATE bil_invoice SET status = 'VOID', voided_reason = 'Settled from the Utility Deposit at check-out',
+                           updated_at = :now, version = version + 1
+                    WHERE id IN (:ids) AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')
+                    """).param("now", Timestamp.from(now)).param("ids", computed.unpaidUtilityIds()).update();
+        }
+        TermSummary term = term(r.termId());
+        Optional<Long> refundId = Optional.empty();
+        Optional<IssuedInvoice> invoice = Optional.empty();
+        if (s.refund() > 0) {
+            refundId = Optional.of(jdbc.sql("""
+                    INSERT INTO bil_refund (term_id, student_id, building_id, source_type, source_id, reason, paid_amount,
+                                            amount, status)
+                    VALUES (:term, :student, :building, 'CHECK_OUT', :allocation, :reason, :held, :amount, 'PENDING')
+                    RETURNING id
+                    """)
+                    .param("term", r.termId()).param("student", r.studentId()).param("building", r.buildingId())
+                    .param("allocation", r.allocationId()).param("reason", "Utility Deposit settlement · Room " + r.room())
+                    .param("held", s.held()).param("amount", s.refund())
+                    .query(Long.class).single());
+            audit.record("REFUND_REQUESTED", AuditLog.Tone.INFO, "Allocation", r.allocationId(), "Room " + r.room(),
+                    Map.of("amount", s.refund(), "source", "Check-out", "status", "Pending"));
+        } else if (s.refund() < 0) {
+            List<Map<String, Object>> lines = new ArrayList<>();
+            if (s.share() > 0) {
+                lines.add(Map.of("label", "Final utility share " + s.periodLabel(), "amount", s.share()));
+            }
+            if (s.unpaid() > 0) {
+                lines.add(Map.of("label", "Unpaid utility Invoices", "amount", s.unpaid()));
+            }
+            if (s.damage() > 0) {
+                lines.add(Map.of("label", "Damage charge", "amount", s.damage()));
+            }
+            if (s.held() > 0) {
+                lines.add(Map.of("label", "Utility Deposit held", "amount", -s.held()));
+            }
+            invoice = Optional.of(insert(new Draft(term, r.studentId(), null, r.allocationId(), r.buildingId(), "DAMAGE",
+                    "Check-out balance · " + term.name(), -s.refund(), lines,
+                    now.plus(Duration.ofDays(utility.prices().paymentDueDays())), "Check-out · Room " + r.room(), 0)));
+        }
+        return new SettledCheckOut(s, refundId, invoice);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> checkOutRefundStatus(long allocationId) {
+        return settlements.refundStatus(allocationId);
     }
 
     static InvoiceLine line(InvoiceStore.Invoice i) {

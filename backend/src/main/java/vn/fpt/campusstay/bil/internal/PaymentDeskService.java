@@ -30,6 +30,7 @@ import vn.fpt.campusstay.cfg.TermSummary;
 import vn.fpt.campusstay.shared.audit.AuditLog;
 import vn.fpt.campusstay.shared.error.ApiException;
 import vn.fpt.campusstay.shared.error.FieldErrors;
+import vn.fpt.campusstay.shared.files.FileLinks;
 import vn.fpt.campusstay.shared.files.FileStore;
 import vn.fpt.campusstay.shared.time.TimeConfig;
 import vn.fpt.campusstay.shared.web.PageQuery;
@@ -78,13 +79,14 @@ public class PaymentDeskService {
     private final TermCatalog terms;
     private final FeePolicy fees;
     private final FileStore files;
+    private final FileLinks links;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public PaymentDeskService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
-            TermCatalog terms, FeePolicy fees, FileStore files, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            TermCatalog terms, FeePolicy fees, FileStore files, FileLinks links, ApplicationEventPublisher events,
+            AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
@@ -92,6 +94,7 @@ public class PaymentDeskService {
         this.terms = terms;
         this.fees = fees;
         this.files = files;
+        this.links = links;
         this.events = events;
         this.audit = audit;
         this.clock = clock;
@@ -167,7 +170,7 @@ public class PaymentDeskService {
         List<PaymentItem> items = new ArrayList<>();
         for (Row r : rows) {
             Receipt receipt = r.receiptFileId() == null ? null : files.info(r.receiptFileId())
-                    .map(file -> new Receipt(file.name(), file.size(), "/payments/" + r.code() + "/receipt-file"))
+                    .map(file -> new Receipt(file.name(), file.size(), links.link(file.id())))
                     .orElse(null);
             items.add(new PaymentItem(r.code(), r.studentName(), r.studentCode(), InvoiceLabels.type(r.type()),
                     InvoiceLabels.typeLabel(r.type()), r.amount(), InvoiceLabels.method(r.method()), r.paidAt(),

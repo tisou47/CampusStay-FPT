@@ -31,7 +31,18 @@ public interface UserDirectory {
             String emergencyPhone, Instant syncedAt) {
     }
 
+    /**
+     * A Staff member or Manager of a Block.
+     *
+     * @param handles codes of the {@code STAFF_HANDLE} option list, e.g. {@code MAINTENANCE}, {@code DESK}
+     */
+    record StaffMember(long userId, String name, String role, List<String> handles, boolean onDuty) {
+    }
+
     Map<Long, String> displayNames(Collection<Long> userIds);
+
+    /** Active Staff and Managers assigned to any of the Blocks, by name. */
+    List<StaffMember> staffOf(Collection<Long> buildingIds);
 
     Map<Long, Student> students(Collection<Long> userIds);
 

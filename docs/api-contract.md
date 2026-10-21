@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.4 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-09, B-01…B-03 and C-01…C-22 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.5 (21/10/2026): the mentor-confirmed contract plus the changes A-01…A-11, B-01…B-03 and C-01…C-25 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -37,10 +37,11 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 | POST | `/auth/password/forgot` | `{ email }` | `204` always (does not reveal whether the email exists) |
 | POST | `/auth/password/reset` | `{ token, newPassword }` — used by both the reset and the set-password (invitation) page | `204`; every session of the user is signed out |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `204`; the user's other sessions are signed out |
-| POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204` |
+| POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204`; notifications are then also pushed (C-25) |
 | GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }` |
 | POST | `/webhooks/sepay` | SePay bank-feed payload (server to server, `Authorization: Apikey <key>`) | `{ "success": true }` (A-07) |
 | POST | `/dev/invoices/{id}/simulate-payment` | Dev profile only (A-08) | `204` |
+| GET | `/files/{id}?exp&sig` | A signed link handed out by another endpoint (`receipt.url`, `photos[].url`); no token | The file; `404` once expired (A-10) |
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read }], unread }` |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | — | `204` |
 
@@ -102,14 +103,14 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 ### My Room and requests
 
-- `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl }`
+- `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status, pass } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl }`
 - `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges }, room }`
   - maintenance item: `{ id, title, location, category, reportedAt, status, assignee, visitWindow }`
   - room-change item: `{ id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }`
 - `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
 - `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
 - `GET /maintenance-requests/{id}` (student view) → `{ id, title, status, room, category, location, reportedAt, assignee, visitWindow, description, events: [{ who, at, message }] }` (public updates only)
-- `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }`
+- `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
 - `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null, roomTypes, roomClasses, prices, remainingDays, termDays, reasons, hasOpenRequest }`
 - `POST /room-changes` `{ termId, kind: 'same'|'class'|'type', roomTypeId, roomClassId, reason, details? }` → `{ id }`
 
@@ -163,8 +164,10 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 
 - `GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize` → `{ items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total, summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }`. `status=open` means Submitted, Assigned or In progress; `assigneeId=none` means unassigned.
 - `GET /maintenance-requests/{id}` (back-office view) → `{ id, title, status, room, bed, category, location, reportedAt, reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }], assignee, suggestedAssigneeId, visitWindow, events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm } }`
-- `PATCH /maintenance-requests/{id}` `{ priority?, assigneeId?, visitWindow?, status? }`
-- `POST /maintenance-requests/{id}/updates` `{ message, internal }`
+- `PATCH /maintenance-requests/{id}` `{ priority?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change)
+- `POST /maintenance-requests/{id}/updates` `{ message, internal }` → `204`
+
+Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: C-24. `photos[].url` are signed links (A-10).
 
 ### Room changes and swaps
 
@@ -182,7 +185,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 - `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
 - `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }`
 - `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
-- The URL carries the Allocation id, never the student code (personal data, B-01).
+- The URL carries the Allocation id, never the student code (personal data, B-01). Check-in rules, the pass and the Utility Deposit settlement: C-23 (`allocation.pass`, A-11).
 
 ### Meter readings
 

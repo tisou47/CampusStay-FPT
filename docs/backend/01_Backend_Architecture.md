@@ -95,16 +95,16 @@ Table prefix = owning module. Only the owning module reads or writes its tables 
 | Module | Responsibility | Owns tables | Public API (top-level package) |
 |---|---|---|---|
 | AUTH | Sign-in (password, Google), sessions, users and roles, Block scope, student directory (mock SIS), staff profiles, invitations, password reset | `auth_*` | `CurrentUser`, `AuthenticatedUser`, `Role`, `Permission` (role-by-action table, also the Admin permission matrix), `BlockScope`, `UserDirectory` (names, student profiles with their directory sync time, priority-group counts), ports `BlockDirectory` (INV) and `AuditLogSettings` (CFG), events `PasswordResetRequested` |
-| CFG | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary`, `Catalog` (Room Types, Room Classes), `FeePolicy` (Term price, Deposit, refund rules), `EligibilityRules` (rules, priority-group order), `MatchingCriteria` (snapshots for the engine), `BlockSettings` (desk hours, house rules), `Parameters`, `Lookups`, ports `RoomUsage` (INV), `StudentTerms` (APP) and `MatchingPreviewer` (ASG), implements AUTH's `AuditLogSettings`, events `RoomTypeBedsChanged` |
+| CFG | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary`, `Catalog` (Room Types, Room Classes), `FeePolicy` (Term price, Deposit, refund rules), `EligibilityRules` (rules, priority-group order), `MatchingCriteria` (snapshots for the engine), `BlockSettings` (desk hours, house rules), `UtilityPolicy` (utility prices, rounding), `Parameters`, `Lookups`, ports `RoomUsage` (INV), `StudentTerms` (APP) and `MatchingPreviewer` (ASG), implements AUTH's `AuditLogSettings`, events `RoomTypeBedsChanged` |
 | INV | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation | `inv_*` | Implements `BlockDirectory` and CFG's `RoomUsage`; port `BedOccupancy` (ASG); `Buildings` (active Block for a gender, genders of Blocks); `Inventory` (assignable Beds, Beds by id, Beds of a Room) |
 | APP | Application wizard, eligibility check, roommate invitations and code check, Application review, Round-2 offers | `app_*` | `Applications` (approved candidates and the Allocated / Waitlisted transitions used by ASG), port `StudentAllocations` (ASG), implements CFG's `StudentTerms`, events `ApplicationCreated`, `ApplicationSubmitted`, `RoommateInvited`, `ApplicationRejected` |
-| ASG | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and CFG's `MatchingPreviewer`; events `AllocationCreated` (S3), `CheckedIn`, `CheckedOut` (S4) |
-| BIL | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check), events `PaymentConfirmed`, `InvoiceOverdue` |
+| ASG | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and CFG's `MatchingPreviewer`; `Residences` (a student's current Bed, residents of a Room); events `AllocationCreated` |
+| BIL | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance with its Utility Deposit, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check, what blocks check-in, the Utility Deposit settlement at check-out), events `PaymentConfirmed`, `InvoiceOverdue` |
 | REQ | Room-Change Requests, swaps and swap board, routing rules, SLA timers, escalations | `req_*` | `Routing` (assignee for a request type), events `RoomChangeDecided`, `SwapApproved` |
-| MNT | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | events `MaintenanceUpdated` |
-| NTF | In-app notifications, FCM devices and push, templates, email outbox, campaigns | `ntf_*` | Listens to events; `Notifications` for direct sends |
+| MNT | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | `MaintenanceRequests` (a student's requests for REQ), events `MaintenanceUpdated` |
+| NTF | In-app notifications, FCM devices and push, templates, email outbox, campaigns | `ntf_*` | Listens to events; every in-app notification whose template has push on is pushed to the user's Android devices after commit (FCM HTTP v1) |
 | RPT | Dashboards, reports, exports | none (reads `rpt_v_*` views owned by the other modules) | — |
-| shared | Error model, `ListResponse`/`PageQuery`, `AuditLog`, `TimeConfig`, `Tokens`, `RequestInfo`, `FileStore` (uploads: type sniffed from the bytes, stored on disk, metadata in `shared_file`) | `shared_file`, `shared_audit_log` | Open module |
+| shared | Error model, `ListResponse`/`PageQuery`, `AuditLog`, `TimeConfig`, `Tokens`, `RequestInfo`, `FileStore` (uploads: type sniffed from the bytes, stored on disk, metadata in `shared_file`), `FileLinks` (short-lived signed links, `GET /files/{id}`) | `shared_file`, `shared_audit_log` | Open module |
 
 ## 5. Package structure and dependency rules
 
@@ -203,7 +203,7 @@ The Admin › Permissions matrix (`GET /admin/permissions`) is generated from th
 | A07 Identification failures | Lockout, generic errors, session revocation, Google `hd` check. |
 | A08 Integrity | SePay webhook authenticated (API key), deduplicated by SePay transaction id, amounts re-checked against the Invoice. |
 | A09 Logging | Audit Log for business actions, sign-ins, failures and exports; `errorId` in error responses. |
-| Uploads | Size and count limits; content type checked by magic bytes, not the file name; files stored under random keys outside the web root and served only through authorized endpoints. |
+| Uploads | Size and count limits; content type checked by magic bytes, not the file name; files stored under random keys outside the web root and served only through authorized endpoints or through links signed after the access check (HMAC-SHA256 of id and expiry, 30 minutes, `nosniff`). |
 | CSRF | Not applicable: no cookies, bearer token in a header. |
 
 ### 8.4 Personal data (Vietnam)
@@ -271,7 +271,7 @@ sequenceDiagram
 
 ## 11. Notifications and scheduled jobs
 
-Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android devices (invalid tokens are disabled), email through `ntf_email_outbox`. Templates (EN/VI titles) are Admin data.
+Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android devices (invalid tokens are disabled), email through `ntf_email_outbox`. Templates (EN/VI titles) are Admin data. Push runs after the business transaction commits, on a virtual thread, so a slow FCM never delays the response; without `FIREBASE_CREDENTIALS_FILE` push is skipped. The service-account JWT is signed with the JDK (no Firebase SDK).
 
 | Job | Schedule | Module |
 |---|---|---|
@@ -307,7 +307,7 @@ Implementation (S3): `asg.internal.AssignmentEngine` is pure (no database) and u
 
 Conventions: module prefix; `BIGINT` identity keys; money `BIGINT` VND; `TIMESTAMPTZ` in UTC; statuses as `UPPER_SNAKE` text with `CHECK`; `version` for optimistic locking; JSONB only for snapshots and display payloads (contact snapshot, Invoice lines, matching snapshot), never for data that is filtered or joined.
 
-Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables. Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Dev/demo data: `db/seed/R__dev_seed.sql` (profiles `dev` and `test` only; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
+Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables, `V14` the check-out settlement snapshot, `V15` the Block and Room code on Maintenance Requests. Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Dev/demo data: `db/seed/R__dev_seed.sql` (profiles `dev` and `test` only; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
 
 ### 13.1 Core entities
 
@@ -361,7 +361,7 @@ Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, 
 | `test` | `mvn verify` | Testcontainers Postgres 17 | log sender | yes |
 | `prod` | demo server | env `DB_URL` … | Gmail SMTP (App Password, 500/day) | no (one-off flag) |
 
-Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`. The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
+Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`, `FILES_LINK_SECRET`. The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
 
 Deployment: Docker image (multi-stage, non-root), `infra/docker-compose.yml`; public HTTPS for the webhook via Cloudflare Tunnel until a free VM is chosen (OI-07). Health: `/api/actuator/health` (liveness/readiness probes).
 

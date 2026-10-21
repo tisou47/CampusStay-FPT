@@ -1,0 +1,294 @@
+package vn.fpt.campusstay;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static vn.fpt.campusstay.TestAuth.ADMIN;
+import static vn.fpt.campusstay.TestAuth.MANAGER_A;
+import static vn.fpt.campusstay.TestAuth.MANAGER_B;
+import static vn.fpt.campusstay.TestAuth.STAFF_A;
+import static vn.fpt.campusstay.TestAuth.bearer;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+
+import vn.fpt.campusstay.shared.time.TimeConfig;
+
+/** The Check-in and Check-out desk (TC-ASG-020…023). Each test allocates its own students. */
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(PostgresTestcontainer.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class DeskIT {
+
+    /** Term price 10,350,000 − Deposit 2,070,000 + Utility Deposit 600,000 (2 months × 300,000). */
+    private static final long BALANCE = 8_880_000;
+
+    @Autowired
+    MockMvc mvc;
+
+    @Autowired
+    JdbcClient jdbc;
+
+    ApplyFlow flow;
+    long termId;
+
+    private record Placed(String auth, String name, String studentCode, String allocationId, String room,
+            String balanceInvoiceId) {
+    }
+
+    @BeforeEach
+    void openTerm() {
+        flow = new ApplyFlow(mvc, jdbc);
+        termId = flow.openTerm();
+        // The desk opens today for the test Term.
+        jdbc.sql("""
+                UPDATE cfg_term SET check_in_start = CURRENT_DATE - 1, check_in_end = CURRENT_DATE + 5
+                WHERE code = :code
+                """).param("code", ApplyFlow.TERM_CODE).update();
+    }
+
+    private static String student(int n) {
+        return "se19%04d@student.campusstay.test".formatted(n);
+    }
+
+    private ResultActions postJson(String path, String auth, String body) throws Exception {
+        return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    private ResultActions getAs(String path, String auth) throws Exception {
+        return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth));
+    }
+
+    /** Applies, pays the Deposits, approves, runs and commits Block A: the students hold Beds, Balance unpaid. */
+    private List<Placed> allocate(int... students) throws Exception {
+        String staff = bearer(mvc, STAFF_A);
+        List<String> auths = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
+        for (int n : students) {
+            String auth = bearer(mvc, student(n));
+            ApplyFlow.Applied app = flow.apply(auth, "2-bed", "Standard", "{\"mode\":\"auto\"}");
+            flow.pay(auth, app.depositInvoiceId());
+            auths.add(auth);
+            ids.add("\"" + app.id() + "\"");
+        }
+        postJson("/applications/bulk-review", staff, "{\"ids\":[" + String.join(",", ids) + "],\"decision\":\"Approved\"}")
+                .andExpect(status().isOk());
+        String run = JsonPath.read(postJson("/assignment-runs", staff, "{\"termId\":\"%d\"}".formatted(termId))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.id");
+        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isNoContent());
+        postJson("/assignment-runs/" + run + "/approve", bearer(mvc, MANAGER_A), "{\"block\":\"A\"}")
+                .andExpect(status().isOk());
+        List<Placed> placed = new ArrayList<>();
+        for (int i = 0; i < students.length; i++) {
+            String room = getAs("/students/me/allocation", auths.get(i)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            String code = "SE19%04d".formatted(students[i]);
+            String name = jdbc.sql("SELECT display_name FROM auth_user WHERE email = :e").param("e", student(students[i]))
+                    .query(String.class).single();
+            placed.add(new Placed(auths.get(i), name, code,
+                    ((String) JsonPath.read(room, "$.allocation.pass")).substring("CSTAY-PASS:".length()),
+                    JsonPath.read(room, "$.allocation.room"), JsonPath.read(room, "$.balance.invoiceId")));
+        }
+        return placed;
+    }
+
+    /**
+     * TC-ASG-020: the Balance includes the Utility Deposit; until it is paid the desk blocks check-in; then
+     * the student checks in with the hand-over items, once only.
+     */
+    @Test
+    void checkInNeedsBalanceAndUtilityDeposit() throws Exception {
+        Placed p = allocate(11).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        getAs("/invoices/" + p.balanceInvoiceId(), p.auth())
+                .andExpect(jsonPath("$.amount").value(BALANCE))
+                .andExpect(jsonPath("$.utilityDeposit").value(600_000))
+                .andExpect(jsonPath("$.lines[2].label").value("Utility Deposit (held until check-out)"));
+
+        getAs("/check-in/lookup?termId=" + termId + "&q=" + p.studentCode(), staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.student.name").value(p.name()))
+                .andExpect(jsonPath("$.student.room").value(p.room()))
+                .andExpect(jsonPath("$.student.block").value("Block A"))
+                .andExpect(jsonPath("$.student.status").value("blocked"))
+                .andExpect(jsonPath("$.student.owes.balance").value(BALANCE - 600_000))
+                .andExpect(jsonPath("$.student.owes.utilityDeposit").value(600_000))
+                .andExpect(jsonPath("$.student.checks[1].label").value("Balance paid"))
+                .andExpect(jsonPath("$.student.checks[1].passed").value(false))
+                .andExpect(jsonPath("$.student.checks[3].passed").value(true))
+                .andExpect(jsonPath("$.student.handOverItems", hasItem("Room key")));
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_BLOCKED"));
+
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        mvc.perform(get("/check-in/lookup").param("termId", String.valueOf(termId))
+                .param("q", p.name().toLowerCase(Locale.ROOT)).header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(jsonPath("$.student.studentCode").value(p.studentCode()))
+                .andExpect(jsonPath("$.student.status").value("ready"))
+                .andExpect(jsonPath("$.student.owes").value((Object) null));
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Bed sheet\"]}".formatted(p.studentCode()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items").isString());
+        postJson("/check-in", staff,
+                "{\"studentCode\":\"%s\",\"items\":[\"room key\",\"Access card\"],\"note\":\"Small scratch on the desk\"}"
+                        .formatted(p.studentCode()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checkedInAt").isString());
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[]}".formatted(p.studentCode()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_CHECKED_IN"));
+
+        getAs("/check-in/lookup?termId=" + termId + "&q=CSTAY-PASS:" + p.allocationId(), staff)
+                .andExpect(jsonPath("$.student.status").value("checked-in"))
+                .andExpect(jsonPath("$.student.checkedInAt").isString())
+                .andExpect(jsonPath("$.student.handOverItems[0]").value("Room key"))
+                .andExpect(jsonPath("$.student.handOverItems[1]").value("Access card"));
+        getAs("/check-in/today?termId=" + termId + "&block=A", staff)
+                .andExpect(jsonPath("$.block").value("A"))
+                .andExpect(jsonPath("$.checkedIn").value(1))
+                .andExpect(jsonPath("$.recent[0].name").value(p.name()))
+                .andExpect(jsonPath("$.recent[0].bed", startsWith(p.room() + "-")));
+        getAs("/students/me/allocation", p.auth())
+                .andExpect(jsonPath("$.allocation.status").value("Checked in"))
+                .andExpect(jsonPath("$.checkIn.checkedInAt").isString());
+        getAs("/students/me/home", p.auth()).andExpect(jsonPath("$.checkedIn").value(true));
+    }
+
+    /** TC-ASG-021 (scope): another Block's desk does not find the student; students and the Admin have no desk. */
+    @Test
+    void deskIsScoped() throws Exception {
+        Placed p = allocate(12).getFirst();
+        getAs("/check-in/lookup?termId=" + termId + "&q=" + p.studentCode(), bearer(mvc, MANAGER_B))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.student").value((Object) null));
+        getAs("/check-in/lookup?termId=" + termId + "&q=SE190099", bearer(mvc, STAFF_A))
+                .andExpect(jsonPath("$.student").value((Object) null));
+        getAs("/check-in/lookup?termId=" + termId + "&q=SE190013", bearer(mvc, STAFF_A))
+                .andExpect(jsonPath("$.student.status").value("not-allocated"));
+        getAs("/check-in/lookup?termId=" + termId, bearer(mvc, STAFF_A))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.q").isString());
+        getAs("/check-in/today?termId=" + termId, p.auth()).andExpect(status().isForbidden());
+        getAs("/check-out?termId=" + termId, bearer(mvc, ADMIN)).andExpect(status().isForbidden());
+        getAs("/check-out/" + p.allocationId(), bearer(mvc, MANAGER_B)).andExpect(status().isNotFound());
+    }
+
+    /**
+     * TC-ASG-022: check-out settles the Utility Deposit: the share since the Room's last reading, the damage
+     * charge, the refund to the Manager; the Bed is free again and the figures stay as settled.
+     */
+    @Test
+    void checkOutSettlesTheDeposit() throws Exception {
+        Placed p = allocate(14).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
+                .andExpect(status().isOk());
+        // The Room's last reading, two days ago: 50 kWh and 5 m³.
+        jdbc.sql("""
+                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason)
+                SELECT id, CURRENT_DATE - 2, 50, 5, 'CHECK_IN' FROM inv_room WHERE code = :room
+                """).param("room", p.room()).update();
+        String since = "since " + LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(2)
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        getAs("/check-out?termId=" + termId + "&q=" + p.studentCode(), staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.pendingCount").isNumber())
+                .andExpect(jsonPath("$.reasons", hasItem("End of Term")))
+                .andExpect(jsonPath("$.items[0].allocationId").value(p.allocationId()))
+                .andExpect(jsonPath("$.items[0].reason").value("End of Term"))
+                .andExpect(jsonPath("$.items[0].status").value("Pending"));
+        getAs("/check-out/" + p.allocationId(), staff)
+                .andExpect(jsonPath("$.reading").value((Object) null))
+                .andExpect(jsonPath("$.settlement.held").value(600_000))
+                .andExpect(jsonPath("$.settlement.share").value(0))
+                .andExpect(jsonPath("$.settlement.refund").value(600_000));
+
+        String path = "/check-out/" + p.allocationId();
+        postJson(path, staff, "{\"electricity\":10,\"water\":1,\"conditionGood\":true,\"keyReturned\":true,\"draft\":true}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.electricity").isString());
+        // 50 kWh × 3,500 + 5 m³ × 15,000 = 250,000 for one resident.
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":true,"
+                + "\"damageCharge\":50000,\"draft\":true}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refund").value(300_000));
+        getAs(path, staff)
+                .andExpect(jsonPath("$.status").value("Draft"))
+                .andExpect(jsonPath("$.reading.electricity").value(100))
+                .andExpect(jsonPath("$.settlement.periodLabel").value(since))
+                .andExpect(jsonPath("$.settlement.share").value(250_000))
+                .andExpect(jsonPath("$.settlement.damage").value(50_000));
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":false}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.keyReturned").value("Collect the Room key before you confirm."));
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"keyReturned\":true,"
+                + "\"damageCharge\":50000}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refund").value(300_000))
+                .andExpect(jsonPath("$.refundStatus").value("Pending"));
+
+        getAs(path, staff)
+                .andExpect(jsonPath("$.status").value("Checked out"))
+                .andExpect(jsonPath("$.checkedOutAt").isString())
+                .andExpect(jsonPath("$.settlement.share").value(250_000))
+                .andExpect(jsonPath("$.settlement.refund").value(300_000))
+                .andExpect(jsonPath("$.refundStatus").value("Pending"));
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":true}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_CHECKED_OUT"));
+        getAs("/students/me/allocation?termId=" + termId, p.auth())
+                .andExpect(jsonPath("$.allocation").value((Object) null));
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = 300000
+                  AND status = 'PENDING'
+                """).param("a", Long.parseLong(p.allocationId())).query(Long.class).single()).isEqualTo(1);
+    }
+
+    /** TC-ASG-023: when the charges exceed the Utility Deposit, the rest is invoiced to the student. */
+    @Test
+    void shortfallIsInvoiced() throws Exception {
+        Placed p = allocate(15).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
+                .andExpect(status().isOk());
+        String body = postJson("/check-out/" + p.allocationId(), staff, "{\"electricity\":5000,\"water\":500,"
+                + "\"conditionGood\":false,\"keyReturned\":true,\"damageCharge\":1000000}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refundStatus").value("None"))
+                .andReturn().getResponse().getContentAsString();
+        long owed = -((Number) JsonPath.read(body, "$.refund")).longValue();
+        assertThat(owed).isGreaterThanOrEqualTo(400_000);
+        getAs("/students/me/invoices", p.auth())
+                .andExpect(jsonPath("$.items[?(@.type == 'damage')].amount", hasItem((int) owed)));
+    }
+}

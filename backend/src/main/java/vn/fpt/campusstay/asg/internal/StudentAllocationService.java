@@ -35,8 +35,10 @@ public class StudentAllocationService {
     public record TermRef(String id, String name, LocalDate stayStart, LocalDate stayEnd, Instant resultsPublishedAt) {
     }
 
+    /** @param pass the check-in pass payload the mobile app shows as a QR code ({@code CSTAY-PASS:<allocationId>}) */
     public record AllocationView(String room, String bed, String block, String blockLabel, int floor,
-            String roomTypeName, String roomClassName, List<String> amenities, Instant allocatedAt, String status) {
+            String roomTypeName, String roomClassName, List<String> amenities, Instant allocatedAt, String status,
+            String pass) {
     }
 
     public record Roommate(String name, String bed) {
@@ -117,7 +119,7 @@ public class StudentAllocationService {
         AllocationView view = new AllocationView(bed.roomCode(), bed.bedLabel(), bed.block(), "Block " + bed.block(),
                 bed.floor(), typeName, roomClass == null ? null : roomClass.name(),
                 roomClass == null ? List.of() : roomClass.amenities(), allocation.allocatedAt(),
-                allocation.checkedInAt() == null ? "Allocated" : "Checked in");
+                allocation.checkedInAt() == null ? "Allocated" : "Checked in", "CSTAY-PASS:" + allocation.id());
 
         List<Inventory.BedSlot> roomBeds = inventory.bedsOfRoom(bed.roomId());
         Map<Long, String> labels = roomBeds.stream()

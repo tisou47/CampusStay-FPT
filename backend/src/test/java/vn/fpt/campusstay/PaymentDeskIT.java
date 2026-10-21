@@ -3,6 +3,7 @@ package vn.fpt.campusstay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -151,16 +152,20 @@ class PaymentDeskIT {
 
         confirm(invoice, manager, "2070000", "FT26294001", receipt).andExpect(status().isNoContent());
         assertThat(flow.statuses(auth)).containsExactly("Submitted");
-        getAs("/payments?q=SE190032", manager)
+        String list = getAs("/payments?q=SE190032", manager)
                 .andExpect(jsonPath("$.items[0].status").value("Paid"))
                 .andExpect(jsonPath("$.items[0].method").value("Manual transfer"))
                 .andExpect(jsonPath("$.items[0].reference").value("FT26294001"))
                 .andExpect(jsonPath("$.items[0].paidAt").isString())
                 .andExpect(jsonPath("$.items[0].receipt.name").value("transfer.png"))
                 .andExpect(jsonPath("$.items[0].receipt.size").value(PNG.length))
-                .andExpect(jsonPath("$.items[0].receipt.url").value("/payments/" + invoice + "/receipt-file"))
+                .andExpect(jsonPath("$.items[0].receipt.url", startsWith("http://localhost/files/")))
                 .andExpect(jsonPath("$.summary.collectedTodayCount").value(1))
-                .andExpect(jsonPath("$.summary.collectedToday").value(2_070_000));
+                .andExpect(jsonPath("$.summary.collectedToday").value(2_070_000))
+                .andReturn().getResponse().getContentAsString();
+        // The signed link opens without the bearer token (a plain link in the browser).
+        String link = ((String) JsonPath.read(list, "$.items[0].receipt.url")).substring("http://localhost".length());
+        mvc.perform(get(link)).andExpect(status().isOk()).andExpect(content().bytes(PNG));
         getAs("/payments/" + invoice + "/receipt-file", manager)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/png"))

@@ -15,9 +15,10 @@ import vn.fpt.campusstay.app.ApplicationSubmitted;
 import vn.fpt.campusstay.app.RoommateInvited;
 import vn.fpt.campusstay.asg.AllocationCreated;
 import vn.fpt.campusstay.bil.PaymentConfirmed;
+import vn.fpt.campusstay.mnt.MaintenanceUpdated;
 import vn.fpt.campusstay.shared.time.TimeConfig;
 
-/** Turns APP, ASG and BIL events into the student's in-app notifications (synchronous: same transaction). */
+/** Turns APP, ASG, BIL and MNT events into the student's in-app notifications (synchronous: same transaction). */
 @Component
 class StudentNotificationListener {
 
@@ -72,6 +73,12 @@ class StudentNotificationListener {
                 Map.of("room", e.room(), "bed", e.bed(), "term", e.termName(), "dueAt",
                         e.balanceDueAt() == null ? "the date shown in Invoices" : WHEN.format(e.balanceDueAt())),
                 "/student/room");
+    }
+
+    @EventListener
+    void on(MaintenanceUpdated e) {
+        notifier.notify(e.reporterId(), "MAINTENANCE_UPDATED", Map.of("title", e.title(), "status", e.status()),
+                "/student/requests");
     }
 
     private static String vnd(long amount) {

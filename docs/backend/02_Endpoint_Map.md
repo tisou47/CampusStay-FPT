@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 160 endpoints (165 when the five `GET, PUT` rows count twice); 75 coded, 74 of them verified.
+Total: 161 endpoints (166 when the five `GET, PUT` rows count twice); 92 coded, 91 of them verified.
 
 | Slice | Focus |
 |---|---|
@@ -116,22 +116,23 @@ Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-p
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| ASG | POST | `/check-in` | Must | Planned |  |
-| ASG | GET | `/check-in/lookup` | Must | Planned |  |
-| ASG | GET | `/check-in/today` | Must | Planned |  |
-| ASG | GET | `/check-out` | Must | Planned |  |
-| ASG | GET | `/check-out/{allocationId}` | Must | Planned | B-01 (was `{studentCode}`) |
-| ASG | POST | `/check-out/{allocationId}` | Must | Planned | B-01 (was `{studentCode}`) |
-| MNT | GET | `/maintenance-requests` | Must | Planned |  |
-| MNT | POST | `/maintenance-requests` | Must | Planned |  |
-| MNT | GET | `/maintenance-requests/options` | Must | Planned |  |
-| MNT | GET | `/maintenance-requests/{id}` | Must | Planned |  |
-| MNT | PATCH | `/maintenance-requests/{id}` | Must | Planned |  |
-| MNT | POST | `/maintenance-requests/{id}/confirm` | Must | Planned |  |
-| MNT | POST | `/maintenance-requests/{id}/updates` | Must | Planned |  |
-| NTF | POST | `/devices` | Must | Planned | A-05 |
-| NTF | POST | `/devices/unregister` | Must | Planned | A-06 |
-| REQ | GET | `/students/me/requests` | Must | Planned |  |
+| ASG | POST | `/check-in` | Must | Verified | C-23; TC-ASG-020 |
+| ASG | GET | `/check-in/lookup` | Must | Verified | Code, name or pass (A-11); C-23; TC-ASG-020, 021 |
+| ASG | GET | `/check-in/today` | Must | Verified | TC-ASG-020, 021 |
+| ASG | GET | `/check-out` | Must | Verified | C-23; TC-ASG-021, 022 |
+| ASG | GET | `/check-out/{allocationId}` | Must | Verified | B-01 (was `{studentCode}`); TC-ASG-021, 022 |
+| ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022, 023 |
+| MNT | GET | `/maintenance-requests` | Must | Verified | C-24; TC-MNT-002, 003 |
+| MNT | POST | `/maintenance-requests` | Must | Verified | Photos (signed links, A-10); TC-MNT-001 |
+| MNT | GET | `/maintenance-requests/options` | Must | Verified | TC-MNT-001, 002 |
+| MNT | GET | `/maintenance-requests/{id}` | Must | Verified | Student and back-office views; TC-MNT-001, 002 |
+| MNT | PATCH | `/maintenance-requests/{id}` | Must | Verified | Partial update (C-24); TC-MNT-002 |
+| MNT | POST | `/maintenance-requests/{id}/confirm` | Must | Verified | TC-MNT-002 |
+| MNT | POST | `/maintenance-requests/{id}/updates` | Must | Verified | TC-MNT-002 |
+| NTF | POST | `/devices` | Must | Verified | A-05; push after commit (C-25); TC-NTF-010…012, 020, 021 |
+| NTF | POST | `/devices/unregister` | Must | Verified | A-06; TC-NTF-020 |
+| REQ | GET | `/students/me/requests` | Must | Verified | Room-change tab empty until S5; TC-MNT-001 |
+| shared | GET | `/files/{id}` | Must | Verified | A-10 signed links (receipts, photos); TC-BIL-011, TC-MNT-002 |
 
 ## S5 — Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue
 

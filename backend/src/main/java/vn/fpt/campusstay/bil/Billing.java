@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.bil;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +42,56 @@ public interface Billing {
             long buildingId, String room, long termPrice, long depositAmount, Instant dueAt) {
     }
 
+    /** The unpaid Balance Invoice of an Allocation: the Term price part and the Utility Deposit it includes. */
+    record CheckInDue(String invoiceCode, long balance, long utilityDeposit) {
+    }
+
+    /**
+     * Input of a check-out settlement.
+     *
+     * @param electricity final reading in kWh; null (with {@code water}) for an estimate before the reading
+     * @param residents   residents of the Room for the last segment, the student included
+     */
+    record SettlementRequest(long termId, long studentId, long allocationId, long roomId, String room, long buildingId,
+            BigDecimal electricity, BigDecimal water, long damageCharge, int residents) {
+    }
+
+    /**
+     * The Utility Deposit settlement shown at check-out.
+     *
+     * @param periodLabel what the share covers ({@code since 02/01/2031}), null without an earlier reading
+     * @param refund      held − share − unpaid − damage; negative = what the student still owes
+     */
+    record Settlement(long held, String periodLabel, long share, long unpaid, long damage, long refund) {
+    }
+
+    /**
+     * @param refundId the refund waiting for the Block Manager, when the refund is positive
+     * @param invoice  the Invoice for what the student still owes, when the refund is negative
+     */
+    record SettledCheckOut(Settlement settlement, Optional<Long> refundId, Optional<IssuedInvoice> invoice) {
+    }
+
     IssuedInvoice issueDeposit(DepositRequest request);
+
+    /** Allocation id → its unpaid Balance; Allocations whose Balance is paid (or not issued) are left out. */
+    Map<Long, CheckInDue> checkInDues(Collection<Long> allocationIds);
+
+    /** Empty when the Balance (with its Utility Deposit) is paid or none was issued. */
+    default Optional<CheckInDue> checkInDue(long allocationId) {
+        return Optional.ofNullable(checkInDues(List.of(allocationId)).get(allocationId));
+    }
+
+    Settlement estimateCheckOut(SettlementRequest request);
+
+    /**
+     * Settles the Utility Deposit at check-out: records the final meter reading, settles unpaid utility
+     * Invoices from the deposit, then requests the refund or invoices what is still owed.
+     */
+    SettledCheckOut settleCheckOut(SettlementRequest request, long recordedBy);
+
+    /** Status label of the check-out refund of an Allocation ({@code Pending}, {@code Approved} …). */
+    Optional<String> checkOutRefundStatus(long allocationId);
 
     /** The Balance Invoice for a new Allocation; empty when the Deposit already covers the Term price. */
     Optional<IssuedInvoice> issueBalance(BalanceRequest request);

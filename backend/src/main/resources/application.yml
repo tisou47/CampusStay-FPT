@@ -80,6 +80,10 @@ campusstay:
     expiry-interval: 5m                 # Deposit windows and roommate invitations
   files:
     dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
+    link-secret: ${FILES_LINK_SECRET:}  # signs the short-lived file links; blank = random per start
+    link-ttl: 30m
+  push:
+    fcm-credentials-file: ${FIREBASE_CREDENTIALS_FILE:}   # Firebase service account key; blank = push off
   mail:
     from: ${MAIL_FROM:CampusStay FPT <no-reply@campusstay.test>}
     batch-size: 20

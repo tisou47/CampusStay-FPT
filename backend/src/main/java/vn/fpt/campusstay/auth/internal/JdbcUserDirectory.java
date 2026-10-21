@@ -40,6 +40,26 @@ class JdbcUserDirectory implements UserDirectory {
     }
 
     @Override
+    public List<StaffMember> staffOf(Collection<Long> buildingIds) {
+        if (buildingIds == null || buildingIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                SELECT DISTINCT u.id, u.display_name, u.role, coalesce(p.handles, '{}') AS handles,
+                       coalesce(p.on_duty, FALSE) AS on_duty
+                FROM auth_user u
+                JOIN auth_user_block b ON b.user_id = u.id
+                LEFT JOIN auth_staff_profile p ON p.user_id = u.id
+                WHERE b.building_id IN (:buildings) AND u.role IN ('STAFF', 'MANAGER') AND u.status = 'ACTIVE'
+                ORDER BY u.display_name, u.id
+                """)
+                .param("buildings", List.copyOf(buildingIds))
+                .query((rs, i) -> new StaffMember(rs.getLong("id"), rs.getString("display_name"), rs.getString("role"),
+                        List.of((String[]) rs.getArray("handles").getArray()), rs.getBoolean("on_duty")))
+                .list();
+    }
+
+    @Override
     public Map<Long, Student> students(Collection<Long> userIds) {
         Map<Long, Student> result = new HashMap<>();
         if (userIds == null || userIds.isEmpty()) {

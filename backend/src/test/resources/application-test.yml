@@ -16,3 +16,6 @@ campusstay:
     expiry-interval: 1h
   files:
     dir: target/test-files
+    link-secret: test-link-secret
+  push:                 # pinned off, so a developer's FIREBASE_CREDENTIALS_FILE cannot send real pushes
+    fcm-credentials-file: ""

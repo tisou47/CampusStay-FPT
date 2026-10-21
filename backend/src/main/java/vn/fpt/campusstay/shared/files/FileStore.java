@@ -29,6 +29,7 @@ import vn.fpt.campusstay.shared.security.Tokens;
 public class FileStore {
 
     public static final Set<String> IMAGES_AND_PDF = Set.of("image/jpeg", "image/png", "application/pdf");
+    public static final Set<String> IMAGES = Set.of("image/jpeg", "image/png");
 
     public record StoredFile(long id, String name, String contentType, long size) {
     }
@@ -49,7 +50,8 @@ public class FileStore {
     public StoredFile store(String ownerModule, String originalName, byte[] bytes, Set<String> allowed, Long createdBy) {
         String type = sniff(bytes);
         if (type == null || !allowed.contains(type)) {
-            throw ApiException.badRequest("FILE_TYPE_NOT_ALLOWED", "Attach a JPEG, PNG or PDF file.");
+            throw ApiException.badRequest("FILE_TYPE_NOT_ALLOWED", allowed.contains("application/pdf")
+                    ? "Attach a JPEG, PNG or PDF file." : "Attach JPEG or PNG photos.");
         }
         String key = Tokens.newToken();
         try {
