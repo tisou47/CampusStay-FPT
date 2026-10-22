@@ -20,6 +20,10 @@ import { StudentPage } from './shared'
 
 const POLL_MS = 5000
 
+// Demo aid: the API's dev profile can pay an Invoice without a bank transfer. Shown in development builds,
+// or in any build with VITE_PAYMENT_SIMULATOR=true (e.g. a demo deployment whose API runs the dev profile).
+const SHOW_SIMULATOR = import.meta.env.DEV || import.meta.env.VITE_PAYMENT_SIMULATOR === 'true'
+
 function useSecondsLeft(expiresAt) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -84,6 +88,10 @@ function Payment({ data, reload }) {
   const paid = invoice.status === 'Paid'
   const left = useSecondsLeft(qr?.expiresAt)
   const refresh = useMutation(() => api.invoices.refreshQr(invoice.id), { onSuccess: reload, onError: (e) => notifyError(e, 'Could not refresh the QR code') })
+  const simulate = useMutation(() => api.invoices.simulatePayment(invoice.id), {
+    onSuccess: reload,
+    onError: (e) => notifyError(e, 'Could not simulate the payment (the API must run the dev profile)'),
+  })
   const copy = useCopy()
   const saveQr = useSaveQr()
 
@@ -218,6 +226,20 @@ function Payment({ data, reload }) {
           <Note icon={Info} className="shrink-0 lg:hidden">
             Open your banking app and scan the saved QR. This screen updates when the bank confirms.
           </Note>
+        )}
+        {!paid && SHOW_SIMULATOR && (
+          <Alert
+            type="warning"
+            title="Demo mode"
+            className="shrink-0"
+            action={
+              <Button onClick={() => simulate.run()} disabled={simulate.pending}>
+                {simulate.pending ? 'Simulating…' : 'Simulate bank transfer'}
+              </Button>
+            }
+          >
+            No real bank account is linked. Simulate the exact transfer to continue the flow.
+          </Alert>
         )}
         {!paid && (
           <Note icon={Info} className="shrink-0">

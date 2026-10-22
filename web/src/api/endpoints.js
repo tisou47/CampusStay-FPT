@@ -110,6 +110,8 @@ export const api = {
     payment: (id, opts) => http.get(`/invoices/${id}/payment`, undefined, opts),
     refreshQr: (id) => http.post(`/invoices/${id}/payment/refresh`),
     receipt: (id) => download(`/invoices/${id}/receipt`, { fallbackName: `receipt-${id}.pdf` }),
+    /** Dev profile only: pays the Invoice as if SePay had reported the exact transfer → 204. */
+    simulatePayment: (id) => http.post(`/dev/invoices/${id}/simulate-payment`),
   },
 
   /* ---------------------------------------------------------------- Back office */
