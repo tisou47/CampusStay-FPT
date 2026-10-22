@@ -21,9 +21,9 @@ Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 co
 |---|---|---|---|---|---|
 | AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled" in `AuthFlowIT`, code exchange in `GoogleCodeExchangerTest`; the success path needs a real Google account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
-| AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012 |
-| AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007 |
-| AUTH | POST | `/auth/password/reset` | Must | Verified | A-03; TC-AUTH-012 (invitation link, single use) |
+| AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |
+| AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007; the emailed link in TC-AUTH-022 |
+| AUTH | POST | `/auth/password/reset` | Must | Verified | A-03; TC-AUTH-012 (invitation link, single use), 022, 023, 024 |
 | AUTH | POST | `/auth/sign-in` | Must | Verified | B-02; TC-AUTH-001, 002, 005, 006, 008 |
 | AUTH | POST | `/auth/sign-out` | Must | Verified | TC-AUTH-003 |
 | CFG | GET | `/terms` | Must | Verified | C-10; TC-CFG-001 |
