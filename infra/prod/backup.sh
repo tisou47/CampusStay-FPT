@@ -1,5 +1,5 @@
 #!/bin/sh
-# Daily backup on the VM (ADR-16): the database and the uploaded files. Cron entry for the deploy user
+# Daily backup on the VPS (ADR-16): the database and the uploaded files. Cron entry for the deploy user
 # (02:30 Asia/Ho_Chi_Minh):
 #   30 19 * * * sh /opt/campusstay/backup.sh >> /opt/campusstay/backups/backup.log 2>&1
 # Keeps the newest 14 of each in /opt/campusstay/backups. Restore: see infra/prod/README.md.

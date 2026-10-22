@@ -35,4 +35,4 @@ Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must
 
 ## Deploy
 
-The web app runs on Vercel (Root Directory `web/`), the API and PostgreSQL on an Oracle Cloud Always Free VM behind Caddy (ADR-16). Pushing to `main` deploys both: Vercel builds `web/`, and `.github/workflows/backend.yml` verifies, builds and ships the backend. One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).
+The web app runs on Vercel (Root Directory `web/`), the API and PostgreSQL on one Ubuntu VPS behind Caddy (ADR-16). Pushing to `main` deploys both: Vercel builds `web/`, and `.github/workflows/backend.yml` verifies, builds and ships the backend. One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).

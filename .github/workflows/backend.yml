@@ -1,7 +1,8 @@
 # Backend CI/CD (ADR-16). Every push and pull request that touches the backend runs `mvn verify`.
-# On main it also builds the arm64 image, pushes it to GHCR and deploys it to the Oracle Cloud VM.
-# Repository settings → Secrets and variables → Actions (runbook: infra/prod/README.md):
+# On main it also builds the image (linux/amd64), pushes it to GHCR and deploys it to the Ubuntu VPS.
+# Repository settings → Secrets and variables → Actions (runbook: infra/prod/README.md §1.8):
 #   variables VM_HOST, VM_USER, API_DOMAIN · secret VM_SSH_KEY. The deploy job is skipped until VM_HOST is set.
+#   Optional: VM_SSH_PORT (default 22); IMAGE_PLATFORM=linux/arm64 for an ARM VPS (built on GitHub's arm runner).
 name: backend
 
 on:
@@ -37,7 +38,8 @@ jobs:
   image:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: verify
-    runs-on: ubuntu-24.04-arm   # native arm64 for the Ampere VM; free for public repositories
+    # Native build for the VPS's CPU: x86 by default, GitHub's free arm runner when IMAGE_PLATFORM is linux/arm64.
+    runs-on: ${{ vars.IMAGE_PLATFORM == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -56,7 +58,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: backend
-          platforms: linux/arm64
+          platforms: ${{ vars.IMAGE_PLATFORM || 'linux/amd64' }}
           push: true
           tags: |
             ${{ steps.name.outputs.image }}:latest
@@ -72,9 +74,10 @@ jobs:
     environment: production
     permissions:
       contents: read
-      packages: read   # the VM pulls the image with this job's token
+      packages: read   # the VPS pulls the image with this job's token
     env:
       TARGET: ${{ vars.VM_USER }}@${{ vars.VM_HOST }}
+      SSH_PORT: ${{ vars.VM_SSH_PORT || '22' }}
       DEPLOY_DIR: /opt/campusstay
       API_IMAGE: ${{ needs.image.outputs.image }}
       API_TAG: ${{ github.sha }}
@@ -90,7 +93,9 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$SSH_PORT" -H "$VM_HOST" >> ~/.ssh/known_hosts
+          # ssh and scp below use the VPS's SSH port.
+          printf 'Host *\n  Port %s\n  ServerAliveInterval 30\n' "$SSH_PORT" > ~/.ssh/config
       - name: Copy the stack files
         run: scp infra/prod/docker-compose.yml infra/prod/Caddyfile infra/prod/backup.sh "$TARGET:$DEPLOY_DIR/"
       - name: Pull the image and restart
@@ -102,7 +107,7 @@ jobs:
           ssh "$TARGET" "cd $DEPLOY_DIR && export API_IMAGE='$API_IMAGE' API_TAG='$API_TAG' \
             && docker compose pull api && docker compose up -d --remove-orphans; \
             status=\$?; docker logout ghcr.io; docker image prune -af; exit \$status"
-      # Up to 5 minutes: the first start may load the demo seed.
+      # Up to 5 minutes: the first start runs the migrations, loads the base data and gets the certificate.
       - name: Check health
         if: vars.API_DOMAIN != ''
         run: curl -fsS --retry 60 --retry-delay 5 --retry-all-errors "https://${{ vars.API_DOMAIN }}/api/actuator/health/readiness"

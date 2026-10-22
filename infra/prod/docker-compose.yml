@@ -1,5 +1,5 @@
-# Production stack on the Oracle Cloud VM (ADR-16): Postgres, the API and Caddy (HTTPS).
-# Lives in /opt/campusstay on the VM next to its .env (from .env.example). The backend workflow
+# Production stack on one Ubuntu VPS (ADR-16): Postgres, the API and Caddy (HTTPS).
+# Lives in /opt/campusstay on the VPS next to its .env (from .env.example). The backend workflow
 # (.github/workflows/backend.yml) copies this folder there on every deploy and runs
 #   docker compose pull api && docker compose up -d
 # Runbook: infra/prod/README.md.
@@ -46,7 +46,7 @@ services:
     volumes:
       - api-files:/app/data/files     # uploaded receipts and photos: backed up with the database (backup.sh)
       - ./secrets:/app/secrets:ro     # Firebase service account key (FIREBASE_CREDENTIALS_FILE)
-    mem_limit: ${API_MEMORY:-2g}   # the JVM takes 75% of it as heap (backend/Dockerfile)
+    mem_limit: ${API_MEMORY:-2g}   # the JVM takes 75% of it as heap (backend/Dockerfile); 1g on a 2 GB VPS
     logging: *logging
 
   caddy:

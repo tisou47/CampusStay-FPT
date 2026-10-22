@@ -1,62 +1,103 @@
 # CampusStay FPT — production runbook
 
-Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL on one Oracle Cloud Always Free VM** behind Caddy (HTTPS). The Android app calls the same API.
+Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL on one Ubuntu VPS** (any provider, x86-64) behind Caddy (HTTPS). The Android app calls the same API.
 
 ```
 Browser ──► https://campusstay-fpt-ten.vercel.app    (Vercel: static build of web/)
-Browser, Android, SePay ──► https://<API_DOMAIN>/api ──► Caddy :443 ──► api :8080 ──► db :5432   (Oracle VM, Docker Compose)
+Browser, Android, SePay ──► https://<API_DOMAIN>/api ──► Caddy :443 ──► api :8080 ──► db :5432   (VPS, Docker Compose)
 ```
 
 | What | Where | Deployed by |
 |---|---|---|
 | Web | Vercel project, Root Directory `web/` (`web/vercel.json`) | Vercel Git integration: every push to `main` (production) and every pull request (preview) |
-| API + Postgres + Caddy | `/opt/campusstay` on the VM (`infra/prod/`) | `.github/workflows/backend.yml`: push to `main` touching `backend/` or `infra/prod/` |
-| Image | `ghcr.io/<owner>/campusstay-backend:<commit sha>` and `:latest` (linux/arm64) | same workflow |
+| API + Postgres + Caddy | `/opt/campusstay` on the VPS (`infra/prod/`) | `.github/workflows/backend.yml`: push to `main` touching `backend/` or `infra/prod/` |
+| Image | `ghcr.io/<owner>/campusstay-backend:<commit sha>` and `:latest` (linux/amd64) | same workflow |
 
-## 1. One-time setup: the VM
+## 1. One-time setup: the VPS
 
-### 1.1 Oracle Cloud account
-1. Sign up at cloud.oracle.com. The **home region** cannot be changed later and Always Free Ampere VMs exist only there: pick the region closest to the users (Singapore) or, if it keeps saying "out of capacity", another Asian region.
-2. The card is only verified, not charged. Oracle may reclaim an Always Free VM that stays idle for 7 days (95th-percentile CPU, network and, on A1, memory all under 20%), and a demo API is idle most of the time. Upgrading the account to **Pay As You Go** keeps Always Free resources free and makes capacity errors rarer; users report that it also stops idle reclaiming, although Oracle's page does not say so. After upgrading, anything beyond the Always Free limits is billed: add a budget alert of 1 USD under Billing → Budgets.
+### 1.1 Choose the VPS
+| | Recommended | Minimum |
+|---|---|---|
+| CPU | 2 vCPU | 1 vCPU (starts in about a minute) |
+| Memory | **4 GB** | 2 GB, with swap (1.4) and `API_MEMORY=1g` |
+| Disk | 40 GB SSD/NVMe | 25 GB |
+| System | Ubuntu 24.04 LTS, x86-64 | Ubuntu 22.04 LTS |
+| Network | one static public IPv4, a few GB of traffic a month | |
 
-### 1.2 Create the VM
-Compute → Instances → Create instance:
-- Image: **Canonical Ubuntu 24.04** (aarch64). Shape: **VM.Standard.A1.Flex**, 2 OCPU, 12 GB memory: the whole Always Free A1 quota since Oracle's 2026 cut (2 OCPU / 12 GB per tenancy), so create no second A1 VM.
-- Networking: a public subnet with a public IPv4 address. Boot volume: 50 GB.
-- SSH keys: paste your own public key (this is your login, separate from the deploy key in 1.6).
+Why: the API container gets `API_MEMORY` (2 GB by default; the JVM uses 75 % of it as heap), Postgres needs about 300 MB, Caddy 50 MB and Ubuntu with Docker about 500 MB; the image is built on GitHub, never on the VPS. The database with the base data is under 1 GB; uploads, 14 days of backups and the capped logs fit easily in 40 GB.
 
-Optional, after it starts: replace the VM's ephemeral public IP with a **reserved** one (instance → Attached VNICs → the VNIC → IPv4 addresses → Edit: first "No public IP", then "Reserved public IP" → create). The ephemeral address lives as long as the instance; a reserved one outlives it, so the DNS record stays valid if the VM is ever recreated. Do it before 1.5, because the address changes.
+Check before paying (the provider's sales page or support):
+- **KVM** (a full virtual machine). OpenVZ/LXC "VPS" plans often cannot run Docker.
+- Root SSH access and an Ubuntu image; inbound TCP 80 and 443 allowed.
+- **Outbound SMTP port 587** allowed (Gmail, §3.1). Some providers block it against spam and open it on request.
+- Monthly billing without a long contract, and snapshots if offered.
+- A data centre in Vietnam or Singapore keeps the latency low for students. Vietnamese providers take bank transfers or VietQR, so no international card is needed.
 
-### 1.3 Open ports 80 and 443
-1. Networking → Virtual cloud networks → the VM's subnet → Security list → Add ingress rules: source `0.0.0.0/0`, TCP 80; TCP 443; UDP 443 (HTTP/3, optional). Do **not** open 5432 or 8080.
-2. On the VM, **before installing Docker** (Oracle's Ubuntu images reject everything except SSH in iptables, and a save after Docker would also store Docker's own rules). `sudo iptables -L INPUT -n --line-numbers` shows the final `REJECT`; insert the rules at its line number (6 on current images):
-   ```bash
-   sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
-   sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
-   sudo iptables -I INPUT 6 -m state --state NEW -p udp --dport 443 -j ACCEPT
-   sudo netfilter-persistent save
-   ```
+The provider's welcome email gives the public IPv4 address and the root password or key.
 
-### 1.4 Docker and the stack folder
+### 1.2 First login, a deploy user, updates
+Everything below runs as `deploy`, never as root. As root (first login from your computer: `ssh root@<IP>`):
+```bash
+adduser deploy                      # choose a password: sudo asks for it
+usermod -aG sudo deploy
+install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+nano /home/deploy/.ssh/authorized_keys     # paste your own public key (~/.ssh/id_ed25519.pub on your computer)
+chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
+```
+In a **second** terminal check `ssh deploy@<IP>` and `sudo true`. Only then turn off root and password logins:
+```bash
+printf 'PermitRootLogin no\nPasswordAuthentication no\n' | sudo tee /etc/ssh/sshd_config.d/99-campusstay.conf
+sudo systemctl reload ssh
+sudo apt update && sudo apt full-upgrade -y && sudo apt install -y unattended-upgrades
+```
+Ubuntu then installs security updates by itself. Reboot now and then (`sudo reboot`); the containers come back on their own (`restart: unless-stopped`). Keep the clock in UTC; the API converts to campus time itself.
+
+### 1.3 Firewall
+```bash
+sudo ufw allow OpenSSH        # if the provider runs SSH on another port: sudo ufw allow <port>/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 443/udp        # HTTP/3, optional
+sudo ufw enable
+```
+Never open 5432 or 8080: only Caddy publishes ports (Docker's published ports bypass ufw, so the database and the API stay private because they publish none). If the provider also has a cloud firewall or security group, open the same ports there.
+
+### 1.4 Swap
+Needed on 2 GB, useful on 4 GB. If `free -h` shows no swap yet:
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf && sudo sysctl --system
+```
+
+### 1.5 Docker and the stack folder
 ```bash
 curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker ubuntu          # then log out and in again
-sudo mkdir -p /opt/campusstay && sudo chown ubuntu:ubuntu /opt/campusstay
+sudo usermod -aG docker deploy          # then log out and in again
+sudo mkdir -p /opt/campusstay && sudo chown deploy:deploy /opt/campusstay
+docker run --rm hello-world             # Docker works
+nc -vz smtp.gmail.com 587               # "succeeded": Gmail is reachable (1.1)
 ```
-Ubuntu installs security updates by itself (unattended-upgrades). Reboot now and then: `sudo reboot`; the containers come back on their own (`restart: unless-stopped`).
 
-### 1.5 DNS name for the API
-Either a free subdomain from duckdns.org (sign in, create e.g. `campusstay-api`, set its IP to the reserved IP) or an `A` record on a domain you own (`api.<domain>` → reserved IP). Check: `nslookup <API_DOMAIN>` answers the VM's IP. Caddy needs this before it can get the certificate.
+### 1.6 DNS name for the API
+Caddy needs a name that points at the VPS before it can get the certificate.
+- **Free `.id.vn` domain:** Vietnamese citizens aged 18–23 can register one free of charge through an accredited `.vn` registrar (identity check with the citizen ID card). Then, in the registrar's DNS panel, add an `A` record `api` → the VPS's IPv4: `API_DOMAIN=api.<name>.id.vn`.
+- Any other domain you own works the same way (`api.<domain>`), and so does a free DuckDNS subdomain (`<name>.duckdns.org`, IP set to the VPS).
+- If the DNS is on Cloudflare, keep the record **DNS only** (grey cloud) so Caddy gets the certificate itself. Add no `AAAA` record unless the VPS answers on that IPv6 address.
 
-### 1.6 Settings file
-Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VM, fill it in, then `chmod 600 /opt/campusstay/.env`. The workflow never overwrites `.env`. Also `mkdir -p /opt/campusstay/secrets` (the Firebase key goes there, §3.3).
+Check: `nslookup <API_DOMAIN>` answers the VPS's IP.
+
+### 1.7 Settings file
+Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VPS, fill it in, then `chmod 600 /opt/campusstay/.env`. The workflow never overwrites `.env`. Also `mkdir -p /opt/campusstay/secrets` (the Firebase key goes there, §3.3).
+- `API_DOMAIN`: the name from 1.6.
 - `DB_PASSWORD` and `FILES_LINK_SECRET`: one `openssl rand -hex 32` each.
-- `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS`: the Vercel production URL from step 2 (fix them after the Vercel project exists).
+- `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS`: the Vercel production URL (§2).
+- `API_MEMORY=1g` on a 2 GB VPS.
 - Gmail, VietQR/SePay, Firebase, Google: §3. Each one can be added later; the API starts without them.
-- Demo data: decide **before the first start** (1.9).
+- Base data: decide **before the first start** (1.10).
 
-### 1.7 GitHub Actions access
-On the VM, create a key used only for deploys (no passphrase, so the workflow can use it) and allow it:
+### 1.8 GitHub Actions access
+On the VPS, as `deploy`, create a key used only for deploys (no passphrase, so the workflow can use it) and allow it:
 ```bash
 ssh-keygen -t ed25519 -N "" -C campusstay-deploy -f ~/.ssh/campusstay-deploy
 cat ~/.ssh/campusstay-deploy.pub >> ~/.ssh/authorized_keys
@@ -67,20 +108,22 @@ GitHub → repository → Settings → Secrets and variables → Actions:
 | Kind | Name | Value |
 |---|---|---|
 | Secret | `VM_SSH_KEY` | the private key printed above |
-| Variable | `VM_HOST` | `<API_DOMAIN>` or the reserved IP |
-| Variable | `VM_USER` | `ubuntu` |
-| Variable | `API_DOMAIN` | e.g. `campusstay-api.duckdns.org` (used for the health check) |
+| Variable | `VM_HOST` | `<API_DOMAIN>` or the VPS's IP |
+| Variable | `VM_USER` | `deploy` |
+| Variable | `API_DOMAIN` | e.g. `api.campusstay.id.vn` (used for the health check) |
+| Variable (optional) | `VM_SSH_PORT` | the SSH port, when it is not 22 |
+| Variable (optional) | `IMAGE_PLATFORM` | `linux/arm64` only for an ARM VPS; leave it unset for x86 |
 
-Then delete the private key from the VM: `rm ~/.ssh/campusstay-deploy` (the `.pub` line stays in `authorized_keys`).
+Then delete the private key from the VPS: `rm ~/.ssh/campusstay-deploy` (the `.pub` line stays in `authorized_keys`).
 
-### 1.8 First deploy
-GitHub → Actions → **backend** → Run workflow (branch `main`). The run verifies, builds the arm64 image, copies `infra/prod/` to the VM, starts the stack and waits for `https://<API_DOMAIN>/api/actuator/health/readiness`. The first start takes a minute or two (Flyway migrations, certificate).
+### 1.9 First deploy
+GitHub → Actions → **backend** → Run workflow (branch `main`). The run verifies, builds the image, copies `infra/prod/` to the VPS, starts the stack and waits for `https://<API_DOMAIN>/api/actuator/health/readiness`. The first start takes a minute or two (Flyway migrations, base data, certificate).
 
 Check from anywhere: `curl https://<API_DOMAIN>/api/actuator/health` → `{"status":"UP"}`.
 
-### 1.9 Base data (optional)
+### 1.10 Base data (optional)
 The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Types and Classes, the back-office accounts (`admin@fpt.edu.vn`, `manager.a` … `manager.h`, `staff.a1` … `staff.h2`) and 6,200 fictional students (`se190001@fpt.edu.vn` …). It has no Terms or history: the Admin confirms the fees and publishes the first Term. Without it the database has only the reference data and no account to sign in with.
-1. Uncomment `SPRING_FLYWAY_LOCATIONS`, deploy (1.8) and wait for `UP`. Keep the line: the seed is idempotent, so a newer version only adds what is missing. (If you remove it later, uncomment `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing`.)
+1. Uncomment `SPRING_FLYWAY_LOCATIONS`, deploy (1.9) and wait for `UP`. Keep the line: the seed is idempotent, so a newer version only adds what is missing. (If you remove it later, uncomment `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing`.)
 2. The seed addresses are fictional `@fpt.edu.vn` mailboxes: real email sent to them goes to FPT's mail server. Before testing password reset or Admin emails, give the accounts you use your own address, e.g. in psql `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'admin@fpt.edu.vn';`.
 3. Every seed account has the password written in the repository, which is public. Replace it with your own demo password:
    ```bash
@@ -89,9 +132,9 @@ The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Type
    ```
    In psql (paste the hash between the quotes): `UPDATE auth_user SET password_hash = '<hash>';` then `\q`.
 
-### 1.10 Backups
-`mkdir -p /opt/campusstay/backups` (the cron line logs there), then `crontab -e` on the VM and add the line from the top of [`backup.sh`](backup.sh). It writes a database dump and an archive of the uploaded files (receipts, photos) and keeps the newest 14 of each on the VM. Copy them to your computer now and then:
-`scp "ubuntu@<API_DOMAIN>:/opt/campusstay/backups/*-<stamp>*" .`
+### 1.11 Backups
+`mkdir -p /opt/campusstay/backups` (the cron line logs there), then `crontab -e` as `deploy` and add the line from the top of [`backup.sh`](backup.sh). It writes a database dump and an archive of the uploaded files (receipts, photos) and keeps the newest 14 of each on the VPS. A backup on the same machine does not survive losing it: copy them to your computer now and then, and take a provider snapshot before risky changes:
+`scp "deploy@<API_DOMAIN>:/opt/campusstay/backups/*-<stamp>*" .`
 
 ## 2. One-time setup: Vercel (web)
 1. Done on 22/10/2026: project `campusstay-fpt` in the Vercel scope `tisou`, linked to `tisou47/CampusStay-FPT`, **Root Directory `web`**; framework, build command and output come from `web/vercel.json`. Production URL: `https://campusstay-fpt-ten.vercel.app` (`campusstay-fpt.vercel.app` was taken; another free `*.vercel.app` name or your own domain can be set under Settings → Domains, then update `WEB_BASE_URL`, `CORS_ALLOWED_ORIGINS` and the Google origin). Previews are `campusstay-<hash>-tisou.vercel.app` and need a Vercel sign-in (deployment protection).
@@ -103,7 +146,7 @@ The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Type
    | `VITE_GOOGLE_CLIENT_ID` | the Web OAuth client id (optional) |
 
    `VITE_*` values are baked in at build time: after changing one, redeploy.
-3. Deploy, then put the final production URL into `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS` in the VM's `.env` and run `docker compose up -d` in `/opt/campusstay`.
+3. Deploy, then put the final production URL into `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS` in the VPS's `.env` and run `docker compose up -d` in `/opt/campusstay`.
 4. `web/vercel.json` skips a build when nothing under `web/` changed since the last deployment, rewrites every path to `index.html` (client-side routes) and caches `/assets/*` for a year.
 
 ## 3. Third-party services
@@ -120,7 +163,7 @@ Each service is optional: without it the API starts and the feature falls back a
 1. Use a Gmail account made for the project, not a personal one. Turn on 2-Step Verification, then Google Account → Security → **App passwords** → create one named CampusStay.
 2. In `.env`: uncomment the `SPRING_MAIL_*` lines, `SPRING_MAIL_USERNAME` = the address, `SPRING_MAIL_PASSWORD` = the 16 characters without spaces, `MAIL_FROM` with the same address (Gmail replaces any other sender).
 3. Test: "Forgot password" on the web for an account whose email you can read.
-4. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students, with fictional addresses, see 1.9) would exceed it and get the account blocked for a day: send campaigns to small groups only.
+4. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students, with fictional addresses, see 1.10) would exceed it and get the account blocked for a day: send campaigns to small groups only.
 
 ### 3.2 VietQR and SePay (ADR-08)
 The payment page shows a VietQR image from SePay's free image service (`qr.sepay.vn`) for the account in `PAYMENT_*`, with the Invoice's transfer content (`CSTAY` + number). The SePay webhook reports each incoming transfer; an exact amount marks the Invoice Paid, any other amount waits for Staff.
@@ -131,17 +174,17 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 
 ### 3.3 Firebase Cloud Messaging (Android push)
 1. console.firebase.google.com → create a project (free Spark plan) → Project settings → Service accounts → **Generate new private key**.
-2. Copy the JSON to the VM: `scp key.json ubuntu@<API_DOMAIN>:/opt/campusstay/secrets/firebase.json`, then on the VM `chmod 644 /opt/campusstay/secrets/firebase.json` (the API runs as an unprivileged user inside the container). Never commit it.
+2. Copy the JSON to the VPS: `scp key.json deploy@<API_DOMAIN>:/opt/campusstay/secrets/firebase.json`, then on the VPS `chmod 644 /opt/campusstay/secrets/firebase.json` (the API runs as an unprivileged user inside the container). Never commit it.
 3. In `.env`: `FIREBASE_CREDENTIALS_FILE=/app/secrets/firebase.json`. The log line "push notifications are skipped" disappears.
 4. The Android app registers its FCM token with the API; add the Android app to the same Firebase project (package name) and put its `google-services.json` in the Flutter project.
 
 ### 3.4 Google sign-in (ADR-14)
 1. Google Cloud Console (the Firebase project can be reused) → OAuth consent screen: user type External, scopes `openid`, `email`, `profile` only, then **Publish app**. In "Testing" status only the test users you list can sign in.
 2. Credentials → OAuth client ID, type Web application → Authorized JavaScript origins: the Vercel production URL. Google accepts no wildcards, so preview deployments sign in with email and password only.
-3. Client id and secret into the VM's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web.
+3. Client id and secret into the VPS's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web.
 4. Only `@fpt.edu.vn` accounts that already exist in CampusStay can sign in: give a test account your FPT email (backend/README.md). Android needs its own OAuth client of type Android (package name + SHA-1 of the release key).
 
-## 4. Operations (on the VM, in `/opt/campusstay`)
+## 4. Operations (on the VPS, as `deploy`, in `/opt/campusstay`)
 
 | Task | Command |
 |---|---|
@@ -160,11 +203,13 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 |---|---|---|
 | Browser: "Cannot reach the CampusStay server" | `VITE_API_BASE_URL` wrong or not redeployed; API down | Open `https://<API_DOMAIN>/api/actuator/health`; check the Vercel variable and redeploy |
 | `403` on every call from the web | The page's origin is missing from `CORS_ALLOWED_ORIGINS` | Add it (exact URL or a `*` pattern), `docker compose up -d` |
-| Caddy log: certificate errors | DNS not pointing at the VM yet, or port 80 closed (1.3) | Fix DNS or the rules, then `docker compose restart caddy` |
-| API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.9) |
-| API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.9) |
-| Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, or the daily Gmail limit | §3.1; `docker compose logs api \| grep -i mail` |
+| Caddy log: certificate errors | DNS not pointing at the VPS yet (1.6), or port 80 closed (1.3, and the provider's firewall) | Fix DNS or the rules, then `docker compose restart caddy` |
+| API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.10) |
+| API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.10) |
+| Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api | grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it || grep -i mail` |
 | Payments stay Unpaid after a transfer | Webhook URL or key wrong in SePay, or the transfer content was changed by the payer | SePay → webhook history shows our answer; Staff confirm by hand meanwhile |
 | API stops at start: "Cannot read the Firebase credentials file" | Wrong path or the file is not readable | §3.3 step 2 |
-| Deploy job: `Permission denied (publickey)` | `VM_SSH_KEY` is not the pair of the key in `~/.ssh/authorized_keys` | Redo 1.7 |
-| Out of capacity when creating the VM | No free Ampere hosts in the region right now | Retry later or another availability domain; Pay As You Go helps (1.1) |
+| Deploy job: `Permission denied (publickey)` or a timeout | `VM_SSH_KEY` is not the pair of the key in `~/.ssh/authorized_keys`, `VM_USER` is not `deploy`, or SSH runs on another port | Redo 1.8; set `VM_SSH_PORT` |
+| Deploy job: `no matching manifest for linux/arm64` (or amd64) on pull | The image was built for the other CPU | Set or clear `IMAGE_PLATFORM` (1.8) and run the workflow again |
+| `api` restarts with exit code 137 (`docker compose ps`), "Killed" in the log | Out of memory | `API_MEMORY=1g` and swap on a 2 GB VPS (1.4), or a 4 GB plan |
+| `docker run hello-world` fails on a new VPS | OpenVZ/LXC plan without the kernel features Docker needs | Ask for a KVM plan (1.1) |
