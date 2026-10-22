@@ -80,17 +80,17 @@ All items below are in scope (mentor-confirmed). MoSCoW now sets the **build ord
 | Mobile client | Flutter (Dart, null-safe), Android only |
 | Backend | Spring Boot 4.1.x, Java 21, Maven, REST API (ADR-04) |
 | Database | PostgreSQL 17, Flyway migrations (ADR-11) |
-| Module boundaries | Spring Modulith 2.1.x (verified by test) (ADR-10) |
-| Assignment engine | Rule-based batch engine inside the backend (module ASG) |
+| Code structure | Layered Spring MVC: controller → service → repository / entity (ADR-17) |
+| Assignment engine | Rule-based batch engine inside the backend (feature `assignment`, code ASG) |
 | Notifications | Firebase Cloud Messaging (firebase-admin), in-app, SMTP email (ADR-09) |
 | Payment | VietQR via SePay bank-feed webhook; mock gateway; manual confirmation (ADR-08) |
 | Packaging / deploy | Docker, Docker Compose; web on Vercel, API + PostgreSQL on an Oracle Cloud Always Free VM behind Caddy, GitHub Actions → GHCR (ADR-16) |
 | Tooling | GitHub, GitHub Projects, Google Docs / Word, IntelliJ IDEA + Claude Code (backend), VS Code + Claude Code (web) |
 
 ## 6. Architecture baseline
-**Decision (ADR-01): Modular monolith.** One Spring Boot deployable, one PostgreSQL database, strict module boundaries (package-by-module, modules talk via public service interfaces or domain events, no cross-module table access). Boundaries are enforced by a Spring Modulith verification test (ADR-10).
+**Decision (ADR-01): Monolith.** One Spring Boot deployable, one PostgreSQL database. **Code structure (ADR-17, replaces the package-by-module layout and ADR-10):** layered Spring MVC packages — `controller` (REST endpoints), `service` (business rules, one sub-package per feature), `repository` / `entity` (persistence), plus `dto`, `event`, `config`, `security`, `exception` and `common`. Features use each other through service interfaces or domain events, and each table is written only by the feature that owns its prefix.
 
-Rationale: 16-week term, effectively one developer, three clients sharing one API, strong transactional needs (Allocation and Payment must be consistent). Microservices would add distributed transactions, service discovery, multiple deployments and DevOps cost with no grading benefit. Clean module boundaries still demonstrate architectural maturity and keep a future split possible.
+Rationale: 16-week term, effectively one developer, three clients sharing one API, strong transactional needs (Allocation and Payment must be consistent). Microservices would add distributed transactions, service discovery, multiple deployments and DevOps cost with no grading benefit. The standard Controller → Service → Repository layout is what the team and the council read fastest.
 
 **Backend modules:** AUTH, CFG, INV, APP, ASG, BIL, REQ, MNT, NTF, RPT (+ `shared` kernel, not a business module). Contract areas map onto these codes without new codes:
 
@@ -171,7 +171,7 @@ One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` 
 ## 11. Decision Log
 | ID | Date | Decision | Reason |
 |---|---|---|---|
-| ADR-01 | 14/10/2026 | Modular monolith architecture | See §6 |
+| ADR-01 | 14/10/2026 | Monolith architecture (one deployable, one database); its package-by-module layout is replaced by ADR-17 | See §6 |
 | ADR-02 | 14/10/2026 | Real SIS integration replaced by mock enrollment data (seeded student directory) | No access to FPT SIS; keeps interface for future integration |
 | ADR-03 | 14/10/2026 | Scrum, 2-week sprints, 8 sprints | Matches 16-week term |
 | ADR-04 | 20/10/2026 | Spring Boot 4.1.x on Java 21, Maven | 3.5 left OSS support on 30/06/2026; 4.1 is GA and no backend code existed, so no migration cost |
@@ -180,10 +180,11 @@ One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` 
 | ADR-07 | 20/10/2026 | Opaque server-side session tokens (random 256-bit, SHA-256 hash stored, sliding expiry); sign-in by email/password or Google ID token restricted to `hd=fpt.edu.vn`; no self sign-up | Contract uses one bearer token and "401 signs out"; instant revocation on sign-out and account changes; no key management |
 | ADR-08 | 20/10/2026 | VietQR payment via SePay webhook (API-key auth, dedup on SePay transaction id, match by unique transfer content); `MockPaymentGateway` for dev; manual Staff confirmation as fallback | Automatic confirmation without a merchant contract; money goes straight to the bank account; resilient demo |
 | ADR-09 | 20/10/2026 | Email through an `EmailSender` port with SMTP adapter: Mailpit in development, Gmail SMTP with App Password for the demo | Free; Gmail personal limit (500 messages/day) is enough for a demo; provider can be swapped |
-| ADR-10 | 20/10/2026 | Spring Modulith verifies module boundaries; contract areas mapped onto the 10 existing module codes (see §6) | Makes "strict boundaries" testable; keeps ID conventions stable |
+| ADR-10 | 20/10/2026 | ~~Spring Modulith verifies module boundaries~~ (superseded by ADR-17); contract areas mapped onto the 10 module codes, which stay as table prefixes and test ids | Made "strict boundaries" testable; keeps ID conventions stable |
 | ADR-11 | 20/10/2026 | PostgreSQL 17 with Flyway SQL migrations; JPA for CRUD, `JdbcClient` SQL for reports and batch | Migrations double as the "Database Script(s)" deliverable; SQL gives control over report queries |
 | ADR-12 | 20/10/2026 | Scope extended to the mentor-confirmed API contract: utility billing, swaps, Round-2 offers, refunds, late check-ins, routing/escalation, inspections, email campaigns; Period of Stay and renewal removed | Mentor confirmation after UI review |
 | ADR-13 | 20/10/2026 | Password sign-in uses the account **email** and CampusStay's own password (ADR-07); the contract's `username` becomes `email` (B-02). The web app gets Forgot password, Reset password, Set password (invitation) and Change password pages | CampusStay has no access to FPT accounts (ADR-02), so it keeps its own passwords; asking for the Wi-Fi username would suggest typing the FPT password into another system; reset links and invitations are sent by email anyway |
 | ADR-14 | 20/10/2026 | `POST /auth/google` accepts either an authorization `code` (web popup, keeps the custom Google button of the approved design) or an ID token `credential` (Android). The server exchanges the code with Google using a client secret, then verifies the ID token the same way in both cases (`hd = fpt.edu.vn`) | The web keeps its Figma design; Android's Google Sign-In returns an ID token; the client secret stays on the server |
 | ADR-15 | 20/10/2026 | IDs are **strings** in JSON: every field named `id` or ending in `Id` (B-03, replaces clarification C-01). Java keeps `long`, the database keeps `BIGINT`; amounts and counts stay numbers | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion; the contract examples already used strings |
 | ADR-16 | 20/10/2026 | Deployment: the web app on **Vercel** (Hobby, Git integration, a preview per pull request); the API and PostgreSQL 17 on one **Oracle Cloud Always Free** Ampere VM with Docker Compose and Caddy (Let's Encrypt HTTPS). GitHub Actions runs `mvn verify`, builds the arm64 image to GHCR and deploys over SSH; daily `pg_dump` on the VM. CORS takes origin patterns so Vercel previews can call the API | Free with no expiry and no sleep, so the 30-second email outbox job, the local `FileStorage` volume and Gmail SMTP work unchanged, and the SePay webhook gets a stable HTTPS URL (OI-07). Vercel cannot host the long-running Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database |
+| ADR-17 | 22/10/2026 | Backend code in layered Spring MVC packages (`controller`, `service`, `repository`, `entity`, `dto`, `event`, `config`, `security`, `exception`, `common`; feature sub-packages inside the layers) instead of ten module packages; Spring Modulith removed, `LayeringTest` checks that calls go controller → service → repository | The standard layout is easier for the team and the council to follow than modules with hidden `internal`/`web` folders; classes moved without behaviour changes |

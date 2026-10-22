@@ -78,10 +78,10 @@ GitHub → Actions → **backend** → Run workflow (branch `main`). The run ver
 
 Check from anywhere: `curl https://<API_DOMAIN>/api/actuator/health` → `{"status":"UP"}`.
 
-### 1.9 Demo data (optional)
-The demo seed (`db/seed`) fills an **empty** database with a fictional campus: 8 Blocks, 6,200 students and four years of Terms, Invoices, requests and reports. Without it the database has only the reference data and no account to sign in with.
-1. Before the first start, uncomment `SPRING_FLYWAY_LOCATIONS` (and `SEED_MAILBOX` if the seed accounts' emails should reach your Gmail). Deploy (1.8) and wait for `UP`; loading takes a few minutes.
-2. Then comment `SPRING_FLYWAY_LOCATIONS` out again, uncomment `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` and run `docker compose up -d`. The seed is never run again, even when its file changes in a later commit (it only works on an empty database).
+### 1.9 Base data (optional)
+The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Types and Classes, the back-office accounts (`admin@fpt.edu.vn`, `manager.a` … `manager.h`, `staff.a1` … `staff.h2`) and 6,200 fictional students (`se190001@fpt.edu.vn` …). It has no Terms or history: the Admin confirms the fees and publishes the first Term. Without it the database has only the reference data and no account to sign in with.
+1. Uncomment `SPRING_FLYWAY_LOCATIONS`, deploy (1.8) and wait for `UP`. Keep the line: the seed is idempotent, so a newer version only adds what is missing. (If you remove it later, uncomment `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing`.)
+2. The seed addresses are fictional `@fpt.edu.vn` mailboxes: real email sent to them goes to FPT's mail server. Before testing password reset or Admin emails, give the accounts you use your own address, e.g. in psql `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'admin@fpt.edu.vn';`.
 3. Every seed account has the password written in the repository, which is public. Replace it with your own demo password:
    ```bash
    docker run --rm httpd:2.4-alpine htpasswd -nbBC 10 "" '<new demo password>' | tr -d ':\n'; echo
@@ -120,7 +120,7 @@ Each service is optional: without it the API starts and the feature falls back a
 1. Use a Gmail account made for the project, not a personal one. Turn on 2-Step Verification, then Google Account → Security → **App passwords** → create one named CampusStay.
 2. In `.env`: uncomment the `SPRING_MAIL_*` lines, `SPRING_MAIL_USERNAME` = the address, `SPRING_MAIL_PASSWORD` = the 16 characters without spaces, `MAIL_FROM` with the same address (Gmail replaces any other sender).
 3. Test: "Forgot password" on the web for an account whose email you can read.
-4. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the demo seed has 6,200 students) would exceed it and get the account blocked for a day: send campaigns to small groups only.
+4. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students, with fictional addresses, see 1.9) would exceed it and get the account blocked for a day: send campaigns to small groups only.
 
 ### 3.2 VietQR and SePay (ADR-08)
 The payment page shows a VietQR image from SePay's free image service (`qr.sepay.vn`) for the account in `PAYMENT_*`, with the Invoice's transfer content (`CSTAY` + number). The SePay webhook reports each incoming transfer; an exact amount marks the Invoice Paid, any other amount waits for Staff.
@@ -162,7 +162,7 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | `403` on every call from the web | The page's origin is missing from `CORS_ALLOWED_ORIGINS` | Add it (exact URL or a `*` pattern), `docker compose up -d` |
 | Caddy log: certificate errors | DNS not pointing at the VM yet, or port 80 closed (1.3) | Fix DNS or the rules, then `docker compose restart caddy` |
 | API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.9) |
-| API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | `SPRING_FLYWAY_LOCATIONS` still includes the seed and the seed file changed | Do step 2 of 1.9 |
+| API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.9) |
 | Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, or the daily Gmail limit | §3.1; `docker compose logs api \| grep -i mail` |
 | Payments stay Unpaid after a transfer | Webhook URL or key wrong in SePay, or the transfer content was changed by the payer | SePay → webhook history shows our answer; Staff confirm by hand meanwhile |
 | API stops at start: "Cannot read the Firebase credentials file" | Wrong path or the file is not readable | §3.3 step 2 |
