@@ -17,19 +17,19 @@ Browser, Android, SePay ──► https://<API_DOMAIN>/api ──► Caddy :443 
 
 ### 1.1 Oracle Cloud account
 1. Sign up at cloud.oracle.com. The **home region** cannot be changed later and Always Free Ampere VMs exist only there: pick the region closest to the users (Singapore) or, if it keeps saying "out of capacity", another Asian region.
-2. The card is only verified, not charged. Optional but recommended: upgrade the account to **Pay As You Go**. Always Free resources stay free, capacity errors become rarer, and idle Always Free VMs are no longer reclaimed (a demo API is idle most of the time). Then add a budget alert of 1 USD under Billing → Budgets.
+2. The card is only verified, not charged. Oracle may reclaim an Always Free VM that stays idle for 7 days (95th-percentile CPU, network and, on A1, memory all under 20%), and a demo API is idle most of the time. Upgrading the account to **Pay As You Go** keeps Always Free resources free and makes capacity errors rarer; users report that it also stops idle reclaiming, although Oracle's page does not say so. After upgrading, anything beyond the Always Free limits is billed: add a budget alert of 1 USD under Billing → Budgets.
 
 ### 1.2 Create the VM
 Compute → Instances → Create instance:
-- Image: **Canonical Ubuntu 24.04** (aarch64). Shape: **VM.Standard.A1.Flex**, 2 OCPU, 12 GB memory (half of the free quota).
+- Image: **Canonical Ubuntu 24.04** (aarch64). Shape: **VM.Standard.A1.Flex**, 2 OCPU, 12 GB memory: the whole Always Free A1 quota since Oracle's 2026 cut (2 OCPU / 12 GB per tenancy), so create no second A1 VM.
 - Networking: a public subnet with a public IPv4 address. Boot volume: 50 GB.
 - SSH keys: paste your own public key (this is your login, separate from the deploy key in 1.6).
 
-After it starts: Networking → IP management → **Reserved public IPs**, and turn the VM's ephemeral IP into a reserved one, so the address survives a stop/start.
+Optional, after it starts: replace the VM's ephemeral public IP with a **reserved** one (instance → Attached VNICs → the VNIC → IPv4 addresses → Edit: first "No public IP", then "Reserved public IP" → create). The ephemeral address lives as long as the instance; a reserved one outlives it, so the DNS record stays valid if the VM is ever recreated. Do it before 1.5, because the address changes.
 
 ### 1.3 Open ports 80 and 443
 1. Networking → Virtual cloud networks → the VM's subnet → Security list → Add ingress rules: source `0.0.0.0/0`, TCP 80; TCP 443; UDP 443 (HTTP/3, optional). Do **not** open 5432 or 8080.
-2. On the VM (Oracle's Ubuntu images reject everything except SSH in iptables):
+2. On the VM, **before installing Docker** (Oracle's Ubuntu images reject everything except SSH in iptables, and a save after Docker would also store Docker's own rules). `sudo iptables -L INPUT -n --line-numbers` shows the final `REJECT`; insert the rules at its line number (6 on current images):
    ```bash
    sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
    sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
@@ -56,21 +56,22 @@ Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VM, fill it
 - Demo data: decide **before the first start** (1.9).
 
 ### 1.7 GitHub Actions access
-On your own computer, create a key used only for deploys and allow it on the VM:
+On the VM, create a key used only for deploys (no passphrase, so the workflow can use it) and allow it:
 ```bash
-ssh-keygen -t ed25519 -N "" -C campusstay-deploy -f campusstay-deploy
-cat campusstay-deploy.pub | ssh ubuntu@<API_DOMAIN> "cat >> ~/.ssh/authorized_keys"
+ssh-keygen -t ed25519 -N "" -C campusstay-deploy -f ~/.ssh/campusstay-deploy
+cat ~/.ssh/campusstay-deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/campusstay-deploy        # copy the whole output, BEGIN and END lines included
 ```
 GitHub → repository → Settings → Secrets and variables → Actions:
 
 | Kind | Name | Value |
 |---|---|---|
-| Secret | `VM_SSH_KEY` | content of the private key file `campusstay-deploy` |
+| Secret | `VM_SSH_KEY` | the private key printed above |
 | Variable | `VM_HOST` | `<API_DOMAIN>` or the reserved IP |
 | Variable | `VM_USER` | `ubuntu` |
 | Variable | `API_DOMAIN` | e.g. `campusstay-api.duckdns.org` (used for the health check) |
 
-Then delete the private key file from your computer, or keep it in a password manager.
+Then delete the private key from the VM: `rm ~/.ssh/campusstay-deploy` (the `.pub` line stays in `authorized_keys`).
 
 ### 1.8 First deploy
 GitHub → Actions → **backend** → Run workflow (branch `main`). The run verifies, builds the arm64 image, copies `infra/prod/` to the VM, starts the stack and waits for `https://<API_DOMAIN>/api/actuator/health/readiness`. The first start takes a minute or two (Flyway migrations, certificate).
@@ -89,7 +90,7 @@ The demo seed (`db/seed`) fills an **empty** database with a fictional campus: 8
    In psql (paste the hash between the quotes): `UPDATE auth_user SET password_hash = '<hash>';` then `\q`.
 
 ### 1.10 Backups
-`crontab -e` on the VM and add the line from the top of [`backup.sh`](backup.sh). It writes a database dump and an archive of the uploaded files (receipts, photos) and keeps the newest 14 of each on the VM. Copy them to your computer now and then:
+`mkdir -p /opt/campusstay/backups` (the cron line logs there), then `crontab -e` on the VM and add the line from the top of [`backup.sh`](backup.sh). It writes a database dump and an archive of the uploaded files (receipts, photos) and keeps the newest 14 of each on the VM. Copy them to your computer now and then:
 `scp "ubuntu@<API_DOMAIN>:/opt/campusstay/backups/*-<stamp>*" .`
 
 ## 2. One-time setup: Vercel (web)
