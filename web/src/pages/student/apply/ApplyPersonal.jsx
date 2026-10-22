@@ -61,7 +61,7 @@ export default function ApplyPersonal() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <h2 className="text-h3 font-semibold text-fg">Contact and emergency contact</h2>
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
           <Field label="Phone number" required className="flex-1">
             {(id) => <Input id={id} size="lg" type="tel" value={contact.phone ?? ''} onChange={setContact('phone')} />}
           </Field>
@@ -69,7 +69,7 @@ export default function ApplyPersonal() {
             {(id) => <Input id={id} size="lg" type="email" value={contact.email ?? ''} onChange={setContact('email')} />}
           </Field>
         </div>
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
           <Field label="Emergency contact name" required className="flex-1">
             {(id) => <Input id={id} size="lg" value={contact.emergencyName ?? ''} onChange={setContact('emergencyName')} />}
           </Field>

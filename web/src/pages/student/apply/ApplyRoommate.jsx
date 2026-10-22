@@ -58,7 +58,7 @@ export default function ApplyRoommate() {
           <h2 className="text-h3 font-semibold text-fg">Roommate</h2>
           <p className="text-base text-fg-secondary">2-bed Rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.</p>
         </div>
-        <div className="flex items-start gap-6" role="radiogroup" aria-label="Roommate">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6" role="radiogroup" aria-label="Roommate">
           <Radio name="roommateMode" label="Invite a roommate" checked={invite} onChange={() => setRoommate({ mode: 'invite' })} />
           <Radio name="roommateMode" label="Match me automatically" checked={!invite} onChange={() => setRoommate({ mode: 'auto' })} />
         </div>
@@ -137,7 +137,7 @@ export default function ApplyRoommate() {
             />
           </div>
           {roommate.preferencesOn && (
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
               <Field label="Region" className="flex-1">
                 {(id) => <Select id={id} size="lg" value={prefs.region ?? ''} onChange={setPref('region')} options={[{ value: '', label: 'Choose…', disabled: true }, ...(options.region ?? [])]} />}
               </Field>

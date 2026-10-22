@@ -37,6 +37,8 @@ Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), Reac
 
 Every screen fits one window (checked at 1440×900 and 1366×768): the page itself never scrolls. Tables and long panels scroll inside their own card, with table headers kept in view, and lists are paginated. On a window smaller than the layout needs, the content area scrolls as a fallback.
 
+**Phones and portrait tablets (Student portal, below 1024 px).** The student pages follow the Figma page *09 Android – Student*: an App Bar with the page title (and a back arrow on detail pages), a Bottom Nav with Home, My Room, Payments and Activity (Applications and Requests), single-column cards, and lists of rows instead of tables. The page scrolls between the two bars; on a tablet the column is at most 680 px wide. The bell opens `/student/notifications`. From 1024 px the desktop layout applies; the term chip, language toggle and the name next to the avatar appear from 1280 px. Tailwind's `lg:` prefix marks the desktop styles, `max-lg:` the phone-only ones. Checked at 360×800, 820×1180, 1024×768 and 1440×900. The back office stays desktop-only.
+
 ## What changed in this version
 
 - **Period of Stay and renewal removed.** Applications are for one Term; there is no renewal screen, renewal setting or renewal email. Admin › Utility keeps the utility billing and Utility Deposit rules.

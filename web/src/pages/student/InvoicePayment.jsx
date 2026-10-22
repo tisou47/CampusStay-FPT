@@ -30,9 +30,9 @@ function useSecondsLeft(expiresAt) {
   return Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 1000))
 }
 
-function CopyValue({ value, display, className }) {
+function useCopy() {
   const { notify } = useToast()
-  const copy = async () => {
+  return async (value) => {
     try {
       await navigator.clipboard.writeText(value)
       notify({ title: 'Copied', message: value })
@@ -40,10 +40,38 @@ function CopyValue({ value, display, className }) {
       notify({ type: 'warning', title: 'Could not copy', message: 'Select the text and copy it manually.' })
     }
   }
+}
+
+/**
+ * Saves the QR image as a file. The image comes from SePay's VietQR service on another origin, where the
+ * `download` attribute of a link is ignored, so the bytes are fetched (the service allows CORS) and saved
+ * from a blob URL. If that fails the image opens in a new tab to be saved by hand.
+ */
+function useSaveQr() {
+  const { notify } = useToast()
+  return async (url, fileName) => {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(String(res.status))
+      const href = URL.createObjectURL(await res.blob())
+      const link = document.createElement('a')
+      link.href = href
+      link.download = fileName
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(href), 1000)
+    } catch {
+      window.open(url, '_blank', 'noopener')
+      notify({ type: 'info', title: 'QR opened in a new tab', message: 'Save the image from there (long-press it on a phone).' })
+    }
+  }
+}
+
+function CopyValue({ value, display, className }) {
+  const copy = useCopy()
   return (
     <span className="inline-flex items-center gap-2">
       <span className={className}>{display ?? value}</span>
-      <button type="button" onClick={copy} aria-label={`Copy ${value}`} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
+      <button type="button" onClick={() => copy(value)} aria-label={`Copy ${value}`} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
         <Copy size={16} aria-hidden="true" />
       </button>
     </span>
@@ -56,6 +84,8 @@ function Payment({ data, reload }) {
   const paid = invoice.status === 'Paid'
   const left = useSecondsLeft(qr?.expiresAt)
   const refresh = useMutation(() => api.invoices.refreshQr(invoice.id), { onSuccess: reload, onError: (e) => notifyError(e, 'Could not refresh the QR code') })
+  const copy = useCopy()
+  const saveQr = useSaveQr()
 
   // Poll for the bank confirmation while the Invoice is unpaid.
   useEffect(() => {
@@ -75,14 +105,17 @@ function Payment({ data, reload }) {
   }, [paid, announced, invoice, notify])
 
   const mmss = left == null ? null : `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`
+  const expired = !paid && left === 0
+  const qrFile = `vietqr-${invoice.id}.png`
 
+  // Phone: MOB-BIL-02 Invoice Payment (Figma 56:292) — QR card, Save and Copy buttons, details, hint.
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-6">
-      <Card padding="lg" className="flex w-100 shrink-0 flex-col items-center gap-4 overflow-y-auto">
-        <h2 className="text-h3 font-semibold text-fg">{paid ? 'Payment confirmed' : 'Scan with any banking app'}</h2>
-        <div className="relative flex size-66 shrink-0 items-center justify-center rounded-lg border border-line">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
+      <Card padding="lg" className="flex w-full shrink-0 flex-col items-center gap-2.5 lg:w-100 lg:gap-4 lg:overflow-y-auto">
+        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{paid ? 'Payment confirmed' : 'Scan with any banking app'}</h2>
+        <div className="relative flex size-52 shrink-0 items-center justify-center rounded-lg border border-line lg:size-66">
           {qr?.image ? (
-            <img src={qr.image} alt={`VietQR code for ${invoice.id}, ${formatVnd(invoice.amount)}`} className="block size-64" />
+            <img src={qr.image} alt={`VietQR code for ${invoice.id}, ${formatVnd(invoice.amount)}`} className="block size-50 lg:size-64" />
           ) : (
             <span className="text-sm text-fg-tertiary">QR code unavailable</span>
           )}
@@ -93,7 +126,8 @@ function Payment({ data, reload }) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <p className="text-h1 font-semibold text-fg lg:hidden">{formatVnd(invoice.amount)}</p>
+        <div className="flex items-center gap-2 max-lg:hidden">
           <Tag tone="info">VietQR</Tag>
           <span className="text-sm text-fg-tertiary">Bank transfer · NAPAS 247</span>
         </div>
@@ -103,26 +137,49 @@ function Payment({ data, reload }) {
             {left > 0 ? `QR expires in ${mmss}` : 'QR expired'}
           </p>
         )}
-        {!paid && left === 0 ? (
-          <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
-            {refresh.pending ? 'Refreshing…' : 'Refresh QR'}
-          </Button>
-        ) : (
-          qr?.image && (
-            <Button size="lg" icon={Download} href={qr.image} download={`vietqr-${invoice.id}.png`}>
-              Download QR
+        <div className="max-lg:hidden">
+          {expired ? (
+            <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
+              {refresh.pending ? 'Refreshing…' : 'Refresh QR'}
             </Button>
-          )
-        )}
+          ) : (
+            qr?.image && (
+              <Button size="lg" icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
+                Download QR
+              </Button>
+            )
+          )}
+        </div>
       </Card>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+      {!paid && (
+        <div className="flex flex-col gap-2 lg:hidden">
+          {expired ? (
+            <Button variant="primary" size="lg" block onClick={() => refresh.run()} disabled={refresh.pending}>
+              {refresh.pending ? 'Refreshing…' : 'Refresh QR'}
+            </Button>
+          ) : (
+            qr?.image && (
+              <Button variant="primary" size="lg" block icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
+                Save QR to gallery
+              </Button>
+            )
+          )}
+          {transferContent && (
+            <Button size="lg" block icon={Copy} onClick={() => copy(transferContent)}>
+              Copy transfer content
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
         {paid ? (
           <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to Payments</Button>}>
             The bank confirmed this transfer on {formatDateTime(invoice.paidAt)}. A receipt is available under Payments.
           </Alert>
         ) : (
-          <Alert type="info" title="Waiting for your payment" className="shrink-0">
+          <Alert type="info" title="Waiting for your payment" className="shrink-0 max-lg:hidden">
             This page updates automatically when the bank confirms the transfer. You can close it; we will notify you.
           </Alert>
         )}
@@ -157,6 +214,11 @@ function Payment({ data, reload }) {
           />
         </Card>
 
+        {!paid && (
+          <Note icon={Info} className="shrink-0 lg:hidden">
+            Open your banking app and scan the saved QR. This screen updates when the bank confirms.
+          </Note>
+        )}
         {!paid && (
           <Note icon={Info} className="shrink-0">
             Paid but not confirmed after 15 minutes? Bring your transfer receipt to the dormitory office; Staff can confirm the payment manually.

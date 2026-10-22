@@ -59,7 +59,7 @@ function Invitation({ inv }) {
           <h2 className="text-h3 font-semibold text-fg">A Student wants to swap Rooms with you</h2>
           <p className="text-base text-fg-secondary">Their name and code stay private until the swap is approved.</p>
         </div>
-        <div className="flex items-stretch gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
           <RoomBox label="You give" room={inv.give} />
           <RoomBox label="You get" room={inv.get} />
         </div>

@@ -52,7 +52,7 @@ export default function SwapBoard() {
 
   return (
     <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Swap board' }]} title="Swap board">
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex shrink-0 flex-col gap-4">
             <SwapModePicker value="board" />

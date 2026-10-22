@@ -9,12 +9,12 @@ import { Button } from '@/components/ui/Button'
 import { DetailRows, Note, ProgressTimeline } from '@/components/ui/Display'
 import { Drawer } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
-import { QueryState, TableStatus } from '@/components/ui/States'
+import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
-import { StudentPage } from './shared'
+import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
 
 // SCR-MNT-01 My Maintenance Requests (Figma 41:1522) — Maintenance and Room changes tabs.
 // GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize →
@@ -138,6 +138,8 @@ export default function MyRequests() {
   return (
     <StudentPage
       title="Requests"
+      mobileTitle="Activity"
+      phoneTop={<ActivitySwitch current="requests" />}
       description={query.data?.room ? `Maintenance and Room-Change Requests for Room ${query.data.room}.` : 'Maintenance and Room-Change Requests.'}
       actions={
         tab === 'maintenance' ? (
@@ -166,8 +168,85 @@ export default function MyRequests() {
         ]}
       />
 
+      {/* Phone: MOB-APP-01 Activity › Requests (Figma 56:441) — rows with the tag under the text,
+          and a "Confirm fix" card for the first Resolved request. */}
+      <QueryState
+        query={query}
+        compact
+        className="lg:hidden"
+        empty={
+          tab === 'maintenance' ? (
+            <EmptyBlock icon={Wrench} title="No maintenance requests" className="lg:hidden">
+              Report a problem in your Room and the maintenance staff will fix it.
+            </EmptyBlock>
+          ) : (
+            <EmptyBlock icon={Repeat} title="No room changes yet" className="lg:hidden">
+              Ask the dormitory office to move you to another Room, or agree a swap with another Student.
+            </EmptyBlock>
+          )
+        }
+      >
+        {(data) => {
+          const resolved = tab === 'maintenance' ? data.items.find((r) => r.status === 'Resolved') : null
+          return (
+            <div className="flex flex-col gap-3 lg:hidden">
+              <StatusList>
+                {tab === 'maintenance'
+                  ? data.items.map((r) => (
+                      <StatusRow
+                        key={r.id}
+                        icon={Wrench}
+                        value={r.title}
+                        note={[r.id, r.visitWindow ? `visit ${r.visitWindow}` : r.location].filter(Boolean).join(' · ')}
+                        below={<MaintenanceStatus status={r.status} />}
+                        onClick={() => setOpenId(r.id)}
+                      />
+                    ))
+                  : data.items.map((r) => (
+                      <StatusRow
+                        key={r.id}
+                        icon={Repeat}
+                        value={r.typeLabel}
+                        note={[r.id, r.summary].filter(Boolean).join(' · ')}
+                        below={
+                          <>
+                            <StatusTag status={r.status} tone={r.status === 'Approved' ? 'success' : undefined} />
+                            {r.invoiceId && (
+                              <Button size="sm" variant="primary" to={`/student/invoices/${r.invoiceId}/pay`}>
+                                Pay
+                              </Button>
+                            )}
+                            {r.invitationId && (
+                              <Button size="sm" variant="primary" to={`/student/requests/swap/invitations/${r.invitationId}`}>
+                                Answer
+                              </Button>
+                            )}
+                          </>
+                        }
+                      />
+                    ))}
+              </StatusList>
+              {resolved && (
+                <section className="flex flex-col gap-2 rounded-xl border border-green-100 bg-success-bg p-4">
+                  <h2 className="text-base font-medium text-fg">Is “{resolved.title}” fixed?</h2>
+                  <p className="text-sm text-fg-secondary">Confirm to close {resolved.id}, or reopen it.</p>
+                  <div className="flex gap-2 pt-1 *:flex-1">
+                    <Button size="lg" onClick={() => confirm.run(resolved, false)} disabled={confirm.pending}>
+                      Reopen
+                    </Button>
+                    <Button variant="primary" size="lg" onClick={() => confirm.run(resolved, true)} disabled={confirm.pending}>
+                      Confirm fixed
+                    </Button>
+                  </div>
+                </section>
+              )}
+            </div>
+          )
+        }}
+      </QueryState>
+
       {tab === 'maintenance' ? (
-        <Table size="lg" fill>
+        <Table size="lg" fill className="max-lg:hidden">
           <THead>
             <tr>
               <Th className="w-40">Request</Th>
@@ -212,7 +291,7 @@ export default function MyRequests() {
           </TBody>
         </Table>
       ) : (
-        <Table size="lg" fill>
+        <Table size="lg" fill className="max-lg:hidden">
           <THead>
             <tr>
               <Th className="w-40">Request</Th>
@@ -260,7 +339,7 @@ export default function MyRequests() {
         </Table>
       )}
 
-      <div className="flex shrink-0 items-center justify-between gap-4">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
         {tab === 'maintenance' ? <Note className="items-center">Track requests on the Android app too. Submitting new requests is done here on the web.</Note> : <span />}
         <Pagination
           total={query.data?.total ?? 0}

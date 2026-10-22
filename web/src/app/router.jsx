@@ -27,6 +27,7 @@ import InvoicePayment from '@/pages/student/InvoicePayment'
 import InvoiceDetail from '@/pages/student/InvoiceDetail'
 import MyRoom from '@/pages/student/MyRoom'
 import MyRequests from '@/pages/student/MyRequests'
+import Notifications from '@/pages/student/Notifications'
 import NewMaintenanceRequest from '@/pages/student/NewMaintenanceRequest'
 import NewRoomChangeRequest from '@/pages/student/NewRoomChangeRequest'
 import SwapSpecific from '@/pages/student/SwapSpecific'
@@ -128,6 +129,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/new', element: <SwapSpecific /> },
         { path: 'requests/swap/board', element: <SwapBoard /> },
         { path: 'requests/swap/invitations/:id', element: <SwapInvitation /> },
+        { path: 'notifications', element: <Notifications /> },
       ]),
 
       portal('staff', <BackOfficeLayout role="staff" />, [

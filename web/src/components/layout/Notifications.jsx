@@ -9,12 +9,17 @@ import { formatRelative } from '@/lib/format'
 
 // Notification Center (web): latest notifications for the signed-in user.
 // Item: { id, title, body, createdAt, link, read }.
-export function NotificationsButton() {
+export function useNotifications() {
   const query = useQuery(['notifications'], ({ signal }) => api.notifications.list({ limit: 10 }, { signal }))
   const markAll = useMutation(() => api.notifications.markAllRead(), { invalidates: ['notifications'], onError: () => {} })
   const markOne = useMutation((id) => api.notifications.markRead(id), { invalidates: ['notifications'], onError: () => {} })
   const items = query.data?.items ?? []
   const unread = query.data?.unread ?? items.filter((n) => !n.read).length
+  return { query, items, unread, markAll, markOne }
+}
+
+export function NotificationsButton() {
+  const { query, unread, markAll, markOne } = useNotifications()
 
   return (
     <Popover

@@ -55,7 +55,7 @@ export function useMyAllocation() {
 export function YourRoomNow() {
   const query = useMyAllocation()
   return (
-    <Card padding="lg" className="flex w-90 shrink-0 flex-col gap-3 self-start">
+    <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
       <h2 className="text-h3 font-semibold text-fg">Your Room now</h2>
       <QueryState query={query} compact isEmpty={(d) => !d?.allocation} empty={<p className="text-base text-fg-secondary">You have no Room this Term.</p>}>
         {({ allocation: a }) =>

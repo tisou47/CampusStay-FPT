@@ -44,7 +44,7 @@ function Offer({ offer }) {
   })
 
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-6">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <Alert type="info" title="You were not placed in Round 1" className="shrink-0">
           No {app.roomTypeName} {app.roomClassName} Room could be filled with matching roommates. Your deposit stays with this Application.
@@ -113,7 +113,7 @@ function Offer({ offer }) {
         </div>
       </div>
 
-      <Card padding="lg" className="flex w-90 shrink-0 flex-col gap-3 self-start">
+      <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
         <h2 className="text-h3 font-semibold text-fg">{app.id}</h2>
         {[
           ['Applied for', `${app.roomTypeName} · ${app.roomClassName}`],

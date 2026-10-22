@@ -4,6 +4,7 @@ import { Check, CircleCheck, Clock, CreditCard, FileText, Users, X } from 'lucid
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, DetailRows, Note } from '@/components/ui/Display'
@@ -53,7 +54,7 @@ function Invitation({ inv }) {
   })
 
   return (
-    <Card className="mx-auto flex max-h-full w-full max-w-180 flex-col gap-4 overflow-y-auto p-8">
+    <Card padding="none" className="mx-auto flex w-full max-w-180 flex-col gap-4 p-4 lg:max-h-full lg:overflow-y-auto lg:p-8">
       <div className="flex items-center gap-4">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-fg-brand">
           <Users size={24} aria-hidden="true" />
@@ -108,7 +109,7 @@ function Invitation({ inv }) {
         {inv.registrationClosesAt ? ` before ${formatDateTime(inv.registrationClosesAt)}` : ''}.
       </Note>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex gap-3 *:flex-1 lg:justify-end lg:*:flex-none">
         <Button size="lg" icon={X} onClick={() => respond.run(false)} disabled={respond.pending || left === 'Expired'}>
           Decline
         </Button>
@@ -122,8 +123,9 @@ function Invitation({ inv }) {
 
 export default function RoommateInvitation() {
   const query = useQuery(['roommate-invitation'], ({ signal }) => api.me.roommateInvitation(undefined, { signal }))
+  useMobileBar('Roommate invitation', '/student')
   return (
-    <StudentContainer className="flex h-full min-h-0 flex-col justify-center py-6">
+    <StudentContainer className="flex flex-col pt-2 pb-4 lg:h-full lg:min-h-0 lg:justify-center lg:py-6">
       {!query.data?.invitation && <h1 className="sr-only">Roommate invitation</h1>}
       {query.data === undefined && query.loading ? (
         <LoadingState />

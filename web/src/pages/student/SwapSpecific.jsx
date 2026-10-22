@@ -34,7 +34,7 @@ export default function SwapSpecific() {
 
   return (
     <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Room swap' }]} title="Swap your Room">
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             <SwapModePicker value="specific" />

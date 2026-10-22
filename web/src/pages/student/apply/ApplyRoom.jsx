@@ -24,7 +24,7 @@ export default function ApplyRoom() {
           <h2 className="text-h3 font-semibold text-fg">Room Type</h2>
           <p className="text-base text-fg-secondary">Number of Beds in the Room. Prices are per Bed for the whole Term.</p>
         </div>
-        <div className="flex items-stretch gap-4" role="radiogroup" aria-label="Room Type">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label="Room Type">
           {roomTypes.map((t) => {
             const from = helpers.fromPrice(t.id)
             return (
@@ -48,7 +48,7 @@ export default function ApplyRoom() {
           <h2 className="text-h3 font-semibold text-fg">Room Class</h2>
           <p className="text-base text-fg-secondary">Amenities level. The surcharge is added to the Room Type price.</p>
         </div>
-        <div className="flex items-stretch gap-4" role="radiogroup" aria-label="Room Class">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label="Room Class">
           {roomClasses.map((c) => {
             const price = draft.roomTypeId ? helpers.termPrice(draft.roomTypeId, c.id) : null
             return (

@@ -71,7 +71,7 @@ export default function NewMaintenanceRequest() {
 
   return (
     <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'New maintenance request' }]} title="New maintenance request">
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
             {submit.error && (
@@ -89,7 +89,7 @@ export default function NewMaintenanceRequest() {
                 {a ? [`${a.room} · Bed ${a.bed}`, a.block, a.floor].filter(Boolean).join(' · ') : '—'}
               </StaticField>
             </Field>
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
               <Field label="Category" required className="flex-1" error={categoryError}>
                 {(id) => (
                   <Select
@@ -115,7 +115,7 @@ export default function NewMaintenanceRequest() {
 
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-base font-medium text-fg">How urgent is it?</legend>
-              <div className="flex items-start gap-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6">
                 <Radio name="urgency" label="Normal" checked={form.urgency === 'Normal'} onChange={() => setForm((f) => ({ ...f, urgency: 'Normal' }))} />
                 <Radio name="urgency" label="Urgent: water leak, no power, safety risk" checked={form.urgency === 'Urgent'} onChange={() => setForm((f) => ({ ...f, urgency: 'Urgent' }))} />
               </div>
@@ -166,7 +166,7 @@ export default function NewMaintenanceRequest() {
           </div>
         </Card>
 
-        <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
+        <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
           <Alert type="error" title="Emergency?" className="shrink-0">
             For fire, flooding or electrical danger, go to the {a?.block ? `${a.block} ` : ''}desk on Floor 1 right away. Do not wait for this form.
           </Alert>

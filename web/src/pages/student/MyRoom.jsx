@@ -52,24 +52,35 @@ function MoreLink({ icon: Glyph, to, href, children }) {
 }
 
 function Room({ data }) {
-  const { allocation: a, roommates = [], checkIn, balance } = data
+  const { allocation: a, roommates = [], checkIn, balance, term: t } = data
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-6">
-      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <section className="flex shrink-0 items-center gap-6 rounded-lg border border-orange-200 bg-brand-subtle px-6 py-5">
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
+        <section className="flex shrink-0 flex-col items-start gap-1.5 rounded-xl border border-orange-200 bg-brand-subtle p-4 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-5">
+          <span className="hidden size-14 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
             <Bed size={28} aria-hidden="true" />
           </span>
+          <StatusTag status={a.status ?? 'Allocated'} className="lg:hidden" />
           <div className="flex flex-col gap-1">
             <p className="text-h1 font-semibold text-fg">
-              Room {a.room} · Bed {a.bed}
+              <span className="max-lg:hidden">Room </span>
+              {a.room} · Bed {a.bed}
             </p>
-            <p className="text-lg text-fg-secondary">{[a.block, a.floor, a.roomTypeName, a.roomClassName].filter(Boolean).join(' · ')}</p>
+            <p className="text-base text-fg-secondary lg:text-lg">{[a.block, a.floor, a.roomTypeName, a.roomClassName].filter(Boolean).join(' · ')}</p>
           </div>
         </section>
 
         <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-          <h2 className="text-h3 font-semibold text-fg">Details</h2>
+          <h2 className="text-h3 font-semibold text-fg max-lg:hidden">Details</h2>
+          {t && (
+            <Facts
+              className="lg:hidden"
+              items={[
+                ['Term', t.name],
+                ...(t.stayStart ? [['Stay', `${formatDate(t.stayStart)} – ${formatDate(t.stayEnd)}`]] : []),
+              ]}
+            />
+          )}
           <Facts
             items={[
               ['Block', a.blockLabel ?? a.block ?? '—'],
@@ -96,13 +107,13 @@ function Room({ data }) {
             )}
           </div>
           {roommates.length ? (
-            <ul className="flex items-stretch gap-4">
+            <ul className="flex flex-col gap-1 lg:flex-row lg:items-stretch lg:gap-4">
               {roommates.map((p) => (
-                <li key={`${p.bed}-${p.name}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-line bg-subtle p-4">
+                <li key={`${p.bed}-${p.name}`} className="flex min-w-0 items-center gap-3 py-1.5 lg:flex-1 lg:rounded-lg lg:border lg:border-line lg:bg-subtle lg:p-4">
                   <Avatar name={p.name} />
-                  <div className="flex min-w-0 flex-col">
+                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3 lg:flex-col lg:items-start lg:justify-start lg:gap-0">
                     <span className="truncate text-base font-medium text-fg">{p.name}</span>
-                    <span className="text-sm text-fg-tertiary">Bed {p.bed}</span>
+                    <span className="shrink-0 text-sm text-fg-tertiary">Bed {p.bed}</span>
                   </div>
                 </li>
               ))}
@@ -114,7 +125,7 @@ function Room({ data }) {
         </Card>
       </div>
 
-      <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
+      <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         {checkIn && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
             <h2 className="text-h3 font-semibold text-fg">Check-in</h2>
@@ -181,7 +192,12 @@ export default function MyRoom() {
   const description = t ? `${t.name}${t.stayStart ? ` · ${formatDate(t.stayStart)} – ${formatDate(t.stayEnd)}` : ''}` : undefined
 
   return (
-    <StudentPage title="My Room" badge={data?.allocation && <StatusTag status={data.allocation.status ?? 'Allocated'} />} description={description}>
+    <StudentPage
+      title="My Room"
+      badge={data?.allocation && <StatusTag status={data.allocation.status ?? 'Allocated'} />}
+      badgeOnPhone={false}
+      description={description}
+    >
       {data === undefined && query.loading ? (
         <LoadingState />
       ) : data === undefined ? (

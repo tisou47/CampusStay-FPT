@@ -7,11 +7,11 @@ import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { StatTile } from '@/components/ui/Display'
 import { Pagination } from '@/components/ui/Pagination'
-import { TableStatus } from '@/components/ui/States'
+import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
-import { ReceiptModal, StudentPage } from './shared'
+import { ReceiptModal, StatusList, StatusRow, StudentPage } from './shared'
 
 // SCR-BIL-01 My Invoices (Figma 19:1051)
 // GET /students/me/invoices?termId&page&pageSize → {
@@ -33,7 +33,7 @@ export default function MyInvoices() {
 
   return (
     <StudentPage title="Payments" description="Invoices for your dormitory stay. Pay each Invoice with VietQR before its due date.">
-      <div className="flex shrink-0 items-stretch gap-6">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
         <StatTile
           icon={Banknote}
           label="Outstanding"
@@ -42,19 +42,42 @@ export default function MyInvoices() {
         />
         <StatTile
           icon={CreditCard}
+          className="max-lg:hidden"
           label={`Paid${term ? ` for ${term.name}` : ''}`}
           value={summary ? formatVnd(summary.paidTotal) : '—'}
           note={summary?.paidCount ? `${summary.paidCount} ${summary.paidCount === 1 ? 'payment' : 'payments'}` : 'No payments yet'}
         />
         <StatTile
           icon={Calendar}
+          className="max-lg:hidden"
           label="Next Invoice"
           value={summary?.upcoming ? formatVnd(summary.upcoming.amount) : '—'}
           note={summary?.upcoming ? `${summary.upcoming.typeLabel} · ${summary.upcoming.note}` : 'No upcoming Invoice this Term'}
         />
       </div>
 
-      <Table size="lg" fill>
+      {/* Phone: MOB-BIL-01 Invoices (Figma 56:203) — one row per Invoice instead of the table. */}
+      <section className="flex flex-col gap-3 lg:hidden">
+        <h2 className="text-sm font-medium text-fg-tertiary">Invoices</h2>
+        <QueryState query={query} compact empty={<EmptyBlock icon={ReceiptText} title="No invoices">The deposit Invoice is issued when you submit an Application.</EmptyBlock>}>
+          {(data) => (
+            <StatusList>
+              {data.items.map((inv) => (
+                <StatusRow
+                  key={inv.id}
+                  icon={CreditCard}
+                  value={`${inv.typeLabel} · ${formatVnd(inv.amount)}`}
+                  note={`${inv.id} · ${inv.status === 'Paid' ? `paid ${formatDate(inv.paidAt)}` : `due ${formatDate(inv.dueAt)}`}`}
+                  tag={inv.status === 'Upcoming' ? <Tag>Upcoming</Tag> : <StatusTag status={inv.status} />}
+                  to={invoicePath(inv)}
+                />
+              ))}
+            </StatusList>
+          )}
+        </QueryState>
+      </section>
+
+      <Table size="lg" fill className="max-lg:hidden">
         <THead>
           <tr>
             <Th className="w-44">Invoice</Th>

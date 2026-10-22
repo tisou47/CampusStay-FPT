@@ -8,11 +8,15 @@ import { MenuItem, Popover } from '@/components/ui/Popover'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { Logo } from './Logo'
+import { MobileAppBar, MobileBarProvider, MobileBottomNav } from './MobileBar'
 import { NotificationsButton } from './Notifications'
 
-/** Content column used by every student page: 1200 px at 1440 (120 px side padding). */
+/**
+ * Content column used by every student page: 1200 px at 1440 (120 px side padding). Below 1024 px
+ * (phone shell) 16 px sides, and on a portrait tablet the single column stays at most 680 px wide.
+ */
 export function StudentContainer({ className, children }) {
-  return <div className={cx('mx-auto w-full max-w-[1248px] px-6', className)}>{children}</div>
+  return <div className={cx('mx-auto w-full max-w-170 px-4 lg:max-w-[1248px] lg:px-6', className)}>{children}</div>
 }
 
 export function LanguageToggle() {
@@ -37,7 +41,7 @@ function StudentTopBar() {
   const { user, term, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
-    <header className="z-30 shrink-0 border-b border-line bg-surface">
+    <header className="z-30 hidden shrink-0 border-b border-line bg-surface lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <StudentContainer className="flex h-16 items-center justify-between gap-6">
         <div className="flex items-center gap-10">
@@ -63,14 +67,17 @@ function StudentTopBar() {
             })}
           </nav>
         </div>
+        {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
         <div className="flex items-center gap-4">
           {term && (
-            <span className="flex items-center gap-1.5 rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary">
+            <span className="hidden items-center gap-1.5 rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary xl:flex">
               <Calendar size={16} aria-hidden="true" />
               {term.name}
             </span>
           )}
-          <LanguageToggle />
+          <span className="hidden xl:contents">
+            <LanguageToggle />
+          </span>
           <NotificationsButton />
           <span aria-hidden="true" className="h-6 w-px bg-line" />
           <Popover
@@ -78,7 +85,7 @@ function StudentTopBar() {
             trigger={({ toggle, props }) => (
               <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
                 <Avatar name={user?.name} />
-                <span className="flex flex-col whitespace-nowrap">
+                <span className="hidden flex-col whitespace-nowrap xl:flex">
                   <span className="text-base font-medium text-fg">{user?.name ?? 'Not signed in'}</span>
                   {user?.studentCode && <span className="text-sm text-fg-tertiary">{user.studentCode}</span>}
                 </span>
@@ -121,13 +128,18 @@ function StudentTopBar() {
 }
 
 // One-screen shell: the window never scrolls; each page fills the area under the top bar.
+// On a phone the App Bar and Bottom Nav stay in place and the page scrolls between them.
 export function StudentLayout() {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
-      <StudentTopBar />
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <Outlet />
-      </main>
-    </div>
+    <MobileBarProvider>
+      <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+        <StudentTopBar />
+        <MobileAppBar />
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <Outlet />
+        </main>
+        <MobileBottomNav />
+      </div>
+    </MobileBarProvider>
   )
 }

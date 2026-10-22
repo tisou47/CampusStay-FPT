@@ -24,7 +24,24 @@ function Breakdown({ inv }) {
         <h2 className="text-h3 font-semibold text-fg">How your share is calculated</h2>
         <p className="text-base text-fg-secondary">{inv.room ? `${inv.room} has one shared meter. ` : ''}Each segment is split equally among the residents in it.</p>
       </div>
-      <Table fill>
+      {/* Phone: MOB-BIL-03 Utility Invoice › Segments (Figma 104:14502) — a dated line and its usage per segment. */}
+      <ul className="flex flex-col gap-3 lg:hidden">
+        {b.segments.map((s) => (
+          <li key={`${s.from}-${s.to}`} className="flex flex-col gap-1 border-b border-line pb-3 last:border-b-0 last:pb-0">
+            <span className="text-sm text-fg-secondary">
+              {formatDate(s.from)} – {formatDate(s.to)} · {s.residents} {s.residents === 1 ? 'resident' : 'residents'}
+              {s.note ? ` · ${s.note}` : ''}
+            </span>
+            <span className="flex items-start justify-between gap-3 text-base">
+              <span className="text-fg">
+                {formatNumber(s.kwh)} kWh · {formatNumber(s.m3)} m³
+              </span>
+              <span className="font-medium text-fg">{formatVnd(s.share, { unit: false })}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Table fill className="max-lg:hidden">
         <THead>
           <tr>
             <Th>Segment</Th>
@@ -102,9 +119,10 @@ export default function InvoiceDetail() {
       ) : inv === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : (
-        <div className="flex min-h-0 flex-1 items-stretch gap-6">
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
           {inv.breakdown ? <Breakdown inv={inv} /> : <Lines inv={inv} />}
-          <Card padding="lg" className="flex w-90 shrink-0 flex-col items-start gap-3 self-start">
+          {/* Phone: the amount card comes first, as in MOB-BIL-03 Utility Invoice. */}
+          <Card padding="lg" className="flex w-full shrink-0 flex-col items-start gap-3 self-start max-lg:order-first lg:w-90">
             <StatusTag status={inv.status} />
             <p className="text-kpi font-semibold text-fg">{formatVnd(inv.amount)}</p>
             <div className="flex w-full justify-between text-base">

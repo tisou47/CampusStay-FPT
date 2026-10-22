@@ -25,10 +25,11 @@ export function Avatar({ name, initials, size = 32, className }) {
 
 /* ---------------------------------------------------------------- Card */
 // Cards stay flat on the canvas with a 1 px border (Foundations › Elevation).
+// Phone width follows 09 Android – Student: 12 px radius and 16 px padding.
 export function Card({ as: Tag = 'section', padding = 'md', className, children, ...props }) {
-  const pad = { none: '', sm: 'p-4', md: 'p-5', lg: 'p-6' }[padding]
+  const pad = { none: '', sm: 'p-4', md: 'p-4 lg:p-5', lg: 'p-4 lg:p-6' }[padding]
   return (
-    <Tag className={cx('rounded-lg border border-line bg-surface', pad, className)} {...props}>
+    <Tag className={cx('rounded-xl border border-line bg-surface lg:rounded-lg', pad, className)} {...props}>
       {children}
     </Tag>
   )
@@ -155,13 +156,14 @@ export function Breadcrumb({ items, className }) {
 
 /* ---------------------------------------------------------------- Facts row */
 // Label (12/20 tertiary) over value (14/22 medium), laid out in equal columns.
+// Phone (Android detail cards): one row per fact, label left in text/secondary, value right.
 export function Facts({ items, dense = false, className }) {
   return (
-    <dl className={cx('flex w-full items-start', dense ? 'gap-4' : 'gap-6', className)}>
+    <dl className={cx('flex w-full flex-col gap-2.5 lg:flex-row lg:items-start', dense ? 'lg:gap-4' : 'lg:gap-6', className)}>
       {items.map(([label, value]) => (
-        <div key={label} className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <dt className="text-sm text-fg-tertiary">{label}</dt>
-          <dd className="text-base font-medium text-fg">{value}</dd>
+        <div key={label} className="flex min-w-0 items-start justify-between gap-4 lg:flex-1 lg:flex-col lg:justify-start lg:gap-0.5">
+          <dt className="shrink-0 text-base text-fg-secondary lg:text-sm lg:text-fg-tertiary">{label}</dt>
+          <dd className="min-w-0 text-right text-base font-medium text-fg lg:text-left">{value}</dd>
         </div>
       ))}
     </dl>
@@ -181,7 +183,7 @@ export function Note({ children, className, icon: Glyph = Info }) {
 /* ---------------------------------------------------------------- Key/value list */
 export function DescriptionList({ items, columns = 1, className, labelWidth }) {
   return (
-    <dl className={cx('grid gap-x-6 gap-y-3', columns === 2 && 'grid-cols-2', columns === 3 && 'grid-cols-3', className)}>
+    <dl className={cx('grid gap-x-6 gap-y-3', columns === 2 && 'lg:grid-cols-2', columns === 3 && 'lg:grid-cols-3', className)}>
       {items.map(([label, value]) => (
         <div key={label} className={cx('flex min-w-0 gap-3', labelWidth ? 'flex-row' : 'flex-col gap-0.5')}>
           <dt className={cx('shrink-0 text-sm text-fg-tertiary', labelWidth)}>{label}</dt>

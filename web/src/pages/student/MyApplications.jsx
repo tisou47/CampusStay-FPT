@@ -6,11 +6,11 @@ import { useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Display'
 import { Pagination } from '@/components/ui/Pagination'
-import { TableStatus } from '@/components/ui/States'
+import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatVnd } from '@/lib/format'
-import { StudentPage } from './shared'
+import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
 
 // SCR-APP-02 My Applications (Figma 19:868)
 // GET /students/me/applications?page&pageSize → { items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }
@@ -25,6 +25,8 @@ export default function MyApplications() {
   return (
     <StudentPage
       title="My applications"
+      mobileTitle="Activity"
+      phoneTop={<ActivitySwitch current="applications" />}
       description="One Application per Term. Open an Application to see its progress."
       actions={
         <Button variant="primary" size="lg" icon={Plus} to={activeTerm ? undefined : '/student/apply/term'} disabled={Boolean(activeTerm) || !query.data}>
@@ -34,7 +36,34 @@ export default function MyApplications() {
     >
       {activeTerm && <Note className="shrink-0 items-center">New application is disabled while you have an active Application for {activeTerm}.</Note>}
 
-      <Table size="lg" fill>
+      {/* Phone: MOB-APP-01 Activity › Applications — one row per Application instead of the table. */}
+      <QueryState
+        query={query}
+        compact
+        className="lg:hidden"
+        empty={
+          <EmptyBlock icon={FileText} title="No applications yet" className="lg:hidden">
+            Start an application when registration is open.
+          </EmptyBlock>
+        }
+      >
+        {(data) => (
+          <StatusList className="lg:hidden">
+            {data.items.map((r) => (
+              <StatusRow
+                key={r.id}
+                icon={FileText}
+                value={r.id}
+                note={[r.termName, r.roomTypeName, r.roomClassName].filter(Boolean).join(' · ')}
+                below={<StatusTag status={r.status} />}
+                to={`/student/applications/${r.id}`}
+              />
+            ))}
+          </StatusList>
+        )}
+      </QueryState>
+
+      <Table size="lg" fill className="max-lg:hidden">
         <THead>
           <tr>
             <Th className="w-42">Application</Th>

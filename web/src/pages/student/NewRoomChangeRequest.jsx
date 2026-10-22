@@ -58,7 +58,7 @@ function Form({ opts }) {
   )
 
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-6">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
         <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
           {submit.error && (
@@ -84,7 +84,7 @@ function Form({ opts }) {
             ))}
           </fieldset>
 
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
             <Field label={kind === 'type' ? 'New Room Type' : 'Room Type'} className="flex-1">
               {(id) => (
                 <Select
@@ -129,7 +129,7 @@ function Form({ opts }) {
         </div>
       </Card>
 
-      <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
+      <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         <Card padding="lg" className="flex shrink-0 flex-col gap-2.5">
           <h2 className="text-h3 font-semibold text-fg">Price difference</h2>
           <div className="flex justify-between text-base">

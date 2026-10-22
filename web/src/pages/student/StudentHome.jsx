@@ -1,17 +1,22 @@
 import { useState } from 'react'
-import { Bed, CalendarCheck, ChevronRight, Clock, CreditCard, FileText, Wrench } from 'lucide-react'
+import { Link } from 'react-router'
+import { Bed, CalendarCheck, ChevronRight, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
+import { useMobileBar } from '@/components/layout/MobileBar'
+import { useNotifications } from '@/components/layout/Notifications'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
 import { ErrorState, LoadingState, QueryState } from '@/components/ui/States'
+import { StatusTag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
-import { CompareClassesModal, NextAction, StatusCard, TermTimeline } from './shared'
+import { CompareClassesModal, NextAction, StatusCard, StatusList, StatusRow, TermTimeline } from './shared'
 
 // SCR-HOME-01 Student Home (13:96) and SCR-HOME-01 Student Home · Allocated (39:1165).
+// Phone: MOB-HOME-01 Home (55:160) — Next action, a status list and the latest notification.
 // GET /students/me/home?termId → {
 //   firstName, term, application: { id, status, roomTypeName, roomClassName } | null,
 //   allocation: { room, bed, block, floor } | null, checkedIn,
@@ -45,7 +50,7 @@ function RoomTypesCard() {
   const catalog = useCatalog()
   const { fromPrice } = catalogHelpers(catalog.data)
   return (
-    <Card padding="lg" className="flex min-h-0 w-96 shrink-0 flex-col gap-3">
+    <Card padding="lg" className="flex w-full shrink-0 flex-col gap-3 lg:min-h-0 lg:w-96">
       <div className="flex shrink-0 flex-col gap-0.5">
         <h2 className="text-h3 font-semibold text-fg">Room Types</h2>
         <p className="text-sm text-fg-tertiary">Lowest Term price per Bed.</p>
@@ -189,33 +194,70 @@ function HomeContent({ home }) {
 
   return (
     <>
-      <div className="flex shrink-0 flex-col gap-1">
+      <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
         <h1 className="text-h1 font-semibold text-fg">{greeting(home.firstName)}</h1>
         <p className="text-lg text-fg-secondary">{subtitle}</p>
       </div>
 
       {next}
 
-      <div className="flex shrink-0 items-stretch gap-6">
+      <div className="hidden shrink-0 items-stretch gap-6 lg:flex">
         <StatusCard icon={FileText} label="Application" {...cards.application} />
         <StatusCard icon={Bed} label="My Room" {...cards.room} />
         <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
         <StatusCard icon={Wrench} label="Requests" value={`${home.openRequests ?? 0} open`} note="Maintenance and Room-Change Requests" to={allocation ? '/student/requests' : undefined} />
       </div>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
-        <TermTimeline term={term} milestones={milestones} className="flex-1" />
+      <StatusList className="lg:hidden">
+        <StatusRow icon={Bed} value={cards.room.value} note={cards.room.note} to={cards.room.to} />
+        {app ? (
+          <StatusRow
+            icon={FileText}
+            value={app.id}
+            note={[term?.name, app.roomTypeName, app.roomClassName].filter(Boolean).join(' · ')}
+            tag={<StatusTag status={app.status} />}
+            to={cards.application.to}
+          />
+        ) : (
+          <StatusRow icon={FileText} value={cards.application.value} note={cards.application.note} to={cards.application.to} />
+        )}
+        {allocation && term?.checkInStart && !home.checkedIn && (
+          <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), allocation.block].filter(Boolean).join(' · ')} to="/student/room" />
+        )}
+        <StatusRow icon={CreditCard} value={`Payments · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
+        {allocation && <StatusRow icon={Wrench} value={`Requests · ${home.openRequests ?? 0} open`} note="Maintenance and Room-Change Requests" to="/student/requests" />}
+      </StatusList>
+
+      <LatestNotification />
+
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
+        <TermTimeline term={term} milestones={milestones} className="lg:flex-1" />
         {stage !== 'allocated' && <RoomTypesCard />}
       </div>
     </>
   )
 }
 
+/** Phone only (Android Home › Latest): the newest notification, linking to where it points. */
+function LatestNotification() {
+  const { items } = useNotifications()
+  const n = items[0]
+  if (!n) return null
+  return (
+    <Link to={n.link ?? '/student/notifications'} className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4 lg:hidden">
+      <span className="text-sm font-medium text-fg-tertiary">Latest notification</span>
+      <span className="text-base font-medium text-fg">{n.title}</span>
+      <span className="text-sm text-fg-tertiary">{formatDateTime(n.createdAt)}</span>
+    </Link>
+  )
+}
+
 export default function StudentHome() {
   const { term } = useSession()
   const home = useQuery(['home', term?.id], ({ signal }) => api.me.home({ termId: term?.id }, { signal }))
+  useMobileBar(home.data?.firstName ? `Hi, ${home.data.firstName}` : 'Home')
   return (
-    <StudentContainer className="flex h-full min-h-0 flex-col gap-5 py-6">
+    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-5 lg:py-6">
       {home.data === undefined && <h1 className="sr-only">Home</h1>}
       {home.data === undefined && home.loading ? (
         <LoadingState />

@@ -91,7 +91,7 @@ function Detail({ app }) {
         {alertBody}
       </Alert>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
             <h2 className="shrink-0 text-h3 font-semibold text-fg">Progress</h2>
@@ -118,7 +118,7 @@ function Detail({ app }) {
           </Card>
         </div>
 
-        <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
+        <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
           <Card padding="lg" className="flex flex-col items-start gap-3">
             <h2 className="text-h3 font-semibold text-fg">Payments</h2>
             {(app.invoices ?? []).length === 0 && <p className="text-base text-fg-secondary">No Invoices yet.</p>}

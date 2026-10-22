@@ -9,6 +9,7 @@ import {
   CircleCheck,
   CreditCard,
   FileText,
+  House,
   Layers,
   LayoutDashboard,
   LogIn,
@@ -33,6 +34,20 @@ export const studentNav = [
   { label: 'My Room', to: '/student/room' },
   { label: 'Payments', to: '/student/invoices' },
   { label: 'Requests', to: '/student/requests' },
+]
+
+// Phone width (Figma: 09 Android – Student › Bottom Nav): Home, My Room, Payments, Activity.
+// Activity holds Applications and Requests, as on Android.
+export const studentTabs = [
+  { label: 'Home', icon: House, to: '/student', end: true },
+  { label: 'My Room', icon: Bed, to: '/student/room' },
+  { label: 'Payments', icon: CreditCard, to: '/student/invoices' },
+  {
+    label: 'Activity',
+    icon: FileText,
+    to: '/student/applications',
+    match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer', '/student/requests'],
+  },
 ]
 
 

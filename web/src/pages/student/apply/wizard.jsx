@@ -3,9 +3,10 @@ import { ArrowLeft } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
+import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
-import { Breadcrumb, Card, Divider, Note, Steps } from '@/components/ui/Display'
+import { Breadcrumb, Card, Divider, Note, ProgressBar, Steps } from '@/components/ui/Display'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatVnd } from '@/lib/format'
@@ -163,16 +164,25 @@ export function SelectionSummary({ wizard }) {
 export function WizardLayout({ wizard, stepKey, actions, children }) {
   const { term } = useSession()
   const { catalog, steps } = wizard
+  const current = steps.indexOf(stepKey)
+  useMobileBar('New application', '/student/applications')
   return (
-    <StudentContainer className="flex h-full min-h-0 flex-col gap-4 py-6">
-      <div className="flex shrink-0 flex-col gap-1">
+    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-4 lg:py-6">
+      <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
         <Breadcrumb items={[{ label: 'Application', to: '/student/applications' }, { label: 'New application' }]} />
         <h1 className="text-h1 font-semibold text-fg">Dormitory application{term ? ` · ${term.name}` : ''}</h1>
       </div>
-      <Card padding="none" className="flex h-16 shrink-0 items-center px-5">
-        <Steps steps={steps.map((s) => titles[s])} current={steps.indexOf(stepKey)} />
+      <Card padding="none" className="hidden h-16 shrink-0 items-center px-5 lg:flex">
+        <Steps steps={steps.map((s) => titles[s])} current={current} />
       </Card>
-      <div className="flex min-h-0 flex-1 items-stretch gap-6">
+      {/* Phone: the five step labels do not fit, so the current step and a progress bar instead. */}
+      <div className="flex flex-col gap-2 lg:hidden">
+        <p className="text-sm font-medium text-fg-secondary">
+          Step {current + 1} of {steps.length} · <span className="text-fg">{titles[stepKey]}</span>
+        </p>
+        <ProgressBar value={current + 1} max={steps.length} />
+      </div>
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
             {catalog.data === undefined && catalog.loading ? (
@@ -185,7 +195,7 @@ export function WizardLayout({ wizard, stepKey, actions, children }) {
           </div>
           <div className="shrink-0">{actions}</div>
         </div>
-        <aside className="w-90 shrink-0 overflow-y-auto">
+        <aside className="w-full shrink-0 lg:w-90 lg:overflow-y-auto">
           <SelectionSummary wizard={wizard} />
         </aside>
       </div>

@@ -1,8 +1,9 @@
-import { Clock } from 'lucide-react'
+import { Check, ChevronRight, Clock } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
 import { Breadcrumb, Card, DetailRows } from '@/components/ui/Display'
@@ -16,21 +17,27 @@ import { catalogHelpers, useCatalog } from './apply/wizard'
 /**
  * Student page frame (one screen): header on top, content fills the rest of the window.
  * Content that can grow (lists, tables) scrolls inside its own card.
+ * On a phone the title moves to the App Bar (the h1 stays for screen readers), the page
+ * scrolls as a whole, and a breadcrumb's parent becomes the App Bar's back target.
  */
-export function StudentPage({ breadcrumb, title, badge, description, actions, width, className, children }) {
+export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, badgeOnPhone = true, description, actions, width, className, children }) {
+  const back = breadcrumb?.length > 1 ? breadcrumb[breadcrumb.length - 2].to : undefined
+  useMobileBar(mobileTitle ?? title, back)
+  const phoneHeader = (badge && badgeOnPhone) || actions
   return (
-    <StudentContainer className="flex h-full min-h-0 flex-col py-6">
-      <div className={cx('mx-auto flex min-h-0 w-full flex-1 flex-col gap-4', width, className)}>
-        <header className="flex shrink-0 items-end justify-between gap-6">
+    <StudentContainer className="flex flex-col pt-2 pb-4 lg:h-full lg:min-h-0 lg:py-6">
+      <div className={cx('mx-auto flex w-full flex-col gap-3 lg:min-h-0 lg:flex-1 lg:gap-4', width, className)}>
+        {phoneTop}
+        <header className={cx('flex flex-col gap-3 lg:shrink-0 lg:flex-row lg:items-end lg:justify-between lg:gap-6', !phoneHeader && 'max-lg:sr-only')}>
           <div className="flex min-w-0 flex-col gap-1">
-            {breadcrumb && <Breadcrumb items={breadcrumb} />}
+            {breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
             <div className="flex items-center gap-3">
-              <h1 className="text-h1 font-semibold text-fg">{title}</h1>
+              <h1 className="text-h1 font-semibold text-fg max-lg:sr-only">{title}</h1>
               {badge}
             </div>
-            {description && <p className="text-lg text-fg-secondary">{description}</p>}
+            {description && <p className="text-lg text-fg-secondary max-lg:hidden">{description}</p>}
           </div>
-          {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
+          {actions && <div className="flex flex-col gap-2 *:w-full lg:shrink-0 lg:flex-row lg:items-center lg:gap-3 lg:*:w-auto">{actions}</div>}
         </header>
         {children}
       </div>
@@ -38,25 +45,105 @@ export function StudentPage({ breadcrumb, title, badge, description, actions, wi
   )
 }
 
-/** "Next action" banner on Student Home: brand-subtle panel, 48 px icon disc, H2 title, CTA. */
+/**
+ * "Next action" banner on Student Home: brand-subtle panel, 48 px icon disc, H2 title, CTA.
+ * Phone (Android Home › Next action): icon and deadline on top, full-width CTA below.
+ */
 export function NextAction({ icon: Glyph, title, children, deadline, deadlineIcon: DeadlineGlyph = Clock, action }) {
   return (
-    <section className="flex min-h-25 shrink-0 items-center gap-6 rounded-lg border border-orange-200 bg-brand-subtle px-6 py-3">
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand">
+    <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-orange-200 bg-brand-subtle p-4 lg:min-h-25 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-3">
+      <span className="hidden size-12 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
         <Glyph size={24} aria-hidden="true" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {deadline && (
+          <p className="flex items-center gap-2 pb-2 text-sm font-medium text-fg-brand lg:hidden">
+            <Glyph size={20} aria-hidden="true" />
+            {deadline}
+          </p>
+        )}
         <h2 className="text-h2 font-semibold text-fg">{title}</h2>
         {children && <p className="text-base text-fg-secondary">{children}</p>}
         {deadline && (
-          <p className="flex items-center gap-1.5 text-sm font-medium text-warning-fg">
+          <p className="hidden items-center gap-1.5 text-sm font-medium text-warning-fg lg:flex">
             <DeadlineGlyph size={16} aria-hidden="true" className="text-warning" />
             {deadline}
           </p>
         )}
       </div>
-      {action}
+      <div className="flex *:w-full lg:shrink-0 lg:*:w-auto">{action}</div>
     </section>
+  )
+}
+
+/**
+ * Phone list row (Android Home › Status): 40 px icon disc, title, note, then a tag or a chevron.
+ * `below` sits under the note (Android Activity rows put the status tag there). A row with `to`
+ * is a link, one with `onClick` a button.
+ */
+export function StatusRow({ icon: Glyph, value, note, tag, below, to, onClick }) {
+  const body = (
+    <>
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-subtle text-fg-secondary">
+        <Glyph size={20} aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-base font-medium text-fg">{value}</span>
+        {note && <span className="text-sm text-fg-secondary">{note}</span>}
+        {below && <span className="flex flex-wrap items-center gap-2 pt-1">{below}</span>}
+      </span>
+      {tag ?? ((to || onClick) && <ChevronRight size={20} aria-hidden="true" className="shrink-0 text-fg-secondary" />)}
+    </>
+  )
+  const classes = cx('flex gap-3 py-2.5 text-left', below ? 'items-start' : 'items-center')
+  if (to) {
+    return (
+      <Link to={to} className={cx(classes, 'rounded-lg hover:bg-subtle')}>
+        {body}
+      </Link>
+    )
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cx(classes, 'w-full rounded-lg hover:bg-subtle')}>
+        {body}
+      </button>
+    )
+  }
+  return <div className={classes}>{body}</div>
+}
+
+/** Phone list card holding StatusRows (Android: 12 px radius, 8 px padding). */
+export function StatusList({ className, children }) {
+  return <div className={cx('flex flex-col rounded-xl border border-line bg-surface p-2', className)}>{children}</div>
+}
+
+/** Phone only: Applications | Requests switch at the top of the Activity tab (Android Activity › Segmented). */
+export function ActivitySwitch({ current }) {
+  const items = [
+    { key: 'applications', label: 'Applications', to: '/student/applications' },
+    { key: 'requests', label: 'Requests', to: '/student/requests' },
+  ]
+  return (
+    <nav aria-label="Activity" className="flex h-10 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface lg:hidden">
+      {items.map((item) => {
+        const active = item.key === current
+        return (
+          <Link
+            key={item.key}
+            to={item.to}
+            aria-current={active ? 'page' : undefined}
+            className={cx(
+              'flex flex-1 items-center justify-center gap-1 text-base',
+              active ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg-secondary',
+            )}
+          >
+            {active && <Check size={16} aria-hidden="true" />}
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 
@@ -86,7 +173,7 @@ export function StatusCard({ icon: Glyph, label, value, note, to }) {
 export function TermTimeline({ term, milestones, className }) {
   return (
     <Card padding="lg" className={cx('flex min-h-0 flex-col gap-4', className)}>
-      <div className="flex shrink-0 items-center justify-between">
+      <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-h3 font-semibold text-fg">{term?.name ? `${term.name} timeline` : 'Term timeline'}</h2>
         {term?.stayStart && (
           <p className="text-sm text-fg-tertiary">

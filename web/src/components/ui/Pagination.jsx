@@ -23,6 +23,10 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
       <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => go(page - 1)} className={cx(box, 'text-fg-secondary hover:text-fg-brand disabled:text-fg-disabled')}>
         <ChevronLeft size={16} aria-hidden="true" />
       </button>
+      {/* Phone: "page / pages" between the arrows instead of the page buttons and the size changer. */}
+      <span className="text-base text-fg-secondary tabular lg:hidden">
+        {page} / {pages}
+      </span>
       {pageList(page, pages).map((p) =>
         typeof p === 'string' ? (
           <button
@@ -30,7 +34,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
             type="button"
             aria-label={p === 'next-gap' ? 'Next 5 pages' : 'Previous 5 pages'}
             onClick={() => go(p === 'next-gap' ? page + 5 : page - 5)}
-            className={cx(box, 'text-fg hover:text-fg-brand')}
+            className={cx(box, 'text-fg hover:text-fg-brand max-lg:hidden')}
           >
             •••
           </button>
@@ -40,7 +44,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
             type="button"
             aria-current={p === page ? 'page' : undefined}
             onClick={() => go(p)}
-            className={cx(box, p === page ? 'border border-primary font-medium text-fg-brand' : 'text-fg hover:text-fg-brand')}
+            className={cx(box, 'max-lg:hidden', p === page ? 'border border-primary font-medium text-fg-brand' : 'text-fg hover:text-fg-brand')}
           >
             {p}
           </button>
@@ -54,7 +58,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
           aria-label="Page size"
           value={pageSize}
           onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-          wrapperClassName="w-29"
+          wrapperClassName="w-29 max-lg:hidden"
           options={[10, 20, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
         />
       )}
