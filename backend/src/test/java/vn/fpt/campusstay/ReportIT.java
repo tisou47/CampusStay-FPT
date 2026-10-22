@@ -17,6 +17,7 @@ import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** Dashboards, reports and exports, read from the reporting views (TC-RPT-001…008, TC-RPT-010). */
+/** Dashboards, reports and exports, read from the reporting views (TC-RPT-001…008, TC-RPT-010, TC-RPT-011). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -250,6 +251,49 @@ class ReportIT {
                 .andExpect(jsonPath("$.rows[?(@.block == 'Not allocated')].refunded").value(hasItem(1000000)))
                 .andExpect(jsonPath("$.summary.refunded").value(1000000))
                 .andExpect(jsonPath("$.summary.refundCount").value(1));
+    }
+
+    /**
+     * TC-RPT-011: before the first Term is published the dashboards and approval counts answer with empty figures
+     * (the Admin's checks still list what to set up); an unknown Term and the reports still answer 404.
+     */
+    @Test
+    void dashboardsBeforeTheFirstTerm() throws Exception {
+        List<Long> published = jdbc.sql("SELECT id FROM cfg_term WHERE status = 'PUBLISHED'").query(Long.class)
+                .list();
+        jdbc.sql("UPDATE cfg_term SET status = 'DRAFT' WHERE id IN (:ids)").param("ids", published).update();
+        try {
+            String admin = bearer(mvc, ADMIN);
+            String manager = bearer(mvc, MANAGER_A);
+            mvc.perform(get("/dashboards/admin").header(HttpHeaders.AUTHORIZATION, admin)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.term").value((Object) null))
+                    .andExpect(jsonPath("$.nextTerm").value((Object) null))
+                    .andExpect(jsonPath("$.kpis.residents").value(0))
+                    .andExpect(jsonPath("$.kpis.students").value(48))
+                    .andExpect(jsonPath("$.funnel", hasSize(0)))
+                    .andExpect(jsonPath("$.blocks[*].block", contains("A", "B")))
+                    .andExpect(jsonPath("$.checks[?(@.link == '/admin/terms')].ok").value(hasItem(false)));
+            mvc.perform(get("/dashboards/staff").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_A)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.kpis.toReview").value(0))
+                    .andExpect(jsonPath("$.kpis.proposal").value((Object) null))
+                    .andExpect(jsonPath("$.checkInPlan").value((Object) null))
+                    .andExpect(jsonPath("$.attention[*].kind").value(hasItem("room")))
+                    .andExpect(jsonPath("$.bedsByBlock[0].capacity").value(greaterThanOrEqualTo(1)));
+            mvc.perform(get("/dashboards/manager").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.kpis.allocated").value(0))
+                    .andExpect(jsonPath("$.kpis.refundsWaiting").value(0))
+                    .andExpect(jsonPath("$.floors[*].floor", contains(1, 2, 3, 4, 5)));
+            mvc.perform(get("/approvals/summary").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.assignment").value(0))
+                    .andExpect(jsonPath("$.refunds").value(0));
+            mvc.perform(get("/dashboards/admin").param("termId", "999999").header(HttpHeaders.AUTHORIZATION, admin))
+                    .andExpect(status().isNotFound());
+            mvc.perform(get("/reports/occupancy").header(HttpHeaders.AUTHORIZATION, admin))
+                    .andExpect(status().isNotFound());
+        } finally {
+            jdbc.sql("UPDATE cfg_term SET status = 'PUBLISHED' WHERE id IN (:ids)").param("ids", published).update();
+        }
     }
 
     /** TC-RPT-008: exports are CSV files with the screen's columns, written to the Audit Log; scope and permissions. */

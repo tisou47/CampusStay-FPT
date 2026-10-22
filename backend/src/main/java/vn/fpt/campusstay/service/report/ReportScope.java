@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -35,6 +36,10 @@ class ReportScope {
             return List.copyOf(ids);
         }
     }
+
+    /** "No Term yet" for the dashboards of a new system: id -1 matches no row, so every figure of the Term is zero. */
+    private static final TermSummary NO_TERM = new TermSummary(-1, null, false, false, null, null, null, null, null, null,
+            null, null, 0, null, 0);
 
     static final Map<String, String> APPLICATION_STATUSES = Map.ofEntries(Map.entry("DRAFT", "Draft"),
             Map.entry("AWAITING_ROOMMATE", "Awaiting Roommate"), Map.entry("AWAITING_DEPOSIT", "Awaiting Deposit"),
@@ -86,12 +91,25 @@ class ReportScope {
 
     /** The given published Term, else the current one, else the one open for registration. */
     TermSummary term(Long termId) {
+        return find(termId).orElseThrow(() -> ApiException.notFound("No Term is published yet."));
+    }
+
+    /** Like {@link #term}, but before the first Term is published the dashboards get {@link #NO_TERM}. */
+    TermSummary termOrNone(Long termId) {
+        return find(termId).orElse(NO_TERM);
+    }
+
+    static boolean none(TermSummary term) {
+        return term == NO_TERM;
+    }
+
+    private Optional<TermSummary> find(Long termId) {
         if (termId != null) {
-            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
+            return Optional.of(terms.findPublished(termId)
+                    .orElseThrow(() -> ApiException.notFound("This Term does not exist.")));
         }
         return terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
-                .or(terms::openForRegistration)
-                .orElseThrow(() -> ApiException.notFound("No Term is published yet."));
+                .or(terms::openForRegistration);
     }
 
     /** {@code block} blank = every Block the user may see. */

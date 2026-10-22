@@ -27,7 +27,7 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
 6. Web app: in `web/`, keep `VITE_API_PROXY_TARGET=http://localhost:8080` and run `npm run dev`. The Vite proxy forwards `/api`.
 
 ### Base data
-The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready to sign in and has nothing else. It holds 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds), the Room Types and Room Classes, the back-office accounts and 6,200 students in the student directory (cohorts K18–K22, all enrolled). There is no Term, Application, Invoice, request or report data: start as `admin` by confirming the fees (Admin › Fees) and publishing a Term (Admin › Terms). Until a Term is published the dashboards answer "No Term is published yet."
+The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready to sign in and has nothing else. It holds 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds), the Room Types and Room Classes, the back-office accounts and 6,200 students in the student directory (cohorts K18–K22, all enrolled). There is no Term, Application, Invoice, request or report data: start as `admin` by confirming the fees (Admin › Fees) and publishing a Term (Admin › Terms). Until then the dashboards show empty figures, the Blocks and the Admin's setup checklist; the reports answer "No Term is published yet."
 
 - **Password** of every account: `12321321`.
 - **Emails** use the FPT format: `<account>@fpt.edu.vn` for staff, `<student code>@fpt.edu.vn` for students (`se190001@fpt.edu.vn`). In `dev` every email stops in Mailpit.

@@ -32,7 +32,9 @@ import vn.fpt.campusstay.config.TimeConfig;
 
 /**
  * Dashboards of Staff, the Block Manager and the Admin, and the Manager's approval
- * counts. Everything is read from the modules' reporting views ({@code rpt_v_*}).
+ * counts. Everything is read from the reporting views ({@code rpt_v_*}). Before the first
+ * Term is published they answer with the Term's figures at zero (the Admin's {@code term}
+ * is null) instead of 404, so a new system still shows its checks and Blocks.
  */
 @Service
 public class DashboardService {
@@ -155,7 +157,7 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public StaffDashboard staff(Long termId, String block) {
-        TermSummary term = scope.term(termId);
+        TermSummary term = scope.termOrNone(termId);
         ReportScope.Blocks blocks = scope.blocks(block);
         Map<String, Object> p = ReportScope.params(term, blocks);
         Map<String, Long> byStatus = new LinkedHashMap<>();
@@ -318,7 +320,7 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public ManagerDashboard manager(Long termId, String block) {
         currentUser.require(Role.MANAGER, Role.ADMIN);
-        TermSummary term = scope.term(termId);
+        TermSummary term = scope.termOrNone(termId);
         ReportScope.Blocks blocks = scope.blocks(block);
         Map<String, Object> p = ReportScope.params(term, blocks);
         long beds = count("SELECT count(*) FROM rpt_v_bed WHERE building_id IN (:b) AND " + ReportScope.inService(null), p);
@@ -397,7 +399,7 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public ApprovalCounts approvals(Long termId, String block) {
         currentUser.require(Permission.APPROVE_ASSIGNMENT);
-        TermSummary term = scope.term(termId);
+        TermSummary term = scope.termOrNone(termId);
         Map<String, Object> p = ReportScope.params(term, scope.blocks(block));
         return new ApprovalCounts(
                 count("""
@@ -421,7 +423,7 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public AdminDashboard admin(Long termId) {
         currentUser.require(Role.ADMIN);
-        TermSummary term = scope.term(termId);
+        TermSummary term = scope.termOrNone(termId);
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("term", term.id());
         p.put("since", Timestamp.from(Instant.now(clock).minus(Duration.ofDays(ACTIVE_DAYS))));
@@ -470,7 +472,7 @@ public class DashboardService {
         Optional<TermSummary> next = terms.publishedTerms().stream()
                 .filter(t -> t.stayStart() != null && term.stayEnd() != null && t.stayStart().isAfter(term.stayEnd()))
                 .min(Comparator.comparing(TermSummary::stayStart));
-        return new AdminDashboard(new TermInfo(term.name(), statusLabel(term), term.stayEnd()),
+        return new AdminDashboard(ReportScope.none(term) ? null : new TermInfo(term.name(), statusLabel(term), term.stayEnd()),
                 next.map(t -> new NextTerm(t.name(), t.registrationOpensAt())).orElse(null),
                 new AdminKpis(residents, beds, money[1], rate(money[1], money[0]), users.active(), users.students(),
                         users.staff(), users.managers()),
