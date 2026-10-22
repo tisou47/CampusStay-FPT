@@ -2,6 +2,8 @@
 # Lives in /opt/campusstay on the VPS next to its .env (from .env.example). The backend workflow
 # (.github/workflows/backend.yml) copies this folder there on every deploy and runs
 #   docker compose pull api && docker compose up -d
+# The db service runs only with the profile local-db (COMPOSE_PROFILES=local-db in .env). Without it the API
+# uses the managed database in DB_URL, e.g. Azure Database for PostgreSQL (runbook appendix A).
 # Runbook: infra/prod/README.md.
 name: campusstay
 
@@ -14,6 +16,7 @@ x-logging: &logging
 services:
   db:
     image: postgres:17-alpine
+    profiles: [local-db]
     restart: unless-stopped
     environment:
       POSTGRES_DB: campusstay
@@ -36,11 +39,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        required: false   # no db service with a managed database
     # Only the variables written in .env reach the API, so an unset one keeps its default in application.yml.
     env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/campusstay
+      DB_URL: ${DB_URL:-jdbc:postgresql://db:5432/campusstay}
       WEB_BASE_URL: ${WEB_BASE_URL:?set WEB_BASE_URL in .env}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?set CORS_ALLOWED_ORIGINS in .env}
     volumes:

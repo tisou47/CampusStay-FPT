@@ -1,6 +1,6 @@
 # CampusStay FPT — production runbook
 
-Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL on one Ubuntu VPS** (any provider, x86-64) behind Caddy (HTTPS). The Android app calls the same API.
+Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL on one Ubuntu VPS** (any provider, x86-64) behind Caddy (HTTPS). On Azure for Students the database can be a managed Azure Database for PostgreSQL instead ([appendix A](#appendix-a-azure-for-students)). The Android app calls the same API.
 
 ```
 Browser ──► https://campusstay-fpt-ten.vercel.app    (Vercel: static build of web/)
@@ -91,6 +91,7 @@ Check: `nslookup <API_DOMAIN>` answers the VPS's IP.
 Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VPS, fill it in, then `chmod 600 /opt/campusstay/.env`. The workflow never overwrites `.env`. Also `mkdir -p /opt/campusstay/secrets` (the Firebase key goes there, §3.3).
 - `API_DOMAIN`: the name from 1.6.
 - `DB_PASSWORD` and `FILES_LINK_SECRET`: one `openssl rand -hex 32` each.
+- Database: keep `COMPOSE_PROFILES=local-db` (Postgres in the stack). A managed database (Azure, appendix A) uses `DB_URL` instead.
 - `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS`: the Vercel production URL (§2).
 - `API_MEMORY=1g` on a 2 GB VPS.
 - Gmail, VietQR/SePay, Firebase, Google: §3. Each one can be added later; the API starts without them.
@@ -192,7 +193,7 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | API logs | `docker compose logs -f --tail 200 api` |
 | Restart the API after editing `.env` | `docker compose up -d` |
 | Roll back to an older build | `API_TAG=<commit sha> docker compose up -d api` (the next push to `main` deploys the newest build again) |
-| psql | `docker compose exec db psql -U campusstay -d campusstay` |
+| psql | `docker compose exec db psql -U campusstay -d campusstay` (managed database: appendix A.4) |
 | Restore a dump | `docker compose stop api` → `docker compose exec -T db pg_restore -U campusstay -d campusstay --clean --if-exists < backups/<file>.dump` → `docker compose start api` |
 | Restore the files | `docker compose run --rm --no-deps -T --entrypoint tar api -C /app/data -xzf - < backups/files-<stamp>.tgz` |
 | Disk usage | `df -h /` and `docker system df` |
@@ -206,10 +207,65 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | Caddy log: certificate errors | DNS not pointing at the VPS yet (1.6), or port 80 closed (1.3, and the provider's firewall) | Fix DNS or the rules, then `docker compose restart caddy` |
 | API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.10) |
 | API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.10) |
-| Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api | grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it || grep -i mail` |
+| Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api \| grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it |
 | Payments stay Unpaid after a transfer | Webhook URL or key wrong in SePay, or the transfer content was changed by the payer | SePay → webhook history shows our answer; Staff confirm by hand meanwhile |
 | API stops at start: "Cannot read the Firebase credentials file" | Wrong path or the file is not readable | §3.3 step 2 |
 | Deploy job: `Permission denied (publickey)` or a timeout | `VM_SSH_KEY` is not the pair of the key in `~/.ssh/authorized_keys`, `VM_USER` is not `deploy`, or SSH runs on another port | Redo 1.8; set `VM_SSH_PORT` |
 | Deploy job: `no matching manifest for linux/arm64` (or amd64) on pull | The image was built for the other CPU | Set or clear `IMAGE_PLATFORM` (1.8) and run the workflow again |
 | `api` restarts with exit code 137 (`docker compose ps`), "Killed" in the log | Out of memory | `API_MEMORY=1g` and swap on a 2 GB VPS (1.4), or a 4 GB plan |
 | `docker run hello-world` fails on a new VPS | OpenVZ/LXC plan without the kernel features Docker needs | Ask for a KVM plan (1.1) |
+| API log: `Connection to db:5432 refused` or `UnknownHostException: db` | `COMPOSE_PROFILES=local-db` missing from `.env` while `DB_URL` is not set | Put the line back (1.7), or set `DB_URL` for a managed database (appendix A) |
+| API log: timeout or `no pg_hba.conf entry` for the Azure database | The server's firewall lacks the VM's public IP, or `sslmode=require` is missing | A.2 networking rule; the `DB_URL` of A.3 |
+
+## Appendix A. Azure for Students
+The stack runs on an Azure VM like on any VPS. Two layouts:
+
+| | A. Free VM + managed database (recommended) | B. One 4 GB VM |
+|---|---|---|
+| VM | **B2ats v2** (x64) or **B2pts v2** (Arm64): 2 vCPU, 1 GB, inside the student free hours | e.g. **B2s** or **B2as v2** (2 vCPU, 4 GB), paid from the $100 credit (check the price in the portal) |
+| Database | **Azure Database for PostgreSQL – Flexible Server**, Burstable **B1ms**, 32 GB, inside the 12 free months; Azure backs it up | Postgres in the stack (`COMPOSE_PROFILES=local-db`), backed up by `backup.sh` |
+| Settings | `.env` without `COMPOSE_PROFILES`, with `DB_URL`; `API_MEMORY=700m`; swap 2 GB | the VPS defaults (§1) |
+
+Free amounts, allowed regions and VM sizes depend on the subscription: the portal marks eligible sizes as free-services eligible. Small items outside them (for example the public IP) are taken from the credit, so set a budget first: Cost Management → Budgets → 5 USD with an email alert.
+
+### A.1 The VM
+Portal → Virtual machines → Create:
+- Resource group `campusstay`; region: the nearest one the subscription allows (Southeast Asia if possible).
+- Image **Ubuntu Server 24.04 LTS** (x64 for B2ats v2 or B2s, Arm64 for B2pts v2); size as in the table.
+- Authentication: SSH public key, username **`deploy`**, paste your own public key (`~/.ssh/id_ed25519.pub`). Azure creates the user with sudo and turns password login off, so skip the root steps of 1.2.
+- Inbound ports: SSH (22). Disk: Standard SSD (64 GB is enough). Management: leave auto-shutdown **off** (the API must run all the time).
+
+After it starts:
+1. Its **Public IP address** resource → Configuration: assignment **Static**, and a **DNS name label**, e.g. `campusstay-api`. The API's name is then `campusstay-api.<region>.cloudapp.azure.com`: use it as `API_DOMAIN` (no domain to buy; an own domain or `.id.vn` from 1.6 works too).
+2. The VM → Networking → Add inbound port rule: TCP 80 and TCP 443 (and UDP 443, optional) from Any. Keep 5432 and 8080 closed. Optionally limit SSH to your own IP.
+3. Then, as `deploy`: updates (end of 1.2), 1.3 (`ufw` is optional behind the Azure rules, but open SSH first if you enable it), 1.4 (swap: needed on 1 GB), 1.5 (Docker). Outbound port 587 for Gmail is open on Azure.
+
+### A.2 The database (layout A)
+Portal → Azure Database for PostgreSQL flexible servers → Create:
+- Same resource group and region as the VM; server name e.g. `campusstay-db`; PostgreSQL **17**; workload *Development*, then Compute + storage → **Burstable B1ms**, 32 GB; high availability off; backup retention 7 days.
+- Authentication: PostgreSQL authentication only; admin user `campusstay` (not `postgres` or `admin`) and a password from `openssl rand -hex 24`.
+- Networking: **Public access**, add a firewall rule with the VM's public IP (and *Add current client IP* if you want psql from your computer); leave "Allow public access from any Azure service" unchecked. SSL is required by default; keep it.
+
+After it is created: Databases → Add → `campusstay`. No extension is needed.
+
+### A.3 Settings and deploy
+In `/opt/campusstay/.env` (1.7), for layout A:
+```
+API_DOMAIN=campusstay-api.<region>.cloudapp.azure.com
+# COMPOSE_PROFILES=local-db        ← deleted: no Postgres container
+DB_URL=jdbc:postgresql://campusstay-db.postgres.database.azure.com:5432/campusstay?sslmode=require
+DB_USER=campusstay
+DB_PASSWORD=<the server's admin password>
+API_MEMORY=700m
+```
+Layout B keeps the defaults of `.env.example` (`COMPOSE_PROFILES=local-db`, a generated `DB_PASSWORD`).
+
+GitHub (1.8): `VM_HOST` = the DNS name, `VM_USER` = `deploy`, `API_DOMAIN` = the DNS name, and **`IMAGE_PLATFORM=linux/arm64` for B2pts v2** (leave it unset for x64 sizes). Then the first deploy (1.9) and the base data (1.10).
+
+### A.4 Operations with the managed database
+| Task | How |
+|---|---|
+| psql | `docker run --rm -it postgres:17-alpine psql "host=campusstay-db.postgres.database.azure.com dbname=campusstay user=campusstay sslmode=require"` |
+| Backups | Azure keeps 7 days with point-in-time restore (server → Backup and restore → Restore creates a new server; point `DB_URL` at it). `backup.sh` still archives the uploaded files |
+| One-off dump | `docker run --rm -e PGPASSWORD="$(grep ^DB_PASSWORD= .env \| cut -d= -f2-)" postgres:17-alpine pg_dump -Fc "host=campusstay-db.postgres.database.azure.com dbname=campusstay user=campusstay sslmode=require" > backups/manual.dump` (the password stays out of the shell history) |
+| Stop paying | Delete the resource group `campusstay` (VM, IP, disk and database together) |

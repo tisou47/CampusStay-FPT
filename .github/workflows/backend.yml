@@ -2,7 +2,8 @@
 # On main it also builds the image (linux/amd64), pushes it to GHCR and deploys it to the Ubuntu VPS.
 # Repository settings → Secrets and variables → Actions (runbook: infra/prod/README.md §1.8):
 #   variables VM_HOST, VM_USER, API_DOMAIN · secret VM_SSH_KEY. The deploy job is skipped until VM_HOST is set.
-#   Optional: VM_SSH_PORT (default 22); IMAGE_PLATFORM=linux/arm64 for an ARM VPS (built on GitHub's arm runner).
+#   Optional: VM_SSH_PORT (default 22); IMAGE_PLATFORM=linux/arm64 for an ARM VPS such as Azure's B2pts v2
+#   (built on GitHub's arm runner). A managed database needs no change here: it is set in the VPS's .env.
 name: backend
 
 on:
