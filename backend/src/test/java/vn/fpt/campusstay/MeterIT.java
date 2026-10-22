@@ -31,7 +31,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.shared.time.TimeConfig;
+import vn.fpt.campusstay.config.TimeConfig;
 
 /** Monthly meter readings and Utility Invoices (TC-BIL-023…026). */
 @SpringBootTest

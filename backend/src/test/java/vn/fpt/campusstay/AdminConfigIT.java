@@ -28,7 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Admin configuration screens of CFG (TC-CFG-NNN). Changes shared reference data, so it gets its own database. */
+/** Admin configuration screens of Settings (TC-CFG-NNN). Changes shared reference data, so it gets its own database. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

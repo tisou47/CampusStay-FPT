@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.1 (adds ADR-13…15: email sign-in, Google code or ID token, string IDs) |
-| Date | 20/10/2026 (Week 7, Sprint 4) |
+| Version | 1.2 (adds ADR-17: layered Spring MVC packages replace the module packages and Spring Modulith) |
+| Date | 22/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
 | Feeds | Report 4 (SDD) §1 System Design and §2 Database Design; Report 3 §4 Non-Functional Requirements |
@@ -13,7 +13,7 @@
 
 ## 1. Scope
 
-This document describes how the CampusStay FPT backend is built: the architecture style, modules, security, integrations (VietQR via SePay, Google sign-in, Firebase Cloud Messaging, SMTP email), consistency guarantees, the assignment engine, the database and operations. It is written so that a council member can follow every design choice back to a reason, and so that Claude Code can implement the remaining slices without re-deciding anything.
+This document describes how the CampusStay FPT backend is built: the architecture style, layers and features, security, integrations (VietQR via SePay, Google sign-in, Firebase Cloud Messaging, SMTP email), consistency guarantees, the assignment engine, the database and operations. It is written so that a council member can follow every design choice back to a reason, and so that Claude Code can implement the remaining slices without re-deciding anything.
 
 ## 2. Architecture overview
 
@@ -26,10 +26,10 @@ flowchart LR
 
     subgraph API["CampusStay API — one Spring Boot 4.1 deployable (/api)"]
         SEC["Security filter<br/>Bearer session · RBAC"]
-        subgraph Modules
-            AUTH; CFG; INV; APP; ASG; BIL; REQ; MNT; NTF; RPT
-        end
-        SH["Shared kernel<br/>errors · paging · audit · clock"]
+        CTL["Controllers<br/>REST endpoints · request/response records"]
+        SVC["Services<br/>business rules · SQL · events · jobs"]
+        REPO["Repositories · entities<br/>Spring Data JPA · SQL stores"]
+        SH["Common · exception · config<br/>errors · paging · audit · clock · files"]
         JOBS["Scheduled jobs"]
     end
 
@@ -43,18 +43,16 @@ flowchart LR
 
     WEB -->|HTTPS JSON| SEC
     MOB -->|HTTPS JSON| SEC
-    SEC --> Modules
-    Modules --> SH
-    Modules --> DB
-    JOBS --> Modules
-    APP -. events .-> NTF
-    BIL -. events .-> NTF
-    AUTH -->|exchange code · verify ID token| GOOG
-    BANK -->|transaction| SEPAY -->|POST /webhooks/sepay| BIL
-    NTF --> FCM --> MOB
-    NTF --> SMTP
-    MNT --> FS
-    BIL --> FS
+    SEC --> CTL --> SVC --> REPO --> DB
+    SVC --> DB
+    SVC --> SH
+    JOBS --> SVC
+    SVC -. "events (service.notification listens)" .-> SVC
+    SVC -->|exchange code · verify ID token| GOOG
+    BANK -->|transaction| SEPAY -->|POST /webhooks/sepay| CTL
+    SVC --> FCM --> MOB
+    SVC --> SMTP
+    SVC --> FS
 ```
 
 | Component | Responsibility |
@@ -62,8 +60,10 @@ flowchart LR
 | Web app | All four roles. Talks only to `/api`; in development through the Vite proxy (same origin). The proxy drops the browser's `Origin` header: with `changeOrigin` the API would otherwise see a cross-origin POST and its CORS check (closed unless `CORS_ALLOWED_ORIGINS` is set) answers `403 Invalid CORS request`. A web app served from another origin needs `CORS_ALLOWED_ORIGINS`. |
 | Android app | Student tracking, push notifications, check-in pass. Uses the same API. |
 | Security filter | Resolves the bearer token to a session, applies role rules by URL prefix. |
-| Modules | Business logic, one package per module code (§4). |
-| Shared kernel | Error model, list/paging DTOs, Audit Log, clock, token utilities. No business rules. |
+| Controllers | REST endpoints: validate input, call one service, return the contract records (§5). |
+| Services | Business rules and transactions, one sub-package per feature (§4); SQL through `JdbcClient`. |
+| Repositories · entities | Spring Data JPA for users, sessions, tokens, Terms, Room Types and Classes; SQL stores for the larger tables. |
+| Common · exception · config | Error model, list/paging DTOs, Audit Log, clock, files, configuration. No business rules. |
 | Scheduled jobs | Expiry of Deposit windows and invitations, overdue Invoices, SLA timers, email outbox, housekeeping (§11). |
 | PostgreSQL | Single database, schema owned by Flyway; constraints enforce the critical invariants (§9). |
 | SePay | Watches the receiving bank account and posts each incoming transfer to the webhook (§10). |
@@ -76,56 +76,64 @@ Full entries are in the Brief's Decision Log. Summary with the argument for the 
 
 | ADR | Decision | Argument |
 |---|---|---|
-| ADR-01 | Modular monolith | One developer, 16 weeks, three clients on one API, and Allocation + Payment need ACID transactions. Microservices would add distributed transactions, service discovery and several deployments for no functional gain. Module boundaries keep a later split possible. |
+| ADR-01 | Monolith (one deployable, one database) | One developer, 16 weeks, three clients on one API, and Allocation + Payment need ACID transactions. Microservices would add distributed transactions, service discovery and several deployments for no functional gain. The package-by-module layout it started with is replaced by ADR-17. |
 | ADR-04 | Spring Boot 4.1.x, Java 21, Maven | Spring Boot 3.5 left open-source support on 30/06/2026; 4.1 is GA (4.1.0 on 10/06/2026, 4.1.1 on 20/08/2026). No backend code existed, so starting on 4.1 has no migration cost. |
 | ADR-06 | Room Type + Room Class choice only; no Room/Bed self-selection | Matches the UI; lets the engine guarantee gender/Block rules and fairness; removes the "two students click the same Bed" race entirely. |
 | ADR-07 | Opaque server-side sessions; password + Google (`hd = fpt.edu.vn`) | The contract has one bearer token and "401 signs out". Opaque tokens can be revoked instantly (sign-out, password change, disabled account) and need no key management. JWT would need refresh tokens (a contract change) and a deny-list for revocation. |
 | ADR-08 | VietQR through SePay webhook + mock + manual confirmation | Automatic confirmation without a merchant contract; money goes straight to the bank account; manual Staff confirmation keeps the demo working if the feed is down. |
-| ADR-09 | Email via SMTP behind a port (Mailpit dev, Gmail demo) | Free. A personal Gmail account allows 500 messages per rolling 24 hours, enough for a demo; the provider can be swapped without touching modules. |
-| ADR-10 | Spring Modulith verifies module boundaries | Turns "strict boundaries" into a failing test, and generates the package diagrams for Report 4. |
+| ADR-09 | Email via SMTP behind a port (Mailpit dev, Gmail demo) | Free. A personal Gmail account allows 500 messages per rolling 24 hours, enough for a demo; the provider can be swapped without touching the services. |
+| ADR-10 | ~~Spring Modulith verifies module boundaries~~ (superseded by ADR-17 on 22/10/2026) | Turned "strict boundaries" into a failing test; removed with the module packages. |
 | ADR-11 | PostgreSQL 17 + Flyway SQL; JPA for writes, SQL for reads/reports | Constraints and partial indexes carry the critical invariants; migrations are the "Database Script(s)" deliverable. |
 | ADR-13 | Password sign-in by email with CampusStay's own password | CampusStay cannot check FPT Wi-Fi credentials (no SIS access, ADR-02), so asking for that username would invite users to type their FPT password into another system. Reset and invitation links go to the email anyway. |
 | ADR-14 | Google sign-in by authorization code (web) or ID token (Android) | The web keeps the custom Google button of the approved design (code flow); Android's Google Sign-In returns an ID token. The code exchange needs a client secret, which stays on the server; both paths end in the same ID-token checks. |
 | ADR-15 | IDs are JSON strings | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion. Java and the database keep `long`/`BIGINT`; the change is only in the contract DTOs. |
+| ADR-17 | Layered Spring MVC packages (22/10/2026) | The team and the council find code faster in the standard Controller → Service → Repository layout than in ten module packages with hidden `internal`/`web` folders. Classes moved without behaviour changes (all tests pass); the single deployable, the database and its invariants stay. Spring Modulith and `ModularityTests` are removed; `LayeringTest` checks that calls go one way (§5). |
 
-## 4. Modules
+## 4. Features
 
-Table prefix = owning module. Only the owning module reads or writes its tables (§5).
+Each feature has a sub-package in the layers that need one (`controller.<feature>`, `service.<feature>`, `repository.<feature>`, §5). Its short code is the prefix of its tables and of its test case ids (`TC-APP-001`); a feature's tables are written only by its own services (§5).
 
-| Module | Responsibility | Owns tables | Public API (top-level package) |
+| Feature (code → package) | Responsibility | Owns tables | Interfaces other features use (`service.<feature>`) and events (`event`) |
 |---|---|---|---|
-| AUTH | Sign-in (password, Google), sessions, users and roles, Block scope, student directory (mock SIS), staff profiles, invitations, password reset | `auth_*` | `CurrentUser`, `AuthenticatedUser`, `Role`, `Permission` (role-by-action table, also the Admin permission matrix), `BlockScope`, `UserDirectory` (names, student profiles with their directory sync time, staff of Blocks, priority-group counts), ports `BlockDirectory` (INV), `AuditLogSettings` (CFG), `StaffHandles` (CFG: labels of the Staff handles list) and `StaffWorkload` (MNT and REQ: open and recently finished work per person, added up on Block Manager › Staff), events `PasswordResetRequested` |
-| CFG | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary`, `Catalog` (Room Types, Room Classes), `FeePolicy` (Term price, Deposit, refund rules, the rule list), `EligibilityRules` (rules, priority-group order), `MatchingCriteria` (snapshots for the engine), `BlockSettings` (desk hours, house rules), `UtilityPolicy` (utility prices, rounding, whether an overdue Invoice blocks changes), `Parameters`, `Lookups`, ports `RoomUsage` (INV), `StudentTerms` (APP) and `MatchingPreviewer` (ASG), implements AUTH's `AuditLogSettings` and `StaffHandles`, events `RoomTypeBedsChanged` |
-| INV | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation | `inv_*` | Implements `BlockDirectory` and CFG's `RoomUsage`; port `BedOccupancy` (ASG); `Buildings` (active Blocks for a gender, genders of Blocks); `Inventory` (assignable Beds, Beds by id, Beds of a Room or of a Building) |
-| APP | Application wizard, eligibility check, roommate invitations and code check, Application review, Round-2 offers | `app_*` | `Applications` (approved candidates, the Allocated / Waitlisted transitions and Round-2 offers used by ASG, applicants of a Term for NTF email groups), ports `StudentAllocations` and `Round2Placements` (ASG), implements CFG's `StudentTerms`, events `ApplicationCreated`, `ApplicationSubmitted`, `RoommateInvited`, `ApplicationRejected`, `Round2Offered` |
-| ASG | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and `Round2Placements`, CFG's `MatchingPreviewer` and BIL's `RoomStays`; `Residences` (a student's current Bed, residents of a Room, who is checked in to which Bed, the residents of a Term), `Moves` (free Beds, moving and swapping students during the stay, for REQ); events `AllocationCreated`, `LateCheckInDecided` |
-| BIL | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance with its Utility Deposit, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check, what blocks check-in, the Utility Deposit settlement at check-out, charge Invoices and credits for room changes and swaps, students with an unpaid Invoice), port `RoomStays` (ASG: who lived in a Room and when, to split its meter by time between meter cuts), events `PaymentConfirmed`, `InvoiceIssued`, `InvoiceOverdue`, `RefundDecided` |
-| REQ | Room-Change Requests, swaps and swap board, routing rules, SLA timers, escalations | `req_*` | events `RoomChangeDecided`, `SwapInvited`, `SwapDecided`, `EscalationAssigned`; implements AUTH's `StaffWorkload`. Routes new Maintenance Requests (listens to `MaintenanceReported`, assigns through `MaintenanceRequests`) and Room-Change Requests; the SLA scan keeps its own copy of what an escalation shows (code, title, Room) so it never reads MNT tables |
-| MNT | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | `MaintenanceRequests` (a student's requests, open requests and assignment, for REQ's requests screen, routing and escalations), implements AUTH's `StaffWorkload`, events `MaintenanceUpdated`, `MaintenanceReported`, `InspectionScheduled`. A failed inspection item creates a Maintenance Request, routed like any other |
-| NTF | In-app notifications, FCM devices and push, templates, email outbox, campaigns | `ntf_*` | Listens to events; every in-app notification whose template has push on is pushed to the user's Android devices after commit (FCM HTTP v1). Admin campaigns pick their recipients through APP, ASG and BIL public APIs |
-| RPT | Dashboards, reports, exports | none (reads `rpt_v_*` views owned by the other modules) | `GET /exports/{report}` writes CSV for every `ReportExport` (each module exports its own screens with their filters and scope) and for its own reports; every export is audited |
-| shared | Error model, `ListResponse`/`PageQuery`, `AuditLog`, `TimeConfig`, `Tokens`, `RequestInfo`, `FileStore` (uploads: type sniffed from the bytes, stored on disk, metadata in `shared_file`), `FileLinks` (short-lived signed links, `GET /files/{id}`), `ReportExport` (a screen's export, implemented by the module that owns the screen) | `shared_file`, `shared_audit_log` | Open module |
+| AUTH → `auth` | Sign-in (password, Google), sessions, users and roles, Block scope, student directory (mock SIS), staff profiles, invitations, password reset | `auth_*` | In `security`: `CurrentUser`, `AuthenticatedUser`, `Role`, `Permission` (role-by-action table, also the Admin permission matrix), `BlockScope`. In `service.auth`: `UserDirectory` (names, student profiles with their directory sync time, staff of Blocks, priority-group counts), ports `BlockDirectory` (INV), `AuditLogSettings` (CFG), `StaffHandles` (CFG: labels of the Staff handles list) and `StaffWorkload` (MNT and REQ: open and recently finished work per person, added up on Block Manager › Staff), events `PasswordResetRequested` |
+| CFG → `setting` | Terms, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, Block settings | `cfg_*` | `TermCatalog`, `TermSummary`, `Catalog` (Room Types, Room Classes), `FeePolicy` (Term price, Deposit, refund rules, the rule list), `EligibilityRules` (rules, priority-group order), `MatchingCriteria` (snapshots for the engine), `BlockSettings` (desk hours, house rules), `UtilityPolicy` (utility prices, rounding, whether an overdue Invoice blocks changes), `Parameters`, `Lookups`, ports `RoomUsage` (INV), `StudentTerms` (APP) and `MatchingPreviewer` (ASG), implements AUTH's `AuditLogSettings` and `StaffHandles`, events `RoomTypeBedsChanged` |
+| INV → `inventory` | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation | `inv_*` | Implements `BlockDirectory` and CFG's `RoomUsage`; port `BedOccupancy` (ASG); `Buildings` (active Blocks for a gender, genders of Blocks); `Inventory` (assignable Beds, Beds by id, Beds of a Room or of a Building) |
+| APP → `application` | Application wizard, eligibility check, roommate invitations and code check, Application review, Round-2 offers | `app_*` | `Applications` (approved candidates, the Allocated / Waitlisted transitions and Round-2 offers used by ASG, applicants of a Term for NTF email groups), ports `StudentAllocations` and `Round2Placements` (ASG), implements CFG's `StudentTerms`, events `ApplicationCreated`, `ApplicationSubmitted`, `RoommateInvited`, `ApplicationRejected`, `Round2Offered` |
+| ASG → `assignment` | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and `Round2Placements`, CFG's `MatchingPreviewer` and BIL's `RoomStays`; `Residences` (a student's current Bed, residents of a Room, who is checked in to which Bed, the residents of a Term), `Moves` (free Beds, moving and swapping students during the stay, for REQ); events `AllocationCreated`, `LateCheckInDecided` |
+| BIL → `billing` | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance with its Utility Deposit, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check, what blocks check-in, the Utility Deposit settlement at check-out, charge Invoices and credits for room changes and swaps, students with an unpaid Invoice), port `RoomStays` (ASG: who lived in a Room and when, to split its meter by time between meter cuts), events `PaymentConfirmed`, `InvoiceIssued`, `InvoiceOverdue`, `RefundDecided` |
+| REQ → `request` | Room-Change Requests, swaps and swap board, routing rules, SLA timers, escalations | `req_*` | events `RoomChangeDecided`, `SwapInvited`, `SwapDecided`, `EscalationAssigned`; implements AUTH's `StaffWorkload`. Routes new Maintenance Requests (listens to `MaintenanceReported`, assigns through `MaintenanceRequests`) and Room-Change Requests; the SLA scan keeps its own copy of what an escalation shows (code, title, Room) so it never reads MNT tables |
+| MNT → `maintenance` | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | `MaintenanceRequests` (a student's requests, open requests and assignment, for REQ's requests screen, routing and escalations), implements AUTH's `StaffWorkload`, events `MaintenanceUpdated`, `MaintenanceReported`, `InspectionScheduled`. A failed inspection item creates a Maintenance Request, routed like any other |
+| NTF → `notification` | In-app notifications, FCM devices and push, templates, email outbox, campaigns | `ntf_*` | Listens to events; every in-app notification whose template has push on is pushed to the user's Android devices after commit (FCM HTTP v1). Admin campaigns pick their recipients through APP, ASG and BIL public APIs |
+| RPT → `report` | Dashboards, reports, exports | none (reads `rpt_v_*` views owned by the other features) | `GET /exports/{report}` writes CSV for every `ReportExport` (each feature exports its own screens with their filters and scope) and for its own reports; every export is audited |
+| `common`, `exception`, `config`, `security`, `dto` | Error model (`exception`), `ListResponse`/`PageQuery` (`dto`), `AuditLog`, `RequestInfo` (`common`), `TimeConfig` (`config`), `Tokens` (`security`), `FileStore` (uploads: type sniffed from the bytes, stored on disk, metadata in `shared_file`), `FileLinks` (short-lived signed links, `GET /files/{id}`), `ReportExport` (a screen's export, implemented by the feature that owns the screen) | `shared_file`, `shared_audit_log` | Used by every layer |
 
 ## 5. Package structure and dependency rules
 
 ```
 vn.fpt.campusstay
 ├── CampusStayApplication
-├── shared/            open module: error, web, audit, security, time
-├── auth/              Role, CurrentUser, BlockScope ...   ← public API
-│   ├── internal/      entities, repositories, services   ← hidden
-│   ├── security/      SecurityConfig, BearerTokenFilter  ← hidden
-│   └── web/           controllers                         ← hidden
-├── cfg/ inv/ app/ asg/ bil/ req/ mnt/ ntf/ rpt/   same layout
+├── controller/<feature>/   REST controllers with their request and response records
+├── service/<feature>/      business rules (@Transactional), SQL through JdbcClient, interfaces other features
+│                           call (Billing, Inventory, Moves …) and their Jdbc… implementations, jobs, listeners, exports
+├── repository/             Spring Data JPA repositories; repository/<feature>/ SQL stores (ApplicationStore, InvoiceStore …)
+├── entity/                 JPA entities: users, sessions, action tokens, Terms, Room Types, Room Classes
+├── dto/                    records shared by several layers (ListResponse, PageQuery, dto.setting.TermSummary)
+├── event/                  domain events (ApplicationSubmitted, PaymentConfirmed, MaintenanceReported …)
+├── config/                 Spring configuration and @ConfigurationProperties (clock, mail, push, payment, auth)
+├── security/               SecurityConfig, BearerTokenFilter, CurrentUser, BlockScope, Role, Permission, Tokens
+├── exception/              ApiException, ApiError, GlobalExceptionHandler, ConstraintMessages, FieldErrors
+└── common/                 audit log, the CSV export contract, file store and signed links, request info
 ```
 
-Rules (checked by `ModularityTests` with Spring Modulith; the build fails on a violation):
+Features: `auth`, `setting` (CFG), `inventory` (INV), `application` (APP), `assignment` (ASG), `billing` (BIL), `request` (REQ), `maintenance` (MNT), `notification` (NTF), `report` (RPT).
 
-1. A module may use another module's **top-level package only**. `internal`, `web` and `security` sub-packages are private.
-2. No dependency cycles between modules. When AUTH needs INV data (Block codes), AUTH declares a port (`BlockDirectory`) and INV implements it.
-3. No SQL against another module's tables. Cross-module foreign keys exist for referential integrity only. Reports read `rpt_v_*` views that each owning module defines in its own migration (its read contract).
-4. Side effects in other modules go through **domain events** (`ApplicationEventPublisher`). NTF listeners that write the email outbox run in the publisher's transaction (`@EventListener`), so the business change and its email commit together.
-5. Controllers are thin: validate input (Bean Validation), call one service method, map to the contract DTO. Transactions start at the service layer.
+Rules (`LayeringTest` checks rule 1; the others are checked in review):
+
+1. Calls go one way: controller → service → repository / entity. Controllers never use `JdbcClient`, repositories or entities; nothing below the controllers imports them.
+2. A service uses another feature through that feature's interface (`Billing`, `Inventory`, `Moves`, `TermCatalog` …), never through its store or SQL. Where two features need each other, one of them declares the interface and the other implements it (`BlockDirectory` in auth, implemented in inventory), so no Spring bean cycle appears.
+3. A table is written only by the services of the feature whose prefix it carries (`bil_*` by billing). Cross-feature foreign keys exist for referential integrity only. Reports read the `rpt_v_*` views that each owning feature defines in its own migration (V23–V31).
+4. Side effects in other features go through **domain events** (`event/`, `ApplicationEventPublisher`). Notification listeners that write the email outbox run in the publisher's transaction (`@EventListener`), so the business change and its email commit together.
+5. Controllers are thin: validate input (Bean Validation), call one service method, return the contract record. Transactions start at the service layer.
 
 ## 6. API conventions (implementation)
 
@@ -140,7 +148,7 @@ Rules (checked by `ModularityTests` with Spring Modulith; the build fails on a v
 | Dates ISO 8601 UTC | `Instant` for fields ending in `At`, `LocalDate` (`YYYY-MM-DD`) for calendar days (`stayStart`, `checkOutBy`, `deadline` …); JDBC time zone UTC; campus zone `Asia/Ho_Chi_Minh` only for "today" logic and email texts. |
 | Money integer VND | `long` / `BIGINT` everywhere; never `double`. Rounding steps come from `cfg_parameter`. |
 | Rates fractions | `NUMERIC(5,4)` / `BigDecimal`. |
-| Statuses | DB stores `UPPER_SNAKE`; each module's status enum has a `@JsonValue` label equal to the contract text. |
+| Statuses | DB stores `UPPER_SNAKE`; each feature's status enum has a `@JsonValue` label equal to the contract text. |
 | Exports | `GET /exports/{report}` streams CSV/XLSX with `Content-Disposition`; every export is written to the Audit Log. |
 
 ## 7. Request lifecycle
@@ -273,7 +281,7 @@ sequenceDiagram
 
 Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android devices (invalid tokens are disabled), email through `ntf_email_outbox`. Templates (EN/VI titles) are Admin data. Push runs after the business transaction commits, on a virtual thread, so a slow FCM never delays the response; without `FIREBASE_CREDENTIALS_FILE` push is skipped. The service-account JWT is signed with the JDK (no Firebase SDK).
 
-| Job | Schedule | Module |
+| Job | Schedule | Feature |
 |---|---|---|
 | Expire Applications whose Deposit window passed | every 5 min | APP |
 | Expire roommate invitations, Round-2 offers, swap invitations | every 5 min | APP, REQ |
@@ -305,9 +313,9 @@ Implementation (S3): `asg.internal.AssignmentEngine` is pure (no database) and u
 
 ## 13. Database design
 
-Conventions: module prefix; `BIGINT` identity keys; money `BIGINT` VND; `TIMESTAMPTZ` in UTC; statuses as `UPPER_SNAKE` text with `CHECK`; `version` for optimistic locking; JSONB only for snapshots and display payloads (contact snapshot, Invoice lines, matching snapshot), never for data that is filtered or joined.
+Conventions: feature prefix; `BIGINT` identity keys; money `BIGINT` VND; `TIMESTAMPTZ` in UTC; statuses as `UPPER_SNAKE` text with `CHECK`; `version` for optimistic locking; JSONB only for snapshots and display payloads (contact snapshot, Invoice lines, matching snapshot), never for data that is filtered or joined.
 
-Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables, `V14` the check-out settlement snapshot, `V15` the Block and Room code on Maintenance Requests, `V16` the Block on Room-Change Requests, swaps and board posts and the swap status To Manager, `V17` the student snapshot on refunds, `V18` notification templates for swaps, late check-ins and refunds, `V19` the Admin limits a Block Manager works within (`sla.*` timers, `block.*` visitor and quiet hours, `sla.unassigned_max_hours`), `V20` what an escalation shows (request code and start, subtitle, Room, link), `V21` the notification template for an escalated request handed to staff, `V22` the templates for inspections and Admin emails with push, `V23`–`V30` the reporting views (`rpt_v_*`) of INV, APP, ASG, BIL, MNT, REQ, AUTH and CFG, each defined by its owner, `V31` the student's gender on the refund view (refunds without a Bed count for the Blocks of that gender). Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Demo data: `db/seed/R__dev_seed.sql` (profile `dev`; four years of operation: 14 Terms FA22…SP27, 8 Blocks, 960 Rooms, 3,680 Beds, 6,200 students, 29 back-office users; Fall 2026 at 60 %; loads once into an empty database; emails `<account>@example.com` or `<SEED_MAILBOX>+<account>@gmail.com`). Test data: `src/test/resources/db/test-seed/R__test_seed.sql` (profile `test`; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
+Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables, `V14` the check-out settlement snapshot, `V15` the Block and Room code on Maintenance Requests, `V16` the Block on Room-Change Requests, swaps and board posts and the swap status To Manager, `V17` the student snapshot on refunds, `V18` notification templates for swaps, late check-ins and refunds, `V19` the Admin limits a Block Manager works within (`sla.*` timers, `block.*` visitor and quiet hours, `sla.unassigned_max_hours`), `V20` what an escalation shows (request code and start, subtitle, Room, link), `V21` the notification template for an escalated request handed to staff, `V22` the templates for inspections and Admin emails with push, `V23`–`V30` the reporting views (`rpt_v_*`) of INV, APP, ASG, BIL, MNT, REQ, AUTH and CFG, each defined by its owner, `V31` the student's gender on the refund view (refunds without a Bed count for the Blocks of that gender). Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Base data: `db/seed/R__dev_seed.sql` (profile `dev`; a fresh system ready to sign in: 8 Blocks, 960 Rooms, 3,680 Beds, Room Types and Classes, 1 Admin, 8 Managers, 16 Staff and 6,200 students, no Term or history; emails `<account>@fpt.edu.vn` and `<student code>@fpt.edu.vn`, password `12321321`; idempotent). Test data: `src/test/resources/db/test-seed/R__test_seed.sql` (profile `test`; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
 
 ### 13.1 Core entities
 
@@ -338,7 +346,7 @@ erDiagram
 
 ### 13.2 Table catalog
 
-| Module | Tables |
+| Feature | Tables |
 |---|---|
 | shared | `shared_file` (uploaded files metadata), `shared_audit_log` |
 | AUTH | `auth_user`, `auth_student` (directory + contact), `auth_staff_profile` (handles, on duty), `auth_session`, `auth_action_token` (invite/reset), `auth_user_block` (Block scope), `auth_staff_account_request` |
@@ -351,13 +359,13 @@ erDiagram
 | MNT | `mnt_request`, `mnt_request_photo`, `mnt_request_event`, `mnt_checklist`, `mnt_checklist_item`, `mnt_inspection_schedule`, `mnt_inspection_run`, `mnt_inspection_room`, `mnt_inspection_result` |
 | NTF | `ntf_notification`, `ntf_device`, `ntf_template`, `ntf_email_template`, `ntf_email_campaign`, `ntf_email_outbox` |
 
-Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, the seed is idempotent (22/10/2026: the demo seed loads on an empty database in about 2 minutes, the test seed stays idempotent), and negative tests confirm the overlap exclusion, one-live-Application, Bed double-booking, consent and Room/Floor/Building constraints.
+Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, the seed is idempotent (22/10/2026: the base data and the test seed are idempotent), and negative tests confirm the overlap exclusion, one-live-Application, Bed double-booking, consent and Room/Floor/Building constraints.
 
 ## 14. Configuration and environments
 
 | Profile | Use | Database | Mail | Seed |
 |---|---|---|---|---|
-| `dev` (default) | IntelliJ / Docker Compose | local Postgres 17 | Mailpit (`localhost:1025`, inbox `http://localhost:8025`) | demo data (`db/seed`) |
+| `dev` (default) | IntelliJ / Docker Compose | local Postgres 17 | Mailpit (`localhost:1025`, inbox `http://localhost:8025`) | base data (`db/seed`) |
 | `test` | `mvn verify` | Testcontainers Postgres 17 | log sender | test data (`db/test-seed`) |
 | `prod` | demo server | env `DB_URL` … | Gmail SMTP (App Password, 500/day) | no (one-off flag) |
 
@@ -371,7 +379,7 @@ Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose
 |---|---|---|---|
 | Unit | JUnit 5, AssertJ | Pure rules: pricing, proration, fit score, password policy, template rendering | `TC-<MODULE>-NNN` in the Unit Test workbook |
 | Integration | Spring Boot test + Testcontainers PostgreSQL + MockMvc | Every endpoint: happy path, validation, permission/scope, concurrency where relevant | `*IT.java`, `TC-<MODULE>-NNN` |
-| Architecture | Spring Modulith `verify()` | Module boundaries, no cycles; diagrams for Report 4 | `ModularityTests` |
+| Architecture | JUnit (source scan) | Calls go controller → service → repository (§5 rule 1) | `LayeringTest` |
 | Concurrency | Integration tests with two threads | Commit vs Room-Change on the same Bed; double webhook delivery | `*ConcurrencyIT.java` |
 | System / UAT | Web app against the dev stack | End-to-end flows per role | Test Report workbook |
 
@@ -383,6 +391,6 @@ Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose
 | R-12 | Spring Boot 4 ecosystem still settling (e.g. springdoc 3.x targets Boot 4.0) | OpenAPI UI may lag | Add springdoc only after checking compatibility; the endpoint map is the API reference meanwhile |
 | R-13 | Scope: 159 endpoints for about 9 remaining weeks | Should/Could items at risk | Build by slice (Must first). An endpoint not built yet answers `404 NOT_FOUND` and the web shows its error state with Retry (C-12); `GET /notifications`, which every layout calls, is built early (S1) |
 | R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | Mock gateway + manual confirmation; test the tunnel before each review |
-| R-15 | Domain events are in-memory (no event publication registry yet) | An async listener could miss an event on a crash | Emails already go through the outbox in the same transaction; add Spring Modulith's JDBC event registry when async listeners appear |
-| R-16 | Cross-module foreign keys | Harder future split into services | Accepted for integrity; documented in §5 |
+| R-15 | Domain events are in-memory (no event publication registry yet) | An async listener could miss an event on a crash | Emails already go through the outbox in the same transaction; add a transactional event registry (e.g. an outbox table) when async listeners appear |
+| R-16 | Cross-feature foreign keys | Harder future split into services | Accepted for integrity; documented in §5 |
 | R-17 | Gmail SMTP limit 500/day, App Password revoked on password change | Campaign emails fail | Campaigns are Could; switch provider behind `EmailSender` if needed |

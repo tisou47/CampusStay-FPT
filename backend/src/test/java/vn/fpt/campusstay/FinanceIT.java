@@ -27,7 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.bil.internal.FinanceService;
+import vn.fpt.campusstay.service.billing.FinanceService;
 
 /** Block Finance: overdue Invoices and reminders, figures, refunds (TC-BIL-020, 021). */
 @SpringBootTest

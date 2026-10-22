@@ -24,8 +24,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.ntf.internal.TestPushSenders;
-import vn.fpt.campusstay.shared.security.Tokens;
+import vn.fpt.campusstay.service.notification.TestPushSenders;
+import vn.fpt.campusstay.security.Tokens;
 
 /** FCM device tokens and push after commit (TC-NTF-020, 021); FCM itself is a recording stand-in. */
 @SpringBootTest

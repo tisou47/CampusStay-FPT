@@ -30,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.shared.time.TimeConfig;
+import vn.fpt.campusstay.config.TimeConfig;
 
 /** Late check-ins: recorded at the desk, decided by the Block Manager (TC-ASG-030, 031). */
 @SpringBootTest

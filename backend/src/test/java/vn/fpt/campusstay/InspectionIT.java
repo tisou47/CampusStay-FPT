@@ -34,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.mnt.internal.InspectionScheduleService;
+import vn.fpt.campusstay.service.maintenance.InspectionScheduleService;
 
 /** Inspections: checklists (Admin), schedules (Block Manager) and runs (Staff) (TC-MNT-004…007). */
 @SpringBootTest

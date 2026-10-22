@@ -24,7 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.app.internal.Round2Service;
+import vn.fpt.campusstay.service.application.Round2Service;
 
 /** Round 2 for Waitlisted students: held options, accept, decline and expiry (TC-APP-020, 021). */
 @SpringBootTest

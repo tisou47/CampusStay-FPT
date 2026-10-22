@@ -27,7 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.req.internal.EscalationService;
+import vn.fpt.campusstay.service.request.EscalationService;
 
 /** Requests past their timers escalate to the Block Manager, who hands them on (TC-REQ-016…018). */
 @SpringBootTest

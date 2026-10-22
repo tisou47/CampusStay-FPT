@@ -34,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import vn.fpt.campusstay.shared.time.TimeConfig;
+import vn.fpt.campusstay.config.TimeConfig;
 
 /** The Check-in and Check-out desk (TC-ASG-020…023). Each test allocates its own students. */
 @SpringBootTest

@@ -31,7 +31,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import vn.fpt.campusstay.auth.Permission;
+import vn.fpt.campusstay.security.Permission;
 
 /** Admin › Users and Roles, permission matrix, Audit Log, and the invite → set password → change password flow. */
 @SpringBootTest

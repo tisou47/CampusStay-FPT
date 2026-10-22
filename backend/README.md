@@ -1,6 +1,6 @@
 # CampusStay FPT — backend
 
-REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 application (modular monolith) on PostgreSQL 17. Design: `docs/backend/01_Backend_Architecture.md`.
+REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 application (layered Spring MVC) on PostgreSQL 17. Design: `docs/backend/01_Backend_Architecture.md`.
 
 ## Requirements
 | Tool | Version |
@@ -16,39 +16,37 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
    ```
    Check: `docker compose -f infra/docker-compose.yml ps` shows `db` as healthy.
 2. Open `backend/` in IntelliJ as a Maven project, JDK 21.
-3. Run `CampusStayApplication` (profile `dev` is the default). Flyway creates the schema and loads the demo data (see below; about 2 minutes on the first start).
+3. Run `CampusStayApplication` (profile `dev` is the default). Flyway creates the schema and loads the base data (see below).
 4. Check: `curl http://localhost:8080/api/actuator/health` → `{"status":"UP"}`.
 5. Sign in:
    ```bash
    curl -s -X POST http://localhost:8080/api/auth/sign-in \
      -H 'Content-Type: application/json' \
-     -d '{"email":"admin@example.com","password":"CampusStay@2026","remember":false}'
+     -d '{"email":"admin@fpt.edu.vn","password":"12321321","remember":false}'
    ```
 6. Web app: in `web/`, keep `VITE_API_PROXY_TARGET=http://localhost:8080` and run `npm run dev`. The Vite proxy forwards `/api`.
 
-### Demo data
-On an empty database the `dev` profile loads `db/seed/R__dev_seed.sql`: four years of operation with three Terms a year (Fall 2022 … Spring 2027, 14 Terms), 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds) and 6,200 students of cohorts K17–K22, 5,004 of them still active. Fall 2026 is in progress with 60 % of the Beds taken; Spring 2027 is open for registration. Every past Term carries its history (Applications, assignment runs, Allocations, check-ins and check-outs, Invoices and payments, monthly meter readings and Utility Invoices, room changes, swaps, refunds, Maintenance Requests, inspections, escalations, emails), so each report and export works on any Term.
+### Base data
+The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready to sign in and has nothing else. It holds 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds), the Room Types and Room Classes, the back-office accounts and 6,200 students in the student directory (cohorts K18–K22, all enrolled). There is no Term, Application, Invoice, request or report data: start as `admin` by confirming the fees (Admin › Fees) and publishing a Term (Admin › Terms). Until a Term is published the dashboards answer "No Term is published yet."
 
-- **Password** of every account: `CampusStay@2026`.
-- **Emails** are `<account>@example.com` and never delivered. To receive the demo emails, set `SEED_MAILBOX` to your Gmail name before the first start (run configuration or environment variable, never a committed file): `SEED_MAILBOX=yourname` gives `yourname+admin@gmail.com`, `yourname+se210025@gmail.com` …, all delivered to your inbox (in `dev` mail stops in Mailpit anyway).
-- **Load once:** the demo data needs an empty database; a database with other data stops the start with a message. To start over, recreate it: `docker compose -f infra/docker-compose.yml down -v` and `up -d db mail` (**deletes all local data**), or in psql `DROP DATABASE campusstay WITH (FORCE); CREATE DATABASE campusstay OWNER campusstay;`.
-- Integration tests use a small seed of their own (`src/test/resources/db/test-seed`, accounts `@campusstay.test`).
+- **Password** of every account: `12321321`.
+- **Emails** use the FPT format: `<account>@fpt.edu.vn` for staff, `<student code>@fpt.edu.vn` for students (`se190001@fpt.edu.vn`). In `dev` every email stops in Mailpit.
+- **Codes:** `SE` (software, AI, security), `SS` (business, media, languages) or `SA` (design) + cohort + number, numbered from `0001` in each group: `se190001`, `ss220001`, `sa180001` …; about 58 % of the students are male.
+- The file is idempotent: a newer version adds what is missing. To start from scratch, recreate the database: `docker compose -f infra/docker-compose.yml down -v` and `up -d db mail` (**deletes all local data**), or in psql `DROP DATABASE campusstay WITH (FORCE); CREATE DATABASE campusstay OWNER campusstay;`.
+- Integration tests use a small seed of their own (`src/test/resources/db/test-seed`, accounts `@campusstay.test`, password `CampusStay@2026`).
 
-| Role | Account (before `@example.com`) | Scope |
+| Role | Account (before `@fpt.edu.vn`) | Scope |
 |---|---|---|
-| Admin | `admin`, `admin.finance` | all Blocks |
+| Admin | `admin` | all Blocks |
 | Manager | `manager.a` … `manager.h` | one Block each |
-| Staff, desk | `staff.a1` … `staff.h1` (`staff.g1` off duty) | their Block |
-| Staff, technician | `staff.a2` … `staff.h2` (`staff.b2` off duty) | their Block |
-| Staff, finance | `finance.1` (A–D), `finance.2` (E–H) | those Blocks |
-| Former staff | `staff.former` | disabled, cannot sign in |
-| Student | the student code in lower case: `se210025` (lives in A-401), `se210004` (E-402), `se210136` (allocated, not checked in), `se221011` (an Overdue Invoice), `se220116` (Spring 2027 Application awaiting its Deposit), `se220001` (no Application yet) | own data |
+| Staff | `staff.a1`, `staff.a2` … `staff.h1`, `staff.h2` (two per Block; the Manager sets what each handles in Block staff) | their Block |
+| Student | the student code in lower case, e.g. `se190001`, `ss220001` | own data |
 
 ### Google sign-in (optional)
 1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID, type *Web application*; add `http://localhost:5173` as an authorized JavaScript origin.
 2. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for the backend (environment variables, never in a committed file), and `VITE_GOOGLE_CLIENT_ID` for the web app. The web popup sends an authorization code that the backend exchanges with the secret (`redirect_uri=postmessage`, no redirect URI to register); Android sends an ID token and needs only the client id. Without the secret the web button answers `503 GOOGLE_SIGN_IN_DISABLED`.
-3. Link a demo account to your Google account by giving it your FPT email, e.g. in psql:
-   `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE id = (SELECT user_id FROM auth_student WHERE student_code = 'SE210025');`
+3. Link a base-data account to your Google account by giving it your own FPT email, e.g. in psql:
+   `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'se190001@fpt.edu.vn';`
 Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for accounts that already exist.
 
 ### Payments (VietQR and SePay)
@@ -61,7 +59,7 @@ The payment page shows a VietQR image for the receiving account set in `PAYMENT_
 - **Manual confirmation (Staff › Payments):** a transfer the feed could not match is confirmed by hand with the bank reference and an optional receipt (JPEG, PNG or PDF). Receipts are stored under `FILES_DIR` (default `data/files`, git-ignored); back that folder up with the database. Admin › Fees can turn manual confirmation off.
 
 ### Assignment (S3)
-Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it with the demo data: approve some Spring 2027 Applications as `staff.a1` (Block A, male students), or apply as a student and pay with the dev simulation, then start a run.
+Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally: publish a Term as `admin`, apply as a few students of one gender (`se190001` …) and pay with the dev simulation, approve them as `staff.a1` (Block A, male students) and start a run.
 
 ### Desk, maintenance and push (S4)
 - **Check-in** needs the Balance paid (it includes the Utility Deposit) and today inside the Term's check-in window. The desk looks students up by code, name or the pass `CSTAY-PASS:<allocationId>` shown in the mobile app.
@@ -76,18 +74,18 @@ Staff approve Applications (`/applications`), start a run (`POST /assignment-run
 
 ### Utility billing, routing and Block management (S6)
 - **Meter readings (Staff › Meter readings):** each Block gets one period per calendar month, opened on first visit. Enter or import (CSV `room,electricity,water`) the readings of every Room someone lived in; values more than three times the Room's last month are flagged and must be confirmed. Closing the month issues one Utility Invoice per resident, split by time in the Room between meter cuts; students who checked out already settled from their Utility Deposit. Prices and rounding: Admin › Utility.
-- **Routing rules (Block Manager):** new Maintenance Requests (by category, then All) and Room-Change Requests go to the rule's assignee while on duty, else its fallback. Without a matching rule a request waits unassigned until Staff pick it up (every Block has rules in the demo data).
+- **Routing rules (Block Manager):** new Maintenance Requests (by category, then All) and Room-Change Requests go to the rule's assignee while on duty, else its fallback. Without a matching rule a request waits unassigned until Staff pick it up (the base data has no rules).
 - **Escalations:** every 15 minutes (`campusstay.req.sla-interval`) requests past the Block's timers, still unassigned or reopened appear on Manager › Escalations; the Manager reassigns them (the new owner is notified) or offers a temporary Bed for a room change.
 - **Block staff and settings:** the Manager sets what each person handles and who is on duty, asks Admin for new accounts, and edits desk, visitor and quiet hours within Admin › System parameters (`block.*`, `sla.*`).
 
 ### Inspections, messages, dashboards and reports (S7)
-- **Inspections:** Admin › Inspection checklists versions each checklist (the demo data has "Room safety check" v2, "Air-conditioner check" and an archived "Fire extinguisher walk"). A Block Manager's schedule starts its first run at once and the next ones at 06:00 (`campusstay.mnt.inspection-cron`); Staff record each Room, and a failed item becomes a Maintenance Request with the item's category and a priority from its severity.
+- **Inspections:** Admin › Inspection checklists versions each checklist (the base data has none yet). A Block Manager's schedule starts its first run at once and the next ones at 06:00 (`campusstay.mnt.inspection-cron`); Staff record each Room, and a failed item becomes a Maintenance Request with the item's category and a priority from its severity.
 - **Messages:** Admin › Notification templates edits the in-app and push texts (test sends go to the Admin). Admin › Send email reaches one student or a group of the Term (residents, not checked in, unpaid, waitlisted, applicants); emails go through the outbox at the chosen time.
 - **Dashboards and reports** read only the reporting views (`rpt_v_*`, migrations V23–V31); a Term that has ended still counts the students who lived there until check-out. **Exports** (`/api/exports/{report}`) are CSV files with the screen's filters; each one is written to the Audit Log.
 
 ## Tests
 ```bash
-mvn test      # unit tests + ModularityTests (module boundaries; diagrams in target/spring-modulith-docs)
+mvn test      # unit tests + LayeringTest (calls go controller → service → repository)
 mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — Docker must be running
 ```
 
@@ -102,20 +100,33 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 | `401` on every call from the web app | Token missing or session expired / revoked | Sign in again; check the `Authorization: Bearer` header in DevTools |
 
 ## Layout
+Layered Spring MVC (ADR-17): calls go `controller` → `service` → `repository` / `entity`.
 ```
 src/main/java/vn/fpt/campusstay/
-  shared/   error model, paging, audit log, clock, tokens, file store and signed links, exports (open module)
-  auth/     sign-in, sessions, users, roles, Block scope, Audit Log, staff   (S0, S1, S6)
-  cfg/      Terms, Room Types/Classes, fees, utility, parameters, Block settings (S0, S1, S6)
-  inv/      Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms      (S1, S7 export)
-  ntf/      notifications, push (FCM), devices, email outbox, templates, campaigns (S0–S4, S7)
-  app/      Application wizard, roommate pairs, Home, profile, review       (S2, S3)
-  bil/      Invoices, VietQR, SePay webhook, receipts, payments, meters     (S2, S3, S5, S6)
-  asg/      assignment engine, runs, approval, Allocations, My Room, desk  (S3, S4)
-  mnt/      Maintenance Requests, photos, updates, inspections             (S4, S6, S7)
-  req/      Room-Change Requests, swaps, routing rules, escalations        (S4–S6)
-  rpt/      dashboards, reports, CSV exports (reads rpt_v_* views only)   (S7)
+  controller/<feature>/   REST controllers and their request/response records
+  service/<feature>/      business rules, SQL (JdbcClient), interfaces other features call, jobs, listeners, exports
+  repository/             Spring Data JPA repositories; repository/<feature>/ SQL stores
+  entity/                 JPA entities (users, sessions, tokens, Terms, Room Types, Room Classes)
+  dto/                    shared records (ListResponse, PageQuery, TermSummary)
+  event/                  domain events (ApplicationSubmitted, PaymentConfirmed …)
+  config/                 Spring configuration and properties (clock, mail, push, payment, auth)
+  security/               SecurityConfig, bearer token filter, CurrentUser, BlockScope, Role, Permission
+  exception/              ApiException, error model, GlobalExceptionHandler
+  common/                 audit log, CSV export contract, file store and signed links
 src/main/resources/db/migration/   Flyway schema V1–V31
-src/main/resources/db/seed/        demo data (dev profile; prod only on purpose)
+src/main/resources/db/seed/        base data: accounts and Buildings (dev profile; prod only on purpose)
 src/test/resources/db/test-seed/   small fixed data of the integration tests
 ```
+
+| Feature | Table prefix | What it covers (slices) |
+|---|---|---|
+| `auth` | `auth_` | sign-in, sessions, users, roles, Block scope, Audit Log, staff (S0, S1, S6) |
+| `setting` | `cfg_` | Terms, Room Types/Classes, fees, utility, parameters, Block settings (S0, S1, S6) |
+| `inventory` | `inv_` | Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms (S1, S7) |
+| `application` | `app_` | Application wizard, roommate pairs, Home, profile, review, Round 2 (S2, S3, S5) |
+| `assignment` | `asg_` | assignment engine, runs, approval, Allocations, My Room, desk, late check-ins (S3–S5) |
+| `billing` | `bil_` | Invoices, VietQR, SePay webhook, receipts, payments, refunds, meters (S2–S6) |
+| `request` | `req_` | Room-Change Requests, swaps, routing rules, escalations (S4–S6) |
+| `maintenance` | `mnt_` | Maintenance Requests, photos, updates, inspections (S4, S6, S7) |
+| `notification` | `ntf_` | notifications, push (FCM), devices, email outbox, templates, campaigns (S0–S4, S7) |
+| `report` | (`rpt_v_*` views) | dashboards, reports, CSV exports (S7) |

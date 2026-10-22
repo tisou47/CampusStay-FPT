@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * End-to-end AUTH flow against a real PostgreSQL with the Flyway schema and dev seed.
+ * End-to-end Auth flow against a real PostgreSQL with the Flyway schema and dev seed.
  * Test case IDs follow TC-AUTH-NNN (Report 5).
  */
 @SpringBootTest

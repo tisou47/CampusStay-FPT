@@ -37,7 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
-import vn.fpt.campusstay.shared.time.TimeConfig;
+import vn.fpt.campusstay.config.TimeConfig;
 
 /** Maintenance Requests from the student's report to the confirmed fix (TC-MNT-001…003). */
 @SpringBootTest

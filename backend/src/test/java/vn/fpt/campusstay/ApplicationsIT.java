@@ -28,7 +28,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import vn.fpt.campusstay.app.internal.ApplicationService;
+import vn.fpt.campusstay.service.application.ApplicationService;
 
 /** Application wizard, roommate pairs, cancellation and expiry (TC-APP-NNN). Each test uses its own students. */
 @SpringBootTest
