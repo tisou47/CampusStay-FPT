@@ -1,5 +1,6 @@
 package vn.fpt.campusstay;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.emptyString;
@@ -13,8 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,6 +35,9 @@ class AuthFlowIT {
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    ApplicationContext context;
 
     /** TC-AUTH-001: valid credentials return a token and the contract user shape. */
     @Test
@@ -165,6 +171,15 @@ class AuthFlowIT {
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.code").value("GOOGLE_SIGN_IN_DISABLED"));
         }
+    }
+
+    /**
+     * TC-AUTH-028 (security): Spring's default in-memory user is not created, so no generated password is written to
+     * the log; sign-in goes only through CampusStay's accounts.
+     */
+    @Test
+    void noDefaultSpringUser() {
+        assertThat(context.getBeanNamesForType(UserDetailsService.class)).isEmpty();
     }
 
     private String signIn(String email) throws Exception {
