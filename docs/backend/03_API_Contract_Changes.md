@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.10 |
+| Version | 1.11 |
 | Date | 22/10/2026 |
 | Contract | `docs/api-contract.md` = the mentor-confirmed base + every change below (A-01…C-14 merged on 20/10/2026, C-15…C-28, A-08…A-12 on 21/10/2026, C-29…C-37, A-13, A-14 on 22/10/2026) |
 | Rule | Every contract change gets a row here **and** is written into `docs/api-contract.md` in the same commit. Additions (A-) are applied by the backend directly. Breaking changes (B-) name the client action; the backend and client changes go in the same PR. Clarifications (C-) describe behaviour the clients must handle. Update the status columns when a side is done. |
@@ -20,7 +20,7 @@ Status: **Done** · **Pending** · **—** (nothing to do on that side).
 | A-05 | `POST /devices` | `{ token, platform: 'android' }` → `204` | Done (S4) | — | Pending: register the FCM token after sign-in and on token refresh |
 | A-06 | `POST /devices/unregister` | `{ token }` → `204` | Done (S4) | — | Pending: call before sign-out |
 | A-07 | `POST /webhooks/sepay` | SePay payload → `{ "success": true }` (server to server); header `Authorization: Apikey <key>`; deliveries deduplicated by SePay `id` | Done (S2) | — | — |
-| A-08 | `POST /dev/invoices/{id}/simulate-payment` | Dev profile only (absent in test and prod): pays the Invoice as if SePay reported the exact transfer → `204`. The owner student or the Admin. For demos without a bank account. | Done | Optional: a "Simulate payment" button in dev builds | — |
+| A-08 | `POST /dev/invoices/{id}/simulate-payment` | Exists only with `campusstay.payment.simulator=true`: always in the dev profile, and on a demo server with `PAYMENT_SIMULATOR=true` (off in test and in a real deployment: `404`). Pays the Invoice as if SePay reported the exact transfer → `204`. The owner student or the Admin. For demos without a bank account. | Done | Done: "Simulate bank transfer" on Invoice Payment in dev builds or with `VITE_PAYMENT_SIMULATOR=true` | — |
 | A-09 | `GET /payments/{invoiceId}/receipt-file` | The transfer receipt Staff attached when confirming a Payment by hand → the file (`image/jpeg`, `image/png` or `application/pdf`, `Content-Disposition: inline`). Staff/Manager of the Invoice's Block and the Admin; otherwise `404`. For clients that hold the token; `receipt.url` of `GET /payments` items is a signed link (A-10). | Done (S3) | — (opens `receipt.url`) | — |
 | A-10 | `GET /files/{id}?exp&sig` | Signed links to stored files: `receipt.url` (`GET /payments`) and `photos[].url` (back-office `GET /maintenance-requests/{id}`) are absolute URLs of this endpoint, valid 30 minutes, so `<img>` and plain links work without the bearer token. An expired or altered link answers `404`; reload the page for a new one. The server hands a link out only after its own access check. | Done (S4) | — (already uses the URLs as given) | — |
 | A-11 | `GET /students/me/allocation` | `allocation.pass`: the check-in pass payload `CSTAY-PASS:<allocationId>` to show as a QR code; the desk scanner types it into `GET /check-in/lookup?q`. | Done (S4) | — | Pending: show `pass` as a QR code |

@@ -52,7 +52,7 @@ Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for ac
 ### Payments (VietQR and SePay)
 The payment page shows a VietQR image for the receiving account set in `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (bank short name of SePay's QR service, e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` (see `infra/.env.example`). Every Invoice has a transfer content `CSTAY` + its id; set the same prefix as the payment-code prefix in SePay.
 - **Real bank feed:** in SePay add a webhook to `https://<public host>/api/webhooks/sepay` with API-key authentication and set the same key in `SEPAY_WEBHOOK_API_KEY`. Blank key = webhook off (`503`).
-- **Without a bank (dev profile only):** pay an Invoice as if SePay had reported it, signed in as its student or as the Admin:
+- **Without a bank (dev profile, or a demo server with `PAYMENT_SIMULATOR=true`):** pay an Invoice as if SePay had reported it, signed in as its student or as the Admin (the web app shows a "Simulate bank transfer" button in dev builds or with `VITE_PAYMENT_SIMULATOR=true`):
   ```bash
   curl -X POST http://localhost:8080/api/dev/invoices/INV-SP27-000001/simulate-payment -H "Authorization: Bearer <token>"
   ```
@@ -96,7 +96,7 @@ mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — 
 | `FlywayValidateException: Validate failed … checksum mismatch` | An applied migration file was edited | Never edit applied files; add a new `V<n>__…sql`. Dev only: drop the volume (`docker compose -f infra/docker-compose.yml down -v`) — **deletes all local data** |
 | `Detected resolved migration not applied` | Branches added migrations with lower numbers | Renumber the new file above the highest applied version |
 | `Could not find a valid Docker environment` in `mvn verify` | Docker Desktop not running | Start Docker, rerun |
-| Emails never arrive | Mailpit not running (dev) or `spring.mail.host` unset (logs say "written to the log") | Start `mail` service; check http://localhost:8025 |
+| Emails never arrive | Mailpit not running (dev) or `spring.mail.host` unset (logs say "emails are not sent") | Start `mail` service; check http://localhost:8025 |
 | `401` on every call from the web app | Token missing or session expired / revoked | Sign in again; check the `Authorization: Bearer` header in DevTools |
 
 ## Layout

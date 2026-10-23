@@ -6,6 +6,10 @@ spring:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
 
+campusstay:
+  payment:
+    simulator: true   # the "Simulate bank transfer" button of the web app (A-08)
+
 logging:
   level:
     vn.fpt.campusstay: DEBUG

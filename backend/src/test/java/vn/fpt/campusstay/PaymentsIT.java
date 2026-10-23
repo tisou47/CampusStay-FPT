@@ -56,6 +56,16 @@ class PaymentsIT {
         return "se19%04d@student.campusstay.test".formatted(n);
     }
 
+    /** TC-BIL-028 (negative): without campusstay.payment.simulator the payment simulator does not exist. */
+    @Test
+    void simulatorOffByDefault() throws Exception {
+        String auth = bearer(mvc, student(39));
+        ApplyFlow.Applied app = flow.apply(auth, "4-bed", "Basic", null);
+        mvc.perform(post("/dev/invoices/" + app.depositInvoiceId() + "/simulate-payment")
+                .header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isNotFound());
+    }
+
     /** TC-BIL-001: the Deposit Invoice in the list, its detail and the VietQR payment page; the QR can be refreshed. */
     @Test
     void depositInvoiceAndPaymentPage() throws Exception {

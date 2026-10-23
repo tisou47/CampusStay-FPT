@@ -88,7 +88,7 @@ Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 co
 | BIL | POST | `/webhooks/sepay` | Must | Verified | A-07; TC-BIL-002, 003, 004, 005 |
 | CFG | GET | `/catalog` | Must | Verified | TC-APP-001 |
 
-Dev profile only, not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay reported the exact transfer.
+Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay reported the exact transfer; it exists only with `campusstay.payment.simulator=true` (dev profile, or `PAYMENT_SIMULATOR=true` on a demo server). Verified: TC-BIL-027, 028.
 
 ## S3 — Review, assignment engine, approval, commit, Allocation, Balance Invoice
 

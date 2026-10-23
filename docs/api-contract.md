@@ -40,7 +40,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 | POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204`; notifications are then also pushed (C-25) |
 | GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }` |
 | POST | `/webhooks/sepay` | SePay bank-feed payload (server to server, `Authorization: Apikey <key>`) | `{ "success": true }` (A-07) |
-| POST | `/dev/invoices/{id}/simulate-payment` | Dev profile only (A-08) | `204` |
+| POST | `/dev/invoices/{id}/simulate-payment` | Dev profile or a demo server with `PAYMENT_SIMULATOR=true` (A-08) | `204` |
 | GET | `/files/{id}?exp&sig` | A signed link handed out by another endpoint (`receipt.url`, `photos[].url`); no token | The file; `404` once expired (A-10) |
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read }], unread }` |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | — | `204` |
