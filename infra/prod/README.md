@@ -163,11 +163,16 @@ Each service is optional: without it the API starts and the feature falls back a
 ### 3.1 Gmail (ADR-09)
 1. Use a Gmail account made for the project, not a personal one. Turn on 2-Step Verification, then Google Account → Security → **App passwords** → create one named CampusStay.
 2. In `.env`: uncomment the `SPRING_MAIL_*` lines, `SPRING_MAIL_USERNAME` = the address, `SPRING_MAIL_PASSWORD` = the 16 characters without spaces, `MAIL_FROM` with the same address (Gmail replaces any other sender).
-3. Test: "Forgot password" on the web for an account whose email you can read.
-4. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students, with fictional addresses, see 1.10) would exceed it and get the account blocked for a day: send campaigns to small groups only.
+3. **Demo server:** also set `MAIL_REDIRECT_TO` to the team's mailbox (for example the same Gmail address). Every email then goes there with `[to <real recipient>]` in front of the subject, so the seed accounts' fictional addresses never receive mail and the whole demo can be followed in one inbox. Leave it blank only when real students use the system.
+4. `docker compose up -d`, then test: "Forgot password" on the web for any account; the email arrives in the redirect mailbox (or, without the redirect, at an account whose email you can read).
+5. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students) would exceed it and get the account blocked for a day: send campaigns to small groups only, even with the redirect.
 
 ### 3.2 VietQR and SePay (ADR-08)
-The payment page shows a VietQR image from SePay's free image service (`qr.sepay.vn`) for the account in `PAYMENT_*`, with the Invoice's transfer content (`CSTAY` + number). The SePay webhook reports each incoming transfer; an exact amount marks the Invoice Paid, any other amount waits for Staff.
+The payment page shows a VietQR image from SePay's free image service (`qr.sepay.vn`) for the account in `PAYMENT_*` (default: a fictional demo account), with the Invoice's transfer content (`CSTAY` + number). The SePay webhook reports each incoming transfer; an exact amount marks the Invoice Paid, any other amount waits for Staff.
+
+**Demo without a bank (the current setup):** `PAYMENT_SIMULATOR=true` in `.env` and `VITE_PAYMENT_SIMULATOR=true` on Vercel (redeploy) add a "Simulate bank transfer" button to the payment page; it pays the Invoice as if SePay had reported the exact transfer (only the Invoice's student or an Admin). Staff › Payments manual confirmation works as well. SePay is not needed; keep the demo account in `PAYMENT_*` so nobody scans a real account.
+
+**Real transfers with SePay** (optional, OI-13):
 1. Register at sepay.vn and link the receiving bank account (OI-13). Put the same account in `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (SePay's short name, e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`.
 2. SePay → company settings → payment code structure: prefix **`CSTAY`** followed by digits (it must equal `campusstay.payment.transfer-prefix`).
 3. SePay → Webhooks → add: URL `https://<API_DOMAIN>/api/webhooks/sepay`, event incoming money, authentication **API Key** with a value from `openssl rand -hex 24`. Put the same value in `SEPAY_WEBHOOK_API_KEY`.
@@ -207,7 +212,7 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | Caddy log: certificate errors | DNS not pointing at the VPS yet (1.6), or port 80 closed (1.3, and the provider's firewall) | Fix DNS or the rules, then `docker compose restart caddy` |
 | API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.10) |
 | API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.10) |
-| Emails never arrive | `SPRING_MAIL_*` not set (log says "written to the log"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api \| grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it |
+| Emails never arrive | `SPRING_MAIL_*` not set (log says "emails are not sent"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api \| grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it |
 | Payments stay Unpaid after a transfer | Webhook URL or key wrong in SePay, or the transfer content was changed by the payer | SePay → webhook history shows our answer; Staff confirm by hand meanwhile |
 | API stops at start: "Cannot read the Firebase credentials file" | Wrong path or the file is not readable | §3.3 step 2 |
 | Deploy job: `Permission denied (publickey)` or a timeout | `VM_SSH_KEY` is not the pair of the key in `~/.ssh/authorized_keys`, `VM_USER` is not `deploy`, or SSH runs on another port | Redo 1.8; set `VM_SSH_PORT` |
@@ -216,6 +221,34 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | `docker run hello-world` fails on a new VPS | OpenVZ/LXC plan without the kernel features Docker needs | Ask for a KVM plan (1.1) |
 | API log: `Connection to db:5432 refused` or `UnknownHostException: db` | `COMPOSE_PROFILES=local-db` missing from `.env` while `DB_URL` is not set | Put the line back (1.7), or set `DB_URL` for a managed database (appendix A) |
 | API log: timeout or `no pg_hba.conf entry` for the Azure database | The server's firewall lacks the VM's public IP, or `sslmode=require` is missing | A.2 networking rule; the `DB_URL` of A.3 |
+
+## 6. Continuous deployment and monitoring
+
+### 6.1 How a change reaches production
+Nothing is deployed by hand: merging into `main` is the deploy.
+
+| Change pushed to `main` | What runs | Where to watch |
+|---|---|---|
+| `backend/**`, `infra/prod/` stack files or the workflow | `.github/workflows/backend.yml`: `mvn verify` → image → copy the stack to the server → `docker compose up -d` → readiness check | GitHub → Actions → backend |
+| Anything (production) or `web/**` (previews) | Vercel builds `web/` with its environment variables | Vercel → Deployments |
+| A new Flyway migration | Applied by the API when the new image starts | API log: "Successfully applied" |
+| A setting (`.env` on the server) | Not in Git: edit `/opt/campusstay/.env`, then `docker compose up -d` | `docker compose ps` |
+| A Vercel variable (`VITE_*`) | Baked in at build time: redeploy the production deployment | Vercel → Deployments |
+
+A failing `mvn verify` stops the run before the image, so the running version stays. Roll back with §4 (`API_TAG=<older sha>`) or Vercel → Deployments → an older one → Promote.
+
+### 6.2 What to check, and how often
+| When | What | How |
+|---|---|---|
+| After every push | Actions run green, Vercel deployment Ready, health UP | GitHub Actions; Vercel; `curl https://<API_DOMAIN>/api/actuator/health` |
+| All the time (free) | Uptime with an email alert | An external monitor (e.g. UptimeRobot or Better Stack free plan) on `https://<API_DOMAIN>/api/actuator/health` every 5 minutes |
+| Weekly | Disk, memory, swap, containers | `df -h /`, `free -h`, `docker stats --no-stream`, `docker compose ps` |
+| Weekly | Errors in the API log | `docker compose logs --since 168h api \| grep -E "ERROR\|WARN"` |
+| Weekly | Cost and credit | Azure → Cost Management (budget `campusstay`, emails at 80 %) and Education hub (credit left) |
+| Weekly | Database (appendix A) | Azure → the PostgreSQL server → Metrics: storage used (32 GB in the free amount), CPU credits; Backup and restore: the latest restore point |
+| Monthly | VM CPU credits (B-series) | Azure → the VM → Metrics → *CPU Credits Remaining*: at 0 the VM is throttled (long assignment runs or exports use credits) |
+| Automatic, check monthly | HTTPS certificate | Caddy renews it; `echo \| openssl s_client -connect <API_DOMAIN>:443 2>/dev/null \| openssl x509 -noout -enddate` |
+| Before each review or the defense | Backups and a test restore | §1.11 cron (uploaded files), a one-off database dump (A.4) copied to your computer |
 
 ## Appendix A. Azure for Students
 The stack runs on an Azure VM like on any VPS. Two layouts:

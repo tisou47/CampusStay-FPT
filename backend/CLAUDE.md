@@ -12,7 +12,7 @@ mvn spring-boot:run                                         # profile dev, http:
 mvn test                                                    # unit tests + LayeringTest
 mvn verify                                                  # + *IT integration tests (Docker required)
 ```
-`mvn verify` must pass before every commit. Mail inbox: http://localhost:8025. Dev base data (`db/seed`): accounts `admin@fpt.edu.vn`, `manager.a@fpt.edu.vn`, `staff.a1@fpt.edu.vn`, students `se190001@fpt.edu.vn`, password `12321321`; no Term or history (backend/README.md, "Base data"). Test seed: `@campusstay.test`, password `CampusStay@2026`.
+`mvn verify` must pass before every commit. A push to `main` deploys to production by itself; how to finish and ship a change is in the root `CLAUDE.md` ("Standing rule"). Mail inbox: http://localhost:8025. Dev base data (`db/seed`): accounts `admin@fpt.edu.vn`, `manager.a@fpt.edu.vn`, `staff.a1@fpt.edu.vn`, students `se190001@fpt.edu.vn`, password `12321321`; no Term or history (backend/README.md, "Base data"). Test seed: `@campusstay.test`, password `CampusStay@2026`.
 
 ## Spring Boot 4 / Jackson 3 notes (R-11 closed 20/10/2026: the build and `mvn verify` pass)
 - Spring Boot 4 test packages: `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc`, `org.springframework.boot.testcontainers.service.connection.ServiceConnection`.
