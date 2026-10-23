@@ -21,4 +21,4 @@ When a change is done and its checks pass, ship it without asking:
 - Put real people's data in seeds or tests.
 
 ## Demo switches on the production server
-`PAYMENT_SIMULATOR=true` (+ Vercel `VITE_PAYMENT_SIMULATOR=true`): the "Simulate bank transfer" button (A-08). `MAIL_REDIRECT_TO`: every email goes to the team mailbox instead of the fictional seed addresses.
+`PAYMENT_SIMULATOR=true` (+ Vercel `VITE_PAYMENT_SIMULATOR=true`): the "Simulate bank transfer" button (A-08). `MAIL_REDIRECT_TO`: every email goes to the team mailbox instead of the fictional seed addresses; it needs SMTP (`SPRING_MAIL_*`), and neither is set yet (24/10/2026), so production only logs emails (architecture §14.1).

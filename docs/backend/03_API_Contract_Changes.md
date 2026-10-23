@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.11 |
-| Date | 22/10/2026 |
+| Version | 1.12 (24/10/2026: statuses checked against the code; B-01 backend done) |
+| Date | 24/10/2026 |
 | Contract | `docs/api-contract.md` = the mentor-confirmed base + every change below (A-01…C-14 merged on 20/10/2026, C-15…C-28, A-08…A-12 on 21/10/2026, C-29…C-37, A-13, A-14 on 22/10/2026) |
 | Rule | Every contract change gets a row here **and** is written into `docs/api-contract.md` in the same commit. Additions (A-) are applied by the backend directly. Breaking changes (B-) name the client action; the backend and client changes go in the same PR. Clarifications (C-) describe behaviour the clients must handle. Update the status columns when a side is done. |
 
@@ -34,7 +34,7 @@ Password rule (A-03, A-04): 8–64 characters, at least one letter and one numbe
 
 | ID | Change | Why | Backend | Web | Mobile |
 |---|---|---|---|---|---|
-| B-01 | `GET /check-out/{studentCode}` and `POST /check-out/{studentCode}` become `/check-out/{allocationId}`; items of `GET /check-out` gain `allocationId`. | A student code in the URL ends up in proxy logs and browser history (personal data, Law 91/2025/QH15). An Allocation id also stays unique if the same student checks out of two Terms. | Pending (S4) | Done: Check-out desk selects and calls by `allocationId` | — |
+| B-01 | `GET /check-out/{studentCode}` and `POST /check-out/{studentCode}` become `/check-out/{allocationId}`; items of `GET /check-out` gain `allocationId`. | A student code in the URL ends up in proxy logs and browser history (personal data, Law 91/2025/QH15). An Allocation id also stays unique if the same student checks out of two Terms. | Done (S4): `DeskController` maps `/check-out/{allocationId}` | Done: Check-out desk selects and calls by `allocationId` | — |
 | B-02 | `POST /auth/sign-in { username, password, remember }` becomes `{ email, password, remember }`; `remember` is optional (default `false`). | ADR-13: CampusStay keeps its own passwords; it cannot check FPT Wi-Fi credentials. To be confirmed with the mentor (OI-14). | Done | Done: Email field, error texts, `VITE_PASSWORD_RESET_URL` removed | Pending |
 | B-03 | IDs are JSON **strings**: every field named `id` or ending in `Id`, at any depth (`"id": "42"`, `"roomTypeId": "3"`). Request bodies and URL parameters send them as strings; the server also accepts numbers. Amounts, counts and rates stay numbers. Replaces C-01. | ADR-15: URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion. | Done for every coded endpoint (`user.id`, `GET /terms`); each new endpoint follows the rule | — (already compares strings) | Pending: model IDs as `String` |
 

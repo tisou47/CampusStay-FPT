@@ -39,7 +39,7 @@ class GoogleCodeExchangerTest {
         return new GoogleCodeExchanger(props, builder);
     }
 
-    /** TC-AUTH-011: the code is posted with the popup redirect URI and the ID token is returned. */
+    /** TC-AUTH-029: the code is posted with the popup redirect URI and the ID token is returned. */
     @Test
     void exchangesCodeForIdToken() {
         GoogleCodeExchanger exchanger = exchanger("client-1", "secret-1");
@@ -59,7 +59,7 @@ class GoogleCodeExchangerTest {
         server.verify();
     }
 
-    /** TC-AUTH-012 (negative): a used or expired code is the user's retryable error (401). */
+    /** TC-AUTH-030 (negative): a used or expired code is the user's retryable error (401). */
     @Test
     void usedCodeIsInvalid() {
         GoogleCodeExchanger exchanger = exchanger("client-1", "secret-1");
@@ -70,7 +70,7 @@ class GoogleCodeExchangerTest {
         assertError(() -> exchanger.exchange("code-1"), HttpStatus.UNAUTHORIZED, "GOOGLE_TOKEN_INVALID");
     }
 
-    /** TC-AUTH-013 (negative): a wrong client secret is our misconfiguration, not the user's (503). */
+    /** TC-AUTH-031 (negative): a wrong client secret is our misconfiguration, not the user's (503). */
     @Test
     void wrongClientSecretIsUnavailable() {
         GoogleCodeExchanger exchanger = exchanger("client-1", "wrong-secret");
@@ -81,7 +81,7 @@ class GoogleCodeExchangerTest {
         assertError(() -> exchanger.exchange("code-1"), HttpStatus.SERVICE_UNAVAILABLE, "GOOGLE_UNAVAILABLE");
     }
 
-    /** TC-AUTH-014 (negative): Google cannot be reached (503). */
+    /** TC-AUTH-032 (negative): Google cannot be reached (503). */
     @Test
     void networkFailureIsUnavailable() {
         GoogleCodeExchanger exchanger = exchanger("client-1", "secret-1");
@@ -90,7 +90,7 @@ class GoogleCodeExchangerTest {
         assertError(() -> exchanger.exchange("code-1"), HttpStatus.SERVICE_UNAVAILABLE, "GOOGLE_UNAVAILABLE");
     }
 
-    /** TC-AUTH-015 (boundary): without a client secret the code flow is off and Google is never called. */
+    /** TC-AUTH-033 (boundary): without a client secret the code flow is off and Google is never called. */
     @Test
     void codeFlowNeedsClientSecret() {
         GoogleCodeExchanger exchanger = exchanger("client-1", "");

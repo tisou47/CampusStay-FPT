@@ -125,7 +125,7 @@ Check from anywhere: `curl https://<API_DOMAIN>/api/actuator/health` → `{"stat
 ### 1.10 Base data (optional)
 The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Types and Classes, the back-office accounts (`admin@fpt.edu.vn`, `manager.a` … `manager.h`, `staff.a1` … `staff.h2`) and 6,200 fictional students (`se190001@fpt.edu.vn` …). It has no Terms or history: the Admin confirms the fees and publishes the first Term. Without it the database has only the reference data and no account to sign in with.
 1. Uncomment `SPRING_FLYWAY_LOCATIONS`, deploy (1.9) and wait for `UP`. Keep the line: the seed is idempotent, so a newer version only adds what is missing. (If you remove it later, uncomment `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing`.)
-2. The seed addresses are fictional `@fpt.edu.vn` mailboxes: real email sent to them goes to FPT's mail server. Before testing password reset or Admin emails, give the accounts you use your own address, e.g. in psql `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'admin@fpt.edu.vn';`.
+2. The seed addresses are fictional `@fpt.edu.vn` mailboxes: real email sent to them goes to FPT's mail server. On the demo server `MAIL_REDIRECT_TO` already sends every email to the team mailbox (ADR-18). Without it, before testing password reset or Admin emails, give the accounts you use your own address, e.g. in psql `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'admin@fpt.edu.vn';`.
 3. Every seed account has the password written in the repository, which is public. Replace it with your own demo password:
    ```bash
    docker run --rm httpd:2.4-alpine htpasswd -nbBC 10 "" '<new demo password>' | tr -d ':\n'; echo
@@ -145,6 +145,7 @@ The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Type
    |---|---|
    | `VITE_API_BASE_URL` | `https://<API_DOMAIN>/api` |
    | `VITE_GOOGLE_CLIENT_ID` | the Web OAuth client id (optional) |
+   | `VITE_PAYMENT_SIMULATOR` | `true` only on the demo server, together with the API's `PAYMENT_SIMULATOR=true` (ADR-18): shows "Simulate bank transfer" on Invoice Payment |
 
    `VITE_*` values are baked in at build time: after changing one, redeploy.
 3. Deploy, then put the final production URL into `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS` in the VPS's `.env` and run `docker compose up -d` in `/opt/campusstay`.

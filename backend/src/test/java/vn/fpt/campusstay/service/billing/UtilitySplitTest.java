@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import vn.fpt.campusstay.service.setting.UtilityPolicy;
 import vn.fpt.campusstay.config.TimeConfig;
 
-/** How a Room's meter is split between its residents (TC-BIL-022). */
+/** How a Room's meter is split between its residents (TC-BIL-022, 029…031). */
 class UtilitySplitTest {
 
     private static final UtilityPolicy.Prices PRICES = new UtilityPolicy.Prices(3500, 15000, "ROUND_UP_1000", 7);
@@ -45,7 +45,7 @@ class UtilitySplitTest {
         assertThat(result.shares()).extracting(UtilitySplit.Share::allocationId).containsExactly(10L, 20L);
     }
 
-    /** TC-BIL-022: a check-out cuts the meter; the leaver's share is marked settled (paid from the Utility Deposit). */
+    /** TC-BIL-029: a check-out cuts the meter; the leaver's share is marked settled (paid from the Utility Deposit). */
     @Test
     void aCheckOutSplitsTheMonthIntoSegments() {
         UtilitySplit.Result result = UtilitySplit.split(
@@ -62,7 +62,7 @@ class UtilitySplitTest {
         assertThat(result.shares()).extracting(UtilitySplit.Share::settled).containsExactly(false, false, true);
     }
 
-    /** TC-BIL-022: within a segment, shares follow the time each resident lived in the Room; totals round up. */
+    /** TC-BIL-030: within a segment, shares follow the time each resident lived in the Room; totals round up. */
     @Test
     void sharesFollowTimeInTheRoom() {
         UtilitySplit.Result result = UtilitySplit.split(List.of(point(10, 1, 0, 0), point(10, 31, 100, 0)),
@@ -72,7 +72,7 @@ class UtilitySplitTest {
         assertThat(result.shares()).extracting(UtilitySplit.Share::amount).containsExactly(234_000L, 117_000L);
     }
 
-    /** TC-BIL-022: without a reading at the end there is nothing to share yet. */
+    /** TC-BIL-031: without a reading at the end there is nothing to share yet. */
     @Test
     void noEndReadingNoShares() {
         UtilitySplit.Result result = UtilitySplit.split(List.of(point(10, 1, 0, 0)),

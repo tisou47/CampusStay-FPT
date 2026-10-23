@@ -8,7 +8,7 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 |---|---|
 | `backend/` | Spring Boot 4.1 REST API (Java 21, PostgreSQL 17, Flyway). See [backend/README.md](backend/README.md) and [backend/CLAUDE.md](backend/CLAUDE.md). |
 | `web/` | React 19 + Vite web app for Student, Staff, Manager and Admin. See [web/README.md](web/README.md). |
-| `docs/` | Project Brief (source of truth), API contract and backend design. |
+| `docs/` | Project Brief (source of truth), API contract, backend design, test catalog and web screen map; `docs/tools/` regenerates the catalogs. |
 | `infra/` | Docker Compose for Postgres, Mailpit and the API; `infra/prod/` is the production stack (Postgres, API, Caddy). |
 | `.github/workflows/` | CI/CD: backend verify, image build and deploy to the VM. |
 | `postman/` | Postman workspace files. |
@@ -21,7 +21,13 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | [docs/api-contract.md](docs/api-contract.md) | The API the web and mobile apps call (request and response shapes) |
 | [docs/backend/01_Backend_Architecture.md](docs/backend/01_Backend_Architecture.md) | Backend design (feeds Report 4) |
 | [docs/backend/02_Endpoint_Map.md](docs/backend/02_Endpoint_Map.md) | Every endpoint, its module, priority, slice and status |
-| [docs/backend/03_API_Contract_Changes.md](docs/backend/03_API_Contract_Changes.md) | Changes to the contract proposed by the backend |
+| [docs/backend/03_API_Contract_Changes.md](docs/backend/03_API_Contract_Changes.md) | Changes to the contract proposed by the backend, with the status of each side |
+| [docs/backend/04_Test_Catalog.md](docs/backend/04_Test_Catalog.md) | Every automated test with its `TC-` id (feeds Report 5); generated |
+| [docs/web/01_Screen_Map.md](docs/web/01_Screen_Map.md) | Every web route with its screen code, Figma frame and API calls (feeds Reports 3, 4, 6); generated |
+| [infra/prod/README.md](infra/prod/README.md) | Production runbook: setup, settings, operations, monitoring, Azure appendix |
+| [CLAUDE.md](CLAUDE.md), [backend/CLAUDE.md](backend/CLAUDE.md) | Working rules: delivery, layers, conventions |
+
+The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change.
 
 ## Run locally
 
@@ -35,4 +41,10 @@ Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must
 
 ## Deploy
 
-The web app runs on Vercel (Root Directory `web/`), the API and PostgreSQL on one Ubuntu VPS behind Caddy (ADR-16). Pushing to `main` deploys both: Vercel builds `web/`, and `.github/workflows/backend.yml` verifies, builds and ships the backend. One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).
+| | Production |
+|---|---|
+| Web | https://campusstay-fpt-ten.vercel.app — Vercel, Root Directory `web/` |
+| API | https://campusstay-api.eastasia.cloudapp.azure.com/api — Azure for Students VM, Docker Compose with Caddy (HTTPS) |
+| Database | Azure Database for PostgreSQL (Flexible Server) |
+
+Pushing to `main` deploys both (ADR-16): Vercel builds `web/`, and `.github/workflows/backend.yml` runs `mvn verify`, builds the image to GHCR and ships it to the VM over SSH. The server runs as a demo with the payment simulator (ADR-18); its email, Google sign-in, SePay and Firebase settings are not set yet (architecture §14.1). One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).

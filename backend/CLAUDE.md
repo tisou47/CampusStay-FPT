@@ -37,7 +37,7 @@ When something does not compile, check the real API (do not guess); keep the des
 4. Authorization: role (URL rule or `currentUser.require(...)`), then scope: `blockScope.resolve(block)` for Staff/Manager; filter by `currentUser.id()` for students. A student asking for someone else's record gets 404, not 403.
 5. Errors: throw `ApiException` with a stable `code` (UPPER_SNAKE) and a user-facing `message`. Add new constraint names to `ConstraintMessages`.
 6. Audit: `auditLog.record(...)` inside the transaction for every state change made by Staff/Manager/Admin and every export.
-7. Tests: an `*IT` class per controller covering happy path, validation, permission/scope and the main business rule; name each test with its `TC-<MODULE>-NNN` id in the Javadoc.
+7. Tests: an `*IT` class per controller covering happy path, validation, permission/scope and the main business rule; name each test with its own `TC-<CODE>-NNN` id in the Javadoc (the next free number of that code: one id, one test), then run `node docs/tools/generate-catalogs.mjs` from the repository root and commit `docs/backend/04_Test_Catalog.md` with the change.
 8. Update `02_Endpoint_Map.md` status (Planned → Coded → Verified) in the same commit.
 
 ## Conventions

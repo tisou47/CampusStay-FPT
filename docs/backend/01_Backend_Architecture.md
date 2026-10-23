@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.2 (adds ADR-17: layered Spring MVC packages replace the module packages and Spring Modulith) |
-| Date | 22/10/2026 (Week 7, Sprint 4) |
+| Version | 1.3 (production on Azure + Vercel and the demo switches: ADR-16, ADR-18; test catalog) |
+| Date | 24/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
 | Feeds | Report 4 (SDD) §1 System Design and §2 Database Design; Report 3 §4 Non-Functional Requirements |
-| Related | `docs/00_Project_Brief.md` (ADRs), `02_Endpoint_Map.md`, `03_API_Contract_Changes.md`, `docs/api-contract.md` |
+| Related | `docs/00_Project_Brief.md` (ADRs), `02_Endpoint_Map.md`, `03_API_Contract_Changes.md`, `04_Test_Catalog.md`, `docs/api-contract.md`, `infra/prod/README.md` (production runbook) |
 
 ---
 
@@ -87,7 +87,9 @@ Full entries are in the Brief's Decision Log. Summary with the argument for the 
 | ADR-13 | Password sign-in by email with CampusStay's own password | CampusStay cannot check FPT Wi-Fi credentials (no SIS access, ADR-02), so asking for that username would invite users to type their FPT password into another system. Reset and invitation links go to the email anyway. |
 | ADR-14 | Google sign-in by authorization code (web) or ID token (Android) | The web keeps the custom Google button of the approved design (code flow); Android's Google Sign-In returns an ID token. The code exchange needs a client secret, which stays on the server; both paths end in the same ID-token checks. |
 | ADR-15 | IDs are JSON strings | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion. Java and the database keep `long`/`BIGINT`; the change is only in the contract DTOs. |
+| ADR-16 | Web on Vercel; API on one VM with Docker Compose and Caddy; GitHub Actions → GHCR → SSH deploy (live on Azure for Students since 23/10/2026, with Azure Database for PostgreSQL) | A VM never sleeps, so the 30-second email outbox, the file volume, SMTP and a stable HTTPS webhook URL work as designed; Vercel cannot run a long-lived Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database (§14). |
 | ADR-17 | Layered Spring MVC packages (22/10/2026) | The team and the council find code faster in the standard Controller → Service → Repository layout than in ten module packages with hidden `internal`/`web` folders. Classes moved without behaviour changes (all tests pass); the single deployable, the database and its invariants stay. Spring Modulith and `ModularityTests` are removed; `LayeringTest` checks that calls go one way (§5). |
+| ADR-18 | The production server runs as a demo: payment simulator (A-08) and email redirect switched on by settings; every push to `main` that passes its checks deploys | No bank account or SePay contract is needed to show payments; the 6,200 fictional seed accounts never receive real email and the council can follow every email in one inbox; nobody deploys by hand (§10, §14). |
 
 ## 4. Features
 
@@ -274,8 +276,8 @@ sequenceDiagram
 | Exact amount | Paid only if amount = Invoice amount. Less, more, or an Invoice already paid → inbox status `AMOUNT_MISMATCH` / `ALREADY_PAID`, Invoice `Awaiting confirmation`, shown to Staff on Payments. Refund of overpayments is handled manually. |
 | Late transfer | A transfer after the QR expired is still accepted; the QR expiry only refreshes the image. An Application whose Deposit window expired but whose money arrived goes to Staff. |
 | Unmatched transfer | Inbox `UNMATCHED`; Staff can link it to an Invoice by manual confirmation. |
-| Fallbacks | `MockPaymentGateway` (dev: a "simulate payment" admin call), manual confirmation with receipt upload (`POST /payments/{invoiceId}/confirm`). |
-| Demo setup | SePay account linked to Tisou's bank account (OI-13); webhook URL must be public HTTPS (Cloudflare Tunnel in the demo, OI-07). |
+| Fallbacks | Manual confirmation by Staff with the bank reference and a receipt (`POST /payments/{invoiceId}/confirm`); the payment simulator `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay had reported the exact transfer. The simulator exists only with `campusstay.payment.simulator=true` (always in the dev profile; `PAYMENT_SIMULATOR=true` on a demo server; never in a real deployment) and only for the Invoice's student or the Admin. |
+| Demo setup | ADR-18: the production server runs with the simulator on (and `VITE_PAYMENT_SIMULATOR=true` on Vercel, which shows "Simulate bank transfer" on Invoice Payment), so no bank account is needed (OI-13 closed). The SePay webhook is ready at `https://<API_DOMAIN>/api/webhooks/sepay` and stays off until `SEPAY_WEBHOOK_API_KEY` and the receiving account are set (runbook §3.2). |
 
 ## 11. Notifications and scheduled jobs
 
@@ -367,21 +369,59 @@ Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, 
 |---|---|---|---|---|
 | `dev` (default) | IntelliJ / Docker Compose | local Postgres 17 | Mailpit (`localhost:1025`, inbox `http://localhost:8025`) | base data (`db/seed`) |
 | `test` | `mvn verify` | Testcontainers Postgres 17 | log sender | test data (`db/test-seed`) |
-| `prod` | demo server | env `DB_URL` … | Gmail SMTP (App Password, 500/day) | no (one-off flag) |
+| `prod` | production (run as a demo, ADR-18) | `DB_URL` (Azure Database for PostgreSQL) | Gmail SMTP (App Password, 500/day) once `SPRING_MAIL_HOST` is set, otherwise only logged (the state on 24/10/2026, §14.1); `MAIL_REDIRECT_TO` sends every email to the team mailbox | base data only when `SPRING_FLYWAY_LOCATIONS` adds `db/seed` (on the demo server: yes, runbook §1.10) |
 
 Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`, `FILES_LINK_SECRET`. The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
 
-Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose.yml` locally; in production `infra/prod/` (Postgres + API + Caddy HTTPS) on one Ubuntu VPS (x86-64; 2 vCPU / 4 GB recommended) or an Azure for Students VM whose database is Azure Database for PostgreSQL (the `db` service then stays off: Compose profile `local-db`), deployed by `.github/workflows/backend.yml`. Health: `/api/actuator/health` (liveness/readiness probes).
+Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose.yml` locally; in production `infra/prod/` (API + Caddy HTTPS, plus Postgres with the Compose profile `local-db` when there is no managed database) on one Ubuntu VM, deployed by `.github/workflows/backend.yml`. Health: `/api/actuator/health` (liveness/readiness probes). Step-by-step setup and operations: `infra/prod/README.md`.
+
+### 14.1 Production (live since 23/10/2026)
+
+```mermaid
+flowchart LR
+    DEV["Push to main"] --> GH["GitHub<br/>tisou47/CampusStay-FPT"]
+    GH -->|"every push (production)<br/>web/** (previews)"| VER["Vercel<br/>builds web/ (web/vercel.json)"]
+    GH -->|"backend/**, infra/prod stack files"| GA["GitHub Actions backend.yml<br/>mvn verify → image"]
+    GA -->|push| GHCR[("GHCR<br/>campusstay-backend:&lt;sha&gt;")]
+    GA -->|"SSH: copy infra/prod,<br/>compose pull + up, readiness"| VM
+    subgraph AZ["Azure for Students · East Asia"]
+        subgraph VM["VM campusstay-vm · Docker Compose in /opt/campusstay"]
+            CADDY["caddy<br/>HTTPS (Let's Encrypt)"] --> API["api<br/>Spring Boot, profile prod"]
+            API --- FILES[("api-files volume<br/>receipts, photos")]
+        end
+        PG[("Azure Database for PostgreSQL<br/>Flexible Server, 7-day PITR")]
+    end
+    API -->|"JDBC, sslmode=require"| PG
+    VM -.->|pull image| GHCR
+    USER["Browser"] -->|"campusstay-fpt-ten.vercel.app"| VER
+    USER -->|"campusstay-api.eastasia.cloudapp.azure.com/api"| CADDY
+    API -->|SMTP 587| GMAIL["Gmail"]
+    SEPAY["SePay (optional)"] -.->|"POST /api/webhooks/sepay"| CADDY
+```
+
+| Topic | Production |
+|---|---|
+| Web | Vercel project `campusstay-fpt`, Root Directory `web/`, https://campusstay-fpt-ten.vercel.app; `VITE_*` variables are baked in at build time (runbook §2) |
+| API | https://campusstay-api.eastasia.cloudapp.azure.com/api on the Azure for Students VM `campusstay-vm` (B2ats v2, 1 GB RAM + swap, `API_MEMORY=700m`), user `deploy`, stack in `/opt/campusstay` (runbook appendix A) |
+| Database | Azure Database for PostgreSQL Flexible Server `campusstay-db-0eb9` (PostgreSQL 17, Burstable B1ms, 32 GB, East Asia); the stack's `db` service stays off; Flyway migrates on every start of a new image |
+| Settings | `/opt/campusstay/.env` on the VM (`infra/prod/.env.example` lists every variable); Vercel holds `VITE_API_BASE_URL` and `VITE_PAYMENT_SIMULATOR`; secrets never in Git |
+| Demo switches (ADR-18), checked 24/10/2026 | On: `PAYMENT_SIMULATOR=true` and Vercel `VITE_PAYMENT_SIMULATOR=true`; base data with 6,200 fictional students (`SPRING_FLYWAY_LOCATIONS` keeps `db/seed`). Not set yet: `MAIL_REDIRECT_TO` |
+| Not configured yet, checked 24/10/2026 | **SMTP** (`SPRING_MAIL_*`, `MAIL_FROM`, then `MAIL_REDIRECT_TO`): emails are only logged, so password-reset links, invitations and email notifications do not arrive. **Google sign-in** (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, Vercel `VITE_GOOGLE_CLIENT_ID`): the button says it is not set up. **SePay** (`SEPAY_WEBHOOK_API_KEY` and the receiving account): webhook off, payments by simulator or Staff confirmation. **Firebase** (`FIREBASE_CREDENTIALS_FILE`): no push until the Android app exists. Steps: runbook §3 |
+| Delivery | Every push to `main` deploys itself: Vercel builds the web; `backend.yml` runs `mvn verify`, pushes the image to GHCR, copies `infra/prod/` and restarts with the new tag, then waits for `/api/actuator/health/readiness`. A failing check stops before the image; roll back with `API_TAG=<older sha>` or Vercel → Promote (runbook §6.1) |
+| Backups | Database: Azure, 7 days point-in-time restore; uploaded files: `backup.sh` by cron on the VM (runbook §1.11, A.4) |
+| Monitoring | Actions run, Vercel deployment and `GET /api/actuator/health` after each push; external uptime monitor; weekly disk, memory, logs, cost and CPU credits (runbook §6.2) |
 
 ## 15. Testing strategy (feeds Report 5)
 
 | Level | Tool | Scope | Naming |
 |---|---|---|---|
-| Unit | JUnit 5, AssertJ | Pure rules: pricing, proration, fit score, password policy, template rendering | `TC-<MODULE>-NNN` in the Unit Test workbook |
-| Integration | Spring Boot test + Testcontainers PostgreSQL + MockMvc | Every endpoint: happy path, validation, permission/scope, concurrency where relevant | `*IT.java`, `TC-<MODULE>-NNN` |
+| Unit | JUnit 5, AssertJ, hand-written fakes, `MockRestServiceServer` | Pure rules and outbound adapters: assignment engine, utility split, CSV export, Google code exchange, FCM sender, email redirect, CORS origins | `*Test.java`, `TC-<CODE>-NNN` |
+| Integration | Spring Boot test + Testcontainers PostgreSQL 17 + MockMvc, test seed `db/test-seed` | Every endpoint: happy path, validation, permission/scope, the main business rule | `*IT.java`, `TC-<CODE>-NNN` |
 | Architecture | JUnit (source scan) | Calls go controller → service → repository (§5 rule 1) | `LayeringTest` |
-| Concurrency | Integration tests with two threads | Commit vs Room-Change on the same Bed; double webhook delivery | `*ConcurrencyIT.java` |
-| System / UAT | Web app against the dev stack | End-to-end flows per role | Test Report workbook |
+| Concurrency | — (not automated yet, R-18) | Same Bed or Invoice changed by two requests at once: covered by the constraints and locks of §9; a repeated SePay delivery is tested in sequence (TC-BIL-003) | — |
+| System / UAT | Web app against the dev stack or the demo server | End-to-end flows per role, by hand | Test Report workbook |
+
+On 24/10/2026: 35 test classes, 150 tests, 149 test case ids (23 unit, 125 integration, 2 architecture), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
 
 ## 16. Risks and technical debt
 
@@ -389,8 +429,11 @@ Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose
 |---|---|---|---|
 | R-11 | Backend code was written in a sandbox without access to Maven Central, so it was not compiled there | First build may need small fixes (mainly Spring Boot 4 package names) | **Closed 20/10/2026:** the skeleton compiles; `mvn verify` passes after one fix (Jackson 3 rejects a missing primitive, see §6) |
 | R-12 | Spring Boot 4 ecosystem still settling (e.g. springdoc 3.x targets Boot 4.0) | OpenAPI UI may lag | Add springdoc only after checking compatibility; the endpoint map is the API reference meanwhile |
-| R-13 | Scope: 159 endpoints for about 9 remaining weeks | Should/Could items at risk | Build by slice (Must first). An endpoint not built yet answers `404 NOT_FOUND` and the web shows its error state with Retry (C-12); `GET /notifications`, which every layout calls, is built early (S1) |
-| R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | Mock gateway + manual confirmation; test the tunnel before each review |
+| R-13 | Scope: 159 endpoints for about 9 remaining weeks | Should/Could items at risk | **Closed 22/10/2026:** every endpoint of the map is built (S0–S7), 161 of 162 verified by integration tests |
+| R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | **Mitigated 24/10/2026 (ADR-18):** the demo server uses the payment simulator (A-08) and Staff manual confirmation; the webhook has a stable HTTPS URL on the VM and waits for its API key |
 | R-15 | Domain events are in-memory (no event publication registry yet) | An async listener could miss an event on a crash | Emails already go through the outbox in the same transaction; add a transactional event registry (e.g. an outbox table) when async listeners appear |
 | R-16 | Cross-feature foreign keys | Harder future split into services | Accepted for integrity; documented in §5 |
-| R-17 | Gmail SMTP limit 500/day, App Password revoked on password change | Campaign emails fail | Campaigns are Could; switch provider behind `EmailSender` if needed |
+| R-17 | Gmail SMTP limit 500/day, App Password revoked on password change | Campaign emails fail | Campaigns are Could; switch provider behind `EmailSender` if needed; `MAIL_REDIRECT_TO` keeps demo mail in one mailbox |
+| R-18 | No automated test runs two requests at once | A race on a Bed, an Invoice or a run could slip past a missing lock | Partial unique indexes and row locks (§9) stop double booking and double payment at the database; add multi-thread `*IT` tests for commit vs Room-Change and duplicate webhook deliveries |
+| R-19 | Production is one small VM (1 GB RAM + 2 GB swap, B-series CPU credits) | Long assignment runs or exports can exhaust CPU credits; a VM outage stops the API | `API_MEMORY=700m`; weekly CPU-credit and memory checks and an external uptime monitor (runbook §6.2); the database is managed with 7-day point-in-time restore |
+| R-20 | Production email, Google sign-in, SePay and Firebase are not configured (24/10/2026) | Password-reset and invitation emails do not arrive; Google sign-in is unavailable | Set the variables of runbook §3 on the VM and in Vercel before Review 2; until then set passwords with the SQL of runbook §1.10 through the psql of appendix A.4 |

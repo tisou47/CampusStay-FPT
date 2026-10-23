@@ -32,12 +32,14 @@ class LayeringTest {
         }
     }
 
+    /** Controllers never import repositories, entities or Spring JDBC: they call services only. */
     @Test
     void controllersGoThroughServices() throws IOException {
         assertThat(offenders("controller", "import vn.fpt.campusstay.repository", "import vn.fpt.campusstay.entity",
                 "import org.springframework.jdbc.")).isEmpty();
     }
 
+    /** Nothing below the controllers (services, repositories, entities, DTOs, events, common) imports a controller. */
     @Test
     void lowerLayersDoNotDependOnControllers() throws IOException {
         for (String layer : List.of("service", "repository", "entity", "dto", "event", "common")) {

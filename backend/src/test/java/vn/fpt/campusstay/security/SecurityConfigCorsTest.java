@@ -16,7 +16,7 @@ class SecurityConfigCorsTest {
         return source.getCorsConfiguration(new MockHttpServletRequest("GET", "/terms"));
     }
 
-    /** TC-AUTH-016: an exact origin and a Vercel preview pattern are both admitted. */
+    /** TC-AUTH-034: an exact origin and a Vercel preview pattern are both admitted. */
     @Test
     void admitsExactOriginAndPreviewPattern() {
         CorsConfiguration config = cors("https://campusstay-fpt-ten.vercel.app", " https://campusstay-*-tisou.vercel.app");
@@ -29,7 +29,7 @@ class SecurityConfigCorsTest {
                 .isEqualTo("https://campusstay-fpt-git-main-tisou.vercel.app");
     }
 
-    /** TC-AUTH-017 (negative): other origins are refused, and a blank setting keeps CORS closed. */
+    /** TC-AUTH-035 (negative): other origins are refused, and a blank setting keeps CORS closed. */
     @Test
     void refusesOtherOriginsAndBlankSetting() {
         assertThat(cors("https://campusstay-fpt-ten.vercel.app").checkOrigin("https://evil.example")).isNull();

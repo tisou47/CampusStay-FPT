@@ -1,6 +1,6 @@
 # CampusStay FPT — Backend endpoint map
 
-Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row. Every endpoint returns IDs as strings (ADR-15, B-03).
+Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
 Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 coded, 161 of them verified (`POST /auth/google` needs a real Google account).
 
@@ -19,7 +19,7 @@ Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 co
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled" in `AuthFlowIT`, code exchange in `GoogleCodeExchangerTest`; the success path needs a real Google account (manual test) |
+| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled": TC-AUTH-009, 010; code exchange: TC-AUTH-029…033 (`GoogleCodeExchangerTest`); the success path needs a real Google account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
 | AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |
 | AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007; the emailed link in TC-AUTH-022 |
@@ -171,7 +171,7 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 | AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32; TC-AUTH-020 |
 | AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
 | BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |
-| BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022); TC-BIL-024, 026 |
+| BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022, 029…031); TC-BIL-024, 026 |
 | BIL | POST | `/meter-periods/{id}/import` | Should | Verified | C-29; TC-BIL-025 |
 | BIL | GET | `/meter-periods/{id}/readings` | Should | Verified | C-29; TC-BIL-023, 024 |
 | BIL | GET | `/meter-periods/{id}/readings/{room}` | Should | Verified | C-29; TC-BIL-024 |

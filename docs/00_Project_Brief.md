@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.3 |
-| Last updated | 22/10/2026 (Week 7, Sprint 4) |
+| Version | 1.4 |
+| Last updated | 24/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Team Leader) |
-| Status | Aligned with the mentor-confirmed API contract and UI, plus ADR-13…16; backend started. Sign-in by email (ADR-13) to be confirmed with the mentor (OI-14) |
+| Status | Every endpoint of the mentor-confirmed contract (+ ADR-13…18) is built: 162 endpoints, 161 verified by integration tests, all used by the web app. Production runs since 23/10/2026 (web on Vercel, API and database on Azure, ADR-16, ADR-18); see §8a. Sign-in by email (ADR-13) to be confirmed with the mentor (OI-14) |
 
 > This file overrides the original registration form (`Ref_Original_Proposal_FA26SE260`). Update this file whenever a decision changes scope, architecture, schedule or conventions, and add a Decision Log entry.
 >
-> Detailed backend design lives in `docs/backend/01_Backend_Architecture.md`. The web API contract lives in `docs/api-contract.md`.
+> Detailed backend design: `docs/backend/01_Backend_Architecture.md` (endpoints `02_Endpoint_Map.md`, contract changes `03_API_Contract_Changes.md`, tests `04_Test_Catalog.md`). Web API contract: `docs/api-contract.md`. Web screens: `docs/web/01_Screen_Map.md`. Production runbook: `infra/prod/README.md`.
 
 ---
 
@@ -92,11 +92,11 @@ All items below are in scope (mentor-confirmed). MoSCoW now sets the **build ord
 
 Rationale: 16-week term, effectively one developer, three clients sharing one API, strong transactional needs (Allocation and Payment must be consistent). Microservices would add distributed transactions, service discovery, multiple deployments and DevOps cost with no grading benefit. The standard Controller → Service → Repository layout is what the team and the council read fastest.
 
-**Backend modules:** AUTH, CFG, INV, APP, ASG, BIL, REQ, MNT, NTF, RPT (+ `shared` kernel, not a business module). Contract areas map onto these codes without new codes:
+**Backend features (codes):** AUTH, CFG, INV, APP, ASG, BIL, REQ, MNT, NTF, RPT (+ `common`, not a business feature; its tables keep the `shared_` prefix). The codes are the table prefixes and the test case ids (`TC-<CODE>-NNN`); the code packages use the feature names (`service/billing` for BIL, ADR-17). Contract areas map onto these codes without new codes:
 
-| Contract area | Module |
+| Contract area | Feature (code) |
 |---|---|
-| Sign-in, users, roles, Block scope, permissions, Audit Log | AUTH (Audit Log in `shared`) |
+| Sign-in, users, roles, Block scope, permissions, Audit Log | AUTH (Audit Log in `common`) |
 | Terms, Room Types/Classes, fees, refund rules, utility pricing, eligibility, matching, system parameters, Block settings | CFG |
 | Buildings, Floors, Rooms, Beds, out-of-service | INV |
 | Applications, roommate invitations, Round-2 offers | APP |
@@ -109,7 +109,7 @@ Rationale: 16-week term, effectively one developer, three clients sharing one AP
 
 Key design principles:
 - No Room/Bed self-selection (ADR-06). Double-booking is prevented at DB level: a partial unique index allows one active Allocation per Bed and one active Allocation per student per Term; commits, Room-Change decisions and swaps lock the affected Beds (`SELECT … FOR UPDATE`) inside one transaction.
-- External systems sit behind ports & adapters: `EnrollmentDirectory` (mock SIS data), `PaymentGateway` (SePay + mock), `PushSender` (FCM + log), `EmailSender` (SMTP), `FileStorage` (local volume), `GoogleIdTokenVerifier`.
+- External systems sit behind interfaces or one adapter class each: `EmailSender` (SMTP; without a mail host it only logs the subject; `MAIL_REDIRECT_TO` sends every email to one mailbox on the demo server), `PushSender` (`FcmPushSender`, FCM HTTP v1; without Firebase credentials pushes are dropped), `FileStore` + `FileLinks` (files on a local volume, short-lived signed links), `GoogleIdTokenVerifier` + `GoogleCodeExchanger` (Google sign-in), `SepayInbox` + `BankFeedRetryJob` (SePay webhook inbox, matching retried every minute) and the payment simulator of demo servers (A-08). The student directory is seeded data (mock SIS, ADR-02).
 - Assignment engine runs as a triggered batch job per Term: eligibility filter → hard constraints (gender, Block, capacity, roommate pairs) → ordered criteria and weights → proposal → Staff conflict resolution → Manager approval per Block → commit. Conflicts are flagged, not silently resolved. Each run stores the matching-criteria snapshot it used.
 - No hard-coded business values: every amount, rate, window and limit is Admin configuration.
 
@@ -136,13 +136,24 @@ Note: the original registration form states a duration of 09/2026 to 03/2027 —
 | S1 | W1–W2 | 07/09 – 20/09/2026 | |
 | S2 | W3–W4 | 21/09 – 04/10/2026 | |
 | S3 | W5–W6 | 05/10 – 18/10/2026 | Review 1 done (date TBD); Figma UI + web front end built |
-| S4 | W7–W8 | 19/10 – 01/11/2026 | Current sprint: backend architecture, database, AUTH and core modules |
+| S4 | W7–W8 | 19/10 – 01/11/2026 | Current sprint. Done by 24/10: backend architecture and database, all build slices S0–S7 of the endpoint map, web connected to every endpoint, production on Vercel + Azure (§8a) |
 | S5 | W9–W10 | 02/11 – 15/11/2026 | |
 | S6 | W11–W12 | 16/11 – 29/11/2026 | |
 | S7 | W13–W14 | 30/11 – 13/12/2026 | |
 | S8 | W15–W16 | 14/12 – 27/12/2026 | Final submission |
 
 Council reviews: Review 1 (done, date TBD), Review 2 (expected 27/10 – 03/11/2026, exact date TBD), Review 3 (date TBD), Final defense (date TBD).
+
+The build slices S0–S7 of `docs/backend/02_Endpoint_Map.md` are groups of endpoints, not these sprints.
+
+## 8a. Current status (24/10/2026)
+| Area | State |
+|---|---|
+| Backend | 162 contract endpoints built (S0–S7), 161 verified by integration tests; `POST /auth/google` needs a check with a real `@fpt.edu.vn` account. 31 Flyway migrations. 150 automated tests (`docs/backend/04_Test_Catalog.md`) |
+| Web | 74 routes for the public pages and the four roles, 72 of them working screens and 2 "not in scope" placeholders (`docs/web/01_Screen_Map.md`); Student portal also on phones and tablets. Open: recording a late check-in at the Check-in desk (A-12) and two texts that promise more than the backend does (C-31, C-34), see `03_API_Contract_Changes.md` |
+| Production | Web https://campusstay-fpt-ten.vercel.app (Vercel), API https://campusstay-api.eastasia.cloudapp.azure.com/api (Azure for Students VM, managed PostgreSQL); every push to `main` deploys (ADR-16, ADR-18, root `CLAUDE.md`); runs as a demo with the payment simulator and the base data. **Not configured yet:** SMTP and the email redirect (emails are only logged, so password-reset and invitation emails do not arrive), Google sign-in, SePay, Firebase (architecture §14.1) |
+| Android app | Not started: device-token endpoints, push and the check-in pass payload are ready on the backend (A-05, A-06, A-11) |
+| Next | Production email (Gmail SMTP + `MAIL_REDIRECT_TO`) and the Google OAuth client, then the Google sign-in check; end-to-end tests by hand per role (Test Report workbook); the web items above; the Android app; Reports 1–7 (§9); OI-08, OI-09, OI-12, OI-14 |
 
 ## 9. Required deliverables
 Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Introduction, Project Management Plan, SRS, SDD, Test Documentation, User Guides, Final Project Report), plus Project Tracking, Unit Test and Test Report workbooks, source code, database scripts (Flyway migrations) and defense slides.
@@ -166,7 +177,7 @@ Per the school template set (SEP490 Student Guide): Reports 1–7 (Project Intro
 | OI-14 | The mentor-confirmed contract signs in with a username; ADR-13 changes it to the email (contract change B-02). Inform the mentor. | Open — owner: Tisou |
 
 ## 10a. Repository layout
-One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md` and the backend design in `docs/backend/`), `infra/` (Docker Compose; `infra/prod/` is the production stack), `.github/workflows/` (CI/CD) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
+One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` (React web app), `docs/` (this Brief, the API contract `docs/api-contract.md`, the backend design in `docs/backend/`, the web screen map in `docs/web/` and the generator of the test catalog and screen map in `docs/tools/`), `infra/` (Docker Compose; `infra/prod/` is the production stack), `.github/workflows/` (CI/CD) and `postman/`. `mobile/` (Flutter) is added when the Android work starts. This Brief is kept at `docs/00_Project_Brief.md` as the single source and re-uploaded to the Claude Project whenever it changes.
 
 ## 11. Decision Log
 | ID | Date | Decision | Reason |
@@ -186,6 +197,6 @@ One Git repository (monorepo, ADR-05) with `backend/` (Spring Boot API), `web/` 
 | ADR-13 | 20/10/2026 | Password sign-in uses the account **email** and CampusStay's own password (ADR-07); the contract's `username` becomes `email` (B-02). The web app gets Forgot password, Reset password, Set password (invitation) and Change password pages | CampusStay has no access to FPT accounts (ADR-02), so it keeps its own passwords; asking for the Wi-Fi username would suggest typing the FPT password into another system; reset links and invitations are sent by email anyway |
 | ADR-14 | 20/10/2026 | `POST /auth/google` accepts either an authorization `code` (web popup, keeps the custom Google button of the approved design) or an ID token `credential` (Android). The server exchanges the code with Google using a client secret, then verifies the ID token the same way in both cases (`hd = fpt.edu.vn`) | The web keeps its Figma design; Android's Google Sign-In returns an ID token; the client secret stays on the server |
 | ADR-15 | 20/10/2026 | IDs are **strings** in JSON: every field named `id` or ending in `Id` (B-03, replaces clarification C-01). Java keeps `long`, the database keeps `BIGINT`; amounts and counts stay numbers | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion; the contract examples already used strings |
-| ADR-16 | 20/10/2026 | Deployment: the web app on **Vercel** (Hobby, Git integration, a preview per pull request); the API and PostgreSQL 17 on one **Ubuntu VPS** (x86-64, 2 vCPU / 4 GB recommended, any provider) with Docker Compose and Caddy (Let's Encrypt HTTPS). GitHub Actions runs `mvn verify`, builds the amd64 image to GHCR and deploys over SSH; daily `pg_dump` on the VPS. CORS takes origin patterns so Vercel previews can call the API. *Revised 22/10/2026:* the Oracle Cloud Always Free VM first chosen was dropped because sign-up failed at the card check. Target: an **Azure for Students** VM (B2ats v2 or B2pts v2 in the free hours) with **Azure Database for PostgreSQL** Flexible B1ms (free for 12 months), or any VPS with Postgres in the stack (runbook appendix A) | A VPS never sleeps, so the 30-second email outbox job, the local `FileStorage` volume and Gmail SMTP work unchanged, and the SePay webhook gets a stable HTTPS URL (OI-07); a small plan costs a few dollars a month and a Vietnamese provider takes bank transfers. Vercel cannot host the long-running Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database |
+| ADR-16 | 20/10/2026 | Deployment: the web app on **Vercel** (Hobby, Git integration, a preview per pull request); the API and PostgreSQL 17 on one **Ubuntu VPS** (x86-64, 2 vCPU / 4 GB recommended, any provider) with Docker Compose and Caddy (Let's Encrypt HTTPS). GitHub Actions runs `mvn verify`, builds the amd64 image to GHCR and deploys over SSH; daily `pg_dump` on the VPS. CORS takes origin patterns so Vercel previews can call the API. *Revised 22/10/2026:* the Oracle Cloud Always Free VM first chosen was dropped because sign-up failed at the card check. Target: an **Azure for Students** VM (B2ats v2 or B2pts v2 in the free hours) with **Azure Database for PostgreSQL** Flexible B1ms (free for 12 months), or any VPS with Postgres in the stack (runbook appendix A). *Live 23/10/2026:* Azure VM `campusstay-vm` (East Asia, B2ats v2) + Azure Database for PostgreSQL (runbook appendix A, layout A); API `https://campusstay-api.eastasia.cloudapp.azure.com/api`, web `https://campusstay-fpt-ten.vercel.app` | A VPS never sleeps, so the 30-second email outbox job, the local `FileStorage` volume and Gmail SMTP work unchanged, and the SePay webhook gets a stable HTTPS URL (OI-07); a small plan costs a few dollars a month and a Vietnamese provider takes bank transfers. Vercel cannot host the long-running Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database |
 | ADR-17 | 22/10/2026 | Backend code in layered Spring MVC packages (`controller`, `service`, `repository`, `entity`, `dto`, `event`, `config`, `security`, `exception`, `common`; feature sub-packages inside the layers) instead of ten module packages; Spring Modulith removed, `LayeringTest` checks that calls go controller → service → repository | The standard layout is easier for the team and the council to follow than modules with hidden `internal`/`web` folders; classes moved without behaviour changes |
 | ADR-18 | 24/10/2026 | The production server runs as a demo: `PAYMENT_SIMULATOR=true` (and `VITE_PAYMENT_SIMULATOR` on Vercel) enables the payment simulator (A-08) outside the dev profile, and `MAIL_REDIRECT_TO` sends every email to the team mailbox. Firebase push is set up together with the Flutter app. Every change that passes its checks is pushed to `main` and deploys itself (root `CLAUDE.md`) | No bank account or SePay contract is needed to show the payment flow; the 6,200 seed accounts have fictional `@fpt.edu.vn` addresses, so redirecting mail keeps it away from strangers and inside the 500-a-day Gmail limit, and lets the council follow every email in one inbox |
