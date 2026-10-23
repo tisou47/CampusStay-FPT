@@ -148,7 +148,7 @@ The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Type
 
    `VITE_*` values are baked in at build time: after changing one, redeploy.
 3. Deploy, then put the final production URL into `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS` in the VPS's `.env` and run `docker compose up -d` in `/opt/campusstay`.
-4. `web/vercel.json` skips a build when nothing under `web/` changed since the last deployment, rewrites every path to `index.html` (client-side routes) and caches `/assets/*` for a year.
+4. `web/vercel.json` skips a **preview** build when nothing under `web/` changed since the last deployment (production always builds, so a redeploy after changing a `VITE_*` variable takes effect), rewrites every path to `index.html` (client-side routes) and caches `/assets/*` for a year.
 
 ## 3. Third-party services
 Each service is optional: without it the API starts and the feature falls back as listed. After editing `.env`, run `docker compose up -d` in `/opt/campusstay`.
