@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded, 180 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (branch `feat/v2-phase2`).
+Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded, 180 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -223,7 +223,7 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 
 ## V2-2 — Change Specification v2 phase 2 "Accounts"
 
-Built on `feat/v2-phase2` (25/10/2026), not yet in `main` (ADR-27). Migrations V36 (AUTH) and V37 (NTF).
+Built on `feat/v2-phase2`, merged into `main` and deployed on 25/10/2026 (ADR-27). Migrations V36 (AUTH) and V37 (NTF).
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|

@@ -188,7 +188,7 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 ### 3.4 Google sign-in (ADR-14)
 1. Google Cloud Console (the Firebase project can be reused) → OAuth consent screen: user type External, scopes `openid`, `email`, `profile` only, then **Publish app**. In "Testing" status only the test users you list can sign in.
 2. Credentials → OAuth client ID, type Web application → Authorized JavaScript origins: the Vercel production URL. Google accepts no wildcards, so preview deployments sign in with email and password only.
-3. Client id and secret into the VPS's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web.
+3. Client id and secret into the VPS's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web. Done 25/10/2026 (the client JSON stays in `C:\Users\DELL\.campusstay\google-oauth.json`; the VM's previous settings are in `.env.bak-20261025`).
 4. Only `@fpt.edu.vn` accounts that already exist in CampusStay can sign in: give a test account your FPT email (backend/README.md). Android needs its own OAuth client of type Android (package name + SHA-1 of the release key).
 
 ## 4. Operations (on the VPS, as `deploy`, in `/opt/campusstay`)
