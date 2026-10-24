@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Calendar, ChevronDown, KeyRound, LogOut, User } from 'lucide-react'
+import { Calendar, ChevronDown, KeyRound, LogOut, ShieldAlert, User } from 'lucide-react'
 import { isNavActive, studentNav } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
@@ -112,6 +112,24 @@ function StudentTopBar() {
   )
 }
 
+/** While a Manager has not verified the account the student can look around but not apply (ADR-26). */
+function VerificationBanner() {
+  const { user } = useSession()
+  const { pathname } = useLocation()
+  if (user?.verification !== 'Pending verification' || pathname === '/student/verification') return null
+  return (
+    <div className="shrink-0 border-b border-orange-200 bg-warning-bg">
+      <StudentContainer className="flex items-center gap-2 py-2 text-sm text-warning-fg">
+        <ShieldAlert size={16} aria-hidden="true" className="shrink-0" />
+        <span className="min-w-0 flex-1">{t('Your account is waiting for a Manager to verify it. You can look around; you can apply once it is verified.')}</span>
+        <Link to="/student/verification" className="shrink-0 font-semibold underline">
+          {t('See my details')}
+        </Link>
+      </StudentContainer>
+    </div>
+  )
+}
+
 // One-screen shell: the window never scrolls; each page fills the area under the top bar.
 // On a phone the App Bar and Bottom Nav stay in place and the page scrolls between them.
 export function StudentLayout() {
@@ -120,6 +138,7 @@ export function StudentLayout() {
       <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
         <StudentTopBar />
         <MobileAppBar />
+        <VerificationBanner />
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <Outlet />
         </main>

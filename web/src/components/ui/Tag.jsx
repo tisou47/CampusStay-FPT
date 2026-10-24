@@ -93,6 +93,17 @@ const statusTone = {
   Disabled: 'neutral',
   Published: 'success',
   Scheduled: 'info',
+  // Accounts and the student list (Change Spec v2 phase 2)
+  Verified: 'success',
+  'Pending verification': 'warning',
+  'Profile needed': 'info',
+  'Not signed in yet': 'neutral',
+  Ended: 'neutral',
+  Update: 'info',
+  Unchanged: 'neutral',
+  Error: 'error',
+  Preview: 'warning',
+  Applied: 'success',
 }
 
 export function toneForStatus(status) {

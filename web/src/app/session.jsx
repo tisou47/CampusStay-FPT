@@ -7,7 +7,9 @@ import { useI18n } from '@/i18n'
 
 /*
  * Signed-in user and the working context every screen shares:
- *  - session: { token, user: { id, name, email, role, studentCode?, title?, blocks?, locale } }
+ *  - session: { token, user: { id, name, email, role, studentCode?, title?, blocks?, locale, passwordSet, verification? } }
+ *  - account setup (ADR-26): an account from Google sign-up sets a password first, and a student the student list
+ *    does not know sends the sign-up form; until then every portal page leads to that step
  *  - language: the account's language takes over at sign-in; setLanguage changes the screen and saves it
  *    on the account (ADR-25)
  *  - term: the Term picked in the top bar (back office) or the current Term (student)
@@ -65,6 +67,21 @@ export function SessionProvider({ children }) {
     return result.user
   }, [setLang])
 
+  /** Reads the signed-in user again (after setting the first password or sending the sign-up form). */
+  const refreshUser = useCallback(async () => {
+    const current = readSession()
+    if (!current?.token) return null
+    const fresh = await api.auth.me()
+    writeSession({ ...current, user: fresh })
+    return fresh
+  }, [])
+
+  useEffect(() => {
+    const reload = () => refreshUser().catch(() => {})
+    window.addEventListener('campusstay:setup-required', reload)
+    return () => window.removeEventListener('campusstay:setup-required', reload)
+  }, [refreshUser])
+
   /** Changes the screen's language and, when signed in, the account's (notifications, push and emails). */
   const setLanguage = useCallback(
     (lang) => {
@@ -96,6 +113,7 @@ export function SessionProvider({ children }) {
       signedIn: Boolean(user),
       signIn,
       signInWithGoogle,
+      refreshUser,
       signOut,
       setLanguage,
       terms: termList,
@@ -107,7 +125,7 @@ export function SessionProvider({ children }) {
       setBlock,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, signIn, signInWithGoogle, signOut, setLanguage, terms.data, terms.error, terms.loading, term, setTermId, block, blocks.join()],
+    [user, signIn, signInWithGoogle, refreshUser, signOut, setLanguage, terms.data, terms.error, terms.loading, term, setTermId, block, blocks.join()],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
@@ -118,13 +136,30 @@ export function useSession() {
   return ctx
 }
 
-/** Route guard: the signed-in user must have this role, otherwise go to Sign In (or the user's own portal). */
+/** Where a signed-in user must go before anything else: set a password, then (students) send the sign-up form. */
+export function setupPath(user) {
+  if (user?.passwordSet === false) return '/account/password'
+  if (user?.role === 'student' && user.verification === 'Profile needed') return '/student/verification'
+  return null
+}
+
+/** Where the user lands after signing in: the setup step, or the user's portal. */
+export function landingFor(user) {
+  return setupPath(user) ?? homeFor[user?.role] ?? '/signin'
+}
+
+/**
+ * Route guard: the signed-in user must have this role, otherwise go to Sign In (or the user's own portal). An
+ * account that has not finished its setup goes to that step (the API answers nothing else meanwhile).
+ */
 export function RequireRole({ role }) {
   const { user } = useSession()
   const location = useLocation()
   if (skipAuth) return <Outlet />
   if (!user) return <Navigate to="/signin" replace state={{ from: location.pathname }} />
   if (user.role !== role) return <Navigate to={homeFor[user.role] ?? '/signin'} replace />
+  const setup = setupPath(user)
+  if (setup && setup !== location.pathname) return <Navigate to={setup} replace />
   return <Outlet />
 }
 

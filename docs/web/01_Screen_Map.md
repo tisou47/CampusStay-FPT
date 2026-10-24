@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 24/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 25/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -16,6 +16,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-02 | Forgot password | `/forgot-password` | — | `POST /auth/password/forgot` | [auth/ForgotPassword.jsx](../../web/src/pages/auth/ForgotPassword.jsx) |
 | SCR-AUTH-03 | Reset password (from the email link) (`mode="reset"`) | `/reset-password` | — | `POST /auth/password/reset` | [auth/ResetPassword.jsx](../../web/src/pages/auth/ResetPassword.jsx) |
 | SCR-AUTH-04 | Set password (invitation link) (`mode="invite"`) | `/set-password` | — | `POST /auth/password/reset` | [auth/ResetPassword.jsx](../../web/src/pages/auth/ResetPassword.jsx) |
+| SCR-AUTH-05 | Set a password (first Google sign-in) | `/account/password` | — | `POST /auth/password/set`<br>`GET /auth/me` | [auth/FirstPassword.jsx](../../web/src/pages/auth/FirstPassword.jsx) |
 
 ## Student — Figma page 05 Web – Student (phones and tablets: 09 Android – Student)
 
@@ -42,6 +43,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-04 | Swap Board | `/student/requests/swap/board` | 104:2254 | `GET /swap-board`<br>`PUT /swap-board/my-post`<br>`POST /swap-board/posts/:id/request` | [student/SwapBoard.jsx](../../web/src/pages/student/SwapBoard.jsx) |
 | SCR-REQ-05 | Swap Invitation | `/student/requests/swap/invitations/:id` | 104:2490 | `GET /swap-invitations/:id`<br>`POST /swap-invitations/:id/respond` | [student/SwapInvitation.jsx](../../web/src/pages/student/SwapInvitation.jsx) |
 | MOB-NTF-01 | Notifications (phone bell) | `/student/notifications` | 58:474 | `GET /notifications` | [student/Notifications.jsx](../../web/src/pages/student/Notifications.jsx) |
+| SCR-AUTH-06 | Account verification (sign-up form) | `/student/verification` | — | `GET /students/me/verification`<br>`PUT /students/me/verification` | [student/Verification.jsx](../../web/src/pages/student/Verification.jsx) |
 
 ## Staff — Figma page 06 Web – Staff
 
@@ -57,6 +59,8 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-13 | Room Swap Requests | `/staff/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
 | SCR-REQ-11 | Check-in Desk | `/staff/check-in` | 60:3026 | `GET /check-in/today`<br>`GET /check-in/lookup`<br>`POST /check-in`<br>`POST /late-check-ins` | [staff/CheckInDesk.jsx](../../web/src/pages/staff/CheckInDesk.jsx) |
 | SCR-REQ-12 | Check-out Desk | `/staff/check-out` | 95:3876 | `GET /check-out`<br>`GET /check-out/:allocationId`<br>`POST /check-out/:allocationId` | [staff/CheckOutDesk.jsx](../../web/src/pages/staff/CheckOutDesk.jsx) |
+| SCR-AUTH-13 | Students | `/staff/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
+| SCR-AUTH-14 | Student hub | `/staff/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
 
 ## Block Manager — Figma page 07 Web – Manager
 
@@ -77,11 +81,15 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-MNT-11 | Maintenance Detail | `/manager/maintenance/:id` | 42:2739 | `GET /maintenance-requests/:id`<br>`PATCH /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/updates` | [staff/MaintenanceDetail.jsx](../../web/src/pages/staff/MaintenanceDetail.jsx) |
 | SCR-MNT-20 | Inspection Schedule | `/manager/inspections` | 99:2569 | `GET /inspection-schedules`<br>`POST /inspection-schedules`<br>`PUT /inspection-schedules/:id` | [manager/InspectionSchedule.jsx](../../web/src/pages/manager/InspectionSchedule.jsx) |
 | SCR-BIL-20 | Block Finance | `/manager/finance` | 61:707 | `GET /finance/summary`<br>`GET /refunds`<br>`POST /refunds/:id/decision`<br>`GET /finance/overdue`<br>`POST /finance/reminders`<br>`GET /invoices` | [manager/BlockFinance.jsx](../../web/src/pages/manager/BlockFinance.jsx) |
-| SCR-AUTH-10 | Block Staff | `/manager/staff` | 69:554 | `GET /block-staff`<br>`PUT /block-staff/:id`<br>`POST /staff-account-requests` | [manager/BlockStaff.jsx](../../web/src/pages/manager/BlockStaff.jsx) |
+| SCR-AUTH-10 | Block Staff | `/manager/staff` | 69:554 | `GET /block-staff`<br>`PUT /block-staff/:id` | [manager/BlockStaff.jsx](../../web/src/pages/manager/BlockStaff.jsx) |
 | SCR-REQ-20 | Request Routing Rules | `/manager/routing-rules` | 69:949 | `GET /routing-rules`<br>`POST /routing-rules`<br>`PUT /routing-rules/:id`<br>`PUT /routing-rules/timers` | [manager/RoutingRules.jsx](../../web/src/pages/manager/RoutingRules.jsx) |
 | SCR-REQ-21 | Escalations | `/manager/escalations` | 69:1335 | `GET /escalations`<br>`POST /escalations/:id/actions` | [manager/Escalations.jsx](../../web/src/pages/manager/Escalations.jsx) |
 | SCR-RPT-10 | Block Reports | `/manager/reports` | 70:1180 | `GET /reports/block`<br>`GET /exports/block-occupancy` | [manager/BlockReports.jsx](../../web/src/pages/manager/BlockReports.jsx) |
 | SCR-CFG-20 | Block Settings | `/manager/block-settings` | 70:1488 | `GET /block-settings`<br>`PUT /block-settings` | [manager/BlockSettings.jsx](../../web/src/pages/manager/BlockSettings.jsx) |
+| SCR-AUTH-13 | Students | `/manager/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
+| SCR-AUTH-14 | Student hub | `/manager/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
+| SCR-AUTH-15 | Import student list | `/manager/student-import` | — | `GET /student-imports/template`<br>`POST /student-imports`<br>`GET /student-imports/:id`<br>`POST /student-imports/:id/confirm`<br>`GET /student-imports` | [manager/StudentImport.jsx](../../web/src/pages/manager/StudentImport.jsx) |
+| SCR-AUTH-16 | Staff accounts | `/manager/staff-accounts` | — | `GET /staff-accounts`<br>`POST /staff-accounts`<br>`PUT /staff-accounts/:id`<br>`POST /staff-accounts/:id/invitation` | [manager/StaffAccounts.jsx](../../web/src/pages/manager/StaffAccounts.jsx) |
 
 ## Admin — Figma page 08 Web – Admin
 
@@ -104,6 +112,9 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-RPT-01 | Occupancy Report | `/admin/reports/occupancy` | 72:2988 | `GET /reports/occupancy`<br>`GET /exports/occupancy` | [admin/OccupancyReport.jsx](../../web/src/pages/admin/OccupancyReport.jsx) |
 | SCR-RPT-02 | Financial Report | `/admin/reports/financial` | 72:3428 | `GET /reports/financial`<br>`GET /exports/financial` | [admin/FinancialReport.jsx](../../web/src/pages/admin/FinancialReport.jsx) |
 | SCR-AUTH-12 | Audit Log | `/admin/audit-log` | 72:3772 | `GET /admin/audit-log`<br>`GET /exports/audit-log` | [admin/AuditLog.jsx](../../web/src/pages/admin/AuditLog.jsx) |
+| SCR-AUTH-13 | Students | `/admin/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
+| SCR-AUTH-14 | Student hub | `/admin/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
+| SCR-AUTH-15 | Import student list | `/admin/student-import` | — | `GET /student-imports/template`<br>`POST /student-imports`<br>`GET /student-imports/:id`<br>`POST /student-imports/:id/confirm`<br>`GET /student-imports` | [manager/StudentImport.jsx](../../web/src/pages/manager/StudentImport.jsx) |
 
 ## Notes
 

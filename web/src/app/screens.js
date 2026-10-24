@@ -16,6 +16,8 @@ export const screens = [
   { code: 'SCR-AUTH-02', title: 'Forgot password', role: 'student', path: '/forgot-password' },
   { code: 'SCR-AUTH-03', title: 'Reset password (from the email link)', role: 'student', path: '/reset-password?token=preview' },
   { code: 'SCR-AUTH-04', title: 'Set password (invitation link)', role: 'student', path: '/set-password?token=preview' },
+  { code: 'SCR-AUTH-05', title: 'Set a password (first Google sign-in)', role: 'student', path: '/account/password' },
+  { code: 'SCR-AUTH-06', title: 'Account verification (sign-up form)', role: 'student', path: '/student/verification' },
   { code: 'SCR-HOME-01', title: 'Student Home', role: 'student', path: '/student' },
   { code: 'SCR-APP-01', title: 'Application Wizard – 1 Term and eligibility', role: 'student', path: '/student/apply/term' },
   { code: 'SCR-APP-01', title: 'Application Wizard – 2 Room preference', role: 'student', path: '/student/apply/room' },
@@ -44,6 +46,7 @@ export const screens = [
   { code: 'SCR-REQ-12', title: 'Check-out Desk', role: 'staff', path: '/staff/check-out' },
   { code: 'SCR-UTL-10', title: 'Meter Readings', role: 'staff', path: '/staff/meter-readings' },
   { code: 'SCR-MNT-12', title: 'Inspection Checklist', role: 'staff', path: '/staff/inspections' },
+  { code: 'SCR-AUTH-13', title: 'Students', role: 'staff', path: '/staff/students' },
 
   // 07 Web – Manager
   { code: 'SCR-HOME-03', title: 'Manager Dashboard', role: 'manager', path: '/manager' },
@@ -58,6 +61,9 @@ export const screens = [
   { code: 'SCR-REQ-21', title: 'Escalations', role: 'manager', path: '/manager/escalations' },
   { code: 'SCR-RPT-10', title: 'Block Reports', role: 'manager', path: '/manager/reports' },
   { code: 'SCR-CFG-20', title: 'Block Settings', role: 'manager', path: '/manager/block-settings' },
+  { code: 'SCR-AUTH-13', title: 'Students', role: 'manager', path: '/manager/students' },
+  { code: 'SCR-AUTH-15', title: 'Import student list', role: 'manager', path: '/manager/student-import' },
+  { code: 'SCR-AUTH-16', title: 'Staff accounts', role: 'manager', path: '/manager/staff-accounts' },
 
   // 08 Web – Admin
   { code: 'SCR-HOME-04', title: 'Admin Dashboard', role: 'admin', path: '/admin' },
@@ -77,4 +83,6 @@ export const screens = [
   { code: 'SCR-RPT-01', title: 'Occupancy Report', role: 'admin', path: '/admin/reports/occupancy' },
   { code: 'SCR-RPT-02', title: 'Financial Report', role: 'admin', path: '/admin/reports/financial' },
   { code: 'SCR-AUTH-12', title: 'Audit Log', role: 'admin', path: '/admin/audit-log' },
+  { code: 'SCR-AUTH-13', title: 'Students', role: 'admin', path: '/admin/students' },
+  { code: 'SCR-AUTH-15', title: 'Import student list', role: 'admin', path: '/admin/student-import' },
 ]

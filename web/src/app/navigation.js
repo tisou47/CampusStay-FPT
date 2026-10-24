@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
+  GraduationCap,
   Gauge,
   House,
   Layers,
@@ -23,7 +24,9 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   TriangleAlert,
+  Upload,
   User,
+  UserCog,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -77,7 +80,10 @@ export const backOffice = {
       },
       {
         title: 'Residents',
-        items: [{ label: 'Room changes and swaps', icon: Repeat, to: '/staff/room-changes' }],
+        items: [
+          { label: 'Students', icon: GraduationCap, to: '/staff/students' },
+          { label: 'Room changes and swaps', icon: Repeat, to: '/staff/room-changes' },
+        ],
       },
       {
         title: 'Rooms',
@@ -108,6 +114,8 @@ export const backOffice = {
       {
         title: 'Residents',
         items: [
+          { label: 'Students', icon: GraduationCap, to: '/manager/students' },
+          { label: 'Import student list', icon: Upload, to: '/manager/student-import' },
           { label: 'Decisions', icon: Check, to: '/manager/approvals' },
           { label: 'Room changes and swaps', icon: Repeat, to: '/manager/room-changes' },
         ],
@@ -133,7 +141,8 @@ export const backOffice = {
         title: 'Rooms and people',
         items: [
           { label: 'Rooms and Beds', icon: Building, to: '/manager/inventory' },
-          { label: 'Staff', icon: Users, to: '/manager/staff' },
+          { label: 'Staff accounts', icon: UserCog, to: '/manager/staff-accounts' },
+          { label: 'Staff and workload', icon: Users, to: '/manager/staff' },
         ],
       },
       {
@@ -180,6 +189,8 @@ export const backOffice = {
         items: [
           { label: 'Buildings and Rooms', icon: Building, to: '/admin/buildings' },
           { label: 'Users and roles', icon: User, to: '/admin/users' },
+          { label: 'Students', icon: GraduationCap, to: '/admin/students' },
+          { label: 'Import student list', icon: Upload, to: '/admin/student-import' },
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Audit Log', icon: ScrollText, to: '/admin/audit-log' },
         ],

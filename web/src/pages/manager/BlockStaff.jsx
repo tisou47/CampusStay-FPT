@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { UserPlus, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -9,7 +10,6 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox, Switch } from '@/components/ui/Choice'
 import { Alert, Avatar } from '@/components/ui/Display'
-import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -20,7 +20,7 @@ import { t, tr } from '@/i18n'
 // SCR-AUTH-10 Block Staff (Figma 69:554)
 // GET /block-staff?block → { items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }],
 //   summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }
-// PUT /block-staff/:id { handles, onDuty } · POST /staff-account-requests { name, email, role }
+// PUT /block-staff/:id { handles, onDuty }. New accounts and their Blocks: Staff accounts (SCR-AUTH-16).
 
 function EditModal({ person, handleOptions, onClose }) {
   const { notify } = useToast()
@@ -40,7 +40,7 @@ function EditModal({ person, handleOptions, onClose }) {
       onClose={onClose}
       width={560}
       title={t('Edit {name}', { name: person.name })}
-      description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and role are managed by Admin.')}`}
+      description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and Blocks are set on Staff accounts.')}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -76,67 +76,22 @@ function EditModal({ person, handleOptions, onClose }) {
   )
 }
 
-function RequestAccountModal({ roles, onClose }) {
-  const { notify } = useToast()
-  const { block: scopeBlock, blocks } = useSession()
-  const [block, setBlock] = useState(scopeBlock ?? blocks[0] ?? '')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState(roles[0] ?? '')
-  const send = useMutation(() => api.blockStaff.requestAccount({ name: name.trim(), email: email.trim(), role, block: block || undefined }), {
-    onSuccess: () => {
-      notify({ title: 'Request sent to Admin', message: t('Admin will create the account for {name}.', { name: name.trim() }) })
-      onClose()
-    },
-    onError: () => {},
-  })
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Request new Staff account"
-      description="Admin creates the account and sends the sign-in link. You can set what the person handles once it exists."
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!name.trim() || !email.trim().endsWith('@fpt.edu.vn') || send.pending} onClick={() => send.run()}>
-            Send request
-          </Button>
-        </>
-      }
-    >
-      {send.error && <Alert type="error" title="Could not send the request">{send.error.message}</Alert>}
-      <Field label="Full name" required>
-        {(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} />}
-      </Field>
-      <Field label="FPT email" required>
-        {(id) => <Input id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@fpt.edu.vn" />}
-      </Field>
-      <Field label="Role">{(id) => <Select id={id} value={role} onChange={(e) => setRole(e.target.value)} options={roles} />}</Field>
-      {!scopeBlock && blocks.length > 1 && (
-        <Field label="Block" required>
-          {(id) => <Select id={id} value={block} onChange={(e) => setBlock(e.target.value)} options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))} />}
-        </Field>
-      )}
-    </Modal>
-  )
-}
 
 export default function BlockStaff() {
   const { block } = useSession()
   const query = useQuery(['block-staff', block], ({ signal }) => api.blockStaff.list({ block: block ?? undefined }, { signal }))
   const [editing, setEditing] = useState(null)
-  const [requesting, setRequesting] = useState(false)
+  const navigate = useNavigate()
   const s = query.data?.summary
 
   return (
     <>
       <PageHeader
         title={block ? t('Staff · Block {code}', { code: block }) : 'Staff'}
-        description="Staff of the Blocks in your scope and the request types they handle. Accounts are created by Admin."
+        description="Staff of the Blocks in your scope and the request types they handle. Accounts are created on Staff accounts."
         actions={
-          <Button icon={UserPlus} onClick={() => setRequesting(true)}>
-            Request new Staff account
+          <Button icon={UserPlus} onClick={() => navigate('/manager/staff-accounts?new=1')}>
+            New Staff account
           </Button>
         }
       />
@@ -184,7 +139,6 @@ export default function BlockStaff() {
         </TBody>
       </Table>
       {editing && <EditModal person={editing} handleOptions={query.data?.handleOptions ?? editing.handles} onClose={() => setEditing(null)} />}
-      {requesting && <RequestAccountModal roles={query.data?.roleOptions ?? []} onClose={() => setRequesting(false)} />}
     </>
   )
 }

@@ -27,6 +27,8 @@ export const api = {
     forgotPassword: (body) => http.post('/auth/password/forgot', body),
     /** { token, newPassword } from a reset or invitation link → 204; every session of the user is signed out. */
     resetPassword: (body) => http.post('/auth/password/reset', body),
+    /** { newPassword } → 204: the first password of an account created by Google sign-up (ADR-26). */
+    setFirstPassword: (body) => http.post('/auth/password/set', body),
     /** { currentPassword, newPassword } → 204; the user's other sessions are signed out. */
     changePassword: (body) => http.post('/auth/password/change', body),
   },
@@ -48,6 +50,10 @@ export const api = {
     requests: g('/students/me/requests'),
     roommateInvitation: g('/students/me/roommate-invitation'),
     round2Offer: g('/students/me/round2-offer'),
+    /** The sign-up form and verification status: { status, locked, note, form, options }. */
+    verification: g('/students/me/verification'),
+    /** { studentCode, name, gender, dateOfBirth, major, cohort, phone } → 204; Pending verification. */
+    sendVerification: (body) => http.put('/students/me/verification', body),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */
@@ -191,6 +197,35 @@ export const api = {
     invoices: g('/invoices'),
     /** Admin Financial Report. */
     report: g('/reports/financial'),
+  },
+  students: {
+    /** Manager › Students (Staff: residents of their Blocks): q, verification, enrollment, gender, cohort, resident, block. */
+    list: g('/student-accounts'),
+    /** The student hub: profile, account, verification, residence, sections, history, actions. */
+    hub: (id, opts) => http.get(`/student-accounts/${id}`, undefined, opts),
+    edit: (id, body) => http.put(`/student-accounts/${id}`, body),
+    verify: (id) => http.post(`/student-accounts/${id}/verify`),
+    /** { reason } → 204: the account is locked and the reason shown at sign-in. */
+    reject: (id, body) => http.post(`/student-accounts/${id}/reject`, body),
+    lock: (id, body) => http.post(`/student-accounts/${id}/lock`, body),
+    unlock: (id) => http.post(`/student-accounts/${id}/unlock`),
+  },
+  studentImports: {
+    history: g('/student-imports'),
+    template: () => download('/student-imports/template', { fallbackName: 'student-list-template.csv' }),
+    /** Multipart file (CSV or XLSX) → the preview. */
+    upload: (formData) => http.post('/student-imports', formData),
+    get: (id, query, opts) => http.get(`/student-imports/${id}`, query, opts),
+    /** { markMissingNotEnrolled } → the applied import with its result. */
+    confirm: (id, body) => http.post(`/student-imports/${id}/confirm`, body),
+  },
+  staffAccounts: {
+    list: g('/staff-accounts'),
+    /** { name, email, title?, blocks: [codes] } → { id }; the invitation email is sent. */
+    create: (body) => http.post('/staff-accounts', body),
+    /** { name?, title?, blocks?, status? } → the updated item. */
+    update: (id, body) => http.put(`/staff-accounts/${id}`, body),
+    resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
   blockStaff: {
     list: g('/block-staff'),

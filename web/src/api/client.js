@@ -84,6 +84,11 @@ export async function request(path, { method = 'GET', query, body, signal, heade
 
   const type = res.headers.get('content-type') ?? ''
   const data = type.includes('application/json') ? await res.json().catch(() => null) : null
+  // The account must set its password or send the sign-up form first (ADR-26): the session reloads the user, so
+  // the route guard opens that step.
+  if (res.status === 403 && (data?.code === 'PASSWORD_REQUIRED' || data?.code === 'PROFILE_REQUIRED')) {
+    window.dispatchEvent(new Event('campusstay:setup-required'))
+  }
   if (!res.ok) {
     const message = data?.message ?? (res.status >= 500 ? t('The server could not complete the request. Try again later.') : t('Request failed ({status}).', { status: res.status }))
     const fieldText = Object.values(data?.details?.fields ?? {}).filter(Boolean).join(' ')

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import dividerLine from '@/assets/signin/divider-line.svg'
 import googleLogo from '@/assets/signin/google-logo.png'
-import { homeFor, useSession } from '@/app/session'
+import { homeFor, landingFor, setupPath, useSession } from '@/app/session'
 import { Alert } from '@/components/ui/Display'
 import { googleConfigured, loadGoogle, requestGoogleCode } from '@/lib/googleSignIn'
 import { AuthShell, LoginField, cardClasses, primaryButtonClasses, textLinkClasses } from './shared'
@@ -10,7 +10,8 @@ import { t } from '@/i18n'
 
 // SCR-AUTH-01 Sign In (Figma 128:58 "dormitory-login").
 // Email + CampusStay password: POST /auth/sign-in { email, password, remember } (ADR-13).
-// Google: popup restricted to @fpt.edu.vn → POST /auth/google { code, remember }.
+// Google: popup restricted to @fpt.edu.vn → POST /auth/google { code, remember }. An @fpt.edu.vn account CampusStay
+// does not know yet signs up as a student and goes on to Set a password (ADR-26).
 // A 400 VALIDATION_FAILED puts details.fields under the inputs.
 
 function DividerLine() {
@@ -37,7 +38,7 @@ export default function SignIn() {
 
   // Already signed in: go straight to the user's portal.
   useEffect(() => {
-    if (user) navigate(homeFor[user.role] ?? '/student', { replace: true })
+    if (user) navigate(landingFor(user), { replace: true })
   }, [user, navigate])
 
   // Load Google's script early so its popup opens on the first click.
@@ -45,9 +46,11 @@ export default function SignIn() {
     if (googleConfigured) loadGoogle().catch(() => {})
   }, [])
 
+  // A new account from Google sign-up first sets its password (and a student sends the sign-up form, ADR-26).
   const goHome = (signedIn) => {
     const from = location.state?.from
-    navigate(from?.startsWith(homeFor[signedIn.role]) ? from : homeFor[signedIn.role] ?? '/student', { replace: true })
+    const setup = setupPath(signedIn)
+    navigate(setup ?? (from?.startsWith(homeFor[signedIn.role]) ? from : homeFor[signedIn.role] ?? '/student'), { replace: true })
   }
 
   const submit = async (e) => {

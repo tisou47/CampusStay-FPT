@@ -5,6 +5,7 @@ import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
 import { ScreenIndex } from '@/dev/ScreenIndex'
 
+import FirstPassword from '@/pages/auth/FirstPassword'
 import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
@@ -32,6 +33,7 @@ import NewRoomChangeRequest from '@/pages/student/NewRoomChangeRequest'
 import SwapSpecific from '@/pages/student/SwapSpecific'
 import SwapBoard from '@/pages/student/SwapBoard'
 import SwapInvitation from '@/pages/student/SwapInvitation'
+import Verification from '@/pages/student/Verification'
 
 // Staff — 06 Web – Staff
 import StaffDashboard from '@/pages/staff/StaffDashboard'
@@ -60,6 +62,10 @@ import Escalations from '@/pages/manager/Escalations'
 import BlockReports from '@/pages/manager/BlockReports'
 import BlockSettings from '@/pages/manager/BlockSettings'
 import InspectionSchedule from '@/pages/manager/InspectionSchedule'
+import Students from '@/pages/manager/Students'
+import StudentHub from '@/pages/manager/StudentHub'
+import StudentImport from '@/pages/manager/StudentImport'
+import StaffAccounts from '@/pages/manager/StaffAccounts'
 
 // Admin — 08 Web – Admin
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -105,6 +111,8 @@ export const router = createBrowserRouter([
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'reset-password', element: <ResetPassword mode="reset" /> },
       { path: 'set-password', element: <ResetPassword mode="invite" /> },
+      // Signed in, before any portal: the first password of an account from Google sign-up (ADR-26).
+      { path: 'account/password', element: <FirstPassword /> },
 
       portal('student', <StudentLayout />, [
         { index: true, element: <StudentHome /> },
@@ -129,6 +137,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/board', element: <SwapBoard /> },
         { path: 'requests/swap/invitations/:id', element: <SwapInvitation /> },
         { path: 'notifications', element: <Notifications /> },
+        { path: 'verification', element: <Verification /> },
       ]),
 
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
@@ -143,6 +152,8 @@ export const router = createBrowserRouter([
         { path: 'room-changes/swaps', element: <SwapRequests /> },
         { path: 'check-in', element: <CheckInDesk /> },
         { path: 'check-out', element: <CheckOutDesk /> },
+        { path: 'students', element: <Students /> },
+        { path: 'students/:id', element: <StudentHub /> },
       ]),
 
       // Managers work for every Block: registration, assignment, payments and decisions (ADR-19). They share
@@ -168,6 +179,10 @@ export const router = createBrowserRouter([
         { path: 'escalations', element: <Escalations /> },
         { path: 'reports', element: <BlockReports /> },
         { path: 'block-settings', element: <BlockSettings /> },
+        { path: 'students', element: <Students /> },
+        { path: 'students/:id', element: <StudentHub /> },
+        { path: 'student-import', element: <StudentImport /> },
+        { path: 'staff-accounts', element: <StaffAccounts /> },
       ]),
 
       portal('admin', <BackOfficeLayout role="admin" />, [
@@ -188,6 +203,9 @@ export const router = createBrowserRouter([
         { path: 'reports/occupancy', element: <OccupancyReport /> },
         { path: 'reports/financial', element: <FinancialReport /> },
         { path: 'audit-log', element: <AuditLog /> },
+        { path: 'students', element: <Students /> },
+        { path: 'students/:id', element: <StudentHub /> },
+        { path: 'student-import', element: <StudentImport /> },
       ]),
 
       { path: '*', element: <NotFound /> },
