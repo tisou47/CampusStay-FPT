@@ -39,8 +39,12 @@ class AuthController {
             Boolean remember) {
     }
 
-    /** Exactly one of {@code code} (web popup) and {@code credential} (Android ID token), ADR-14. */
-    record GoogleSignInRequest(@Size(max = 4096) String code, @Size(max = 4096) String credential, Boolean remember) {
+    /**
+     * Exactly one of {@code code} (web) and {@code credential} (Android ID token), ADR-14. {@code redirectUri}: the
+     * sign-in page, only when the web used Google's redirect flow because the popup was blocked (A-22).
+     */
+    record GoogleSignInRequest(@Size(max = 4096) String code, @Size(max = 4096) String credential,
+            @Size(max = 500) String redirectUri, Boolean remember) {
     }
 
     record SignInResponse(String token, UserView user) {
@@ -95,7 +99,7 @@ class AuthController {
                     Map.of("fields", Map.of("code", "Send either the Google authorization code or the ID token.")));
         }
         boolean remember = Boolean.TRUE.equals(body.remember());
-        var result = hasCode ? signIn.signInWithGoogleCode(body.code(), remember)
+        var result = hasCode ? signIn.signInWithGoogleCode(body.code(), body.redirectUri(), remember)
                 : signIn.signInWithGoogle(body.credential(), remember);
         return new SignInResponse(result.token(), views.of(result.user()));
     }

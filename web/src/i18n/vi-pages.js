@@ -44,6 +44,7 @@ const auth = {
   "This address does not exist in CampusStay. Check the link or go back to the start page.": "Địa chỉ này không có trong CampusStay. Hãy kiểm tra liên kết hoặc quay về trang đầu.",
   "Could not load Google sign-in. Check your connection and try again.": "Không tải được đăng nhập Google. Hãy kiểm tra kết nối và thử lại.",
   "Google sign-in was not completed.": "Đăng nhập Google chưa hoàn tất.",
+  "Google sign-in expired. Try again.": "Phiên đăng nhập Google đã hết hạn. Hãy thử lại.",
   "Google sign-in was closed before it finished.": "Cửa sổ đăng nhập Google đã bị đóng trước khi hoàn tất.",
   "Google sign-in could not open. Allow pop-ups for this site and try again.": "Không mở được đăng nhập Google. Hãy cho phép cửa sổ bật lên cho trang này và thử lại.",
   "Google sign-in is not set up for this site yet. Use your email and password.": "Trang này chưa cài đặt đăng nhập Google. Hãy dùng email và mật khẩu.",

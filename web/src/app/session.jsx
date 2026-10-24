@@ -60,8 +60,9 @@ export function SessionProvider({ children }) {
     return result.user
   }, [setLang])
 
-  const signInWithGoogle = useCallback(async (code, remember) => {
-    const result = await api.auth.google({ code, remember })
+  /** `redirectUri` only after Google's redirect flow (the popup was blocked): the page it returned to. */
+  const signInWithGoogle = useCallback(async (code, remember, redirectUri) => {
+    const result = await api.auth.google({ code, remember, redirectUri })
     writeSession({ token: result.token, user: result.user })
     setLang(result.user.locale)
     return result.user

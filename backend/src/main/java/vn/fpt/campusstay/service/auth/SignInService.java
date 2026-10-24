@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.exception.ApiException;
+import vn.fpt.campusstay.exception.FieldErrors;
+import vn.fpt.campusstay.config.AuthProperties;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.entity.SessionEntity;
 import vn.fpt.campusstay.entity.UserEntity;
@@ -38,13 +40,14 @@ public class SignInService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository users;
     private final StudentSignUp signUp;
+    private final AuthProperties props;
     private final Clock clock;
     /** Hash of a random string; compared against when the email is unknown, to equalise timing. */
     private final String dummyHash;
 
     public SignInService(AccountStore accounts, SessionService sessions, GoogleIdTokenVerifier google,
             GoogleCodeExchanger googleCodes, PasswordEncoder passwordEncoder, UserRepository users, StudentSignUp signUp,
-            Clock clock) {
+            AuthProperties props, Clock clock) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.google = google;
@@ -52,6 +55,7 @@ public class SignInService {
         this.passwordEncoder = passwordEncoder;
         this.users = users;
         this.signUp = signUp;
+        this.props = props;
         this.clock = clock;
         this.dummyHash = passwordEncoder.encode("dummy-" + System.nanoTime());
     }
@@ -78,9 +82,26 @@ public class SignInService {
         return finish(user.getId(), remember, SessionEntity.Method.PASSWORD, null);
     }
 
-    /** Web: authorization code from the Google popup, exchanged for an ID token first (ADR-14). */
-    public SignInResult signInWithGoogleCode(String code, boolean remember) {
-        return signInWithGoogle(googleCodes.exchange(code), remember);
+    /**
+     * Web: authorization code from the Google popup, exchanged for an ID token first (ADR-14). When the browser
+     * blocked the popup the web used the redirect flow: {@code redirectUri} is then the sign-in page it returned to,
+     * and only the web app's own sign-in page is accepted (contract change A-22).
+     */
+    public SignInResult signInWithGoogleCode(String code, String redirectUri, boolean remember) {
+        String page = null;
+        if (redirectUri != null && !redirectUri.isBlank()) {
+            page = redirectUri.strip();
+            if (!page.equals(signInPage())) {
+                throw FieldErrors.single("redirectUri", "Google sign-in could not start. Try again.");
+            }
+        }
+        return signInWithGoogle(googleCodes.exchange(code, page), remember);
+    }
+
+    /** The web app's sign-in page, where Google's redirect flow returns. */
+    private String signInPage() {
+        String base = props.webBaseUrl() == null ? "" : props.webBaseUrl().strip();
+        return base.replaceAll("/+$", "") + "/signin";
     }
 
     /**

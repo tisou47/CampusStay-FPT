@@ -163,6 +163,24 @@ class AuthFlowIT {
         }
     }
 
+    /**
+     * TC-AUTH-052 (negative): the redirect flow is accepted only for the web app's own sign-in page; any other address
+     * is refused before Google is asked.
+     */
+    @Test
+    void googleRedirectOnlyToTheSignInPage() throws Exception {
+        mvc.perform(post("/auth/google").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"c\",\"redirectUri\":\"https://evil.test/signin\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details.fields.redirectUri").exists());
+        // The real sign-in page passes the check and reaches the exchange (Google is off in tests).
+        mvc.perform(post("/auth/google").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"c\",\"redirectUri\":\"http://localhost:5173/signin\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("GOOGLE_SIGN_IN_DISABLED"));
+    }
+
     /** TC-AUTH-010: without Google configuration both flows answer 503 GOOGLE_SIGN_IN_DISABLED. */
     @Test
     void googleDisabledWithoutConfiguration() throws Exception {

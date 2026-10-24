@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.9 (25/10/2026): the mentor-confirmed contract plus the changes A-01…A-21, B-01…B-03 and C-01…C-39 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"). Every later change is logged there first and written here in the same commit.
+Version 1.9 (25/10/2026): the mentor-confirmed contract plus the changes A-01…A-22, B-01…B-03 and C-01…C-39 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -32,7 +32,7 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
 | POST | `/auth/sign-in` | `{ email, password, remember }` — the account email and the CampusStay password (not the FPT Wi-Fi credentials); `remember` is optional (default `false`) | `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string], locale: 'vi'\|'en', passwordSet, verification?: 'Verified'\|'Pending verification'\|'Profile needed' } }` (`verification` for students) |
-| POST | `/auth/google` | `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`) or `{ credential, remember }` (Android: Google ID token) | Same as sign-in. Only `@fpt.edu.vn` Google Workspace accounts. An account CampusStay does not know signs up as a student (`passwordSet: false`); an address ending with the code of an imported, unused account signs in to that account (A-17). |
+| POST | `/auth/google` | `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`), `{ code, redirectUri, remember }` (web, when the popup was blocked: Google's redirect flow returned to `redirectUri` = the web's `/signin`, A-22) or `{ credential, remember }` (Android: Google ID token) | Same as sign-in. Only `@fpt.edu.vn` Google Workspace accounts. An account CampusStay does not know signs up as a student (`passwordSet: false`); an address ending with the code of an imported, unused account signs in to that account (A-17). |
 | POST | `/auth/sign-out` | — | `204` |
 | GET | `/auth/me` | — | `user` |
 | PUT | `/auth/me/locale` | `{ locale: 'vi'\|'en' }` | `204`: the account's language for notifications, push and emails (A-15) |

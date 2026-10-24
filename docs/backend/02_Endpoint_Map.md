@@ -20,7 +20,7 @@ Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 cod
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`), A-17 (sign-up). Validation and "disabled": TC-AUTH-009, 010; code exchange: TC-AUTH-029…033 (`GoogleCodeExchangerTest`); sign-up, linking by the code in the address and rejection with the token check stubbed: TC-AUTH-038, 040, 041; the real Google token check needs a real account (manual test) |
+| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`), A-17 (sign-up), A-22 (redirect flow). Validation and "disabled": TC-AUTH-009, 010, 052; code exchange: TC-AUTH-029…033, 051 (`GoogleCodeExchangerTest`); sign-up, linking by the code in the address and rejection with the token check stubbed: TC-AUTH-038, 040, 041; the real Google token check needs a real account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
 | AUTH | PUT | `/auth/me/locale` | Must | Verified | A-15 (v2 phase 1, ADR-25); TC-AUTH-036. Every endpoint: `Accept-Language` A-16, TC-AUTH-037 |
 | AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |

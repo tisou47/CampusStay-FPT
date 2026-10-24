@@ -4,13 +4,14 @@ import dividerLine from '@/assets/signin/divider-line.svg'
 import googleLogo from '@/assets/signin/google-logo.png'
 import { homeFor, landingFor, setupPath, useSession } from '@/app/session'
 import { Alert } from '@/components/ui/Display'
-import { googleConfigured, loadGoogle, requestGoogleCode } from '@/lib/googleSignIn'
+import { googleConfigured, loadGoogle, requestGoogleCode, takeGoogleRedirect } from '@/lib/googleSignIn'
 import { AuthShell, LoginField, cardClasses, primaryButtonClasses, textLinkClasses } from './shared'
 import { t } from '@/i18n'
 
 // SCR-AUTH-01 Sign In (Figma 128:58 "dormitory-login").
 // Email + CampusStay password: POST /auth/sign-in { email, password, remember } (ADR-13).
-// Google: popup restricted to @fpt.edu.vn → POST /auth/google { code, remember }. An @fpt.edu.vn account CampusStay
+// Google: popup restricted to @fpt.edu.vn → POST /auth/google { code, remember }; when the browser blocks the popup,
+// Google's redirect flow comes back here → POST /auth/google { code, redirectUri, remember } (A-22). An @fpt.edu.vn account CampusStay
 // does not know yet signs up as a student and goes on to Set a password (ADR-26).
 // A 400 VALIDATION_FAILED puts details.fields under the inputs.
 
@@ -41,14 +42,29 @@ export default function SignIn() {
     if (user) navigate(landingFor(user), { replace: true })
   }, [user, navigate])
 
+  // Back from Google's redirect flow (the popup was blocked): finish signing in with the code it brought.
+  useEffect(() => {
+    const back = takeGoogleRedirect()
+    if (!back) return
+    if (back.error) {
+      setError(new Error(back.error))
+      return
+    }
+    setPending('google')
+    signInWithGoogle(back.code, back.remember, back.redirectUri)
+      .then((signedIn) => goHome(signedIn, back.from))
+      .catch((err) => setError(err))
+      .finally(() => setPending(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Load Google's script early so its popup opens on the first click.
   useEffect(() => {
     if (googleConfigured) loadGoogle().catch(() => {})
   }, [])
 
   // A new account from Google sign-up first sets its password (and a student sends the sign-up form, ADR-26).
-  const goHome = (signedIn) => {
-    const from = location.state?.from
+  const goHome = (signedIn, from = location.state?.from) => {
     const setup = setupPath(signedIn)
     navigate(setup ?? (from?.startsWith(homeFor[signedIn.role]) ? from : homeFor[signedIn.role] ?? '/student'), { replace: true })
   }
@@ -78,7 +94,7 @@ export default function SignIn() {
     setFieldErrors({})
     setPending('google')
     try {
-      const code = await requestGoogleCode()
+      const code = await requestGoogleCode({ remember, from: location.state?.from })
       goHome(await signInWithGoogle(code, remember))
     } catch (err) {
       setError(err)

@@ -23,10 +23,11 @@ import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.config.AuthProperties;
 
 /**
- * Exchanges the authorization code of the web's Google Identity Services popup
- * ({@code initCodeClient}, {@code ux_mode: popup}) for Google's ID token (ADR-14).
- * The popup flow uses the special redirect URI {@code postmessage}. The ID token
- * is then checked by {@link GoogleIdTokenVerifier} exactly like Android's credential.
+ * Exchanges the authorization code of the web's Google Identity Services code client
+ * ({@code initCodeClient}) for Google's ID token (ADR-14). The popup flow uses the special
+ * redirect URI {@code postmessage}; when a browser blocks the popup, the web uses the redirect
+ * flow and the code was issued for the sign-in page's address, which the exchange must repeat.
+ * The ID token is then checked by {@link GoogleIdTokenVerifier} exactly like Android's credential.
  * <p>Codes, tokens and the client secret are never logged.
  */
 @Component
@@ -54,8 +55,16 @@ class GoogleCodeExchanger {
         this.http = builder.build();
     }
 
-    /** @return Google's ID token for the code; it still has to be verified */
+    /** @return Google's ID token for a code of the popup flow; it still has to be verified */
     String exchange(String code) {
+        return exchange(code, null);
+    }
+
+    /**
+     * @param redirectUri the page the redirect flow returned to, already checked by the caller; null for the popup
+     * @return Google's ID token for the code; it still has to be verified
+     */
+    String exchange(String code, String redirectUri) {
         if (config == null || !config.codeFlowEnabled()) {
             throw ApiException.unavailable("GOOGLE_SIGN_IN_DISABLED", "Google sign-in is not available right now.");
         }
@@ -64,7 +73,7 @@ class GoogleCodeExchanger {
         form.add("code", code);
         form.add("client_id", config.clientId());
         form.add("client_secret", config.clientSecret());
-        form.add("redirect_uri", "postmessage");
+        form.add("redirect_uri", redirectUri == null ? "postmessage" : redirectUri);
         TokenResponse response;
         try {
             response = http.post().uri(config.tokenUri())

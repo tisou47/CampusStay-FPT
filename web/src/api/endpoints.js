@@ -17,7 +17,10 @@ export const api = {
   auth: {
     /** Account email and CampusStay password: { email, password, remember }. */
     signIn: (body) => http.post('/auth/sign-in', body),
-    /** Google authorization code from the popup: { code, remember }. The server only accepts @fpt.edu.vn accounts. */
+    /**
+     * Google authorization code: { code, remember } from the popup, or { code, redirectUri, remember } after the redirect
+     * flow when the popup was blocked (A-22). The server only accepts @fpt.edu.vn accounts.
+     */
     google: (body) => http.post('/auth/google', body),
     signOut: () => http.post('/auth/sign-out'),
     me: g('/auth/me'),

@@ -151,7 +151,7 @@ The build slices S0–S7 of `docs/backend/02_Endpoint_Map.md` are groups of endp
 ## 8a. Current status (24/10/2026)
 | Area | State |
 |---|---|
-| Backend | 181 endpoints (S0–S7 and v2 phases 1–2), 180 verified by integration tests, 37 Flyway migrations, 171 automated tests (`docs/backend/04_Test_Catalog.md`). `POST /auth/google` needs a check with a real `@fpt.edu.vn` account |
+| Backend | 181 endpoints (S0–S7 and v2 phases 1–2), 180 verified by integration tests, 37 Flyway migrations, 173 automated tests (`docs/backend/04_Test_Catalog.md`). `POST /auth/google` needs a check with a real `@fpt.edu.vn` account |
 | Web | 83 routes for the public pages and the four roles (11 new: Set a password, Account verification, Students and the student hub for Staff, Managers and the Admin, Import student list, Staff accounts) (`docs/web/01_Screen_Map.md`); Student portal also on phones and tablets. Open: recording a late check-in at the Check-in desk (A-12) and two texts that promise more than the backend does (C-31, C-34), see `03_API_Contract_Changes.md` |
 | Production | Web https://campusstay-fpt-ten.vercel.app (Vercel), API https://campusstay-api.eastasia.cloudapp.azure.com/api (Azure for Students VM, managed PostgreSQL); every push to `main` deploys (ADR-16, ADR-18, root `CLAUDE.md`); runs as a demo with the payment simulator and the base data. Google sign-in is on since 25/10/2026 (spec P-1). **Not configured yet:** SMTP and the email redirect (emails are only logged, so password-reset and invitation emails do not arrive), SePay, Firebase (architecture §14.1) |
 | Android app | Not started: device-token endpoints, push and the check-in pass payload are ready on the backend (A-05, A-06, A-11) |

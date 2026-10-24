@@ -59,6 +59,24 @@ class GoogleCodeExchangerTest {
         server.verify();
     }
 
+    /** TC-AUTH-051: a code of the redirect flow (popup blocked) is exchanged with the sign-in page as redirect URI. */
+    @Test
+    void redirectFlowSendsThePage() {
+        GoogleCodeExchanger exchanger = exchanger("client-1", "secret-1");
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "authorization_code");
+        form.add("code", "code-2");
+        form.add("client_id", "client-1");
+        form.add("client_secret", "secret-1");
+        form.add("redirect_uri", "https://web.test/signin");
+        server.expect(requestTo(TOKEN_URI))
+                .andExpect(content().formData(form))
+                .andRespond(withSuccess("{\"id_token\":\"id-token-2\"}", MediaType.APPLICATION_JSON));
+
+        assertThat(exchanger.exchange("code-2", "https://web.test/signin")).isEqualTo("id-token-2");
+        server.verify();
+    }
+
     /** TC-AUTH-030 (negative): a used or expired code is the user's retryable error (401). */
     @Test
     void usedCodeIsInvalid() {
