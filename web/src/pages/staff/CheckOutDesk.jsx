@@ -16,6 +16,7 @@ import { StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { DeskModeSwitch } from './CheckInDesk'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
 // GET /check-out?termId&block&q&reason&page&pageSize → { date, pendingCount, reasons,
@@ -29,7 +30,7 @@ const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
 function Row({ label, children, strong, tone }) {
   return (
     <div className="flex items-start justify-between gap-4 text-base">
-      <dt className="text-fg-secondary">{label}</dt>
+      <dt className="text-fg-secondary">{t(label)}</dt>
       <dd className={cx('tabular', strong ? 'font-medium' : '', tone ?? 'text-fg')}>{children}</dd>
     </div>
   )
@@ -60,28 +61,28 @@ function CheckOutPanel({ d }) {
       invalidates: ['check-out', 'dashboard', 'refunds'],
       onSuccess: (res, draft) => {
         if (draft) {
-          notify({ type: 'info', title: 'Draft saved', message: `Readings and condition for ${d.name} are saved.` })
+          notify({ type: 'info', title: 'Draft saved', message: t('Readings and condition for {name} are saved.', { name: d.name }) })
           return
         }
         const r = res?.refund ?? refund
-        notify({ title: `${d.name} checked out`, message: r >= 0 ? `Refund of ${formatNumber(r)} VND sent to the Block Manager for approval.` : `${formatNumber(-r)} VND was invoiced to the student.` })
+        notify({ title: t('{name} checked out', { name: d.name }), message: r >= 0 ? t('Refund of {amount} VND sent to a Manager for approval.', { amount: formatNumber(r) }) : t('{amount} VND was invoiced to the student.', { amount: formatNumber(-r) }) })
       },
       onError: (e) => notifyError(e, 'Could not save the check-out'),
     },
   )
 
   return (
-    <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-3 overflow-y-auto" aria-label={`Check-out ${d.name}`}>
+    <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-3 overflow-y-auto" aria-label={t('Check-out {name}', { name: d.name })}>
       <div className="flex flex-col gap-0.5">
         <h2 className="text-h3 font-semibold text-fg">
           {d.name} · {d.studentCode}
         </h2>
         <p className="text-sm text-fg-secondary">
-          {d.room} · Bed {d.bed} · {d.roomTypeName} {d.roomClassName} · {d.reason}
+          {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })} · {tr(d.roomTypeName)} {tr(d.roomClassName)} · {tr(d.reason)}
         </p>
       </div>
 
-      <p className="text-base font-medium text-fg">1. Final meter reading</p>
+      <p className="text-base font-medium text-fg">{t('1. Final meter reading')}</p>
       <div className="flex gap-3">
         <Field label="Electricity (kWh)" className="flex-1">
           {(id) => <Input id={id} value={electricity} onChange={(e) => setElectricity(e.target.value)} disabled={done} inputMode="numeric" />}
@@ -91,7 +92,7 @@ function CheckOutPanel({ d }) {
         </Field>
       </div>
 
-      <p className="text-base font-medium text-fg">2. Room condition</p>
+      <p className="text-base font-medium text-fg">{t('2. Room condition')}</p>
       <Checkbox label="Bed, mattress and locker in good condition" checked={good} disabled={done} onChange={(e) => setGood(e.target.checked)} />
       <Checkbox label="Key returned" checked={key} disabled={done} onChange={(e) => setKey(e.target.checked)} />
       <Checkbox label="Damage found (adds a charge)" checked={damaged || (done && (s.damage ?? 0) > 0)} disabled={done} onChange={(e) => setDamaged(e.target.checked)} />
@@ -102,10 +103,10 @@ function CheckOutPanel({ d }) {
       )}
       <Divider />
 
-      <p className="text-base font-medium text-fg">3. Utility Deposit settlement</p>
+      <p className="text-base font-medium text-fg">{t('3. Utility Deposit settlement')}</p>
       <dl className="flex flex-col gap-3">
         <Row label="Utility Deposit held">{formatNumber(s.held)}</Row>
-        <Row label={`Final utility share${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatNumber(s.share)}</Row>
+        <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatNumber(s.share)}</Row>
         <Row label="Unpaid utility Invoices">− {formatNumber(s.unpaid)}</Row>
         {damageAmount > 0 && <Row label="Damage charge">− {formatNumber(damageAmount)}</Row>}
         <Row label={refund >= 0 ? 'Refund to Student' : 'Student still owes'} strong tone={refund >= 0 ? 'text-fg-brand' : 'text-error-fg'}>
@@ -114,8 +115,8 @@ function CheckOutPanel({ d }) {
       </dl>
 
       {done ? (
-        <Alert type="success" title={`Checked out ${formatDateTime(d.checkedOutAt)}`}>
-          {d.refundStatus === 'Approved' ? 'The Manager approved the refund.' : 'The refund is waiting for the Manager’s approval.'} The Bed is free again.
+        <Alert type="success" title={t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}>
+          {d.refundStatus === 'Approved' ? t('A Manager approved the refund.') : t('The refund is waiting for a Manager’s approval.')} {t('The Bed is free again.')}
         </Alert>
       ) : (
         <>
@@ -130,7 +131,7 @@ function CheckOutPanel({ d }) {
               Confirm check-out
             </Button>
           </div>
-          {!key && <p className="text-right text-sm text-error-fg">Collect the Room key before you confirm.</p>}
+          {!key && <p className="text-right text-sm text-error-fg">{t('Collect the Room key before you confirm.')}</p>}
         </>
       )}
     </Card>
@@ -165,21 +166,21 @@ export default function CheckOutDesk() {
     <>
       <PageHeader
         title="Check-out desk"
-        description={list.data ? `${list.data.date ? `${formatDate(list.data.date)} · ` : ''}${formatNumber(list.data.pendingCount)} Allocations in Pending check-out.` : 'Allocations in Pending check-out.'}
+        description={list.data ? `${list.data.date ? `${formatDate(list.data.date)} · ` : ''}${t('{n} Allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) })}` : 'Allocations in Pending check-out.'}
         actions={<DeskModeSwitch mode="out" />}
       />
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-80" aria-label="Search" placeholder="Search Student code or Room" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search Student code or Room" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-60"
-          aria-label="Reason"
+          aria-label={t('Reason')}
           value={reason}
           onChange={(e) => {
             setReason(e.target.value)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Reason: All' }, ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: `Reason: ${r}` }))]}
+          options={[{ value: '', label: 'Reason: All' }, ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: t('Reason: {r}', { r: tr(r) }) }))]}
         />
       </div>
 
@@ -202,9 +203,9 @@ export default function CheckOutDesk() {
                     <TwoLine primary={r.name} secondary={r.studentCode} />
                   </Td>
                   <Td>
-                    {r.room} · Bed {r.bed}
+                    {t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}
                   </Td>
-                  <Td>{r.reason}</Td>
+                  <Td>{tr(r.reason)}</Td>
                   <Td>
                     <StatusTag status={r.status} tone={tones[r.status]} />
                   </Td>

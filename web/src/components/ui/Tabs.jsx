@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 /**
@@ -10,7 +11,7 @@ export function Tabs({ items, value, onChange, className }) {
     <div role="tablist" className={cx('flex items-start gap-6 border-b border-line', className)}>
       {items.map((item) => {
         const active = item.key === value
-        const label = item.count != null ? `${item.label} · ${item.count}` : item.label
+        const label = item.count != null ? `${tx(item.label)} · ${item.count}` : tx(item.label)
         const classes = cx(
           '-mb-px flex items-center border-b-2 py-2.5 text-base font-medium whitespace-nowrap transition-colors',
           active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:text-fg',
@@ -45,7 +46,7 @@ export function Segmented({ options, value, onChange, className }) {
             onClick={() => onChange(o.value)}
             className={cx('h-7 rounded px-3 text-base whitespace-nowrap transition-colors', active ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg-secondary hover:text-fg')}
           >
-            {o.label}
+            {tx(o.label)}
           </button>
         )
       })}

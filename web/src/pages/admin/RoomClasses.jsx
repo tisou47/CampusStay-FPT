@@ -12,6 +12,7 @@ import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatNumber, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-CFG-03 Room Classes (Figma 25:837)
 // GET /admin/room-classes → { items: [{ id, name, surchargeRate, amenities: [string], floors, rooms, status }],
@@ -36,7 +37,7 @@ function EditDrawer({ item, onClose }) {
     {
       invalidates: ['admin-room-classes', 'admin-room-types', 'catalog'],
       onSuccess: () => {
-        notify({ title: `${form.name.trim()} saved`, message: 'Prices for Terms that already opened registration do not change.' })
+        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'Prices for Terms that already opened registration do not change.' })
         onClose()
       },
       onError: () => {},
@@ -46,7 +47,7 @@ function EditDrawer({ item, onClose }) {
     <Drawer
       open
       onClose={onClose}
-      title={isNew ? 'New Room Class' : `Edit Room Class · ${item.name}`}
+      title={isNew ? 'New Room Class' : t('Edit Room Class · {name}', { name: item.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -101,7 +102,7 @@ export default function RoomClasses() {
             </Th>
             <Th className="w-24">Status</Th>
             <Th className="w-24">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -109,10 +110,10 @@ export default function RoomClasses() {
           <TableStatus query={query} colSpan={7} emptyIcon={Layers} emptyTitle="No Room Classes yet" />
           {items.map((c) => (
             <Tr key={c.id}>
-              <Td className="font-medium">{c.name}</Td>
+              <Td className="font-medium">{tr(c.name)}</Td>
               <Td align="right">+{Math.round(c.surchargeRate * 100)}%</Td>
               <Td>{(c.amenities ?? []).join(' · ')}</Td>
-              <Td>{c.floors ?? '—'}</Td>
+              <Td>{tr(c.floors) || '—'}</Td>
               <Td align="right" className="tabular">
                 {formatNumber(c.rooms)}
               </Td>
@@ -131,8 +132,8 @@ export default function RoomClasses() {
 
       <Card className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 items-center justify-between gap-4">
-          <h2 className="text-h3 font-semibold text-fg">Price preview · Term price per Bed (deposit {Math.round(rate * 100)}%)</h2>
-          <span className="text-sm text-fg-tertiary">Computed from Room Types × Room Classes × deposit rate. Read-only.</span>
+          <h2 className="text-h3 font-semibold text-fg">{t('Price preview · Term price per Bed (deposit {p}%)', { p: Math.round(rate * 100) })}</h2>
+          <span className="text-sm text-fg-tertiary">{t('Computed from Room Types × Room Classes × deposit rate. Read-only.')}</span>
         </div>
         <QueryState query={query} compact isEmpty={(d) => !d.roomTypes?.length || !active.length}>
           {(data) => (
@@ -142,27 +143,27 @@ export default function RoomClasses() {
                   <Th>Room Type</Th>
                   {active.map((c) => (
                     <Th key={c.id} align="right">
-                      {c.name} (+{Math.round(c.surchargeRate * 100)}%)
+                      {tr(c.name)} (+{Math.round(c.surchargeRate * 100)}%)
                     </Th>
                   ))}
                 </tr>
               </THead>
               <TBody>
-                {data.roomTypes.map((t) => (
-                  <Tr key={t.id}>
+                {data.roomTypes.map((rt) => (
+                  <Tr key={rt.id}>
                     <Td className="py-2">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-fg">{t.name}</span>
-                        <span className="text-sm text-fg-tertiary">base {formatVnd(t.basePrice)}</span>
+                        <span className="font-medium text-fg">{tr(rt.name)}</span>
+                        <span className="text-sm text-fg-tertiary">{t('base {amount}', { amount: formatVnd(rt.basePrice) })}</span>
                       </div>
                     </Td>
                     {active.map((c) => {
-                      const price = t.basePrice * (1 + c.surchargeRate)
+                      const price = rt.basePrice * (1 + c.surchargeRate)
                       return (
                         <Td key={c.id} align="right" className="py-2">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-fg tabular">{formatVnd(price)}</span>
-                            <span className="text-sm text-fg-tertiary tabular">deposit {formatVnd(price * rate)}</span>
+                            <span className="text-sm text-fg-tertiary tabular">{t('deposit {amount}', { amount: formatVnd(price * rate) })}</span>
                           </div>
                         </Td>
                       )

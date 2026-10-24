@@ -12,6 +12,7 @@ import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { ReceiptModal, StatusList, StatusRow, StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-BIL-01 My Invoices (Figma 19:1051)
 // GET /students/me/invoices?termId&page&pageSize → {
@@ -38,27 +39,27 @@ export default function MyInvoices() {
           icon={Banknote}
           label="Outstanding"
           value={summary ? formatVnd(summary.outstanding) : '—'}
-          note={summary?.dueCount ? `${summary.dueCount} ${summary.dueCount === 1 ? 'Invoice' : 'Invoices'} due · next ${formatDate(summary.nextDueAt)}` : 'Nothing to pay right now'}
+          note={summary?.dueCount ? t(summary.dueCount === 1 ? '{n} Invoice due · next {date}' : '{n} Invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) }) : t('Nothing to pay right now')}
         />
         <StatTile
           icon={CreditCard}
           className="max-lg:hidden"
-          label={`Paid${term ? ` for ${term.name}` : ''}`}
+          label={term ? t('Paid for {term}', { term: term.name }) : t('Paid')}
           value={summary ? formatVnd(summary.paidTotal) : '—'}
-          note={summary?.paidCount ? `${summary.paidCount} ${summary.paidCount === 1 ? 'payment' : 'payments'}` : 'No payments yet'}
+          note={summary?.paidCount ? t(summary.paidCount === 1 ? '{n} payment' : '{n} payments', { n: summary.paidCount }) : t('No payments yet')}
         />
         <StatTile
           icon={Calendar}
           className="max-lg:hidden"
           label="Next Invoice"
           value={summary?.upcoming ? formatVnd(summary.upcoming.amount) : '—'}
-          note={summary?.upcoming ? `${summary.upcoming.typeLabel} · ${summary.upcoming.note}` : 'No upcoming Invoice this Term'}
+          note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming Invoice this Term')}
         />
       </div>
 
       {/* Phone: MOB-BIL-01 Invoices (Figma 56:203) — one row per Invoice instead of the table. */}
       <section className="flex flex-col gap-3 lg:hidden">
-        <h2 className="text-sm font-medium text-fg-tertiary">Invoices</h2>
+        <h2 className="text-sm font-medium text-fg-tertiary">{t('Invoices')}</h2>
         <QueryState query={query} compact empty={<EmptyBlock icon={ReceiptText} title="No invoices">The deposit Invoice is issued when you submit an Application.</EmptyBlock>}>
           {(data) => (
             <StatusList>
@@ -66,8 +67,8 @@ export default function MyInvoices() {
                 <StatusRow
                   key={inv.id}
                   icon={CreditCard}
-                  value={`${inv.typeLabel} · ${formatVnd(inv.amount)}`}
-                  note={`${inv.id} · ${inv.status === 'Paid' ? `paid ${formatDate(inv.paidAt)}` : `due ${formatDate(inv.dueAt)}`}`}
+                  value={`${tr(inv.typeLabel)} · ${formatVnd(inv.amount)}`}
+                  note={`${inv.id} · ${inv.status === 'Paid' ? t('paid {date}', { date: formatDate(inv.paidAt) }) : t('due {date}', { date: formatDate(inv.dueAt) })}`}
                   tag={inv.status === 'Upcoming' ? <Tag>Upcoming</Tag> : <StatusTag status={inv.status} />}
                   to={invoicePath(inv)}
                 />
@@ -89,7 +90,7 @@ export default function MyInvoices() {
             <Th className="w-44">Due</Th>
             <Th>Status</Th>
             <Th className="w-26">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -98,8 +99,8 @@ export default function MyInvoices() {
           {items.map((inv) => (
             <Tr key={inv.id} onClick={() => navigate(invoicePath(inv))}>
               <Td className="font-medium text-fg-brand">{inv.id}</Td>
-              <Td className="max-w-48 truncate" title={inv.typeLabel}>
-                {inv.typeLabel}
+              <Td className="max-w-48 truncate" title={tr(inv.typeLabel)}>
+                {tr(inv.typeLabel)}
               </Td>
               <Td>{inv.termName}</Td>
               <Td align="right" className="whitespace-nowrap">

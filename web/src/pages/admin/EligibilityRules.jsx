@@ -7,6 +7,7 @@ import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { ConfigPage, ReorderList, SettingSwitch, useConfigForm } from './shared'
+import { t } from '@/i18n'
 
 // SCR-CFG-05 Eligibility Rules (Figma 71:2607)
 // GET /admin/eligibility → { criteria: [{ key, title, note, on }], groups: [{ id, title, note, applied }], appliesFromTermName }
@@ -15,7 +16,7 @@ import { ConfigPage, ReorderList, SettingSwitch, useConfigForm } from './shared'
 export default function EligibilityRules() {
   const { notify } = useToast()
   const cfg = useConfigForm('eligibility', api.admin.eligibility, {
-    onSaved: (res) => notify({ title: 'Eligibility rules saved', message: `They apply from ${res?.appliesFromTermName ?? 'the next Term that opens'}.` }),
+    onSaved: (res) => notify({ title: 'Eligibility rules saved', message: t('They apply from {term}.', { term: res?.appliesFromTermName ?? t('the next Term that opens') }) }),
   })
   const { draft } = cfg
   const [adding, setAdding] = useState(false)
@@ -41,8 +42,8 @@ export default function EligibilityRules() {
         <>
           <div className="flex min-h-0 flex-1 items-stretch gap-4">
             <Card className="flex min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-              <h2 className="text-h3 font-semibold text-fg">Who can apply</h2>
-              <p className="text-sm text-fg-tertiary">All active criteria must pass. Checked against FPT student records on submit.</p>
+              <h2 className="text-h3 font-semibold text-fg">{t('Who can apply')}</h2>
+              <p className="text-sm text-fg-tertiary">{t('All active criteria must pass. Checked against FPT student records on submit.')}</p>
               {(draft.criteria ?? []).map((c) => (
                 <div key={c.key} className="py-1.5">
                   <SettingSwitch
@@ -61,15 +62,15 @@ export default function EligibilityRules() {
             </Card>
             <Card className="flex min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
               <div className="flex items-center justify-between">
-                <h2 className="text-h3 font-semibold text-fg">Priority groups</h2>
+                <h2 className="text-h3 font-semibold text-fg">{t('Priority groups')}</h2>
                 <Button icon={Plus} onClick={() => setAdding(true)}>
                   Add group
                 </Button>
               </div>
-              <p className="text-sm text-fg-tertiary">Higher groups are processed first by the assignment engine. Use the arrows to reorder.</p>
+              <p className="text-sm text-fg-tertiary">{t('Higher groups are processed first by the assignment engine. Use the arrows to reorder.')}</p>
               <ReorderList
                 label="Priority groups"
-                items={(draft.groups ?? []).map((g) => ({ ...g, extra: g.applied != null ? `${g.applied} applied` : null }))}
+                items={(draft.groups ?? []).map((g) => ({ ...g, extra: g.applied != null ? t('{n} applied', { n: g.applied }) : null }))}
                 onChange={(groups) => cfg.setValue('groups', groups.map(({ extra: _extra, ...g }) => g))}
               />
             </Card>

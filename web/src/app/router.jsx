@@ -9,7 +9,6 @@ import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
-import NotInScope from '@/pages/common/NotInScope'
 
 // Student — 05 Web – Student
 import StudentHome from '@/pages/student/StudentHome'
@@ -132,15 +131,10 @@ export const router = createBrowserRouter([
         { path: 'notifications', element: <Notifications /> },
       ]),
 
+      // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, element: <StaffDashboard /> },
-        { path: 'applications', element: <ApplicationQueue /> },
-        { path: 'applications/:id', element: <ApplicationReview /> },
-        { path: 'assignment', element: <AssignmentRuns /> },
-        { path: 'assignment/:runId', element: <ProposalReview /> },
-        { path: 'residents', element: <NotInScope title="Residents" /> },
         { path: 'inventory', element: <Inventory /> },
-        { path: 'payments', element: <Payments /> },
         { path: 'meter-readings', element: <MeterReadings /> },
         { path: 'maintenance', element: <MaintenanceQueue /> },
         { path: 'maintenance/:id', element: <MaintenanceDetail /> },
@@ -151,14 +145,19 @@ export const router = createBrowserRouter([
         { path: 'check-out', element: <CheckOutDesk /> },
       ]),
 
+      // Managers work for every Block: registration, assignment, payments and decisions (ADR-19). They share
+      // the Staff screens for rooms, maintenance and room changes, with a Block filter.
       portal('manager', <BackOfficeLayout role="manager" />, [
         { index: true, element: <ManagerDashboard /> },
-        { path: 'approvals', element: <Approvals tab="assignment" /> },
+        { path: 'approvals', element: <Approvals tab="late-check-in" /> },
         { path: 'approvals/late-check-in', element: <Approvals tab="late-check-in" /> },
-        // Manager shares the Staff work queues for its Block.
         { path: 'applications', element: <ApplicationQueue /> },
         { path: 'applications/:id', element: <ApplicationReview /> },
-        { path: 'residents', element: <NotInScope title="Residents" /> },
+        { path: 'assignment', element: <AssignmentRuns /> },
+        { path: 'assignment/:runId', element: <ProposalReview /> },
+        { path: 'payments', element: <Payments /> },
+        { path: 'room-changes', element: <RoomChangeQueue /> },
+        { path: 'room-changes/swaps', element: <SwapRequests /> },
         { path: 'inventory', element: <Inventory /> },
         { path: 'maintenance', element: <MaintenanceQueue /> },
         { path: 'maintenance/:id', element: <MaintenanceDetail /> },

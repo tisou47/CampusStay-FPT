@@ -7,13 +7,20 @@ import {
   ChartColumn,
   Check,
   CircleCheck,
+  ClipboardCheck,
   CreditCard,
   FileText,
+  Gauge,
   House,
   Layers,
   LayoutDashboard,
   LogIn,
+  LogOut,
+  Mail,
   Repeat,
+  ScrollText,
+  Settings,
+  ShieldCheck,
   SlidersHorizontal,
   TriangleAlert,
   User,
@@ -21,23 +28,28 @@ import {
   Wrench,
 } from 'lucide-react'
 
+/*
+ * Menus of every portal (Change Specification v2 §11.2). Labels are English keys, shown with t() where they are
+ * drawn. Back-office menus are grouped by the work they belong to; Staff work for their Blocks, Managers for
+ * every Block (ADR-19). Items for screens of later phases are added when those screens exist.
+ */
+
 /** A nav item is active on its own path, any sub-path, and any extra `match` prefixes. */
 export function isNavActive(item, pathname) {
   if (item.end) return pathname === item.to
   return [item.to, ...(item.match ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
-// Shell/Student Top Bar — Home, Application, My Room, Payments, Requests.
+// Student top bar: Home, Registration, My Room, Payments, Requests.
 export const studentNav = [
   { label: 'Home', to: '/student', end: true },
-  { label: 'Application', to: '/student/applications', match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer'] },
+  { label: 'Registration', to: '/student/applications', match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer'] },
   { label: 'My Room', to: '/student/room' },
   { label: 'Payments', to: '/student/invoices' },
   { label: 'Requests', to: '/student/requests' },
 ]
 
-// Phone width (Figma: 09 Android – Student › Bottom Nav): Home, My Room, Payments, Activity.
-// Activity holds Applications and Requests, as on Android.
+// Phone width: Home, My Room, Payments, Activity (Registration and Requests), as on Android.
 export const studentTabs = [
   { label: 'Home', icon: House, to: '/student', end: true },
   { label: 'My Room', icon: Bed, to: '/student/room' },
@@ -50,95 +62,135 @@ export const studentTabs = [
   },
 ]
 
-
-// Shell/Sidebar (back office) — menus match the sidebar map in the Screen Inventory doc.
-// Staff and Manager see a Block scope selector built from the Blocks assigned to them; Admin sees every Block.
 export const backOffice = {
   staff: {
     portal: 'Staff portal',
-    itemHeight: 'h-10',
+    roleTitle: 'Block Staff',
     sections: [
+      { items: [{ label: 'Today', icon: LayoutDashboard, to: '/staff', end: true }] },
       {
+        title: 'Desk',
         items: [
-          { label: 'Dashboard', icon: LayoutDashboard, to: '/staff', end: true },
-          { label: 'Applications', icon: FileText, to: '/staff/applications' },
-          { label: 'Assignment', icon: Layers, to: '/staff/assignment' },
-          { label: 'Residents', icon: Users, to: '/staff/residents' },
-          { label: 'Inventory', icon: Building, to: '/staff/inventory' },
-          { label: 'Payments', icon: CreditCard, to: '/staff/payments' },
-          { label: 'Meter Readings', icon: ChartColumn, to: '/staff/meter-readings' },
+          { label: 'Check-in', icon: LogIn, to: '/staff/check-in' },
+          { label: 'Check-out', icon: LogOut, to: '/staff/check-out' },
+        ],
+      },
+      {
+        title: 'Residents',
+        items: [{ label: 'Room changes and swaps', icon: Repeat, to: '/staff/room-changes' }],
+      },
+      {
+        title: 'Rooms',
+        items: [{ label: 'Rooms and Beds', icon: Building, to: '/staff/inventory' }],
+      },
+      {
+        title: 'Operations',
+        items: [
           { label: 'Maintenance', icon: Wrench, to: '/staff/maintenance' },
-          { label: 'Inspections', icon: CircleCheck, to: '/staff/inspections' },
-          { label: 'Room Changes', icon: Repeat, to: '/staff/room-changes' },
-          { label: 'Check-in / Check-out', icon: LogIn, to: '/staff/check-in', match: ['/staff/check-out'] },
+          { label: 'Inspections', icon: ClipboardCheck, to: '/staff/inspections' },
+          { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
         ],
       },
     ],
   },
   manager: {
     portal: 'Manager portal',
-    itemHeight: 'h-10',
+    roleTitle: 'Dormitory Manager',
     sections: [
+      { items: [{ label: 'Overview', icon: LayoutDashboard, to: '/manager', end: true }] },
       {
+        title: 'Registration',
         items: [
-          { label: 'Dashboard', icon: LayoutDashboard, to: '/manager', end: true },
-          { label: 'Approvals', icon: Check, to: '/manager/approvals' },
           { label: 'Applications', icon: FileText, to: '/manager/applications' },
-          { label: 'Residents', icon: Users, to: '/manager/residents' },
-          { label: 'Inventory', icon: Building, to: '/manager/inventory' },
-          { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
-          { label: 'Inspections', icon: CircleCheck, to: '/manager/inspections' },
+          { label: 'Assignment', icon: Layers, to: '/manager/assignment' },
         ],
       },
       {
-        title: 'Management',
+        title: 'Residents',
         items: [
-          { label: 'Finance', icon: Banknote, to: '/manager/finance' },
-          { label: 'Staff', icon: Users, to: '/manager/staff' },
-          { label: 'Routing Rules', icon: SlidersHorizontal, to: '/manager/routing-rules' },
-          { label: 'Escalations', icon: TriangleAlert, to: '/manager/escalations' },
-          { label: 'Reports', icon: ChartColumn, to: '/manager/reports' },
-          { label: 'Block Settings', icon: SlidersHorizontal, to: '/manager/block-settings' },
+          { label: 'Decisions', icon: Check, to: '/manager/approvals' },
+          { label: 'Room changes and swaps', icon: Repeat, to: '/manager/room-changes' },
         ],
       },
-    ],
-  },
-  admin: {
-    portal: 'Admin console',
-    itemHeight: 'h-9',
-    sections: [
-      { items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/admin', end: true }] },
       {
-        title: 'Configuration',
+        title: 'Finance',
         items: [
-          { label: 'Terms and Windows', icon: Calendar, to: '/admin/terms' },
-          { label: 'Room Types', icon: Bed, to: '/admin/room-types' },
-          { label: 'Room Classes', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Fees and Refunds', icon: Banknote, to: '/admin/fees' },
-          { label: 'Utility', icon: Banknote, to: '/admin/utility' },
-          { label: 'Eligibility Rules', icon: CircleCheck, to: '/admin/eligibility' },
-          { label: 'Matching Criteria', icon: Users, to: '/admin/matching' },
-          { label: 'Inspection Checklists', icon: CircleCheck, to: '/admin/inspection-checklists' },
-          { label: 'Notifications', icon: Bell, to: '/admin/notifications' },
-          { label: 'System Parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
+          { label: 'Payment confirmations', icon: CreditCard, to: '/manager/payments' },
+          { label: 'Collections and refunds', icon: Banknote, to: '/manager/finance' },
         ],
       },
       {
         title: 'Operations',
         items: [
-          { label: 'Buildings', icon: Building, to: '/admin/buildings' },
-          { label: 'Users and Roles', icon: User, to: '/admin/users' },
+          { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
+          { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
+          { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
+          { label: 'Routing and timers', icon: SlidersHorizontal, to: '/manager/routing-rules' },
+          { label: 'Block settings', icon: Settings, to: '/manager/block-settings' },
+        ],
+      },
+      {
+        title: 'Rooms and people',
+        items: [
+          { label: 'Rooms and Beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Staff', icon: Users, to: '/manager/staff' },
+        ],
+      },
+      {
+        title: 'Reports',
+        items: [{ label: 'Block reports', icon: ChartColumn, to: '/manager/reports' }],
+      },
+    ],
+  },
+  admin: {
+    portal: 'Admin console',
+    roleTitle: 'Administrator',
+    sections: [
+      { items: [{ label: 'Overview', icon: LayoutDashboard, to: '/admin', end: true }] },
+      {
+        title: 'Registration periods',
+        items: [{ label: 'Terms and timeline', icon: Calendar, to: '/admin/terms' }],
+      },
+      {
+        title: 'Prices and fees',
+        items: [
+          { label: 'Room Types', icon: Bed, to: '/admin/room-types' },
+          { label: 'Room Classes', icon: Layers, to: '/admin/room-classes' },
+          { label: 'Deposit and refunds', icon: Banknote, to: '/admin/fees' },
+          { label: 'Utility', icon: Gauge, to: '/admin/utility' },
+        ],
+      },
+      {
+        title: 'Rules',
+        items: [
+          { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
+          { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
+          { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
+        ],
+      },
+      {
+        title: 'Notifications',
+        items: [
+          { label: 'Notification texts', icon: Bell, to: '/admin/notifications', end: true },
+          { label: 'Send email', icon: Mail, to: '/admin/notifications/send' },
+        ],
+      },
+      {
+        title: 'System',
+        items: [
+          { label: 'Buildings and Rooms', icon: Building, to: '/admin/buildings' },
+          { label: 'Users and roles', icon: User, to: '/admin/users' },
+          { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
+          { label: 'Audit Log', icon: ScrollText, to: '/admin/audit-log' },
         ],
       },
       {
         title: 'Reports',
         items: [
-          { label: 'Occupancy Report', icon: ChartColumn, to: '/admin/reports/occupancy' },
-          { label: 'Financial Report', icon: ChartColumn, to: '/admin/reports/financial' },
-          { label: 'Audit Log', icon: FileText, to: '/admin/audit-log' },
+          { label: 'Occupancy', icon: ChartColumn, to: '/admin/reports/occupancy' },
+          { label: 'Finance', icon: ShieldCheck, to: '/admin/reports/financial' },
         ],
       },
     ],
   },
 }
-

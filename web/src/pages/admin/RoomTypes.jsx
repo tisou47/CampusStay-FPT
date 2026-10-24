@@ -13,6 +13,7 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatNumber, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-CFG-02 Room Types (Figma 24:520) with the Edit drawer (Figma 24:859).
 // GET /admin/room-types → { items: [{ id, name, beds, basePrice, roommateSelection: 'auto'|'mutual', rooms, status, hasAllocations }],
@@ -43,7 +44,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
     {
       invalidates: ['admin-room-types', 'admin-room-classes', 'catalog'],
       onSuccess: () => {
-        notify({ title: `${form.name.trim()} saved`, message: 'New prices apply to Terms that have not opened registration yet.' })
+        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'New prices apply to Terms that have not opened registration yet.' })
         onClose()
       },
       onError: () => {},
@@ -53,7 +54,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
     <Drawer
       open
       onClose={onClose}
-      title={isNew ? 'New Room Type' : `Edit Room Type · ${type.name}`}
+      title={isNew ? 'New Room Type' : t('Edit Room Type · {name}', { name: type.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -87,7 +88,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
       <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}</Field>
       {roomClasses.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-subtle p-4 text-base">
-          <p className="font-medium text-fg">Term price per Bed with Room Class</p>
+          <p className="font-medium text-fg">{t('Term price per Bed with Room Class')}</p>
           {roomClasses.map((c) => (
             <div key={c.id} className="flex justify-between">
               <span className="text-fg-secondary">
@@ -137,7 +138,7 @@ export default function RoomTypes() {
             </Th>
             <Th>Status</Th>
             <Th className="w-24">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -145,12 +146,12 @@ export default function RoomTypes() {
           <TableStatus query={query} colSpan={8} emptyIcon={Bed} emptyTitle="No Room Types yet" />
           {items.map((t) => (
             <Tr key={t.id}>
-              <Td className="font-medium">{t.name}</Td>
+              <Td className="font-medium">{tr(t.name)}</Td>
               <Td>{t.beds}</Td>
               <Td align="right" className="tabular">
                 {formatVnd(t.basePrice)}
               </Td>
-              <Td>{selectionLabel[t.roommateSelection] ?? t.roommateSelection}</Td>
+              <Td>{tr(selectionLabel[t.roommateSelection] ?? t.roommateSelection)}</Td>
               <Td align="right" className="tabular">
                 {formatNumber(t.rooms)}
               </Td>
@@ -171,9 +172,9 @@ export default function RoomTypes() {
       </Table>
       {query.data?.totals && (
         <p className="flex shrink-0 gap-2 text-base">
-          <span className="text-fg-secondary">Total capacity</span>
+          <span className="text-fg-secondary">{t('Total capacity')}</span>
           <span className="font-medium text-fg">
-            {formatNumber(query.data.totals.rooms)} Rooms · {formatNumber(query.data.totals.beds)} Beds
+            {t('{rooms} Rooms · {beds} Beds', { rooms: formatNumber(query.data.totals.rooms), beds: formatNumber(query.data.totals.beds) })}
           </span>
         </p>
       )}

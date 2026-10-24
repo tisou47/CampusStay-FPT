@@ -1,4 +1,5 @@
 import { Check, Minus } from 'lucide-react'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Checkbox and Radio. 16 px control in a 22 px row, Body/Base label.
@@ -31,8 +32,8 @@ export function Checkbox({ label, description, indeterminate = false, className,
       </span>
       {(label || description) && (
         <span className="flex min-w-0 flex-col">
-          {label && <span>{label}</span>}
-          {description && <span className="text-sm text-fg-tertiary">{description}</span>}
+          {label && <span>{tx(label)}</span>}
+          {description && <span className="text-sm text-fg-tertiary">{tx(description)}</span>}
         </span>
       )}
     </label>
@@ -58,8 +59,8 @@ export function Radio({ label, description, className, disabled, ...props }) {
       </span>
       {(label || description) && (
         <span className="flex min-w-0 flex-col">
-          {label && <span>{label}</span>}
-          {description && <span className="text-sm text-fg-tertiary">{description}</span>}
+          {label && <span>{tx(label)}</span>}
+          {description && <span className="text-sm text-fg-tertiary">{tx(description)}</span>}
         </span>
       )}
     </label>
@@ -91,7 +92,7 @@ export function Switch({ checked, onChange, label, size = 'md', disabled, classN
         <span className={cx('absolute inset-0 rounded-full bg-gray-300 transition-colors peer-checked:bg-primary', 'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus')} />
         <span className={cx('absolute top-0.5 left-0.5 rounded-full bg-white shadow-card transition-transform', knob)} />
       </span>
-      {label && <span>{label}</span>}
+      {label && <span>{tx(label)}</span>}
     </label>
   )
 }

@@ -5,6 +5,7 @@ import { useSession } from '@/app/session'
 import { Card, Divider } from '@/components/ui/Display'
 import { QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
+import { t, tr } from '@/i18n'
 
 // Shared pieces of SCR-REQ-03 Room Swap – Specific Student and SCR-REQ-04 Swap Board.
 
@@ -15,7 +16,7 @@ export function SwapModePicker({ value }) {
     { key: 'board', title: 'Post on the swap board', body: 'The system finds a matching request', to: '/student/requests/swap/board' },
   ]
   return (
-    <div role="radiogroup" aria-label="Swap type" className="flex shrink-0 items-stretch gap-3">
+    <div role="radiogroup" aria-label={t('Swap type')} className="flex shrink-0 items-stretch gap-3">
       {modes.map((m) => {
         const active = m.key === value
         return (
@@ -36,9 +37,9 @@ export function SwapModePicker({ value }) {
                   className="size-4 appearance-none rounded-full border border-line-strong bg-surface checked:border-[5px] checked:border-primary"
                 />
               </span>
-              {m.title}
+              {t(m.title)}
             </span>
-            <span className="text-sm text-fg-secondary">{m.body}</span>
+            <span className="text-sm text-fg-secondary">{t(m.body)}</span>
           </label>
         )
       })}
@@ -56,23 +57,23 @@ export function YourRoomNow() {
   const query = useMyAllocation()
   return (
     <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
-      <h2 className="text-h3 font-semibold text-fg">Your Room now</h2>
-      <QueryState query={query} compact isEmpty={(d) => !d?.allocation} empty={<p className="text-base text-fg-secondary">You have no Room this Term.</p>}>
+      <h2 className="text-h3 font-semibold text-fg">{t('Your Room now')}</h2>
+      <QueryState query={query} compact isEmpty={(d) => !d?.allocation} empty={<p className="text-base text-fg-secondary">{t('You have no Room this Term.')}</p>}>
         {({ allocation: a }) =>
           [
-            ['Room and Bed', `${a.room} · Bed ${a.bed}`],
-            ['Type / Class', `${a.roomTypeName ?? '—'} · ${a.roomClassName ?? '—'}`],
-            ['Block', a.block ?? '—'],
+            ['Room and Bed', t('{room} · Bed {bed}', { room: a.room, bed: a.bed })],
+            ['Type / Class', `${tr(a.roomTypeName) || '—'} · ${tr(a.roomClassName) || '—'}`],
+            ['Block', tr(a.block) || '—'],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 text-base">
-              <span className="text-fg-secondary">{label}</span>
+              <span className="text-fg-secondary">{t(label)}</span>
               <span className="text-fg">{value}</span>
             </div>
           ))
         }
       </QueryState>
       <Divider />
-      <p className="text-sm text-fg-tertiary">Swaps take effect on the move date set after approval. Same-Block swaps are approved by Staff; cross-Block swaps by the Block Manager.</p>
+      <p className="text-sm text-fg-tertiary">{t('Swaps take effect on the move date set after approval. Same-Block swaps are approved by Staff; cross-Block swaps by a Manager.')}</p>
     </Card>
   )
 }

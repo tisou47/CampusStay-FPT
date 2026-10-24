@@ -15,6 +15,7 @@ import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/u
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-11 Check-in Desk (Figma 60:3026)
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
@@ -23,7 +24,7 @@ import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/
 //   checkedInAt, handOverItems: [string] } | null }
 // POST /check-in { studentCode, items, note } → { checkedInAt }
 // POST /late-check-ins (multipart) studentCode, reason, requestedFor (YYYY-MM-DD), termId?, evidence? → { id }
-//   — for a student whose check-in window closed; the Block Manager decides it in Approvals › Late check-in
+//   — for a student whose check-in window closed; a Manager decides it in Decisions › Late check-in
 
 const statusTag = {
   ready: <Tag tone="success">Ready to check in</Tag>,
@@ -37,7 +38,7 @@ function CheckItem({ ok, children }) {
   return (
     <p className="flex items-center gap-2 text-base whitespace-nowrap text-fg">
       <Glyph size={16} aria-hidden="true" className={cx('shrink-0', ok ? 'text-success' : 'text-error')} />
-      {children}
+      {tr(children)}
     </p>
   )
 }
@@ -62,7 +63,7 @@ function LateCheckInModal({ person, termId, onClose }) {
     {
       invalidates: ['approvals', 'dashboard'],
       onSuccess: () => {
-        notify({ title: 'Late check-in recorded', message: `${person.name} arrives on ${formatDate(requestedFor)}. The Block Manager decides it in Approvals › Late check-in.` })
+        notify({ title: 'Late check-in recorded', message: t('{name} arrives on {date}. A Manager decides it in Decisions › Late check-in.', { name: person.name, date: formatDate(requestedFor) }) })
         onClose()
       },
       onError: () => {},
@@ -74,12 +75,12 @@ function LateCheckInModal({ person, termId, onClose }) {
       open
       onClose={onClose}
       title="Record late check-in"
-      description={`${person.name} · ${person.studentCode} · ${person.room} · Bed ${person.bed}`}
+      description={`${person.name} · ${person.studentCode} · ${t('{room} · Bed {bed}', { room: person.room, bed: person.bed })}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Check} disabled={!reason.trim() || !requestedFor || record.pending} onClick={() => record.run()}>
-            {record.pending ? 'Recording…' : 'Record late check-in'}
+            {record.pending ? t('Recording…') : t('Record late check-in')}
           </Button>
         </>
       }
@@ -93,7 +94,7 @@ function LateCheckInModal({ person, termId, onClose }) {
       </Field>
       <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
         <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-        <span className="text-base text-fg">{file ? file.name : 'Attach evidence (JPEG, PNG or PDF, optional)'}</span>
+        <span className="text-base text-fg">{file ? file.name : t('Attach evidence (JPEG, PNG or PDF, optional)')}</span>
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </button>
     </Modal>
@@ -117,7 +118,7 @@ function StudentPanel({ person, onDone }) {
     person.status === 'blocked' && (person.checks ?? []).filter((c) => !c.passed).length > owing && Boolean(term?.checkInEnd) && toDateInput(new Date()) > term.checkInEnd
   const confirm = useMutation(() => api.desk.checkIn({ studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
-    onSuccess: () => notify({ title: `${person.name} checked in`, message: `${person.room} · Bed ${person.bed}. The QR pass is active.` }),
+    onSuccess: () => notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed }) }),
     onError: (e) => notifyError(e, 'Could not check in'),
   })
 
@@ -131,7 +132,7 @@ function StudentPanel({ person, onDone }) {
           </h2>
           {person.room && (
             <p className="text-lg text-fg-secondary">
-              {person.room} · Bed {person.bed} · {[person.block && `Block ${person.block}`, person.floor != null && `Floor ${person.floor}`].filter(Boolean).join(', ')}
+              {t('{room} · Bed {bed}', { room: person.room, bed: person.bed })} · {[person.block && tr(person.block), person.floor != null && t('Floor {n}', { n: person.floor })].filter(Boolean).join(', ')}
             </p>
           )}
         </div>
@@ -140,7 +141,7 @@ function StudentPanel({ person, onDone }) {
 
       {person.status === 'not-allocated' ? (
         <Alert type="warning" title="No Room and Bed for this Term yet">
-          This student has no confirmed Allocation. Check-in opens after the assignment is committed and the balance is paid.
+          {t('This student has no confirmed Allocation. Check-in opens after the assignment is committed and the balance is paid.')}
         </Alert>
       ) : (
         <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -155,36 +156,40 @@ function StudentPanel({ person, onDone }) {
       {windowClosed && (
         <Alert
           type="warning"
-          title={`Check-in window closed on ${formatDate(term.checkInEnd)}`}
+          title={t('Check-in window closed on {date}', { date: formatDate(term.checkInEnd) })}
           action={
             <Button icon={CalendarClock} onClick={() => setLate(true)}>
               Record late check-in
             </Button>
           }
         >
-          Record when {person.name} will arrive. Once the Block Manager approves it, check-in opens here until the approved day.
+          {t('Record when {name} will arrive. Once a Manager approves it, check-in opens here until the approved day.', { name: person.name })}
         </Alert>
       )}
       {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
 
       {person.status === 'blocked' && owing > 0 && (
         <Alert type="error" title="Check-in blocked">
-          {person.name} ({person.studentCode}) still owes
-          {person.owes?.balance ? ` the balance of ${formatVnd(person.owes.balance)}` : ''}
-          {person.owes?.balance && person.owes?.utilityDeposit ? ' and' : ''}
-          {person.owes?.utilityDeposit ? ` the Utility Deposit of ${formatVnd(person.owes.utilityDeposit)}` : ''}. Ask the student to pay with VietQR before check-in.
+          {t('{name} ({code}) still owes {what}. Ask the student to pay before check-in.', {
+            name: person.name,
+            code: person.studentCode,
+            what: [
+              person.owes?.balance ? t('the balance of {amount}', { amount: formatVnd(person.owes.balance) }) : null,
+              person.owes?.utilityDeposit ? t('the Utility Deposit of {amount}', { amount: formatVnd(person.owes.utilityDeposit) }) : null,
+            ].filter(Boolean).join(t(' and ')),
+          })}
         </Alert>
       )}
 
       {person.status === 'checked-in' && (
-        <Alert type="success" title={`Checked in at ${formatTime(person.checkedInAt)}`}>
-          Assets were handed over and the student’s QR pass now opens the Block gates.
+        <Alert type="success" title={t('Checked in at {time}', { time: formatTime(person.checkedInAt) })}>
+          {t('Assets were handed over and the student’s QR pass now opens the Block gates.')}
         </Alert>
       )}
 
       {ready && (
         <>
-          <p className="text-base font-medium text-fg">Asset hand-over · Bed {person.bed}</p>
+          <p className="text-base font-medium text-fg">{t('Asset hand-over · Bed {bed}', { bed: person.bed })}</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             {items.map((item) => (
               <Checkbox
@@ -221,10 +226,10 @@ export function DeskModeSwitch({ mode }) {
   return (
     <>
       <Button variant={mode === 'in' ? 'primary' : 'default'} to="/staff/check-in">
-        Check-in mode
+        {t('Check-in mode')}
       </Button>
       <Button variant={mode === 'out' ? 'primary' : 'default'} to="/staff/check-out">
-        Check-out mode
+        {t('Check-out mode')}
       </Button>
     </>
   )
@@ -243,7 +248,7 @@ export default function CheckInDesk() {
 
   const today = useQuery(['check-in', 'today', scope], ({ signal }) => api.desk.checkInToday(scope, { signal }))
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
-  const t = today.data
+  const d0 = today.data
   const person = search ? lookup.data?.student : null
 
   // QR scanners type the pass into the focused search box and press Enter.
@@ -256,7 +261,7 @@ export default function CheckInDesk() {
     <>
       <PageHeader
         title="Check-in desk"
-        description={`${t?.date ? `${formatDate(t.date)} · ` : ''}Scan the student’s QR pass from the Android app or search by student code.`}
+        description={`${d0?.date ? `${formatDate(d0.date)} · ` : ''}${t('Scan the student’s QR pass from the Android app or search by student code.')}`}
         actions={<DeskModeSwitch mode="in" />}
       />
 
@@ -265,7 +270,7 @@ export default function CheckInDesk() {
           ref={input}
           size="lg"
           wrapperClassName="w-120"
-          aria-label="Student code or name"
+          aria-label={t('Student code or name')}
           placeholder="Student code or name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -296,7 +301,7 @@ export default function CheckInDesk() {
           <StudentPanel key={`${person.studentCode}-${person.status}`} person={person} onDone={() => setQ('')} />
         ) : (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
-            <EmptyBlock icon={UserX} title={`No student matches “${search}”`}>
+            <EmptyBlock icon={UserX} title={t('No student matches “{q}”', { q: search })}>
               Check the student code, or ask the student to open the QR pass in the Android app.
             </EmptyBlock>
           </Card>
@@ -304,23 +309,23 @@ export default function CheckInDesk() {
 
         <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
           <Card className="flex shrink-0 flex-col gap-2.5">
-            <h2 className="text-h3 font-semibold text-fg">Today{t?.block ? ` · Block ${t.block}` : ''}</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Today')}{d0?.block ? ` · ${t('Block {code}', { code: d0.block })}` : ''}</h2>
             <QueryState query={today} compact>
               {(d) => (
                 <>
                   <dl className="flex flex-col gap-2.5 text-base">
                     <div className="flex justify-between">
-                      <dt className="text-fg-secondary">Checked in</dt>
+                      <dt className="text-fg-secondary">{t('Checked in')}</dt>
                       <dd className="text-fg tabular">
-                        {formatNumber(d.checkedIn)} of {formatNumber(d.expected)}
+                        {t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })}
                       </dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-fg-secondary">Waiting at desk</dt>
+                      <dt className="text-fg-secondary">{t('Waiting at desk')}</dt>
                       <dd className="text-fg tabular">{formatNumber(d.waiting)}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-fg-secondary">Blocked (unpaid)</dt>
+                      <dt className="text-fg-secondary">{t('Blocked (unpaid)')}</dt>
                       <dd className="text-error-fg tabular">{formatNumber(d.blocked)}</dd>
                     </div>
                   </dl>
@@ -331,9 +336,9 @@ export default function CheckInDesk() {
           </Card>
 
           <Card className="flex min-h-40 flex-1 flex-col gap-2">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">Recent check-ins</h2>
+            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Recent check-ins')}</h2>
             <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-              {(t?.recent ?? []).map((r) => (
+              {(d0?.recent ?? []).map((r) => (
                 <li key={`${r.bed}-${r.at}`} className="flex items-center gap-2">
                   <Clock size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
                   <span className="min-w-0 flex-1 truncate text-base text-fg">
@@ -342,7 +347,7 @@ export default function CheckInDesk() {
                   <span className="text-sm text-fg-tertiary tabular">{formatTime(r.at)}</span>
                 </li>
               ))}
-              {t && !t.recent?.length && <li className="text-base text-fg-secondary">No check-ins yet today.</li>}
+              {d0 && !d0.recent?.length && <li className="text-base text-fg-secondary">{t('No check-ins yet today.')}</li>}
             </ul>
           </Card>
         </div>

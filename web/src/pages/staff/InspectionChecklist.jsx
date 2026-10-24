@@ -16,6 +16,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-MNT-12 Inspection Checklist (Figma 98:4293)
 // GET /inspection-runs/current?termId&block → { run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName,
@@ -29,13 +30,13 @@ const nextResult = { 'Not checked': 'Pass', Pass: 'Fail', Fail: 'Not checked' }
 const statusTone = { 'In progress': 'info', Done: 'success', 'To do': 'neutral', 'Not reachable': 'warning' }
 
 function summary(r, total) {
-  if (r.status === 'Not reachable') return 'No one home'
+  if (r.status === 'Not reachable') return t('No one home')
   const results = r.results ?? []
   const failed = results.filter((x) => x.result === 'Fail').length
   const checked = results.filter((x) => x.result && x.result !== 'Not checked').length
-  if (!checked) return 'Not started'
-  if (failed) return `${failed} ${failed === 1 ? 'item' : 'items'} failed`
-  return checked < total ? 'In progress' : 'All passed'
+  if (!checked) return t('Not started')
+  if (failed) return t(failed === 1 ? '{n} item failed' : '{n} items failed', { n: failed })
+  return checked < total ? t('In progress') : t('All passed')
 }
 
 function Checklist({ run, room }) {
@@ -50,12 +51,12 @@ function Checklist({ run, room }) {
   const save = useMutation(() => api.inspections.saveRoom(run.id, room.room, { results: items.map((it) => ({ itemId: it.id, result: results[it.id].result, note: results[it.id].note || undefined })) }), {
     invalidates: ['inspections', 'maintenance'],
     onSuccess: (res) =>
-      notify({ title: `${room.room} saved`, message: res?.createdRequests?.length ? `${res.createdRequests.join(', ')} created in Maintenance.` : 'All items passed.' }),
+      notify({ title: t('{room} saved', { room: room.room }), message: res?.createdRequests?.length ? t('{ids} created in Maintenance.', { ids: res.createdRequests.join(', ') }) : 'All items passed.' }),
     onError: (e) => notifyError(e, 'Could not save the Room'),
   })
   const unreachable = useMutation(() => api.inspections.unreachable(run.id, room.room), {
     invalidates: ['inspections'],
-    onSuccess: () => notify({ type: 'info', title: `${room.room} marked not reachable`, message: 'It moves to the next inspection run.' }),
+    onSuccess: () => notify({ type: 'info', title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next inspection run.' }),
     onError: (e) => notifyError(e, 'Could not update the Room'),
   })
 
@@ -66,7 +67,8 @@ function Checklist({ run, room }) {
           {room.room} · {run.checklist?.name}
         </h2>
         <p className="text-sm text-fg-secondary">
-          Checklist {run.checklist?.version} set by Admin · {items.length} items{run.inspectorName ? ` · Inspector ${run.inspectorName}` : ''}
+          {t('Checklist {version} set by Admin · {n} items', { version: run.checklist?.version, n: items.length })}
+          {run.inspectorName ? ` · ${t('Inspector {name}', { name: run.inspectorName })}` : ''}
         </p>
       </div>
       <Table fill>
@@ -88,7 +90,7 @@ function Checklist({ run, room }) {
                     type="button"
                     disabled={done}
                     onClick={() => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], result: nextResult[rs[item.id].result] ?? 'Pass' } }))}
-                    aria-label={`${item.label}: ${r.result}. Change result`}
+                    aria-label={t('{item}: {result}. Change result', { item: item.label, result: t(r.result) })}
                     className={cx('rounded-full', !done && 'cursor-pointer hover:ring-2 hover:ring-line-strong')}
                   >
                     <Tag tone={resultTone[r.result] ?? 'neutral'}>{r.result}</Tag>
@@ -96,7 +98,7 @@ function Checklist({ run, room }) {
                 </Td>
                 <Td>
                   {r.result === 'Fail' && !done ? (
-                    <Input aria-label={`Note for ${item.label}`} value={r.note ?? ''} onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], note: e.target.value } }))} placeholder="What is wrong?" />
+                    <Input aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], note: e.target.value } }))} placeholder="What is wrong?" />
                   ) : (
                     <span className="text-fg">{r.note ?? ''}</span>
                   )}
@@ -109,14 +111,14 @@ function Checklist({ run, room }) {
       <div className="flex shrink-0 flex-col gap-2.5">
         {room.status === 'Done' ? (
           <Alert type="success" title="Room saved">
-            {failed ? `${failed} failed ${failed === 1 ? 'item was' : 'items were'} sent to Maintenance.` : 'Every item passed.'}
+            {failed ? t('{n} failed items were sent to Maintenance.', { n: failed }) : t('Every item passed.')}
           </Alert>
         ) : room.status === 'Not reachable' ? (
           <Alert type="warning" title="Not reachable">
             This Room moves to the next inspection run.
           </Alert>
         ) : failed > 0 ? (
-          <Alert type="warning" title={`${failed} failed ${failed === 1 ? 'item' : 'items'} will create Maintenance Requests`}>
+          <Alert type="warning" title={t('{n} failed items will create Maintenance Requests', { n: failed })}>
             They are routed by the Block routing rules after you save this Room.
           </Alert>
         ) : (
@@ -149,7 +151,7 @@ function Run({ run }) {
   const total = run.checklist?.items?.length ?? 0
   const submit = useMutation(() => api.inspections.submit(run.id), {
     invalidates: ['inspections'],
-    onSuccess: () => notify({ title: 'Results submitted', message: 'Sent to the Block Manager. Unvisited Rooms move to the next run.' }),
+    onSuccess: () => notify({ title: 'Results submitted', message: 'Sent to the Managers. Unvisited Rooms move to the next run.' }),
     onError: (e) => notifyError(e, 'Could not submit the results'),
   })
 
@@ -157,7 +159,7 @@ function Run({ run }) {
     <>
       <PageHeader
         title="Inspections"
-        description={[formatDate(run.date), run.scheduleName, run.scope].filter(Boolean).join(' · ')}
+        description={[formatDate(run.date), run.scheduleName, tr(run.scope)].filter(Boolean).join(' · ')}
         actions={
           <>
             <Button icon={CalendarDays} onClick={() => setCalendar(true)}>
@@ -171,7 +173,7 @@ function Run({ run }) {
       />
       <div className="flex shrink-0 gap-4">
         <KpiTile label="Rooms in this run" value={formatNumber(run.rooms)} note={run.id} noteTone="tertiary" />
-        <KpiTile label="Inspected" value={formatNumber(run.inspected)} note={run.dueAt ? `Due ${formatDate(run.dueAt)}` : null} noteTone="tertiary" />
+        <KpiTile label="Inspected" value={formatNumber(run.inspected)} note={run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null} noteTone="tertiary" />
         <KpiTile label="Items failed" value={formatNumber(run.failed)} note="Each creates a Maintenance Request" noteTone="tertiary" />
         <KpiTile label="Not reachable" value={formatNumber(run.unreachable)} note="Re-schedule in the next run" noteTone="tertiary" />
       </div>
@@ -190,7 +192,7 @@ function Run({ run }) {
               {items.map((r) => (
                 <Tr key={r.room} selected={r.room === selected?.room} onClick={() => setSelectedRoom(r.room)} className="[&>td]:h-15.5">
                   <Td>
-                    <TwoLine primary={r.room} secondary={`${r.roomTypeName ?? ''} ${r.roomClassName ?? ''}`.trim()} />
+                    <TwoLine primary={r.room} secondary={`${tr(r.roomTypeName)} ${tr(r.roomClassName)}`.trim()} />
                   </Td>
                   <Td>{summary(r, total)}</Td>
                   <Td>
@@ -213,13 +215,13 @@ function Run({ run }) {
         )}
       </div>
 
-      <Modal open={calendar} onClose={() => setCalendar(false)} title="Upcoming inspections" description="Scheduled by the Block Manager." footer={<Button onClick={() => setCalendar(false)}>Close</Button>}>
+      <Modal open={calendar} onClose={() => setCalendar(false)} title="Upcoming inspections" description="Scheduled by the Managers." footer={<Button onClick={() => setCalendar(false)}>Close</Button>}>
         <QueryState query={upcoming} compact empty={<p className="text-base text-fg-secondary">No inspections scheduled.</p>}>
           {(d) => (
             <ul className="flex flex-col gap-2">
               {d.items.map((u) => (
                 <li key={u.id} className="flex justify-between gap-4 text-base">
-                  <span className="text-fg">{[u.scheduleName, u.scope].filter(Boolean).join(' · ')}</span>
+                  <span className="text-fg">{[u.scheduleName, tr(u.scope)].filter(Boolean).join(' · ')}</span>
                   <span className="text-fg-secondary">{formatDate(u.date)}</span>
                 </li>
               ))}
@@ -245,7 +247,7 @@ export default function InspectionChecklist() {
       ) : (
         <Card className="flex min-h-0 flex-1 flex-col">
           <EmptyBlock icon={CircleCheck} title="No inspection run today">
-            Runs are scheduled by the Block Manager. The next one appears here on its date.
+            Runs are scheduled by the Managers. The next one appears here on its date.
           </EmptyBlock>
         </Card>
       )}

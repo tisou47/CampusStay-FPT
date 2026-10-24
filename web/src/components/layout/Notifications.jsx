@@ -6,6 +6,7 @@ import { Popover } from '@/components/ui/Popover'
 import { QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatRelative } from '@/lib/format'
+import { t } from '@/i18n'
 
 // Notification Center (web): latest notifications for the signed-in user.
 // Item: { id, title, body, createdAt, link, read }.
@@ -25,7 +26,7 @@ export function NotificationsButton() {
     <Popover
       width={360}
       trigger={({ toggle, props }) => (
-        <button type="button" onClick={toggle} aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} className="relative size-8 shrink-0 rounded-md text-fg-secondary hover:bg-subtle" {...props}>
+        <button type="button" onClick={toggle} aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')} className="relative size-8 shrink-0 rounded-md text-fg-secondary hover:bg-subtle" {...props}>
           <Bell size={20} aria-hidden="true" className="absolute top-1.5 left-1.5" />
           {unread > 0 && <span aria-hidden="true" className="absolute top-1 left-5 size-2 rounded-full border-[1.5px] border-white bg-error" />}
         </button>
@@ -34,17 +35,17 @@ export function NotificationsButton() {
       {({ close }) => (
         <div className="flex max-h-[min(480px,calc(100dvh-96px))] flex-col">
           <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
-            <p className="text-h3 font-semibold text-fg">Notifications</p>
+            <p className="text-h3 font-semibold text-fg">{t('Notifications')}</p>
             {unread > 0 ? (
               <button type="button" onClick={() => markAll.run()} className="text-sm font-medium text-fg-link hover:underline">
-                Mark all read
+                {t('Mark all read')}
               </button>
             ) : (
-              <span className="text-sm text-fg-tertiary">No unread</span>
+              <span className="text-sm text-fg-tertiary">{t('No unread')}</span>
             )}
           </div>
           <div className="flex min-h-0 flex-col overflow-y-auto">
-            <QueryState query={query} compact empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">You have no notifications.</p>}>
+            <QueryState query={query} compact empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">{t('You have no notifications.')}</p>}>
               {(data) => (
                 <ul className="flex flex-col py-1">
                   {data.items.map((n) => (

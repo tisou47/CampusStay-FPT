@@ -10,6 +10,7 @@ import { Alert, Card, Note } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { WizardActions, WizardLayout, isTwoBed, useWizard } from './wizard'
+import { t } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – Roommate (2-bed only), states "code accepted" (15:811) and "code rejected" (33:1068).
 // "Match me automatically" can add the free Roommate preferences service: the matcher then also weighs
@@ -55,10 +56,10 @@ export default function ApplyRoommate() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">Roommate</h2>
-          <p className="text-base text-fg-secondary">2-bed Rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('Roommate')}</h2>
+          <p className="text-base text-fg-secondary">{t('2-bed Rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.')}</p>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6" role="radiogroup" aria-label="Roommate">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6" role="radiogroup" aria-label={t('Roommate')}>
           <Radio name="roommateMode" label="Invite a roommate" checked={invite} onChange={() => setRoommate({ mode: 'invite' })} />
           <Radio name="roommateMode" label="Match me automatically" checked={!invite} onChange={() => setRoommate({ mode: 'auto' })} />
         </div>
@@ -95,19 +96,19 @@ export default function ApplyRoommate() {
               </Field>
               <div className="pt-6.5">
                 <Button size="lg" onClick={runCheck} disabled={check.pending || roommate.checksLeft === 0 || !code.trim()}>
-                  {check.pending ? 'Checking…' : 'Check'}
+                  {check.pending ? t('Checking…') : t('Check')}
                 </Button>
               </div>
             </div>
             {accepted && (
               <p className="flex items-center gap-2 text-base text-success-fg">
                 <CircleCheck size={16} aria-hidden="true" className="shrink-0 text-success" />
-                Student code {roommate.verifiedCode} noted. The invitation is sent when you submit.
+                {t('Student code {code} noted. The invitation is sent when you submit.', { code: roommate.verifiedCode })}
               </p>
             )}
             <Note>
-              For privacy, we never show who a student code belongs to. Any code that cannot be used returns the same message.
-              {roommate.checksLeft != null && ` ${roommate.checksLeft} ${roommate.checksLeft === 1 ? 'check' : 'checks'} left for this Application.`}
+              {t('For privacy, we never show who a student code belongs to. Any code that cannot be used returns the same message.')}
+              {roommate.checksLeft != null && ` ${t(roommate.checksLeft === 1 ? '{n} check left for this Application.' : '{n} checks left for this Application.', { n: roommate.checksLeft })}`}
             </Note>
           </>
         ) : (
@@ -120,18 +121,18 @@ export default function ApplyRoommate() {
           <div className="flex items-start gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-h3 font-semibold text-fg">Roommate preferences</h2>
+                <h2 className="text-h3 font-semibold text-fg">{t('Roommate preferences')}</h2>
                 <Tag tone="success" dot={false}>
                   Free
                 </Tag>
                 <Tag dot={false}>Optional</Tag>
               </div>
               <p className="text-base text-fg-secondary">
-                Add-on service for 2-bed Rooms: we look for a roommate who matches your preferences. They raise the match score; they are not guaranteed.
+                {t('Add-on service for 2-bed Rooms: we look for a roommate who matches your preferences. They raise the match score; they are not guaranteed.')}
               </p>
             </div>
             <Switch
-              aria-label="Use roommate preferences"
+              aria-label={t('Use roommate preferences')}
               checked={Boolean(roommate.preferencesOn)}
               onChange={(on) => setRoommate({ preferencesOn: on })}
             />
@@ -154,8 +155,7 @@ export default function ApplyRoommate() {
 
       {invite && (
         <Alert type="info" title="How pairing works" className="shrink-0">
-          After you submit, your roommate has a limited time to accept. Each of you pays your own deposit; both Applications reach the dormitory office
-          together once both deposits are paid. If the invitation is declined or not answered, invite someone else or continue alone.
+          {t('After you submit, your roommate has a limited time to accept. Each of you pays your own deposit; both Applications reach the dormitory office together once both deposits are paid. If the invitation is declined or not answered, invite someone else or continue alone.')}
         </Alert>
       )}
     </WizardLayout>

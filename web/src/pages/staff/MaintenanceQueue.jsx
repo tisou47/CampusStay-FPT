@@ -15,6 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
+import { t, tr } from '@/i18n'
 
 // SCR-MNT-10 Maintenance Queue (Figma 42:2251). Shared with the Manager portal.
 // GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize → {
@@ -25,7 +26,7 @@ import { useRoleBase } from '@/lib/useRoleBase'
 const statusFilters = [
   { value: '', label: 'Status: All' },
   { value: 'open', label: 'Status: Open' },
-  ...['Submitted', 'Assigned', 'In progress', 'Resolved', 'Closed'].map((s) => ({ value: s, label: `Status: ${s}` })),
+  ...['Submitted', 'Assigned', 'In progress', 'Resolved', 'Closed'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) })),
 ]
 
 export default function MaintenanceQueue() {
@@ -77,41 +78,41 @@ export default function MaintenanceQueue() {
 
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" icon={Wrench} label="Open" value={formatNumber(s?.open)} note="Submitted, Assigned or In progress" />
-        <KpiTile size="md" icon={TriangleAlert} label="Urgent" value={formatNumber(s?.urgent)} valueTone={s?.urgent ? 'error' : undefined} note={s ? `${formatNumber(s.urgentUnassigned)} unassigned` : null} />
+        <KpiTile size="md" icon={TriangleAlert} label="Urgent" value={formatNumber(s?.urgent)} valueTone={s?.urgent ? 'error' : undefined} note={s ? t('{n} unassigned', { n: formatNumber(s.urgentUnassigned) }) : null} />
         <KpiTile
           size="md"
           icon={User}
           label="Unassigned"
           value={formatNumber(s?.unassigned)}
           valueTone={s?.unassigned ? 'warning' : undefined}
-          note={s?.oldestUnassignedAt ? `Oldest ${formatDateTime(s.oldestUnassignedAt)}` : s ? 'None waiting' : null}
+          note={s?.oldestUnassignedAt ? t('Oldest {date}', { date: formatDateTime(s.oldestUnassignedAt) }) : s ? 'None waiting' : null}
         />
-        <KpiTile size="md" icon={CircleCheck} label="Resolved this week" value={formatNumber(s?.resolvedThisWeek)} note={s ? `${formatNumber(s.waitingConfirmation)} waiting for student confirmation` : null} />
+        <KpiTile size="md" icon={CircleCheck} label="Resolved this week" value={formatNumber(s?.resolvedThisWeek)} note={s ? t('{n} waiting for student confirmation', { n: formatNumber(s.waitingConfirmation) }) : null} />
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-65" aria-label="Search" placeholder="Search ID, Room or title" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-40" aria-label="Status" value={status} onChange={filter(setStatus)} options={statusFilters} />
+        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID, Room or title" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select wrapperClassName="w-40" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
           wrapperClassName="w-36"
-          aria-label="Priority"
+          aria-label={t('Priority')}
           value={priority}
           onChange={filter(setPriority)}
-          options={[{ value: '', label: 'Priority: All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: `Priority: ${p}` }))]}
+          options={[{ value: '', label: 'Priority: All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: t('Priority: {p}', { p: tr(p) }) }))]}
         />
         <Select
           wrapperClassName="w-44"
-          aria-label="Category"
+          aria-label={t('Category')}
           value={category}
           onChange={filter(setCategory)}
-          options={[{ value: '', label: 'Category: All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: `Category: ${c}` }))]}
+          options={[{ value: '', label: 'Category: All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: t('Category: {c}', { c: tr(c) }) }))]}
         />
         <Select
           wrapperClassName="w-48"
-          aria-label="Assignee"
+          aria-label={t('Assignee')}
           value={assigneeId}
           onChange={filter(setAssigneeId)}
-          options={[{ value: '', label: 'Assignee: All' }, { value: 'none', label: 'Assignee: Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: `Assignee: ${m.name}` }))]}
+          options={[{ value: '', label: 'Assignee: All' }, { value: 'none', label: 'Assignee: Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: t('Assignee: {name}', { name: m.name }) }))]}
         />
       </div>
 
@@ -135,7 +136,7 @@ export default function MaintenanceQueue() {
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
               <Td>{r.room}</Td>
               <Td className="max-w-0 truncate">{r.title}</Td>
-              <Td className="whitespace-nowrap">{r.category}</Td>
+              <Td className="whitespace-nowrap">{tr(r.category)}</Td>
               <Td>
                 <StatusTag status={r.priority} />
               </Td>

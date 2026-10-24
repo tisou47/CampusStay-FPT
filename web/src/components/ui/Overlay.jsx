@@ -1,6 +1,7 @@
 import { useEffect, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 function useOverlayBehaviour(open, onClose) {
@@ -37,11 +38,11 @@ export function Modal({ open, onClose, title, description, icon, children, foote
           {icon}
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h2 id={titleId} className="text-h2 font-semibold text-fg">
-              {title}
+              {tx(title)}
             </h2>
-            {description && <p className="text-base text-fg-secondary">{description}</p>}
+            {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="-mr-1 rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg">
+          <button type="button" onClick={onClose} aria-label={t('Close')} className="-mr-1 rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg">
             <X size={20} aria-hidden="true" />
           </button>
         </div>
@@ -71,11 +72,11 @@ export function Drawer({ open, onClose, title, description, children, footer, wi
         <div className="flex items-start gap-4 px-6 pt-6 pb-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h2 id={titleId} className="text-h2 font-semibold text-fg">
-              {title}
+              {tx(title)}
             </h2>
-            {description && <p className="text-base text-fg-secondary">{description}</p>}
+            {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="-mr-1 rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg">
+          <button type="button" onClick={onClose} aria-label={t('Close')} className="-mr-1 rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg">
             <X size={20} aria-hidden="true" />
           </button>
         </div>

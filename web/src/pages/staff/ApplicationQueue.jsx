@@ -16,6 +16,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { useCatalog } from '@/pages/student/apply/wizard'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-10 Application Queue (Figma 22:2)
 // GET /applications?termId&block&q&status&roomTypeId&roomClassId&submittedWithin&page&pageSize →
@@ -81,7 +82,7 @@ export default function ApplicationQueue() {
     invalidates: ['applications', 'dashboard'],
     onSuccess: (_, ids) => {
       setSelected(new Set())
-      notify({ title: `${ids.length} ${ids.length === 1 ? 'Application' : 'Applications'} approved`, message: 'They join the next assignment run.' })
+      notify({ title: t(ids.length === 1 ? '{n} Application approved' : '{n} Applications approved', { n: ids.length }), message: 'They join the next assignment run.' })
     },
     onError: (e) => notifyError(e, 'Could not approve the Applications'),
   })
@@ -100,32 +101,32 @@ export default function ApplicationQueue() {
               Export
             </Button>
             <Button variant="primary" icon={Check} onClick={() => approve.run(selectedVisible.map((r) => r.id))} disabled={!selectedVisible.length || approve.pending}>
-              Approve selected ({selectedVisible.length})
+              {t('Approve selected ({n})', { n: selectedVisible.length })}
             </Button>
           </>
         }
       />
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-65" aria-label="Search" placeholder="Search name, student code or ID" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-60" aria-label="Status" value={status} onChange={filter(setStatus)} options={statusFilters} />
+        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search name, student code or ID" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select wrapperClassName="w-60" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
           wrapperClassName="w-38"
-          aria-label="Room Type"
+          aria-label={t('Room Type')}
           value={roomTypeId}
           onChange={filter(setRoomTypeId)}
-          options={[{ value: '', label: 'Room Type: All' }, ...(catalog.data?.roomTypes ?? []).map((t) => ({ value: t.id, label: `Room Type: ${t.name}` }))]}
+          options={[{ value: '', label: 'Room Type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room Type: {name}', { name: tr(type.name) }) }))]}
         />
         <Select
           wrapperClassName="w-40"
-          aria-label="Room Class"
+          aria-label={t('Room Class')}
           value={roomClassId}
           onChange={filter(setRoomClassId)}
-          options={[{ value: '', label: 'Room Class: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: `Room Class: ${c.name}` }))]}
+          options={[{ value: '', label: 'Room Class: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room Class: {name}', { name: tr(c.name) }) }))]}
         />
         <Select
           wrapperClassName="w-44"
-          aria-label="Submitted"
+          aria-label={t('Submitted')}
           value={submittedWithin}
           onChange={filter(setSubmittedWithin)}
           options={[
@@ -139,7 +140,7 @@ export default function ApplicationQueue() {
       <div className="flex shrink-0 items-center gap-2">
         {Object.entries(countTones).map(([s, tone]) => (
           <Tag key={s} tone={tone}>
-            {s} {counts[s] ?? '—'}
+            {tr(s)} {counts[s] ?? '—'}
           </Tag>
         ))}
       </div>
@@ -149,7 +150,7 @@ export default function ApplicationQueue() {
           <tr>
             <Th className="w-4">
               <Checkbox
-                aria-label="Select all"
+                aria-label={t('Select all')}
                 checked={allChecked}
                 indeterminate={!allChecked && selectedVisible.length > 0}
                 onChange={() => setSelected(allChecked ? new Set() : new Set(selectable.map((r) => r.id)))}
@@ -163,7 +164,7 @@ export default function ApplicationQueue() {
             <Th className="w-40">Deposit paid</Th>
             <Th>Status</Th>
             <Th className="w-18">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -172,14 +173,14 @@ export default function ApplicationQueue() {
           {items.map((r) => (
             <Tr key={r.id} selected={selected.has(r.id)} onClick={() => navigate(`${base}/applications/${r.id}`)}>
               <Td onClick={stop}>
-                <Checkbox aria-label={`Select ${r.id}`} checked={selected.has(r.id)} disabled={!reviewable(r)} onChange={() => toggle(r.id)} />
+                <Checkbox aria-label={t('Select {id}', { id: r.id })} checked={selected.has(r.id)} disabled={!reviewable(r)} onChange={() => toggle(r.id)} />
               </Td>
               <Td className="font-medium text-fg-brand">{r.id}</Td>
               <Td>
-                <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · pair` : r.studentCode} />
+                <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · ${t('pair')}` : r.studentCode} />
               </Td>
-              <Td>{r.roomTypeName}</Td>
-              <Td>{r.roomClassName}</Td>
+              <Td>{tr(r.roomTypeName)}</Td>
+              <Td>{tr(r.roomClassName)}</Td>
               <Td>
                 <StatusTag status={r.depositStatus} />
               </Td>

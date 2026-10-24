@@ -6,7 +6,11 @@
  * Errors: every non-2xx response, network failure or non-JSON body throws an ApiError.
  *   400 VALIDATION_FAILED carries details.fields = { fieldName: message }: forms show error.fields under their
  *   inputs, and error.message also lists them, so screens that only show the message still say what to fix.
+ * Language: every request sends Accept-Language with the language in use (ADR-25), so the API answers its
+ *   messages in Vietnamese or English; the client's own messages go through t().
  */
+
+import { getLang, t } from '@/i18n'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 const SESSION_KEY = 'campusstay-session'
@@ -63,6 +67,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
       signal,
       headers: {
         Accept: 'application/json',
+        'Accept-Language': getLang(),
         ...(body != null && !isForm && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...headers,
@@ -71,7 +76,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
     })
   } catch (err) {
     if (err.name === 'AbortError') throw err
-    throw new ApiError('Cannot reach the CampusStay server. Check your connection and try again.')
+    throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
   }
 
   if (res.status === 401) writeSession(null)
@@ -80,12 +85,12 @@ export async function request(path, { method = 'GET', query, body, signal, heade
   const type = res.headers.get('content-type') ?? ''
   const data = type.includes('application/json') ? await res.json().catch(() => null) : null
   if (!res.ok) {
-    const message = data?.message ?? (res.status >= 500 ? 'The server could not complete the request. Try again later.' : `Request failed (${res.status}).`)
+    const message = data?.message ?? (res.status >= 500 ? t('The server could not complete the request. Try again later.') : t('Request failed ({status}).', { status: res.status }))
     const fieldText = Object.values(data?.details?.fields ?? {}).filter(Boolean).join(' ')
     throw new ApiError(fieldText ? `${message} ${fieldText}` : message, { status: res.status, code: data?.code, details: data?.details, summary: message })
   }
   if (data == null && type && !type.includes('application/json')) {
-    throw new ApiError('The server returned an unexpected response.', { status: res.status })
+    throw new ApiError(t('The server returned an unexpected response.'), { status: res.status })
   }
   return data
 }
@@ -95,11 +100,13 @@ export async function download(path, { query, fallbackName = 'export.csv' } = {}
   const token = readSession()?.token
   let res
   try {
-    res = await fetch(buildUrl(path, query), { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    res = await fetch(buildUrl(path, query), {
+      headers: { 'Accept-Language': getLang(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
   } catch {
-    throw new ApiError('Cannot reach the CampusStay server. Check your connection and try again.')
+    throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
   }
-  if (!res.ok) throw new ApiError(`Export failed (${res.status}).`, { status: res.status })
+  if (!res.ok) throw new ApiError(t('Export failed ({status}).', { status: res.status }), { status: res.status })
   const name = /filename="?([^";]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
   const url = URL.createObjectURL(await res.blob())
   const link = document.createElement('a')

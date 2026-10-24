@@ -4,6 +4,7 @@ import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { Alert } from '@/components/ui/Display'
 import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses, primaryButtonClasses } from './shared'
+import { t } from '@/i18n'
 
 // SCR-AUTH-02 Forgot password (contract change A-02).
 // POST /auth/password/forgot { email } → 204 whether or not the account exists, so the page always shows
@@ -23,7 +24,7 @@ export default function ForgotPassword() {
     e.preventDefault()
     const address = email.trim()
     if (!address) {
-      setFieldError('Enter your email.')
+      setFieldError(t('Enter your email.'))
       return
     }
     setFieldError(null)
@@ -36,9 +37,9 @@ export default function ForgotPassword() {
         <div className={cardClasses}>
           <CardTitle title="Check your email" />
           <Alert type="success" title="Link sent">
-            If a CampusStay account exists for {sentTo}, we sent a link to choose a new password. The link works once and expires in 30 minutes.
+            {t('If a CampusStay account exists for {email}, we sent a link to choose a new password. The link works once and expires in 30 minutes.', { email: sentTo })}
           </Alert>
-          <p className="text-base text-fg-secondary">No email after a few minutes? Check the spam folder, or contact the dormitory office.</p>
+          <p className="text-base text-fg-secondary">{t('No email after a few minutes? Check the spam folder, or contact the dormitory office.')}</p>
           <BackToSignIn />
         </div>
       </AuthShell>
@@ -70,7 +71,7 @@ export default function ForgotPassword() {
           }}
         />
         <button type="submit" disabled={send.pending} className={primaryButtonClasses}>
-          {send.pending ? 'Sending…' : 'Send link'}
+          {send.pending ? t('Sending…') : t('Send link')}
         </button>
         <BackToSignIn />
       </form>

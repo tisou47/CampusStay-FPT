@@ -1,4 +1,5 @@
 import { Inbox, LoaderCircle, RotateCw, TriangleAlert } from 'lucide-react'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { Button } from './Button'
 
@@ -15,7 +16,7 @@ export function LoadingState({ label = 'Loading…', className }) {
   return (
     <div role="status" className={cx('flex flex-1 items-center justify-center gap-2 px-6 py-10 text-base text-fg-secondary', className)}>
       <Spinner />
-      {label}
+      {tx(label)}
     </div>
   )
 }
@@ -29,12 +30,12 @@ export function ErrorState({ error, onRetry, title = 'Could not load this data',
         </span>
       )}
       <div className="flex max-w-md flex-col gap-0.5">
-        <p className="text-base font-medium text-fg">{title}</p>
+        <p className="text-base font-medium text-fg">{tx(title)}</p>
         {error?.message && <p className="text-sm text-fg-secondary">{error.message}</p>}
       </div>
       {onRetry && (
         <Button size="sm" icon={RotateCw} iconSize={16} onClick={onRetry}>
-          Retry
+          {t('Retry')}
         </Button>
       )}
     </div>
@@ -48,8 +49,8 @@ export function EmptyBlock({ icon: Glyph = Inbox, title = 'Nothing here yet', ch
         <Glyph size={20} aria-hidden="true" />
       </span>
       <div className="flex max-w-md flex-col gap-0.5">
-        <p className="text-base font-medium text-fg">{title}</p>
-        {children && <p className="text-sm text-fg-secondary">{children}</p>}
+        <p className="text-base font-medium text-fg">{tx(title)}</p>
+        {children && <p className="text-sm text-fg-secondary">{tx(children)}</p>}
       </div>
       {action}
     </div>
@@ -96,9 +97,9 @@ export function StaleNotice({ query }) {
   if (!query.error || query.data === undefined) return null
   return (
     <div role="alert" className="flex shrink-0 items-center justify-between gap-3 rounded-lg bg-error-bg px-4 py-2 text-base text-error-fg">
-      <span>Could not refresh: {query.error.message}</span>
+      <span>{t('Could not refresh: {message}', { message: query.error.message })}</span>
       <Button size="sm" onClick={query.reload}>
-        Retry
+        {t('Retry')}
       </Button>
     </div>
   )

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, DetailRows, Note } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-04 Roommate Invitation (Figma 40:1439) — centred 720 px card.
 // GET /students/me/roommate-invitation → { invitation: { id, fromName, expiresAt, termName, stayStart, stayEnd,
@@ -31,7 +32,7 @@ function useTimeLeft(iso) {
   if (!iso) return null
   const minutes = Math.max(0, Math.round((new Date(iso).getTime() - now) / 60000))
   const h = Math.floor(minutes / 60)
-  return minutes === 0 ? 'Expired' : h ? `${h} h ${minutes % 60} min` : `${minutes} min`
+  return minutes === 0 ? 'Expired' : h ? t('{h} h {m} min', { h, m: minutes % 60 }) : t('{m} min', { m: minutes })
 }
 
 function Invitation({ inv }) {
@@ -46,7 +47,7 @@ function Invitation({ inv }) {
         notify({ title: 'Invitation accepted', message: 'Pay your deposit so both Applications reach the dormitory office.' })
         navigate(result?.depositInvoiceId ? `/student/invoices/${result.depositInvoiceId}/pay` : '/student/applications')
       } else {
-        notify({ type: 'info', title: 'Invitation declined', message: `${firstName ?? 'The other Student'} only sees that the invitation was not accepted.` })
+        notify({ type: 'info', title: 'Invitation declined', message: t('{name} only sees that the invitation was not accepted.', { name: firstName ?? t('The other Student') }) })
         navigate('/student')
       }
     },
@@ -60,9 +61,9 @@ function Invitation({ inv }) {
           <Users size={24} aria-hidden="true" />
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-sm font-medium text-fg-tertiary">Roommate invitation</p>
+          <p className="text-sm font-medium text-fg-tertiary">{t('Roommate invitation')}</p>
           <h1 className="text-h2 font-semibold text-fg">
-            {inv.fromName} invited you to share a {inv.roomTypeName} Room
+            {t('{name} invited you to share a {type} Room', { name: inv.fromName, type: tr(inv.roomTypeName) })}
           </h1>
         </div>
       </div>
@@ -70,8 +71,8 @@ function Invitation({ inv }) {
       <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-warning-bg p-4">
         <Clock size={20} aria-hidden="true" className="shrink-0 text-warning" />
         <div className="flex flex-col">
-          <p className="text-base font-medium text-warning-fg">{left === 'Expired' ? 'This invitation has expired' : `Answer within ${left}`}</p>
-          <p className="text-sm text-fg-secondary">The invitation expires at {formatDateTime(inv.expiresAt)}</p>
+          <p className="text-base font-medium text-warning-fg">{left === 'Expired' ? t('This invitation has expired') : t('Answer within {time}', { time: left })}</p>
+          <p className="text-sm text-fg-secondary">{t('The invitation expires at {date}', { date: formatDateTime(inv.expiresAt) })}</p>
         </div>
       </div>
 
@@ -79,34 +80,35 @@ function Invitation({ inv }) {
         rowClassName="py-2.5 border-b border-line"
         rows={[
           ['Term', `${inv.termName}${inv.stayStart ? ` · ${formatDate(inv.stayStart)} – ${formatDate(inv.stayEnd)}` : ''}`],
-          ['Room Type', `${inv.roomTypeName} (shared with ${inv.fromName})`],
-          ['Room Class', `${inv.roomClassName}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
+          ['Room Type', t('{type} (shared with {name})', { type: tr(inv.roomTypeName), name: inv.fromName })],
+          ['Room Class', `${tr(inv.roomClassName)}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
           ['Your Term price per Bed', formatVnd(inv.termPrice)],
           [
             'Your deposit',
             <span className="font-medium text-fg-brand">
               {formatVnd(inv.deposit)}
-              {inv.depositWindowHours ? ` · within ${inv.depositWindowHours} hours after you accept` : ''}
+              {inv.depositWindowHours ? ` · ${t('within {n} hours after you accept', { n: inv.depositWindowHours })}` : ''}
             </span>,
           ],
         ]}
       />
 
-      <p className="text-base font-medium text-fg">If you accept</p>
+      <p className="text-base font-medium text-fg">{t('If you accept')}</p>
       <ol className="flex flex-col gap-2">
         {steps.map(([Glyph, text]) => (
           <li key={text} className="flex items-center gap-3">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-subtle text-fg-secondary">
               <Glyph size={16} aria-hidden="true" />
             </span>
-            <span className="text-base text-fg">{text}</span>
+            <span className="text-base text-fg">{t(text)}</span>
           </li>
         ))}
       </ol>
 
       <Note>
-        Declining is private: {firstName ?? 'they'} only see that the invitation was not accepted. You can still apply on your own
-        {inv.registrationClosesAt ? ` before ${formatDateTime(inv.registrationClosesAt)}` : ''}.
+        {inv.registrationClosesAt
+          ? t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own before {date}.', { name: firstName ?? t('the other Student'), date: formatDateTime(inv.registrationClosesAt) })
+          : t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own.', { name: firstName ?? t('the other Student') })}
       </Note>
 
       <div className="flex gap-3 *:flex-1 lg:justify-end lg:*:flex-none">
@@ -123,10 +125,10 @@ function Invitation({ inv }) {
 
 export default function RoommateInvitation() {
   const query = useQuery(['roommate-invitation'], ({ signal }) => api.me.roommateInvitation(undefined, { signal }))
-  useMobileBar('Roommate invitation', '/student')
+  useMobileBar(t('Roommate invitation'), '/student')
   return (
     <StudentContainer className="flex flex-col pt-2 pb-4 lg:h-full lg:min-h-0 lg:justify-center lg:py-6">
-      {!query.data?.invitation && <h1 className="sr-only">Roommate invitation</h1>}
+      {!query.data?.invitation && <h1 className="sr-only">{t('Roommate invitation')}</h1>}
       {query.data === undefined && query.loading ? (
         <LoadingState />
       ) : query.data === undefined ? (

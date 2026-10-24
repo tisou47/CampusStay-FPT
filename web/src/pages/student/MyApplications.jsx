@@ -11,6 +11,7 @@ import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-02 My Applications (Figma 19:868)
 // GET /students/me/applications?page&pageSize → { items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }
@@ -34,7 +35,7 @@ export default function MyApplications() {
         </Button>
       }
     >
-      {activeTerm && <Note className="shrink-0 items-center">New application is disabled while you have an active Application for {activeTerm}.</Note>}
+      {activeTerm && <Note className="shrink-0 items-center">{t('New application is disabled while you have an active Application for {term}.', { term: activeTerm })}</Note>}
 
       {/* Phone: MOB-APP-01 Activity › Applications — one row per Application instead of the table. */}
       <QueryState
@@ -54,7 +55,7 @@ export default function MyApplications() {
                 key={r.id}
                 icon={FileText}
                 value={r.id}
-                note={[r.termName, r.roomTypeName, r.roomClassName].filter(Boolean).join(' · ')}
+                note={[r.termName, tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' · ')}
                 below={<StatusTag status={r.status} />}
                 to={`/student/applications/${r.id}`}
               />
@@ -76,7 +77,7 @@ export default function MyApplications() {
             <Th className="w-44">Submitted</Th>
             <Th>Status</Th>
             <Th className="w-20">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -86,8 +87,8 @@ export default function MyApplications() {
             <Tr key={r.id} onClick={() => navigate(`/student/applications/${r.id}`)}>
               <Td className="font-medium text-fg-brand">{r.id}</Td>
               <Td>{r.termName}</Td>
-              <Td>{r.roomTypeName ?? '—'}</Td>
-              <Td>{r.roomClassName ?? '—'}</Td>
+              <Td>{tr(r.roomTypeName) || '—'}</Td>
+              <Td>{tr(r.roomClassName) || '—'}</Td>
               <Td align="right" className={r.deposit == null ? 'text-fg-tertiary' : undefined}>
                 {r.deposit == null ? '—' : formatVnd(r.deposit)}
               </Td>

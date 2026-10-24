@@ -9,6 +9,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDate, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
+import { t, tr, tx } from '@/i18n'
 
 // SCR-ASG-01 My Room (Figma 39:1535)
 // GET /students/me/allocation?termId → {
@@ -24,8 +25,8 @@ function InfoRow({ icon: Glyph, label, value }) {
     <div className="flex items-start gap-2.5">
       <Glyph size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
       <div className="flex flex-col">
-        <span className="text-sm text-fg-tertiary">{label}</span>
-        <span className="text-base font-medium text-fg">{value}</span>
+        <span className="text-sm text-fg-tertiary">{tx(label)}</span>
+        <span className="text-base font-medium text-fg">{tx(value)}</span>
       </div>
     </div>
   )
@@ -36,7 +37,7 @@ function MoreLink({ icon: Glyph, to, href, children }) {
   const body = (
     <>
       <Glyph size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
-      <span className="flex-1">{children}</span>
+      <span className="flex-1">{tx(children)}</span>
       {href ? <ExternalLink size={16} aria-hidden="true" className="text-fg-secondary" /> : <ChevronRight size={16} aria-hidden="true" className="text-fg-secondary" />}
     </>
   )
@@ -52,7 +53,7 @@ function MoreLink({ icon: Glyph, to, href, children }) {
 }
 
 function Room({ data }) {
-  const { allocation: a, roommates = [], checkIn, balance, term: t } = data
+  const { allocation: a, roommates = [], checkIn, balance, term: tm } = data
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
@@ -63,21 +64,21 @@ function Room({ data }) {
           <StatusTag status={a.status ?? 'Allocated'} className="lg:hidden" />
           <div className="flex flex-col gap-1">
             <p className="text-h1 font-semibold text-fg">
-              <span className="max-lg:hidden">Room </span>
-              {a.room} · Bed {a.bed}
+              <span className="max-lg:hidden">{t('Room')} </span>
+              {a.room} · {t('Bed {bed}', { bed: a.bed })}
             </p>
-            <p className="text-base text-fg-secondary lg:text-lg">{[a.block, a.floor, a.roomTypeName, a.roomClassName].filter(Boolean).join(' · ')}</p>
+            <p className="text-base text-fg-secondary lg:text-lg">{[a.block, a.floor, a.roomTypeName, a.roomClassName].filter(Boolean).map(tr).join(' · ')}</p>
           </div>
         </section>
 
         <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-          <h2 className="text-h3 font-semibold text-fg max-lg:hidden">Details</h2>
-          {t && (
+          <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{t('Details')}</h2>
+          {tm && (
             <Facts
               className="lg:hidden"
               items={[
-                ['Term', t.name],
-                ...(t.stayStart ? [['Stay', `${formatDate(t.stayStart)} – ${formatDate(t.stayEnd)}`]] : []),
+                ['Term', tm.name],
+                ...(tm.stayStart ? [['Stay', `${formatDate(tm.stayStart)} – ${formatDate(tm.stayEnd)}`]] : []),
               ]}
             />
           )}
@@ -91,7 +92,7 @@ function Room({ data }) {
           <Facts
             items={[
               ['Room Class', a.roomClassName ?? '—'],
-              ['Amenities', a.amenities?.length ? a.amenities.join(', ') : '—'],
+              ['Amenities', a.amenities?.length ? a.amenities.map(tr).join(', ') : '—'],
               ['Allocated on', formatDate(a.allocatedAt)],
             ]}
           />
@@ -99,10 +100,10 @@ function Room({ data }) {
 
         <Card padding="lg" className="flex shrink-0 flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-h3 font-semibold text-fg">Roommates</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Roommates')}</h2>
             {data.roommateCapacity != null && (
               <span className="text-sm text-fg-tertiary">
-                {roommates.length} of {data.roommateCapacity}
+                {t('{n} of {total}', { n: roommates.length, total: data.roommateCapacity })}
               </span>
             )}
           </div>
@@ -113,13 +114,13 @@ function Room({ data }) {
                   <Avatar name={p.name} />
                   <div className="flex min-w-0 flex-1 items-center justify-between gap-3 lg:flex-col lg:items-start lg:justify-start lg:gap-0">
                     <span className="truncate text-base font-medium text-fg">{p.name}</span>
-                    <span className="shrink-0 text-sm text-fg-tertiary">Bed {p.bed}</span>
+                    <span className="shrink-0 text-sm text-fg-tertiary">{t('Bed {bed}', { bed: p.bed })}</span>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-base text-fg-secondary">No roommates assigned yet.</p>
+            <p className="text-base text-fg-secondary">{t('No roommates assigned yet.')}</p>
           )}
           <Note>Only names are shared. Contact details stay private; you meet your roommates at check-in.</Note>
         </Card>
@@ -128,7 +129,7 @@ function Room({ data }) {
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         {checkIn && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">Check-in</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Check-in')}</h2>
             {checkIn.checkedInAt ? (
               <InfoRow icon={Calendar} label="Checked in" value={formatDate(checkIn.checkedInAt)} />
             ) : (
@@ -137,7 +138,7 @@ function Room({ data }) {
                 {checkIn.deskHours && <InfoRow icon={Clock} label="Desk hours" value={checkIn.deskHours} />}
                 {checkIn.location && <InfoRow icon={MapPin} label="Where" value={checkIn.location} />}
                 <Alert type="info" title="Bring your QR pass">
-                  Open the CampusStay Android app to show your check-in QR pass.
+                  {t('Open the CampusStay Android app to show your check-in QR pass.')}
                 </Alert>
               </>
             )}
@@ -146,11 +147,11 @@ function Room({ data }) {
 
         {balance && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">Balance</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Balance')}</h2>
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 <p className="text-h2 font-semibold text-fg">{formatVnd(balance.amount)}</p>
-                <p className="text-sm text-fg-secondary">{balance.status === 'Paid' ? `Paid ${formatDate(balance.paidAt)}` : `Due ${formatDate(balance.dueAt)}`}</p>
+                <p className="text-sm text-fg-secondary">{balance.status === 'Paid' ? t('Paid {date}', { date: formatDate(balance.paidAt) }) : t('Due {date}', { date: formatDate(balance.dueAt) })}</p>
               </div>
               <StatusTag status={balance.status} />
             </div>
@@ -173,7 +174,7 @@ function Room({ data }) {
             </MoreLink>
           )}
           <MoreLink icon={Repeat} to="/student/requests/room-change/new">
-            Request a room change{checkIn?.checkedInAt ? '' : ' (after check-in)'}
+            {checkIn?.checkedInAt ? t('Request a room change') : t('Request a room change (after check-in)')}
           </MoreLink>
           <MoreLink icon={Users} to="/student/requests/swap/new">
             Swap Rooms with another Student
@@ -188,8 +189,8 @@ export default function MyRoom() {
   const { term } = useSession()
   const query = useQuery(['allocation', term?.id], ({ signal }) => api.me.allocation({ termId: term?.id }, { signal }))
   const data = query.data
-  const t = data?.term ?? term
-  const description = t ? `${t.name}${t.stayStart ? ` · ${formatDate(t.stayStart)} – ${formatDate(t.stayEnd)}` : ''}` : undefined
+  const tm = data?.term ?? term
+  const description = tm ? `${tm.name}${tm.stayStart ? ` · ${formatDate(tm.stayStart)} – ${formatDate(tm.stayEnd)}` : ''}` : undefined
 
   return (
     <StudentPage
@@ -209,11 +210,12 @@ export default function MyRoom() {
             title="No Room assigned yet"
             action={
               <Button variant="primary" size="lg" to={data.application ? `/student/applications/${data.application.id}` : '/student/apply/term'}>
-                {data.application ? 'View application' : 'Start application'}
+                {data.application ? t('View application') : t('Start application')}
               </Button>
             }
           >
-            The dormitory assigns your Room and Bed after review.{t?.resultsPublishedAt ? ` Assignment results are published on ${formatDate(t.resultsPublishedAt)}.` : ''}
+            {t('The dormitory assigns your Room and Bed after review.')}
+            {tm?.resultsPublishedAt ? ` ${t('Assignment results are published on {date}.', { date: formatDate(tm.resultsPublishedAt) })}` : ''}
           </EmptyBlock>
         </Card>
       ) : (

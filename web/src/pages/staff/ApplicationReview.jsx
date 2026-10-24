@@ -12,6 +12,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-11 Application Review (Figma 22:732)
 // GET /applications/:id (back-office view) → { id, status, termName,
@@ -37,8 +38,8 @@ function Review({ app }) {
     onSuccess: (_, decision) => {
       notify({
         type: decision === 'Approved' ? 'success' : 'info',
-        title: `${app.id} ${decision.toLowerCase()}`,
-        message: decision === 'Approved' ? `${s.name} joins the next assignment run.` : `${s.name} is notified with your note. The deposit refund follows the refund rules.`,
+        title: decision === 'Approved' ? t('{id} approved', { id: app.id }) : t('{id} rejected', { id: app.id }),
+        message: decision === 'Approved' ? t('{name} joins the next assignment run.', { name: s.name }) : t('{name} is notified with your note. The deposit refund follows the refund rules.', { name: s.name }),
       })
       navigate(`${base}/applications`)
     },
@@ -47,13 +48,13 @@ function Review({ app }) {
 
   const decide = (decision) => {
     if (decision === 'Rejected' && !note.trim()) {
-      setNoteError('Add a note before rejecting. The student sees this note.')
+      setNoteError(t('Add a note before rejecting. The student sees this note.'))
       return
     }
     review.run(decision)
   }
 
-  const roommate = app.roommate?.mode === 'invite' ? `Pair · ${app.roommate.studentCode}${app.roommate.status ? ` (${app.roommate.status.toLowerCase()})` : ''}` : 'Matched automatically'
+  const roommate = app.roommate?.mode === 'invite' ? `${t('Pair')} · ${app.roommate.studentCode}${app.roommate.status ? ` (${tr(app.roommate.status)})` : ''}` : t('Matched automatically')
 
   return (
     <>
@@ -78,8 +79,8 @@ function Review({ app }) {
         <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
           <Card className="flex shrink-0 flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-h3 font-semibold text-fg">Student</h2>
-              {s.syncedAt && <span className="text-sm text-fg-tertiary">From FPT student records · synced {formatDateTime(s.syncedAt)}</span>}
+              <h2 className="text-h3 font-semibold text-fg">{t('Student')}</h2>
+              {s.syncedAt && <span className="text-sm text-fg-tertiary">{t('From FPT student records · synced {date}', { date: formatDateTime(s.syncedAt) })}</span>}
             </div>
             <Facts
               dense
@@ -102,12 +103,12 @@ function Review({ app }) {
           </Card>
 
           <Card className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">Room preference</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Room preference')}</h2>
             <Facts
               dense
               items={[
-                ['Room Type', v(app.roomTypeName)],
-                ['Room Class', app.roomClassName ? `${app.roomClassName}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
+                ['Room Type', v(tr(app.roomTypeName))],
+                ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommate],
                 ['Term price per Bed', formatVnd(app.termPrice)],
               ]}
@@ -116,10 +117,10 @@ function Review({ app }) {
 
           <Card className="flex shrink-0 flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-h3 font-semibold text-fg">Eligibility checks</h2>
+              <h2 className="text-h3 font-semibold text-fg">{t('Eligibility checks')}</h2>
               {app.eligibility?.length > 0 && (
                 <Tag tone={passed === app.eligibility.length ? 'success' : 'error'}>
-                  {passed} of {app.eligibility.length} passed
+                  {t('{n} of {total} passed', { n: passed, total: app.eligibility.length })}
                 </Tag>
               )}
             </div>
@@ -127,7 +128,7 @@ function Review({ app }) {
               {(app.eligibility ?? []).map((c) => (
                 <li key={c.title} className="flex items-center gap-2 text-base text-fg">
                   {c.passed ? <CircleCheck size={16} aria-hidden="true" className="shrink-0 text-success" /> : <CircleX size={16} aria-hidden="true" className="shrink-0 text-error" />}
-                  {c.title}
+                  {tr(c.title)}
                 </li>
               ))}
             </ul>
@@ -136,48 +137,48 @@ function Review({ app }) {
 
         <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
           <Card className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">Deposit</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Deposit')}</h2>
             {app.deposit ? (
               <>
                 {[
                   ['Invoice', app.deposit.invoiceId],
                   ['Amount', <span className="font-medium">{formatVnd(app.deposit.amount)}</span>],
-                  ['Method', v(app.deposit.method)],
+                  ['Method', v(tr(app.deposit.method))],
                   ['Paid at', formatDateTime(app.deposit.paidAt)],
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-center justify-between text-base">
-                    <span className="text-fg-secondary">{label}</span>
+                    <span className="text-fg-secondary">{t(label)}</span>
                     <span className="text-fg">{value}</span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between text-base">
-                  <span className="text-fg-secondary">Status</span>
+                  <span className="text-fg-secondary">{t('Status')}</span>
                   <StatusTag status={app.deposit.status} />
                 </div>
               </>
             ) : (
-              <p className="text-base text-fg-secondary">No deposit Invoice yet.</p>
+              <p className="text-base text-fg-secondary">{t('No deposit Invoice yet.')}</p>
             )}
           </Card>
 
           <Card className="flex min-h-40 flex-1 flex-col gap-3">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">Activity</h2>
+            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Activity')}</h2>
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
               {(app.activity ?? []).map((a) => (
                 <div key={`${a.at}-${a.text}`} className="flex items-start gap-3">
                   <Clock size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
                   <div className="flex flex-col">
-                    <span className="text-base text-fg">{a.text}</span>
+                    <span className="text-base text-fg">{tr(a.text)}</span>
                     <span className="text-sm text-fg-tertiary">{formatDateTime(a.at)}</span>
                   </div>
                 </div>
               ))}
-              {!app.activity?.length && <p className="text-base text-fg-secondary">No activity yet.</p>}
+              {!app.activity?.length && <p className="text-base text-fg-secondary">{t('No activity yet.')}</p>}
             </div>
           </Card>
 
           <Card className="flex shrink-0 flex-col gap-2">
-            <h2 className="text-h3 font-semibold text-fg">Decision note</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Decision note')}</h2>
             <Textarea
               rows={2}
               placeholder="Add a note…"
@@ -188,9 +189,9 @@ function Review({ app }) {
                 setNote(e.target.value)
                 setNoteError('')
               }}
-              aria-label="Decision note"
+              aria-label={t('Decision note')}
             />
-            <p className={noteError ? 'text-sm text-error-fg' : 'text-sm text-fg-tertiary'}>{noteError || 'Required when rejecting. The student sees this note.'}</p>
+            <p className={noteError ? 'text-sm text-error-fg' : 'text-sm text-fg-tertiary'}>{noteError || t('Required when rejecting. The student sees this note.')}</p>
           </Card>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, toDateInput, toDateTimeInput } from '@/lib/format'
 import { FormSection } from './shared'
+import { t } from '@/i18n'
 
 // SCR-CFG-01 Terms and Windows (Figma 24:2)
 // GET /admin/terms → { items: [{ id, name, status, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt,
@@ -60,7 +61,7 @@ function TermForm({ term, onCreated }) {
   const save = useMutation(() => (isNew ? api.admin.terms.create(toBody(form)) : api.admin.terms.update(term.id, toBody(form))), {
     ...options,
     onSuccess: (res) => {
-      notify({ title: `${form.name} saved`, message: 'Changes are written to the Audit Log.' })
+      notify({ title: t('{name} saved', { name: form.name }), message: 'Changes are written to the Audit Log.' })
       if (isNew && res?.id) onCreated(res.id)
     },
     onError: () => {},
@@ -70,7 +71,7 @@ function TermForm({ term, onCreated }) {
       const saved = isNew ? await api.admin.terms.create(toBody(form)) : await api.admin.terms.update(term.id, toBody(form))
       return api.admin.terms.publish(saved?.id ?? term.id)
     },
-    { ...options, onSuccess: () => notify({ title: `${form.name} published`, message: 'Students see the Term and its windows in the app.' }), onError: () => {} },
+    { ...options, onSuccess: () => notify({ title: t('{name} published', { name: form.name }), message: 'Students see the Term and its windows in the app.' }), onError: () => {} },
   )
   const field = (key, label, helper) => (
     <Field label={label} helper={helper}>
@@ -90,7 +91,7 @@ function TermForm({ term, onCreated }) {
   return (
     <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
       <div className="flex items-center gap-3">
-        <h2 className="text-h2 font-semibold text-fg">{form.name || 'New Term'}</h2>
+        <h2 className="text-h2 font-semibold text-fg">{form.name || t('New Term')}</h2>
         <Tag tone={tone[term.status] ?? 'neutral'}>{term.status ?? 'Draft'}</Tag>
       </div>
       {error && <Alert type="error" title="Could not save the Term">{error.message}</Alert>}
@@ -119,7 +120,10 @@ function TermForm({ term, onCreated }) {
           Changes apply to new Applications only. Existing deposit deadlines keep their original time.
         </Alert>
       ) : draft ? (
-        <Alert title="Draft Term">Students do not see this Term until you publish it.{form.registrationOpensAt ? ` Registration then opens on ${formatDateTime(form.registrationOpensAt)}.` : ''}</Alert>
+        <Alert title="Draft Term">
+          {t('Students do not see this Term until you publish it.')}
+          {form.registrationOpensAt ? ` ${t('Registration then opens on {date}.', { date: formatDateTime(form.registrationOpensAt) })}` : ''}
+        </Alert>
       ) : null}
       <div className="flex justify-end gap-2">
         {draft && (

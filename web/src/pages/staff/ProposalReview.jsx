@@ -16,8 +16,11 @@ import { Tabs } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber } from '@/lib/format'
+import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-ASG-11 Assignment Proposal Review (Figma 36:1580) and "Commit Block" modal (36:1994).
+// A Manager commits a Block: Allocations, Balance Invoices and notifications are created at once (ADR-19, C-38).
 // GET /assignment-runs/:runId/proposal?block&view=conflicts|proposed|all&q&page&pageSize → {
 //   run: { id, status, snapshot }, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount,
 //   items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total,
@@ -60,10 +63,10 @@ function ResolveOption({ option, checked, onChange }) {
             className="size-4 appearance-none rounded-full border border-line-strong bg-surface checked:border-[5px] checked:border-primary"
           />
         </span>
-        <span className="flex-1 text-base text-fg">{option.label}</span>
-        {option.recommended && <Tag tone="success">Recommended</Tag>}
+        <span className="flex-1 text-base text-fg">{tr(option.label)}</span>
+        {option.recommended && <Tag tone="success">{t('Recommended')}</Tag>}
       </span>
-      {option.detail && <span className="text-sm text-fg-secondary">{option.detail}</span>}
+      {option.detail && <span className="text-sm text-fg-secondary">{tr(option.detail)}</span>}
     </label>
   )
 }
@@ -77,7 +80,7 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
   const commit = useMutation(() => api.assignment.commit(runId, { block }), {
     invalidates: ['proposal', 'assignment-runs', 'dashboard'],
     onSuccess: onDone,
-    onError: (e) => notifyError(e, 'Could not submit the Block'),
+    onError: (e) => notifyError(e, 'Could not commit the Block'),
   })
   const phrase = `COMMIT ${block}`
   return (
@@ -85,12 +88,12 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
       open={open}
       onClose={onClose}
       width={520}
-      title={`Submit Block ${block} for Manager approval?`}
+      title={t('Commit Block {code}?', { code: block })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Check} disabled={typed.trim().toUpperCase() !== phrase || commit.pending} onClick={() => commit.run()}>
-            {commit.pending ? 'Submitting…' : 'Submit for approval'}
+            {commit.pending ? t('Committing…') : t('Commit Block')}
           </Button>
         </>
       }
@@ -98,20 +101,20 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
       <div className="flex flex-col gap-2 rounded-lg border border-line bg-subtle p-4 text-base">
         {[
           ['Students allocated', formatNumber(summary?.students)],
-          ['Balance Invoices issued', summary ? `${formatNumber(summary.students)}${summary.balanceDueAt ? ` · due ${formatDateTime(summary.balanceDueAt)}` : ''}` : '—'],
-          ['Notifications', summary ? `Push and in-app to ${formatNumber(summary.students)} students` : '—'],
+          ['Balance Invoices issued', summary ? `${formatNumber(summary.students)}${summary.balanceDueAt ? ` · ${t('due {date}', { date: formatDateTime(summary.balanceDueAt) })}` : ''}` : '—'],
+          ['Notifications', summary ? t('Push and in-app to {n} students', { n: formatNumber(summary.students) }) : '—'],
           ['Run', runId],
         ].map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4">
-            <span className="text-fg-secondary">{label}</span>
+            <span className="text-fg-secondary">{t(label)}</span>
             <span className="font-medium text-fg">{value}</span>
           </div>
         ))}
       </div>
       <Alert type="warning" title="This cannot be undone">
-        Allocations are created only after the Block Manager approves. Unassigned Applications move to Round 2. Other Blocks stay in review.
+        {t('Allocations, Balance Invoices and notifications are created now. Unassigned Applications move to Round 2. Other Blocks stay in review.')}
       </Alert>
-      <Field label={`Type ${phrase} to confirm`}>{(id) => <Input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={phrase} autoComplete="off" />}</Field>
+      <Field label={t('Type {phrase} to confirm', { phrase })}>{(id) => <Input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={phrase} autoComplete="off" />}</Field>
     </Modal>
   )
 }
@@ -136,14 +139,14 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
   if (!applicationId) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p className="text-sm font-medium text-fg-tertiary">Resolve conflict</p>
-        <p className="text-h3 font-semibold text-fg">{submitted ? `Block ${block} is with the Block Manager` : `No conflicts selected in Block ${block}`}</p>
+        <p className="text-sm font-medium text-fg-tertiary">{t('Resolve conflict')}</p>
+        <p className="text-h3 font-semibold text-fg">{submitted ? t('Block {code} is committed', { code: block }) : t('No conflicts selected in Block {code}', { code: block })}</p>
         <p className="text-base text-fg-secondary">
-          {submitted ? 'Allocations are created when the Manager approves the proposal.' : readyToCommit ? 'Every conflict is resolved. Submit the Block for Manager approval.' : 'Pick a conflict in the list to resolve it.'}
+          {submitted ? t('Its Allocations and Balance Invoices are created.') : readyToCommit ? t('Every conflict is resolved. Commit the Block to create its Allocations.') : t('Pick a conflict in the list to resolve it.')}
         </p>
         {!submitted && readyToCommit && (
           <Button variant="primary" icon={Check} onClick={onCommit}>
-            Submit Block {block} for approval
+            {t('Commit Block {code}', { code: block })}
           </Button>
         )}
       </div>
@@ -155,18 +158,18 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
       {(c) => (
         <>
           <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-medium text-fg-tertiary">Resolve conflict</p>
+            <p className="text-sm font-medium text-fg-tertiary">{t('Resolve conflict')}</p>
             <p className="text-h3 font-semibold text-fg">{c.studentName}</p>
             <p className="text-sm text-fg-secondary">
-              {c.applicationId} · {c.preference} · proposed {c.bed}
+              {c.applicationId} · {tr(c.preference)} · {t('proposed {bed}', { bed: c.bed ?? '—' })}
             </p>
           </div>
           {c.issue && (
-            <Alert type={c.issue.tone === 'error' ? 'error' : 'warning'} title={c.issue.title ?? c.issue.label}>
-              {c.issue.detail}
+            <Alert type={c.issue.tone === 'error' ? 'error' : 'warning'} title={tr(c.issue.title ?? c.issue.label)}>
+              {tr(c.issue.detail)}
             </Alert>
           )}
-          <p className="text-base font-medium text-fg">Choose a new Bed · same Room Type and Room Class</p>
+          <p className="text-base font-medium text-fg">{t('Choose how to resolve it')}</p>
           <div role="radiogroup" className="flex flex-col gap-3">
             {(c.options ?? []).map((o) => (
               <ResolveOption key={o.key} option={o} checked={choice === o.key} onChange={() => setChoice(o.key)} />
@@ -182,7 +185,7 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
           </div>
           <p className="flex items-center gap-1.5 text-sm text-fg-tertiary">
             <Clock size={16} aria-hidden="true" />
-            Every change is written to the run audit log.
+            {t('Every change is written to the run audit log.')}
           </p>
         </>
       )}
@@ -191,6 +194,7 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
 }
 
 export default function ProposalReview() {
+  const base = useRoleBase()
   const { runId } = useParams()
   const navigate = useNavigate()
   const { notify, notifyError } = useToast()
@@ -237,14 +241,14 @@ export default function ProposalReview() {
   return (
     <>
       <PageHeader
-        breadcrumb={<Breadcrumb items={[{ label: 'Assignment', to: '/staff/assignment' }, { label: runId }]} />}
-        title={`Proposal · ${runId}`}
-        badge={activeBlock && <Tag tone={submitted ? 'info' : 'warning'}>{activeBlock.status === 'approved' ? 'Approved' : submitted ? 'Waiting for Manager approval' : 'Staff review'}</Tag>}
+        breadcrumb={<Breadcrumb items={[{ label: 'Assignment', to: `${base}/assignment` }, { label: runId }]} />}
+        title={t('Proposal · {id}', { id: runId })}
+        badge={activeBlock && <Tag tone={submitted ? 'success' : 'warning'}>{submitted ? t('Committed') : t('In review')}</Tag>}
         actions={
           <>
             {activeBlock && !submitted && (
               <p className="text-sm text-fg-tertiary">
-                {activeBlock.conflicts ? `Resolve ${activeBlock.conflicts} ${activeBlock.conflicts === 1 ? 'conflict' : 'conflicts'} in Block ${tab} to submit` : `Block ${tab} is ready to submit`}
+                {activeBlock.conflicts ? t('Resolve {n} conflicts in Block {code} to commit it', { n: activeBlock.conflicts, code: tab }) : t('Block {code} is ready to commit', { code: tab })}
               </p>
             )}
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -252,7 +256,7 @@ export default function ProposalReview() {
             </Button>
             {activeBlock && (
               <Button variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
-                {submitted ? `Block ${tab} submitted` : `Submit Block ${tab} for approval`}
+                {submitted ? t('Block {code} committed', { code: tab }) : t('Commit Block {code}', { code: tab })}
               </Button>
             )}
           </>
@@ -269,7 +273,7 @@ export default function ProposalReview() {
             setPage(1)
           }}
           items={[
-            ...blocks.map((b) => ({ key: b.block, label: `Block ${b.block} · ${formatNumber(b.total)} · ${b.conflicts ? `${b.conflicts} ${b.conflicts === 1 ? 'conflict' : 'conflicts'}` : 'ready'}` })),
+            ...blocks.map((b) => ({ key: b.block, label: `${t('Block {code}', { code: b.block })} · ${formatNumber(b.total)} · ${b.conflicts ? t('{n} conflicts', { n: b.conflicts }) : t('ready')}` })),
             { key: 'waitlisted', label: 'Waitlisted', count: data?.waitlistedCount },
           ]}
         />
@@ -278,9 +282,9 @@ export default function ProposalReview() {
       {tab !== 'waitlisted' && (
         <div className="flex shrink-0 items-center gap-2">
           {[
-            ['all', `All ${formatNumber(activeBlock?.total)}`],
-            ['proposed', `Proposed ${activeBlock ? formatNumber(activeBlock.total - activeBlock.conflicts) : '—'}`],
-            ['conflicts', `Conflicts ${formatNumber(activeBlock?.conflicts)}`],
+            ['all', `${t('All')} ${formatNumber(activeBlock?.total)}`],
+            ['proposed', `${t('Proposed')} ${activeBlock ? formatNumber(activeBlock.total - activeBlock.conflicts) : '—'}`],
+            ['conflicts', `${t('Conflicts')} ${formatNumber(activeBlock?.conflicts)}`],
           ].map(([key, label]) => (
             <Chip
               key={key}
@@ -294,7 +298,7 @@ export default function ProposalReview() {
             </Chip>
           ))}
           <span className="flex-1" />
-          <SearchInput wrapperClassName="w-60" aria-label="Search" placeholder="Search student or Bed" value={q} onChange={(e) => setQ(e.target.value)} />
+          <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Search student or Bed" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       )}
 
@@ -316,8 +320,8 @@ export default function ProposalReview() {
                     <Td>
                       <TwoLine primary={w.studentName} secondary={`${w.studentCode} · ${w.applicationId}`} />
                     </Td>
-                    <Td>{w.preference}</Td>
-                    <Td className="text-fg-secondary">{w.reason}</Td>
+                    <Td>{tr(w.preference)}</Td>
+                    <Td className="text-fg-secondary">{tr(w.reason)}</Td>
                   </Tr>
                 ))}
               </TBody>
@@ -336,7 +340,7 @@ export default function ProposalReview() {
                 </tr>
               </THead>
               <TBody>
-                <TableStatus query={query} colSpan={5} emptyIcon={Layers} emptyTitle={view === 'conflicts' ? `No conflicts left in Block ${tab ?? ''}` : 'Nothing matches the search'} />
+                <TableStatus query={query} colSpan={5} emptyIcon={Layers} emptyTitle={view === 'conflicts' ? t('No conflicts left in Block {code}', { code: tab ?? '' }) : t('Nothing matches the search')} />
                 {items.map((r) => {
                   const isSelected = r.applicationId === selectedId
                   const open = r.issue && !r.resolved
@@ -348,12 +352,12 @@ export default function ProposalReview() {
                       className={cx('[&>td]:h-14', isSelected && '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-primary)]')}
                     >
                       <Td>
-                        <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · pair` : r.studentCode} />
+                        <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · ${t('pair')}` : r.studentCode} />
                       </Td>
-                      <Td className="whitespace-nowrap">{r.preference}</Td>
+                      <Td className="whitespace-nowrap">{tr(r.preference)}</Td>
                       <Td className="font-medium whitespace-nowrap">{r.bed ?? '—'}</Td>
                       <Td align="right">{r.fit ?? '—'}</Td>
-                      <Td>{r.resolved ? <Tag tone="success">Resolved</Tag> : r.issue ? <Tag tone={r.issue.tone ?? 'error'}>{r.issue.label}</Tag> : <span className="text-fg-tertiary">—</span>}</Td>
+                      <Td>{r.resolved ? <Tag tone="success">{t('Resolved')}</Tag> : r.issue ? <Tag tone={r.issue.tone ?? 'error'}>{r.issue.label}</Tag> : <span className="text-fg-tertiary">—</span>}</Td>
                     </Tr>
                   )
                 })}
@@ -401,8 +405,8 @@ export default function ProposalReview() {
         onClose={() => setCommitting(false)}
         onDone={() => {
           setCommitting(false)
-          notify({ title: `Block ${tab} sent for approval`, message: 'The Block Manager can now approve it under Approvals.' })
-          navigate('/staff/assignment')
+          notify({ title: t('Block {code} committed', { code: tab }), message: t('Allocations, Balance Invoices and notifications were created.') })
+          navigate(`${base}/assignment`)
         }}
       />
     </>

@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { useOneBlock } from '@/components/layout/BlockPicker'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDate } from '@/lib/format'
+import { t } from '@/i18n'
 
 // SCR-CFG-20 Block Settings (Figma 70:1488)
 // GET /block-settings?block → { deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy,
@@ -24,7 +25,7 @@ const halfHours = (from, to) => {
   return out
 }
 
-function Form({ saved, block }) {
+function Form({ saved, block, picker }) {
   const { notify } = useToast()
   const pick = (s) => Object.fromEntries(fields.map((k) => [k, s[k] ?? '']))
   const [form, setForm] = useState(pick(saved))
@@ -41,10 +42,11 @@ function Form({ saved, block }) {
   return (
     <>
       <PageHeader
-        title={block ? `Block settings · Block ${block}` : 'Block settings'}
-        description="Local rules for your Block. Values must stay inside the limits set by Admin."
+        title={block ? t('Block settings · Block {code}', { code: block }) : 'Block settings'}
+        description="Local rules for each Block. Values must stay inside the limits set by Admin."
         actions={
           <>
+            {picker}
             <Button onClick={() => setForm(pick(saved))} disabled={!dirty}>
               Cancel
             </Button>
@@ -61,7 +63,7 @@ function Form({ saved, block }) {
       )}
       <div className="flex min-h-0 shrink items-stretch gap-4">
         <Card className="flex min-w-0 flex-1 flex-col gap-3.5">
-          <h2 className="text-h3 font-semibold text-fg">Front desk and visits</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('Front desk and visits')}</h2>
           <div className="flex gap-4">
             <Field label="Desk opens" className="flex-1">
               {(id) => <Select id={id} value={form.deskOpens} onChange={set('deskOpens')} options={withCurrent(halfHours(6, 9), form.deskOpens)} />}
@@ -74,20 +76,20 @@ function Form({ saved, block }) {
             <Field label="Visitor hours from" className="flex-1">
               {(id) => <Select id={id} value={form.visitFrom} onChange={set('visitFrom')} options={withCurrent(halfHours(7, 10), form.visitFrom)} />}
             </Field>
-            <Field label="Visitor hours until" helper={saved.limits?.visitWindow ? `Admin limit: ${saved.limits.visitWindow}` : undefined} className="flex-1">
+            <Field label="Visitor hours until" helper={saved.limits?.visitWindow ? t('Admin limit: {value}', { value: saved.limits.visitWindow }) : undefined} className="flex-1">
               {(id) => <Select id={id} value={form.visitUntil} onChange={set('visitUntil')} options={withCurrent(halfHours(17, 21), form.visitUntil)} />}
             </Field>
           </div>
-          <Field label="Quiet hours" helper={saved.limits?.quietStartsBy ? `Admin limit: must start by ${saved.limits.quietStartsBy}` : undefined}>
+          <Field label="Quiet hours" helper={saved.limits?.quietStartsBy ? t('Admin limit: must start by {time}', { time: saved.limits.quietStartsBy }) : undefined}>
             {(id) => <Select id={id} value={form.quiet} onChange={set('quiet')} options={withCurrent(saved.quietOptions ?? [], form.quiet)} />}
           </Field>
         </Card>
         <Card className="flex min-w-0 flex-1 flex-col gap-3">
-          <h2 className="text-h3 font-semibold text-fg">House rules shown to residents</h2>
-          <Textarea aria-label="House rules" rows={6} value={form.houseRules} onChange={set('houseRules')} className="min-h-0 flex-1" />
+          <h2 className="text-h3 font-semibold text-fg">{t('House rules shown to residents')}</h2>
+          <Textarea aria-label={t('House rules')} rows={6} value={form.houseRules} onChange={set('houseRules')} className="min-h-0 flex-1" />
           <p className="text-sm text-fg-tertiary">
-            Shown in My Room (web and Android).
-            {saved.editedAt ? ` Last edited ${formatDate(saved.editedAt)}${saved.editedBy ? ` by ${saved.editedBy}` : ''}.` : ''}
+            {t('Shown in My Room (web and Android).')}
+            {saved.editedAt ? ` ${saved.editedBy ? t('Last edited {date} by {name}.', { date: formatDate(saved.editedAt), name: saved.editedBy }) : t('Last edited {date}.', { date: formatDate(saved.editedAt) })}` : ''}
           </p>
         </Card>
       </div>
@@ -99,12 +101,12 @@ function Form({ saved, block }) {
 }
 
 export default function BlockSettings() {
-  const { block } = useSession()
-  const query = useQuery(['block-settings', block], ({ signal }) => api.blockSettings.get({ block: block ?? undefined }, { signal }))
-  if (query.data) return <Form saved={query.data} block={block} />
+  const { block, picker } = useOneBlock()
+  const query = useQuery(['block-settings', block], ({ signal }) => api.blockSettings.get({ block: block ?? undefined }, { signal }), { enabled: Boolean(block), keepPrevious: false })
+  if (query.data) return <Form saved={query.data} block={block} picker={picker} />
   return (
     <>
-      <PageHeader title="Block settings" />
+      <PageHeader title="Block settings" actions={picker} />
       {query.loading ? <LoadingState /> : <ErrorState error={query.error} onRetry={query.reload} />}
     </>
   )

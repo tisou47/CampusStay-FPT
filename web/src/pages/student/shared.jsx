@@ -13,6 +13,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { cx } from '@/lib/cx'
 import { formatDate, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
+import { t, tx } from '@/i18n'
 
 /**
  * Student page frame (one screen): header on top, content fills the rest of the window.
@@ -32,10 +33,10 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
           <div className="flex min-w-0 flex-col gap-1">
             {breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
             <div className="flex items-center gap-3">
-              <h1 className="text-h1 font-semibold text-fg max-lg:sr-only">{title}</h1>
+              <h1 className="text-h1 font-semibold text-fg max-lg:sr-only">{tx(title)}</h1>
               {badge}
             </div>
-            {description && <p className="text-lg text-fg-secondary max-lg:hidden">{description}</p>}
+            {description && <p className="text-lg text-fg-secondary max-lg:hidden">{tx(description)}</p>}
           </div>
           {actions && <div className="flex flex-col gap-2 *:w-full lg:shrink-0 lg:flex-row lg:items-center lg:gap-3 lg:*:w-auto">{actions}</div>}
         </header>
@@ -59,15 +60,15 @@ export function NextAction({ icon: Glyph, title, children, deadline, deadlineIco
         {deadline && (
           <p className="flex items-center gap-2 pb-2 text-sm font-medium text-fg-brand lg:hidden">
             <Glyph size={20} aria-hidden="true" />
-            {deadline}
+            {tx(deadline)}
           </p>
         )}
-        <h2 className="text-h2 font-semibold text-fg">{title}</h2>
-        {children && <p className="text-base text-fg-secondary">{children}</p>}
+        <h2 className="text-h2 font-semibold text-fg">{tx(title)}</h2>
+        {children && <p className="text-base text-fg-secondary">{tx(children)}</p>}
         {deadline && (
           <p className="hidden items-center gap-1.5 text-sm font-medium text-warning-fg lg:flex">
             <DeadlineGlyph size={16} aria-hidden="true" className="text-warning" />
-            {deadline}
+            {tx(deadline)}
           </p>
         )}
       </div>
@@ -88,8 +89,8 @@ export function StatusRow({ icon: Glyph, value, note, tag, below, to, onClick })
         <Glyph size={20} aria-hidden="true" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-base font-medium text-fg">{value}</span>
-        {note && <span className="text-sm text-fg-secondary">{note}</span>}
+        <span className="truncate text-base font-medium text-fg">{tx(value)}</span>
+        {note && <span className="text-sm text-fg-secondary">{tx(note)}</span>}
         {below && <span className="flex flex-wrap items-center gap-2 pt-1">{below}</span>}
       </span>
       {tag ?? ((to || onClick) && <ChevronRight size={20} aria-hidden="true" className="shrink-0 text-fg-secondary" />)}
@@ -125,7 +126,7 @@ export function ActivitySwitch({ current }) {
     { key: 'requests', label: 'Requests', to: '/student/requests' },
   ]
   return (
-    <nav aria-label="Activity" className="flex h-10 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface lg:hidden">
+    <nav aria-label={t('Activity')} className="flex h-10 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface lg:hidden">
       {items.map((item) => {
         const active = item.key === current
         return (
@@ -139,7 +140,7 @@ export function ActivitySwitch({ current }) {
             )}
           >
             {active && <Check size={16} aria-hidden="true" />}
-            {item.label}
+            {t(item.label)}
           </Link>
         )
       })}
@@ -153,10 +154,10 @@ export function StatusCard({ icon: Glyph, label, value, note, to }) {
     <>
       <span className="flex items-center gap-2 text-fg-tertiary">
         <Glyph size={16} aria-hidden="true" />
-        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium">{tx(label)}</span>
       </span>
-      <span className="truncate text-h3 font-semibold text-fg">{value}</span>
-      <span className="truncate text-sm text-fg-secondary">{note}</span>
+      <span className="truncate text-h3 font-semibold text-fg">{tx(value)}</span>
+      <span className="truncate text-sm text-fg-secondary">{tx(note)}</span>
     </>
   )
   const classes = 'flex min-w-0 flex-1 flex-col gap-2 self-stretch rounded-lg border border-line bg-surface p-5'
@@ -174,10 +175,10 @@ export function TermTimeline({ term, milestones, className }) {
   return (
     <Card padding="lg" className={cx('flex min-h-0 flex-col gap-4', className)}>
       <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-h3 font-semibold text-fg">{term?.name ? `${term.name} timeline` : 'Term timeline'}</h2>
+        <h2 className="text-h3 font-semibold text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
         {term?.stayStart && (
           <p className="text-sm text-fg-tertiary">
-            Term {formatDate(term.stayStart)} – {formatDate(term.stayEnd)}
+            {t('Term {start} – {end}', { start: formatDate(term.stayStart), end: formatDate(term.stayEnd) })}
           </p>
         )}
       </div>
@@ -194,7 +195,7 @@ export function TermTimeline({ term, milestones, className }) {
               )}
             />
             <span className={cx('flex-1 text-base', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
-              {label}
+              {tx(label)}
             </span>
             <span className={cx('text-base whitespace-nowrap', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{date}</span>
           </li>
@@ -255,7 +256,7 @@ export function ReceiptModal({ invoice, onClose }) {
     <Modal
       open={Boolean(invoice)}
       onClose={onClose}
-      title={invoice ? `Receipt · ${invoice.id}` : ''}
+      title={invoice ? t('Receipt · {id}', { id: invoice.id }) : ''}
       description="Payment confirmed by the bank."
       footer={
         <>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Button (maps to Ant Design <Button>).
@@ -43,7 +44,7 @@ export function Button({
   const content = (
     <>
       {IconBefore && <IconBefore size={iconSize} aria-hidden="true" />}
-      {children}
+      {tx(children)}
       {IconAfter && <IconAfter size={iconSize} aria-hidden="true" />}
     </>
   )

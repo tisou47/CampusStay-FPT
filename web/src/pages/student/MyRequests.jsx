@@ -15,6 +15,7 @@ import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-MNT-01 My Maintenance Requests (Figma 41:1522) — Maintenance and Room changes tabs.
 // GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize →
@@ -34,8 +35,8 @@ function progressOf(r) {
   return [
     { title: 'Submitted', time: formatDateTime(r.reportedAt), state: 'done' },
     {
-      title: r.assignee ? `Assigned to ${r.assignee}` : 'Assigned to maintenance staff',
-      time: r.status === 'Submitted' ? 'Usually within 24 hours' : r.visitWindow ? `Visit ${r.visitWindow}` : 'Done',
+      title: r.assignee ? t('Assigned to {name}', { name: r.assignee }) : 'Assigned to maintenance staff',
+      time: r.status === 'Submitted' ? 'Usually within 24 hours' : r.visitWindow ? t('Visit {window}', { window: r.visitWindow }) : 'Done',
       state: r.status === 'Submitted' ? 'current' : 'done',
     },
     { title: 'Fixed by maintenance staff', time: r.status === 'In progress' ? 'Work in progress' : '—', state: fixed ? 'done' : ['Assigned', 'In progress'].includes(r.status) ? 'current' : 'upcoming' },
@@ -52,7 +53,7 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
       open={Boolean(id)}
       onClose={onClose}
       title={r?.title ?? 'Maintenance request'}
-      description={r ? [r.id, r.category, r.location].filter(Boolean).join(' · ') : id}
+      description={r ? [r.id, tr(r.category), tr(r.location)].filter(Boolean).join(' · ') : id}
       footer={
         r?.status === 'Resolved' ? (
           <>
@@ -73,7 +74,7 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
               <MaintenanceStatus status={req.status} />
-              <span className="text-sm text-fg-tertiary">Reported {formatDateTime(req.reportedAt)}</span>
+              <span className="text-sm text-fg-tertiary">{t('Reported {date}', { date: formatDateTime(req.reportedAt) })}</span>
             </div>
             <DetailRows
               rows={[
@@ -86,12 +87,12 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
               ]}
             />
             <div className="flex flex-col gap-3">
-              <h3 className="text-h3 font-semibold text-fg">Progress</h3>
+              <h3 className="text-h3 font-semibold text-fg">{t('Progress')}</h3>
               <ProgressTimeline events={progressOf(req)} />
             </div>
             {updates.length > 0 && (
               <div className="flex flex-col gap-3">
-                <h3 className="text-h3 font-semibold text-fg">Updates from the dormitory office</h3>
+                <h3 className="text-h3 font-semibold text-fg">{t('Updates from the dormitory office')}</h3>
                 {updates.map((e) => (
                   <div key={`${e.at}-${e.message}`} className="flex flex-col gap-0.5 rounded-lg bg-subtle px-3 py-2.5">
                     <p className="text-base text-fg">{e.message}</p>
@@ -124,7 +125,7 @@ export default function MyRequests() {
   const confirm = useMutation((r, fixed) => api.maintenance.confirm(r.id, { fixed }), {
     invalidates: ['requests', 'maintenance', 'home'],
     onSuccess: (_, r, fixed) => {
-      notify(fixed ? { title: 'Thanks for confirming', message: `${r.id} is now closed.` } : { type: 'info', title: 'Request reopened', message: `${r.id} goes back to the maintenance staff.` })
+      notify(fixed ? { title: 'Thanks for confirming', message: t('{id} is now closed.', { id: r.id }) } : { type: 'info', title: 'Request reopened', message: t('{id} goes back to the maintenance staff.', { id: r.id }) })
       setOpenId(null)
     },
     onError: (e) => notifyError(e, 'Could not update the request'),
@@ -140,7 +141,7 @@ export default function MyRequests() {
       title="Requests"
       mobileTitle="Activity"
       phoneTop={<ActivitySwitch current="requests" />}
-      description={query.data?.room ? `Maintenance and Room-Change Requests for Room ${query.data.room}.` : 'Maintenance and Room-Change Requests.'}
+      description={query.data?.room ? t('Maintenance and Room-Change Requests for Room {room}.', { room: query.data.room }) : t('Maintenance and Room-Change Requests.')}
       actions={
         tab === 'maintenance' ? (
           <Button variant="primary" size="lg" icon={Plus} to="/student/requests/maintenance/new">
@@ -197,7 +198,7 @@ export default function MyRequests() {
                         key={r.id}
                         icon={Wrench}
                         value={r.title}
-                        note={[r.id, r.visitWindow ? `visit ${r.visitWindow}` : r.location].filter(Boolean).join(' · ')}
+                        note={[r.id, r.visitWindow ? t('visit {window}', { window: r.visitWindow }) : tr(r.location)].filter(Boolean).join(' · ')}
                         below={<MaintenanceStatus status={r.status} />}
                         onClick={() => setOpenId(r.id)}
                       />
@@ -207,7 +208,7 @@ export default function MyRequests() {
                         key={r.id}
                         icon={Repeat}
                         value={r.typeLabel}
-                        note={[r.id, r.summary].filter(Boolean).join(' · ')}
+                        note={[r.id, tr(r.summary)].filter(Boolean).join(' · ')}
                         below={
                           <>
                             <StatusTag status={r.status} tone={r.status === 'Approved' ? 'success' : undefined} />
@@ -228,8 +229,8 @@ export default function MyRequests() {
               </StatusList>
               {resolved && (
                 <section className="flex flex-col gap-2 rounded-xl border border-green-100 bg-success-bg p-4">
-                  <h2 className="text-base font-medium text-fg">Is “{resolved.title}” fixed?</h2>
-                  <p className="text-sm text-fg-secondary">Confirm to close {resolved.id}, or reopen it.</p>
+                  <h2 className="text-base font-medium text-fg">{t('Is “{title}” fixed?', { title: resolved.title })}</h2>
+                  <p className="text-sm text-fg-secondary">{t('Confirm to close {id}, or reopen it.', { id: resolved.id })}</p>
                   <div className="flex gap-2 pt-1 *:flex-1">
                     <Button size="lg" onClick={() => confirm.run(resolved, false)} disabled={confirm.pending}>
                       Reopen
@@ -255,7 +256,7 @@ export default function MyRequests() {
               <Th className="w-44">Reported</Th>
               <Th className="w-55">Status</Th>
               <Th className="w-26">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t('Actions')}</span>
               </Th>
             </tr>
           </THead>
@@ -267,10 +268,10 @@ export default function MyRequests() {
                 <Td>
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium">{r.title}</span>
-                    <span className="text-sm text-fg-tertiary">{r.location}</span>
+                    <span className="text-sm text-fg-tertiary">{tr(r.location)}</span>
                   </div>
                 </Td>
-                <Td>{r.category}</Td>
+                <Td>{tr(r.category)}</Td>
                 <Td>{formatDateTime(r.reportedAt)}</Td>
                 <Td>
                   <MaintenanceStatus status={r.status} />
@@ -306,13 +307,13 @@ export default function MyRequests() {
             {items.map((r) => (
               <Tr key={r.id} className="[&>td]:h-15">
                 <Td className="font-medium text-fg-brand">{r.id}</Td>
-                <Td>{r.typeLabel}</Td>
+                <Td>{tr(r.typeLabel)}</Td>
                 <Td>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-fg-secondary">{r.summary}</span>
+                    <span className="text-fg-secondary">{tr(r.summary)}</span>
                     {r.decision && (
                       <span className="text-sm text-fg-tertiary">
-                        {r.decision.note} · {formatDateTime(r.decision.at)}
+                        {tr(r.decision.note)} · {formatDateTime(r.decision.at)}
                       </span>
                     )}
                   </div>
@@ -340,7 +341,7 @@ export default function MyRequests() {
       )}
 
       <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-        {tab === 'maintenance' ? <Note className="items-center">Track requests on the Android app too. Submitting new requests is done here on the web.</Note> : <span />}
+        {tab === 'maintenance' ? <Note className="items-center">{t('Track requests on the Android app too. Submitting new requests is done here on the web.')}</Note> : <span />}
         <Pagination
           total={query.data?.total ?? 0}
           page={page}

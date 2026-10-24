@@ -15,6 +15,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
+import { t, tr } from '@/i18n'
 
 // SCR-INV-10 Room and Bed Inventory (Figma 37:2075). Shared with the Manager portal.
 // GET /inventory/structure?block → { blocks: [{ block, floors }], outOfServiceReasons }
@@ -37,11 +38,11 @@ function BedMark({ state }) {
 
 function Legend() {
   return (
-    <ul aria-label="Legend" className="flex items-center gap-4">
+    <ul aria-label={t('Legend')} className="flex items-center gap-4">
       {Object.keys(bedLook).map((s) => (
         <li key={s} className="flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-secondary">
           <BedMark state={s} />
-          {bedLabel[s]}
+          {t(bedLabel[s])}
         </li>
       ))}
     </ul>
@@ -52,13 +53,13 @@ const allocatedOf = (room) => room.beds.filter((b) => b.state === 'allocated').l
 
 function RoomCard({ room, selected, onSelect }) {
   const allocated = allocatedOf(room)
-  const caption = room.outOfService ? 'Out of service' : `${allocated} / ${room.capacity} allocated`
+  const caption = room.outOfService ? t('Out of service') : t('{n} / {total} allocated', { n: allocated, total: room.capacity })
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      aria-label={`Room ${room.code}, ${room.roomTypeName}, ${caption}`}
+      aria-label={t('Room {code}, {type}, {caption}', { code: room.code, type: tr(room.roomTypeName), caption })}
       className={cx(
         'flex min-w-0 flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-colors',
         selected ? 'border-primary bg-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong',
@@ -66,7 +67,7 @@ function RoomCard({ room, selected, onSelect }) {
     >
       <span className="flex w-full items-center justify-between gap-2 whitespace-nowrap">
         <span className="text-base font-medium text-fg">{room.code}</span>
-        <span className="text-sm text-fg-tertiary">{room.roomTypeName}</span>
+        <span className="text-sm text-fg-tertiary">{tr(room.roomTypeName)}</span>
       </span>
       <span className="flex flex-wrap gap-1">
         {room.beds.map((b) => (
@@ -81,7 +82,7 @@ function RoomCard({ room, selected, onSelect }) {
 function Row({ label, children }) {
   return (
     <div className="flex items-start justify-between gap-4 text-base">
-      <dt className="shrink-0 text-fg-secondary">{label}</dt>
+      <dt className="shrink-0 text-fg-secondary">{t(label)}</dt>
       <dd className="min-w-0 text-right font-medium text-fg">{children}</dd>
     </div>
   )
@@ -91,7 +92,7 @@ function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
   const { notify, notifyError } = useToast()
   const back = useMutation(() => api.inventory.backInService(room.code), {
     invalidates: ['inventory', 'dashboard'],
-    onSuccess: () => notify({ title: `Room ${room.code} is back in service`, message: `${room.capacity} Beds can be allocated again.` }),
+    onSuccess: () => notify({ title: t('Room {code} is back in service', { code: room.code }), message: t('{n} Beds can be allocated again.', { n: room.capacity }) }),
     onError: (e) => notifyError(e, 'Could not update the Room'),
   })
   const allocated = allocatedOf(room)
@@ -99,24 +100,24 @@ function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
   const oos = room.outOfService
   const rows = oos
     ? [
-        ['Room Type', room.roomTypeName],
-        ['Room Class', room.roomClassName],
+        ['Room Type', tr(room.roomTypeName)],
+        ['Room Class', tr(room.roomClassName)],
         ['Since', formatDateTime(oos.since)],
-        ['Reason', oos.reason],
+        ['Reason', tr(oos.reason)],
         ['Set by', oos.by],
       ]
     : [
-        ['Room Type', room.roomTypeName],
-        ['Room Class', room.roomClassName],
-        ['Location', `Block ${room.block} · Floor ${room.floor}`],
+        ['Room Type', tr(room.roomTypeName)],
+        ['Room Class', tr(room.roomClassName)],
+        ['Location', t('Block {code} · Floor {n}', { code: room.block, n: room.floor })],
         ['Allocated', `${allocated} / ${room.capacity}`],
       ]
 
   return (
-    <Card className="flex min-h-0 w-90 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={`Room ${room.code} details`}>
+    <Card className="flex min-h-0 w-90 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Room {code} details', { code: room.code })}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h2 font-semibold text-fg">Room {room.code}</h2>
-        {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{free} free {free === 1 ? 'Bed' : 'Beds'}</Tag>}
+        <h2 className="text-h2 font-semibold text-fg">{t('Room {code}', { code: room.code })}</h2>
+        {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{t(free === 1 ? '{n} free Bed' : '{n} free Beds', { n: free })}</Tag>}
       </div>
       <dl className="flex flex-col gap-3.5">
         {rows.map(([label, value]) => (
@@ -126,14 +127,14 @@ function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
         ))}
       </dl>
       {oos?.note && <Alert title="Note">{oos.note}</Alert>}
-      <p className="text-base font-medium text-fg">Beds</p>
+      <p className="text-base font-medium text-fg">{t('Beds')}</p>
       <ul className="flex flex-col gap-3">
         {room.beds.map((bed) => (
           <li key={bed.id} className="flex items-center gap-2.5">
             <BedMark state={bed.state} />
             <span className="text-base whitespace-nowrap text-fg">{bed.id}</span>
             <span className={cx('ml-auto min-w-0 truncate text-sm', bed.occupant ? 'text-fg-secondary' : 'text-fg-tertiary')}>
-              {bed.occupant ? `${bed.occupant.name} · ${bed.occupant.studentCode}` : oos ? 'No occupant' : 'Available'}
+              {bed.occupant ? `${bed.occupant.name} · ${bed.occupant.studentCode}` : oos ? t('No occupant') : t('Available')}
             </span>
           </li>
         ))}
@@ -154,7 +155,7 @@ function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
       </div>
       {!oos && allocated > 0 && (
         <Note>
-          Move the {allocated} {allocated === 1 ? 'resident' : 'residents'} before you set this Room out of service.
+          {t('Move the {n} residents before you set this Room out of service.', { n: allocated })}
         </Note>
       )}
     </Card>
@@ -168,7 +169,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
   const save = useMutation(() => api.inventory.setOutOfService(room.code, { reason, note: note.trim() || undefined }), {
     invalidates: ['inventory', 'dashboard'],
     onSuccess: () => {
-      notify({ type: 'warning', title: `Room ${room.code} is out of service`, message: 'Its Beds are skipped by the next assignment run.' })
+      notify({ type: 'warning', title: t('Room {code} is out of service', { code: room.code }), message: 'Its Beds are skipped by the next assignment run.' })
       onClose()
     },
     onError: () => {},
@@ -177,7 +178,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={`Set Room ${room.code} out of service`}
+      title={t('Set Room {code} out of service', { code: room.code })}
       description="The assignment engine skips this Room and its Beds until it is back in service."
       footer={
         <>
@@ -192,7 +193,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
       <Field label="Reason" required>
         {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={reasons} />}
       </Field>
-      <Field label="Note" helper="Shown to Staff and the Block Manager.">
+      <Field label="Note" helper="Shown to Staff and Managers.">
         {(id) => <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What happened and what is needed to fix it" />}
       </Field>
     </Modal>
@@ -236,8 +237,8 @@ export default function Inventory() {
   return (
     <>
       <PageHeader
-        title="Inventory"
-        description="Rooms and Beds in your Blocks. Click a Room for details."
+        title="Rooms and Beds"
+        description="Rooms and Beds in your scope. Click a Room for details."
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!block || exporting.pending}>
             Export
@@ -247,7 +248,7 @@ export default function Inventory() {
 
       <div className="flex shrink-0 items-center gap-2">
         <Select
-          aria-label="Block"
+          aria-label={t('Block')}
           wrapperClassName="w-30 shrink-0"
           value={block ?? ''}
           onChange={(e) => {
@@ -256,16 +257,16 @@ export default function Inventory() {
             setFloor(b.floors[0])
             setSelected(null)
           }}
-          options={blocks.map((b) => ({ value: b.block, label: `Block ${b.block}` }))}
+          options={blocks.map((b) => ({ value: b.block, label: t('Block {code}', { code: b.block }) }))}
           disabled={!blocks.length}
         />
-        <div role="group" aria-label="Floor" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+        <div role="group" aria-label={t('Floor')} className="flex min-w-0 items-center gap-1 overflow-x-auto">
           {floors.map((f) => (
             <button
               key={f}
               type="button"
               aria-pressed={f === floor}
-              aria-label={`Floor ${f}`}
+              aria-label={t('Floor {n}', { n: f })}
               onClick={() => {
                 setFloor(f)
                 setSelected(null)
@@ -286,11 +287,11 @@ export default function Inventory() {
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <div className="flex shrink-0 items-center justify-between gap-4 whitespace-nowrap">
-            <h2 className="text-h3 font-semibold text-fg">{block ? [`Block ${block}`, floor != null && `Floor ${floor}`, floorQuery.data?.roomClassName].filter(Boolean).join(' · ') : 'Inventory'}</h2>
+            <h2 className="text-h3 font-semibold text-fg">{block ? [t('Block {code}', { code: block }), floor != null && t('Floor {n}', { n: floor }), tr(floorQuery.data?.roomClassName)].filter(Boolean).join(' · ') : t('Rooms and Beds')}</h2>
             {summary && (
               <p className="text-sm text-fg-secondary">
-                {formatNumber(summary.beds)} Beds · {formatNumber(summary.allocated)} allocated · {formatNumber(summary.available)} available
-                {summary.outOfService > 0 && ` · ${formatNumber(summary.outOfService)} out of service`}
+                {t('{beds} Beds · {allocated} allocated · {available} available', { beds: formatNumber(summary.beds), allocated: formatNumber(summary.allocated), available: formatNumber(summary.available) })}
+                {summary.outOfService > 0 && ` · ${t('{n} out of service', { n: formatNumber(summary.outOfService) })}`}
               </p>
             )}
           </div>

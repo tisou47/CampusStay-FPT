@@ -8,6 +8,7 @@ import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { StudentPage } from './shared'
 import { SwapModePicker, YourRoomNow } from './swap'
+import { t } from '@/i18n'
 
 // SCR-REQ-03 Room Swap – Specific Student (Figma 104:2080)
 // POST /swaps { studentCode, reason } → { id }
@@ -47,17 +48,17 @@ export default function SwapSpecific() {
               {(id) => <Input id={id} size="lg" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. SE190702" autoComplete="off" />}
             </Field>
             <Field label="Reason (optional)">{(id) => <Input id={id} size="lg" value={reason} onChange={(e) => setReason(e.target.value)} />}</Field>
-            <p className="text-base font-medium text-fg">Rules checked after you send</p>
+            <p className="text-base font-medium text-fg">{t('Rules checked after you send')}</p>
             <ul className="flex flex-col gap-2">
               {rules.map((rule) => (
                 <li key={rule} className="flex gap-2.5 text-base text-fg-secondary">
                   <span aria-hidden="true">•</span>
-                  {rule}
+                  {t(rule)}
                 </li>
               ))}
             </ul>
             <Alert type="info" title="One message for every problem">
-              If the code cannot be used for any reason, you see the same message: “This swap cannot be requested. Check the code or try the swap board.”
+              {t('If the code cannot be used for any reason, you see the same message: “This swap cannot be requested. Check the code or try the swap board.”')}
             </Alert>
           </Card>
           <div className="flex shrink-0 justify-end gap-3">
@@ -65,7 +66,7 @@ export default function SwapSpecific() {
               Cancel
             </Button>
             <Button variant="primary" size="lg" onClick={() => send.run()} disabled={!code.trim() || send.pending}>
-              {send.pending ? 'Sending…' : 'Send swap invitation'}
+              {send.pending ? t('Sending…') : t('Send swap invitation')}
             </Button>
           </div>
         </div>

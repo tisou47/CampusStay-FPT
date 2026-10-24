@@ -15,6 +15,7 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatNumber } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-AUTH-10 Block Staff (Figma 69:554)
 // GET /block-staff?block → { items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }],
@@ -28,7 +29,7 @@ function EditModal({ person, handleOptions, onClose }) {
   const save = useMutation(() => api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)), onDuty }), {
     invalidates: ['block-staff', 'routing'],
     onSuccess: () => {
-      notify({ title: `${person.name} updated`, message: 'Routing uses the new request types from now on.' })
+      notify({ title: t('{name} updated', { name: person.name }), message: 'Routing uses the new request types from now on.' })
       onClose()
     },
     onError: () => {},
@@ -38,8 +39,8 @@ function EditModal({ person, handleOptions, onClose }) {
       open
       onClose={onClose}
       width={560}
-      title={`Edit ${person.name}`}
-      description={`${person.title} · Blocks ${person.blocks.join(', ')}. Name, email and role are managed by Admin.`}
+      title={t('Edit {name}', { name: person.name })}
+      description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and role are managed by Admin.')}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -51,7 +52,7 @@ function EditModal({ person, handleOptions, onClose }) {
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-base font-medium text-fg">Handles</legend>
+        <legend className="mb-2 text-base font-medium text-fg">{t('Handles')}</legend>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           {handleOptions.map((h) => (
             <Checkbox
@@ -77,12 +78,14 @@ function EditModal({ person, handleOptions, onClose }) {
 
 function RequestAccountModal({ roles, onClose }) {
   const { notify } = useToast()
+  const { block: scopeBlock, blocks } = useSession()
+  const [block, setBlock] = useState(scopeBlock ?? blocks[0] ?? '')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState(roles[0] ?? '')
-  const send = useMutation(() => api.blockStaff.requestAccount({ name: name.trim(), email: email.trim(), role }), {
+  const send = useMutation(() => api.blockStaff.requestAccount({ name: name.trim(), email: email.trim(), role, block: block || undefined }), {
     onSuccess: () => {
-      notify({ title: 'Request sent to Admin', message: `Admin will create the account for ${name.trim()}.` })
+      notify({ title: 'Request sent to Admin', message: t('Admin will create the account for {name}.', { name: name.trim() }) })
       onClose()
     },
     onError: () => {},
@@ -110,6 +113,11 @@ function RequestAccountModal({ roles, onClose }) {
         {(id) => <Input id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@fpt.edu.vn" />}
       </Field>
       <Field label="Role">{(id) => <Select id={id} value={role} onChange={(e) => setRole(e.target.value)} options={roles} />}</Field>
+      {!scopeBlock && blocks.length > 1 && (
+        <Field label="Block" required>
+          {(id) => <Select id={id} value={block} onChange={(e) => setBlock(e.target.value)} options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))} />}
+        </Field>
+      )}
     </Modal>
   )
 }
@@ -124,8 +132,8 @@ export default function BlockStaff() {
   return (
     <>
       <PageHeader
-        title={block ? `Staff · Block ${block}` : 'Staff'}
-        description="Staff who work in your Block and the request types they handle. Accounts are created by Admin."
+        title={block ? t('Staff · Block {code}', { code: block }) : 'Staff'}
+        description="Staff of the Blocks in your scope and the request types they handle. Accounts are created by Admin."
         actions={
           <Button icon={UserPlus} onClick={() => setRequesting(true)}>
             Request new Staff account
@@ -133,9 +141,9 @@ export default function BlockStaff() {
         }
       />
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Staff in the Block" value={formatNumber(s?.total)} note={s?.shared ? `${s.shared} shared with other Blocks` : null} />
+        <KpiTile size="md" label="Staff" value={formatNumber(s?.total)} note={s?.shared ? t('{n} work in several Blocks', { n: s.shared }) : null} />
         <KpiTile size="md" label="Open requests per Staff" value={s?.averageOpen != null ? s.averageOpen.toFixed(1) : '—'} note="Average this week" />
-        <KpiTile size="md" label="On duty today" value={s ? `${s.onDuty} of ${s.total}` : '—'} note={s?.deskOnDuty != null ? `Check-in desk: ${s.deskOnDuty}` : null} />
+        <KpiTile size="md" label="On duty today" value={s ? t('{n} of {total}', { n: s.onDuty, total: s.total }) : '—'} note={s?.deskOnDuty != null ? t('Check-in desk: {n}', { n: s.deskOnDuty }) : null} />
       </div>
       <Table fill>
         <THead>
@@ -147,21 +155,21 @@ export default function BlockStaff() {
             <Th className="w-36">Resolved (7 days)</Th>
             <Th className="w-24">On duty</Th>
             <Th className="w-20">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={Users} emptyTitle="No Staff in this Block" />
+          <TableStatus query={query} colSpan={7} emptyIcon={Users} emptyTitle="No Staff in these Blocks" />
           {(query.data?.items ?? []).map((p) => (
             <Tr key={p.id} className="[&>td]:h-14">
               <Td>
                 <div className="flex items-center gap-2.5">
                   <Avatar name={p.name} />
-                  <TwoLine primary={p.name} secondary={p.title} />
+                  <TwoLine primary={p.name} secondary={tr(p.title)} />
                 </div>
               </Td>
-              <Td>{p.handles.join(', ') || '—'}</Td>
+              <Td>{p.handles.map((h) => tr(h)).join(', ') || '—'}</Td>
               <Td>{p.blocks.join(', ')}</Td>
               <Td>{p.open}</Td>
               <Td className={p.resolved7d == null ? 'text-fg-tertiary' : undefined}>{p.resolved7d ?? '—'}</Td>

@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { Check, ChevronRight, CircleCheck, Info, TriangleAlert, X } from 'lucide-react'
 import { Link } from 'react-router'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { initials as toInitials } from '@/lib/format'
 
@@ -39,8 +40,8 @@ export function CardHeader({ title, description, actions, className }) {
   return (
     <div className={cx('flex items-start justify-between gap-4', className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{title}</h2>
-        {description && <p className="text-sm text-fg-tertiary">{description}</p>}
+        <h2 className="text-h3 font-semibold text-fg">{tx(title)}</h2>
+        {description && <p className="text-sm text-fg-tertiary">{tx(description)}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -57,21 +58,21 @@ const alertTypes = {
 }
 
 export function Alert({ type = 'info', title, children, action, onClose, className }) {
-  const t = alertTypes[type]
-  const Glyph = t.icon
+  const kind = alertTypes[type]
+  const Glyph = kind.icon
   return (
     <div
       role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
-      className={cx('flex items-start gap-3 rounded-lg px-4 py-3', t.box, className)}
+      className={cx('flex items-start gap-3 rounded-lg px-4 py-3', kind.box, className)}
     >
-      <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', t.iconColor)} />
+      <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', kind.iconColor)} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-base">
-        {title && <p className="font-medium text-fg">{title}</p>}
-        {children && <div className="text-fg-secondary">{children}</div>}
+        {title && <p className="font-medium text-fg">{tx(title)}</p>}
+        {children && <div className="text-fg-secondary">{tx(children)}</div>}
       </div>
       {action && <div className="shrink-0 self-center">{action}</div>}
       {onClose && (
-        <button type="button" onClick={onClose} aria-label="Dismiss" className="shrink-0 rounded text-fg-tertiary hover:text-fg">
+        <button type="button" onClick={onClose} aria-label={t('Dismiss')} className="shrink-0 rounded text-fg-tertiary hover:text-fg">
           <X size={16} aria-hidden="true" />
         </button>
       )}
@@ -118,7 +119,7 @@ export function Steps({ steps, current, compact = false, className }) {
                   state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-tertiary',
                 )}
               >
-                {title}
+                {tx(title)}
               </span>
             </li>
           </Fragment>
@@ -132,7 +133,7 @@ export function Steps({ steps, current, compact = false, className }) {
 // 12/20, earlier levels tertiary, current level secondary, 12 px chevrons.
 export function Breadcrumb({ items, className }) {
   return (
-    <nav aria-label="Breadcrumb" className={cx('flex items-center gap-1.5 text-sm', className)}>
+    <nav aria-label={t('Breadcrumb')} className={cx('flex items-center gap-1.5 text-sm', className)}>
       {items.map((item, i) => {
         const last = i === items.length - 1
         return (
@@ -140,11 +141,11 @@ export function Breadcrumb({ items, className }) {
             {i > 0 && <ChevronRight size={12} aria-hidden="true" className="text-fg-tertiary" />}
             {item.to && !last ? (
               <Link to={item.to} className="text-fg-tertiary hover:text-fg-brand">
-                {item.label}
+                {tx(item.label)}
               </Link>
             ) : (
               <span className={last ? 'text-fg-secondary' : 'text-fg-tertiary'} aria-current={last ? 'page' : undefined}>
-                {item.label}
+                {tx(item.label)}
               </span>
             )}
           </Fragment>
@@ -162,8 +163,8 @@ export function Facts({ items, dense = false, className }) {
     <dl className={cx('flex w-full flex-col gap-2.5 lg:flex-row lg:items-start', dense ? 'lg:gap-4' : 'lg:gap-6', className)}>
       {items.map(([label, value]) => (
         <div key={label} className="flex min-w-0 items-start justify-between gap-4 lg:flex-1 lg:flex-col lg:justify-start lg:gap-0.5">
-          <dt className="shrink-0 text-base text-fg-secondary lg:text-sm lg:text-fg-tertiary">{label}</dt>
-          <dd className="min-w-0 text-right text-base font-medium text-fg lg:text-left">{value}</dd>
+          <dt className="shrink-0 text-base text-fg-secondary lg:text-sm lg:text-fg-tertiary">{tx(label)}</dt>
+          <dd className="min-w-0 text-right text-base font-medium text-fg lg:text-left">{tx(value)}</dd>
         </div>
       ))}
     </dl>
@@ -175,7 +176,7 @@ export function Note({ children, className, icon: Glyph = Info }) {
   return (
     <p className={cx('flex items-start gap-2 text-sm text-fg-tertiary', className)}>
       <Glyph size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-      <span className="min-w-0 flex-1">{children}</span>
+      <span className="min-w-0 flex-1">{tx(children)}</span>
     </p>
   )
 }
@@ -186,8 +187,8 @@ export function DescriptionList({ items, columns = 1, className, labelWidth }) {
     <dl className={cx('grid gap-x-6 gap-y-3', columns === 2 && 'lg:grid-cols-2', columns === 3 && 'lg:grid-cols-3', className)}>
       {items.map(([label, value]) => (
         <div key={label} className={cx('flex min-w-0 gap-3', labelWidth ? 'flex-row' : 'flex-col gap-0.5')}>
-          <dt className={cx('shrink-0 text-sm text-fg-tertiary', labelWidth)}>{label}</dt>
-          <dd className="min-w-0 text-base text-fg">{value}</dd>
+          <dt className={cx('shrink-0 text-sm text-fg-tertiary', labelWidth)}>{tx(label)}</dt>
+          <dd className="min-w-0 text-base text-fg">{tx(value)}</dd>
         </div>
       ))}
     </dl>
@@ -222,9 +223,9 @@ export function ProgressTimeline({ events, className }) {
                   event.state === 'current' ? 'font-medium text-fg' : event.state === 'done' ? 'text-fg' : 'text-fg-secondary',
                 )}
               >
-                {event.title}
+                {tx(event.title)}
               </p>
-              {event.time && <p className={cx('text-sm', event.state === 'current' ? 'text-fg-brand' : 'text-fg-tertiary')}>{event.time}</p>}
+              {event.time && <p className={cx('text-sm', event.state === 'current' ? 'text-fg-brand' : 'text-fg-tertiary')}>{tx(event.time)}</p>}
             </div>
           </li>
         )
@@ -240,8 +241,8 @@ export function DetailRows({ rows, className, rowClassName = 'py-2.5' }) {
     <dl className={cx('flex flex-col', className)}>
       {rows.map(([label, value], i) => (
         <div key={label} className={cx('flex items-center justify-between gap-4', rowClassName, i < rows.length - 1 && 'border-b border-line')}>
-          <dt className="shrink-0 text-base text-fg-secondary">{label}</dt>
-          <dd className="min-w-0 text-right text-base text-fg">{value}</dd>
+          <dt className="shrink-0 text-base text-fg-secondary">{tx(label)}</dt>
+          <dd className="min-w-0 text-right text-base text-fg">{tx(value)}</dd>
         </div>
       ))}
     </dl>
@@ -255,10 +256,10 @@ export function StatTile({ icon: Glyph, label, value, note, className, children 
     <Card className={cx('flex min-w-0 flex-1 flex-col gap-2', className)}>
       <div className="flex items-center gap-2 text-fg-tertiary">
         {Glyph && <Glyph size={16} aria-hidden="true" />}
-        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm font-medium">{tx(label)}</p>
       </div>
       <p className="text-kpi font-semibold text-fg">{value}</p>
-      {note && <p className="text-sm text-fg-secondary">{note}</p>}
+      {note && <p className="text-sm text-fg-secondary">{tx(note)}</p>}
       {children}
     </Card>
   )
@@ -279,8 +280,8 @@ export function EmptyState({ icon: Glyph, title, children, action, className }) 
         </span>
       )}
       <div className="flex max-w-md flex-col gap-1">
-        <p className="text-h3 font-semibold text-fg">{title}</p>
-        {children && <p className="text-base text-fg-secondary">{children}</p>}
+        <p className="text-h3 font-semibold text-fg">{tx(title)}</p>
+        {children && <p className="text-base text-fg-secondary">{tx(children)}</p>}
       </div>
       {action}
     </div>

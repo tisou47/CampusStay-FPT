@@ -8,6 +8,7 @@ import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { WizardActions, WizardLayout, useWizard } from './wizard'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 1 Term and eligibility (Figma 14:156)
 // GET /applications/eligibility → { term, eligible, checks: [{ title, detail, passed }] }
@@ -25,13 +26,13 @@ export default function ApplyTerm() {
       actions={<WizardActions backLabel="Cancel" backTo="/student" showBackIcon={false} onNext={() => navigate(wizard.next('term'))} nextDisabled={!eligibility.data?.eligible} />}
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-        <h2 className="text-h3 font-semibold text-fg">Term</h2>
+        <h2 className="text-h3 font-semibold text-fg">{t('Term')}</h2>
         <Facts
           items={[
             ['Term', info?.name ?? '—'],
             ['Stay dates', info?.stayStart ? `${formatDate(info.stayStart)} – ${formatDate(info.stayEnd)}` : '—'],
             ['Registration closes', info?.registrationClosesAt ? formatDateTime(info.registrationClosesAt) : '—'],
-            ['Deposit window', info?.depositWindowHours ? `${info.depositWindowHours} hours after submit` : '—'],
+            ['Deposit window', info?.depositWindowHours ? t('{n} hours after submit', { n: info.depositWindowHours }) : '—'],
           ]}
         />
         <Note>Registration opens only for the upcoming Term. The Term is set by the dormitory office and cannot be changed here.</Note>
@@ -39,8 +40,8 @@ export default function ApplyTerm() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-h3 font-semibold text-fg">Eligibility check</h2>
-          {eligibility.data && <Tag tone={eligibility.data.eligible ? 'success' : 'error'}>{eligibility.data.eligible ? 'Eligible' : 'Not eligible'}</Tag>}
+          <h2 className="text-h3 font-semibold text-fg">{t('Eligibility check')}</h2>
+          {eligibility.data && <Tag tone={eligibility.data.eligible ? 'success' : 'error'}>{eligibility.data.eligible ? t('Eligible') : t('Not eligible')}</Tag>}
         </div>
         <QueryState query={eligibility} compact isEmpty={(d) => !d?.checks?.length}>
           {(data) => (
@@ -53,8 +54,8 @@ export default function ApplyTerm() {
                     <CircleX size={20} aria-hidden="true" className="mt-px shrink-0 text-error" />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <p className="text-base font-medium text-fg">{c.title}</p>
-                    {c.detail && <p className="text-sm text-fg-secondary">{c.detail}</p>}
+                    <p className="text-base font-medium text-fg">{tr(c.title)}</p>
+                    {c.detail && <p className="text-sm text-fg-secondary">{tr(c.detail)}</p>}
                   </div>
                 </li>
               ))}

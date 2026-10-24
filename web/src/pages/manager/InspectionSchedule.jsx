@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { CalendarDays, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { useOneBlock } from '@/components/layout/BlockPicker'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card } from '@/components/ui/Display'
@@ -13,6 +13,7 @@ import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-MNT-20 Inspection Schedule (Figma 99:2569)
 // GET /inspection-schedules?block → {
@@ -44,14 +45,14 @@ function Editor({ item, options, block, onCreated }) {
   const save = useMutation(() => (isNew ? api.inspections.createSchedule(body()) : api.inspections.updateSchedule(item.id, body())), {
     invalidates: ['inspection-schedules'],
     onSuccess: (res) => {
-      notify({ title: 'Schedule saved', message: `${form.name.trim()}. Staff get each run on their Inspections page.` })
+      notify({ title: 'Schedule saved', message: t('{name}. Staff get each run on their Inspections page.', { name: form.name.trim() }) })
       if (isNew && res?.id) onCreated(res.id)
     },
     onError: () => {},
   })
   const pause = useMutation(() => api.inspections.updateSchedule(item.id, { status: item.status === 'Paused' ? 'Active' : 'Paused' }), {
     invalidates: ['inspection-schedules'],
-    onSuccess: () => notify({ type: 'info', title: item.status === 'Paused' ? `${item.name} resumed` : `${item.name} paused` }),
+    onSuccess: () => notify({ type: 'info', title: t(item.status === 'Paused' ? '{name} resumed' : '{name} paused', { name: item.name }) }),
     onError: (e) => notifyError(e, 'Could not change the schedule'),
   })
   const opt = (list) => [{ value: '', label: 'Choose…', disabled: true }, ...(list ?? [])]
@@ -60,8 +61,8 @@ function Editor({ item, options, block, onCreated }) {
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{form.name || 'New schedule'}</h2>
-        <p className="text-sm text-fg-secondary">{item.createdAt ? `Created ${formatDate(item.createdAt)}` : 'Not saved yet'}</p>
+        <h2 className="text-h3 font-semibold text-fg">{form.name || t('New schedule')}</h2>
+        <p className="text-sm text-fg-secondary">{item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : t('Not saved yet')}</p>
       </div>
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       {isNew && <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Air-conditioner filters" />}</Field>}
@@ -75,7 +76,7 @@ function Editor({ item, options, block, onCreated }) {
       <div className="flex justify-end gap-2">
         {!isNew && (
           <Button onClick={() => pause.run()} disabled={pause.pending}>
-            {item.status === 'Paused' ? 'Resume' : 'Pause'}
+            {item.status === 'Paused' ? t('Resume') : t('Pause')}
           </Button>
         )}
         <Button variant="primary" onClick={() => save.run()} disabled={!complete || save.pending}>
@@ -87,8 +88,8 @@ function Editor({ item, options, block, onCreated }) {
 }
 
 export default function InspectionSchedule() {
-  const { block } = useSession()
-  const query = useQuery(['inspection-schedules', block], ({ signal }) => api.inspections.schedules({ block: block ?? undefined }, { signal }))
+  const { block, picker } = useOneBlock()
+  const query = useQuery(['inspection-schedules', block], ({ signal }) => api.inspections.schedules({ block: block ?? undefined }, { signal }), { enabled: Boolean(block) })
   const items = query.data?.items ?? []
   const [selectedId, setSelectedId] = useState(null)
   const selected = selectedId === 'new' ? {} : items.find((s) => s.id === selectedId) ?? items[0]
@@ -96,12 +97,15 @@ export default function InspectionSchedule() {
   return (
     <>
       <PageHeader
-        title="Inspection schedule"
+        title={block ? t('Inspection schedules · Block {code}', { code: block }) : 'Inspection schedules'}
         description="Plan recurring inspections; Staff run them with the Admin checklist."
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => setSelectedId('new')} disabled={!query.data}>
-            New schedule
-          </Button>
+          <>
+            {picker}
+            <Button variant="primary" icon={Plus} onClick={() => setSelectedId('new')} disabled={!query.data}>
+              New schedule
+            </Button>
+          </>
         }
       />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
@@ -121,8 +125,8 @@ export default function InspectionSchedule() {
               {items.map((s) => (
                 <Tr key={s.id} selected={s.id === selected?.id} onClick={() => setSelectedId(s.id)} className="[&>td]:h-15.5">
                   <Td className="font-medium text-fg-brand">{s.name}</Td>
-                  <Td>{s.scopeLabel}</Td>
-                  <Td>{s.repeatLabel}</Td>
+                  <Td>{tr(s.scopeLabel)}</Td>
+                  <Td>{tr(s.repeatLabel)}</Td>
                   <Td>{formatDate(s.nextRunAt)}</Td>
                   <Td>
                     <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>

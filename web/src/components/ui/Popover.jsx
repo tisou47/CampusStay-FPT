@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 /**
@@ -52,7 +53,7 @@ export function MenuItem({ icon: Glyph, children, onClick, danger, className }) 
       )}
     >
       {Glyph && <Glyph size={16} aria-hidden="true" className={danger ? 'text-error' : 'text-fg-secondary'} />}
-      {children}
+      {tx(children)}
     </button>
   )
 }

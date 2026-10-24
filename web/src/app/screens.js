@@ -36,9 +36,6 @@ export const screens = [
 
   // 06 Web – Staff
   { code: 'SCR-HOME-02', title: 'Staff Dashboard', role: 'staff', path: '/staff' },
-  { code: 'SCR-APP-10', title: 'Application Queue', role: 'staff', path: '/staff/applications' },
-  { code: 'SCR-BIL-10', title: 'Payments', role: 'staff', path: '/staff/payments' },
-  { code: 'SCR-ASG-10', title: 'Assignment Runs', role: 'staff', path: '/staff/assignment' },
   { code: 'SCR-INV-10', title: 'Room and Bed Inventory', role: 'staff', path: '/staff/inventory' },
   { code: 'SCR-MNT-10', title: 'Maintenance Queue', role: 'staff', path: '/staff/maintenance' },
   { code: 'SCR-REQ-10', title: 'Room-Change Queue', role: 'staff', path: '/staff/room-changes' },
@@ -50,8 +47,10 @@ export const screens = [
 
   // 07 Web – Manager
   { code: 'SCR-HOME-03', title: 'Manager Dashboard', role: 'manager', path: '/manager' },
-  { code: 'SCR-ASG-20', title: 'Approvals – Assignment Proposal', role: 'manager', path: '/manager/approvals' },
-  { code: 'SCR-REQ-20', title: 'Approvals – Late Check-in', role: 'manager', path: '/manager/approvals/late-check-in' },
+  { code: 'SCR-APP-10', title: 'Application Queue', role: 'manager', path: '/manager/applications' },
+  { code: 'SCR-ASG-10', title: 'Assignment Runs', role: 'manager', path: '/manager/assignment' },
+  { code: 'SCR-BIL-10', title: 'Payments', role: 'manager', path: '/manager/payments' },
+  { code: 'SCR-REQ-20', title: 'Decisions (late check-in, swaps, refunds)', role: 'manager', path: '/manager/approvals' },
   { code: 'SCR-MNT-20', title: 'Inspection Schedule', role: 'manager', path: '/manager/inspections' },
   { code: 'SCR-BIL-20', title: 'Block Finance', role: 'manager', path: '/manager/finance' },
   { code: 'SCR-AUTH-10', title: 'Block Staff', role: 'manager', path: '/manager/staff' },

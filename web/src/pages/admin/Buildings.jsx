@@ -13,6 +13,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatNumber } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-INV-01 Buildings and Structure (Figma 25:1593)
 // GET /admin/buildings → { items: [{ id, name, gender, status, floors: [{ floor, roomClassName, twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }],
@@ -29,7 +30,7 @@ function BlockModal({ block, genders, onClose, onSaved }) {
   const save = useMutation(() => (isNew ? api.admin.buildings.createBlock(form) : api.admin.buildings.updateBlock(block.id, form)), {
     invalidates: ['admin-buildings', 'inventory'],
     onSuccess: (res) => {
-      notify({ title: `Block ${form.name} saved`, message: isNew ? 'Use Bulk generate Rooms to create its Floors.' : 'Changes are written to the Audit Log.' })
+      notify({ title: t('Block {code} saved', { code: form.name }), message: isNew ? 'Use Bulk generate Rooms to create its Floors.' : 'Changes are written to the Audit Log.' })
       onSaved(res?.id ?? block.id)
     },
     onError: () => {},
@@ -38,7 +39,7 @@ function BlockModal({ block, genders, onClose, onSaved }) {
     <Modal
       open
       onClose={onClose}
-      title={isNew ? 'New Block' : `Edit Block ${block.name}`}
+      title={isNew ? 'New Block' : t('Edit Block {code}', { code: block.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -69,7 +70,7 @@ function BulkModal({ block, floors, note, onClose }) {
   const run = useMutation(() => api.admin.buildings.bulkRooms(block.id, { fromFloor: Number(from), toFloor: Number(to) }), {
     invalidates: ['admin-buildings', 'inventory'],
     onSuccess: (res) => {
-      notify({ title: 'Rooms generated', message: `${formatNumber(res?.created)} Rooms created in Block ${block.name}.${res?.skipped ? ` ${res.skipped} Floors with Allocations were skipped.` : ''}` })
+      notify({ title: 'Rooms generated', message: `${t('{n} Rooms created in Block {code}.', { n: formatNumber(res?.created), code: block.name })}${res?.skipped ? ` ${t('{n} Floors with Allocations were skipped.', { n: res.skipped })}` : ''}` })
       onClose()
     },
     onError: () => {},
@@ -78,7 +79,7 @@ function BulkModal({ block, floors, note, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={`Bulk generate Rooms · Block ${block.name}`}
+      title={t('Bulk generate Rooms · Block {code}', { code: block.name })}
       description="Creates the standard layout on every Floor in the range. Floors with Allocations are skipped."
       footer={
         <>
@@ -98,7 +99,7 @@ function BulkModal({ block, floors, note, onClose }) {
           {(id) => <Select id={id} value={to} onChange={(e) => setTo(e.target.value)} options={floors.map(String)} />}
         </Field>
       </div>
-      {note && <div className="rounded-lg border border-line bg-subtle p-4 text-base text-fg-secondary">{note}</div>}
+      {note && <div className="rounded-lg border border-line bg-subtle p-4 text-base text-fg-secondary">{tr(note)}</div>}
     </Modal>
   )
 }
@@ -106,7 +107,7 @@ function BulkModal({ block, floors, note, onClose }) {
 function FloorDrawer({ block, floor, onClose }) {
   const query = useQuery(['admin-buildings', 'floor', block.id, floor.floor], ({ signal }) => api.admin.buildings.floorRooms(block.id, floor.floor, { signal }))
   return (
-    <Drawer open width={560} onClose={onClose} title={`Block ${block.name} · Floor ${floor.floor}`} description={`${formatNumber(floor.rooms)} Rooms · ${formatNumber(floor.beds)} Beds`}>
+    <Drawer open width={560} onClose={onClose} title={t('Block {code} · Floor {n}', { code: block.name, n: floor.floor })} description={t('{rooms} Rooms · {beds} Beds', { rooms: formatNumber(floor.rooms), beds: formatNumber(floor.beds) })}>
       <QueryState query={query} compact>
         {(data) => (
           <Table>
@@ -177,12 +178,12 @@ export default function Buildings() {
                     <span className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-h3 font-semibold text-fg">
                         <Building size={20} aria-hidden="true" className={active ? 'text-fg-brand' : 'text-fg-secondary'} />
-                        Block {b.name}
+                        {t('Block {code}', { code: b.name })}
                       </span>
                       {b.gender && <Tag>{b.gender}</Tag>}
                     </span>
                     <span className="text-sm text-fg-secondary">
-                      {b.floors?.length ? `${b.floors.length} residential Floors · ${formatNumber(rooms)} Rooms · ${formatNumber(beds)} Beds` : 'No Floors yet'}
+                      {b.floors?.length ? t('{floors} residential Floors · {rooms} Rooms · {beds} Beds', { floors: b.floors.length, rooms: formatNumber(rooms), beds: formatNumber(beds) }) : t('No Floors yet')}
                     </span>
                   </button>
                 )
@@ -195,7 +196,7 @@ export default function Buildings() {
             <>
               <div className="flex shrink-0 items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-h3 font-semibold text-fg">Block {block.name} · Floors</h2>
+                  <h2 className="text-h3 font-semibold text-fg">{t('Block {code} · Floors', { code: block.name })}</h2>
                   {block.gender && <Tag>{block.gender}</Tag>}
                   <Tag tone={block.status === 'Active' ? 'success' : 'neutral'}>{block.status}</Tag>
                 </div>
@@ -227,7 +228,7 @@ export default function Buildings() {
                     </Th>
                     <Th>Status</Th>
                     <Th className="w-20">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t('Actions')}</span>
                     </Th>
                   </tr>
                 </THead>
@@ -235,13 +236,13 @@ export default function Buildings() {
                   <TableStatus query={query} colSpan={8} rows={floors} emptyTitle="No Floors yet" emptyText="Use Bulk generate Rooms to create the layout." />
                   {floors.map((f) => (
                     <Tr key={f.floor} className="[&>td]:h-10">
-                      <Td className="font-medium">Floor {f.floor}</Td>
+                      <Td className="font-medium">{t('Floor {n}', { n: f.floor })}</Td>
                       <Td>{f.roomClassName ?? '—'}</Td>
                       <Td align="right">{f.twoBed}</Td>
                       <Td align="right">{f.fourBed}</Td>
                       <Td align="right">{f.sixBed}</Td>
                       <Td align="right">{f.beds}</Td>
-                      <Td>{f.closedRooms ? <Tag tone="warning">{f.closedRooms} Room{f.closedRooms === 1 ? '' : 's'} closed</Tag> : <Tag tone="success">Active</Tag>}</Td>
+                      <Td>{f.closedRooms ? <Tag tone="warning">{t(f.closedRooms === 1 ? '{n} Room closed' : '{n} Rooms closed', { n: f.closedRooms })}</Tag> : <Tag tone="success">Active</Tag>}</Td>
                       <Td>
                         <Button variant="text" onClick={() => setFloorOpen(f)}>
                           Rooms

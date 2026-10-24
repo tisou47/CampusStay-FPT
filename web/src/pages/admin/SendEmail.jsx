@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { ErrorState, LoadingState, Spinner } from '@/components/ui/States'
 import { formatNumber } from '@/lib/format'
 import { ConfigPage } from './shared'
+import { t } from '@/i18n'
 
 // SCR-NTF-21 Send Email (Figma 100:4658)
 // GET /admin/emails/options → { templates: [{ key, name, subject }], groups: [{ key, label }], blocks: [string], genders: [string],
@@ -57,7 +58,7 @@ export default function SendEmail() {
   const send = useMutation(() => api.admin.emails.send({ ...recipients, channel: form.channel, sendAt: form.sendAt }), {
     onSuccess: (res) => {
       setConfirming(false)
-      notify({ title: form.sendAt === 'now' ? 'Email queued' : 'Email scheduled', message: `${formatNumber(res?.queued ?? count)} recipients. Written to the Audit Log.` })
+      notify({ title: form.sendAt === 'now' ? 'Email queued' : 'Email scheduled', message: t('{n} recipients. Written to the Audit Log.', { n: formatNumber(res?.queued ?? count) }) })
     },
     onError: () => {},
   })
@@ -82,8 +83,8 @@ export default function SendEmail() {
       {o && (
         <div className="flex min-h-0 flex-1 items-stretch gap-4">
           <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-            <h2 className="text-h3 font-semibold text-fg">Recipients</h2>
-            <div className="flex gap-6" role="radiogroup" aria-label="Recipients">
+            <h2 className="text-h3 font-semibold text-fg">{t('Recipients')}</h2>
+            <div className="flex gap-6" role="radiogroup" aria-label={t('Recipients')}>
               <Radio name="mode" label="One Student" checked={form.mode === 'one'} onChange={() => setForm((f) => ({ ...f, mode: 'one' }))} />
               <Radio name="mode" label="Bulk by filter" checked={form.mode === 'bulk'} onChange={() => setForm((f) => ({ ...f, mode: 'bulk' }))} />
             </div>
@@ -103,7 +104,7 @@ export default function SendEmail() {
                 </div>
                 <div className="flex gap-4">
                   <Field label="Block" className="flex-1">
-                    {(id) => <Select id={id} value={form.block} onChange={set('block')} options={[{ value: '', label: 'All Blocks' }, ...(o.blocks ?? []).map((b) => ({ value: b, label: `Block ${b}` }))]} />}
+                    {(id) => <Select id={id} value={form.block} onChange={set('block')} options={[{ value: '', label: 'All Blocks' }, ...(o.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
                   </Field>
                   <Field label="Gender" className="flex-1">
                     {(id) => <Select id={id} value={form.gender} onChange={set('gender')} options={[{ value: '', label: 'All' }, ...(o.genders ?? [])]} />}
@@ -112,14 +113,14 @@ export default function SendEmail() {
               </>
             )}
             <div className="flex items-center justify-between text-base">
-              <span className="text-fg-secondary">Matching Students</span>
+              <span className="text-fg-secondary">{t('Matching Students')}</span>
               <span className="flex items-center gap-2 font-medium text-fg tabular">
                 {preview.loading && <Spinner size={16} />}
                 {ready ? formatNumber(count) : '—'}
               </span>
             </div>
             <Divider />
-            <h2 className="text-h3 font-semibold text-fg">Message</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Message')}</h2>
             <Field label="Template">
               {(id) => (
                 <Select
@@ -145,11 +146,11 @@ export default function SendEmail() {
           </Card>
           <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-2.5 overflow-y-auto">
             <div className="flex flex-col gap-0.5">
-              <h2 className="text-h3 font-semibold text-fg">{p?.recipientName ? `Preview for ${p.recipientName}` : 'Preview'}</h2>
-              <p className="text-sm text-fg-secondary">Variables filled from the first recipient</p>
+              <h2 className="text-h3 font-semibold text-fg">{p?.recipientName ? t('Preview for {name}', { name: p.recipientName }) : t('Preview')}</h2>
+              <p className="text-sm text-fg-secondary">{t('Variables filled from the first recipient')}</p>
             </div>
             {!ready ? (
-              <p className="text-base text-fg-secondary">Choose the recipients and a template to see the preview.</p>
+              <p className="text-base text-fg-secondary">{t('Choose the recipients and a template to see the preview.')}</p>
             ) : preview.data === undefined && preview.loading ? (
               <LoadingState />
             ) : preview.error ? (
@@ -164,16 +165,16 @@ export default function SendEmail() {
                 ))}
               </div>
             ) : (
-              <p className="text-base text-fg-secondary">No Student matches these filters.</p>
+              <p className="text-base text-fg-secondary">{t('No Student matches these filters.')}</p>
             )}
-            <p className="text-sm text-fg-tertiary">Bulk sends are queued and delivered in batches. Students who unsubscribed from email still get the in-app notification.</p>
+            <p className="text-sm text-fg-tertiary">{t('Bulk sends are queued and delivered in batches. Students who unsubscribed from email still get the in-app notification.')}</p>
           </Card>
         </div>
       )}
       <Modal
         open={confirming}
         onClose={() => setConfirming(false)}
-        title={`Send to ${formatNumber(count)} ${count === 1 ? 'Student' : 'Students'}?`}
+        title={t(count === 1 ? 'Send to {n} Student?' : 'Send to {n} Students?', { n: formatNumber(count) })}
         description="You cannot recall an email once it is delivered."
         footer={
           <>

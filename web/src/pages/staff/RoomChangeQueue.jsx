@@ -18,6 +18,7 @@ import { StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-10 Room-Change Queue (Figma 60:2696)
 // GET /room-changes?termId&block&status&kind&page&pageSize → { items: [{ id, studentName, studentCode, kind,
@@ -26,7 +27,7 @@ import { RoomChangeModeSwitch } from './SwapRequests'
 // GET /room-changes/:id/matching-beds → { items: [{ bedId, floor, roommates }] }
 // POST /room-changes/:id/decision { decision: 'Approved', bedId } | { decision: 'Rejected', reason, message }
 
-const statusFilters = [{ value: '', label: 'Status: All' }, ...['Pending', 'Approved', 'Rejected'].map((s) => ({ value: s, label: `Status: ${s}` }))]
+const statusFilters = [{ value: '', label: 'Status: All' }, ...['Pending', 'Approved', 'Rejected'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]
 const changeFilters = [
   { value: '', label: 'Change: All' },
   { value: 'same', label: 'Change: Same type, other Room' },
@@ -42,13 +43,13 @@ function ChangeStatus({ status }) {
 function Row({ label, children, valueClassName }) {
   return (
     <div className="flex items-center justify-between gap-4 text-base">
-      <dt className="shrink-0 text-fg-secondary">{label}</dt>
+      <dt className="shrink-0 text-fg-secondary">{t(label)}</dt>
       <dd className={cx('min-w-0 text-right', valueClassName ?? 'text-fg')}>{children}</dd>
     </div>
   )
 }
 
-const target = (r) => `${r.to.roomTypeName} · ${r.to.roomClassName}${r.kind === 'same' ? ' · other Room' : ''}`
+const target = (r) => `${tr(r.to.roomTypeName)} · ${tr(r.to.roomClassName)}${r.kind === 'same' ? ` · ${t('other Room')}` : ''}`
 
 function RejectModal({ request, reasons, onClose }) {
   const { notify } = useToast()
@@ -57,7 +58,7 @@ function RejectModal({ request, reasons, onClose }) {
   const reject = useMutation(() => api.roomChanges.decide(request.id, { decision: 'Rejected', reason, message: message.trim() || undefined }), {
     invalidates: ['room-changes'],
     onSuccess: () => {
-      notify({ type: 'warning', title: `${request.id} rejected`, message: `${request.studentName} was notified.` })
+      notify({ type: 'warning', title: t('{id} rejected', { id: request.id }), message: t('{name} was notified.', { name: request.studentName }) })
       onClose()
     },
     onError: () => {},
@@ -66,8 +67,8 @@ function RejectModal({ request, reasons, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={`Reject ${request.id}`}
-      description={`${request.studentName} is notified with the reason you choose.`}
+      title={t('Reject {id}', { id: request.id })}
+      description={t('{name} is notified with the reason you choose.', { name: request.studentName })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -96,13 +97,13 @@ function Review({ request: r, onReject }) {
   useEffect(() => setBed(beds.data?.items?.[0]?.bedId ?? null), [beds.data])
   const approve = useMutation(() => api.roomChanges.decide(r.id, { decision: 'Approved', bedId: bed }), {
     invalidates: ['room-changes'],
-    onSuccess: (res) => notify({ title: `${r.id} approved`, message: res?.note ?? `${r.studentName} moves to ${bed}.` }),
+    onSuccess: (res) => notify({ title: t('{id} approved', { id: r.id }), message: res?.note ? tr(res.note) : t('{name} moves to {bed}.', { name: r.studentName, bed }) }),
     onError: (e) => notifyError(e, 'Could not approve'),
   })
   const diff = r.difference ?? 0
 
   return (
-    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={`Review ${r.id}`}>
+    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Review {id}', { id: r.id })}>
       <div className="flex flex-col gap-0.5">
         <p className="text-sm font-medium text-fg-tertiary">{r.id}</p>
         <div className="flex items-center justify-between gap-3">
@@ -112,17 +113,17 @@ function Review({ request: r, onReject }) {
       </div>
       <dl className="flex flex-col gap-3.5">
         <Row label="From">
-          {r.from.room} · {r.from.bed} · {r.from.roomClassName}
+          {r.from.room} · {r.from.bed} · {tr(r.from.roomClassName)}
         </Row>
         <Row label="To">{target(r)}</Row>
-        <Row label="Reason">{r.reason ?? '—'}</Row>
+        <Row label="Reason">{tr(r.reason) || '—'}</Row>
         <Row label="Difference" valueClassName={cx('font-medium', diff > 0 ? 'text-fg-brand' : diff < 0 ? 'text-success-fg' : 'text-fg')}>
-          {diff > 0 ? `+${formatVnd(diff)}` : diff < 0 ? `−${formatVnd(-diff)} refund` : 'None'}
+          {diff > 0 ? `+${formatVnd(diff)}` : diff < 0 ? t('−{amount} refund', { amount: formatVnd(-diff) }) : t('None')}
         </Row>
         {!pending && r.decision && (
           <>
             {r.decision.bed && <Row label="New Bed">{r.decision.bed}</Row>}
-            {r.decision.reason && <Row label="Rejection reason">{r.decision.reason}</Row>}
+            {r.decision.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
             <Row label="Decided">
               {r.decision.by} · {formatDate(r.decision.at)}
             </Row>
@@ -131,13 +132,13 @@ function Review({ request: r, onReject }) {
       </dl>
 
       {!pending ? (
-        r.decision?.note && <Note>{r.decision.note}</Note>
+        r.decision?.note && <Note>{tr(r.decision.note)}</Note>
       ) : (
         <>
-          <p className="text-base font-medium text-fg">Free Beds that match</p>
+          <p className="text-base font-medium text-fg">{t('Free Beds that match')}</p>
           <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free Bed matches this change right now. Reject the request or wait until a Bed frees up.</Note>}>
             {(data) => (
-              <div role="radiogroup" aria-label="Free Beds that match" className="flex flex-col gap-3">
+              <div role="radiogroup" aria-label={t('Free Beds that match')} className="flex flex-col gap-3">
                 {data.items.map((b) => (
                   <div
                     key={b.bedId}
@@ -149,7 +150,7 @@ function Review({ request: r, onReject }) {
                   >
                     <Radio name={`bed-${r.id}`} label={b.bedId} checked={bed === b.bedId} onChange={() => setBed(b.bedId)} />
                     <span className="pl-6 text-sm text-fg-secondary">
-                      Floor {b.floor} · {b.roommates} {b.roommates === 1 ? 'roommate' : 'roommates'}
+                      {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
                     </span>
                   </div>
                 ))}
@@ -166,10 +167,10 @@ function Review({ request: r, onReject }) {
           </div>
           <p className="text-sm text-fg-tertiary">
             {diff > 0
-              ? `Approving issues a ${formatVnd(diff)} Invoice; the student moves after paying.`
+              ? t('Approving issues a {amount} Invoice; the student moves after paying.', { amount: formatVnd(diff) })
               : diff < 0
-                ? `Approving refunds ${formatVnd(-diff)} to the student; the student moves on the agreed date.`
-                : 'The student moves on the agreed date; no Invoice is issued.'}
+                ? t('Approving refunds {amount} to the student; the student moves on the agreed date.', { amount: formatVnd(-diff) })
+                : t('The student moves on the agreed date; no Invoice is issued.')}
           </p>
         </>
       )}
@@ -202,7 +203,7 @@ export default function RoomChangeQueue() {
     <>
       <PageHeader
         title="Room changes"
-        description="Room-Change Requests in your Blocks. Approve only when a Bed is free."
+        description="Room-Change Requests in your scope. Approve only when a Bed is free."
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -214,8 +215,8 @@ export default function RoomChangeQueue() {
       />
 
       <div className="flex shrink-0 items-center gap-3">
-        <Select wrapperClassName="w-42" aria-label="Status" value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select wrapperClassName="w-60" aria-label="Change" value={kind} onChange={filter(setKind)} options={changeFilters} />
+        <Select wrapperClassName="w-42" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
+        <Select wrapperClassName="w-60" aria-label={t('Change')} value={kind} onChange={filter(setKind)} options={changeFilters} />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
@@ -244,7 +245,7 @@ export default function RoomChangeQueue() {
                         {r.from.room} · {r.from.bed} → {target(r)}
                       </span>
                       <span className="truncate text-sm text-fg-secondary">
-                        {r.from.roomTypeName} · {r.from.roomClassName}
+                        {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
                         {r.difference ? ` · ${r.difference > 0 ? '+' : '−'}${formatVnd(Math.abs(r.difference))}` : ''}
                       </span>
                     </div>

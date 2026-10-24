@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { WizardActions, WizardLayout, useProfileDefaults, useWizard } from './wizard'
+import { t } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 3 Personal info (Figma 15:352)
 // GET /students/me/profile → { name, studentCode, gender, major, cohort, hometown, contact }
@@ -34,7 +35,7 @@ export default function ApplyPersonal() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-h3 font-semibold text-fg">From FPT student records</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('From FPT student records')}</h2>
           <Tag>Read-only</Tag>
         </div>
         <QueryState query={profile} compact>
@@ -60,7 +61,7 @@ export default function ApplyPersonal() {
       </Card>
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-        <h2 className="text-h3 font-semibold text-fg">Contact and emergency contact</h2>
+        <h2 className="text-h3 font-semibold text-fg">{t('Contact and emergency contact')}</h2>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
           <Field label="Phone number" required className="flex-1">
             {(id) => <Input id={id} size="lg" type="tel" value={contact.phone ?? ''} onChange={setContact('phone')} />}
@@ -92,11 +93,11 @@ export default function ApplyPersonal() {
 
       <Card padding="lg" className="flex shrink-0 flex-col items-start gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">Consent</h2>
-          <p className="text-sm text-fg-tertiary">Required under Decree 13/2023/NĐ-CP on personal data protection.</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('Consent')}</h2>
+          <p className="text-sm text-fg-tertiary">{t('Required under the Personal Data Protection Law 91/2025/QH15.')}</p>
         </div>
         <Checkbox
-          label={`I agree that CampusStay uses my gender, major and hometown to match roommates${term ? ` for ${term.name}` : ''}.`}
+          label={term ? t('I agree that CampusStay uses my gender, major and hometown to match roommates for {term}.', { term: term.name }) : t('I agree that CampusStay uses my gender, major and hometown to match roommates.')}
           checked={draft.consent.matching}
           onChange={setConsent('matching')}
         />
@@ -119,15 +120,9 @@ export default function ApplyPersonal() {
         }
       >
         <div className="flex flex-col gap-3 text-base text-fg-secondary">
-          <p>
-            CampusStay processes your name, student code, gender, major, cohort, hometown and contact details to review your Application, match
-            roommates and assign a Room and Bed.
-          </p>
-          <p>
-            Matching data (gender, major, hometown) is used only for the Term you apply for. The dormitory office keeps Application records for
-            the period required by FPT University regulations, then deletes them.
-          </p>
-          <p>You can ask the dormitory office to see, correct or withdraw consent for your data at any time, as set out in Decree 13/2023/NĐ-CP.</p>
+          <p>{t('CampusStay processes your name, student code, gender, major, cohort, hometown and contact details to review your Application, match roommates and assign a Room and Bed.')}</p>
+          <p>{t('Matching data (gender, major, hometown) is used only for the Term you apply for. The dormitory office keeps Application records for the period required by FPT University regulations, then deletes them.')}</p>
+          <p>{t('You can ask the dormitory office to see, correct or withdraw consent for your data at any time, as set out in the Personal Data Protection Law 91/2025/QH15 and Decree 356/2025/NĐ-CP.')}</p>
         </div>
       </Modal>
     </WizardLayout>

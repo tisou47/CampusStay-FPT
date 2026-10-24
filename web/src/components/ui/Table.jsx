@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Table patterns from the designs:
@@ -53,7 +54,7 @@ export function Th({ className, align = 'left', children, ...props }) {
       )}
       {...props}
     >
-      {children}
+      {tx(children)}
     </th>
   )
 }
@@ -98,8 +99,8 @@ export function Td({ className, align = 'left', children, ...props }) {
 export function TwoLine({ primary, secondary, className }) {
   return (
     <div className={cx('flex min-w-0 flex-col', className)}>
-      <span className="truncate font-medium text-fg">{primary}</span>
-      {secondary && <span className="truncate text-sm text-fg-tertiary">{secondary}</span>}
+      <span className="truncate font-medium text-fg">{tx(primary)}</span>
+      {secondary && <span className="truncate text-sm text-fg-tertiary">{tx(secondary)}</span>}
     </div>
   )
 }

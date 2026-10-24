@@ -21,6 +21,8 @@ export const api = {
     google: (body) => http.post('/auth/google', body),
     signOut: () => http.post('/auth/sign-out'),
     me: g('/auth/me'),
+    /** { locale: 'vi' | 'en' } → 204: the account's language for notifications, push and emails (ADR-25). */
+    setLocale: (body) => http.put('/auth/me/locale', body),
     /** { email } → 204 whether or not the account exists. */
     forgotPassword: (body) => http.post('/auth/password/forgot', body),
     /** { token, newPassword } from a reset or invitation link → 204; every session of the user is signed out. */
@@ -122,13 +124,8 @@ export const api = {
     proposal: (runId, query, opts) => http.get(`/assignment-runs/${runId}/proposal`, query, opts),
     conflict: (runId, applicationId, opts) => http.get(`/assignment-runs/${runId}/conflicts/${applicationId}`, undefined, opts),
     resolveConflict: (runId, applicationId, body) => http.post(`/assignment-runs/${runId}/conflicts/${applicationId}/resolve`, body),
-    /** Staff commits a Block and sends it to the Manager: { block }. */
+    /** A Manager commits a Block: { block }. Allocations, Balance Invoices and notifications follow at once (ADR-19, C-38). */
     commit: (runId, body) => http.post(`/assignment-runs/${runId}/commit`, body),
-    // Manager
-    /** Rooms of a committed Block. */
-    rooms: (runId, query, opts) => http.get(`/assignment-runs/${runId}/rooms`, query, opts),
-    approve: (runId, body) => http.post(`/assignment-runs/${runId}/approve`, body),
-    returnToStaff: (runId, body) => http.post(`/assignment-runs/${runId}/return`, body),
   },
   inventory: {
     structure: g('/inventory/structure'),
@@ -182,7 +179,6 @@ export const api = {
   approvals: {
     summary: g('/approvals/summary'),
     /** The Block proposal waiting for the Manager. */
-    assignment: g('/approvals/assignment'),
     lateCheckIns: g('/late-check-ins'),
     decideLateCheckIn: (id, body) => http.post(`/late-check-ins/${id}/decision`, body),
   },

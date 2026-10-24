@@ -10,25 +10,29 @@ import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
+import { getLang, t, tr } from '@/i18n'
 
 // SCR-CFG-07 Notification Templates (Figma 71:2940)
-// GET /admin/notification-templates → { items: [{ key, event, push, inApp, titleEn, titleVi, body, variables: [string] }],
+// GET /admin/notification-templates → { items: [{ key, event, push, inApp, titleEn, titleVi, body, bodyVi, variables: [string] }],
 //   sampleValues: { [variable]: string } }
 // PUT /admin/notification-templates/:key · POST /admin/notification-templates/:key/test (sends to the signed-in Admin)
 
 const MAX_PUSH = 160
-const channels = (t) => [t.push && 'Push', t.inApp && 'In-app'].filter(Boolean).join(' · ') || 'Off'
+const channels = (tpl) => [tpl.push && t('Push'), tpl.inApp && t('In-app')].filter(Boolean).join(' · ') || t('Off')
 
 function Editor({ template, sample }) {
   const { notify, notifyError } = useToast()
   const [form, setForm] = useState(template)
   useEffect(() => setForm(template), [template])
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const fill = (text) => String(text ?? '').replace(/\{(\w+)\}/g, (m, k) => sample?.[k] ?? m)
+  // Templates write their values as {{name}} (the server's format).
+  const fill = (text) => String(text ?? '').replace(/\{\{(\w+)\}\}/g, (m, k) => (sample?.[k] != null ? tr(sample[k]) : m))
   const tooLong = form.body.length > MAX_PUSH
+  const tooLongVi = (form.bodyVi ?? '').length > MAX_PUSH
+  const vi = getLang() === 'vi'
   const save = useMutation(() => api.admin.templates.save(form.key, form), {
     invalidates: ['admin-templates'],
-    onSuccess: () => notify({ title: 'Template saved', message: `${form.event} uses the new text from now on.` }),
+    onSuccess: () => notify({ title: 'Template saved', message: t('{event} uses the new text from now on.', { event: tr(form.event) }) }),
     onError: () => {},
   })
   const test = useMutation(() => api.admin.templates.test(form.key, form), {
@@ -39,7 +43,7 @@ function Editor({ template, sample }) {
   return (
     <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-h2 font-semibold text-fg">{form.event}</h2>
+        <h2 className="text-h2 font-semibold text-fg">{tr(form.event)}</h2>
         <div className="flex items-center gap-3">
           <Switch label="Push" checked={form.push} onChange={(v) => setForm((f) => ({ ...f, push: v }))} className="flex-row-reverse text-fg-secondary" />
           <Switch label="In-app" checked={form.inApp} onChange={(v) => setForm((f) => ({ ...f, inApp: v }))} className="flex-row-reverse text-fg-secondary" />
@@ -48,37 +52,40 @@ function Editor({ template, sample }) {
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <Field label="Title (EN)">{(id) => <Input id={id} value={form.titleEn} onChange={set('titleEn')} />}</Field>
       <Field label="Title (VI)">{(id) => <Input id={id} value={form.titleVi} onChange={set('titleVi')} />}</Field>
-      <Field label="Message (EN)" helper={`Max ${MAX_PUSH} characters for push · ${form.body.length}/${MAX_PUSH}`} error={tooLong ? `Too long for push: ${form.body.length}/${MAX_PUSH} characters` : undefined}>
+      <Field label="Message (EN)" helper={t('Max {max} characters for push · {n}/{max}', { max: MAX_PUSH, n: form.body.length })} error={tooLong ? t('Too long for push: {n}/{max} characters', { n: form.body.length, max: MAX_PUSH }) : undefined}>
         {(id) => <Input id={id} value={form.body} onChange={set('body')} invalid={tooLong} />}
       </Field>
+      <Field label="Message (VI)" helper={t('Max {max} characters for push · {n}/{max}', { max: MAX_PUSH, n: (form.bodyVi ?? '').length })} error={tooLongVi ? t('Too long for push: {n}/{max} characters', { n: (form.bodyVi ?? '').length, max: MAX_PUSH }) : undefined}>
+        {(id) => <Input id={id} value={form.bodyVi ?? ''} onChange={set('bodyVi')} invalid={tooLongVi} />}
+      </Field>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-sm text-fg-tertiary">Variables:</span>
+        <span className="text-sm text-fg-tertiary">{t('Variables:')}</span>
         {(form.variables ?? []).map((v) => (
           <button
             key={v}
             type="button"
-            title="Add to the message"
-            onClick={() => setForm((f) => ({ ...f, body: `${f.body} {${v}}` }))}
+            title={t('Add to the message')}
+            onClick={() => setForm((f) => (vi ? { ...f, bodyVi: `${f.bodyVi ?? ''} {{${v}}}` } : { ...f, body: `${f.body} {{${v}}}` }))}
             className="rounded-sm bg-subtle px-2 py-0.5 text-sm font-medium text-fg-secondary hover:bg-gray-200"
-          >{`{${v}}`}</button>
+          >{`{{${v}}}`}</button>
         ))}
       </div>
       <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-subtle p-3.5">
         <p className="flex items-center gap-1.5 text-sm font-medium text-fg-tertiary">
           <Eye size={16} aria-hidden="true" />
-          Push preview (Android)
+          {t('Push preview (Android)')}
         </p>
         <div className="flex flex-col gap-0.5 rounded-lg border border-line bg-surface p-3">
-          <p className="text-base font-medium text-fg">{fill(form.titleEn)}</p>
-          <p className="text-sm text-fg-secondary">{fill(form.body)}</p>
+          <p className="text-base font-medium text-fg">{fill(vi ? form.titleVi : form.titleEn)}</p>
+          <p className="text-sm text-fg-secondary">{fill(vi ? form.bodyVi : form.body)}</p>
         </div>
       </div>
-      <p className="text-sm text-fg-tertiary">Privacy: templates may use the inviter’s name only, never student codes or personal details of others.</p>
+      <p className="text-sm text-fg-tertiary">{t('Each person gets the language of their account. Privacy: templates may use the inviter’s name only, never student codes or personal details of others.')}</p>
       <div className="flex justify-end gap-2">
         <Button onClick={() => test.run()} disabled={test.pending}>
           Send test to me
         </Button>
-        <Button variant="primary" icon={Check} disabled={tooLong || save.pending} onClick={() => save.run()}>
+        <Button variant="primary" icon={Check} disabled={tooLong || tooLongVi || !(form.bodyVi ?? '').trim() || save.pending} onClick={() => save.run()}>
           Save template
         </Button>
       </div>
@@ -119,7 +126,7 @@ export default function NotificationTemplates() {
                   >
                     <Bell size={16} aria-hidden="true" className={cx('shrink-0', active ? 'text-fg-brand' : 'text-fg-secondary')} />
                     <span className="flex min-w-0 flex-col">
-                      <span className={cx('text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>{t.event}</span>
+                      <span className={cx('text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>{tr(t.event)}</span>
                       <span className="text-sm text-fg-tertiary">{channels(t)}</span>
                     </span>
                   </button>

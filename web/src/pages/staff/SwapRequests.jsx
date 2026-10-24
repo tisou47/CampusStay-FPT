@@ -13,6 +13,8 @@ import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate } from '@/lib/format'
+import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-REQ-13 Room Swap Requests (Figma 98:3780)
 // GET /swaps?termId&block&kind&status&page&pageSize → { items: [{ id, kind, agreedAt, crossBlock, status,
@@ -23,12 +25,13 @@ import { formatDate } from '@/lib/format'
 const tone = { 'Waiting for Staff': 'warning', 'To Manager': 'info', Approved: 'success', Rejected: 'error' }
 
 export function RoomChangeModeSwitch({ mode }) {
+  const base = useRoleBase()
   return (
     <>
-      <Button variant={mode === 'changes' ? 'primary' : 'default'} to="/staff/room-changes">
+      <Button variant={mode === 'changes' ? 'primary' : 'default'} to={`${base}/room-changes`}>
         Room changes
       </Button>
-      <Button variant={mode === 'swaps' ? 'primary' : 'default'} to="/staff/room-changes/swaps">
+      <Button variant={mode === 'swaps' ? 'primary' : 'default'} to={`${base}/room-changes/swaps`}>
         Swaps
       </Button>
     </>
@@ -38,7 +41,7 @@ export function RoomChangeModeSwitch({ mode }) {
 function Line({ label, children }) {
   return (
     <div className="flex items-start justify-between gap-4 text-base">
-      <dt className="text-fg-secondary">{label}</dt>
+      <dt className="text-fg-secondary">{t(label)}</dt>
       <dd className="text-right text-fg">{children}</dd>
     </div>
   )
@@ -51,8 +54,8 @@ function Review({ swap: s }) {
     onSuccess: (_, decision) =>
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
-        title: `${s.id} ${decision.toLowerCase()}`,
-        message: decision === 'Approved' ? `${s.a.name} and ${s.b.name} swap Beds on the move date.` : 'Both students were notified.',
+        title: t(decision === 'Approved' ? '{id} approved' : '{id} rejected', { id: s.id }),
+        message: decision === 'Approved' ? t('{a} and {b} swap Beds on the move date.', { a: s.a.name, b: s.b.name }) : 'Both students were notified.',
       }),
     onError: (e) => notifyError(e, 'Could not save the decision'),
   })
@@ -62,9 +65,9 @@ function Review({ swap: s }) {
     <Card className="flex min-h-0 w-100 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-h3 font-semibold text-fg">
-          {s.id} · {s.kind === 'Direct' ? 'Direct swap' : 'Board match'}
+          {s.id} · {s.kind === 'Direct' ? t('Direct swap') : t('Board match')}
         </h2>
-        <p className="text-sm text-fg-secondary">Both Students agreed on {formatDate(s.agreedAt)}</p>
+        <p className="text-sm text-fg-secondary">{t('Both Students agreed on {date}', { date: formatDate(s.agreedAt) })}</p>
       </div>
       {[
         ['Student A', s.a],
@@ -76,23 +79,23 @@ function Review({ swap: s }) {
             <Line label={label}>
               {p.name} · {p.studentCode}
             </Line>
-            <Line label={`${p.room} Bed ${p.bed}`}>
-              {p.roomTypeName} {p.roomClassName}
+            <Line label={t('{room} · Bed {bed}', { room: p.room, bed: p.bed })}>
+              {tr(p.roomTypeName)} {tr(p.roomClassName)}
             </Line>
           </dl>
         </div>
       ))}
       <Divider />
-      <p className="text-base font-medium text-fg">Rule check</p>
+      <p className="text-base font-medium text-fg">{t('Rule check')}</p>
       <ul className="flex flex-col gap-2">
         {(s.checks ?? []).map((c) => (
           <li key={c.label} className="flex items-start gap-2 text-base text-fg">
             {c.passed ? <CircleCheck size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-success" /> : <CircleX size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-error" />}
-            {c.label}
+            {tr(c.label)}
           </li>
         ))}
       </ul>
-      <p className="text-sm text-fg-tertiary">Meter readings are cut for both Rooms on the move date. Current roommates of both Rooms are notified.</p>
+      <p className="text-sm text-fg-tertiary">{t('Meter readings are cut for both Rooms on the move date. Current roommates of both Rooms are notified.')}</p>
       {waiting ? (
         <div className="flex justify-end gap-2">
           <Button variant="danger" onClick={() => decide.run('Rejected')} disabled={decide.pending}>
@@ -105,10 +108,10 @@ function Review({ swap: s }) {
       ) : (
         <Note>
           {s.status === 'To Manager'
-            ? 'Cross-Block swap: waiting for the Block Manager in Approvals.'
+            ? t('Cross-Block swap: a Manager decides it in Decisions › Swaps.')
             : s.decision
-              ? `${s.status} by ${s.decision.by} · ${formatDate(s.decision.at)}${s.decision.reason ? ` · ${s.decision.reason}` : ''}`
-              : s.status}
+              ? `${t('{status} by {name}', { status: t(s.status), name: s.decision.by })} · ${formatDate(s.decision.at)}${s.decision.reason ? ` · ${tr(s.decision.reason)}` : ''}`
+              : t(s.status)}
         </Note>
       )}
     </Card>
@@ -133,11 +136,11 @@ export default function SwapRequests() {
 
   return (
     <>
-      <PageHeader title="Room swaps" description="Same-Block swaps are approved here; cross-Block swaps go to the Block Manager." actions={<RoomChangeModeSwitch mode="swaps" />} />
+      <PageHeader title="Room swaps" description="Same-Block swaps are approved here; cross-Block swaps go to a Manager." actions={<RoomChangeModeSwitch mode="swaps" />} />
       <div className="flex shrink-0 items-center gap-3">
         <Select
           wrapperClassName="w-60"
-          aria-label="Type"
+          aria-label={t('Type')}
           value={kind}
           onChange={filter(setKind)}
           options={[
@@ -146,7 +149,7 @@ export default function SwapRequests() {
             { value: 'Board match', label: 'Type: Board match' },
           ]}
         />
-        <Select wrapperClassName="w-60" aria-label="Status" value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...Object.keys(tone).map((t) => ({ value: t, label: `Status: ${t}` }))]} />
+        <Select wrapperClassName="w-60" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...Object.keys(tone).map((v) => ({ value: v, label: t('Status: {s}', { s: t(v) }) }))]} />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">

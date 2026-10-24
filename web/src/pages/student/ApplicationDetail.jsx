@@ -12,6 +12,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-03 Application Detail (Figma 17:888).
 // GET /applications/:id → {
@@ -27,7 +28,9 @@ function alertFor(app) {
   const balance = app.invoices?.find((i) => i.type === 'balance')
   switch (app.status) {
     case 'Awaiting Deposit':
-      return ['warning', 'Pay the deposit to send your Application', `Your Application reaches the dormitory office only after the deposit is paid.${deposit?.dueAt ? ` It expires on ${formatDateTime(deposit.dueAt)}.` : ''}`]
+      return ['warning', 'Pay the deposit to send your Application', deposit?.dueAt
+        ? t('Your Application reaches the dormitory office only after the deposit is paid. It expires on {date}.', { date: formatDateTime(deposit.dueAt) })
+        : t('Your Application reaches the dormitory office only after the deposit is paid.')]
     case 'Awaiting Roommate':
       return ['warning', 'Waiting for your roommate', 'Your roommate has not answered the invitation yet. Both Applications reach the dormitory office together.']
     case 'Submitted':
@@ -35,25 +38,27 @@ function alertFor(app) {
     case 'Under Review':
       return ['info', 'Under review', 'The dormitory office is checking your Application. No action is needed from you.']
     case 'Approved':
-      return ['info', 'Approved', `Your Room and Bed are assigned in the assignment run${app.resultsPublishedAt ? `; results are published on ${formatDate(app.resultsPublishedAt)}` : ''}.`]
+      return ['info', 'Approved', app.resultsPublishedAt
+        ? t('Your Room and Bed are assigned in the assignment run; results are published on {date}.', { date: formatDate(app.resultsPublishedAt) })
+        : t('Your Room and Bed are assigned in the assignment run.')]
     case 'Waitlisted':
       return ['warning', 'Waitlisted', 'No matching Bed was free in Round 1. You may receive a Round 2 offer.']
     case 'Allocated':
-      return ['success', 'Room and Bed assigned', `${app.allocation?.room} · Bed ${app.allocation?.bed}, ${app.allocation?.block}.${balance && balance.status !== 'Paid' && balance.dueAt ? ` Pay the balance by ${formatDateTime(balance.dueAt)} to keep it.` : ''}`]
+      return ['success', 'Room and Bed assigned', `${t('{room} · Bed {bed}, {block}.', { room: app.allocation?.room, bed: app.allocation?.bed, block: tr(app.allocation?.block) })}${balance && balance.status !== 'Paid' && balance.dueAt ? ` ${t('Pay the balance by {date} to keep it.', { date: formatDateTime(balance.dueAt) })}` : ''}`]
     case 'Rejected':
-      return ['error', 'Not approved', app.decisionNote ?? 'The dormitory office did not approve this Application.']
+      return ['error', 'Not approved', app.decisionNote ?? t('The dormitory office did not approve this Application.')]
     case 'Cancelled':
     case 'Expired':
-      return ['info', `This Application is ${app.status.toLowerCase()}`, app.decisionNote ?? 'Nothing more is needed from you.']
+      return ['info', app.status === 'Expired' ? 'This Application has expired' : 'This Application is cancelled', app.decisionNote ?? t('Nothing more is needed from you.')]
     default:
       return ['info', app.status, null]
   }
 }
 
 function roommateText(app) {
-  if (!app.twoBed) return 'Matched automatically by gender'
-  if (!app.roommate || app.roommate.mode === 'auto') return app.roommate?.preferences ? 'Matched automatically · by preferences' : 'Matched automatically'
-  return `${app.roommate.studentCode}${app.roommate.status ? ` · ${app.roommate.status.toLowerCase()}` : ''}`
+  if (!app.twoBed) return t('Matched automatically by gender')
+  if (!app.roommate || app.roommate.mode === 'auto') return app.roommate?.preferences ? t('Matched automatically · by preferences') : t('Matched automatically')
+  return `${app.roommate.studentCode}${app.roommate.status ? ` · ${tr(app.roommate.status)}` : ''}`
 }
 
 function Detail({ app }) {
@@ -83,7 +88,7 @@ function Detail({ app }) {
         action={
           unpaid ? (
             <Button variant="primary" to={`/student/invoices/${unpaid.id}/pay`}>
-              Pay {unpaid.type === 'deposit' ? 'deposit' : 'now'}
+              {unpaid.type === 'deposit' ? t('Pay deposit') : t('Pay now')}
             </Button>
           ) : null
         }
@@ -94,25 +99,25 @@ function Detail({ app }) {
       <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">Progress</h2>
+            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Progress')}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {app.events?.length ? (
                 <ProgressTimeline events={app.events.map((e) => ({ title: e.title, time: e.note ?? (e.at ? formatDateTime(e.at) : null), state: e.state }))} />
               ) : (
-                <p className="text-base text-fg-secondary">No events yet.</p>
+                <p className="text-base text-fg-secondary">{t('No events yet.')}</p>
               )}
             </div>
           </Card>
 
           <Card padding="lg" className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">Room preference</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Room preference')}</h2>
             <DetailRows
               className="mt-2"
               rows={[
-                ['Room Type', app.roomTypeName ?? '—'],
-                ['Room Class', app.roomClassName ? `${app.roomClassName}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
+                ['Room Type', tr(app.roomTypeName) || '—'],
+                ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommateText(app)],
-                ['Room and Bed', app.allocation ? `${app.allocation.room} · Bed ${app.allocation.bed} · ${app.allocation.block}` : <span className="text-fg-tertiary">Assigned after review</span>],
+                ['Room and Bed', app.allocation ? t('{room} · Bed {bed} · {block}', { room: app.allocation.room, bed: app.allocation.bed, block: tr(app.allocation.block) }) : <span className="text-fg-tertiary">{t('Assigned after review')}</span>],
               ]}
             />
           </Card>
@@ -120,15 +125,15 @@ function Detail({ app }) {
 
         <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
           <Card padding="lg" className="flex flex-col items-start gap-3">
-            <h2 className="text-h3 font-semibold text-fg">Payments</h2>
-            {(app.invoices ?? []).length === 0 && <p className="text-base text-fg-secondary">No Invoices yet.</p>}
+            <h2 className="text-h3 font-semibold text-fg">{t('Payments')}</h2>
+            {(app.invoices ?? []).length === 0 && <p className="text-base text-fg-secondary">{t('No Invoices yet.')}</p>}
             {(app.invoices ?? []).map((inv) => (
               <div key={inv.id} className="flex w-full items-start gap-3">
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="text-base font-medium text-fg">{inv.title}</p>
+                  <p className="text-base font-medium text-fg">{tr(inv.title)}</p>
                   <p className="text-sm text-fg-tertiary">
                     {inv.id}
-                    {inv.paidAt ? ` · paid ${formatDate(inv.paidAt)}` : inv.dueAt ? ` · due ${formatDateTime(inv.dueAt)}` : ''}
+                    {inv.paidAt ? ` · ${t('paid {date}', { date: formatDate(inv.paidAt) })}` : inv.dueAt ? ` · ${t('due {date}', { date: formatDateTime(inv.dueAt) })}` : ''}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
@@ -144,15 +149,17 @@ function Detail({ app }) {
 
           {allocated ? (
             <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">Need a different Room?</h2>
-              <p className="text-sm text-fg-secondary">Room Type and Room Class are locked for this Term. After check-in you can ask for a room change or swap with another Student.</p>
+              <h2 className="text-h3 font-semibold text-fg">{t('Need a different Room?')}</h2>
+              <p className="text-sm text-fg-secondary">{t('Room Type and Room Class are locked for this Term. After check-in you can ask for a room change or swap with another Student.')}</p>
               <Button to="/student/requests/room-change/new">New room-change request</Button>
             </Card>
           ) : app.canCancel ? (
             <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">Need to change something?</h2>
+              <h2 className="text-h3 font-semibold text-fg">{t('Need to change something?')}</h2>
               <p className="text-sm text-fg-secondary">
-                Room Type and Room Class are locked. Cancel to apply again{app.registrationClosesAt ? ` before ${formatDateTime(app.registrationClosesAt)}` : ''}; the deposit refund follows the dormitory refund rules.
+                {app.registrationClosesAt
+                  ? t('Room Type and Room Class are locked. Cancel to apply again before {date}; the deposit refund follows the dormitory refund rules.', { date: formatDateTime(app.registrationClosesAt) })
+                  : t('Room Type and Room Class are locked. Cancel to apply again; the deposit refund follows the dormitory refund rules.')}
               </p>
               <Button onClick={() => setConfirmCancel(true)}>Cancel application</Button>
             </Card>
@@ -164,17 +171,17 @@ function Detail({ app }) {
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
         title="Cancel this Application?"
-        description={[app.id, app.roomTypeName, app.roomClassName].filter(Boolean).join(' · ')}
+        description={[app.id, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · ')}
         footer={
           <>
             <Button onClick={() => setConfirmCancel(false)}>Keep application</Button>
             <Button variant="danger" onClick={() => cancel.run()} disabled={cancel.pending}>
-              {cancel.pending ? 'Cancelling…' : 'Cancel application'}
+              {cancel.pending ? t('Cancelling…') : t('Cancel application')}
             </Button>
           </>
         }
       >
-        {app.cancelPolicy && <p className="text-base text-fg-secondary">{app.cancelPolicy}</p>}
+        {app.cancelPolicy && <p className="text-base text-fg-secondary">{tr(app.cancelPolicy)}</p>}
         <Field label="Reason (optional)">{(id) => <Textarea id={id} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />}</Field>
       </Modal>
     </>
@@ -188,7 +195,7 @@ export default function ApplicationDetail() {
   return (
     <StudentPage
       breadcrumb={[{ label: 'Application', to: '/student/applications' }, { label: id }]}
-      title={app ? `Application ${app.id}` : `Application ${id}`}
+      title={t('Application {id}', { id: app?.id ?? id })}
       badge={app && <StatusTag status={app.status} />}
     >
       {app === undefined && query.loading ? (

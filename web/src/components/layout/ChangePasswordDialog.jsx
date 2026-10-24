@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { PASSWORD_RULE, newPasswordErrors } from '@/lib/password'
+import { t } from '@/i18n'
 
 // Change password, for every role (contract change A-04), opened from the user menu.
 // POST /auth/password/change { currentPassword, newPassword } → 204; the user's other sessions are signed out.
@@ -35,7 +36,7 @@ function Form({ onClose }) {
   const submit = (e) => {
     e.preventDefault()
     const found = newPasswordErrors(form.newPassword, form.confirm)
-    if (!form.currentPassword) found.currentPassword = 'Enter your current password.'
+    if (!form.currentPassword) found.currentPassword = t('Enter your current password.')
     setErrors(found)
     if (!Object.keys(found).length) save.run()
   }

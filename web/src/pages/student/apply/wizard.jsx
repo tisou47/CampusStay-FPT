@@ -10,6 +10,7 @@ import { Breadcrumb, Card, Divider, Note, ProgressBar, Steps } from '@/component
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatVnd } from '@/lib/format'
+import { t, tx } from '@/i18n'
 
 // SCR-APP-01 Application Wizard — shared shell for every step.
 // The answers are kept as a draft in this browser tab until the Application is submitted.
@@ -119,8 +120,8 @@ function SummaryRow({ label, value, empty = 'Not selected', brand }) {
   else if (empty !== '—') tone = 'text-fg-tertiary'
   return (
     <div className="flex items-start justify-between gap-3 text-base">
-      <span className="shrink-0 text-fg-secondary">{label}</span>
-      <span className={cx('min-w-0 text-right', tone)}>{value || empty}</span>
+      <span className="shrink-0 text-fg-secondary">{tx(label)}</span>
+      <span className={cx('min-w-0 text-right', tone)}>{tx(value || empty)}</span>
     </div>
   )
 }
@@ -130,9 +131,9 @@ export function classLabel(roomClass) {
 }
 
 export function roommateLabel(draft, roomType) {
-  if (!isTwoBed(roomType)) return 'Matched automatically'
-  if (draft.roommate.mode === 'auto') return draft.roommate.preferencesOn ? 'Automatic · with preferences' : 'Match automatically'
-  return draft.roommate.verifiedCode ? `Invite · ${draft.roommate.verifiedCode}` : null
+  if (!isTwoBed(roomType)) return t('Matched automatically')
+  if (draft.roommate.mode === 'auto') return draft.roommate.preferencesOn ? t('Automatic · with preferences') : t('Match automatically')
+  return draft.roommate.verifiedCode ? t('Invite · {code}', { code: draft.roommate.verifiedCode }) : null
 }
 
 export function SelectionSummary({ wizard }) {
@@ -142,14 +143,14 @@ export function SelectionSummary({ wizard }) {
   const depositRate = catalog.data?.depositRate
   return (
     <Card padding="lg" className="flex flex-col gap-3">
-      <h2 className="text-h3 font-semibold text-fg">Your selection</h2>
+      <h2 className="text-h3 font-semibold text-fg">{t('Your selection')}</h2>
       <SummaryRow label="Term" value={term?.name} />
       <SummaryRow label="Room Type" value={roomType?.name} />
       <SummaryRow label="Room Class" value={classLabel(helpers.roomClass(draft.roomClassId))} />
       {isTwoBed(roomType) && <SummaryRow label="Roommate" value={roommateLabel(draft, roomType)} empty="Not set" />}
       <Divider />
       <SummaryRow label="Term price per Bed" value={price != null && formatVnd(price)} empty="—" />
-      <SummaryRow label={`Deposit due on submit${depositRate != null ? ` (${Math.round(depositRate * 100)}%)` : ''}`} value={deposit != null && formatVnd(deposit)} empty="—" brand />
+      <SummaryRow label={depositRate != null ? t('Deposit due on submit ({rate}%)', { rate: Math.round(depositRate * 100) }) : t('Deposit due on submit')} value={deposit != null && formatVnd(deposit)} empty="—" brand />
       <SummaryRow label="Balance after Allocation" value={balance != null && formatVnd(balance)} empty="—" />
       <SummaryRow label="Utility Deposit before check-in" value={catalog.data?.utilityDeposit != null && formatVnd(catalog.data.utilityDeposit)} empty="—" />
       <Note>The dormitory assigns your Room and Bed after review. You cannot pick a specific Room.</Note>
@@ -165,20 +166,20 @@ export function WizardLayout({ wizard, stepKey, actions, children }) {
   const { term } = useSession()
   const { catalog, steps } = wizard
   const current = steps.indexOf(stepKey)
-  useMobileBar('New application', '/student/applications')
+  useMobileBar(t('New application'), '/student/applications')
   return (
     <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-4 lg:py-6">
       <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
         <Breadcrumb items={[{ label: 'Application', to: '/student/applications' }, { label: 'New application' }]} />
-        <h1 className="text-h1 font-semibold text-fg">Dormitory application{term ? ` · ${term.name}` : ''}</h1>
+        <h1 className="text-h1 font-semibold text-fg">{t('Dormitory application')}{term ? ` · ${term.name}` : ''}</h1>
       </div>
       <Card padding="none" className="hidden h-16 shrink-0 items-center px-5 lg:flex">
-        <Steps steps={steps.map((s) => titles[s])} current={current} />
+        <Steps steps={steps.map((s) => t(titles[s]))} current={current} />
       </Card>
       {/* Phone: the five step labels do not fit, so the current step and a progress bar instead. */}
       <div className="flex flex-col gap-2 lg:hidden">
         <p className="text-sm font-medium text-fg-secondary">
-          Step {current + 1} of {steps.length} · <span className="text-fg">{titles[stepKey]}</span>
+          {t('Step {n} of {total}', { n: current + 1, total: steps.length })} · <span className="text-fg">{t(titles[stepKey])}</span>
         </p>
         <ProgressBar value={current + 1} max={steps.length} />
       </div>
@@ -237,12 +238,12 @@ export function OptionCard({ name, value, selected, onSelect, title, price, line
             className="size-4 appearance-none rounded-full border border-line-strong bg-surface checked:border-[5px] checked:border-primary"
           />
         </span>
-        <span className="text-h3 font-semibold whitespace-pre text-fg">{title}</span>
+        <span className="text-h3 font-semibold whitespace-pre text-fg">{tx(title)}</span>
       </span>
-      {price && <span className="text-base font-medium text-fg">{price}</span>}
+      {price && <span className="text-base font-medium text-fg">{tx(price)}</span>}
       {lines.map((line) => (
         <span key={line} className="text-sm text-fg-secondary">
-          {line}
+          {tx(line)}
         </span>
       ))}
     </label>

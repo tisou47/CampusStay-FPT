@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { formatNumber, formatVnd } from '@/lib/format'
 import { ConfigPage, useConfigForm } from './shared'
+import { t } from '@/i18n'
 
 // SCR-CFG-20 Utility (Figma 100:3830 — utility part).
 // GET /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld,
@@ -18,8 +19,8 @@ const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
 function Head({ title, children }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <h2 className="text-h3 font-semibold text-fg">{title}</h2>
-      <p className="text-sm text-fg-secondary">{children}</p>
+      <h2 className="text-h3 font-semibold text-fg">{t(title)}</h2>
+      <p className="text-sm text-fg-secondary">{t(children)}</p>
     </div>
   )
 }
@@ -36,7 +37,7 @@ export default function UtilitySettings() {
     const value = draft?.[key]
     const bad = toNumber(value) < min
     return (
-      <Field label={label} error={bad ? `Enter ${min} or more` : undefined}>
+      <Field label={label} error={bad ? t('Enter {n} or more', { n: min }) : undefined}>
         {(id) => (
           <Input
             id={id}
@@ -94,7 +95,7 @@ export default function UtilitySettings() {
               {amount('monthsHeld', 'Months held (minimum 2)', 2)}
             </div>
             <div className="flex items-start justify-between text-base">
-              <span className="text-fg-secondary">Utility Deposit per Student</span>
+              <span className="text-fg-secondary">{t('Utility Deposit per Student')}</span>
               <span className="font-medium text-fg-brand tabular">{invalid ? '—' : formatVnd(toNumber(draft.estimateMonthly) * toNumber(draft.monthsHeld))}</span>
             </div>
             <Checkbox

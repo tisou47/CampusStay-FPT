@@ -17,6 +17,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatNumber, formatPercent, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-BIL-20 Block Finance (Figma 61:707)
 // GET /finance/summary?termId&block → { invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }
@@ -34,8 +35,8 @@ function DecisionModal({ refund, decision, onClose }) {
     onSuccess: () => {
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
-        title: `${refund.id} ${decision.toLowerCase()}`,
-        message: decision === 'Approved' ? `${formatVnd(refund.amount)} is paid to ${refund.name}.` : `${refund.name} was notified.`,
+        title: t(decision === 'Approved' ? '{id} approved' : '{id} rejected', { id: refund.id }),
+        message: decision === 'Approved' ? t('{amount} is paid to {name}.', { amount: formatVnd(refund.amount), name: refund.name }) : t('{name} was notified.', { name: refund.name }),
       })
       onClose()
     },
@@ -45,13 +46,13 @@ function DecisionModal({ refund, decision, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={`${decision === 'Approved' ? 'Approve' : 'Reject'} ${refund.id}`}
-      description={`${refund.name} · ${refund.reason}`}
+      title={t(decision === 'Approved' ? 'Approve {id}' : 'Reject {id}', { id: refund.id })}
+      description={`${refund.name} · ${tr(refund.reason)}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant={decision === 'Approved' ? 'primary' : 'danger'} disabled={(needsNote && !note.trim()) || decide.pending} onClick={() => decide.run()}>
-            {decision === 'Approved' ? `Approve ${formatVnd(refund.amount)}` : 'Reject refund'}
+            {decision === 'Approved' ? t('Approve {amount}', { amount: formatVnd(refund.amount) }) : t('Reject refund')}
           </Button>
         </>
       }
@@ -59,7 +60,7 @@ function DecisionModal({ refund, decision, onClose }) {
       {decide.error && <Alert type="error" title="Could not save the decision">{decide.error.message}</Alert>}
       {refund.exception && decision === 'Approved' && (
         <Alert type="warning" title="This refund is above the rule">
-          {refund.rule}. Your reason is written to the audit log for Admin review.
+          {tr(refund.rule)}. {t('Your reason is written to the audit log for Admin review.')}
         </Alert>
       )}
       <Field label={decision === 'Approved' ? 'Reason for the exception' : 'Reason shown to the student'} required={needsNote}>
@@ -107,7 +108,7 @@ function RefundsTab({ scope }) {
             <Th className="w-28">Paid</Th>
             <Th className="w-32">Refund</Th>
             <Th className="w-48">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -119,10 +120,10 @@ function RefundsTab({ scope }) {
               <Td>
                 <TwoLine primary={r.name} secondary={r.studentCode} />
               </Td>
-              <Td>{r.reason}</Td>
-              <Td className="text-sm text-fg-secondary">{r.rule}</Td>
+              <Td>{tr(r.reason)}</Td>
+              <Td className="text-sm text-fg-secondary">{tr(r.rule)}</Td>
               <Td className="tabular">{r.paid != null ? formatNumber(r.paid) : '—'}</Td>
-              <Td className="font-medium whitespace-nowrap tabular">{r.proposedLabel ?? formatNumber(r.amount)}</Td>
+              <Td className="font-medium whitespace-nowrap tabular">{r.proposedLabel ? tr(r.proposedLabel) : formatNumber(r.amount)}</Td>
               <Td>
                 {r.status === 'Pending' ? (
                   <div className="flex items-center gap-1">
@@ -152,7 +153,7 @@ function OverdueTab({ scope }) {
   const [query, pagination] = usePaged(['finance', 'overdue', scope], (p, signal) => api.finance.overdue({ ...scope, ...p }, { signal }))
   const remind = useMutation((o) => api.finance.remind({ invoiceIds: [o.invoiceId] }), {
     invalidates: ['finance'],
-    onSuccess: (_, o) => notify({ title: 'Reminder sent', message: `${o.name} got an email and an in-app reminder for ${o.invoiceId}.` }),
+    onSuccess: (_, o) => notify({ title: 'Reminder sent', message: t('{name} got an email and an in-app reminder for {id}.', { name: o.name, id: o.invoiceId }) }),
     onError: (e) => notifyError(e, 'Could not send the reminder'),
   })
   return (
@@ -167,7 +168,7 @@ function OverdueTab({ scope }) {
             <Th className="w-32">Due</Th>
             <Th className="w-28">Overdue</Th>
             <Th className="w-44">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -179,15 +180,15 @@ function OverdueTab({ scope }) {
               <Td>
                 <TwoLine primary={o.name} secondary={o.studentCode} />
               </Td>
-              <Td>{o.typeLabel}</Td>
+              <Td>{tr(o.typeLabel)}</Td>
               <Td className="tabular">{formatNumber(o.amount)}</Td>
               <Td>{formatDate(o.dueAt)}</Td>
               <Td>
-                <Tag tone="error">{o.daysOverdue} days</Tag>
+                <Tag tone="error">{t('{n} days', { n: o.daysOverdue })}</Tag>
               </Td>
               <Td>
                 <Button icon={Bell} disabled={Boolean(o.remindedAt) || remind.pending} onClick={() => remind.run(o)}>
-                  {o.remindedAt ? `Reminded ${formatDate(o.remindedAt)}` : 'Send reminder'}
+                  {o.remindedAt ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
                 </Button>
               </Td>
             </Tr>
@@ -222,7 +223,7 @@ function AllInvoicesTab({ scope }) {
               <Td>
                 <TwoLine primary={i.name} secondary={i.studentCode} />
               </Td>
-              <Td>{i.typeLabel}</Td>
+              <Td>{tr(i.typeLabel)}</Td>
               <Td className="tabular">{formatNumber(i.amount)}</Td>
               <Td>{formatDate(i.dueAt)}</Td>
               <Td>
@@ -250,8 +251,8 @@ export default function BlockFinance() {
   return (
     <>
       <PageHeader
-        title={block ? `Finance · Block ${block}` : 'Finance'}
-        description={`${term ? `${term.name} invoices and refunds. ` : ''}Refunds follow Admin rules; you approve exceptions and partial refunds.`}
+        title={block ? t('Finance · Block {code}', { code: block }) : 'Collections and refunds'}
+        description={`${term ? `${t('{term} invoices and refunds.', { term: term.name })} ` : ''}${t('Refunds follow Admin rules; you approve exceptions and partial refunds.')}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
@@ -260,7 +261,7 @@ export default function BlockFinance() {
       />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? `${formatNumber(s.invoices)} Invoices` : null} />
+        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? t('{n} Invoices', { n: formatNumber(s.invoices) }) : null} />
         <KpiTile size="md" label="Collected" value={s ? formatVnd(s.collected) : '—'} note={s?.invoiced ? formatPercent(s.collected / s.invoiced, 0) : null} />
         <KpiTile size="md" label="Overdue" value={formatNumber(s?.overdueCount)} note={s ? formatVnd(s.overdueAmount) : null} />
         <KpiTile size="md" label="Refunds pending" value={formatNumber(s?.refundsPendingCount)} note={s ? formatVnd(s.refundsPendingAmount) : null} />

@@ -14,6 +14,7 @@ import { formatDate, formatVnd } from '@/lib/format'
 import { useCatalog } from './apply/wizard'
 import { StudentPage } from './shared'
 import { SwapModePicker, YourRoomNow } from './swap'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-04 Swap Board (Figma 104:2254). Posts are anonymous: no names or Student codes.
 // GET /swap-board?termId → { blocks: ['A','B'], myPost: { block, roomTypeId, roomClassId, expiresAt } | null,
@@ -41,7 +42,7 @@ export default function SwapBoard() {
   })
   const request = useMutation((post) => api.swaps.requestPost(post.id), {
     invalidates: ['swap-board', 'requests'],
-    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'If they request you back, the Block Manager approves the cross-Block swap.' : 'If they request you back, Staff approve the swap.' }),
+    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'If they request you back, a Manager approves the cross-Block swap.' : 'If they request you back, Staff approve the swap.' }),
     onError: (e) => notifyError(e, 'Could not request this swap'),
   })
 
@@ -58,7 +59,7 @@ export default function SwapBoard() {
             <SwapModePicker value="board" />
             <div className="flex items-end gap-4">
               <Field label="Block I want" className="flex-1">
-                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any Block' }, ...blocks.map((b) => ({ value: b, label: `Block ${b}` }))]} />}
+                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any Block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
               </Field>
               <Field label="Room Type" className="flex-1">
                 {(id) => (
@@ -67,7 +68,7 @@ export default function SwapBoard() {
                     size="lg"
                     value={want.roomTypeId}
                     onChange={set('roomTypeId')}
-                    options={[{ value: '', label: 'Choose…', disabled: true }, ...(catalog.data?.roomTypes ?? []).map((t) => ({ value: t.id, label: t.name }))]}
+                    options={[{ value: '', label: 'Choose…', disabled: true }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: type.name }))]}
                   />
                 )}
               </Field>
@@ -83,20 +84,20 @@ export default function SwapBoard() {
                 )}
               </Field>
               <Button variant="primary" size="lg" onClick={() => save.run()} disabled={!want.roomTypeId || !want.roomClassId || !dirty || save.pending}>
-                {myPost ? 'Update post' : 'Post'}
+                {myPost ? t('Update post') : t('Post')}
               </Button>
             </div>
             {myPost?.expiresAt && (
               <Tag tone="info" className="self-start">
-                Your post is live until {formatDate(myPost.expiresAt)}
+                {t('Your post is live until {date}', { date: formatDate(myPost.expiresAt) })}
               </Tag>
             )}
           </Card>
 
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="flex shrink-0 flex-col gap-1">
-              <h2 className="text-h3 font-semibold text-fg">Compatible posts{board.data ? ` (${items.length})` : ''}</h2>
-              <p className="text-base text-fg-secondary">Posts that want your Room and offer what you want. No names or Student codes are shown.</p>
+              <h2 className="text-h3 font-semibold text-fg">{t('Compatible posts')}{board.data ? ` (${items.length})` : ''}</h2>
+              <p className="text-base text-fg-secondary">{t('Posts that want your Room and offer what you want. No names or Student codes are shown.')}</p>
             </div>
             <Table fill>
               <THead>
@@ -106,7 +107,7 @@ export default function SwapBoard() {
                   <Th className="w-50">Wants</Th>
                   <Th className="w-36">Difference</Th>
                   <Th className="w-35">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </Th>
                 </tr>
               </THead>
@@ -117,24 +118,24 @@ export default function SwapBoard() {
                     <Td className="py-2.5">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-medium">
-                          {p.offeredRoomTypeName} · {p.offeredRoomClassName}
+                          {tr(p.offeredRoomTypeName)} · {tr(p.offeredRoomClassName)}
                         </span>
-                        {p.floor && <span className="text-sm text-fg-tertiary">Floor {p.floor}</span>}
+                        {p.floor && <span className="text-sm text-fg-tertiary">{t('Floor {n}', { n: p.floor })}</span>}
                       </div>
                     </Td>
                     <Td>{p.block}</Td>
-                    <Td>{p.wants}</Td>
+                    <Td>{tr(p.wants)}</Td>
                     <Td className="font-medium text-fg-brand">{signed(p.priceDifference)}</Td>
                     <Td>
                       <Button onClick={() => request.run(p)} disabled={p.requested || request.pending}>
-                        {p.requested ? 'Requested' : 'Request swap'}
+                        {p.requested ? t('Requested') : t('Request swap')}
                       </Button>
                     </Td>
                   </Tr>
                 ))}
               </TBody>
             </Table>
-            <p className="shrink-0 text-sm text-fg-tertiary">When both sides request each other, the swap goes to Staff (same Block) or the Block Manager (cross-Block) for approval.</p>
+            <p className="shrink-0 text-sm text-fg-tertiary">{t('When both sides request each other, the swap goes to Staff (same Block) or a Manager (cross-Block) for approval.')}</p>
           </Card>
         </div>
         <YourRoomNow />

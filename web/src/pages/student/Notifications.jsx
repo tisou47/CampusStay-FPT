@@ -7,6 +7,7 @@ import { QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatDateTime } from '@/lib/format'
 import { StudentPage } from './shared'
+import { t } from '@/i18n'
 
 // Notifications (phone: MOB-NTF-01 Notifications, Figma 58:474). The App Bar's bell opens this page;
 // on a wide screen the bell keeps its popover. Unread items sit on bg/brand-subtle with a brand dot.
@@ -31,12 +32,12 @@ export default function Notifications() {
       actions={
         unread > 0 && (
           <Button size="lg" onClick={() => markAll.run()} disabled={markAll.pending}>
-            Mark all read
+            {t('Mark all read')}
           </Button>
         )
       }
     >
-      <QueryState query={query} empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">You have no notifications.</p>} isEmpty={(d) => !d?.items?.length}>
+      <QueryState query={query} empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">{t('You have no notifications.')}</p>} isEmpty={(d) => !d?.items?.length}>
         {(data) => (
           <ul className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface lg:min-h-0 lg:overflow-y-auto lg:rounded-lg">
             {data.items.map((n) => (
@@ -54,7 +55,7 @@ export default function Notifications() {
                   </span>
                   {!n.read && (
                     <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary">
-                      <span className="sr-only">Unread</span>
+                      <span className="sr-only">{t('Unread')}</span>
                     </span>
                   )}
                 </button>

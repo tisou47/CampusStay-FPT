@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { useOneBlock } from '@/components/layout/BlockPicker'
 import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Choice'
 import { Alert, Card } from '@/components/ui/Display'
@@ -12,6 +12,7 @@ import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-20 Request Routing Rules (Figma 69:949)
 // GET /routing-rules?block → { rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }],
@@ -34,7 +35,7 @@ function RuleModal({ rule, data, block, onClose }) {
     invalidates: ['routing', 'dashboard'],
     onSuccess: () => {
       const name = data.staff.find((s) => s.id === form.assigneeId)?.name
-      notify({ title: isNew ? 'Rule added' : 'Rule saved', message: name ? `New ${form.scope} requests go to ${name}.` : undefined })
+      notify({ title: isNew ? 'Rule added' : 'Rule saved', message: name ? t('New {scope} requests go to {name}.', { scope: tr(form.scope), name }) : undefined })
       onClose()
     },
     onError: () => {},
@@ -80,14 +81,14 @@ function RuleModal({ rule, data, block, onClose }) {
 }
 
 export default function RoutingRules() {
-  const { block } = useSession()
+  const { block, picker } = useOneBlock()
   const { notify, notifyError } = useToast()
-  const query = useQuery(['routing', block], ({ signal }) => api.routing.get({ block: block ?? undefined }, { signal }))
+  const query = useQuery(['routing', block], ({ signal }) => api.routing.get({ block: block ?? undefined }, { signal }), { enabled: Boolean(block) })
   const data = query.data
   const [editing, setEditing] = useState(null)
   const toggle = useMutation((r, active) => api.routing.save(r.id, { active }), {
     invalidates: ['routing'],
-    onSuccess: (_, r, active) => notify({ type: 'info', title: active ? 'Rule turned on' : 'Rule turned off', message: `${r.type} · ${r.scope}` }),
+    onSuccess: (_, r, active) => notify({ type: 'info', title: active ? 'Rule turned on' : 'Rule turned off', message: `${tr(r.type)} · ${tr(r.scope)}` }),
     onError: (e) => notifyError(e, 'Could not change the rule'),
   })
   const saveTimer = useMutation((timers) => api.routing.saveTimers({ block, ...timers }), {
@@ -100,12 +101,15 @@ export default function RoutingRules() {
   return (
     <>
       <PageHeader
-        title={block ? `Routing rules · Block ${block}` : 'Routing rules'}
+        title={block ? t('Routing rules · Block {code}', { code: block }) : 'Routing rules'}
         description="Who receives each new request automatically. Unmatched requests go to the Block queue for manual assignment."
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!data}>
-            Add rule
-          </Button>
+          <>
+            {picker}
+            <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!data}>
+              Add rule
+            </Button>
+          </>
         }
       />
       {(data?.gaps ?? []).map((g) => (
@@ -116,7 +120,7 @@ export default function RoutingRules() {
           className="shrink-0"
           action={g.ruleId && <Button onClick={() => setEditing(data.rules.find((r) => r.id === g.ruleId) ?? {})}>Fix rule</Button>}
         >
-          {g.message}
+          {tr(g.message)}
         </Alert>
       ))}
       <Table fill>
@@ -129,7 +133,7 @@ export default function RoutingRules() {
             <Th className="w-44">Fallback</Th>
             <Th className="w-18">Active</Th>
             <Th className="w-18">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -139,14 +143,14 @@ export default function RoutingRules() {
             <Tr key={r.id} className="[&>td]:h-15">
               <Td>{i + 1}</Td>
               <Td>
-                <TwoLine primary={r.type} secondary={r.scope} />
+                <TwoLine primary={tr(r.type)} secondary={tr(r.scope)} />
               </Td>
               <Td className={r.condition ? undefined : 'text-fg-tertiary'}>{r.condition || '—'}</Td>
               <Td className={r.assigneeName ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{r.assigneeName ?? 'Not set'}</Td>
               <Td className={r.fallbackName ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{r.fallbackName ?? '—'}</Td>
               <Td>
                 <Switch
-                  aria-label={`Rule ${i + 1} active`}
+                  aria-label={t('Rule {n} active', { n: i + 1 })}
                   checked={r.active}
                   disabled={toggle.pending}
                   onChange={(on) => (on && !r.assigneeId ? setEditing(r) : toggle.run(r, on))}
@@ -163,8 +167,8 @@ export default function RoutingRules() {
       </Table>
 
       <Card className="flex shrink-0 flex-col gap-3">
-        <h2 className="text-h3 font-semibold text-fg">Escalation timers</h2>
-        <p className="text-sm text-fg-tertiary">A request that is not resolved in time is escalated to you. Limits come from Admin; you can only make them stricter.</p>
+        <h2 className="text-h3 font-semibold text-fg">{t('Time limits')}</h2>
+        <p className="text-sm text-fg-tertiary">{t('A request that is not resolved in time shows in Overdue requests for every Manager. Limits come from Admin; you can only make them stricter.')}</p>
         <div className="flex gap-4">
           {[
             ['urgent', 'Urgent: escalate after'],

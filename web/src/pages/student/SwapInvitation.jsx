@@ -8,6 +8,7 @@ import { Alert, Card } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-05 Swap Invitation (Figma 104:2490) — seen by the partner Student.
 // GET /swap-invitations/:id → { id, status, expiresAt, crossBlock, priceDifference,
@@ -17,12 +18,12 @@ import { StudentPage } from './shared'
 function RoomBox({ label, room }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md bg-subtle p-4">
-      <p className="text-sm font-medium text-fg-tertiary">{label}</p>
+      <p className="text-sm font-medium text-fg-tertiary">{t(label)}</p>
       <p className="text-h3 font-semibold text-fg">
-        {room.room} · Bed {room.bed}
+        {t('{room} · Bed {bed}', { room: room.room, bed: room.bed })}
       </p>
-      <p className="text-base text-fg-secondary">{[room.roomTypeName, room.roomClassName, room.block && `Block ${room.block}`].filter(Boolean).join(' · ')}</p>
-      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{formatVnd(room.termPrice)} per Term</p>}
+      <p className="text-base text-fg-secondary">{[tr(room.roomTypeName), tr(room.roomClassName), room.block && t('Block {code}', { code: room.block })].filter(Boolean).join(' · ')}</p>
+      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} per Term', { price: formatVnd(room.termPrice) })}</p>}
     </div>
   )
 }
@@ -35,7 +36,7 @@ function Invitation({ inv }) {
     onSuccess: (_, accept) => {
       notify(
         accept
-          ? { title: 'Swap accepted', message: inv.crossBlock ? 'The Block Manager reviews the cross-Block swap.' : 'Staff review the swap and set the move date.' }
+          ? { title: 'Swap accepted', message: inv.crossBlock ? 'A Manager reviews the cross-Block swap.' : 'Staff review the swap and set the move date.' }
           : { type: 'info', title: 'Swap declined', message: 'The other Student only sees that the invitation was not accepted.' },
       )
       navigate('/student/requests?tab=swaps')
@@ -48,28 +49,28 @@ function Invitation({ inv }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {open ? (
-        <Alert type="warning" title={`Reply by ${formatDateTime(inv.expiresAt)}`} className="shrink-0">
-          If you do not reply in time, the invitation expires.
+        <Alert type="warning" title={t('Reply by {date}', { date: formatDateTime(inv.expiresAt) })} className="shrink-0">
+          {t('If you do not reply in time, the invitation expires.')}
         </Alert>
       ) : (
-        <Alert type="info" title={`This invitation is ${String(inv.status).toLowerCase()}`} className="shrink-0" />
+        <Alert type="info" title={t('This invitation is {status}', { status: tr(inv.status) })} className="shrink-0" />
       )}
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">A Student wants to swap Rooms with you</h2>
-          <p className="text-base text-fg-secondary">Their name and code stay private until the swap is approved.</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('A Student wants to swap Rooms with you')}</h2>
+          <p className="text-base text-fg-secondary">{t('Their name and code stay private until the swap is approved.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
           <RoomBox label="You give" room={inv.give} />
           <RoomBox label="You get" room={inv.get} />
         </div>
         <div className="flex justify-between text-base">
-          <span className="text-fg-secondary">Price difference for the rest of the Term</span>
+          <span className="text-fg-secondary">{t('Price difference for the rest of the Term')}</span>
           <span className={diff > 0 ? 'font-medium text-fg' : 'font-medium text-success-fg'}>
-            {diff === 0 ? 'None' : diff > 0 ? `+ ${formatVnd(diff)} (invoiced)` : `− ${formatVnd(-diff)} (credited)`}
+            {diff === 0 ? t('None') : diff > 0 ? t('+ {amount} (invoiced)', { amount: formatVnd(diff) }) : t('− {amount} (credited)', { amount: formatVnd(-diff) })}
           </span>
         </div>
-        <p className="text-sm text-fg-tertiary">After approval you move on the move date. Meter readings are taken for both Rooms.</p>
+        <p className="text-sm text-fg-tertiary">{t('After approval you move on the move date. Meter readings are taken for both Rooms.')}</p>
       </Card>
       {open && (
         <div className="flex shrink-0 justify-end gap-3">

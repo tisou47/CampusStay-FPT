@@ -13,6 +13,7 @@ import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-AUTH-11 Users and Roles (Figma 63:2150)
 // GET /admin/users?q&role&block&status&page&pageSize → { items: [{ id, name, email, role, scope, lastSignInAt, status }], total,
@@ -30,7 +31,7 @@ function UserModal({ user, roles, scopes, onClose }) {
   const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
     invalidates: ['admin-users'],
     onSuccess: () => {
-      notify({ title: isNew ? 'Invite sent' : `${form.name} updated`, message: isNew ? `${form.email} can sign in after accepting the invite.` : 'The change is written to the Audit Log.' })
+      notify({ title: isNew ? t('Invite sent') : t('{name} updated', { name: form.name }), message: isNew ? t('{email} can sign in after accepting the invite.', { email: form.email }) : 'The change is written to the Audit Log.' })
       onClose()
     },
     onError: () => {},
@@ -39,13 +40,13 @@ function UserModal({ user, roles, scopes, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={isNew ? 'Invite user' : `Edit ${user.name}`}
+      title={isNew ? 'Invite user' : t('Edit {name}', { name: user.name })}
       description={isNew ? 'They get an email with a sign-in link for their FPT account.' : undefined}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Check} disabled={!form.name.trim() || !form.email.trim().endsWith('@fpt.edu.vn') || save.pending} onClick={() => save.run()}>
-            {isNew ? 'Send invite' : 'Save'}
+            {isNew ? t('Send invite') : t('Save')}
           </Button>
         </>
       }
@@ -63,9 +64,15 @@ function UserModal({ user, roles, scopes, onClose }) {
         <Field label="Role" className="flex-1">
           {(id) => <Select id={id} value={form.role} onChange={set('role')} options={roles} />}
         </Field>
-        <Field label="Block scope" className="flex-1">
-          {(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={scopes} />}
-        </Field>
+        {form.role === 'Staff' ? (
+          <Field label="Block scope" className="flex-1">
+            {(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={scopes} />}
+          </Field>
+        ) : (
+          <Field label="Block scope" helper="Managers and Admins work for every Block." className="flex-1">
+            {(id) => <Input id={id} value={t('All Blocks')} disabled />}
+          </Field>
+        )}
       </div>
       {!isNew && (
         <Field label="Status" helper="Disabled users cannot sign in; their history stays in the Audit Log.">
@@ -113,10 +120,10 @@ export default function UsersRoles() {
         }
       />
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label="Search" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-44" aria-label="Role" value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...(d?.roles ?? []).map((r) => ({ value: r, label: `Role: ${r}` }))]} />
-        <Select wrapperClassName="w-35" aria-label="Block" value={block} onChange={filter(setBlock)} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: `Block: ${b}` }))]} />
-        <Select wrapperClassName="w-38" aria-label="Status" value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...['Active', 'Invited', 'Disabled'].map((s) => ({ value: s, label: `Status: ${s}` }))]} />
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select wrapperClassName="w-44" aria-label={t('Role')} value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...(d?.roles ?? []).map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
+        <Select wrapperClassName="w-35" aria-label={t('Block')} value={block} onChange={filter(setBlock)} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
+        <Select wrapperClassName="w-38" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...['Active', 'Invited', 'Disabled'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
@@ -129,7 +136,7 @@ export default function UsersRoles() {
                 <Th className="w-36">Last sign-in</Th>
                 <Th className="w-24">Status</Th>
                 <Th className="w-12">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t('Actions')}</span>
                 </Th>
               </tr>
             </THead>
@@ -143,14 +150,14 @@ export default function UsersRoles() {
                       <TwoLine primary={u.name} secondary={u.email} />
                     </div>
                   </Td>
-                  <Td className="whitespace-nowrap">{u.role}</Td>
-                  <Td>{u.scope}</Td>
+                  <Td className="whitespace-nowrap">{t(u.role)}</Td>
+                  <Td>{tr(u.scope)}</Td>
                   <Td className={u.lastSignInAt ? undefined : 'text-fg-tertiary'}>{u.lastSignInAt ? formatDateTime(u.lastSignInAt) : '—'}</Td>
                   <Td>
                     <Tag tone={statusTone[u.status] ?? 'neutral'}>{u.status}</Tag>
                   </Td>
                   <Td>
-                    <IconButton icon={Pencil} size="sm" aria-label={`Edit ${u.name}`} onClick={() => setEditing(u)} />
+                    <IconButton icon={Pencil} size="sm" aria-label={t('Edit {name}', { name: u.name })} onClick={() => setEditing(u)} />
                   </Td>
                 </Tr>
               ))}
@@ -170,19 +177,19 @@ export default function UsersRoles() {
           </div>
         </div>
         <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-2.5 overflow-y-auto">
-          <h2 className="text-h3 font-semibold text-fg">Role permissions</h2>
-          <p className="text-sm text-fg-tertiary">Fixed by role; Block scope limits every list.</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('Role permissions')}</h2>
+          <p className="text-sm text-fg-tertiary">{t('Fixed by role. Staff see their Blocks; Managers and Admins see every Block.')}</p>
           <QueryState query={perms} compact isEmpty={(p) => !p.rows?.length}>
             {(p) => (
               <table className="w-full text-base">
                 <thead>
                   <tr className="bg-subtle text-sm font-medium text-fg-secondary">
                     <th scope="col" className="rounded-l-sm py-1.5 pl-1 text-left font-medium">
-                      Action
+                      {t('Action')}
                     </th>
                     {p.roles.map((r, i) => (
                       <th key={r.key} scope="col" className={i === p.roles.length - 1 ? 'w-12 rounded-r-sm py-1.5 text-center font-medium' : 'w-12 py-1.5 text-center font-medium'}>
-                        {r.short}
+                        {tr(r.short)}
                       </th>
                     ))}
                   </tr>
@@ -191,11 +198,11 @@ export default function UsersRoles() {
                   {p.rows.map((row) => (
                     <tr key={row.action}>
                       <th scope="row" className="py-1.5 text-left font-normal text-fg">
-                        {row.action}
+                        {tr(row.action)}
                       </th>
                       {row.allowed.map((ok, i) => (
                         <td key={i} className="text-center">
-                          {ok ? <Check size={16} aria-label="Allowed" className="mx-auto text-success" /> : <X size={16} aria-label="Not allowed" className="mx-auto text-fg-disabled" />}
+                          {ok ? <Check size={16} aria-label={t('Allowed')} className="mx-auto text-success" /> : <X size={16} aria-label={t('Not allowed')} className="mx-auto text-fg-disabled" />}
                         </td>
                       ))}
                     </tr>

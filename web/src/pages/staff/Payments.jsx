@@ -17,6 +17,7 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber, formatPercent, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-BIL-10 Payments (Figma 23:614) and "Confirm manual payment" modal (23:1128).
 // GET /payments?termId&block&q&type&status&method&date&page&pageSize → {
@@ -52,7 +53,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
     {
       invalidates: ['payments', 'applications', 'dashboard'],
       onSuccess: () => {
-        notify({ title: 'Payment confirmed', message: `${payment.invoiceId} · ${formatVnd(payment.amount)} from ${payment.studentName}.` })
+        notify({ title: 'Payment confirmed', message: t('{id} · {amount} from {name}.', { id: payment.invoiceId, amount: formatVnd(payment.amount), name: payment.studentName }) })
         onClose()
       },
       onError: () => {},
@@ -60,7 +61,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
   )
   if (!payment) return null
   const numeric = Number(amount.replaceAll(',', ''))
-  const amountError = numeric !== payment.amount ? 'Must equal the expected amount. Partial payments are not accepted.' : undefined
+  const amountError = numeric !== payment.amount ? t('Must equal the expected amount. Partial payments are not accepted.') : undefined
 
   return (
     <Modal
@@ -71,7 +72,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Check} disabled={Boolean(amountError) || !reference.trim() || !matched || confirm.pending} onClick={() => confirm.run()}>
-            {confirm.pending ? 'Confirming…' : 'Confirm payment'}
+            {confirm.pending ? t('Confirming…') : t('Confirm payment')}
           </Button>
         </>
       }
@@ -81,7 +82,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
         <DetailRows
           rowClassName="py-0.75"
           rows={[
-            ['Invoice', <span className="font-medium">{payment.invoiceId} · {payment.typeLabel}</span>],
+            ['Invoice', <span className="font-medium">{payment.invoiceId} · {tr(payment.typeLabel)}</span>],
             ['Student', <span className="font-medium">{payment.studentName} · {payment.studentCode}</span>],
             ['Expected amount', <span className="font-medium">{formatVnd(payment.amount)}</span>],
             ['Transfer content', <span className="font-medium">{payment.transferContent ?? '—'}</span>],
@@ -102,7 +103,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
       ) : (
         <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
           <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-          <span className="text-base text-fg">{file ? file.name : 'Attach transfer receipt'}</span>
+          <span className="text-base text-fg">{file ? file.name : t('Attach transfer receipt')}</span>
           <input ref={fileInput} type="file" accept="image/*,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </button>
       )}
@@ -151,7 +152,7 @@ export default function Payments() {
     <>
       <PageHeader
         title="Payments"
-        description="VietQR payments confirm automatically; manual transfers need Staff confirmation."
+        description="Students mark a transfer; a Manager confirms it against the bank statement."
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
@@ -160,7 +161,7 @@ export default function Payments() {
       />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Banknote} label="Collected today" value={s ? formatVnd(s.collectedToday) : '—'} note={s ? `${formatNumber(s.collectedTodayCount)} payments` : null} />
+        <KpiTile size="md" icon={Banknote} label="Collected today" value={s ? formatVnd(s.collectedToday) : '—'} note={s ? t('{n} payments', { n: formatNumber(s.collectedTodayCount) }) : null} />
         <KpiTile size="md" icon={Clock} label="Awaiting confirmation" value={formatNumber(s?.awaitingConfirmation)} valueTone={s?.awaitingConfirmation ? 'warning' : undefined} note="Manual transfers" />
         <KpiTile size="md" icon={TriangleAlert} label="Unpaid deposits" value={formatNumber(s?.unpaidDeposits)} note="Expire at their deadline" />
         <KpiTile
@@ -168,15 +169,15 @@ export default function Payments() {
           icon={CreditCard}
           label="Deposits paid"
           value={s ? `${formatNumber(s.depositsPaid)} / ${formatNumber(s.depositsSubmitted)}` : '—'}
-          note={s?.depositsSubmitted ? `${formatPercent(s.depositsPaid / s.depositsSubmitted, 0)} of submitted` : null}
+          note={s?.depositsSubmitted ? t('{p} of submitted', { p: formatPercent(s.depositsPaid / s.depositsSubmitted, 0) }) : null}
         />
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label="Search" placeholder="Search Invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search Invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-38"
-          aria-label="Type"
+          aria-label={t('Type')}
           value={type}
           onChange={filter(setType)}
           options={[
@@ -189,7 +190,7 @@ export default function Payments() {
         />
         <Select
           wrapperClassName="w-44"
-          aria-label="Status"
+          aria-label={t('Status')}
           value={status}
           onChange={filter(setStatus)}
           options={[
@@ -201,7 +202,7 @@ export default function Payments() {
         />
         <Select
           wrapperClassName="w-39"
-          aria-label="Method"
+          aria-label={t('Method')}
           value={method}
           onChange={filter(setMethod)}
           options={[
@@ -212,7 +213,7 @@ export default function Payments() {
         />
         <Select
           wrapperClassName="w-42"
-          aria-label="Date"
+          aria-label={t('Date')}
           value={date}
           onChange={filter(setDate)}
           options={[
@@ -236,7 +237,7 @@ export default function Payments() {
             <Th className="w-40">Paid at</Th>
             <Th>Status</Th>
             <Th className="w-22">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
@@ -248,12 +249,12 @@ export default function Payments() {
               <Td>
                 <TwoLine primary={p.studentName} secondary={p.studentCode} />
               </Td>
-              <Td>{p.typeLabel}</Td>
+              <Td>{tr(p.typeLabel)}</Td>
               <Td align="right" className="whitespace-nowrap">
                 {formatVnd(p.amount)}
               </Td>
-              <Td className={p.method ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{p.method ?? '—'}</Td>
-              <Td className={p.paidAt ? 'whitespace-nowrap' : 'max-w-40 truncate text-fg-tertiary'}>{p.paidAt ? formatDateTime(p.paidAt) : `— due ${formatDateTime(p.dueAt)}`}</Td>
+              <Td className={p.method ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{tr(p.method) || '—'}</Td>
+              <Td className={p.paidAt ? 'whitespace-nowrap' : 'max-w-40 truncate text-fg-tertiary'}>{p.paidAt ? formatDateTime(p.paidAt) : `— ${t('due {date}', { date: formatDateTime(p.dueAt) })}`}</Td>
               <Td>{p.status === AWAITING ? <Tag tone="warning">{AWAITING}</Tag> : <StatusTag status={p.status} />}</Td>
               <Td onClick={stop}>
                 {p.status === AWAITING ? (
@@ -287,7 +288,7 @@ export default function Payments() {
       <Modal
         open={Boolean(view)}
         onClose={() => setView(null)}
-        title={view ? `${view.invoiceId} · ${view.typeLabel}` : ''}
+        title={view ? `${view.invoiceId} · ${tr(view.typeLabel)}` : ''}
         description={view ? `${view.studentName} · ${view.studentCode}` : ''}
         footer={<Button onClick={() => setView(null)}>Close</Button>}
       >
@@ -295,8 +296,8 @@ export default function Payments() {
           <DetailRows
             rows={[
               ['Amount', <span className="font-medium">{formatVnd(view.amount)}</span>],
-              ['Method', view.method ?? '—'],
-              ['Paid at', view.paidAt ? formatDateTime(view.paidAt) : `Not paid · due ${formatDateTime(view.dueAt)}`],
+              ['Method', tr(view.method) || '—'],
+              ['Paid at', view.paidAt ? formatDateTime(view.paidAt) : t('Not paid · due {date}', { date: formatDateTime(view.dueAt) })],
               ['Status', <StatusTag status={view.status} />],
               ['Transfer content', view.transferContent ?? '—'],
               ...(view.reference ? [['Bank reference', view.reference]] : []),

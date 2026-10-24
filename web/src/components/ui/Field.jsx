@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Input and Select (maps to Ant Design <Input> / <Select>).
@@ -30,29 +31,30 @@ export function Field({ label, hint, helper, error, required, className, childre
     <div className={cx('flex min-w-0 flex-col gap-1', className)}>
       {label && (
         <label htmlFor={id} className="flex items-baseline gap-1 text-base font-medium text-fg">
-          {label}
+          {tx(label)}
           {required && <span className="text-error-fg">*</span>}
-          {hint && <span className="ml-auto text-sm font-normal text-fg-tertiary">{hint}</span>}
+          {hint && <span className="ml-auto text-sm font-normal text-fg-tertiary">{tx(hint)}</span>}
         </label>
       )}
       {typeof children === 'function' ? children(id) : children}
       {error ? (
-        <p className="text-sm text-error-fg">{error}</p>
+        <p className="text-sm text-error-fg">{tx(error)}</p>
       ) : helper ? (
-        <p className="text-sm text-fg-tertiary">{helper}</p>
+        <p className="text-sm text-fg-tertiary">{tx(helper)}</p>
       ) : null}
     </div>
   )
 }
 
-export function Input({ size = 'md', invalid, className, ...props }) {
-  return <input className={cx(controlClasses({ size, invalid }), className)} aria-invalid={invalid || undefined} {...props} />
+export function Input({ size = 'md', invalid, className, placeholder, ...props }) {
+  return <input className={cx(controlClasses({ size, invalid }), className)} aria-invalid={invalid || undefined} placeholder={tx(placeholder)} {...props} />
 }
 
-export function Textarea({ size = 'md', invalid, className, rows = 4, ...props }) {
+export function Textarea({ size = 'md', invalid, className, rows = 4, placeholder, ...props }) {
   return (
     <textarea
       rows={rows}
+      placeholder={tx(placeholder)}
       className={cx(controlClasses({ size, invalid }), 'h-auto resize-y py-2', size === 'lg' ? 'py-2.5' : 'py-1.5', className)}
       aria-invalid={invalid || undefined}
       {...props}
@@ -76,7 +78,7 @@ export function Select({ size = 'md', invalid, options = [], className, wrapperC
             const o = typeof opt === 'string' ? { value: opt, label: opt } : opt
             return (
               <option key={o.value} value={o.value} disabled={o.disabled}>
-                {o.label}
+                {tx(o.label)}
               </option>
             )
           })}
@@ -94,7 +96,7 @@ export function Select({ size = 'md', invalid, options = [], className, wrapperC
 }
 
 /** Search box used in filter bars: 16 px search glyph, tertiary placeholder. */
-export function SearchInput({ size = 'md', className, wrapperClassName, ...props }) {
+export function SearchInput({ size = 'md', className, wrapperClassName, placeholder, ...props }) {
   return (
     <div className={cx('relative min-w-0', wrapperClassName)}>
       <Search
@@ -102,7 +104,7 @@ export function SearchInput({ size = 'md', className, wrapperClassName, ...props
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-fg-tertiary"
       />
-      <input type="search" className={cx(controlClasses({ size }), 'pl-9', className)} {...props} />
+      <input type="search" className={cx(controlClasses({ size }), 'pl-9', className)} placeholder={tx(placeholder)} {...props} />
     </div>
   )
 }
@@ -117,7 +119,7 @@ export function StaticField({ size = 'md', className, children }) {
         className,
       )}
     >
-      <span className="truncate">{children}</span>
+      <span className="truncate">{tx(children)}</span>
     </div>
   )
 }

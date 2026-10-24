@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { CircleCheck, Info, TriangleAlert, X } from 'lucide-react'
 import { cx } from '@/lib/cx'
+import { tr, tx } from '@/i18n'
 
 /* Ant Design style message toasts, top-centre, Elevation/2. notify({ type, title, message }). */
 
@@ -65,10 +66,10 @@ export function Toaster() {
           >
             <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', look.color)} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="text-base font-medium text-fg">{t.title}</p>
-              {t.message && <p className="text-base text-fg-secondary">{t.message}</p>}
+              <p className="text-base font-medium text-fg">{tx(t.title)}</p>
+              {t.message && <p className="text-base text-fg-secondary">{tx(t.message)}</p>}
             </div>
-            <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="shrink-0 rounded text-fg-tertiary hover:text-fg">
+            <button type="button" onClick={() => dismiss(t.id)} aria-label={tr('Dismiss')} className="shrink-0 rounded text-fg-tertiary hover:text-fg">
               <X size={16} aria-hidden="true" />
             </button>
           </div>

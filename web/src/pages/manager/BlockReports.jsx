@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { formatDate, formatNumber } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-RPT-10 Block Reports (Figma 70:1180)
 // GET /reports/block?termId&block → { allocated, weekly: [{ label, value }], notCheckedIn, followUpBy }
@@ -27,7 +28,7 @@ export default function BlockReports() {
   const query = useQuery(['reports', 'block', scope], ({ signal }) => api.reports.block(scope, { signal }))
   const d = query.data
   const exporting = useMutation((report) => api.exports.download(`block-${report.key}`, scope, `block-${block ?? 'all'}-${report.key}.xlsx`), {
-    onSuccess: (_, report) => notify({ title: `${report.title} report exported`, message: [block && `Block ${block}`, term?.name].filter(Boolean).join(' · ') }),
+    onSuccess: (_, report) => notify({ title: t('{report} report exported', { report: t(report.title) }), message: [block && t('Block {code}', { code: block }), term?.name].filter(Boolean).join(' · ') }),
     onError: (e) => notifyError(e, 'Export failed'),
   })
   const top = Math.max(1, d?.allocated ?? 0, ...(d?.weekly ?? []).map((w) => w.value))
@@ -35,8 +36,8 @@ export default function BlockReports() {
   return (
     <>
       <PageHeader
-        title={block ? `Reports · Block ${block}` : 'Reports'}
-        description={`${term ? `${term.name} · ` : ''}Data refreshes nightly. Exports are .xlsx and include only your Block.`}
+        title={block ? t('Reports · Block {code}', { code: block }) : 'Reports'}
+        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are .xlsx and include the Blocks in your scope.')}`}
       />
 
       <div className="flex shrink-0 items-stretch gap-4">
@@ -46,9 +47,9 @@ export default function BlockReports() {
             <Card key={r.key} padding="sm" className="flex min-w-0 flex-1 flex-col items-start gap-2">
               <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
                 <Glyph size={20} aria-hidden="true" className="text-fg-brand" />
-                {r.title}
+                {t(r.title)}
               </h2>
-              <p className="text-sm text-fg-secondary">{r.body}</p>
+              <p className="text-sm text-fg-secondary">{t(r.body)}</p>
               <Button icon={Download} onClick={() => exporting.run(r)} disabled={exporting.pending} className="mt-auto">
                 Export .xlsx
               </Button>
@@ -59,25 +60,26 @@ export default function BlockReports() {
 
       <Card className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 items-start justify-between">
-          <h2 className="text-h3 font-semibold text-fg">Checked-in residents by week</h2>
-          {d?.allocated != null && <span className="text-sm text-fg-tertiary">of {formatNumber(d.allocated)} allocated</span>}
+          <h2 className="text-h3 font-semibold text-fg">{t('Checked-in residents by week')}</h2>
+          {d?.allocated != null && <span className="text-sm text-fg-tertiary">{t('of {n} allocated', { n: formatNumber(d.allocated) })}</span>}
         </div>
         <QueryState query={query} compact isEmpty={(x) => !x.weekly?.length} empty={<EmptyBlock title="No check-ins yet this Term" />}>
           {(data) => (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              <ul className="flex min-h-0 flex-1 items-end gap-10 px-6 pt-2" aria-label="Checked-in residents by week">
+              <ul className="flex min-h-0 flex-1 items-end gap-10 px-6 pt-2" aria-label={t('Checked-in residents by week')}>
                 {data.weekly.map((w) => (
-                  <li key={w.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5" title={`${w.label}: ${formatNumber(w.value)} checked in`}>
+                  <li key={w.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5" title={t('{week}: {n} checked in', { week: tr(w.label), n: formatNumber(w.value) })}>
                     <span className="text-base font-medium text-fg tabular">{formatNumber(w.value)}</span>
                     <span aria-hidden="true" className={w.value ? 'w-14 rounded-t-sm bg-accent' : 'h-0.5 w-14 rounded-t-sm bg-line'} style={w.value ? { height: `${Math.max(2, (w.value / top) * 80)}%` } : undefined} />
-                    <span className="text-sm whitespace-nowrap text-fg-secondary">{w.label}</span>
+                    <span className="text-sm whitespace-nowrap text-fg-secondary">{tr(w.label)}</span>
                   </li>
                 ))}
               </ul>
               <div className="h-px w-full shrink-0 bg-line-strong" />
               {data.notCheckedIn != null && (
                 <p className="shrink-0 text-sm text-fg-tertiary">
-                  {formatNumber(data.notCheckedIn)} allocated students have not checked in yet{data.followUpBy ? `; Staff contact them before ${formatDate(data.followUpBy)}` : ''}.
+                  {t('{n} allocated students have not checked in yet.', { n: formatNumber(data.notCheckedIn) })}
+                  {data.followUpBy ? ` ${t('Staff contact them before {date}.', { date: formatDate(data.followUpBy) })}` : ''}
                 </p>
               )}
             </div>

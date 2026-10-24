@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { ConfigPage, useConfigForm } from './shared'
+import { tr } from '@/i18n'
 
 // SCR-CFG-08 System Parameters (Figma 71:3286)
 // GET /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options }] }] }
@@ -43,7 +44,7 @@ export default function SystemParameters() {
       <div className="flex min-h-0 items-stretch gap-4">
         {sections.map((s, si) => (
           <Card key={s.title} className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-            <h2 className="text-h3 font-semibold text-fg">{s.title}</h2>
+            <h2 className="text-h3 font-semibold text-fg">{tr(s.title)}</h2>
             {s.fields.map((f) => {
               const bad = isBad(f)
               return (

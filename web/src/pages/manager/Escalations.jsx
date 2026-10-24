@@ -13,6 +13,7 @@ import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-REQ-21 Escalations (Figma 69:1335)
 // GET /escalations?termId&block → { items: [{ id, kind: 'maintenance'|'room-change', title, subtitle, room, why, tone, openFor, ownerName,
@@ -32,8 +33,8 @@ function Detail({ item, assignees }) {
     onSuccess: (_, body) =>
       notify(
         body.action === 'reassign'
-          ? { title: `${item.id} reassigned`, message: `${assignees.find((a) => a.id === body.assigneeId)?.name ?? 'The new owner'} was notified. The escalation is closed.` }
-          : { type: 'info', title: 'Temporary Bed offer recorded', message: `The escalation for ${item.id} is closed and nobody is notified. Tell the student; the move happens when Staff decide the request in the Room-Change Queue.` },
+          ? { title: t('{id} reassigned', { id: item.id }), message: t('{name} was notified. The request is no longer overdue.', { name: assignees.find((a) => a.id === body.assigneeId)?.name ?? t('The new owner') }) }
+          : { type: 'info', title: 'Temporary Bed offer recorded', message: t('{id} is no longer overdue and nobody is notified. Tell the student; the move happens when the request is decided in Room changes.', { id: item.id }) },
       ),
     onError: (e) => notifyError(e, 'Could not save the action'),
   })
@@ -46,14 +47,14 @@ function Detail({ item, assignees }) {
           {item.id}
           {item.room ? ` · ${item.room}` : ''}
         </p>
-        <h2 className="text-h3 font-semibold text-fg">{item.title}</h2>
+        <h2 className="text-h3 font-semibold text-fg">{tr(item.title)}</h2>
       </div>
       <ol className="flex flex-col gap-3">
         {events.map((e) => (
           <li key={`${e.at}-${e.text}`} className="flex items-start gap-2.5">
             <Clock size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
             <div className="flex min-w-0 flex-col">
-              <p className="text-base text-fg">{e.text}</p>
+              <p className="text-base text-fg">{tr(e.text)}</p>
               <p className="text-sm text-fg-tertiary">{formatDateTime(e.at)}</p>
             </div>
           </li>
@@ -61,14 +62,14 @@ function Detail({ item, assignees }) {
       </ol>
       {item.handled ? (
         <Alert type="success" title="Handled">
-          {item.handled.note || 'The escalation is closed and the owner was notified.'}
+          {item.handled.note || t('The request is no longer overdue and the owner was notified.')}
         </Alert>
       ) : (
         <>
           <Field label="Reassign to">
             {(id) => <Select id={id} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} options={[{ value: '', label: 'Choose…', disabled: true }, ...assignees.map((a) => ({ value: a.id, label: a.name }))]} />}
           </Field>
-          <Textarea aria-label="Manager note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manager note…" />
+          <Textarea aria-label={t('Manager note')} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manager note…" />
           <div className="flex flex-wrap gap-2">
             {item.link && <Button to={item.link}>Open request</Button>}
             {item.canOfferTemporaryBed && (
@@ -97,7 +98,7 @@ export default function Escalations() {
 
   return (
     <>
-      <PageHeader title={block ? `Escalations · Block ${block}` : 'Escalations'} description="Requests that passed their time limit or were escalated by Staff. Resolve, reassign or add a note." />
+      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} description="Requests that passed their time limit or were escalated by Staff. Reassign them or add a note." />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Table fill className="min-w-0">
           <THead>
@@ -110,15 +111,15 @@ export default function Escalations() {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={5} emptyIcon={TriangleAlert} emptyTitle="No escalations" emptyText="Requests that pass their time limit appear here." />
+            <TableStatus query={query} colSpan={5} emptyIcon={TriangleAlert} emptyTitle="No overdue requests" emptyText="Requests that pass their time limit appear here." />
             {items.map((e) => (
               <Tr key={e.id} selected={e.id === selected?.id} onClick={() => setSelectedId(e.id)} className="[&>td]:h-15">
                 <Td className="font-medium whitespace-nowrap text-fg-brand">{e.id}</Td>
                 <Td>
-                  <TwoLine primary={e.title} secondary={e.subtitle} />
+                  <TwoLine primary={tr(e.title)} secondary={e.subtitle?.split(' · ').map((part) => tr(part)).join(' · ')} />
                 </Td>
-                <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{e.why}</Tag>}</Td>
-                <Td className="whitespace-nowrap">{e.openFor}</Td>
+                <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{tr(e.why)}</Tag>}</Td>
+                <Td className="whitespace-nowrap">{tr(e.openFor)}</Td>
                 <Td className="whitespace-nowrap">{e.ownerName ?? '—'}</Td>
               </Tr>
             ))}
@@ -128,7 +129,7 @@ export default function Escalations() {
           <Detail item={selected} assignees={query.data?.assignees ?? []} />
         ) : (
           <Card className="flex w-85 shrink-0 flex-col">
-            <EmptyBlock icon={TriangleAlert} title="Select an escalation" />
+            <EmptyBlock icon={TriangleAlert} title="Select a request" />
           </Card>
         )}
       </div>

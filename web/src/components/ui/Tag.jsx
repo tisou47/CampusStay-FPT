@@ -1,3 +1,4 @@
+import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Tag (status). Pill with a 6 px dot in the status solid colour.
@@ -22,7 +23,7 @@ export function Tag({ tone = 'neutral', dot = true, className, children }) {
       )}
     >
       {dot && <span aria-hidden="true" className={cx('size-1.5 shrink-0 rounded-full', t.dot)} />}
-      {children}
+      {tx(children)}
     </span>
   )
 }

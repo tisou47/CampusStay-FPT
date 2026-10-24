@@ -3,6 +3,8 @@ import { Link } from 'react-router'
 import campusAerial from '@/assets/signin/campus-aerial.png'
 import fieldIcon from '@/assets/signin/field-icon.svg'
 import fptLogo from '@/assets/signin/fpt-logo.png'
+import { LanguageSwitch } from '@/components/layout/LanguageSwitch'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Shared look of the public pages (Figma 128:58 "dormitory-login"): Sign In, Forgot password,
@@ -23,12 +25,13 @@ export function AuthShell({ children }) {
       <img src={campusAerial} alt="" className="pointer-events-none absolute inset-0 -z-10 size-full max-w-none object-cover" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgba(10,15,26,0.72)]" />
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1.25 bg-accent" />
+      <LanguageSwitch className="absolute top-4 right-4" />
 
       <main className="flex w-full max-w-105 flex-col items-center gap-6">
         <div className="flex w-full flex-col items-center gap-2.5">
           <div className="flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5">
             <img src={fptLogo} alt="FPT University" className="h-6 w-15.5 shrink-0 object-contain" />
-            <p className="text-sm leading-4 font-semibold whitespace-nowrap text-white opacity-90">FPT University • Tân Uyên Campus</p>
+            <p className="text-sm leading-4 font-semibold whitespace-nowrap text-white opacity-90">{t('FPT University • Tân Uyên Campus')}</p>
           </div>
           <h1 className="w-full text-center text-h1 font-bold text-white">CampusStay FPT</h1>
         </div>
@@ -42,8 +45,8 @@ export function AuthShell({ children }) {
 export function CardTitle({ title, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <h2 className="text-h2 font-semibold text-fg">{title}</h2>
-      {children && <p className="text-base text-fg-secondary">{children}</p>}
+      <h2 className="text-h2 font-semibold text-fg">{tx(title)}</h2>
+      {children && <p className="text-base text-fg-secondary">{tx(children)}</p>}
     </div>
   )
 }
@@ -53,7 +56,7 @@ export function LoginField({ label, error, helper, ...props }) {
   return (
     <div className="flex w-full flex-col gap-0.75">
       <label htmlFor={id} className="text-sm leading-4 font-semibold text-fg">
-        {label}
+        {tx(label)}
       </label>
       <div
         className={cx(
@@ -69,7 +72,7 @@ export function LoginField({ label, error, helper, ...props }) {
           {...props}
         />
       </div>
-      {error ? <p className="text-sm text-error-fg">{error}</p> : helper ? <p className="text-sm text-fg-tertiary">{helper}</p> : null}
+      {error ? <p className="text-sm text-error-fg">{tx(error)}</p> : helper ? <p className="text-sm text-fg-tertiary">{tx(helper)}</p> : null}
     </div>
   )
 }
@@ -77,7 +80,7 @@ export function LoginField({ label, error, helper, ...props }) {
 export function BackToSignIn() {
   return (
     <Link to="/signin" className={cx(textLinkClasses, 'self-center')}>
-      Back to sign in
+      {t('Back to sign in')}
     </Link>
   )
 }

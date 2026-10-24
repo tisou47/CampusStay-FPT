@@ -10,6 +10,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { ConfigPage, useConfigForm } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-CFG-06 Matching Criteria (Figma 38:1552)
 // GET /admin/matching → { snapshot, hardConstraints: [string], order: [{ key, title, note }],
@@ -19,7 +20,7 @@ import { ConfigPage, useConfigForm } from './shared'
 export default function MatchingCriteria() {
   const { notify, notifyError } = useToast()
   const cfg = useConfigForm('matching', api.admin.matching, {
-    onSaved: (res) => notify({ title: `Snapshot v${res?.snapshot ?? ''} saved`.trim(), message: 'The next assignment run uses it. Runs already made keep their snapshot.' }),
+    onSaved: (res) => notify({ title: t('Snapshot v{n} saved', { n: res?.snapshot ?? '' }), message: 'The next assignment run uses it. Runs already made keep their snapshot.' }),
   })
   const { draft } = cfg
   const [preview, setPreview] = useState(null)
@@ -53,7 +54,7 @@ export default function MatchingCriteria() {
             Cancel
           </Button>
           <Button variant="primary" icon={Check} disabled={!cfg.dirty || total !== 100 || cfg.saving} onClick={() => cfg.save()}>
-            Save as snapshot v{(draft?.snapshot ?? 0) + 1}
+            {t('Save as snapshot v{n}', { n: (draft?.snapshot ?? 0) + 1 })}
           </Button>
         </>
       }
@@ -64,8 +65,8 @@ export default function MatchingCriteria() {
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <h2 className="text-h3 font-semibold text-fg">Hard constraints</h2>
-                  <p className="text-sm text-fg-tertiary">Always applied. A Bed that breaks any of these is never proposed.</p>
+                  <h2 className="text-h3 font-semibold text-fg">{t('Hard constraints')}</h2>
+                  <p className="text-sm text-fg-tertiary">{t('Always applied. A Bed that breaks any of these is never proposed.')}</p>
                 </div>
                 <Tag>Locked</Tag>
               </div>
@@ -73,15 +74,15 @@ export default function MatchingCriteria() {
                 {(draft.hardConstraints ?? []).map((h) => (
                   <li key={h} className="flex items-center gap-2.5 text-base text-fg">
                     <CircleCheck size={16} aria-hidden="true" className="shrink-0 text-success" />
-                    {h}
+                    {tr(h)}
                   </li>
                 ))}
               </ul>
             </Card>
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex flex-col gap-0.5">
-                <h2 className="text-h3 font-semibold text-fg">Processing order</h2>
-                <p className="text-sm text-fg-tertiary">Who gets a Bed first when a Room Type and Room Class run short. Use the arrows to reorder.</p>
+                <h2 className="text-h3 font-semibold text-fg">{t('Processing order')}</h2>
+                <p className="text-sm text-fg-tertiary">{t('Who gets a Bed first when a Room Type and Room Class run short. Use the arrows to reorder.')}</p>
               </div>
               <ol className="flex flex-col gap-2.5">
                 {(draft.order ?? []).map((o, i) => (
@@ -89,11 +90,11 @@ export default function MatchingCriteria() {
                     <Ellipsis size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-medium text-fg">{i + 1}</span>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-base font-medium text-fg">{o.title}</span>
-                      <span className="text-sm text-fg-tertiary">{o.note}</span>
+                      <span className="text-base font-medium text-fg">{tr(o.title)}</span>
+                      <span className="text-sm text-fg-tertiary">{tr(o.note)}</span>
                     </div>
-                    <IconButton icon={ArrowUp} size="sm" aria-label={`Move ${o.title} up`} disabled={i === 0} onClick={() => move(i, -1)} className="disabled:opacity-30" />
-                    <IconButton icon={ArrowDown} size="sm" aria-label={`Move ${o.title} down`} disabled={i === draft.order.length - 1} onClick={() => move(i, 1)} className="disabled:opacity-30" />
+                    <IconButton icon={ArrowUp} size="sm" aria-label={t('Move {item} up', { item: tr(o.title) })} disabled={i === 0} onClick={() => move(i, -1)} className="disabled:opacity-30" />
+                    <IconButton icon={ArrowDown} size="sm" aria-label={t('Move {item} down', { item: tr(o.title) })} disabled={i === draft.order.length - 1} onClick={() => move(i, 1)} className="disabled:opacity-30" />
                   </li>
                 ))}
               </ol>
@@ -103,19 +104,19 @@ export default function MatchingCriteria() {
             <Card className="flex shrink-0 flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <h2 className="text-h3 font-semibold text-fg">Roommate matching</h2>
-                  <p className="text-sm text-fg-tertiary">For 4-bed and 6-bed Rooms, and 2-bed Students who chose automatic matching. Weights must total 100%.</p>
+                  <h2 className="text-h3 font-semibold text-fg">{t('Roommate matching')}</h2>
+                  <p className="text-sm text-fg-tertiary">{t('For 4-bed and 6-bed Rooms, and 2-bed Students who chose automatic matching. Weights must total 100%.')}</p>
                 </div>
-                <Tag tone={total === 100 ? 'success' : 'error'}>Total {total}%</Tag>
+                <Tag tone={total === 100 ? 'success' : 'error'}>{t('Total {n}%', { n: total })}</Tag>
               </div>
               {(draft.weights ?? []).map((w) => (
                 <div key={w.key} className="flex flex-col gap-2">
                   <div className="flex items-center gap-3">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className={cx('text-base font-medium', w.on ? 'text-fg' : 'text-fg-tertiary')}>{w.label}</span>
-                      <span className="text-sm text-fg-tertiary">{w.on ? w.note : 'Off'}</span>
+                      <span className={cx('text-base font-medium', w.on ? 'text-fg' : 'text-fg-tertiary')}>{tr(w.label)}</span>
+                      <span className="text-sm text-fg-tertiary">{w.on ? tr(w.note) : t('Off')}</span>
                     </div>
-                    <Switch aria-label={w.label} checked={w.on} onChange={(on) => setWeight(w.key, { on, value: on ? w.value : 0 })} />
+                    <Switch aria-label={tr(w.label)} checked={w.on} onChange={(on) => setWeight(w.key, { on, value: on ? w.value : 0 })} />
                   </div>
                   <div className="flex items-center gap-3">
                     <input
@@ -125,7 +126,7 @@ export default function MatchingCriteria() {
                       step={5}
                       value={w.value}
                       disabled={!w.on}
-                      aria-label={`${w.label} weight`}
+                      aria-label={t('{label} weight', { label: tr(w.label) })}
                       onChange={(e) => setWeight(w.key, { value: Number(e.target.value) })}
                       className="h-1.5 flex-1 cursor-pointer accent-primary disabled:cursor-not-allowed"
                     />
@@ -141,9 +142,9 @@ export default function MatchingCriteria() {
             </Card>
             <div className="flex shrink-0 flex-col gap-2 rounded-lg border border-line bg-subtle p-5">
               <div className="flex items-center justify-between">
-                <p className="text-base font-medium text-fg">Preview with these settings</p>
+                <p className="text-base font-medium text-fg">{t('Preview with these settings')}</p>
                 <Button icon={Eye} disabled={total !== 100 || dryRun.pending} onClick={() => dryRun.run()}>
-                  {dryRun.pending ? 'Running…' : 'Run dry run'}
+                  {dryRun.pending ? t('Running…') : t('Run dry run')}
                 </Button>
               </div>
               {[
@@ -152,11 +153,11 @@ export default function MatchingCriteria() {
                 ['To Round 2 (no capacity or roommates)', formatNumber(preview?.toRound2)],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between text-base">
-                  <span className="text-fg-secondary">{label}</span>
+                  <span className="text-fg-secondary">{t(label)}</span>
                   <span className="font-medium text-fg tabular">{value}</span>
                 </div>
               ))}
-              <p className="text-sm text-fg-tertiary">{preview?.source ?? 'Run a dry run to see the effect of these settings.'}</p>
+              <p className="text-sm text-fg-tertiary">{preview?.source ? tr(preview.source) : t('Run a dry run to see the effect of these settings.')}</p>
             </div>
           </div>
         </div>

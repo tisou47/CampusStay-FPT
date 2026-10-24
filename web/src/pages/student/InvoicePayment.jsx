@@ -10,6 +10,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-BIL-02 Invoice Payment (VietQR) — deposit (17:701), balance (39:1362), utility and room-change Invoices.
 // GET /invoices/:id/payment → {
@@ -75,7 +76,7 @@ function CopyValue({ value, display, className }) {
   return (
     <span className="inline-flex items-center gap-2">
       <span className={className}>{display ?? value}</span>
-      <button type="button" onClick={() => copy(value)} aria-label={`Copy ${value}`} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
+      <button type="button" onClick={() => copy(value)} aria-label={t('Copy {value}', { value })} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
         <Copy size={16} aria-hidden="true" />
       </button>
     </span>
@@ -108,7 +109,7 @@ function Payment({ data, reload }) {
     if (paid && !announced) {
       setAnnounced(true)
       invalidate('invoices', 'home', 'applications')
-      notify({ title: 'Payment received', message: `${formatVnd(invoice.amount)} for ${invoice.id} was confirmed by the bank.` })
+      notify({ title: 'Payment received', message: t('{amount} for {id} was confirmed.', { amount: formatVnd(invoice.amount), id: invoice.id }) })
     }
   }, [paid, announced, invoice, notify])
 
@@ -120,35 +121,35 @@ function Payment({ data, reload }) {
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <Card padding="lg" className="flex w-full shrink-0 flex-col items-center gap-2.5 lg:w-100 lg:gap-4 lg:overflow-y-auto">
-        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{paid ? 'Payment confirmed' : 'Scan with any banking app'}</h2>
+        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{paid ? t('Payment confirmed') : t('Scan with any banking app')}</h2>
         <div className="relative flex size-52 shrink-0 items-center justify-center rounded-lg border border-line lg:size-66">
           {qr?.image ? (
-            <img src={qr.image} alt={`VietQR code for ${invoice.id}, ${formatVnd(invoice.amount)}`} className="block size-50 lg:size-64" />
+            <img src={qr.image} alt={t('VietQR code for {id}, {amount}', { id: invoice.id, amount: formatVnd(invoice.amount) })} className="block size-50 lg:size-64" />
           ) : (
-            <span className="text-sm text-fg-tertiary">QR code unavailable</span>
+            <span className="text-sm text-fg-tertiary">{t('QR code unavailable')}</span>
           )}
           {paid && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/90">
               <CircleCheck size={48} aria-hidden="true" className="text-success" />
-              <p className="text-base font-medium text-success-fg">Paid {formatDate(invoice.paidAt)}</p>
+              <p className="text-base font-medium text-success-fg">{t('Paid {date}', { date: formatDate(invoice.paidAt) })}</p>
             </div>
           )}
         </div>
         <p className="text-h1 font-semibold text-fg lg:hidden">{formatVnd(invoice.amount)}</p>
         <div className="flex items-center gap-2 max-lg:hidden">
           <Tag tone="info">VietQR</Tag>
-          <span className="text-sm text-fg-tertiary">Bank transfer · NAPAS 247</span>
+          <span className="text-sm text-fg-tertiary">{t('Bank transfer · NAPAS 247')}</span>
         </div>
         {!paid && mmss && (
           <p className="flex items-center gap-2 text-base font-medium text-warning-fg">
             <Clock size={16} aria-hidden="true" className="text-warning" />
-            {left > 0 ? `QR expires in ${mmss}` : 'QR expired'}
+            {left > 0 ? t('QR expires in {time}', { time: mmss }) : t('QR expired')}
           </p>
         )}
         <div className="max-lg:hidden">
           {expired ? (
             <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
-              {refresh.pending ? 'Refreshing…' : 'Refresh QR'}
+              {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
             </Button>
           ) : (
             qr?.image && (
@@ -164,7 +165,7 @@ function Payment({ data, reload }) {
         <div className="flex flex-col gap-2 lg:hidden">
           {expired ? (
             <Button variant="primary" size="lg" block onClick={() => refresh.run()} disabled={refresh.pending}>
-              {refresh.pending ? 'Refreshing…' : 'Refresh QR'}
+              {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
             </Button>
           ) : (
             qr?.image && (
@@ -184,17 +185,17 @@ function Payment({ data, reload }) {
       <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
         {paid ? (
           <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to Payments</Button>}>
-            The bank confirmed this transfer on {formatDateTime(invoice.paidAt)}. A receipt is available under Payments.
+            {t('This payment was confirmed on {date}. A receipt is available under Payments.', { date: formatDateTime(invoice.paidAt) })}
           </Alert>
         ) : (
           <Alert type="info" title="Waiting for your payment" className="shrink-0 max-lg:hidden">
-            This page updates automatically when the bank confirms the transfer. You can close it; we will notify you.
+            {t('This page updates automatically when the payment is confirmed. You can close it; we will notify you.')}
           </Alert>
         )}
 
         {!paid && bank && (
           <Card className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">Or transfer manually</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('Or transfer manually')}</h2>
             <DetailRows
               className="mt-1"
               rows={[
@@ -205,17 +206,17 @@ function Payment({ data, reload }) {
                 ['Transfer content', <CopyValue value={transferContent} className="font-medium text-fg-brand" />],
               ]}
             />
-            <Note className="pt-1">Enter the transfer content exactly. It links your payment to this Invoice.</Note>
+            <Note className="pt-1">{t('Enter the transfer content exactly. It links your payment to this Invoice.')}</Note>
           </Card>
         )}
 
         <Card className="flex shrink-0 flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">Invoice</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('Invoice')}</h2>
           <DetailRows
             className="mt-1"
             rows={[
-              ['Invoice', `${invoice.id} · ${invoice.typeLabel ?? invoice.title}`],
-              ...(invoice.reference ? [['For', invoice.reference]] : []),
+              ['Invoice', `${invoice.id} · ${tr(invoice.typeLabel ?? invoice.title)}`],
+              ...(invoice.reference ? [['For', tr(invoice.reference)]] : []),
               ['Due', formatDateTime(invoice.dueAt)],
               ['Total', <span className="font-medium">{formatVnd(invoice.amount)}</span>],
             ]}
@@ -224,7 +225,7 @@ function Payment({ data, reload }) {
 
         {!paid && (
           <Note icon={Info} className="shrink-0 lg:hidden">
-            Open your banking app and scan the saved QR. This screen updates when the bank confirms.
+            {t('Open your banking app and scan the saved QR. This screen updates when the payment is confirmed.')}
           </Note>
         )}
         {!paid && SHOW_SIMULATOR && (
@@ -234,16 +235,16 @@ function Payment({ data, reload }) {
             className="shrink-0"
             action={
               <Button onClick={() => simulate.run()} disabled={simulate.pending}>
-                {simulate.pending ? 'Simulating…' : 'Simulate bank transfer'}
+                {simulate.pending ? t('Simulating…') : t('Simulate bank transfer')}
               </Button>
             }
           >
-            No real bank account is linked. Simulate the exact transfer to continue the flow.
+            {t('No real bank account is linked. Simulate the exact transfer to continue the flow.')}
           </Alert>
         )}
         {!paid && (
           <Note icon={Info} className="shrink-0">
-            Paid but not confirmed after 15 minutes? Bring your transfer receipt to the dormitory office; Staff can confirm the payment manually.
+            {t('Paid but not confirmed after 15 minutes? Bring your transfer receipt to the dormitory office; a Manager can confirm the payment manually.')}
           </Note>
         )}
       </div>
@@ -258,14 +259,14 @@ export default function InvoicePayment() {
   return (
     <StudentPage
       breadcrumb={[{ label: 'Payments', to: '/student/invoices' }, { label: id }]}
-      title={invoice?.title ?? 'Pay Invoice'}
+      title={tr(invoice?.title) || t('Pay Invoice')}
       badge={invoice && <StatusTag status={invoice.status} />}
     >
       {query.data === undefined && query.loading ? (
         <LoadingState />
       ) : query.error?.status === 404 ? (
         <EmptyBlock icon={ReceiptText} title="Invoice not found" action={<Button to="/student/invoices">Back to Payments</Button>}>
-          It may not be issued yet. The deposit Invoice is issued when you submit; the balance after your Room and Bed are assigned.
+          {t('It may not be issued yet. The deposit Invoice is issued when you submit; the balance after your Room and Bed are assigned.')}
         </EmptyBlock>
       ) : query.data === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />

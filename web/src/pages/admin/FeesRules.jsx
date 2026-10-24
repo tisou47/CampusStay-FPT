@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { ConfigPage, SettingSwitch, useConfigForm } from './shared'
+import { t, tr } from '@/i18n'
 
 // SCR-CFG-04 Fees, Deposit and Refund Rules (Figma 25:1221)
 // GET /admin/fees → { depositPercent, depositHours, balanceDays, blockCheckIn, manualConfirm, policyConfirmed,
@@ -98,8 +99,8 @@ export default function FeesRules() {
                 onChange={(v) => cfg.setValue('blockCheckIn', v)}
               />
               <SettingSwitch
-                title="Allow manual payment confirmation by Staff"
-                description="Fallback when VietQR auto-confirmation fails."
+                title="Allow manual payment confirmation by Managers"
+                description="Managers confirm transfers that the bank feed did not match."
                 checked={Boolean(draft.manualConfirm)}
                 onChange={(v) => cfg.setValue('manualConfirm', v)}
               />
@@ -122,21 +123,21 @@ export default function FeesRules() {
                   <Th className="w-56">Approved by</Th>
                   <Th className="w-20">Active</Th>
                   <Th className="w-24">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </Th>
                 </tr>
               </THead>
               <TBody>
                 {(draft.rules ?? []).map((r) => (
                   <Tr key={r.id} className="[&>td]:h-12">
-                    <Td>{r.when}</Td>
+                    <Td>{tr(r.when)}</Td>
                     <Td align="right" className="font-medium">
                       {r.refundPercent}%
                     </Td>
-                    <Td>{r.approver}</Td>
+                    <Td>{tr(r.approver)}</Td>
                     <Td>
                       <Switch
-                        aria-label={`${r.when} active`}
+                        aria-label={t('{rule} active', { rule: r.when })}
                         checked={r.active}
                         onChange={(v) =>
                           cfg.setValue(

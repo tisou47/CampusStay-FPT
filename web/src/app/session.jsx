@@ -3,10 +3,13 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 import { api } from '@/api/endpoints'
 import { readSession, writeSession } from '@/api/client'
 import { useQuery } from '@/api/hooks'
+import { useI18n } from '@/i18n'
 
 /*
  * Signed-in user and the working context every screen shares:
- *  - session: { token, user: { id, name, email, role, studentCode?, title?, blocks? } }
+ *  - session: { token, user: { id, name, email, role, studentCode?, title?, blocks?, locale } }
+ *  - language: the account's language takes over at sign-in; setLanguage changes the screen and saves it
+ *    on the account (ADR-25)
  *  - term: the Term picked in the top bar (back office) or the current Term (student)
  *  - block: the Block scope picked in the top bar (Staff and Manager)
  */
@@ -20,6 +23,7 @@ const skipAuth = import.meta.env.DEV && import.meta.env.VITE_SKIP_AUTH === 'true
 export const homeFor = { student: '/student', staff: '/staff', manager: '/manager', admin: '/admin' }
 
 export function SessionProvider({ children }) {
+  const { setLang } = useI18n()
   const [session, setSession] = useState(readSession)
   const [termId, setTermIdState] = useState(() => localStorage.getItem(TERM_KEY))
   const [block, setBlock] = useState(null)
@@ -50,14 +54,30 @@ export function SessionProvider({ children }) {
   const signIn = useCallback(async (email, password, remember) => {
     const result = await api.auth.signIn({ email, password, remember })
     writeSession({ token: result.token, user: result.user })
+    setLang(result.user.locale)
     return result.user
-  }, [])
+  }, [setLang])
 
   const signInWithGoogle = useCallback(async (code, remember) => {
     const result = await api.auth.google({ code, remember })
     writeSession({ token: result.token, user: result.user })
+    setLang(result.user.locale)
     return result.user
-  }, [])
+  }, [setLang])
+
+  /** Changes the screen's language and, when signed in, the account's (notifications, push and emails). */
+  const setLanguage = useCallback(
+    (lang) => {
+      setLang(lang)
+      const current = readSession()
+      if (!current?.user) return
+      writeSession({ ...current, user: { ...current.user, locale: lang } })
+      api.auth.setLocale({ locale: lang }).catch(() => {
+        // The screen already changed; the account keeps its language until the next change.
+      })
+    },
+    [setLang],
+  )
 
   const signOut = useCallback(async () => {
     try {
@@ -77,6 +97,7 @@ export function SessionProvider({ children }) {
       signIn,
       signInWithGoogle,
       signOut,
+      setLanguage,
       terms: termList,
       termsState: terms,
       term,
@@ -86,7 +107,7 @@ export function SessionProvider({ children }) {
       setBlock,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, signIn, signInWithGoogle, signOut, terms.data, terms.error, terms.loading, term, setTermId, block, blocks.join()],
+    [user, signIn, signInWithGoogle, signOut, setLanguage, terms.data, terms.error, terms.loading, term, setTermId, block, blocks.join()],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

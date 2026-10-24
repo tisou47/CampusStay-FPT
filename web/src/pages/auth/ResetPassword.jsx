@@ -6,6 +6,7 @@ import { useMutation } from '@/api/hooks'
 import { Alert } from '@/components/ui/Display'
 import { PASSWORD_RULE, newPasswordErrors } from '@/lib/password'
 import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses, primaryButtonClasses, textLinkClasses } from './shared'
+import { t } from '@/i18n'
 
 // SCR-AUTH-03 Reset password (/reset-password?token=…, 30 minutes) and
 // SCR-AUTH-04 Set password for an invited account (/set-password?token=…, 72 hours). Contract change A-03, C-13.
@@ -40,7 +41,7 @@ export default function ResetPassword({ mode = 'reset' }) {
   const save = useMutation(() => api.auth.resetPassword({ token, newPassword }), {
     onSuccess: () => {
       writeSession(null)
-      navigate('/signin', { replace: true, state: { notice: text.done } })
+      navigate('/signin', { replace: true, state: { notice: t(text.done) } })
     },
     onError: (err) => {
       if (err.code === 'WEAK_PASSWORD') setErrors({ newPassword: err.message })
@@ -53,14 +54,14 @@ export default function ResetPassword({ mode = 'reset' }) {
         <div className={cardClasses}>
           <CardTitle title={text.title} />
           <Alert type="error" title="This link is incomplete">
-            Open the link from your email again. If it still does not work, ask for a new one.
+            {t('Open the link from your email again. If it still does not work, ask for a new one.')}
           </Alert>
           {mode === 'reset' ? (
             <Link to="/forgot-password" className={textLinkClasses}>
-              Send me a new link
+              {t('Send me a new link')}
             </Link>
           ) : (
-            <p className="text-base text-fg-secondary">Ask the dormitory office to send you a new invitation.</p>
+            <p className="text-base text-fg-secondary">{t('Ask the dormitory office to send you a new invitation.')}</p>
           )}
           <BackToSignIn />
         </div>
@@ -87,11 +88,11 @@ export default function ResetPassword({ mode = 'reset' }) {
               <>
                 {' '}
                 <Link to="/forgot-password" className="font-semibold underline">
-                  Send me a new link
+                  {t('Send me a new link')}
                 </Link>
               </>
             )}
-            {linkInvalid && mode === 'invite' && ' Ask the dormitory office to send you a new invitation.'}
+            {linkInvalid && mode === 'invite' && ` ${t('Ask the dormitory office to send you a new invitation.')}`}
           </Alert>
         )}
         <LoginField
@@ -118,7 +119,7 @@ export default function ResetPassword({ mode = 'reset' }) {
           }}
         />
         <button type="submit" disabled={save.pending} className={primaryButtonClasses}>
-          {save.pending ? 'Saving…' : text.button}
+          {save.pending ? t('Saving…') : t(text.button)}
         </button>
         <BackToSignIn />
       </form>

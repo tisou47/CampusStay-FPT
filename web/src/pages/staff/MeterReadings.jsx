@@ -15,6 +15,7 @@ import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate, formatNumber, formatPercent } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-UTL-10 Meter Readings (Figma 95:3302)
 // GET /meter-periods?block → { items: [{ id, label, closed }] }
@@ -31,7 +32,7 @@ const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, ''))
 function Line({ label, children, strong }) {
   return (
     <div className="flex items-start justify-between gap-4 text-base">
-      <dt className="text-fg-secondary">{label}</dt>
+      <dt className="text-fg-secondary">{tr(label)}</dt>
       <dd className={strong ? 'font-medium text-fg tabular' : 'text-fg tabular'}>{children}</dd>
     </div>
   )
@@ -40,7 +41,7 @@ function Line({ label, children, strong }) {
 function reading(m) {
   if (!m) return ['—', '']
   const primary = `${formatNumber(m.previous)} → ${m.current == null ? '—' : formatNumber(m.current)}`
-  const secondary = m.current == null ? 'Enter current reading' : m.current < m.previous ? 'Lower than previous' : m.cut ? `Segment cut ${formatDate(m.cut.date)} at ${formatNumber(m.cut.value)}` : 'No segment'
+  const secondary = m.current == null ? t('Enter current reading') : m.current < m.previous ? t('Lower than previous') : m.cut ? t('Segment cut {date} at {value}', { date: formatDate(m.cut.date), value: formatNumber(m.cut.value) }) : t('No segment')
   return [primary, secondary]
 }
 
@@ -61,12 +62,12 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
 
   const save = useMutation(() => api.meters.save(periodId, room, { electricity: toNumber(e), water: toNumber(w) }), {
     invalidates: ['meters'],
-    onSuccess: () => notify({ title: `Reading saved for ${room}`, message: 'The split preview is updated.' }),
+    onSuccess: () => notify({ title: t('Reading saved for {room}', { room }), message: 'The split preview is updated.' }),
     onError: (err) => notifyError(err, 'Could not save the reading'),
   })
   const confirm = useMutation(() => api.meters.confirm(periodId, room), {
     invalidates: ['meters'],
-    onSuccess: () => notify({ title: `${room} confirmed`, message: 'Shares are locked for this period.' }),
+    onSuccess: () => notify({ title: t('{room} confirmed', { room }), message: 'Shares are locked for this period.' }),
     onError: (err) => notifyError(err, 'Could not confirm'),
   })
 
@@ -81,23 +82,23 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
           {room}
           {periodLabel ? ` · ${periodLabel}` : ''}
         </h2>
-        <p className="text-sm text-fg-secondary">Shared meter, split equally among residents of each segment</p>
+        <p className="text-sm text-fg-secondary">{t('Shared meter, split equally among residents of each segment')}</p>
       </div>
       <QueryState query={query} compact>
         {(d) => (
           <>
             {(d.priceKwh || d.priceM3) && (
               <p className="text-sm text-fg-tertiary">
-                Price {formatNumber(d.priceKwh)} VND/kWh · {formatNumber(d.priceM3)} VND/m³ (Admin › Utility). {d.roundingNote}
+                {t('Price {kwh} VND/kWh · {m3} VND/m³ (Admin › Utility).', { kwh: formatNumber(d.priceKwh), m3: formatNumber(d.priceM3) })} {tr(d.roundingNote)}
               </p>
             )}
             {editing ? (
               <>
                 <div className="flex gap-3">
-                  <Field label="Electricity (kWh)" helper={`Previous ${formatNumber(d.electricity.previous)}`} className="flex-1" error={e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}>
+                  <Field label="Electricity (kWh)" helper={t('Previous {n}', { n: formatNumber(d.electricity.previous) })} className="flex-1" error={e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}>
                     {(id) => <Input id={id} value={e} onChange={(ev) => setE(ev.target.value)} inputMode="numeric" disabled={closed} />}
                   </Field>
-                  <Field label="Water (m³)" helper={`Previous ${formatNumber(d.water.previous)}`} className="flex-1" error={w && wNum < d.water.previous ? 'Lower than previous' : undefined}>
+                  <Field label="Water (m³)" helper={t('Previous {n}', { n: formatNumber(d.water.previous) })} className="flex-1" error={w && wNum < d.water.previous ? 'Lower than previous' : undefined}>
                     {(id) => <Input id={id} value={w} onChange={(ev) => setW(ev.target.value)} inputMode="numeric" disabled={closed} />}
                   </Field>
                 </div>
@@ -119,14 +120,14 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
                   <div key={`${s.from}-${s.to}`} className="flex flex-col gap-3">
                     {i > 0 && <Divider />}
                     <p className="text-base font-medium text-fg">
-                      {d.segments.length > 1 ? `Segment ${i + 1} · ` : ''}
-                      {formatDate(s.from)} – {formatDate(s.to)} · {s.residents} residents
+                      {d.segments.length > 1 ? `${t('Segment {n}', { n: i + 1 })} · ` : ''}
+                      {formatDate(s.from)} – {formatDate(s.to)} · {t('{n} residents', { n: s.residents })}
                     </p>
                     <dl className="flex flex-col gap-3">
-                      <Line label={`Electricity ${formatNumber(s.kwh)} kWh`}>
+                      <Line label={t('Electricity {n} kWh', { n: formatNumber(s.kwh) })}>
                         {formatNumber(s.electricityCost)} ÷ {s.residents} = {formatNumber(Math.round(s.electricityCost / s.residents))}
                       </Line>
-                      <Line label={`Water ${formatNumber(s.m3)} m³`}>
+                      <Line label={t('Water {n} m³', { n: formatNumber(s.m3) })}>
                         {formatNumber(s.waterCost)} ÷ {s.residents} = {formatNumber(Math.round(s.waterCost / s.residents))}
                       </Line>
                     </dl>
@@ -145,7 +146,7 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
                     Edit reading
                   </Button>
                   <Button variant="primary" onClick={() => confirm.run()} disabled={closed || d.status === 'Confirmed' || confirm.pending}>
-                    {d.status === 'Confirmed' ? 'Confirmed' : 'Confirm room'}
+                    {d.status === 'Confirmed' ? t('Confirmed') : t('Confirm room')}
                   </Button>
                 </div>
               </>
@@ -191,7 +192,7 @@ export default function MeterReadings() {
     },
     {
       invalidates: ['meters'],
-      onSuccess: (res) => notify({ type: 'info', title: 'CSV imported', message: `${formatNumber(res?.imported ?? 0)} readings added.` }),
+      onSuccess: (res) => notify({ type: 'info', title: 'CSV imported', message: t('{n} readings added.', { n: formatNumber(res?.imported ?? 0) }) }),
       onError: (e) => notifyError(e, 'Import failed'),
     },
   )
@@ -199,7 +200,7 @@ export default function MeterReadings() {
     invalidates: ['meters', 'payments'],
     onSuccess: (res) => {
       setClosing(false)
-      notify({ title: 'Utility Invoices issued', message: `${formatNumber(res?.invoicesIssued ?? s?.entered)} Rooms billed.` })
+      notify({ title: 'Utility Invoices issued', message: t('{n} Rooms billed.', { n: formatNumber(res?.invoicesIssued ?? s?.entered) }) })
     },
     onError: (e) => notifyError(e, 'Could not close the period'),
   })
@@ -226,7 +227,7 @@ export default function MeterReadings() {
               }}
             />
             <Button variant="primary" onClick={() => setClosing(true)} disabled={closed || !activePeriod}>
-              {closed ? 'Period closed' : 'Close period and bill'}
+              {closed ? t('Period closed') : t('Close period and bill')}
             </Button>
           </>
         }
@@ -236,48 +237,48 @@ export default function MeterReadings() {
         {!scopeBlock && blocks.length > 1 && (
           <Select
             wrapperClassName="w-40"
-            aria-label="Block"
+            aria-label={t('Block')}
             value={block}
             onChange={(e) => {
               setBlock(e.target.value)
               setPeriodId(null)
               setPage(1)
             }}
-            options={blocks.map((b) => ({ value: b, label: `Block ${b}` }))}
+            options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))}
           />
         )}
         <Select
           wrapperClassName="w-48"
-          aria-label="Period"
+          aria-label={t('Period')}
           value={activePeriod ?? ''}
           onChange={(e) => {
             setPeriodId(e.target.value)
             setPage(1)
           }}
-          options={(periods.data?.items ?? []).map((p) => ({ value: p.id, label: `Period: ${p.label}` }))}
+          options={(periods.data?.items ?? []).map((p) => ({ value: p.id, label: t('Period: {label}', { label: tr(p.label) }) }))}
           disabled={!periods.data?.items?.length}
         />
         <Select
           wrapperClassName="w-48"
-          aria-label="Status"
+          aria-label={t('Status')}
           value={status}
           onChange={(e) => {
             setStatus(e.target.value)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Status: All' }, ...Object.keys(statusTone).map((v) => ({ value: v, label: `Status: ${v}` }))]}
+          options={[{ value: '', label: 'Status: All' }, ...Object.keys(statusTone).map((v) => ({ value: v, label: t('Status: {s}', { s: t(v) }) }))]}
         />
       </div>
 
       {closed && (
-        <Alert type="success" title={`${period.label} is closed`} className="shrink-0">
-          Utility Invoices were issued for {formatNumber(s?.entered)} Rooms. {formatNumber(s?.missing)} Rooms are billed when their readings are entered.
+        <Alert type="success" title={t('{period} is closed', { period: tr(period.label) })} className="shrink-0">
+          {t('Utility Invoices were issued for {n} Rooms. {missing} Rooms are billed when their readings are entered.', { n: formatNumber(s?.entered), missing: formatNumber(s?.missing) })}
         </Alert>
       )}
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile label="Rooms due this period" value={formatNumber(s?.roomsDue)} note={block ? `Block ${block}` : null} noteTone="tertiary" />
-        <KpiTile label="Readings entered" value={formatNumber(s?.entered)} note={s?.roomsDue ? `${formatPercent(s.entered / s.roomsDue, 0)} complete` : null} noteTone="tertiary" />
+        <KpiTile label="Rooms due this period" value={formatNumber(s?.roomsDue)} note={block ? t('Block {code}', { code: block }) : null} noteTone="tertiary" />
+        <KpiTile label="Readings entered" value={formatNumber(s?.entered)} note={s?.roomsDue ? t('{p} complete', { p: formatPercent(s.entered / s.roomsDue, 0) }) : null} noteTone="tertiary" />
         <KpiTile label="Missing" value={formatNumber(s?.missing)} note="Bills held until entered" noteTone="tertiary" />
         <KpiTile label="Segments this month" value={formatNumber(s?.segments)} note="Check-in, check-out, room change" noteTone="tertiary" />
       </div>
@@ -302,7 +303,7 @@ export default function MeterReadings() {
                 return (
                   <Tr key={r.room} selected={r.room === selected?.room} onClick={() => setSelectedRoom(r.room)} className="[&>td]:h-14.5">
                     <Td>
-                      <TwoLine primary={r.room} secondary={`${r.roomTypeName} ${r.roomClassName}`} />
+                      <TwoLine primary={r.room} secondary={`${tr(r.roomTypeName)} ${tr(r.roomClassName)}`} />
                     </Td>
                     <Td>{r.residents}</Td>
                     <Td>
@@ -344,7 +345,7 @@ export default function MeterReadings() {
       <Modal
         open={closing}
         onClose={() => setClosing(false)}
-        title={`Close ${period?.label ?? 'this period'} and bill`}
+        title={t('Close {period} and bill', { period: period?.label ? tr(period.label) : t('this period') })}
         footer={
           <>
             <Button onClick={() => setClosing(false)}>Cancel</Button>
@@ -355,11 +356,11 @@ export default function MeterReadings() {
         }
       >
         <p className="text-base text-fg-secondary">
-          Utility Invoices are issued now for the {formatNumber(s?.entered)} Rooms with readings. Students get an in-app notification and an email, and pay with VietQR
-          {period?.dueAt ? ` by ${formatDate(period.dueAt)}` : ''}.
+          {t('Utility Invoices are issued now for the {n} Rooms with readings. Students get an in-app notification and an email.', { n: formatNumber(s?.entered) })}
+          {period?.dueAt ? ` ${t('Payment is due by {date}.', { date: formatDate(period.dueAt) })}` : ''}
         </p>
         {s?.missing > 0 && (
-          <Alert type="warning" title={`${formatNumber(s.missing)} Rooms have no reading`}>
+          <Alert type="warning" title={t('{n} Rooms have no reading', { n: formatNumber(s.missing) })}>
             Their Invoices are held and issued as soon as the readings are entered.
           </Alert>
         )}

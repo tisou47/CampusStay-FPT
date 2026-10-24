@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Field'
 import { QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber, formatPercent } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // SCR-RPT-02 Financial Report (Figma 72:3428)
 // GET /reports/financial?termId&block → { asOf, blocks: [string],
@@ -35,10 +36,10 @@ export default function FinancialReport() {
     <>
       <PageHeader
         title="Financial Report"
-        description={`Invoiced, collected and refunded amounts (VND)${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · as of ${formatDateTime(d.asOf)}` : ''}`}
+        description={`${t('Invoiced, collected and refunded amounts (VND)')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <>
-            <Select aria-label="Block" wrapperClassName="w-35" value={block} onChange={(e) => setBlock(e.target.value)} options={[{ value: '', label: 'All Blocks' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: `Block ${b}` }))]} />
+            <Select aria-label={t('Block')} wrapperClassName="w-35" value={block} onChange={(e) => setBlock(e.target.value)} options={[{ value: '', label: 'All Blocks' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
               Export .xlsx
             </Button>
@@ -48,8 +49,8 @@ export default function FinancialReport() {
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="Invoiced" value={formatNumber(s?.invoiced)} note="Deposits + balances + room changes + utilities" />
         <KpiTile size="md" label="Collected" value={formatNumber(s?.collected)} note={s ? rate(s) : null} />
-        <KpiTile size="md" label="Outstanding" value={formatNumber(s?.outstanding)} note={s ? `${formatNumber(s.outstandingInvoices)} Invoices, ${formatNumber(s.overdueInvoices)} overdue` : null} />
-        <KpiTile size="md" label="Refunded" value={formatNumber(s?.refunded)} note={s ? `${formatNumber(s.refundCount)} refunds` : null} />
+        <KpiTile size="md" label="Outstanding" value={formatNumber(s?.outstanding)} note={s ? t('{n} Invoices, {overdue} overdue', { n: formatNumber(s.outstandingInvoices), overdue: formatNumber(s.overdueInvoices) }) : null} />
+        <KpiTile size="md" label="Refunded" value={formatNumber(s?.refunded)} note={s ? t('{n} refunds', { n: formatNumber(s.refundCount) }) : null} />
       </div>
       <div className="flex min-h-0 shrink flex-col overflow-auto rounded-lg border border-line bg-surface">
         <QueryState query={query} isEmpty={(x) => !x.rows?.length}>
@@ -60,15 +61,15 @@ export default function FinancialReport() {
                 <thead className="sticky top-0 z-10 bg-subtle">
                   <tr className="text-sm text-fg-secondary">
                     <th scope="col" className="w-40 border-b border-line px-4 py-2.5 text-left font-medium">
-                      Block
+                      {t('Block')}
                     </th>
                     {['Invoiced', 'Collected', 'Outstanding', 'Refunded'].map((h) => (
                       <th key={h} scope="col" className="border-b border-line px-3 py-2.5 text-right font-medium">
-                        {h}
+                        {t(h)}
                       </th>
                     ))}
                     <th scope="col" className="w-35 border-b border-line px-4 py-2.5 text-right font-medium">
-                      Collection rate
+                      {t('Collection rate')}
                     </th>
                   </tr>
                 </thead>
@@ -76,7 +77,7 @@ export default function FinancialReport() {
                   {rows.map((r) => (
                     <tr key={r.block} className={cx('*:border-b *:border-line', r.isTotal && 'bg-subtle font-medium')}>
                       <th scope="row" className="px-4 py-3 text-left font-medium text-fg">
-                        {r.isTotal ? 'Total' : `Block ${r.block}`}
+                        {r.isTotal ? t('Total') : data.blocks?.includes(r.block) ? t('Block {code}', { code: r.block }) : tr(r.block)}
                       </th>
                       {columns.map((c) => (
                         <td key={c} className="px-3 py-3 text-right text-fg tabular">
@@ -94,7 +95,7 @@ export default function FinancialReport() {
       </div>
       <p className="flex shrink-0 items-start gap-2 text-sm text-fg-tertiary">
         <Info size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-        Outstanding = invoiced − collected; refunds are reported separately and do not reduce outstanding. Each Block matches the Manager finance view.
+        {t('Outstanding = invoiced − collected; refunds are reported separately and do not reduce outstanding. Each Block matches the Manager finance view.')}
       </p>
     </>
   )

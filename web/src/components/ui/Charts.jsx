@@ -1,3 +1,5 @@
+import { tx } from '@/i18n'
+import { formatNumber } from '@/lib/format'
 import { cx } from '@/lib/cx'
 
 // Simple chart marks used by dashboards and reports (as drawn in the Figma frames).
@@ -25,7 +27,7 @@ export function Meter({ value, max, tone = 'accent', label, className, trackClas
       aria-valuemin={0}
       aria-valuemax={max}
       aria-label={label}
-      title={label ? `${label}: ${value.toLocaleString('en-US')}` : String(value)}
+      title={label ? `${tx(label)}: ${formatNumber(value)}` : String(value)}
       className={cx('relative h-2.5 overflow-hidden rounded-full bg-subtle', trackClassName, className)}
     >
       {/* Very small values keep a 4 px sliver so the mark stays visible. */}
@@ -41,7 +43,7 @@ export function MeterRows({ rows, max, labelWidth = 'w-24', trackWidth = 'w-45',
     <ul className={cx('flex flex-col gap-3', className)}>
       {rows.map((r) => (
         <li key={r.label} className="flex items-center gap-3">
-          <span className={cx('shrink-0 text-base text-fg-secondary', labelWidth)}>{r.label}</span>
+          <span className={cx('shrink-0 text-base text-fg-secondary', labelWidth)}>{tx(r.label)}</span>
           <Meter value={r.value} max={top} tone={r.tone} label={r.label} className={cx('shrink-0', trackWidth)} />
           <span className="text-base font-medium text-fg tabular">{r.value.toLocaleString('en-US')}</span>
         </li>
@@ -58,10 +60,10 @@ export function KpiTile({ icon: Glyph, label, value, note, noteTone = 'secondary
     <div className={cx('flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-line bg-surface', size === 'lg' ? 'px-4 py-3.5' : 'p-4', className)}>
       <div className="flex items-center gap-2 text-fg-tertiary">
         {Glyph && <Glyph size={16} aria-hidden="true" />}
-        <p className="truncate text-sm font-medium">{label}</p>
+        <p className="truncate text-sm font-medium">{tx(label)}</p>
       </div>
       <p className={cx('font-semibold whitespace-nowrap tabular', size === 'lg' ? 'text-kpi' : 'text-h2', valueTone ? tone[valueTone] : 'text-fg')}>{value}</p>
-      {note && <p className={cx('truncate text-sm', tone[noteTone])}>{note}</p>}
+      {note && <p className={cx('truncate text-sm', tone[noteTone])}>{tx(note)}</p>}
       {children}
     </div>
   )

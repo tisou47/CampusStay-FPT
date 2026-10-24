@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, Facts } from '@/components/ui/Display'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { WizardActions, WizardLayout, classLabel, clearDraft, isTwoBed, roommateLabel, stepPaths, useWizard } from './wizard'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 4 Review and submit (Figma 15:580)
 // POST /applications → { id, depositInvoiceId, depositDueAt }
@@ -18,7 +19,7 @@ function SectionHead({ title, editTo }) {
   const navigate = useNavigate()
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-h3 font-semibold text-fg">{title}</h2>
+      <h2 className="text-h3 font-semibold text-fg">{t(title)}</h2>
       {editTo && (
         <Button variant="text" icon={Pencil} onClick={() => navigate(editTo)}>
           Edit
@@ -61,7 +62,12 @@ export default function ApplyReview() {
       onSuccess: (result) => {
         clearDraft()
         invalidate('home', 'applications', 'invoices')
-        notify({ title: 'Application submitted', message: `${result.id} is waiting for the deposit.${result.depositDueAt ? ` Pay by ${formatDateTime(result.depositDueAt)}.` : ''}` })
+        notify({
+          title: 'Application submitted',
+          message: result.depositDueAt
+            ? t('{id} is waiting for the deposit. Pay by {date}.', { id: result.id, date: formatDateTime(result.depositDueAt) })
+            : t('{id} is waiting for the deposit.', { id: result.id }),
+        })
         navigate(result.depositInvoiceId ? `/student/invoices/${result.depositInvoiceId}/pay` : '/student/applications')
       },
       onError: () => {},
@@ -122,7 +128,7 @@ export default function ApplyReview() {
           items={[
             ['Phone number', contact.phone || '—'],
             ['Personal email', contact.email || '—'],
-            ['Emergency contact', contact.emergencyName ? `${contact.emergencyName}${contact.relationship ? ` (${contact.relationship})` : ''}` : '—'],
+            ['Emergency contact', contact.emergencyName ? `${contact.emergencyName}${contact.relationship ? ` (${tr(contact.relationship)})` : ''}` : '—'],
             ['Consent', draft.consent.matching && draft.consent.rules ? 'Given' : 'Not given'],
           ]}
         />
@@ -131,21 +137,23 @@ export default function ApplyReview() {
       <section className="flex shrink-0 flex-col gap-3 rounded-lg border border-orange-200 bg-brand-subtle p-5">
         <div className="flex items-center justify-between gap-6">
           <div className="flex flex-col gap-0.5">
-            <p className="text-base font-medium text-fg-secondary">Deposit to pay after submit</p>
+            <p className="text-base font-medium text-fg-secondary">{t('Deposit to pay after submit')}</p>
             <p className="text-kpi font-semibold text-fg">{deposit != null ? formatVnd(deposit) : '—'}</p>
           </div>
           {term?.depositWindowHours && (
-            <p className="text-base font-medium text-fg">Pay within {term.depositWindowHours} hours</p>
+            <p className="text-base font-medium text-fg">{t('Pay within {n} hours', { n: term.depositWindowHours })}</p>
           )}
         </div>
         <p className="text-base text-fg-secondary">
-          Your Application reaches the dormitory office only after the deposit is paid. Unpaid Applications expire at the deadline.
+          {t('Your Application reaches the dormitory office only after the deposit is paid. Unpaid Applications expire at the deadline.')}
         </p>
         <Checkbox label="I confirm the information above is correct." checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
       </section>
 
       <Alert type="warning" title="Room Type and Room Class are locked after submit" className="shrink-0">
-        To change them, cancel this Application and apply again{term?.registrationClosesAt ? ` before ${formatDateTime(term.registrationClosesAt)}` : ' while registration is open'}.
+        {term?.registrationClosesAt
+          ? t('To change them, cancel this Application and apply again before {date}.', { date: formatDateTime(term.registrationClosesAt) })
+          : t('To change them, cancel this Application and apply again while registration is open.')}
       </Alert>
     </WizardLayout>
   )

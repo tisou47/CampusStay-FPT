@@ -10,6 +10,8 @@ import { Alert, Card, StepIndicator } from '@/components/ui/Display'
 import { Field, Input, Select, StaticField, Textarea } from '@/components/ui/Field'
 import { StudentPage } from './shared'
 import { useMyAllocation } from './swap'
+import { t, tr } from '@/i18n'
+import { formatNumber } from '@/lib/format'
 
 // SCR-MNT-02 New Maintenance Request (Figma 41:1719)
 // GET /maintenance-requests/options → { categories, locations }
@@ -29,9 +31,9 @@ export default function NewMaintenanceRequest() {
   const [photos, setPhotos] = useState([]) // { file, url }
   const [touched, setTouched] = useState(false)
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
-  const titleError = touched && !form.title.trim() ? 'Enter a short title.' : undefined
-  const descriptionError = touched && !form.description.trim() ? 'Describe the problem.' : undefined
-  const categoryError = touched && !form.category ? 'Choose a category.' : undefined
+  const titleError = touched && !form.title.trim() ? t('Enter a short title.') : undefined
+  const descriptionError = touched && !form.description.trim() ? t('Describe the problem.') : undefined
+  const categoryError = touched && !form.category ? t('Choose a category.') : undefined
 
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos])
 
@@ -56,7 +58,7 @@ export default function NewMaintenanceRequest() {
     {
       invalidates: ['requests', 'home'],
       onSuccess: (result) => {
-        notify({ title: 'Request submitted', message: `${result?.id ?? 'Your request'} was sent to the maintenance staff.` })
+        notify({ title: 'Request submitted', message: t('{id} was sent to the maintenance staff.', { id: result?.id ?? t('Your request') }) })
         navigate('/student/requests')
       },
       onError: () => {},
@@ -86,7 +88,7 @@ export default function NewMaintenanceRequest() {
             )}
             <Field label="Location" helper="Filled in from your Allocation.">
               <StaticField size="lg" className="text-fg-disabled">
-                {a ? [`${a.room} · Bed ${a.bed}`, a.block, a.floor].filter(Boolean).join(' · ') : '—'}
+                {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), tr(a.floor)].filter(Boolean).join(' · ') : '—'}
               </StaticField>
             </Field>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
@@ -109,27 +111,27 @@ export default function NewMaintenanceRequest() {
             <Field label="Title" required error={titleError}>
               {(id) => <Input id={id} size="lg" value={form.title} onChange={set('title')} invalid={Boolean(titleError)} maxLength={120} placeholder="e.g. Shower drain is blocked" />}
             </Field>
-            <Field label="Description" required error={descriptionError} helper={`${form.description.length.toLocaleString('en-US')} / 1,000 characters`}>
+            <Field label="Description" required error={descriptionError} helper={t('{n} / {max} characters', { n: formatNumber(form.description.length), max: formatNumber(MAX_DESCRIPTION) })}>
               {(id) => <Textarea id={id} size="lg" rows={3} value={form.description} onChange={set('description')} invalid={Boolean(descriptionError)} maxLength={MAX_DESCRIPTION} />}
             </Field>
 
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-base font-medium text-fg">How urgent is it?</legend>
+              <legend className="mb-2 text-base font-medium text-fg">{t('How urgent is it?')}</legend>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6">
                 <Radio name="urgency" label="Normal" checked={form.urgency === 'Normal'} onChange={() => setForm((f) => ({ ...f, urgency: 'Normal' }))} />
                 <Radio name="urgency" label="Urgent: water leak, no power, safety risk" checked={form.urgency === 'Urgent'} onChange={() => setForm((f) => ({ ...f, urgency: 'Urgent' }))} />
               </div>
-              <p className="text-sm text-fg-tertiary">Staff set the final priority.</p>
+              <p className="text-sm text-fg-tertiary">{t('Staff set the final priority.')}</p>
             </fieldset>
 
             <div className="flex flex-col gap-2">
-              <p className="text-base font-medium text-fg">Photos (optional, up to {MAX_PHOTOS})</p>
+              <p className="text-base font-medium text-fg">{t('Photos (optional, up to {n})', { n: MAX_PHOTOS })}</p>
               <div className="flex items-start gap-3">
                 {photos.map((p) => (
                   <button
                     key={p.url}
                     type="button"
-                    title={`Remove ${p.file.name}`}
+                    title={t('Remove {name}', { name: p.file.name })}
                     onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
                     className="group relative size-20 overflow-hidden rounded-md border border-line bg-subtle"
                   >
@@ -146,7 +148,7 @@ export default function NewMaintenanceRequest() {
                     className="flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line-strong text-fg-secondary hover:border-primary hover:text-fg-brand"
                   >
                     <Upload size={20} aria-hidden="true" />
-                    <span className="text-sm">Add photo</span>
+                    <span className="text-sm">{t('Add photo')}</span>
                   </button>
                 )}
                 <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={addPhotos} />
@@ -161,26 +163,28 @@ export default function NewMaintenanceRequest() {
               Cancel
             </Button>
             <Button variant="primary" size="lg" icon={Check} onClick={onSubmit} disabled={submit.pending || !a}>
-              {submit.pending ? 'Submitting…' : 'Submit request'}
+              {submit.pending ? t('Submitting…') : t('Submit request')}
             </Button>
           </div>
         </Card>
 
         <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
           <Alert type="error" title="Emergency?" className="shrink-0">
-            For fire, flooding or electrical danger, go to the {a?.block ? `${a.block} ` : ''}desk on Floor 1 right away. Do not wait for this form.
+            {a?.block
+              ? t('For fire, flooding or electrical danger, go to the {block} desk on Floor 1 right away. Do not wait for this form.', { block: tr(a.block) })
+              : t('For fire, flooding or electrical danger, go to the desk on Floor 1 right away. Do not wait for this form.')}
           </Alert>
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">What happens next</h2>
+            <h2 className="text-h3 font-semibold text-fg">{t('What happens next')}</h2>
             <ol className="flex flex-col gap-3">
               {nextSteps.map((title, i) => (
                 <li key={title} className="flex items-center gap-2">
                   <StepIndicator state={i === 0 ? 'current' : 'upcoming'} number={i + 1} />
-                  <span className={i === 0 ? 'text-base font-medium text-fg' : 'text-base text-fg-tertiary'}>{title}</span>
+                  <span className={i === 0 ? 'text-base font-medium text-fg' : 'text-base text-fg-tertiary'}>{t(title)}</span>
                 </li>
               ))}
             </ol>
-            <p className="text-sm text-fg-tertiary">You get a notification at each step.</p>
+            <p className="text-sm text-fg-tertiary">{t('You get a notification at each step.')}</p>
           </Card>
         </div>
       </div>

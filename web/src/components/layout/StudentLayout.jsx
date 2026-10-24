@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Calendar, ChevronDown, Globe, KeyRound, LogOut, User } from 'lucide-react'
+import { Calendar, ChevronDown, KeyRound, LogOut, User } from 'lucide-react'
 import { isNavActive, studentNav } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
 import { MenuItem, Popover } from '@/components/ui/Popover'
+import { t } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
+import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { MobileAppBar, MobileBarProvider, MobileBottomNav } from './MobileBar'
 import { NotificationsButton } from './Notifications'
@@ -17,21 +19,6 @@ import { NotificationsButton } from './Notifications'
  */
 export function StudentContainer({ className, children }) {
   return <div className={cx('mx-auto w-full max-w-170 px-4 lg:max-w-[1248px] lg:px-6', className)}>{children}</div>
-}
-
-export function LanguageToggle() {
-  const [lang, setLang] = useState('EN')
-  return (
-    <button
-      type="button"
-      onClick={() => setLang((l) => (l === 'EN' ? 'VI' : 'EN'))}
-      aria-label={`Language: ${lang === 'EN' ? 'English' : 'Tiếng Việt'}`}
-      className="flex items-center gap-1 rounded-md px-1 py-1 text-sm font-medium text-fg-secondary hover:text-fg"
-    >
-      <Globe size={16} aria-hidden="true" />
-      {lang}
-    </button>
-  )
 }
 
 // Figma: 02 Components › Shell/Student Top Bar.
@@ -45,10 +32,10 @@ function StudentTopBar() {
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <StudentContainer className="flex h-16 items-center justify-between gap-6">
         <div className="flex items-center gap-10">
-          <Link to="/student" aria-label="CampusStay home">
+          <Link to="/student" aria-label={t('Home')}>
             <Logo />
           </Link>
-          <nav aria-label="Main" className="flex items-center gap-1">
+          <nav aria-label={t('Main')} className="flex items-center gap-1">
             {studentNav.map((item) => {
               const active = isNavActive(item, pathname)
               return (
@@ -61,7 +48,7 @@ function StudentTopBar() {
                     active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:text-fg',
                   )}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </Link>
               )
             })}
@@ -75,9 +62,7 @@ function StudentTopBar() {
               {term.name}
             </span>
           )}
-          <span className="hidden xl:contents">
-            <LanguageToggle />
-          </span>
+          <LanguageSwitch size="sm" />
           <NotificationsButton />
           <span aria-hidden="true" className="h-6 w-px bg-line" />
           <Popover
@@ -86,7 +71,7 @@ function StudentTopBar() {
               <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
                 <Avatar name={user?.name} />
                 <span className="hidden flex-col whitespace-nowrap xl:flex">
-                  <span className="text-base font-medium text-fg">{user?.name ?? 'Not signed in'}</span>
+                  <span className="text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
                   {user?.studentCode && <span className="text-sm text-fg-tertiary">{user.studentCode}</span>}
                 </span>
                 <ChevronDown size={16} aria-hidden="true" className="text-fg-secondary" />
@@ -102,10 +87,10 @@ function StudentTopBar() {
                   </div>
                 )}
                 <MenuItem icon={User} onClick={() => { close(); navigate('/student/room') }}>
-                  My Room
+                  {t('My Room')}
                 </MenuItem>
                 <MenuItem icon={KeyRound} onClick={() => { close(); setChangingPassword(true) }}>
-                  Change password
+                  {t('Change password')}
                 </MenuItem>
                 <MenuItem
                   icon={LogOut}
@@ -116,7 +101,7 @@ function StudentTopBar() {
                     navigate('/signin')
                   }}
                 >
-                  Sign out
+                  {t('Sign out')}
                 </MenuItem>
               </div>
             )}

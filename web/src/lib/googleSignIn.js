@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /*
  * "Sign in with Google" for FPT University accounts (Google Identity Services, authorization-code popup).
  * The browser only receives a one-time code; the backend exchanges it, checks that the account
@@ -20,7 +21,7 @@ export function loadGoogle() {
     script.onload = () => resolve()
     script.onerror = () => {
       loading = null
-      reject(new Error('Could not load Google sign-in. Check your connection and try again.'))
+      reject(new Error(t('Could not load Google sign-in. Check your connection and try again.')))
     }
     document.head.appendChild(script)
   })
@@ -33,15 +34,15 @@ function openPopup(resolve, reject) {
     scope: 'openid email profile',
     ux_mode: 'popup',
     hd: GOOGLE_DOMAIN, // Google only offers accounts of this domain
-    callback: (response) => (response.error ? reject(new Error('Google sign-in was not completed.')) : resolve(response.code)),
-    error_callback: (error) => reject(new Error(error?.type === 'popup_closed' ? 'Google sign-in was closed before it finished.' : 'Google sign-in could not open. Allow pop-ups for this site and try again.')),
+    callback: (response) => (response.error ? reject(new Error(t('Google sign-in was not completed.'))) : resolve(response.code)),
+    error_callback: (error) => reject(new Error(error?.type === 'popup_closed' ? t('Google sign-in was closed before it finished.') : t('Google sign-in could not open. Allow pop-ups for this site and try again.'))),
   })
   client.requestCode()
 }
 
 /** Opens the Google popup and resolves with the authorization code. */
 export function requestGoogleCode() {
-  if (!googleConfigured) return Promise.reject(new Error('Google sign-in is not set up for this site yet. Use your email and password.'))
+  if (!googleConfigured) return Promise.reject(new Error(t('Google sign-in is not set up for this site yet. Use your email and password.')))
   return new Promise((resolve, reject) => {
     // Open the popup in the same click when the script is ready, so browsers do not block it.
     if (window.google?.accounts?.oauth2) openPopup(resolve, reject)

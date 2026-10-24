@@ -13,6 +13,8 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
+import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-ASG-10 Assignment Runs (Figma 35:1357)
 // GET /assignment-runs?termId&block → {
@@ -21,19 +23,20 @@ import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
 //   rules: { snapshot, groups: [{ title, items: [string] }] } }
 // POST /assignment-runs { termId, dryRun } → { id }
 
-const pipeline = ['Eligibility filter', 'Priority order', 'Constraint checks', 'Proposal', 'Staff review', 'Commit per Block']
+const pipeline = ['Eligibility filter', 'Priority order', 'Constraint checks', 'Proposal', 'Manager review', 'Commit per Block']
 
 function Stat({ label, value, note, tone }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg border border-line bg-subtle p-3.5">
-      <p className="text-sm font-medium text-fg-tertiary">{label}</p>
+      <p className="text-sm font-medium text-fg-tertiary">{t(label)}</p>
       <p className={cx('text-h2 font-semibold', tone === 'success' ? 'text-success-fg' : tone === 'warning' ? 'text-warning-fg' : 'text-fg')}>{value}</p>
-      <p className="text-sm text-fg-secondary">{note}</p>
+      <p className="text-sm text-fg-secondary">{t(note)}</p>
     </div>
   )
 }
 
 export default function AssignmentRuns() {
+  const base = useRoleBase()
   const scope = useScopeQuery()
   const { term } = useSession()
   const { notify, notifyError } = useToast()
@@ -45,7 +48,7 @@ export default function AssignmentRuns() {
     invalidates: ['assignment-runs', 'dashboard'],
     onSuccess: (r, dryRun) => {
       setStarting(null)
-      notify({ type: 'info', title: dryRun ? 'Dry run started' : 'Assignment run started', message: `${r?.id ?? 'The run'} is processing. Results appear here when it finishes.` })
+      notify({ type: 'info', title: dryRun ? 'Dry run started' : 'Assignment run started', message: t('{id} is processing. Results appear here when it finishes.', { id: r?.id ?? t('The run') }) })
     },
     onError: (e) => notifyError(e, 'Could not start the run'),
   })
@@ -54,7 +57,7 @@ export default function AssignmentRuns() {
     <>
       <PageHeader
         title="Assignment"
-        description="The engine proposes a Room and Bed for every Approved Application. Staff review conflicts and commit per Block."
+        description="The engine proposes a Room and Bed for every Approved Application. Managers resolve conflicts and commit per Block."
         actions={
           <>
             <Button icon={Eye} onClick={() => setStarting('dry')} disabled={!term}>
@@ -74,18 +77,18 @@ export default function AssignmentRuns() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <h2 className="text-h2 font-semibold text-fg">
-                    {run.id} · {run.kind}
+                    {run.id} · {tr(run.kind)}
                   </h2>
                   <Tag tone={run.statusTone ?? 'info'}>{run.status}</Tag>
                 </div>
-                <Button variant="primary" icon={Layers} to={`/staff/assignment/${run.id}`}>
+                <Button variant="primary" icon={Layers} to={`${base}/assignment/${run.id}`}>
                   Open proposal
                 </Button>
               </div>
               <p className="text-sm text-fg-tertiary">
-                Started by {run.startedBy} · {formatDateTime(run.startedAt)}
-                {run.finishedAt ? ` · finished ${formatTime(run.finishedAt)}` : ' · running'}
-                {run.snapshot ? ` · rules snapshot ${run.snapshot}` : ''}
+                {t('Started by {name} · {date}', { name: run.startedBy, date: formatDateTime(run.startedAt) })}
+                {run.finishedAt ? ` · ${t('finished {time}', { time: formatTime(run.finishedAt) })}` : ` · ${t('running')}`}
+                {run.snapshot ? ` · ${t('rules snapshot {v}', { v: run.snapshot })}` : ''}
               </p>
               <div className="py-1">
                 <Steps steps={pipeline} current={run.stage ?? 3} compact />
@@ -93,7 +96,7 @@ export default function AssignmentRuns() {
               <div className="flex gap-4">
                 <Stat label="Input" value={formatNumber(run.input)} note="Approved Applications" />
                 <Stat label="Proposed" value={formatNumber(run.proposed)} note="Room and Bed found" tone="success" />
-                <Stat label="Conflicts" value={formatNumber(run.conflicts)} note="Need a Staff decision" tone={run.conflicts ? 'warning' : undefined} />
+                <Stat label="Conflicts" value={formatNumber(run.conflicts)} note="Need a Manager decision" tone={run.conflicts ? 'warning' : undefined} />
                 <Stat label="Waitlisted" value={formatNumber(run.waitlisted)} note="No Bed of chosen type" tone={run.waitlisted ? 'warning' : undefined} />
                 <Stat label="Average Room fit" value={run.averageFit != null ? `${run.averageFit} / 100` : '—'} note="Major and hometown match" />
               </div>
@@ -104,7 +107,7 @@ export default function AssignmentRuns() {
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <h2 className="shrink-0 px-5 py-4 text-h3 font-semibold text-fg">Run history</h2>
+          <h2 className="shrink-0 px-5 py-4 text-h3 font-semibold text-fg">{t('Run history')}</h2>
           <Table bare inset="lg" fill>
             <THead>
               <tr>
@@ -121,7 +124,7 @@ export default function AssignmentRuns() {
                   <Td>
                     <div className="flex flex-col">
                       <span className="font-medium text-fg-brand">{r.id}</span>
-                      <span className="text-sm text-fg-tertiary">{r.kind}</span>
+                      <span className="text-sm text-fg-tertiary">{tr(r.kind)}</span>
                     </div>
                   </Td>
                   <Td>
@@ -132,9 +135,9 @@ export default function AssignmentRuns() {
                   </Td>
                   <Td>
                     <div className="flex flex-col">
-                      <span>{formatNumber(r.proposed)} proposed</span>
+                      <span>{t('{n} proposed', { n: formatNumber(r.proposed) })}</span>
                       <span className="text-sm text-fg-tertiary">
-                        {r.conflicts} conflicts · {r.waitlisted} waitlisted
+                        {t('{c} conflicts · {w} waitlisted', { c: r.conflicts, w: r.waitlisted })}
                       </span>
                     </div>
                   </Td>
@@ -149,26 +152,26 @@ export default function AssignmentRuns() {
 
         <Card className="flex min-h-0 w-100 shrink-0 flex-col gap-2.5">
           <div className="flex shrink-0 items-center justify-between">
-            <h2 className="text-h3 font-semibold text-fg">Rules in this run</h2>
-            {rules?.snapshot && <Tag>Snapshot {rules.snapshot}</Tag>}
+            <h2 className="text-h3 font-semibold text-fg">{t('Rules in this run')}</h2>
+            {rules?.snapshot && <Tag>{t('Snapshot {v}', { v: rules.snapshot })}</Tag>}
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto">
             {(rules?.groups ?? []).map((group) => (
               <div key={group.title} className="flex flex-col gap-2">
-                <p className="text-sm font-medium text-fg-tertiary uppercase">{group.title}</p>
+                <p className="text-sm font-medium text-fg-tertiary uppercase">{tr(group.title)}</p>
                 {group.items.map((rule) => (
                   <p key={rule} className="flex items-start gap-2 text-base text-fg">
                     <Check size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
-                    {rule}
+                    {tr(rule)}
                   </p>
                 ))}
               </div>
             ))}
-            {query.data && !rules?.groups?.length && <p className="text-base text-fg-secondary">No rules snapshot.</p>}
+            {query.data && !rules?.groups?.length && <p className="text-base text-fg-secondary">{t('No rules snapshot.')}</p>}
           </div>
           <p className="shrink-0 text-sm text-fg-tertiary">
             <SlidersHorizontal size={14} aria-hidden="true" className="mr-1 inline" />
-            Admin edits the rules in Matching Criteria.
+            {t('Admin edits the rules in Roommate matching.')}
           </p>
         </Card>
       </div>
@@ -182,7 +185,7 @@ export default function AssignmentRuns() {
           <>
             <Button onClick={() => setStarting(null)}>Cancel</Button>
             <Button variant="primary" onClick={() => start.run(starting === 'dry')} disabled={start.pending}>
-              {start.pending ? 'Starting…' : 'Start run'}
+              {start.pending ? t('Starting…') : t('Start run')}
             </Button>
           </>
         }

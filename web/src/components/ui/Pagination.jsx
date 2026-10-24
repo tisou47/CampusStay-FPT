@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { t } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { Select } from './Field'
+import { formatNumber } from '@/lib/format'
 
 // Figma: 02 Components › Pagination (Ant Design <Pagination showTotal showSizeChanger>).
 function pageList(page, pages) {
@@ -16,11 +18,11 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const go = (p) => onChange?.(Math.min(pages, Math.max(1, p)))
   return (
-    <nav aria-label="Pagination" className={cx('flex shrink-0 items-center gap-2', className)}>
+    <nav aria-label={t('Pagination')} className={cx('flex shrink-0 items-center gap-2', className)}>
       <p className="mr-2 text-base text-fg-secondary">
-        Total {total.toLocaleString('en-US')} {total === 1 ? noun[0] : noun[1]}
+        {t('Total {n} {noun}', { n: formatNumber(total), noun: t(total === 1 ? noun[0] : noun[1]) })}
       </p>
-      <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => go(page - 1)} className={cx(box, 'text-fg-secondary hover:text-fg-brand disabled:text-fg-disabled')}>
+      <button type="button" aria-label={t('Previous page')} disabled={page === 1} onClick={() => go(page - 1)} className={cx(box, 'text-fg-secondary hover:text-fg-brand disabled:text-fg-disabled')}>
         <ChevronLeft size={16} aria-hidden="true" />
       </button>
       {/* Phone: "page / pages" between the arrows instead of the page buttons and the size changer. */}
@@ -32,7 +34,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
           <button
             key={p}
             type="button"
-            aria-label={p === 'next-gap' ? 'Next 5 pages' : 'Previous 5 pages'}
+            aria-label={p === 'next-gap' ? t('Next 5 pages') : t('Previous 5 pages')}
             onClick={() => go(p === 'next-gap' ? page + 5 : page - 5)}
             className={cx(box, 'text-fg hover:text-fg-brand max-lg:hidden')}
           >
@@ -50,16 +52,16 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
           </button>
         ),
       )}
-      <button type="button" aria-label="Next page" disabled={page === pages} onClick={() => go(page + 1)} className={cx(box, 'text-fg-secondary hover:text-fg-brand disabled:text-fg-disabled')}>
+      <button type="button" aria-label={t('Next page')} disabled={page === pages} onClick={() => go(page + 1)} className={cx(box, 'text-fg-secondary hover:text-fg-brand disabled:text-fg-disabled')}>
         <ChevronRight size={16} aria-hidden="true" />
       </button>
       {showSizeChanger && (
         <Select
-          aria-label="Page size"
+          aria-label={t('Page size')}
           value={pageSize}
           onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
           wrapperClassName="w-29 max-lg:hidden"
-          options={[10, 20, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+          options={[10, 20, 50, 100].map((n) => ({ value: n, label: t('{n} / page', { n }) }))}
         />
       )}
     </nav>
