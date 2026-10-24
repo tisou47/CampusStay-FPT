@@ -144,7 +144,8 @@ Rules (`LayeringTest` checks rule 1; the others are checked in review):
 | Base URL `/api` | `server.servlet.context-path=/api`. Controllers map paths without `/api`. |
 | Errors `{ message, code?, details? }` | `ApiException` + `GlobalExceptionHandler`. `message` is written for end users. Unexpected errors return `INTERNAL_ERROR` with an `errorId` that is also in the log. DB constraint names map to friendly messages (`ConstraintMessages`). |
 | Lists `{ items, total }` | `ListResponse<T>`, or an endpoint-specific record with `items`, `total` first. `PageQuery.of(page, pageSize)`: 1-based, default 20, max 100. |
-| Scope `termId`, `block` | `BlockScope.resolve(block)` on every Staff/Manager endpoint: blank = all Blocks the user may see; a Block outside scope = `403 BLOCK_OUT_OF_SCOPE`. |
+| Scope `termId`, `block` | `BlockScope.resolve(block)` on every Staff/Manager endpoint: blank = all Blocks the user may see; a Block outside scope = `403 BLOCK_OUT_OF_SCOPE`. Staff see the Blocks linked to their account (`auth_user_block`); Managers and Admins see every active Block (ADR-19). |
+| Language (ADR-25) | The web sends `Accept-Language: vi` or `en` with every request. `LocalizedErrors` (a `ResponseBodyAdvice`) turns the English `message` and field messages of an error into Vietnamese through `common.i18n.Messages` (catalog `i18n/messages_vi.txt`, one `English ⟶ Vietnamese` pair per line, `{0}` for values); without the header the API answers in English. Other API texts (labels, dashboard lines) stay English and the web translates them with its own dictionary. The account language is `auth_user.locale` (`PUT /auth/me/locale`, V33). |
 | IDs are strings (ADR-15) | Contract records expose every `id` / `…Id` component as `String` (`String.valueOf(entity.getId())`); services, entities and SQL keep `long`. Request records may keep IDs as `long`: Jackson 3.1 accepts both `"42"` and `42` there (checked 20/10/2026). Never register a global `Long` → string serializer: amounts and counts are `long` too. |
 | Optional request fields | Jackson 3 rejects a missing or `null` value for a primitive (`FAIL_ON_NULL_FOR_PRIMITIVES` is on by default) with `400 BAD_REQUEST_BODY`. Optional fields use wrapper types (`Boolean remember`, missing = `false`); the feature stays on, so a missing required amount is never silently 0. |
 | Dates ISO 8601 UTC | `Instant` for fields ending in `At`, `LocalDate` (`YYYY-MM-DD`) for calendar days (`stayStart`, `checkOutBy`, `deadline` …); JDBC time zone UTC; campus zone `Asia/Ho_Chi_Minh` only for "today" logic and email texts. |
@@ -197,8 +198,8 @@ Three layers, each one checked on the server:
 | Layer | Rule | Where |
 |---|---|---|
 | Role by URL | `/students/**` → Student; `/admin/**` → Admin; webhooks and sign-in endpoints public; everything else signed in | `SecurityConfig` |
-| Role by action | e.g. approve assignment = Manager; review Application = Staff/Manager | `@PreAuthorize` / `CurrentUser.require` in services |
-| Data scope | Staff/Manager see only their Blocks (`BlockScope`); students see only their own records (every student query filters by `currentUser.id()`); never trust ids from the client alone | Services and SQL |
+| Role by action | e.g. review Applications, run and commit the assignment, confirm payments, decide refunds and late check-ins = Manager; check-in desk, maintenance and same-Block room changes = Staff or Manager | `@PreAuthorize` / `CurrentUser.require` in services (`security.Permission`) |
+| Data scope | Staff see only their Blocks; Managers work for every Block (ADR-19, V32), so a move to another Block is decided by a Manager (`CROSS_BLOCK`); students see only their own records (every student query filters by `currentUser.id()`); never trust ids from the client alone | Services and SQL (`BlockScope`) |
 
 The Admin › Permissions matrix (`GET /admin/permissions`) is generated from the same rule table in code so it cannot drift from what is enforced.
 
@@ -281,7 +282,7 @@ sequenceDiagram
 
 ## 11. Notifications and scheduled jobs
 
-Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android devices (invalid tokens are disabled), email through `ntf_email_outbox`. Templates (EN/VI titles) are Admin data. Push runs after the business transaction commits, on a virtual thread, so a slow FCM never delays the response; without `FIREBASE_CREDENTIALS_FILE` push is skipped. The service-account JWT is signed with the JDK (no Firebase SDK).
+Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android devices (invalid tokens are disabled), email through `ntf_email_outbox`. Templates hold both languages (titles and bodies, V34) and are Admin data; each notification is stored in both, the web shows the one of the request language, and push and email follow the account language (`auth_user.locale`, ADR-25). Push runs after the business transaction commits, on a virtual thread, so a slow FCM never delays the response; without `FIREBASE_CREDENTIALS_FILE` push is skipped. The service-account JWT is signed with the JDK (no Firebase SDK).
 
 | Job | Schedule | Feature |
 |---|---|---|

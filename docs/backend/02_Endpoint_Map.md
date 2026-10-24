@@ -98,16 +98,16 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 | APP | GET | `/applications` | Must | Verified | C-21; TC-APP-010, 011 |
 | APP | POST | `/applications/bulk-review` | Must | Verified | Approves only; TC-ASG-010 |
 | APP | POST | `/applications/{id}/review` | Must | Verified | C-21; TC-APP-010, 011 |
-| ASG | GET | `/approvals/assignment` | Must | Verified | TC-ASG-010, 011 |
+| ASG | GET | `/approvals/assignment` | Must | Verified | TC-ASG-010, 011. Since v2 phase 1 the commit approves at once (C-38): kept, not called by the web |
 | ASG | GET | `/assignment-runs` | Must | Verified | Run ids `RUN-<n>` (C-21); TC-ASG-010, 011 |
 | ASG | POST | `/assignment-runs` | Must | Verified | Engine unit tests TC-ASG-001…006; TC-ASG-010, 011 |
-| ASG | POST | `/assignment-runs/{runId}/approve` | Must | Verified | Allocations + Balance Invoices + notifications; TC-ASG-010 |
-| ASG | POST | `/assignment-runs/{runId}/commit` | Must | Verified | Staff submit the Block to its Manager; TC-ASG-010, 011 |
+| ASG | POST | `/assignment-runs/{runId}/approve` | Must | Verified | Allocations + Balance Invoices + notifications; TC-ASG-010. Since v2 phase 1 run by the commit (C-38): kept, not called by the web |
+| ASG | POST | `/assignment-runs/{runId}/commit` | Must | Verified | A Manager commits the Block: Allocations, Balance Invoices and notifications at once (v2 phase 1, C-38); TC-ASG-010, 011 |
 | ASG | GET | `/assignment-runs/{runId}/conflicts/{applicationId}` | Must | Verified | TC-ASG-010 |
 | ASG | POST | `/assignment-runs/{runId}/conflicts/{applicationId}/resolve` | Must | Verified | TC-ASG-010 |
 | ASG | GET | `/assignment-runs/{runId}/proposal` | Must | Verified | TC-ASG-010, 011 |
-| ASG | POST | `/assignment-runs/{runId}/return` | Must | Verified | TC-ASG-010 |
-| ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Verified | TC-ASG-010, 011 |
+| ASG | POST | `/assignment-runs/{runId}/return` | Must | Verified | TC-ASG-010. Nothing waits for approval since v2 phase 1 (C-38): kept, not called by the web |
+| ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Verified | TC-ASG-010, 011. Not called by the web since v2 phase 1 (the Decisions page has no assignment tab) |
 | ASG | GET | `/students/me/allocation` | Must | Verified | C-21; TC-ASG-010, 011 |
 | BIL | GET | `/payments` | Must | Verified | C-22; TC-BIL-010, 011 |
 | BIL | POST | `/payments/{invoiceId}/confirm` | Must | Verified | C-22; TC-BIL-011, 012 |

@@ -377,7 +377,7 @@ public class SwapService {
         }
         boolean manager = user.is(Role.MANAGER);
         if (s.status().equals("TO_MANAGER") && !manager) {
-            throw ApiException.forbidden("MANAGER_DECIDES", "A swap between Blocks is decided by the Block Manager.");
+            throw ApiException.forbidden("MANAGER_DECIDES", "A swap between Blocks is decided by a Manager.");
         }
         if (!s.status().equals("PENDING") && !s.status().equals("TO_MANAGER")) {
             throw ApiException.conflict("ALREADY_DECIDED", "This swap is not waiting for a decision.");
@@ -389,7 +389,7 @@ public class SwapService {
         String d = decision == null ? "" : decision.trim();
         if (d.equalsIgnoreCase("rejected")) {
             String why = reason == null || reason.isBlank()
-                    ? (manager ? "Rejected by the Block Manager" : "Rejected by Staff") : reason.trim();
+                    ? (manager ? "Rejected by a Manager" : "Rejected by Staff") : reason.trim();
             jdbc.sql("""
                     UPDATE req_swap SET status = 'REJECTED', decided_by = :by, decided_at = :now, decision_reason = :why,
                            version = version + 1

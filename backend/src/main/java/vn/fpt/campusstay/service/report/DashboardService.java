@@ -488,15 +488,19 @@ public class DashboardService {
                 .orElse(false);
         checks.add(new Check(confirmed, confirmed ? "Fees and refund rules are confirmed" : "Confirm the fees and refund rules",
                 "/admin/fees"));
-        List<String> noManager = jdbc.sql("""
+        // Managers work for every Block (ADR-19); Staff are linked to the Blocks they work in.
+        boolean manager = count("SELECT count(*) FROM rpt_v_user WHERE role = 'MANAGER' AND status = 'ACTIVE'",
+                Map.of()) > 0;
+        List<String> noStaff = jdbc.sql("""
                 SELECT DISTINCT b.block FROM rpt_v_bed b
                 WHERE b.block_status = 'ACTIVE' AND NOT EXISTS (
                     SELECT 1 FROM rpt_v_user_block ub JOIN rpt_v_user u ON u.id = ub.user_id
-                    WHERE ub.building_id = b.building_id AND u.role = 'MANAGER' AND u.status = 'ACTIVE')
+                    WHERE ub.building_id = b.building_id AND u.role = 'STAFF' AND u.status = 'ACTIVE')
                 ORDER BY b.block
                 """).query(String.class).list();
-        checks.add(noManager.isEmpty() ? new Check(true, "Every Block has a Block Manager", "/admin/users")
-                : new Check(false, "Assign a Block Manager to Block " + String.join(", ", noManager), "/admin/users"));
+        checks.add(!manager ? new Check(false, "Add an active Manager account", "/admin/users")
+                : noStaff.isEmpty() ? new Check(true, "A Manager is active and every Block has Staff", "/admin/users")
+                : new Check(false, "Assign Staff to Block " + String.join(", ", noStaff), "/admin/users"));
         boolean checklist = count("SELECT count(*) FROM rpt_v_checklist WHERE status = 'PUBLISHED'", Map.of()) > 0;
         checks.add(new Check(checklist, checklist ? "An inspection checklist is published"
                 : "Publish an inspection checklist", "/admin/inspection-checklists"));

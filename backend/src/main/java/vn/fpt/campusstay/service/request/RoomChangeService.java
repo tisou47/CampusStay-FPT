@@ -428,7 +428,7 @@ public class RoomChangeService {
             billing.requestCredit(r.termId(), r.studentId(), bed.buildingId(), "ROOM_CHANGE", r.id(),
                     "Room change " + r.code() + " · cheaper Room", -difference);
             text.append(" A refund of ").append(vnd.format(-difference))
-                    .append(" VND goes to the Block Manager for approval.");
+                    .append(" VND goes to a Manager for approval.");
         }
         jdbc.sql("""
                 UPDATE req_room_change SET status = 'APPROVED', target_bed_id = :bed, decided_by = :by, decided_at = :now,

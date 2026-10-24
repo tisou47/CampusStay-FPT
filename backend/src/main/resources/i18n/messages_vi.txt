@@ -370,7 +370,7 @@ Pay your overdue Invoice before you ask for a swap. ⟶ Hãy thanh toán hóa đ
 Your Bed is not what this student is looking for. ⟶ Giường của bạn không đúng với điều sinh viên này cần.
 One of you no longer holds the Bed. ⟶ Một trong hai bạn không còn giữ giường.
 The swap does not pass the rule check any more. ⟶ Yêu cầu đổi chéo không còn đáp ứng điều kiện.
-A swap between Blocks is decided by the Block Manager. ⟶ Việc đổi chéo giữa các Block do Quản lý quyết định.
+A swap between Blocks is decided by a Manager. ⟶ Việc đổi chéo giữa các Block do Quản lý quyết định.
 Accept or decline the swap. ⟶ Hãy chấp nhận hoặc từ chối đổi chéo.
 Choose the Room Type and Room Class you want. ⟶ Hãy chọn loại phòng và hạng phòng bạn muốn.
 Choose maintenance or room-changes. ⟶ Hãy chọn sửa chữa hoặc đổi phòng.

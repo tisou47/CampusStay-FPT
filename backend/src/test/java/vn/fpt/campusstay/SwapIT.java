@@ -191,7 +191,7 @@ class SwapIT {
         stay.postJson("/swaps/" + id + "/decision", bearer(mvc, MANAGER_A), "{\"decision\":\"Rejected\"}")
                 .andExpect(status().isNoContent());
         queue(staff, "Rejected")
-                .andExpect(jsonPath("$.items[0].decision.reason").value("Rejected by the Block Manager"));
+                .andExpect(jsonPath("$.items[0].decision.reason").value("Rejected by a Manager"));
         assertThat(stay.roomOf(bearer(mvc, student(13)))).isEqualTo("A-404");
     }
 }

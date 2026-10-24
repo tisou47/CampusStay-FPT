@@ -31,7 +31,7 @@ import vn.fpt.campusstay.repository.application.ApplicationStore;
  * Round-2 offers to Waitlisted students: pick one of the held Beds (the
  * Application is Allocated and the Balance issued) or decline. A declined or
  * unanswered offer cancels the Application; its paid Deposit is refunded
- * once the Block Manager approves.
+ * once a Manager approves.
  */
 @Service
 public class Round2Service {
@@ -176,7 +176,7 @@ public class Round2Service {
         ApplicationStore.Application app = applications.find(offer.applicationId(), true).orElseThrow();
         if (applications.transition(app.id(), Set.of("WAITLISTED"), "CANCELLED")) {
             applications.event(app.id(), "CANCELLED", text, "The Application is cancelled; the Deposit is refunded "
-                    + "after the Block Manager approves.", null);
+                    + "after a Manager approves.", null);
             long paid = depositPaid(app.id());
             if (paid > 0) {
                 billing.requestCredit(app.termId(), app.studentId(), null, "APPLICATION_CANCEL", app.id(),
