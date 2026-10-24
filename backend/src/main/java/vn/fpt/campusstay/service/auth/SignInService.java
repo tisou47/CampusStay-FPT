@@ -37,18 +37,21 @@ public class SignInService {
     private final GoogleCodeExchanger googleCodes;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository users;
+    private final StudentSignUp signUp;
     private final Clock clock;
     /** Hash of a random string; compared against when the email is unknown, to equalise timing. */
     private final String dummyHash;
 
     public SignInService(AccountStore accounts, SessionService sessions, GoogleIdTokenVerifier google,
-            GoogleCodeExchanger googleCodes, PasswordEncoder passwordEncoder, UserRepository users, Clock clock) {
+            GoogleCodeExchanger googleCodes, PasswordEncoder passwordEncoder, UserRepository users, StudentSignUp signUp,
+            Clock clock) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.google = google;
         this.googleCodes = googleCodes;
         this.passwordEncoder = passwordEncoder;
         this.users = users;
+        this.signUp = signUp;
         this.clock = clock;
         this.dummyHash = passwordEncoder.encode("dummy-" + System.nanoTime());
     }
@@ -80,13 +83,21 @@ public class SignInService {
         return signInWithGoogle(googleCodes.exchange(code), remember);
     }
 
-    /** Android (and the web after the code exchange): a Google ID token. */
+    /**
+     * Android (and the web after the code exchange): a Google ID token. An {@code @fpt.edu.vn} account CampusStay
+     * does not know yet signs up as a student (ADR-26, {@link StudentSignUp}).
+     */
     public SignInResult signInWithGoogle(String credential, boolean remember) {
         GoogleIdTokenVerifier.GoogleIdentity identity = google.verify(credential);
-        UserEntity user = users.findByGoogleSub(identity.subject())
-                .or(() -> accounts.findByEmail(identity.email()))
-                .orElseThrow(() -> ApiException.forbidden("NO_ACCOUNT",
-                        "There is no CampusStay account for this Google account. Contact the dormitory office."));
+        Optional<UserEntity> found = users.findByGoogleSub(identity.subject())
+                .or(() -> accounts.findByEmail(identity.email()));
+        if (found.isEmpty()) {
+            long id = signUp.signUp(identity);
+            UserEntity user = users.findById(id).orElseThrow();
+            checkStatus(user);
+            return finish(id, remember, SessionEntity.Method.GOOGLE, null);
+        }
+        UserEntity user = found.get();
         if (user.getGoogleSub() != null && !user.getGoogleSub().equals(identity.subject())) {
             throw ApiException.forbidden("GOOGLE_ACCOUNT_MISMATCH",
                     "This account is linked to a different Google account. Contact the dormitory office.");
@@ -96,8 +107,14 @@ public class SignInService {
                 user.getGoogleSub() == null ? identity.subject() : null);
     }
 
+    /** A disabled account cannot sign in; a student account a Manager rejected says why (spec §6.1). */
     private void checkStatus(UserEntity user) {
         if (user.getStatus() == UserEntity.Status.DISABLED) {
+            Optional<String> reason = accounts.rejectionReason(user.getId());
+            if (reason.isPresent()) {
+                throw ApiException.forbidden("ACCOUNT_REJECTED", "Your student account was not verified: "
+                        + reason.get().replaceAll("[.\\s]+$", "") + ". Contact the dormitory office.");
+            }
             throw ApiException.forbidden("ACCOUNT_DISABLED", "This account is disabled. Contact the dormitory office.");
         }
     }

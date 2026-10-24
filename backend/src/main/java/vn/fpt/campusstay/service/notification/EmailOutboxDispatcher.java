@@ -34,25 +34,25 @@ class EmailOutboxDispatcher {
         this.clock = clock;
     }
 
-    private record Pending(long id, String to, String subject, String body, int attempts) {
+    private record Pending(long id, String to, String subject, String body, int attempts, boolean demo) {
     }
 
     @Scheduled(fixedDelayString = "${campusstay.mail.dispatch-interval:30s}")
     @Transactional
     public void dispatch() {
         List<Pending> due = jdbc.sql("""
-                SELECT id, to_email, subject, body_html, attempts FROM ntf_email_outbox
+                SELECT id, to_email, subject, body_html, attempts, demo_recipient FROM ntf_email_outbox
                 WHERE status = 'PENDING' AND not_before <= :now
                 ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED
                 """)
                 .param("now", Timestamp.from(Instant.now(clock)))
                 .param("limit", props.batchSize())
                 .query((rs, i) -> new Pending(rs.getLong("id"), rs.getString("to_email"), rs.getString("subject"),
-                        rs.getString("body_html"), rs.getInt("attempts")))
+                        rs.getString("body_html"), rs.getInt("attempts"), rs.getBoolean("demo_recipient")))
                 .list();
         for (Pending p : due) {
             try {
-                sender.send(p.to(), p.subject(), p.body());
+                sender.send(p.to(), p.subject(), p.body(), p.demo());
                 jdbc.sql("UPDATE ntf_email_outbox SET status = 'SENT', sent_at = :now, attempts = attempts + 1 WHERE id = :id")
                         .param("now", Timestamp.from(Instant.now(clock))).param("id", p.id()).update();
             } catch (Exception e) {

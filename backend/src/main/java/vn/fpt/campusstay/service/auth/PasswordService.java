@@ -109,6 +109,23 @@ public class PasswordService {
         audit.record("PASSWORD_CHANGED", AuditLog.Tone.INFO, "User", user.getId(), user.getEmail(), null);
     }
 
+    /**
+     * The first password of an account created by Google sign-up (ADR-26): until it exists only the setup endpoints
+     * answer. The session stays signed in.
+     */
+    @Transactional
+    public void setFirst(AuthenticatedUser current, String newPassword) {
+        UserEntity user = users.findById(current.userId()).orElseThrow();
+        if (user.getPasswordHash() != null) {
+            throw ApiException.conflict("PASSWORD_ALREADY_SET",
+                    "This account already has a password. Use Change password instead.");
+        }
+        PasswordPolicy.check(newPassword, user.getEmail());
+        user.changePassword(encoder.encode(newPassword));
+        audit.record(new Actor(user.getId(), user.getDisplayName()), "PASSWORD_SET", AuditLog.Tone.INFO, "User",
+                user.getId(), user.getEmail(), null);
+    }
+
     private void issue(UserEntity user, ActionTokenEntity.Purpose purpose, Duration ttl, Instant now) {
         tokens.invalidateOpen(user.getId(), purpose, now);
         String raw = Tokens.newToken();

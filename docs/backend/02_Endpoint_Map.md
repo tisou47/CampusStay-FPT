@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 163 endpoints (168 when the five `GET, PUT` rows count twice); all 163 coded, 162 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`.
+Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded, 180 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (branch `feat/v2-phase2`).
 
 | Slice | Focus |
 |---|---|
@@ -14,12 +14,13 @@ Total: 163 endpoints (168 when the five `GET, PUT` rows count twice); all 163 co
 | S5 | Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue |
 | S6 | Utility billing, routing rules, SLA, escalations, Block staff/settings |
 | S7 | Dashboards, reports, exports, inspections, email campaigns, templates |
+| V2-2 | Change Specification v2 phase 2 "Accounts": Google sign-up, verification, student list, hub and import, Staff accounts |
 
 ## S0 — Foundation, AUTH session, Terms
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled": TC-AUTH-009, 010; code exchange: TC-AUTH-029…033 (`GoogleCodeExchangerTest`); the success path needs a real Google account (manual test) |
+| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`), A-17 (sign-up). Validation and "disabled": TC-AUTH-009, 010; code exchange: TC-AUTH-029…033 (`GoogleCodeExchangerTest`); sign-up, linking by the code in the address and rejection with the token check stubbed: TC-AUTH-038, 040, 041; the real Google token check needs a real account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
 | AUTH | PUT | `/auth/me/locale` | Must | Verified | A-15 (v2 phase 1, ADR-25); TC-AUTH-036. Every endpoint: `Accept-Language` A-16, TC-AUTH-037 |
 | AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |
@@ -219,3 +220,30 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 | RPT | GET | `/reports/block` | Must | Verified | C-37; TC-RPT-007 |
 | RPT | GET | `/reports/financial` | Must | Verified | C-37; TC-RPT-006 |
 | RPT | GET | `/reports/occupancy` | Must | Verified | A-14, C-37; TC-RPT-005 |
+
+## V2-2 — Change Specification v2 phase 2 "Accounts"
+
+Built on `feat/v2-phase2` (25/10/2026), not yet in `main` (ADR-27). Migrations V36 (AUTH) and V37 (NTF).
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| AUTH | POST | `/auth/password/set` | Must | Verified | A-17; the setup gate (`PASSWORD_REQUIRED`, `PROFILE_REQUIRED`): TC-AUTH-038 |
+| AUTH | GET, PUT | `/students/me/verification` | Must | Verified | A-18; TC-AUTH-038, 039 |
+| AUTH | GET | `/student-accounts` | Must | Verified | A-19; Staff: residents of their Blocks; TC-AUTH-042 |
+| AUTH | GET | `/student-accounts/{id}` | Must | Verified | A-19; the student hub (sections from APP, ASG, BIL, REQ through `StudentRecords`); TC-AUTH-043 |
+| AUTH | PUT | `/student-accounts/{id}` | Must | Verified | A-19; TC-AUTH-044 |
+| AUTH | POST | `/student-accounts/{id}/verify` | Must | Verified | A-19; TC-AUTH-045, TC-APP-022 |
+| AUTH | POST | `/student-accounts/{id}/reject` | Must | Verified | A-19; TC-AUTH-041, 045 |
+| AUTH | POST | `/student-accounts/{id}/lock` | Must | Verified | A-19; TC-AUTH-045 |
+| AUTH | POST | `/student-accounts/{id}/unlock` | Must | Verified | A-19; TC-AUTH-045 |
+| AUTH | GET | `/student-imports` | Must | Verified | A-20; TC-AUTH-047 |
+| AUTH | GET | `/student-imports/template` | Must | Verified | A-20; TC-AUTH-046 |
+| AUTH | POST | `/student-imports` | Must | Verified | A-20; CSV and XLSX: TC-AUTH-046, 048 |
+| AUTH | GET | `/student-imports/{id}` | Must | Verified | A-20; TC-AUTH-048 |
+| AUTH | POST | `/student-imports/{id}/confirm` | Must | Verified | A-20, C-39; TC-AUTH-047 |
+| AUTH | GET | `/staff-accounts` | Must | Verified | A-21; TC-AUTH-049 |
+| AUTH | POST | `/staff-accounts` | Must | Verified | A-21; TC-AUTH-049, TC-NTF-040 |
+| AUTH | PUT | `/staff-accounts/{id}` | Must | Verified | A-21; TC-AUTH-050 |
+| AUTH | POST | `/staff-accounts/{id}/invitation` | Must | Verified | A-21; TC-AUTH-050 |
+
+Email redirect for fictional accounts only (spec O-3): `ntf_email_outbox.demo_recipient`, TC-NTF-039 (`EmailSenderConfigTest`), TC-NTF-040.

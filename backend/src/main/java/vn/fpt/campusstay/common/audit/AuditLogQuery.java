@@ -61,6 +61,21 @@ public class AuditLogQuery {
         return new Page(items, total);
     }
 
+    /** The latest entries about one object (e.g. a user), sign-ins left out, newest first. */
+    public List<Entry> about(String objectType, String objectId, int limit) {
+        return jdbc.sql("""
+                SELECT id, at, actor_label, action, tone, object_type, object_id, object_label, change::text AS change
+                FROM shared_audit_log
+                WHERE object_type = :type AND object_id = :id AND action NOT IN ('SIGN_IN', 'SIGN_IN_FAILED')
+                ORDER BY at DESC, id DESC LIMIT :limit
+                """).param("type", objectType).param("id", objectId).param("limit", limit)
+                .query((rs, i) -> new Entry(rs.getLong("id"), rs.getTimestamp("at").toInstant(),
+                        rs.getString("actor_label"), rs.getString("action"), AuditLog.Tone.valueOf(rs.getString("tone")),
+                        rs.getString("object_type"), rs.getString("object_id"), rs.getString("object_label"),
+                        rs.getString("change")))
+                .list();
+    }
+
     /** Actor labels that appear since the given instant (null = all time), sorted. */
     public List<String> actors(Instant since) {
         return distinct("actor_label", since);

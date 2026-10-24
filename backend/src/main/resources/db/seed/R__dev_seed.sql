@@ -187,3 +187,11 @@ SELECT u.id, s.code, s.gender, make_date(s.entry - 18, 1, 1) + (pg_temp.rnd('dob
            || lpad(((s.n * 104729 + 7654321) % 10000000)::text, 7, '0')
 FROM t_student s JOIN auth_user u ON u.email = lower(s.code) || '@fpt.edu.vn'
 ON CONFLICT DO NOTHING;
+
+-- ---------- every account above is fictional ----------
+-- Only the emails of fictional accounts go to the demo mailbox (MAIL_REDIRECT_TO); real accounts, which sign up
+-- with Google or come from an imported student list, receive their own email (spec O-3).
+UPDATE auth_user SET demo = TRUE
+WHERE NOT demo
+  AND (email ~ '^(admin|manager\.[a-h]|staff\.[a-h][12])@fpt\.edu\.vn$'
+       OR email IN (SELECT lower(code) || '@fpt.edu.vn' FROM t_student));

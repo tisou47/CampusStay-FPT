@@ -1,9 +1,11 @@
 package vn.fpt.campusstay.service.assignment;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -42,6 +44,44 @@ class JdbcResidences implements Residences {
                 .flatMap(row -> Optional.ofNullable(inventory.beds(List.of(row.bedId())).get(row.bedId()))
                         .map(bed -> new Residence(row.id(), row.termId(), studentId, bed.roomId(), bed.roomCode(),
                                 bed.bedId(), bed.bedLabel(), bed.buildingId(), bed.block(), row.checkedIn())));
+    }
+
+    @Override
+    public Map<Long, Residence> current(Collection<Long> studentIds) {
+        if (studentIds.isEmpty()) {
+            return Map.of();
+        }
+        record Held(long id, long termId, long studentId, long bedId, boolean checkedIn) {
+        }
+        List<Held> rows = jdbc.sql("""
+                SELECT DISTINCT ON (student_id) id, term_id, student_id, bed_id, checked_in_at IS NOT NULL AS checked_in
+                FROM asg_allocation WHERE student_id IN (:students) AND status = 'ACTIVE'
+                ORDER BY student_id, checked_in_at IS NOT NULL DESC, allocated_at DESC
+                """).param("students", List.copyOf(studentIds))
+                .query((rs, i) -> new Held(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"),
+                        rs.getLong("bed_id"), rs.getBoolean("checked_in")))
+                .list();
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(rows.stream().map(Held::bedId).toList());
+        Map<Long, Residence> result = new HashMap<>();
+        for (Held h : rows) {
+            Inventory.BedSlot bed = beds.get(h.bedId());
+            if (bed != null) {
+                result.put(h.studentId(), new Residence(h.id(), h.termId(), h.studentId(), bed.roomId(), bed.roomCode(),
+                        bed.bedId(), bed.bedLabel(), bed.buildingId(), bed.block(), h.checkedIn()));
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Set<Long> residentsOf(Collection<Long> buildingIds) {
+        List<Long> beds = buildingIds.stream().flatMap(b -> inventory.bedsOfBuilding(b).stream())
+                .map(Inventory.BedSlot::bedId).toList();
+        if (beds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(jdbc.sql("SELECT DISTINCT student_id FROM asg_allocation WHERE status = 'ACTIVE' AND bed_id IN (:beds)")
+                .param("beds", beds).query(Long.class).list());
     }
 
     @Override

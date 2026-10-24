@@ -53,6 +53,9 @@ class AuthController {
             @NotBlank(message = "Enter a new password.") @Size(max = 128) String newPassword) {
     }
 
+    record SetPasswordRequest(@NotBlank(message = "Enter a new password.") @Size(max = 128) String newPassword) {
+    }
+
     record ChangePasswordRequest(@NotBlank(message = "Enter your current password.") @Size(max = 128) String currentPassword,
             @NotBlank(message = "Enter a new password.") @Size(max = 128) String newPassword) {
     }
@@ -126,6 +129,13 @@ class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void reset(@Valid @RequestBody ResetPasswordRequest body) {
         passwords.resetWithToken(body.token(), body.newPassword());
+    }
+
+    /** The first password of an account created by Google sign-up (ADR-26, contract change A-17). */
+    @PostMapping("/password/set")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void setFirst(@Valid @RequestBody SetPasswordRequest body) {
+        passwords.setFirst(currentUser.get(), body.newPassword());
     }
 
     @PostMapping("/password/change")

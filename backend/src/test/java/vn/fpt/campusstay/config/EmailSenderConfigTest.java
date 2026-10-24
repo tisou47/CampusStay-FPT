@@ -17,7 +17,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import vn.fpt.campusstay.service.notification.EmailSender;
 
-/** Where emails go: the recipient, or the demo mailbox of campusstay.mail.redirect-to (TC-NTF-034, 035). */
+/** Where emails go: the recipient, or for fictional accounts the demo mailbox of campusstay.mail.redirect-to (TC-NTF-034, 035, 039). */
 class EmailSenderConfigTest {
 
     /** Keeps the messages instead of opening an SMTP connection. */
@@ -42,11 +42,11 @@ class EmailSenderConfigTest {
         return new EmailSenderConfig().emailSender(beans.getBeanProvider(JavaMailSender.class), props);
     }
 
-    /** TC-NTF-034: with a demo mailbox every email goes there, the real recipient in the subject and a header. */
+    /** TC-NTF-034: with a demo mailbox an email to a fictional account goes there, the recipient in the subject and a header. */
     @Test
     void redirectsToTheDemoMailbox() throws Exception {
         CapturingSender smtp = new CapturingSender();
-        sender(smtp, props(" team@example.com ")).send("se190001@fpt.edu.vn", "Reset your password", "<p>Hi</p>");
+        sender(smtp, props(" team@example.com ")).send("se190001@fpt.edu.vn", "Reset your password", "<p>Hi</p>", true);
 
         MimeMessage message = smtp.sent.getFirst();
         assertThat(message.getRecipients(Message.RecipientType.TO)).extracting(Object::toString)
@@ -59,7 +59,7 @@ class EmailSenderConfigTest {
     @Test
     void deliversNormallyOrOnlyLogs() throws Exception {
         CapturingSender smtp = new CapturingSender();
-        sender(smtp, props("")).send("se190001@fpt.edu.vn", "Reset your password", "<p>Hi</p>");
+        sender(smtp, props("")).send("se190001@fpt.edu.vn", "Reset your password", "<p>Hi</p>", true);
 
         MimeMessage message = smtp.sent.getFirst();
         assertThat(message.getRecipients(Message.RecipientType.TO)).extracting(Object::toString)
@@ -67,7 +67,20 @@ class EmailSenderConfigTest {
         assertThat(message.getSubject()).isEqualTo("Reset your password");
         assertThat(message.getHeader(EmailSenderConfig.ORIGINAL_TO)).isNull();
 
-        assertThatCode(() -> sender(null, props("")).send("se190001@fpt.edu.vn", "Subject", "<p>Body</p>"))
+        assertThatCode(() -> sender(null, props("")).send("se190001@fpt.edu.vn", "Subject", "<p>Body</p>", false))
                 .doesNotThrowAnyException();
+    }
+
+    /** TC-NTF-039: a real account receives its own email even while a demo mailbox is set (spec O-3). */
+    @Test
+    void realAccountsAreNotRedirected() throws Exception {
+        CapturingSender smtp = new CapturingSender();
+        sender(smtp, props("team@example.com")).send("ittest.se199421@fpt.edu.vn", "Set your password", "<p>Hi</p>", false);
+
+        MimeMessage message = smtp.sent.getFirst();
+        assertThat(message.getRecipients(Message.RecipientType.TO)).extracting(Object::toString)
+                .containsExactly("ittest.se199421@fpt.edu.vn");
+        assertThat(message.getSubject()).isEqualTo("Set your password");
+        assertThat(message.getHeader(EmailSenderConfig.ORIGINAL_TO)).isNull();
     }
 }

@@ -5,7 +5,7 @@
 | Version | 1.0 |
 | Date | 24/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Team Leader) |
-| Status | **Approved by Tisou on 24/10/2026** (open items O-1…O-3 as recommended). Built phase by phase (§16); its decisions are in the Brief's Decision Log as ADR-19…ADR-27 (§17). Progress: phase 1 merged into `main` and deployed 24/10/2026 (built on `feat/v2-phase1`): roles, VI/EN in web and API, bilingual notifications, grouped menus; migrations V32–V35 |
+| Status | **Approved by Tisou on 24/10/2026** (open items O-1…O-3 as recommended). Built phase by phase (§16); its decisions are in the Brief's Decision Log as ADR-19…ADR-27 (§17). Progress: phase 1 merged into `main` and deployed 24/10/2026 (built on `feat/v2-phase1`): roles, VI/EN in web and API, bilingual notifications, grouped menus; migrations V32–V35. Phase 2 built on `feat/v2-phase2` 25/10/2026, not merged yet: Google sign-up with the first password and the sign-up form, verification, Students list and hub, student list import (CSV/XLSX), Staff accounts by Managers, email redirect for fictional accounts only (O-3); migrations V36–V37, contract changes A-17…A-21 and C-39 |
 | Source | Discussion of 24/10/2026 between Tisou and Claude Code: questions Q0–Q28 and R1–R9, all answered "as recommended" unless noted in §2 |
 | Changes once approved | Brief §3 (actors), §4, §6; ADR-07, ADR-08, ADR-12, ADR-18; OI-04; `docs/api-contract.md` via `docs/backend/03_API_Contract_Changes.md`; backend `CLAUDE.md` (seed rule) |
 
@@ -489,9 +489,9 @@ Each phase: new migrations, integration tests per controller (`TC-<CODE>-NNN`), 
 
 | ID | Item | Who | Recommendation / status |
 |---|---|---|---|
-| P-1 | Google OAuth client: create the project, consent screen (External; `openid`, `email`, `profile`; published), Web client with JavaScript origins `https://campusstay-fpt-ten.vercel.app` and `http://localhost:5173`; save the JSON as `C:\Users\DELL\.campusstay\google-oauth.json` | Tisou | Claude Code then sets the VM `.env` and Vercel's `VITE_GOOGLE_CLIENT_ID` without printing the secret, and tests with a real account |
+| P-1 | Google OAuth client: create the project, consent screen (External; `openid`, `email`, `profile`; published), Web client with JavaScript origins `https://campusstay-fpt-ten.vercel.app` and `http://localhost:5173`; save the JSON as `C:\Users\DELL\.campusstay\google-oauth.json` | Tisou | Claude Code then sets the VM `.env` and Vercel's `VITE_GOOGLE_CLIENT_ID` without printing the secret, and tests with a real account. **25/10/2026:** the client exists and the local app (`http://localhost:5173`) runs with it; production settings wait for the phase 2 merge |
 | P-2 | Gmail App Password for SMTP (password reset, staff invitations, emails) | Tisou (optional) | same handling as P-1 |
 | P-3 | Door-code encryption key on the VM | Claude Code | generated on the server, never printed |
 | O-1 | Review 2 date and what it must show; how phases reach `main` (which deploys production) | Tisou | **Decided 24/10/2026:** until Review 2, each phase is built on its own branch (`feat/v2-phase<n>`) and merged into `main` only when it is complete and the demo still works; documentation and urgent fixes still go to `main` directly; afterwards the standing rule applies again |
 | O-2 | When to start the Android app | Tisou | **Decided 24/10/2026:** after phase 6, as its own phase |
-| O-3 | Email redirect (`MAIL_REDIRECT_TO`) now that real students sign up | Tisou | **Decided 24/10/2026:** redirect only the fictional base-data and demo accounts; real accounts receive their own email (built in phase 2) |
+| O-3 | Email redirect (`MAIL_REDIRECT_TO`) now that real students sign up | Tisou | **Decided 24/10/2026:** redirect only the fictional base-data and demo accounts; real accounts receive their own email (built in phase 2: `auth_user.demo`, `ntf_email_outbox.demo_recipient`) |

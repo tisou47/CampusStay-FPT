@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /** Assignment public API: where a student lives now, and who lives in a Room (Maintenance reports and Room summaries). */
 public interface Residences {
@@ -19,6 +20,12 @@ public interface Residences {
 
     /** The student's active Allocation, the latest one when there are several Terms. */
     Optional<Residence> current(long studentId);
+
+    /** The current Bed of each student who holds one (as {@link #current(long)}); students without are left out. */
+    Map<Long, Residence> current(Collection<Long> studentIds);
+
+    /** Students who hold a Bed in one of the Blocks now, through an active Allocation of any Term (the student list). */
+    Set<Long> residentsOf(Collection<Long> buildingIds);
 
     /** Students checked in to the Room in the Term. */
     int residents(long roomId, long termId);

@@ -488,3 +488,51 @@ in review ⟶ đang xét
 committed ⟶ đã chốt
 superseded ⟶ đã thay thế
 approved until {0} ⟶ được duyệt đến {0}
+
+# ---------- accounts: Google sign-up, verification, student list, Staff accounts (v2 phase 2) ----------
+Set a CampusStay password before you continue. ⟶ Hãy đặt mật khẩu CampusStay trước khi tiếp tục.
+Send your student details before you continue. ⟶ Hãy gửi thông tin sinh viên của bạn trước khi tiếp tục.
+This account already has a password. Use Change password instead. ⟶ Tài khoản này đã có mật khẩu. Hãy dùng Đổi mật khẩu.
+Your student account was not verified: {0}. Contact the dormitory office. ⟶ Tài khoản sinh viên của bạn không được xác minh: {0}. Hãy liên hệ văn phòng ký túc xá.
+Your account is already verified. Ask a Manager to correct your details. ⟶ Tài khoản của bạn đã được xác minh. Hãy nhờ Quản lý sửa thông tin của bạn.
+Enter your student code: two letters and six digits, e.g. SE190421. ⟶ Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421.
+Enter a student code: two letters and six digits, e.g. SE190421. ⟶ Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421.
+Enter your full name (at most 150 characters). ⟶ Hãy nhập họ và tên (tối đa 150 ký tự).
+Enter your date of birth. ⟶ Hãy nhập ngày sinh.
+Enter a valid date of birth. ⟶ Hãy nhập ngày sinh hợp lệ.
+Choose your major from the list. ⟶ Hãy chọn ngành học trong danh sách.
+Choose a major from the list. ⟶ Hãy chọn ngành học trong danh sách.
+Enter your cohort, e.g. K19. ⟶ Hãy nhập khóa, ví dụ K19.
+Enter the cohort, e.g. K19. ⟶ Hãy nhập khóa, ví dụ K19.
+This student code belongs to another account. Contact the dormitory office. ⟶ Mã sinh viên này thuộc về một tài khoản khác. Hãy liên hệ văn phòng ký túc xá.
+This student code belongs to another account. ⟶ Mã sinh viên này thuộc về một tài khoản khác.
+The student code cannot change once the account is verified. ⟶ Không thể đổi mã sinh viên sau khi tài khoản đã được xác minh.
+Enter a semester from 0 to 12. ⟶ Hãy nhập học kỳ từ 0 đến 12.
+Choose a region from the list. ⟶ Hãy chọn vùng trong danh sách.
+Choose priority groups from the list. ⟶ Hãy chọn nhóm ưu tiên trong danh sách.
+Choose yes or no. ⟶ Hãy chọn có hoặc không.
+Choose a verification status from the list. ⟶ Hãy chọn trạng thái xác minh trong danh sách.
+Choose an enrollment status from the list. ⟶ Hãy chọn tình trạng học tập trong danh sách.
+Choose a cohort from the list. ⟶ Hãy chọn khóa trong danh sách.
+Choose a status from the list. ⟶ Hãy chọn trạng thái trong danh sách.
+This student does not exist. ⟶ Sinh viên này không tồn tại.
+This student has not sent their details yet. ⟶ Sinh viên này chưa gửi thông tin.
+Enter the reason (at most 500 characters). ⟶ Hãy nhập lý do (tối đa 500 ký tự).
+Use at most 500 characters. ⟶ Dùng tối đa 500 ký tự.
+This account is already locked. ⟶ Tài khoản này đã bị khóa.
+This account is not locked. ⟶ Tài khoản này không bị khóa.
+This account is not waiting for verification. ⟶ Tài khoản này không chờ xác minh.
+Choose a CSV or XLSX file. ⟶ Hãy chọn một tệp CSV hoặc XLSX.
+This import does not exist. ⟶ Lần nhập này không tồn tại.
+Choose New, Update, Unchanged or Error. ⟶ Hãy chọn Mới, Cập nhật, Không đổi hoặc Lỗi.
+This file was already imported. ⟶ Tệp này đã được nhập.
+Save the file as XLSX or CSV UTF-8 and upload it again. ⟶ Hãy lưu tệp dạng XLSX hoặc CSV UTF-8 rồi tải lên lại.
+The file is empty. ⟶ Tệp trống.
+The file has no column {0}. Download the template to see the columns. ⟶ Tệp không có cột {0}. Hãy tải tệp mẫu để xem các cột.
+The file has more than 10,000 students. Split it into smaller files. ⟶ Tệp có hơn 10.000 sinh viên. Hãy chia thành các tệp nhỏ hơn.
+The file has no students below its header line. ⟶ Tệp không có sinh viên nào bên dưới dòng tiêu đề.
+The file could not be read. Save it as XLSX or CSV UTF-8 and try again. ⟶ Không đọc được tệp. Hãy lưu dạng XLSX hoặc CSV UTF-8 rồi thử lại.
+The workbook has no sheet. ⟶ Bảng tính không có trang nào.
+This account is disabled. Restore it first. ⟶ Tài khoản này đang bị vô hiệu hóa. Hãy khôi phục trước.
+This person has already set a password. ⟶ Người này đã đặt mật khẩu.
+Choose the Blocks this person works in. ⟶ Hãy chọn các Block người này làm việc.

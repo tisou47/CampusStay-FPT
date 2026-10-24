@@ -6,8 +6,10 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -103,7 +105,7 @@ class JdbcUserDirectory implements UserDirectory {
     private static final String PROFILE = """
             SELECT u.id, u.display_name, u.email, s.student_code, s.gender, s.major, s.cohort, s.semester_no, s.hometown,
                    s.region, s.enrollment_status, s.priority_groups, s.phone, s.emergency_name,
-                   s.emergency_relationship, s.emergency_phone, s.synced_at
+                   s.emergency_relationship, s.emergency_phone, s.synced_at, s.verification
             FROM auth_user u JOIN auth_student s ON s.user_id = u.id
             """;
 
@@ -134,6 +136,16 @@ class JdbcUserDirectory implements UserDirectory {
     }
 
     @Override
+    public Set<String> demoEmails(Collection<String> emails) {
+        if (emails == null || emails.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(jdbc.sql("SELECT lower(email) FROM auth_user WHERE demo AND lower(email) IN (:emails)")
+                .param("emails", emails.stream().map(e -> e.trim().toLowerCase(Locale.ROOT)).distinct().toList())
+                .query(String.class).list());
+    }
+
+    @Override
     @Transactional
     public void saveStudentContact(long userId, String phone, String emergencyName, String emergencyRelationship,
             String emergencyPhone) {
@@ -155,6 +167,6 @@ class JdbcUserDirectory implements UserDirectory {
                 rs.getString("region"), rs.getString("enrollment_status"),
                 groups == null ? List.of() : List.of((String[]) groups.getArray()), rs.getString("phone"),
                 rs.getString("emergency_name"), rs.getString("emergency_relationship"), rs.getString("emergency_phone"),
-                rs.getTimestamp("synced_at").toInstant());
+                rs.getTimestamp("synced_at").toInstant(), rs.getString("verification"));
     }
 }

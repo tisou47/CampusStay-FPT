@@ -2,6 +2,7 @@ package vn.fpt.campusstay.service.notification;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -10,15 +11,21 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.i18n.Locales;
+import vn.fpt.campusstay.service.auth.UserDirectory;
 
-/** Queues emails rendered from {@code ntf_email_template}. Must run inside the caller's transaction. */
+/**
+ * Queues emails rendered from {@code ntf_email_template}. Must run inside the caller's transaction. Each email notes
+ * whether its recipient is a fictional account: only those may go to the demo mailbox (spec O-3).
+ */
 @Component
 class EmailOutbox {
 
     private final JdbcClient jdbc;
+    private final UserDirectory users;
 
-    EmailOutbox(JdbcClient jdbc) {
+    EmailOutbox(JdbcClient jdbc, UserDirectory users) {
         this.jdbc = jdbc;
+        this.users = users;
     }
 
     /** Renders the template in {@code locale} ({@code vi} or {@code en}, ADR-25); English where a Vietnamese text is missing. */
@@ -33,12 +40,13 @@ class EmailOutbox {
                 .optional()
                 .orElseThrow(() -> new IllegalStateException("Missing email template " + templateKey));
         jdbc.sql("""
-                INSERT INTO ntf_email_outbox (to_email, subject, body_html)
-                VALUES (:to, :subject, :body)
+                INSERT INTO ntf_email_outbox (to_email, subject, body_html, demo_recipient)
+                VALUES (:to, :subject, :body, :demo)
                 """)
                 .param("to", toEmail)
                 .param("subject", Templates.render(template[0], values, false))
                 .param("body", Templates.render(template[1], values, true))
+                .param("demo", demo(toEmail))
                 .update();
     }
 
@@ -46,10 +54,14 @@ class EmailOutbox {
     @Transactional(propagation = Propagation.MANDATORY)
     void enqueue(long campaignId, String toEmail, String subject, String bodyHtml, Instant notBefore) {
         jdbc.sql("""
-                INSERT INTO ntf_email_outbox (campaign_id, to_email, subject, body_html, not_before)
-                VALUES (:campaign, :to, :subject, :body, :notBefore)
+                INSERT INTO ntf_email_outbox (campaign_id, to_email, subject, body_html, not_before, demo_recipient)
+                VALUES (:campaign, :to, :subject, :body, :notBefore, :demo)
                 """)
                 .param("campaign", campaignId).param("to", toEmail).param("subject", subject).param("body", bodyHtml)
-                .param("notBefore", Timestamp.from(notBefore)).update();
+                .param("notBefore", Timestamp.from(notBefore)).param("demo", demo(toEmail)).update();
+    }
+
+    private boolean demo(String toEmail) {
+        return !users.demoEmails(List.of(toEmail)).isEmpty();
     }
 }

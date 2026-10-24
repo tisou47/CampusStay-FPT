@@ -58,6 +58,14 @@ public class AuditTrailService {
                 query.actions(since).stream().map(AuditTrailService::label).toList(), settings.retentionMonths());
     }
 
+    /** The history of one user for the student hub: what was done to the account, newest first. */
+    public List<AuditItem> aboutUser(long userId, int limit) {
+        return query.about("User", String.valueOf(userId), limit).stream()
+                .map(e -> new AuditItem(String.valueOf(e.id()), e.at(), e.actor(), label(e.action()), tone(e.tone()),
+                        object(e), describe(e.change())))
+                .toList();
+    }
+
     private Instant since(String range) {
         if (range == null || range.isBlank() || range.equals("all")) {
             return null;

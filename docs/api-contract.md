@@ -2,14 +2,15 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.8 (22/10/2026): the mentor-confirmed contract plus the changes A-01…A-14, B-01…B-03 and C-01…C-37 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md). Every later change is logged there first and written here in the same commit.
+Version 1.9 (25/10/2026): the mentor-confirmed contract plus the changes A-01…A-21, B-01…B-03 and C-01…C-39 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
 | Topic | Rule |
 | --- | --- |
 | Base URL | `VITE_API_BASE_URL` (default `/api`). In development Vite proxies `/api` to `VITE_API_PROXY_TARGET`. |
-| Auth | `POST /auth/sign-in` or `POST /auth/google` returns a token. Every other call sends `Authorization: Bearer <token>`. A `401` signs the user out. |
+| Auth | `POST /auth/sign-in` or `POST /auth/google` returns a token. Every other call sends `Authorization: Bearer <token>`. A `401` signs the user out. An account from Google sign-up first sets a password (`403 PASSWORD_REQUIRED` meanwhile), and a student the student list does not know then sends the sign-up form (`403 PROFILE_REQUIRED` meanwhile), A-17. |
+| Language | Every request sends `Accept-Language: vi` or `en`; error `message` and `details.fields` texts and notifications come back in that language, English without the header (A-16). |
 | Errors | Non-2xx responses return JSON `{ message, code?, details? }`. `message` is shown to the user as is, so write it for them. Validation: `400 VALIDATION_FAILED` with `details.fields = { fieldName: message }`, shown under each input. `409 STALE_DATA`: someone changed the record since it was loaded; show the message and reload. |
 | IDs | JSON **strings**: every field named `id` or ending in `Id`, at any depth (`"id": "42"`). Send them back as strings (numbers are accepted). Amounts, counts and rates are numbers. |
 | Lists | Return `{ items: [...], total }`. Accept `page` (1-based), `pageSize` (default 20, max 100, else `400 BAD_PAGE`), `q` and the filters named below. Extra fields (`summary`, `counts`, options) sit next to `items`. |
@@ -30,10 +31,12 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
-| POST | `/auth/sign-in` | `{ email, password, remember }` — the account email and the CampusStay password (not the FPT Wi-Fi credentials); `remember` is optional (default `false`) | `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string] } }` |
-| POST | `/auth/google` | `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`) or `{ credential, remember }` (Android: Google ID token) | Same as sign-in. Only accounts that already exist; only `@fpt.edu.vn` Google Workspace accounts. |
+| POST | `/auth/sign-in` | `{ email, password, remember }` — the account email and the CampusStay password (not the FPT Wi-Fi credentials); `remember` is optional (default `false`) | `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string], locale: 'vi'\|'en', passwordSet, verification?: 'Verified'\|'Pending verification'\|'Profile needed' } }` (`verification` for students) |
+| POST | `/auth/google` | `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`) or `{ credential, remember }` (Android: Google ID token) | Same as sign-in. Only `@fpt.edu.vn` Google Workspace accounts. An account CampusStay does not know signs up as a student (`passwordSet: false`); an address ending with the code of an imported, unused account signs in to that account (A-17). |
 | POST | `/auth/sign-out` | — | `204` |
 | GET | `/auth/me` | — | `user` |
+| PUT | `/auth/me/locale` | `{ locale: 'vi'\|'en' }` | `204`: the account's language for notifications, push and emails (A-15) |
+| POST | `/auth/password/set` | `{ newPassword }` — the first password of an account from Google sign-up | `204`; `409 PASSWORD_ALREADY_SET` (A-17) |
 | POST | `/auth/password/forgot` | `{ email }` | `204` always (does not reveal whether the email exists) |
 | POST | `/auth/password/reset` | `{ token, newPassword }` — used by both the reset and the set-password (invitation) page | `204`; every session of the user is signed out |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `204`; the user's other sessions are signed out |
@@ -45,9 +48,13 @@ Removed from this version: Period of Stay and renewal. There are no renewal endp
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read }], unread }` |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | — | `204` |
 
-- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
+- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
 - **Password rule:** 8–64 characters, at least one letter and one number, not containing the email name; otherwise `400 WEAK_PASSWORD` with a message to show as is.
-- **Email links:** invitation and reset emails open the web pages `/set-password?token=…` (valid 72 hours) and `/reset-password?token=…` (valid 30 minutes). Both call `POST /auth/password/reset`, then go to Sign In. Each token works once. There is no self sign-up.
+- **Email links:** invitation and reset emails open the web pages `/set-password?token=…` (valid 72 hours) and `/reset-password?token=…` (valid 30 minutes). Both call `POST /auth/password/reset`, then go to Sign In. Each token works once. Students sign up with Google (A-17); back-office accounts are invited.
+
+### Student account verification
+
+- `GET /students/me/verification` → `{ status, locked, note, form: { studentCode, name, gender, dateOfBirth, major, cohort, phone }, options: { genders, majors } }` · `PUT /students/me/verification` (the form) → `204`: Pending verification; `409 ALREADY_VERIFIED` (A-18). Only a Verified account may apply (C-39).
 
 ## Student
 
@@ -240,6 +247,11 @@ Late check-ins, refunds, overdue Invoices and reminders: C-28.
 - `GET /block-settings?block` → `{ deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy, limits: { visitWindow, quietStartsBy }, quietOptions }` · `PUT /block-settings` `{ block, deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules }` → the `GET` shape
 
 Block staff: C-32 and A-13. Routing rules and timers: C-30. Escalations: C-31. Block settings: C-33.
+- `GET /student-accounts?q&verification&enrollment&gender&cohort&resident&block&page&pageSize` → `{ items: [{ id, studentCode, name, email, gender, cohort, major, enrollment, verification, account, block, residence, demo }], total, counts: { pending }, options }` (Staff: residents of their Blocks) · `GET /student-accounts/{id}` → the student hub `{ id, name, email, demo, account, profile, verification, residence, sections: { applications, allocations, invoices, requests }, history, actions }` · `PUT /student-accounts/{id}` (directory fields) → the hub · `POST /student-accounts/{id}/verify` · `POST …/reject { reason }` · `POST …/lock { reason }` · `POST …/unlock` → `204` (A-19)
+- `GET /student-imports` · `GET /student-imports/template` (CSV) · `POST /student-imports` (multipart `file`, CSV or XLSX) → the preview `{ id, fileName, status, fields, counts: { created, updated, unchanged, errors }, missing, rows: { items: [{ line, studentCode, name, email, outcome, message, changes }], total }, result }` · `GET /student-imports/{id}?outcome&page&pageSize` · `POST /student-imports/{id}/confirm { markMissingNotEnrolled? }` (A-20)
+- `GET /staff-accounts?q&block&status&page&pageSize` → `{ items: [{ id, name, email, title, blocks, status, lastSignInAt }], total, blocks, statuses }` · `POST /staff-accounts { name, email, title?, blocks }` → `{ id }` · `PUT /staff-accounts/{id} { name?, title?, blocks?, status? }` → the item · `POST /staff-accounts/{id}/invitation` → `204` (A-21)
+
+Student accounts, the student list and Staff accounts: A-19…A-21, C-39. Since v2 phase 1 Managers work for every Block and review Applications, run and commit the assignment and confirm payments (C-38).
 - `GET /inspection-schedules?block` → `{ items: [{ id, name, checklistId, scope, scopeLabel, repeat, repeatLabel, assignee, dueWithinDays, createRequests, notifyResidents, nextRunAt, status, createdAt }], runs: [{ id, assigneeName, inspected, rooms, failed, status }], options: { checklists, scopes, repeats, assignees } }` (options are `{ value, label }` lists)
 - `POST /inspection-schedules` · `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`)
 

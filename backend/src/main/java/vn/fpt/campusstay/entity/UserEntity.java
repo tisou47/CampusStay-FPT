@@ -111,6 +111,11 @@ public class UserEntity {
         displayName = newName;
     }
 
+    /** The job title shown to colleagues and on Block staff; null leaves the role as the title. */
+    public void retitle(String newTitle) {
+        title = newTitle;
+    }
+
     public void changeRole(Role newRole) {
         role = newRole;
     }

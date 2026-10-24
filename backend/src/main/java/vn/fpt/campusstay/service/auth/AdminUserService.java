@@ -67,9 +67,10 @@ public class AdminUserService {
     private final SessionService sessions;
     private final CurrentUser currentUser;
     private final AuditLog audit;
+    private final StaffBlocks staffBlocks;
 
     public AdminUserService(UserRepository users, JdbcClient jdbc, BlockDirectory blocks, PasswordService passwords,
-            SessionService sessions, CurrentUser currentUser, AuditLog audit) {
+            SessionService sessions, CurrentUser currentUser, AuditLog audit, StaffBlocks staffBlocks) {
         this.users = users;
         this.jdbc = jdbc;
         this.blocks = blocks;
@@ -77,6 +78,7 @@ public class AdminUserService {
         this.sessions = sessions;
         this.currentUser = currentUser;
         this.audit = audit;
+        this.staffBlocks = staffBlocks;
     }
 
     @Transactional(readOnly = true)
@@ -261,37 +263,15 @@ public class AdminUserService {
     }
 
     private void replaceBlocks(long userId, Set<Long> blockIds) {
-        jdbc.sql("DELETE FROM auth_user_block WHERE user_id = :id").param("id", userId).update();
-        for (Long blockId : blockIds) {
-            jdbc.sql("INSERT INTO auth_user_block (user_id, building_id) VALUES (:id, :block)")
-                    .param("id", userId).param("block", blockId).update();
-        }
+        staffBlocks.replace(userId, blockIds);
     }
 
     private void ensureStaffProfile(long userId) {
-        jdbc.sql("INSERT INTO auth_staff_profile (user_id) VALUES (:id) ON CONFLICT (user_id) DO NOTHING")
-                .param("id", userId).update();
+        staffBlocks.ensureProfile(userId);
     }
 
     private Map<Long, List<String>> blockCodesByUser(Collection<Long> userIds) {
-        Map<Long, List<String>> result = new HashMap<>();
-        if (userIds.isEmpty()) {
-            return result;
-        }
-        List<long[]> pairs = jdbc.sql("SELECT user_id, building_id FROM auth_user_block WHERE user_id IN (:ids)")
-                .param("ids", List.copyOf(userIds))
-                .query((rs, i) -> new long[] { rs.getLong("user_id"), rs.getLong("building_id") })
-                .list();
-        Map<Long, String> codes = blocks.codesByIds(pairs.stream().map(p -> p[1]).toList());
-        // codesByIds is in Block code order, so each user's list comes out sorted.
-        for (Map.Entry<Long, String> block : codes.entrySet()) {
-            for (long[] p : pairs) {
-                if (p[1] == block.getKey()) {
-                    result.computeIfAbsent(p[0], k -> new ArrayList<>()).add(block.getValue());
-                }
-            }
-        }
-        return result;
+        return staffBlocks.codesByUser(userIds);
     }
 
     /** "All Blocks", every active Block, and the multi-Block scopes in use (so an edit form can show them). */

@@ -22,6 +22,11 @@ public class UserViewMapper {
                 ? new ArrayList<>(blocks.codesByIds(user.blockIds()).values())
                 : null;
         return new UserView(String.valueOf(user.userId()), user.name(), user.email(), user.role(), user.studentCode(), user.title(),
-                codes, user.locale());
+                codes, user.locale(), user.passwordSet(),
+                user.role() == Role.STUDENT ? Verification.of(nullIfNone(user.verification())) : null);
+    }
+
+    private static String nullIfNone(String verification) {
+        return AuthenticatedUser.NO_PROFILE.equals(verification) ? null : verification;
     }
 }

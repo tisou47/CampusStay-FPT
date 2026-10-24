@@ -196,3 +196,6 @@ ON CONFLICT DO NOTHING;
 
 -- ---------- the test accounts read English (ADR-25); LocaleIT switches one to Vietnamese ----------
 UPDATE auth_user SET locale = 'en' WHERE locale <> 'en' AND email LIKE '%campusstay.test';
+
+-- ---------- the seed accounts are fictional (O-3: their emails may go to the demo mailbox) ----------
+UPDATE auth_user SET demo = TRUE WHERE NOT demo AND email LIKE '%campusstay.test';

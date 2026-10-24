@@ -16,7 +16,8 @@ import vn.fpt.campusstay.service.notification.EmailSender;
 /**
  * SMTP when {@code spring.mail.host} is set (Mailpit in dev, Gmail SMTP with an App Password for the demo);
  * otherwise a sender that only logs the subject, so the app still runs. With {@code campusstay.mail.redirect-to}
- * every email goes to that one mailbox (demo servers, whose seed accounts have fictional addresses).
+ * the emails of fictional accounts (the base data and the demo scenarios, whose addresses are made up) go to that
+ * one mailbox; real accounts receive their own email (spec O-3).
  */
 @Configuration(proxyBeanMethods = false)
 class EmailSenderConfig {
@@ -32,16 +33,16 @@ class EmailSenderConfig {
         if (smtp == null) {
             log.warn("spring.mail.host is not set: emails are not sent, only their subject is logged");
             // Never the address or the body: bodies hold sign-in links and personal data (CLAUDE.md).
-            return (to, subject, html) -> log.info("EMAIL not sent (no SMTP): subject={}", subject);
+            return (to, subject, html, demo) -> log.info("EMAIL not sent (no SMTP): subject={}", subject);
         }
         if (props.redirecting()) {
-            log.warn("campusstay.mail.redirect-to is set: every email goes to one demo mailbox");
+            log.warn("campusstay.mail.redirect-to is set: emails of fictional accounts go to one demo mailbox");
         }
-        return (to, subject, html) -> {
+        return (to, subject, html, demo) -> {
             MimeMessage message = smtp.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
             helper.setFrom(props.from());
-            if (props.redirecting()) {
+            if (props.redirecting() && demo) {
                 helper.setTo(props.redirectTo().trim());
                 helper.setSubject("[to " + to + "] " + subject);
                 message.setHeader(ORIGINAL_TO, to);

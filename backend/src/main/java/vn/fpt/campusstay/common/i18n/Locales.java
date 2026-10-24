@@ -27,6 +27,14 @@ public final class Locales {
         return v.startsWith(VI) ? VI : v.startsWith(EN) ? EN : null;
     }
 
+    /** The language the current request asks for, or {@code null} without a usable {@code Accept-Language}. */
+    public static String requested() {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+            return parse(attributes.getRequest().getHeader("Accept-Language"));
+        }
+        return null;
+    }
+
     /** The language of the current request's {@code Accept-Language}; English outside a request or without one. */
     public static String ofRequest() {
         if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {

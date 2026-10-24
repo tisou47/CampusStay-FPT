@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Auth public API for other modules that show people they only know by id
@@ -24,11 +25,17 @@ public interface UserDirectory {
      * @param region                code of the {@code REGION} option list
      * @param enrollmentStatus      {@code ENROLLED}, {@code SUSPENDED}, {@code GRADUATED} or {@code WITHDRAWN}
      * @param emergencyRelationship code of the {@code RELATIONSHIP} option list
+     * @param verification          {@code VERIFIED}, {@code PENDING} or {@code REJECTED} (ADR-26); only a Verified
+     *                              student may apply
      */
     record StudentProfile(long userId, String name, String email, String studentCode, String gender, String major,
             String cohort, Integer semesterNo, String hometown, String region, String enrollmentStatus,
             List<String> priorityGroups, String phone, String emergencyName, String emergencyRelationship,
-            String emergencyPhone, Instant syncedAt) {
+            String emergencyPhone, Instant syncedAt, String verification) {
+
+        public boolean verified() {
+            return "VERIFIED".equals(verification);
+        }
     }
 
     /**
@@ -59,6 +66,12 @@ public interface UserDirectory {
 
     /** Exact student code, case-insensitive. Callers must not reveal whether a code exists (privacy). */
     Optional<StudentProfile> studentByCode(String studentCode);
+
+    /**
+     * The given addresses (any case) that belong to fictional accounts of the base data or the demo scenarios, in
+     * lower case. Only their emails go to the demo mailbox (spec O-3).
+     */
+    Set<String> demoEmails(Collection<String> emails);
 
     /** Keeps the contact details a student confirmed in an Application for next time. */
     void saveStudentContact(long userId, String phone, String emergencyName, String emergencyRelationship,

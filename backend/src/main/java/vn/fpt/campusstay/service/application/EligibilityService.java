@@ -111,6 +111,12 @@ public class EligibilityService {
         UserDirectory.StudentProfile profile = users.studentProfile(studentId)
                 .orElseThrow(() -> ApiException.forbidden("NO_STUDENT_RECORD",
                         "Your student record was not found. Contact the dormitory office."));
+        // A student who signed up applies once a Manager or the student list has verified the account (ADR-26).
+        if (!profile.verified()) {
+            checks.add(new Check("Account verified",
+                    "A Manager has not verified your account yet. You can apply once it is verified.", false));
+            eligible = false;
+        }
         for (EligibilityRules.Criterion c : rules.enabled()) {
             Check check = switch (c.key()) {
                 case "ENROLLED" -> new Check(c.title(), profile.enrollmentStatus().equals("ENROLLED") ? c.note()

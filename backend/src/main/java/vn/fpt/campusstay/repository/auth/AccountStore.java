@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +24,14 @@ import vn.fpt.campusstay.repository.UserRepository;
 public class AccountStore {
 
     private final UserRepository users;
+    private final JdbcClient jdbc;
     private final AuditLog audit;
     private final AuthProperties props;
     private final Clock clock;
 
-    public AccountStore(UserRepository users, AuditLog audit, AuthProperties props, Clock clock) {
+    public AccountStore(UserRepository users, JdbcClient jdbc, AuditLog audit, AuthProperties props, Clock clock) {
         this.users = users;
+        this.jdbc = jdbc;
         this.audit = audit;
         this.props = props;
         this.clock = clock;
@@ -37,6 +40,13 @@ public class AccountStore {
     @Transactional(readOnly = true)
     public Optional<UserEntity> findByEmail(String email) {
         return users.findByEmailIgnoreCase(email.trim());
+    }
+
+    /** The reason a Manager gave when rejecting this student account (spec §6.1), if it was rejected. */
+    @Transactional(readOnly = true)
+    public Optional<String> rejectionReason(long userId) {
+        return jdbc.sql("SELECT coalesce(verification_note, '') FROM auth_student WHERE user_id = :id AND verification = 'REJECTED'")
+                .param("id", userId).query(String.class).optional();
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
