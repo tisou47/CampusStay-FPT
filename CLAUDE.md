@@ -15,6 +15,8 @@ When a change is done and its checks pass, ship it without asking:
 3. Watch the result and report it: the backend run in GitHub Actions (`deploy` must succeed, not be skipped), the Vercel production deployment (Ready, not Canceled), and `GET /api/actuator/health` = UP.
 4. Ask first only for what is not code: changing production settings or data, secrets, deleting things, or anything outside the request.
 
+**Until Review 2 (ADR-27, user decision 24/10/2026):** the phases of the Change Specification v2 (`docs/01_Change_Spec_v2.md` §16) are built on their own branch `feat/v2-phase<n>`, pushed to GitHub (Vercel builds a preview) and merged into `main` only when the phase is complete, its checks pass and the demo still works. Documentation-only changes and urgent fixes still follow steps 1–3 directly.
+
 ## Never
 - Commit secrets or settings: `.env` files, keys, passwords, the Firebase JSON. Production settings live in `/opt/campusstay/.env` on the server (`infra/prod/.env.example` lists them).
 - Edit an applied Flyway migration: add a new `V<next>__…sql`. Migrations run automatically when the new image starts, so they must pass `mvn verify` first.
