@@ -36,12 +36,15 @@ public class SessionService {
     private final JdbcClient jdbc;
     private final AuthProperties props;
     private final Clock clock;
+    private final BlockDirectory blocks;
 
-    public SessionService(SessionRepository sessions, JdbcClient jdbc, AuthProperties props, Clock clock) {
+    public SessionService(SessionRepository sessions, JdbcClient jdbc, AuthProperties props, Clock clock,
+            BlockDirectory blocks) {
         this.sessions = sessions;
         this.jdbc = jdbc;
         this.props = props;
         this.clock = clock;
+        this.blocks = blocks;
     }
 
     @Transactional
@@ -66,7 +69,7 @@ public class SessionService {
         Instant now = Instant.now(clock);
         Optional<SessionRow> found = jdbc.sql("""
                 SELECT s.id, s.user_id, s.remember, s.created_at, s.last_used_at, s.expires_at,
-                       u.email, u.display_name, u.role, u.title, st.student_code
+                       u.email, u.display_name, u.role, u.title, u.locale, st.student_code
                 FROM auth_session s
                 JOIN auth_user u ON u.id = s.user_id
                 LEFT JOIN auth_student st ON st.user_id = u.id
@@ -79,7 +82,7 @@ public class SessionService {
                         rs.getLong("id"), rs.getLong("user_id"), rs.getBoolean("remember"),
                         rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("last_used_at").toInstant(),
                         rs.getString("email"), rs.getString("display_name"), Role.valueOf(rs.getString("role")),
-                        rs.getString("title"), rs.getString("student_code")))
+                        rs.getString("title"), rs.getString("locale"), rs.getString("student_code")))
                 .optional();
         if (found.isEmpty()) {
             return Optional.empty();
@@ -88,12 +91,14 @@ public class SessionService {
         touchIfDue(row, now);
 
         Set<Long> blockIds = new HashSet<>();
-        if (row.role() == Role.STAFF || row.role() == Role.MANAGER) {
+        if (row.role() == Role.STAFF) {
             blockIds.addAll(jdbc.sql("SELECT building_id FROM auth_user_block WHERE user_id = :id")
                     .param("id", row.userId()).query(Long.class).list());
+        } else if (row.role() == Role.MANAGER) {
+            blockIds.addAll(blocks.allActiveIds()); // Managers work for every Block (ADR-19)
         }
         return Optional.of(new AuthenticatedUser(row.userId(), row.email(), row.name(), row.role(), row.studentCode(),
-                row.title(), Set.copyOf(blockIds), row.sessionId()));
+                row.title(), row.locale(), Set.copyOf(blockIds), row.sessionId()));
     }
 
     @Transactional
@@ -137,6 +142,6 @@ public class SessionService {
     }
 
     private record SessionRow(long sessionId, long userId, boolean remember, Instant createdAt, Instant lastUsedAt,
-            String email, String name, Role role, String title, String studentCode) {
+            String email, String name, Role role, String title, String locale, String studentCode) {
     }
 }

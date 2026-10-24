@@ -41,7 +41,10 @@ public interface UserDirectory {
 
     Map<Long, String> displayNames(Collection<Long> userIds);
 
-    /** Active Staff and Managers assigned to any of the Blocks, by name. */
+    /** The account's language for notifications, push and emails: {@code vi} or {@code en} (ADR-25); {@code vi} if unknown. */
+    String locale(long userId);
+
+    /** Active Staff assigned to any of the Blocks, by name (Managers have no Block, ADR-19). */
     List<StaffMember> staffOf(Collection<Long> buildingIds);
 
     Map<Long, Student> students(Collection<Long> userIds);

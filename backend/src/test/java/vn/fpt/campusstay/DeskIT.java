@@ -88,7 +88,7 @@ class DeskIT {
 
     /** Applies, pays the Deposits, approves, runs and commits Block A: the students hold Beds, Balance unpaid. */
     private List<Placed> allocate(int... students) throws Exception {
-        String staff = bearer(mvc, STAFF_A);
+        String manager = bearer(mvc, MANAGER_A); // Managers review and assign (ADR-19)
         List<String> auths = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         for (int n : students) {
@@ -98,13 +98,11 @@ class DeskIT {
             auths.add(auth);
             ids.add("\"" + app.id() + "\"");
         }
-        postJson("/applications/bulk-review", staff, "{\"ids\":[" + String.join(",", ids) + "],\"decision\":\"Approved\"}")
+        postJson("/applications/bulk-review", manager, "{\"ids\":[" + String.join(",", ids) + "],\"decision\":\"Approved\"}")
                 .andExpect(status().isOk());
-        String run = JsonPath.read(postJson("/assignment-runs", staff, "{\"termId\":\"%d\"}".formatted(termId))
+        String run = JsonPath.read(postJson("/assignment-runs", manager, "{\"termId\":\"%d\"}".formatted(termId))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.id");
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isNoContent());
-        postJson("/assignment-runs/" + run + "/approve", bearer(mvc, MANAGER_A), "{\"block\":\"A\"}")
-                .andExpect(status().isOk());
+        postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}").andExpect(status().isNoContent());
         List<Placed> placed = new ArrayList<>();
         for (int i = 0; i < students.length; i++) {
             String room = getAs("/students/me/allocation", auths.get(i)).andExpect(status().isOk())
@@ -182,13 +180,19 @@ class DeskIT {
         getAs("/students/me/home", p.auth()).andExpect(jsonPath("$.checkedIn").value(true));
     }
 
-    /** TC-ASG-021 (scope): another Block's desk does not find the student; students and the Admin have no desk. */
+    /**
+     * TC-ASG-021 (scope): another Block's Staff do not find the student, every Manager does (ADR-19); students and
+     * the Admin have no desk.
+     */
     @Test
     void deskIsScoped() throws Exception {
         Placed p = allocate(12).getFirst();
-        getAs("/check-in/lookup?termId=" + termId + "&q=" + p.studentCode(), bearer(mvc, MANAGER_B))
+        getAs("/check-in/lookup?termId=" + termId + "&q=" + p.studentCode(), bearer(mvc, TestAuth.STAFF_B2))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.student").value((Object) null));
+        getAs("/check-in/lookup?termId=" + termId + "&q=" + p.studentCode(), bearer(mvc, MANAGER_B))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.student.name").value(p.name()));
         getAs("/check-in/lookup?termId=" + termId + "&q=SE190099", bearer(mvc, STAFF_A))
                 .andExpect(jsonPath("$.student").value((Object) null));
         getAs("/check-in/lookup?termId=" + termId + "&q=SE190013", bearer(mvc, STAFF_A))
@@ -198,7 +202,7 @@ class DeskIT {
                 .andExpect(jsonPath("$.details.fields.q").isString());
         getAs("/check-in/today?termId=" + termId, p.auth()).andExpect(status().isForbidden());
         getAs("/check-out?termId=" + termId, bearer(mvc, ADMIN)).andExpect(status().isForbidden());
-        getAs("/check-out/" + p.allocationId(), bearer(mvc, MANAGER_B)).andExpect(status().isNotFound());
+        getAs("/check-out/" + p.allocationId(), bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isNotFound());
     }
 
     /**

@@ -22,6 +22,6 @@ public class UserViewMapper {
                 ? new ArrayList<>(blocks.codesByIds(user.blockIds()).values())
                 : null;
         return new UserView(String.valueOf(user.userId()), user.name(), user.email(), user.role(), user.studentCode(), user.title(),
-                codes);
+                codes, user.locale());
     }
 }

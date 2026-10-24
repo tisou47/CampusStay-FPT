@@ -147,10 +147,10 @@ class RoutingIT {
                 .andExpect(jsonPath("$.timers.urgent").value("2 hours"))
                 .andExpect(jsonPath("$.timers.roomChange").value("48 hours"));
 
-        // Staff may not manage routing; another Block's Manager may not touch Block B.
+        // Staff may not manage routing; every Manager may manage every Block (ADR-19).
         getAs("/routing-rules?block=A", bearer(mvc, STAFF_A)).andExpect(status().isForbidden());
-        getAs("/routing-rules?block=B", bearer(mvc, MANAGER_A)).andExpect(status().isForbidden());
-        putAs("/routing-rules/" + id, bearer(mvc, MANAGER_A), "{\"active\":true}").andExpect(status().isForbidden());
+        getAs("/routing-rules?block=B", bearer(mvc, MANAGER_A)).andExpect(status().isOk());
+        putAs("/routing-rules/" + id, bearer(mvc, STAFF_A), "{\"active\":true}").andExpect(status().isForbidden());
         putAs("/routing-rules/999999", manager, "{\"active\":true}").andExpect(status().isNotFound());
     }
 

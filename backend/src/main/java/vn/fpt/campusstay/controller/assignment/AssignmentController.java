@@ -18,8 +18,9 @@ import vn.fpt.campusstay.service.assignment.AssignmentService;
 import vn.fpt.campusstay.dto.PageQuery;
 
 /**
- * Assignment runs: Staff start a run, resolve conflicts and submit a Block's
- * proposal; the Manager reviews the Rooms and approves (commits) or returns it.
+ * Assignment runs: a Manager starts a run, resolves conflicts and commits a Block's
+ * proposal (ADR-19). Approve and return remain for Blocks submitted before Managers
+ * committed them directly.
  * Runs are addressed as {@code RUN-<id>}, Applications by their code.
  */
 @RestController

@@ -78,7 +78,7 @@ class PaymentDeskIT {
         return mvc.perform(request);
     }
 
-    /** TC-BIL-010: the Block's Invoices with filters and the summary; another Block's Manager does not see them. */
+    /** TC-BIL-010: Invoices with filters and the summary; every Manager sees every Block, Staff do not (ADR-19). */
     @Test
     void scopedListWithSummary() throws Exception {
         String manager = bearer(mvc, MANAGER_B);
@@ -120,14 +120,13 @@ class PaymentDeskIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.date").isString());
 
-        getAs("/payments", bearer(mvc, MANAGER_A))
+        getAs("/payments?pageSize=100", bearer(mvc, MANAGER_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].invoiceId", not(hasItem(unpaid.depositInvoiceId()))));
-        getAs("/payments?block=B", bearer(mvc, MANAGER_A))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
+                .andExpect(jsonPath("$.items[*].invoiceId", hasItem(unpaid.depositInvoiceId())));
+        getAs("/payments?block=B", bearer(mvc, MANAGER_A)).andExpect(status().isOk());
         getAs("/invoices/" + unpaid.depositInvoiceId(), manager).andExpect(status().isOk());
-        getAs("/invoices/" + unpaid.depositInvoiceId(), bearer(mvc, MANAGER_A)).andExpect(status().isNotFound());
+        getAs("/invoices/" + unpaid.depositInvoiceId(), bearer(mvc, MANAGER_A)).andExpect(status().isOk());
+        getAs("/payments", bearer(mvc, TestAuth.STAFF_A)).andExpect(status().isForbidden());
         getAs("/payments", payer).andExpect(status().isForbidden());
     }
 
@@ -147,7 +146,7 @@ class PaymentDeskIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.amount").isString())
                 .andExpect(jsonPath("$.details.fields.reference").isString());
-        confirm(invoice, bearer(mvc, MANAGER_A), "2070000", "FT26294001", null).andExpect(status().isNotFound());
+        confirm(invoice, bearer(mvc, TestAuth.STAFF_A), "2070000", "FT26294001", null).andExpect(status().isForbidden());
         confirm(invoice, auth, "2070000", "FT26294001", null).andExpect(status().isForbidden());
 
         confirm(invoice, manager, "2070000", "FT26294001", receipt).andExpect(status().isNoContent());
@@ -170,7 +169,7 @@ class PaymentDeskIT {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/png"))
                 .andExpect(content().bytes(PNG));
-        getAs("/payments/" + invoice + "/receipt-file", bearer(mvc, MANAGER_A)).andExpect(status().isNotFound());
+        getAs("/payments/" + invoice + "/receipt-file", bearer(mvc, TestAuth.STAFF_A)).andExpect(status().isForbidden());
         getAs("/notifications", auth).andExpect(jsonPath("$.items[*].title", hasItem("Payment received")));
 
         confirm(invoice, manager, "2070000", "FT26294002", null)

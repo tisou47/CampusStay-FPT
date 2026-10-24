@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -60,8 +61,9 @@ class BlockStaffIT {
         stay = new StayFlow(mvc, jdbc, flow, flow.openTerm());
     }
 
+    /** Block A's staff (a Manager sees every Block, ADR-19). */
     private ResultActions list(String auth) throws Exception {
-        return mvc.perform(get("/block-staff").header(HttpHeaders.AUTHORIZATION, auth));
+        return mvc.perform(get("/block-staff").param("block", "A").header(HttpHeaders.AUTHORIZATION, auth));
     }
 
     private ResultActions update(String auth, long userId, String body) throws Exception {
@@ -86,15 +88,16 @@ class BlockStaffIT {
         jdbc.sql("UPDATE mnt_request SET assignee_id = :a, status = 'ASSIGNED' WHERE code = :c")
                 .param("a", stay.userId(STAFF_A2)).param("c", code).update();
 
+        // Block A's Staff; Managers have no Block of their own (ADR-19).
         list(bearer(mvc, MANAGER_A)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.items", hasSize(4)))
+                .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath(person("Nguyen Van Binh") + ".title").value(hasItem("Residence Life Officer")))
                 .andExpect(jsonPath(person("Nguyen Van Binh") + ".handles[*]").value(
                         contains("Desk (Check-in / Check-out)", "Applications", "Room changes and swaps")))
                 .andExpect(jsonPath(person("Huynh Gia Bao") + ".blocks[*]").value(contains("A", "B")))
                 .andExpect(jsonPath(person("Vo Thanh Tung") + ".open").value(hasItem(1)))
-                .andExpect(jsonPath(person("Le Hoang Nam") + ".onDuty").value(hasItem(false)))
-                .andExpect(jsonPath("$.summary.total").value(4))
+                .andExpect(jsonPath("$.items[*].name", not(hasItem("Le Hoang Nam"))))
+                .andExpect(jsonPath("$.summary.total").value(3))
                 .andExpect(jsonPath("$.summary.shared").value(1))
                 .andExpect(jsonPath("$.summary.onDuty").value(3))
                 .andExpect(jsonPath("$.summary.deskOnDuty").value(1))
@@ -104,10 +107,11 @@ class BlockStaffIT {
 
         list(bearer(mvc, STAFF_A)).andExpect(status().isForbidden());
         mvc.perform(get("/block-staff").param("block", "B").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].name", hasItem("Do Ngoc Lan")));
     }
 
-    /** TC-AUTH-020: the Manager sets what a person handles and their duty; only staff who share a Block. */
+    /** TC-AUTH-020: a Manager sets what a Staff member of any Block handles and their duty (ADR-19). */
     @Test
     void updatesHandlesAndDuty() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
@@ -127,8 +131,9 @@ class BlockStaffIT {
 
         update(manager, ab, "{\"handles\":[\"Cooking\"]}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.handles").exists());
-        update(manager, stay.userId(STAFF_B1), "{\"onDuty\":true}").andExpect(status().isNotFound());
-        update(bearer(mvc, MANAGER_B), stay.userId(STAFF_A), "{\"onDuty\":false}").andExpect(status().isNotFound());
+        update(manager, stay.userId(STAFF_B1), "{\"onDuty\":true}").andExpect(status().isNoContent());
+        update(bearer(mvc, MANAGER_B), stay.userId(STAFF_A), "{\"onDuty\":true}").andExpect(status().isNoContent());
+        update(manager, stay.userId(TestAuth.MANAGER_B), "{\"onDuty\":true}").andExpect(status().isNotFound());
         update(bearer(mvc, STAFF_A), ab, "{\"onDuty\":false}").andExpect(status().isForbidden());
     }
 
@@ -136,7 +141,7 @@ class BlockStaffIT {
     @Test
     void requestsANewAccount() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
-        String body = "{\"name\":\"Tran Van Moi\",\"email\":\"Moi.TV@fpt.edu.vn\",\"role\":\"Staff\"}";
+        String body = "{\"name\":\"Tran Van Moi\",\"email\":\"Moi.TV@fpt.edu.vn\",\"role\":\"Staff\",\"block\":\"A\"}";
         String id = JsonPath.read(stay.postJson("/staff-account-requests", manager, body).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(), "$.id");
         assertThat(jdbc.sql("""

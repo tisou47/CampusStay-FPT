@@ -87,6 +87,6 @@ class BlockSettingsIT {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.visitUntil").exists());
 
         save(bearer(mvc, STAFF_A), VALID).andExpect(status().isForbidden());
-        save(bearer(mvc, MANAGER_B), VALID).andExpect(status().isForbidden());
+        save(bearer(mvc, MANAGER_B), VALID).andExpect(status().isOk()); // any Manager, every Block (ADR-19)
     }
 }

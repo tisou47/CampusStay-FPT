@@ -180,7 +180,7 @@ class SwapIT {
                 .param("id", Long.parseLong(id.substring("SW-".length()))).update();
 
         String staff = bearer(mvc, STAFF_A);
-        stay.postJson("/swaps/" + id + "/decision", bearer(mvc, MANAGER_B), "{\"decision\":\"Approved\"}")
+        stay.postJson("/swaps/" + id + "/decision", bearer(mvc, TestAuth.STAFF_B2), "{\"decision\":\"Approved\"}")
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
         stay.postJson("/swaps/" + id + "/decision", staff, "{\"decision\":\"Approved\"}").andExpect(status().isNoContent());

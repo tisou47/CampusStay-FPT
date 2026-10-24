@@ -81,7 +81,7 @@ class AssignmentIT {
     void reviewQueueAndRejection() throws Exception {
         String auth = bearer(mvc, student(4));
         String id = submitted(auth);
-        String staff = bearer(mvc, STAFF_A);
+        String staff = bearer(mvc, MANAGER_A); // Managers review Applications (ADR-19)
 
         getAs("/applications?status=Submitted", staff)
                 .andExpect(status().isOk())
@@ -113,30 +113,27 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.items[0].link").value("/student/applications/" + id));
     }
 
-    /** TC-APP-011 (scope): a Block B Manager never sees Block A students; students cannot use the queue. */
+    /** TC-APP-011 (scope): every Manager sees every Block's Applications (ADR-19); Staff and students cannot review. */
     @Test
     void reviewIsScopedByBlock() throws Exception {
         String auth = bearer(mvc, student(8));
         String id = submitted(auth);
         String managerB = bearer(mvc, MANAGER_B);
+        String staff = bearer(mvc, STAFF_A);
 
-        getAs("/applications/" + id, managerB)
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
+        getAs("/applications/" + id, managerB).andExpect(status().isOk());
         getAs("/applications", managerB)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].id", not(hasItem(id))));
-        getAs("/applications?block=B", bearer(mvc, STAFF_A))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
-        getAs("/applications", auth).andExpect(status().isForbidden());
-        postJson("/applications/" + id + "/review", managerB, "{\"decision\":\"Approved\"}")
+                .andExpect(jsonPath("$.items[*].id", hasItem(id)));
+        getAs("/applications", staff).andExpect(status().isForbidden());
+        postJson("/applications/" + id + "/review", staff, "{\"decision\":\"Approved\"}")
                 .andExpect(status().isForbidden());
+        getAs("/applications", auth).andExpect(status().isForbidden());
     }
 
     /**
-     * TC-ASG-010: approve in bulk, run, resolve the conflict to the waitlist, submit the Block, the Manager
-     * returns it once and then approves: Allocations, Balance Invoices, notifications and My Room.
+     * TC-ASG-010: the Manager approves in bulk, runs, resolves the conflict to the waitlist and commits the Block,
+     * which approves it at once (ADR-19): Allocations, Balance Invoices, notifications and My Room. Staff cannot commit.
      */
     @Test
     void assignmentRunToAllocation() throws Exception {
@@ -149,7 +146,7 @@ class AssignmentIT {
         String staff = bearer(mvc, STAFF_A);
         String manager = bearer(mvc, MANAGER_A);
 
-        postJson("/applications/bulk-review", staff,
+        postJson("/applications/bulk-review", manager,
                 "{\"ids\":[\"%s\",\"%s\",\"%s\"],\"decision\":\"Approved\"}".formatted(a1, a2, a3))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.approved").value(3))
@@ -160,12 +157,12 @@ class AssignmentIT {
                 WHERE student_code = 'SE190007'
                 """).update();
 
-        String run = JsonPath.read(postJson("/assignment-runs", staff,
+        String run = JsonPath.read(postJson("/assignment-runs", manager,
                 "{\"termId\":\"%d\",\"dryRun\":false}".formatted(termId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", startsWith("RUN-")))
                 .andReturn().getResponse().getContentAsString(), "$.id");
-        getAs("/assignment-runs?termId=" + termId, staff)
+        getAs("/assignment-runs?termId=" + termId, manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.current.id").value(run))
                 .andExpect(jsonPath("$.current.kind").value("Final run"))
@@ -174,7 +171,7 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.current.proposed").value(2))
                 .andExpect(jsonPath("$.current.conflicts").value(1))
                 .andExpect(jsonPath("$.rules.groups[0].title").value("Hard constraints"));
-        getAs("/assignment-runs/" + run + "/proposal?block=A", staff)
+        getAs("/assignment-runs/" + run + "/proposal?block=A", manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.run.id").value(run))
                 .andExpect(jsonPath("$.blocks[0].block").value("A"))
@@ -183,41 +180,38 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.blocks[0].status").value("review"))
                 .andExpect(jsonPath("$.total").value(3))
                 .andExpect(jsonPath("$.commitSummary.students").value(2));
-        getAs("/assignment-runs/" + run + "/proposal?block=A&view=conflicts", staff)
+        getAs("/assignment-runs/" + run + "/proposal?block=A&view=conflicts", manager)
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.items[0].applicationId").value(a3))
                 .andExpect(jsonPath("$.items[0].bed").value((Object) null))
                 .andExpect(jsonPath("$.items[0].issue.label").value("Not eligible"))
                 .andExpect(jsonPath("$.items[0].issue.tone").value("error"));
-        getAs("/assignment-runs/" + run + "/conflicts/" + a3, staff)
+        getAs("/assignment-runs/" + run + "/conflicts/" + a3, manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.issue.title").value("No longer eligible"))
                 .andExpect(jsonPath("$.preference").value("2-bed · Standard"));
 
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}")
+        postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICTS_LEFT"));
-        postJson("/assignment-runs/" + run + "/conflicts/" + a3 + "/resolve", staff, "{\"waitlist\":true}")
+        postJson("/assignment-runs/" + run + "/conflicts/" + a3 + "/resolve", manager, "{\"waitlist\":true}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resolved").value(true))
                 .andExpect(jsonPath("$.waitlisted").value(true));
-        getAs("/assignment-runs/" + run + "/proposal?block=waitlisted", staff)
+        getAs("/assignment-runs/" + run + "/proposal?block=waitlisted", manager)
                 .andExpect(jsonPath("$.waitlistedCount").value(1))
                 .andExpect(jsonPath("$.items[0].applicationId").value(a3));
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isNoContent());
-        postJson("/assignment-runs/" + run + "/conflicts/" + a3 + "/resolve", staff, "{\"waitlist\":true}")
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("BLOCK_SUBMITTED"));
 
-        // Only the Manager approves; first they send it back once.
-        postJson("/assignment-runs/" + run + "/approve", staff, "{\"block\":\"A\"}").andExpect(status().isForbidden());
+        // Staff no longer run or commit the assignment; the Manager's commit approves the Block at once (ADR-19).
+        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isForbidden());
+        postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}").andExpect(status().isNoContent());
+        postJson("/assignment-runs/" + run + "/conflicts/" + a3 + "/resolve", manager, "{\"waitlist\":true}")
+                .andExpect(status().isConflict());
         getAs("/approvals/assignment?termId=" + termId, manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.runId").value(run))
                 .andExpect(jsonPath("$.item.blockLabel").value("Block A"))
-                .andExpect(jsonPath("$.item.status").value("Waiting"))
-                // Block A: 5 Floors × 36 Beds, minus Room A-305 (4 Beds) out of service.
-                .andExpect(jsonPath("$.item.bedsOffered").value(176))
+                .andExpect(jsonPath("$.item.status").value("Approved"))
                 .andExpect(jsonPath("$.item.applications").value(3))
                 .andExpect(jsonPath("$.item.allocated").value(2))
                 .andExpect(jsonPath("$.item.toRound2").value(1))
@@ -227,23 +221,13 @@ class AssignmentIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].room", startsWith("A-")))
                 .andExpect(jsonPath("$.items[0].roomTypeName").value("2-bed"));
-        postJson("/assignment-runs/" + run + "/return", manager, "{\"block\":\"A\"}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.comment").isString());
-        postJson("/assignment-runs/" + run + "/return", manager,
-                "{\"block\":\"A\",\"comment\":\"Check the pairing on floor 3.\"}").andExpect(status().isNoContent());
-        getAs("/approvals/assignment?termId=" + termId, manager)
-                .andExpect(jsonPath("$.item.status").value("Returned"))
-                .andExpect(jsonPath("$.item.comment").value("Check the pairing on floor 3."));
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isNoContent());
-        postJson("/assignment-runs/" + run + "/approve", manager, "{\"block\":\"A\"}")
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.allocated").value(2))
-                .andExpect(jsonPath("$.waitlisted").value(1));
         postJson("/assignment-runs/" + run + "/approve", manager, "{\"block\":\"A\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_SUBMITTED"));
-        getAs("/assignment-runs?termId=" + termId, staff)
+        postJson("/assignment-runs/" + run + "/return", manager, "{\"block\":\"A\",\"comment\":\"Too late.\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOT_SUBMITTED"));
+        getAs("/assignment-runs?termId=" + termId, manager)
                 .andExpect(jsonPath("$.current.status").value("Committed"))
                 .andExpect(jsonPath("$.current.stage").value(5));
 
@@ -281,22 +265,23 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.item.status").value("Approved"));
         List<String> actions = jdbc.sql("SELECT action FROM shared_audit_log ORDER BY id")
                 .query(String.class).list();
-        assertThat(actions).contains("ASSIGNMENT_RUN_STARTED", "PROPOSAL_SUBMITTED", "PROPOSAL_RETURNED",
-                "PROPOSAL_APPROVED", "APPLICATION_APPROVED");
+        assertThat(actions).contains("ASSIGNMENT_RUN_STARTED", "PROPOSAL_SUBMITTED", "PROPOSAL_APPROVED",
+                "APPLICATION_APPROVED");
     }
 
-    /** TC-ASG-011: a dry run is a preview; students and other Blocks cannot use runs. */
+    /** TC-ASG-011: a dry run is a preview; students and Staff cannot use runs (ADR-19). */
     @Test
     void dryRunAndPermissions() throws Exception {
         String staff = bearer(mvc, STAFF_A);
-        String run = JsonPath.read(postJson("/assignment-runs", staff,
+        String manager = bearer(mvc, MANAGER_A);
+        String run = JsonPath.read(postJson("/assignment-runs", manager,
                 "{\"termId\":\"%d\",\"dryRun\":true}".formatted(termId))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(), "$.id");
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}")
+        postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DRY_RUN"));
-        postJson("/assignment-runs", staff, "{\"dryRun\":true}")
+        postJson("/assignment-runs", manager, "{\"dryRun\":true}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.termId").isString());
 
@@ -305,10 +290,10 @@ class AssignmentIT {
         postJson("/assignment-runs", auth, "{\"termId\":\"%d\",\"dryRun\":true}".formatted(termId))
                 .andExpect(status().isForbidden());
         getAs("/approvals/assignment", staff).andExpect(status().isForbidden());
-        getAs("/assignment-runs/" + run + "/rooms?block=B", bearer(mvc, MANAGER_A))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
-        getAs("/assignment-runs/RUN-999999/proposal", staff).andExpect(status().isNotFound());
+        postJson("/assignment-runs", staff, "{\"termId\":\"%d\",\"dryRun\":true}".formatted(termId))
+                .andExpect(status().isForbidden());
+        getAs("/assignment-runs/" + run + "/rooms?block=B", manager).andExpect(status().isOk());
+        getAs("/assignment-runs/RUN-999999/proposal", manager).andExpect(status().isNotFound());
         getAs("/students/me/allocation", auth)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allocation").value((Object) null))

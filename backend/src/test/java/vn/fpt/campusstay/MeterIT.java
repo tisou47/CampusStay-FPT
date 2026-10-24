@@ -118,8 +118,8 @@ class MeterIT {
                 .header(HttpHeaders.AUTHORIZATION, staff))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.status").exists());
 
-        // Scope: Block B's Manager and students cannot read Block A's meters.
-        readings(bearer(mvc, MANAGER_B), period).andExpect(status().isForbidden());
+        // Scope: Block B's Staff and students cannot read Block A's meters.
+        readings(bearer(mvc, TestAuth.STAFF_B2), period).andExpect(status().isForbidden());
         readings(bearer(mvc, StayFlow.student(1)), period).andExpect(status().isForbidden());
     }
 

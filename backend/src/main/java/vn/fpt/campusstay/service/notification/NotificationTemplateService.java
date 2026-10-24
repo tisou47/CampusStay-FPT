@@ -23,6 +23,7 @@ import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.i18n.Locales;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 
@@ -34,15 +35,16 @@ import vn.fpt.campusstay.exception.FieldErrors;
 @Service
 public class NotificationTemplateService {
 
+    /** {@code body} is the English text, {@code bodyVi} the Vietnamese one (ADR-25). */
     public record Template(String key, String event, boolean push, boolean inApp, String titleEn, String titleVi,
-            String body, List<String> variables) {
+            String body, String bodyVi, List<String> variables) {
     }
 
     public record Page(List<Template> items, Map<String, String> sampleValues) {
     }
 
     /** What the editor sends; null keeps the stored value. */
-    public record Change(Boolean push, Boolean inApp, String titleEn, String titleVi, String body) {
+    public record Change(Boolean push, Boolean inApp, String titleEn, String titleVi, String body, String bodyVi) {
     }
 
     /** Push messages longer than this are cut by Android; the Admin screen shows the same limit. */
@@ -111,11 +113,11 @@ public class NotificationTemplateService {
         Template after = merge(before, change);
         jdbc.sql("""
                 UPDATE ntf_template SET push = :push, in_app = :inApp, title_en = :titleEn, title_vi = :titleVi,
-                       body = :body, updated_at = :now, updated_by = :by
+                       body = :body, body_vi = :bodyVi, updated_at = :now, updated_by = :by
                 WHERE key = :key
                 """)
                 .param("push", after.push()).param("inApp", after.inApp()).param("titleEn", after.titleEn())
-                .param("titleVi", after.titleVi()).param("body", after.body())
+                .param("titleVi", after.titleVi()).param("body", after.body()).param("bodyVi", after.bodyVi())
                 .param("now", Timestamp.from(Instant.now(clock))).param("by", currentUser.id()).param("key", before.key())
                 .update();
         Map<String, Object> diff = new LinkedHashMap<>();
@@ -124,6 +126,7 @@ public class NotificationTemplateService {
         diff(diff, "titleEn", before.titleEn(), after.titleEn());
         diff(diff, "titleVi", before.titleVi(), after.titleVi());
         diff(diff, "body", before.body(), after.body());
+        diff(diff, "bodyVi", before.bodyVi(), after.bodyVi());
         if (!diff.isEmpty()) {
             audit.record("TEMPLATE_UPDATED", AuditLog.Tone.INFO, "Notification template", before.key(), before.event(),
                     diff);
@@ -138,26 +141,30 @@ public class NotificationTemplateService {
         Template t = merge(find(key, false), change);
         String title = "[Test] " + Templates.render(t.titleEn(), SAMPLES, false);
         String body = Templates.render(t.body(), SAMPLES, false);
+        String titleVi = "[Thử] " + Templates.render(t.titleVi(), SAMPLES, false);
+        String bodyVi = Templates.render(t.bodyVi(), SAMPLES, false);
         if (t.push()) {
-            push.afterCommit(me.userId(), title, body, null);
+            boolean vi = Locales.VI.equals(me.locale());
+            push.afterCommit(me.userId(), vi ? titleVi : title, vi ? bodyVi : body, null);
         }
         if (t.inApp()) {
             jdbc.sql("""
-                    INSERT INTO ntf_notification (user_id, event_key, title, body, link, created_at)
-                    VALUES (:user, :key, :title, :body, NULL, :now)
+                    INSERT INTO ntf_notification (user_id, event_key, title, body, title_vi, body_vi, link, created_at)
+                    VALUES (:user, :key, :title, :body, :titleVi, :bodyVi, NULL, :now)
                     """).param("user", me.userId()).param("key", t.key()).param("title", cut(title, MAX_TITLE))
-                    .param("body", body).param("now", Timestamp.from(Instant.now(clock))).update();
+                    .param("body", body).param("titleVi", cut(titleVi, MAX_TITLE)).param("bodyVi", bodyVi)
+                    .param("now", Timestamp.from(Instant.now(clock))).update();
         }
     }
 
     // ---------------------------------------------------------------- helpers
 
     private Template merge(Template t, Change change) {
-        Change c = change == null ? new Change(null, null, null, null, null) : change;
+        Change c = change == null ? new Change(null, null, null, null, null, null) : change;
         Template merged = new Template(t.key(), t.event(), c.push() != null ? c.push() : t.push(),
                 c.inApp() != null ? c.inApp() : t.inApp(), c.titleEn() != null ? c.titleEn().trim() : t.titleEn(),
                 c.titleVi() != null ? c.titleVi().trim() : t.titleVi(), c.body() != null ? c.body().trim() : t.body(),
-                t.variables());
+                c.bodyVi() != null ? c.bodyVi().trim() : t.bodyVi(), t.variables());
         FieldErrors errors = new FieldErrors();
         errors.check(!merged.titleEn().isEmpty() && merged.titleEn().length() <= MAX_TITLE, "titleEn",
                 "Enter a title of at most " + MAX_TITLE + " characters.");
@@ -165,13 +172,20 @@ public class NotificationTemplateService {
                 "Enter a title of at most " + MAX_TITLE + " characters.");
         errors.check(!merged.body().isEmpty() && merged.body().length() <= MAX_BODY, "body",
                 "Enter a message of at most " + MAX_BODY + " characters.");
+        errors.check(!merged.bodyVi().isEmpty() && merged.bodyVi().length() <= MAX_BODY, "bodyVi",
+                "Enter a message of at most " + MAX_BODY + " characters.");
         if (!errors.has("body") && merged.push()) {
             errors.check(merged.body().length() <= MAX_PUSH, "body",
                     "Too long for push: " + merged.body().length() + "/" + MAX_PUSH + " characters.");
         }
+        if (!errors.has("bodyVi") && merged.push()) {
+            errors.check(merged.bodyVi().length() <= MAX_PUSH, "bodyVi",
+                    "Too long for push: " + merged.bodyVi().length() + "/" + MAX_PUSH + " characters.");
+        }
         unknown(errors, "titleEn", merged.titleEn(), merged.variables());
         unknown(errors, "titleVi", merged.titleVi(), merged.variables());
         unknown(errors, "body", merged.body(), merged.variables());
+        unknown(errors, "bodyVi", merged.bodyVi(), merged.variables());
         errors.throwIfAny();
         return merged;
     }
@@ -195,7 +209,7 @@ public class NotificationTemplateService {
 
     private static Template template(ResultSet rs) throws SQLException {
         return new Template(rs.getString("key"), rs.getString("event"), rs.getBoolean("push"), rs.getBoolean("in_app"),
-                rs.getString("title_en"), rs.getString("title_vi"), rs.getString("body"),
+                rs.getString("title_en"), rs.getString("title_vi"), rs.getString("body"), rs.getString("body_vi"),
                 List.of((String[]) rs.getArray("variables").getArray()));
     }
 

@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.i18n.Locales;
 import vn.fpt.campusstay.exception.ApiException;
 
 /** Notification Center of the signed-in user (every role). Users only ever see and change their own rows. */
@@ -39,14 +40,18 @@ public class NotificationService {
         if (n < 1 || n > MAX_LIMIT) {
             throw ApiException.badRequest("BAD_PARAMETER", "Limit must be between 1 and " + MAX_LIMIT + ".");
         }
+        // The reader's language (ADR-25); notifications written before V34 have only the English text.
+        boolean vi = Locales.VI.equals(Locales.ofRequest());
         List<Item> items = jdbc.sql("""
-                SELECT id, title, body, created_at, link, read_at IS NOT NULL AS read
+                SELECT id, title, body, title_vi, body_vi, created_at, link, read_at IS NOT NULL AS read
                 FROM ntf_notification WHERE user_id = :user
                 ORDER BY created_at DESC, id DESC LIMIT :limit
                 """)
                 .param("user", userId)
                 .param("limit", n)
-                .query((rs, i) -> new Item(String.valueOf(rs.getLong("id")), rs.getString("title"), rs.getString("body"),
+                .query((rs, i) -> new Item(String.valueOf(rs.getLong("id")),
+                        vi && rs.getString("title_vi") != null ? rs.getString("title_vi") : rs.getString("title"),
+                        vi && rs.getString("body_vi") != null ? rs.getString("body_vi") : rs.getString("body"),
                         rs.getTimestamp("created_at").toInstant(), rs.getString("link"), rs.getBoolean("read")))
                 .list();
         long unread = jdbc.sql("SELECT count(*) FROM ntf_notification WHERE user_id = :user AND read_at IS NULL")

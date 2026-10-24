@@ -4,7 +4,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.TestAuth.MANAGER_A;
-import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
 import java.util.ArrayList;
@@ -71,11 +70,11 @@ final class StayFlow {
     }
 
     /**
-     * Applies for the Room kind and pays the Deposit for each student, approves them, runs and commits Block A
-     * after moving every conflict to the waitlist, and the Block Manager approves.
+     * Applies for the Room kind and pays the Deposit for each student; a Manager approves them, runs the
+     * assignment and commits Block A after moving every conflict to the waitlist (ADR-19).
      */
     List<Applied> runRound1(String roomType, String roomClass, int... students) throws Exception {
-        String staff = bearer(mvc, STAFF_A);
+        String manager = bearer(mvc, MANAGER_A);
         List<Applied> applied = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         for (int n : students) {
@@ -85,20 +84,18 @@ final class StayFlow {
             applied.add(new Applied(auth, app.id()));
             ids.add("\"" + app.id() + "\"");
         }
-        postJson("/applications/bulk-review", staff, "{\"ids\":[" + String.join(",", ids) + "],\"decision\":\"Approved\"}")
+        postJson("/applications/bulk-review", manager, "{\"ids\":[" + String.join(",", ids) + "],\"decision\":\"Approved\"}")
                 .andExpect(status().isOk());
-        String run = JsonPath.read(postJson("/assignment-runs", staff, "{\"termId\":\"%d\"}".formatted(termId))
+        String run = JsonPath.read(postJson("/assignment-runs", manager, "{\"termId\":\"%d\"}".formatted(termId))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.id");
         String conflicts = mvc.perform(get("/assignment-runs/" + run + "/proposal?block=A&view=conflicts&pageSize=100")
-                .header(HttpHeaders.AUTHORIZATION, staff)).andReturn().getResponse().getContentAsString();
+                .header(HttpHeaders.AUTHORIZATION, manager)).andReturn().getResponse().getContentAsString();
         List<String> blocked = JsonPath.read(conflicts, "$.items[*].applicationId");
         for (String id : blocked) {
-            postJson("/assignment-runs/" + run + "/conflicts/" + id + "/resolve", staff, "{\"waitlist\":true}")
+            postJson("/assignment-runs/" + run + "/conflicts/" + id + "/resolve", manager, "{\"waitlist\":true}")
                     .andExpect(status().isOk());
         }
-        postJson("/assignment-runs/" + run + "/commit", staff, "{\"block\":\"A\"}").andExpect(status().isNoContent());
-        postJson("/assignment-runs/" + run + "/approve", bearer(mvc, MANAGER_A), "{\"block\":\"A\"}")
-                .andExpect(status().isOk());
+        postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}").andExpect(status().isNoContent());
         return applied;
     }
 }

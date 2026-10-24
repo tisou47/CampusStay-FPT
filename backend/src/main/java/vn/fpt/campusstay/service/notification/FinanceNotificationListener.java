@@ -40,7 +40,7 @@ class FinanceNotificationListener {
         notifier.notify(e.studentId(), "INVOICE_OVERDUE", values, "/student/invoices/" + e.code() + "/pay");
         if (e.reminder()) {
             users.studentProfile(e.studentId()).filter(p -> p.email() != null).ifPresent(p -> outbox.enqueue(
-                    "PAYMENT_REMINDER", p.email(), Map.of("name", p.name(), "title", e.title(), "amount", vnd(e.amount()),
+                    "PAYMENT_REMINDER", p.email(), users.locale(e.studentId()), Map.of("name", p.name(), "title", e.title(), "amount", vnd(e.amount()),
                             "dueAt", DAY.format(e.dueAt()))));
         }
     }

@@ -237,9 +237,12 @@ public class AssignmentService {
 
     // ---------------------------------------------------------------- submit, approve, return
 
-    /** Staff send a Block's proposal to the Block Manager ("Commit Block" on the screen). */
+    /**
+     * The Manager commits a Block's proposal ("Commit Block" on the screen): it is checked, marked submitted
+     * and approved in the same transaction, since Managers run the assignment themselves (ADR-19).
+     */
     @Transactional
-    public void submit(String runCode, String blockCode) {
+    public Approved submit(String runCode, String blockCode) {
         AuthenticatedUser user = currentUser.require(Permission.RUN_ASSIGNMENT);
         RunStore.Run run = editableRun(runCode);
         long building = building(blockCode);
@@ -264,6 +267,7 @@ public class AssignmentService {
                 .param("id", run.id()).update();
         audit.record("PROPOSAL_SUBMITTED", AuditLog.Tone.INFO, "Assignment run", run.id(),
                 run.code() + " · Block " + blockCode, null);
+        return approve(runCode, blockCode);
     }
 
     /** The Manager approves: Allocations, Balance Invoices and notifications for the Block, all or nothing. */

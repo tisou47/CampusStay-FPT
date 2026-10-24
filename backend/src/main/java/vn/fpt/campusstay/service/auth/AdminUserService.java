@@ -136,7 +136,7 @@ public class AdminUserService {
         errors.check(role != null, "role", "Choose Staff, Manager or Admin.");
         String email = command.email().trim().toLowerCase(Locale.ROOT);
         errors.check(users.findByEmailIgnoreCase(email).isEmpty(), "email", "An account with this email already exists.");
-        Set<Long> blockIds = role == null || role == Role.ADMIN ? Set.of() : parseScope(command.scope(), errors);
+        Set<Long> blockIds = role != Role.STAFF ? Set.of() : parseScope(command.scope(), errors);
         errors.throwIfAny();
 
         UserEntity user = users.save(new UserEntity(email, command.name().trim(), role));
@@ -163,7 +163,7 @@ public class AdminUserService {
         errors.check(role != null, "role", "Choose Staff, Manager or Admin.");
         UserEntity.Status status = parseStatus(command.status()).orElse(null);
         errors.check(status != null, "status", "Choose Active, Invited or Disabled.");
-        Set<Long> blockIds = role == null || role == Role.ADMIN ? Set.of() : parseScope(command.scope(), errors);
+        Set<Long> blockIds = role != Role.STAFF ? Set.of() : parseScope(command.scope(), errors);
         errors.throwIfAny();
 
         if (me.userId() == id && (role != Role.ADMIN || status == UserEntity.Status.DISABLED)) {
@@ -298,7 +298,7 @@ public class AdminUserService {
     private List<String> scopeOptions(List<String> activeCodes) {
         List<Long> scoped = jdbc.sql("""
                 SELECT DISTINCT ub.user_id FROM auth_user_block ub JOIN auth_user u ON u.id = ub.user_id
-                WHERE u.role IN ('STAFF', 'MANAGER')
+                WHERE u.role = 'STAFF'
                 """).query(Long.class).list();
         Set<String> combined = new TreeSet<>();
         for (List<String> codes : blockCodesByUser(scoped).values()) {
@@ -323,7 +323,7 @@ public class AdminUserService {
     }
 
     static String scopeLabel(Role role, List<String> codes, List<String> activeCodes) {
-        if (role == Role.ADMIN) {
+        if (role == Role.ADMIN || role == Role.MANAGER) { // Managers work for every Block (ADR-19)
             return ALL_BLOCKS;
         }
         if (codes.isEmpty()) {

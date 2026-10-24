@@ -347,13 +347,19 @@ public class RoomChangeService {
         return new QueuePage(items, total, labels("ROOM_CHANGE_REJECT_REASON"));
     }
 
+    /** Staff decide moves inside their Blocks; a move to another Block is a Manager's (ADR-19). */
+    private static boolean mayMoveInto(AuthenticatedUser user, long buildingId) {
+        return !user.is(Role.STAFF) || user.blockIds().contains(buildingId);
+    }
+
     @Transactional(readOnly = true)
     public MatchingBeds matchingBeds(String code) {
+        AuthenticatedUser user = currentUser.get();
         Request r = inScope(code, false);
         Moves.Placement p = moves.placement(r.allocationId())
                 .orElseThrow(() -> ApiException.notFound("This Room-Change Request does not exist."));
         return new MatchingBeds(moves.freeBeds(r.termId(), p.gender(), r.typeId(), r.classId()).stream()
-                .filter(b -> b.roomId() != p.roomId())
+                .filter(b -> b.roomId() != p.roomId() && mayMoveInto(user, b.buildingId()))
                 .limit(50).map(b -> new MatchingBed(b.code(), b.floor(), b.roommates())).toList());
     }
 
@@ -399,6 +405,9 @@ public class RoomChangeService {
                 .findFirst()
                 .orElseThrow(() -> ApiException.conflict("BED_NOT_AVAILABLE",
                         "This Bed is not free for this request any more. Choose another one."));
+        if (!mayMoveInto(user, bed.buildingId())) {
+            throw ApiException.forbidden("CROSS_BLOCK", "A move to another Block is decided by a Manager.");
+        }
         long newAllocation = moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
         TermSummary term = terms.findPublished(r.termId()).orElseThrow();
         long newPrice = fees.termPrice(r.typeId(), r.classId()).orElse(0);

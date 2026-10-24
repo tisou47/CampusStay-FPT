@@ -89,8 +89,8 @@ ON CONFLICT (building_id) DO NOTHING;
 -- ---------- back-office accounts ----------
 INSERT INTO auth_user (email, display_name, password_hash, role, title) VALUES
   ('admin@campusstay.test',     'Tran Minh Quan',  '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'ADMIN',   'Housing Administrator'),
-  ('manager.a@campusstay.test', 'Le Hoang Nam',    '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'MANAGER', 'Block A Manager'),
-  ('manager.b@campusstay.test', 'Pham Thu Ha',     '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'MANAGER', 'Block B Manager'),
+  ('manager.a@campusstay.test', 'Le Hoang Nam',    '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'MANAGER', 'Dormitory Manager'),
+  ('manager.b@campusstay.test', 'Pham Thu Ha',     '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'MANAGER', 'Dormitory Manager'),
   ('staff.a1@campusstay.test',  'Nguyen Van Binh', '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'STAFF',   'Residence Life Officer'),
   ('staff.a2@campusstay.test',  'Vo Thanh Tung',   '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'STAFF',   'Maintenance Technician'),
   ('staff.b1@campusstay.test',  'Do Ngoc Lan',     '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'STAFF',   'Residence Life Officer'),
@@ -100,8 +100,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO auth_user_block (user_id, building_id)
 SELECT u.id, b.id
 FROM auth_user u JOIN inv_building b ON
-     (u.email IN ('manager.a@campusstay.test', 'staff.a1@campusstay.test', 'staff.a2@campusstay.test', 'staff.ab@campusstay.test') AND b.code = 'A')
-  OR (u.email IN ('manager.b@campusstay.test', 'staff.b1@campusstay.test', 'staff.ab@campusstay.test') AND b.code = 'B')
+     (u.email IN ('staff.a1@campusstay.test', 'staff.a2@campusstay.test', 'staff.ab@campusstay.test') AND b.code = 'A')
+  OR (u.email IN ('staff.b1@campusstay.test', 'staff.ab@campusstay.test') AND b.code = 'B')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO auth_staff_profile (user_id, handles, on_duty)
@@ -183,3 +183,16 @@ FROM mnt_checklist c,
              ('Room is clean', 'CLEANING', 'TRIVIAL', 6)) AS v (label, category, severity, n)
 WHERE c.family_key = 'CL-ROOM' AND c.version = 1
   AND NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);
+
+-- ---------- a Staff member of Block B only (Block-scope tests; Managers see every Block, ADR-19) ----------
+INSERT INTO auth_user (email, display_name, password_hash, role, title) VALUES
+  ('staff.b2@campusstay.test', 'Ly Thanh Son', '$2a$10$zoI/Bzs2QVn2P5.PI7WCr.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S', 'STAFF', 'Residence Life Officer')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO auth_user_block (user_id, building_id)
+SELECT u.id, b.id FROM auth_user u JOIN inv_building b ON b.code = 'B'
+WHERE u.email = 'staff.b2@campusstay.test'
+ON CONFLICT DO NOTHING;
+
+-- ---------- the test accounts read English (ADR-25); LocaleIT switches one to Vietnamese ----------
+UPDATE auth_user SET locale = 'en' WHERE locale <> 'en' AND email LIKE '%campusstay.test';

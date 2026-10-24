@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
+import vn.fpt.campusstay.service.auth.AccountService;
 import vn.fpt.campusstay.service.auth.PasswordService;
 import vn.fpt.campusstay.service.auth.SessionService;
 import vn.fpt.campusstay.service.auth.SignInService;
@@ -55,17 +57,23 @@ class AuthController {
             @NotBlank(message = "Enter a new password.") @Size(max = 128) String newPassword) {
     }
 
+    /** {@code vi} or {@code en} (ADR-25). */
+    record LocaleRequest(@NotBlank(message = "Choose vi or en.") @Size(max = 10) String locale) {
+    }
+
     private final SignInService signIn;
     private final SessionService sessions;
     private final PasswordService passwords;
+    private final AccountService accounts;
     private final CurrentUser currentUser;
     private final UserViewMapper views;
 
-    AuthController(SignInService signIn, SessionService sessions, PasswordService passwords, CurrentUser currentUser,
-            UserViewMapper views) {
+    AuthController(SignInService signIn, SessionService sessions, PasswordService passwords, AccountService accounts,
+            CurrentUser currentUser, UserViewMapper views) {
         this.signIn = signIn;
         this.sessions = sessions;
         this.passwords = passwords;
+        this.accounts = accounts;
         this.currentUser = currentUser;
         this.views = views;
     }
@@ -99,6 +107,13 @@ class AuthController {
     UserView me() {
         AuthenticatedUser user = currentUser.get();
         return views.of(user);
+    }
+
+    /** The account's language for notifications, push and emails (ADR-25, contract change B-04). */
+    @PutMapping("/me/locale")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void locale(@Valid @RequestBody LocaleRequest body) {
+        accounts.setLocale(body.locale());
     }
 
     @PostMapping("/password/forgot")

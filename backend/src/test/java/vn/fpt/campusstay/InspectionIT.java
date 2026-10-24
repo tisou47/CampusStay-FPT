@@ -202,7 +202,7 @@ class InspectionIT {
                 .andExpect(jsonPath("$.run.failed").value(1))
                 .andExpect(jsonPath("$.run.unreachable").value(1));
 
-        getAs("/inspection-runs/" + run + "/rooms", bearer(mvc, MANAGER_B)).andExpect(status().isForbidden());
+        getAs("/inspection-runs/" + run + "/rooms", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isNoContent());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RUN_SUBMITTED"));
@@ -239,11 +239,11 @@ class InspectionIT {
         stay.postJson("/inspection-checklists/" + checklist + "/archive", admin, "{}").andExpect(status().isConflict());
     }
 
-    /** TC-MNT-007 (permission): schedules are the Block Manager's, in their Block; runs need Staff. */
+    /** TC-MNT-007 (permission): schedules are the Managers', for every Block (ADR-19); runs need Staff. */
     @Test
     void permissions() throws Exception {
         getAs("/inspection-schedules?block=A", bearer(mvc, STAFF_A)).andExpect(status().isForbidden());
-        getAs("/inspection-schedules?block=A", bearer(mvc, MANAGER_B)).andExpect(status().isForbidden());
+        getAs("/inspection-schedules?block=A", bearer(mvc, MANAGER_B)).andExpect(status().isOk());
         putAs("/inspection-schedules/999999", bearer(mvc, MANAGER_A), "{\"status\":\"Paused\"}")
                 .andExpect(status().isNotFound());
         getAs("/inspection-runs/current", bearer(mvc, StayFlow.student(2))).andExpect(status().isForbidden());

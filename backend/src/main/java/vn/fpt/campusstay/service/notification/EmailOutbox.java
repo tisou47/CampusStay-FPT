@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.i18n.Locales;
+
 /** Queues emails rendered from {@code ntf_email_template}. Must run inside the caller's transaction. */
 @Component
 class EmailOutbox {
@@ -19,11 +21,15 @@ class EmailOutbox {
         this.jdbc = jdbc;
     }
 
+    /** Renders the template in {@code locale} ({@code vi} or {@code en}, ADR-25); English where a Vietnamese text is missing. */
     @Transactional(propagation = Propagation.MANDATORY)
-    void enqueue(String templateKey, String toEmail, Map<String, String> values) {
-        var template = jdbc.sql("SELECT subject, body_html FROM ntf_email_template WHERE key = :key")
+    void enqueue(String templateKey, String toEmail, String locale, Map<String, String> values) {
+        boolean vi = Locales.VI.equals(locale);
+        var template = jdbc.sql("SELECT subject, body_html, subject_vi, body_html_vi FROM ntf_email_template WHERE key = :key")
                 .param("key", templateKey)
-                .query((rs, i) -> new String[] { rs.getString("subject"), rs.getString("body_html") })
+                .query((rs, i) -> new String[] {
+                        vi && rs.getString("subject_vi") != null ? rs.getString("subject_vi") : rs.getString("subject"),
+                        vi && rs.getString("body_html_vi") != null ? rs.getString("body_html_vi") : rs.getString("body_html") })
                 .optional()
                 .orElseThrow(() -> new IllegalStateException("Missing email template " + templateKey));
         jdbc.sql("""

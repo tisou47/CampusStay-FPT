@@ -130,10 +130,13 @@ class InventoryIT {
         mvc.perform(get("/inventory/structure").header(HttpHeaders.AUTHORIZATION, staff).param("block", "B"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
-        mvc.perform(get("/inventory/rooms").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_B))
+        mvc.perform(get("/inventory/rooms").header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.STAFF_B2))
                 .param("block", "A").param("floor", "1"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
+        mvc.perform(get("/inventory/rooms").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_B))
+                .param("block", "A").param("floor", "1"))
+                .andExpect(status().isOk()); // Managers see every Block (ADR-19)
         mvc.perform(get("/inventory/rooms").header(HttpHeaders.AUTHORIZATION, bearer(mvc, "staff.ab@campusstay.test"))
                 .param("floor", "1"))
                 .andExpect(status().isBadRequest())
@@ -162,7 +165,7 @@ class InventoryIT {
                 .andExpect(jsonPath("$.code").value("A-305"))
                 .andExpect(jsonPath("$.block").value("A"))
                 .andExpect(jsonPath("$.floor").value(3));
-        mvc.perform(get("/inventory/rooms/A-305").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_B)))
+        mvc.perform(get("/inventory/rooms/A-305").header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.STAFF_B2)))
                 .andExpect(status().isForbidden());
     }
 

@@ -115,7 +115,7 @@ class EscalationIT {
                 .andExpect(jsonPath("$.details.fields.action").exists());
         act(code, manager, "{\"action\":\"reassign\",\"assigneeId\":\"%d\"}".formatted(stay.userId(MANAGER_B)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.assigneeId").exists());
-        act(code, bearer(mvc, MANAGER_B), "{\"action\":\"reassign\",\"assigneeId\":\"%d\"}".formatted(a2))
+        act(code, bearer(mvc, TestAuth.STAFF_A), "{\"action\":\"reassign\",\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isForbidden());
         act(code, manager, "{\"action\":\"reassign\",\"assigneeId\":\"%d\",\"note\":\"Please go today.\"}".formatted(a2))
                 .andExpect(status().isNoContent());

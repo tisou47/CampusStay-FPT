@@ -203,7 +203,7 @@ class MaintenanceIT {
         mvc.perform(get(photo)).andExpect(status().isOk()).andExpect(content().contentType("image/png"))
                 .andExpect(content().bytes(PNG));
         mvc.perform(get(photo.replaceAll("sig=[^&]+", "sig=forged"))).andExpect(status().isNotFound());
-        getAs("/maintenance-requests/" + id, bearer(mvc, MANAGER_B))
+        getAs("/maintenance-requests/" + id, bearer(mvc, TestAuth.STAFF_B2))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
 
@@ -257,16 +257,19 @@ class MaintenanceIT {
                 .query(Long.class).single()).isGreaterThanOrEqualTo(4);
     }
 
-    /** TC-MNT-003: the queue is scoped: another Block's Manager neither sees nor counts the request. */
+    /** TC-MNT-003: the queue is scoped: another Block's Staff neither see nor count the request; Managers do (ADR-19). */
     @Test
     void queueIsScoped() throws Exception {
         livesIn(19, "A-304", "A");
         String id = reported(bearer(mvc, student(19)), "Normal");
-        getAs("/maintenance-requests?status=open", bearer(mvc, MANAGER_B))
+        String staffB = bearer(mvc, TestAuth.STAFF_B2);
+        getAs("/maintenance-requests?status=open", staffB)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[*].id", not(hasItem(id))))
                 .andExpect(jsonPath("$.items[*].room", everyItem(startsWith("B-"))));
-        getAs("/maintenance-requests?block=A", bearer(mvc, MANAGER_B))
+        getAs("/maintenance-requests?status=open", bearer(mvc, MANAGER_B))
+                .andExpect(jsonPath("$.items[*].id", hasItem(id)));
+        getAs("/maintenance-requests?block=A", staffB)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
         getAs("/maintenance-requests?q=" + id, bearer(mvc, STAFF_A))

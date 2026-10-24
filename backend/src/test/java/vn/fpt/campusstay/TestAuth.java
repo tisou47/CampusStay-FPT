@@ -16,6 +16,8 @@ public final class TestAuth {
     public static final String MANAGER_A = "manager.a@campusstay.test";
     public static final String MANAGER_B = "manager.b@campusstay.test";
     public static final String STAFF_A = "staff.a1@campusstay.test";
+    /** Block B only, no handles; for Block-scope checks (Managers see every Block, ADR-19). */
+    public static final String STAFF_B2 = "staff.b2@campusstay.test";
     public static final String STUDENT = "se190010@student.campusstay.test";
 
     private TestAuth() {

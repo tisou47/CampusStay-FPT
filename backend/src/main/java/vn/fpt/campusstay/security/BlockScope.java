@@ -8,7 +8,8 @@ import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 
 /**
- * Enforces Block scope (contract: "the server enforces the user's scope").
+ * Enforces Block scope (contract: "the server enforces the user's scope"). Staff see their own Blocks;
+ * Managers (ADR-19) and the Admin see every active Block: a Manager's session carries all of them.
  * Every Staff/Manager endpoint that takes {@code block} must call {@link #resolve}.
  */
 @Component

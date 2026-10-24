@@ -109,7 +109,7 @@ class ReportIT {
                 WHERE code = :c
                 """).param("a", "staff.a2@campusstay.test").param("c", code).update();
         String manager = bearer(mvc, MANAGER_A);
-        getAs("/dashboards/manager", manager).andExpect(status().isOk())
+        getAs("/dashboards/manager?block=A", manager).andExpect(status().isOk())
                 .andExpect(jsonPath("$.block").value("A"))
                 .andExpect(jsonPath("$.kpis.allocated").value(greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.kpis.slaHours").value(48))
@@ -307,16 +307,18 @@ class ReportIT {
         assertThat(csv).startsWith("﻿Block,Room Type,Basic allocated,Basic capacity");
 
         String staff = bearer(mvc, STAFF_A);
-        String applications = getAs("/exports/applications?block=A&status=Submitted", staff).andExpect(status().isOk())
+        String applications = getAs("/exports/applications?block=A&status=Submitted", bearer(mvc, MANAGER_A))
+                .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(applications).startsWith("﻿Application,Student,Student code,Roommate pair");
         getAs("/exports/block-residents?block=A", bearer(mvc, MANAGER_A)).andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"block-residents-A.csv\"")));
 
         getAs("/exports/audit-log", staff).andExpect(status().isForbidden());
-        getAs("/exports/block-residents?block=B", bearer(mvc, MANAGER_A)).andExpect(status().isForbidden());
+        getAs("/exports/block-residents?block=B", bearer(mvc, MANAGER_A)).andExpect(status().isOk()); // ADR-19
+        getAs("/exports/block-residents?block=B", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
         getAs("/exports/no-such-report", admin).andExpect(status().isNotFound());
         mvc.perform(get("/admin/audit-log").param("action", "Exported").header(HttpHeaders.AUTHORIZATION, admin))
-                .andExpect(jsonPath("$.items", hasSize(3)));
+                .andExpect(jsonPath("$.items", hasSize(4)));
     }
 }

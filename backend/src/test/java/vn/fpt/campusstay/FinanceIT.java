@@ -87,8 +87,8 @@ class FinanceIT {
                 .andExpect(jsonPath("$.items[0].typeLabel").value("Balance"))
                 .andExpect(jsonPath("$.items[0].daysOverdue").value(3))
                 .andExpect(jsonPath("$.items[0].remindedAt").value((Object) null));
-        getAs("/finance/overdue", bearer(mvc, MANAGER_B))
-                .andExpect(jsonPath("$.items[*].invoiceId", not(hasItem(balance))));
+        getAs("/finance/overdue", bearer(mvc, MANAGER_B)) // every Manager sees every Block (ADR-19)
+                .andExpect(jsonPath("$.items[*].invoiceId", hasItem(balance)));
         stay.postJson("/finance/reminders", bearer(mvc, STAFF_A), "{\"invoiceIds\":[\"%s\"]}".formatted(balance))
                 .andExpect(status().isForbidden());
         stay.postJson("/finance/reminders", manager, "{\"invoiceIds\":[\"%s\",\"INV-NONE-000001\"]}".formatted(balance))
@@ -127,7 +127,7 @@ class FinanceIT {
                 .andExpect(jsonPath("$.items[0].paid").value(600_000))
                 .andExpect(jsonPath("$.items[0].amount").value(300_000))
                 .andExpect(jsonPath("$.items[0].status").value("Pending"));
-        getAs("/refunds", bearer(mvc, MANAGER_B)).andExpect(jsonPath("$.items[*].id", not(hasItem(id))));
+        getAs("/refunds", bearer(mvc, MANAGER_B)).andExpect(jsonPath("$.items[*].id", hasItem(id))); // ADR-19
         getAs("/finance/summary", manager)
                 .andExpect(jsonPath("$.refundsPendingCount").value(1))
                 .andExpect(jsonPath("$.refundsPendingAmount").value(300_000));

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.PasswordResetRequested;
 import vn.fpt.campusstay.config.TimeConfig;
+import vn.fpt.campusstay.service.auth.UserDirectory;
 
 /**
  * Synchronous listener: runs in the publisher's transaction, so the outbox row
@@ -20,15 +21,17 @@ class AuthEmailListener {
             .withZone(TimeConfig.CAMPUS_ZONE);
 
     private final EmailOutbox outbox;
+    private final UserDirectory users;
 
-    AuthEmailListener(EmailOutbox outbox) {
+    AuthEmailListener(EmailOutbox outbox, UserDirectory users) {
         this.outbox = outbox;
+        this.users = users;
     }
 
     @EventListener
     void on(PasswordResetRequested event) {
         String template = "INVITE".equals(event.purpose()) ? "ACCOUNT_INVITE" : "PASSWORD_RESET";
-        outbox.enqueue(template, event.email(), Map.of(
+        outbox.enqueue(template, event.email(), users.locale(event.userId()), Map.of(
                 "name", event.name(),
                 "link", event.link(),
                 "expiresAt", WHEN.format(event.expiresAt())));

@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 coded, 161 of them verified (`POST /auth/google` needs a real Google account).
+Total: 163 endpoints (168 when the five `GET, PUT` rows count twice); all 163 coded, 162 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`.
 
 | Slice | Focus |
 |---|---|
@@ -21,6 +21,7 @@ Total: 162 endpoints (167 when the five `GET, PUT` rows count twice); all 162 co
 |---|---|---|---|---|---|
 | AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`). Validation and "disabled": TC-AUTH-009, 010; code exchange: TC-AUTH-029…033 (`GoogleCodeExchangerTest`); the success path needs a real Google account (manual test) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
+| AUTH | PUT | `/auth/me/locale` | Must | Verified | A-15 (v2 phase 1, ADR-25); TC-AUTH-036. Every endpoint: `Accept-Language` A-16, TC-AUTH-037 |
 | AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |
 | AUTH | POST | `/auth/password/forgot` | Must | Verified | A-02; TC-AUTH-007; the emailed link in TC-AUTH-022 |
 | AUTH | POST | `/auth/password/reset` | Must | Verified | A-03; TC-AUTH-012 (invitation link, single use), 022, 023, 024 |

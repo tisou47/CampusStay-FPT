@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.i18n.Locales;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 
 @Component
@@ -23,6 +24,12 @@ class JdbcUserDirectory implements UserDirectory {
 
     JdbcUserDirectory(JdbcClient jdbc) {
         this.jdbc = jdbc;
+    }
+
+    @Override
+    public String locale(long userId) {
+        return jdbc.sql("SELECT locale FROM auth_user WHERE id = :id").param("id", userId).query(String.class)
+                .optional().orElse(Locales.VI);
     }
 
     @Override

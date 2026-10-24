@@ -105,6 +105,7 @@ public class PaymentDeskService {
 
     @Transactional(readOnly = true)
     public PaymentPage list(Filter f, PageQuery page) {
+        currentUser.require(Permission.CONFIRM_PAYMENTS); // Managers confirm payments (ADR-19)
         InvoiceScope.Scope s = scope.resolve(f.block());
         TermSummary term = term(f.termId());
         Instant today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)).atStartOfDay(TimeConfig.CAMPUS_ZONE)
@@ -267,6 +268,7 @@ public class PaymentDeskService {
     /** The transfer receipt a Staff member attached when confirming. */
     @Transactional(readOnly = true)
     public FileStore.FileContent receiptFile(String invoiceCode) {
+        currentUser.require(Permission.CONFIRM_PAYMENTS);
         InvoiceStore.Invoice inv = invoices.find(invoiceCode).filter(scope::visible)
                 .orElseThrow(() -> ApiException.notFound("This Invoice does not exist."));
         return jdbc.sql("""

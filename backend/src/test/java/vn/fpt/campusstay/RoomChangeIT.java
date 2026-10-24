@@ -128,7 +128,7 @@ class RoomChangeIT {
                 .andReturn().getResponse().getContentAsString();
         String bed = JsonPath.read(beds, "$.items[0].bedId");
         assertThat(bed).startsWith("A-");
-        getAs("/room-changes/" + first + "/matching-beds", bearer(mvc, MANAGER_B))
+        getAs("/room-changes/" + first + "/matching-beds", bearer(mvc, TestAuth.STAFF_B2))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
 

@@ -61,12 +61,16 @@ class AdminUsersIT {
                 .andExpect(jsonPath("$.blocks", hasItem("A")))
                 .andExpect(jsonPath("$.scopeOptions[0]").value("All Blocks"));
         mvc.perform(get("/admin/users").header(HttpHeaders.AUTHORIZATION, admin)
-                .param("role", "Manager").param("block", "B"))
+                .param("role", "Staff").param("block", "B").param("q", "staff.b1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.items[0].email").value("manager.b@campusstay.test"))
+                .andExpect(jsonPath("$.items[0].email").value("staff.b1@campusstay.test"))
                 .andExpect(jsonPath("$.items[0].scope").value("B"))
                 .andExpect(jsonPath("$.items[0].status").value("Active"));
+        // Managers work for every Block (ADR-19).
+        mvc.perform(get("/admin/users").header(HttpHeaders.AUTHORIZATION, admin).param("role", "Manager"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].scope", everyItem(oneOf("All Blocks"))));
     }
 
     /**
@@ -135,7 +139,7 @@ class AdminUsersIT {
                 .andExpect(jsonPath("$.details.fields.email").value("An account with this email already exists."))
                 .andExpect(jsonPath("$.details.fields.role").exists());
         mvc.perform(post("/admin/users").header(HttpHeaders.AUTHORIZATION, admin).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"No Block\",\"email\":\"no.block@fpt.edu.vn\",\"role\":\"Manager\",\"scope\":\"Z\"}"))
+                .content("{\"name\":\"No Block\",\"email\":\"no.block@fpt.edu.vn\",\"role\":\"Staff\",\"scope\":\"Z\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.scope").value("Block Z does not exist."));
     }

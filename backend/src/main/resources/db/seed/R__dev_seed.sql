@@ -79,14 +79,14 @@ INSERT INTO auth_user (email, display_name, password_hash, role, title)
 SELECT v.account || '@fpt.edu.vn', v.name, '$2a$10$aTv5QYm9jSPCEi8eeISY8eyqjt0mFPE6LYW2EyMl6nT0zCFJNAjiu', v.role, v.title
 FROM (VALUES
   ('admin',     'Tran Minh Quan',      'ADMIN',   'Housing Administrator'),
-  ('manager.a', 'Le Hoang Nam',        'MANAGER', 'Block A Manager'),
-  ('manager.b', 'Pham Thanh Tung',     'MANAGER', 'Block B Manager'),
-  ('manager.c', 'Vo Minh Triet',       'MANAGER', 'Block C Manager'),
-  ('manager.d', 'Dang Quoc Viet',      'MANAGER', 'Block D Manager'),
-  ('manager.e', 'Pham Thu Ha',         'MANAGER', 'Block E Manager'),
-  ('manager.f', 'Nguyen Ngoc Diem',    'MANAGER', 'Block F Manager'),
-  ('manager.g', 'Tran Bao Chau',       'MANAGER', 'Block G Manager'),
-  ('manager.h', 'Huynh Thanh Thao',    'MANAGER', 'Block H Manager'),
+  ('manager.a', 'Le Hoang Nam',        'MANAGER', 'Dormitory Manager'),
+  ('manager.b', 'Pham Thanh Tung',     'MANAGER', 'Dormitory Manager'),
+  ('manager.c', 'Vo Minh Triet',       'MANAGER', 'Dormitory Manager'),
+  ('manager.d', 'Dang Quoc Viet',      'MANAGER', 'Dormitory Manager'),
+  ('manager.e', 'Pham Thu Ha',         'MANAGER', 'Dormitory Manager'),
+  ('manager.f', 'Nguyen Ngoc Diem',    'MANAGER', 'Dormitory Manager'),
+  ('manager.g', 'Tran Bao Chau',       'MANAGER', 'Dormitory Manager'),
+  ('manager.h', 'Huynh Thanh Thao',    'MANAGER', 'Dormitory Manager'),
   ('staff.a1',  'Nguyen Van Binh',     'STAFF',   'Residence Life Officer'),
   ('staff.a2',  'Vo Thanh Tung',       'STAFF',   'Maintenance Technician'),
   ('staff.b1',  'Tran Quoc Huy',       'STAFF',   'Residence Life Officer'),
@@ -105,15 +105,14 @@ FROM (VALUES
   ('staff.h2',  'Mai Xuan Truong',     'STAFF',   'Maintenance Technician')) AS v (account, name, role, title)
 ON CONFLICT DO NOTHING;
 
--- manager.a and staff.a1, staff.a2 work in Block A, and so on.
+-- staff.a1 and staff.a2 work in Block A, and so on. Managers work for every Block (ADR-19).
 INSERT INTO auth_user_block (user_id, building_id)
 SELECT u.id, b.id
 FROM auth_user u JOIN inv_building b
-  ON u.email IN ('manager.' || lower(b.code) || '@fpt.edu.vn', 'staff.' || lower(b.code) || '1@fpt.edu.vn',
-                 'staff.' || lower(b.code) || '2@fpt.edu.vn')
+  ON u.email IN ('staff.' || lower(b.code) || '1@fpt.edu.vn', 'staff.' || lower(b.code) || '2@fpt.edu.vn')
 ON CONFLICT DO NOTHING;
 
--- What each person handles is set by the Block Manager (Block staff).
+-- What each person handles is set by a Manager (Staff).
 INSERT INTO auth_staff_profile (user_id)
 SELECT u.id FROM auth_user u WHERE u.role = 'STAFF' AND u.email LIKE 'staff.__@fpt.edu.vn'
 ON CONFLICT (user_id) DO NOTHING;

@@ -126,13 +126,13 @@ class LateCheckInIT {
                 .andExpect(jsonPath("$.items[0].title").value("Late check-in decision"));
     }
 
-    /** TC-ASG-031: a rejection needs a reason; another Block's Manager does not see the request. */
+    /** TC-ASG-031: a rejection needs a reason; every Manager sees the request (ADR-19). */
     @Test
     void rejectedLateCheckIn() throws Exception {
         stay.livesIn(19, "A-304", "B", false);
         String id = JsonPath.read(record(bearer(mvc, STAFF_A), "SE190019", day(1), false).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(), "$.id");
-        list(bearer(mvc, MANAGER_B)).andExpect(jsonPath("$.items").isEmpty());
+        list(bearer(mvc, MANAGER_B)).andExpect(jsonPath("$.items[*].id", hasItem(id)));
         String manager = bearer(mvc, MANAGER_A);
         stay.postJson("/late-check-ins/" + id + "/decision", manager, "{\"decision\":\"Rejected\"}")
                 .andExpect(status().isBadRequest())
