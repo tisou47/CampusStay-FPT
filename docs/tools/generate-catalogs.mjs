@@ -149,7 +149,7 @@ ${dup.length ? `\n> **Duplicate ids to fix:** ${dup.join(', ')}\n` : ''}`
 
 | What | Why | How it is checked |
 |---|---|---|
-| \`POST /auth/google\` success path | Needs a real \`@fpt.edu.vn\` Google account and the OAuth client of the deployment | By hand on the deployed web app; validation, the disabled state, the code exchange and the sign-up that follows a verified token are automated (TC-AUTH-009, 010, 029…033, 038, 040, 041) |
+| \`POST /auth/google\` success path | Needs a real \`@fpt.edu.vn\` Google account and the OAuth client of the deployment | By hand on the deployed web app (passed 25/10/2026 with a real account, pop-up and redirect flows); validation, the disabled state, the code exchange, the redirect flow and the sign-up that follows a verified token are automated (TC-AUTH-009, 010, 029…033, 038, 040, 041, 051, 052) |
 | Two requests racing for the same Bed or Invoice | No multi-thread integration test yet (architecture R-18) | Partial unique indexes and \`SELECT … FOR UPDATE\` (architecture §9); SePay deliveries are deduplicated by transaction id |
 | The web app | No automated front-end tests; \`npm run build\` must pass before every push | End-to-end flows per role by hand against the dev stack or the demo server (Test Report workbook) |
 | The Android app | Not started | — |

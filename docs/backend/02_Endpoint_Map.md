@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded, 180 of them verified (`POST /auth/google` needs a real Google account). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026).
+Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -20,7 +20,7 @@ Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 cod
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | POST | `/auth/google` | Must | Coded | A-01 (`code` or `credential`), A-17 (sign-up), A-22 (redirect flow). Validation and "disabled": TC-AUTH-009, 010, 052; code exchange: TC-AUTH-029…033, 051 (`GoogleCodeExchangerTest`); sign-up, linking by the code in the address and rejection with the token check stubbed: TC-AUTH-038, 040, 041; the real Google token check needs a real account (manual test) |
+| AUTH | POST | `/auth/google` | Must | Verified | A-01 (`code` or `credential`), A-17 (sign-up), A-22 (redirect flow). Validation and "disabled": TC-AUTH-009, 010, 052; code exchange: TC-AUTH-029…033, 051 (`GoogleCodeExchangerTest`); sign-up, linking by the code in the address and rejection with the token check stubbed: TC-AUTH-038, 040, 041; the real Google token check: signed in by hand on production with a real `@fpt.edu.vn` account on 25/10/2026 (pop-up and redirect flows) |
 | AUTH | GET | `/auth/me` | Must | Verified | TC-AUTH-003, 004 |
 | AUTH | PUT | `/auth/me/locale` | Must | Verified | A-15 (v2 phase 1, ADR-25); TC-AUTH-036. Every endpoint: `Accept-Language` A-16, TC-AUTH-037 |
 | AUTH | POST | `/auth/password/change` | Must | Verified | A-04; TC-AUTH-012, 025, 026, 027 |
