@@ -5,7 +5,7 @@
 | Version | 1.0 |
 | Date | 24/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Team Leader) |
-| Status | **Approved by Tisou on 24/10/2026** (open items O-1…O-3 as recommended). Built phase by phase (§16); its decisions are in the Brief's Decision Log as ADR-19…ADR-27 (§17). Progress: phase 1 built 24/10/2026 on `feat/v2-phase1` (roles, VI/EN in web and API, bilingual notifications, grouped menus; migrations V32–V35) |
+| Status | **Approved by Tisou on 24/10/2026** (open items O-1…O-3 as recommended). Built phase by phase (§16); its decisions are in the Brief's Decision Log as ADR-19…ADR-27 (§17). Progress: phase 1 merged into `main` and deployed 24/10/2026 (built on `feat/v2-phase1`): roles, VI/EN in web and API, bilingual notifications, grouped menus; migrations V32–V35 |
 | Source | Discussion of 24/10/2026 between Tisou and Claude Code: questions Q0–Q28 and R1–R9, all answered "as recommended" unless noted in §2 |
 | Changes once approved | Brief §3 (actors), §4, §6; ADR-07, ADR-08, ADR-12, ADR-18; OI-04; `docs/api-contract.md` via `docs/backend/03_API_Contract_Changes.md`; backend `CLAUDE.md` (seed rule) |
 
