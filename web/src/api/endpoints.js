@@ -144,6 +144,8 @@ export const api = {
     /** Find a student by code, name or QR pass payload. */
     checkInLookup: g('/check-in/lookup'),
     checkIn: (body) => http.post('/check-in', body),
+    /** Multipart studentCode, reason, requestedFor (YYYY-MM-DD), termId?, evidence? → { id }; the Block Manager decides it. */
+    recordLateCheckIn: (formData) => http.post('/late-check-ins', formData),
     checkOutList: g('/check-out'),
     /** By Allocation id: the student code is personal data and never goes into a URL. */
     checkOutDetail: (allocationId, opts) => http.get(`/check-out/${allocationId}`, undefined, opts),

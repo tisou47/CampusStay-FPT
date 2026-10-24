@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Check, CircleCheck, CircleX, Clock, LogIn, ScanLine, UserX } from 'lucide-react'
+import { CalendarClock, Check, CircleCheck, CircleX, Clock, LogIn, ScanLine, Upload, UserX } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useScopeQuery } from '@/app/session'
+import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Card, ProgressBar } from '@/components/ui/Display'
-import { Field, SearchInput, Textarea } from '@/components/ui/Field'
+import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatNumber, formatTime, formatVnd } from '@/lib/format'
+import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 
 // SCR-REQ-11 Check-in Desk (Figma 60:3026)
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
@@ -21,6 +22,8 @@ import { formatDate, formatNumber, formatTime, formatVnd } from '@/lib/format'
 //   status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null,
 //   checkedInAt, handOverItems: [string] } | null }
 // POST /check-in { studentCode, items, note } → { checkedInAt }
+// POST /late-check-ins (multipart) studentCode, reason, requestedFor (YYYY-MM-DD), termId?, evidence? → { id }
+//   — for a student whose check-in window closed; the Block Manager decides it in Approvals › Late check-in
 
 const statusTag = {
   ready: <Tag tone="success">Ready to check in</Tag>,
@@ -39,13 +42,79 @@ function CheckItem({ ok, children }) {
   )
 }
 
+function LateCheckInModal({ person, termId, onClose }) {
+  const { notify } = useToast()
+  const fileInput = useRef(null)
+  const today = toDateInput(new Date())
+  const [requestedFor, setRequestedFor] = useState(today)
+  const [reason, setReason] = useState('')
+  const [file, setFile] = useState(null)
+  const record = useMutation(
+    () => {
+      const data = new FormData()
+      data.set('studentCode', person.studentCode)
+      data.set('reason', reason.trim())
+      data.set('requestedFor', requestedFor)
+      if (termId) data.set('termId', termId)
+      if (file) data.set('evidence', file)
+      return api.desk.recordLateCheckIn(data)
+    },
+    {
+      invalidates: ['approvals', 'dashboard'],
+      onSuccess: () => {
+        notify({ title: 'Late check-in recorded', message: `${person.name} arrives on ${formatDate(requestedFor)}. The Block Manager decides it in Approvals › Late check-in.` })
+        onClose()
+      },
+      onError: () => {},
+    },
+  )
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Record late check-in"
+      description={`${person.name} · ${person.studentCode} · ${person.room} · Bed ${person.bed}`}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={Check} disabled={!reason.trim() || !requestedFor || record.pending} onClick={() => record.run()}>
+            {record.pending ? 'Recording…' : 'Record late check-in'}
+          </Button>
+        </>
+      }
+    >
+      {record.error && <p className="rounded-md bg-error-bg px-3 py-2 text-base text-error-fg">{record.error.message}</p>}
+      <Field label="Arrives on" required>
+        {(id) => <Input id={id} type="date" min={today} value={requestedFor} onChange={(e) => setRequestedFor(e.target.value)} />}
+      </Field>
+      <Field label="Reason" required hint={`${reason.length}/500`}>
+        {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why the student arrives after the check-in window" />}
+      </Field>
+      <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
+        <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
+        <span className="text-base text-fg">{file ? file.name : 'Attach evidence (JPEG, PNG or PDF, optional)'}</span>
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </button>
+    </Modal>
+  )
+}
+
 function StudentPanel({ person, onDone }) {
   const { notify, notifyError } = useToast()
+  const { term } = useSession()
   const items = person.handOverItems ?? []
   const [checked, setChecked] = useState(() => new Set(items))
   const [note, setNote] = useState('')
+  const [late, setLate] = useState(false)
   const ready = person.status === 'ready'
   const all = checked.size === items.length
+  const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
+  // C-23: the checks are Bed allocated, Balance paid, Utility Deposit paid and the check-in window (passed while
+  // a late check-in is approved). A failed check the unpaid amounts do not explain is the window; after the
+  // Term's checkInEnd it has closed (before checkInStart it has not opened yet).
+  const windowClosed =
+    person.status === 'blocked' && (person.checks ?? []).filter((c) => !c.passed).length > owing && Boolean(term?.checkInEnd) && toDateInput(new Date()) > term.checkInEnd
   const confirm = useMutation(() => api.desk.checkIn({ studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
     onSuccess: () => notify({ title: `${person.name} checked in`, message: `${person.room} · Bed ${person.bed}. The QR pass is active.` }),
@@ -83,7 +152,22 @@ function StudentPanel({ person, onDone }) {
         </div>
       )}
 
-      {person.status === 'blocked' && (
+      {windowClosed && (
+        <Alert
+          type="warning"
+          title={`Check-in window closed on ${formatDate(term.checkInEnd)}`}
+          action={
+            <Button icon={CalendarClock} onClick={() => setLate(true)}>
+              Record late check-in
+            </Button>
+          }
+        >
+          Record when {person.name} will arrive. Once the Block Manager approves it, check-in opens here until the approved day.
+        </Alert>
+      )}
+      {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
+
+      {person.status === 'blocked' && owing > 0 && (
         <Alert type="error" title="Check-in blocked">
           {person.name} ({person.studentCode}) still owes
           {person.owes?.balance ? ` the balance of ${formatVnd(person.owes.balance)}` : ''}

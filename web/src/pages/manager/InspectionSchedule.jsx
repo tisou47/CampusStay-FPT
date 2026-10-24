@@ -71,7 +71,7 @@ function Editor({ item, options, block, onCreated }) {
       <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees)} />}</Field>
       <Field label="Due within (days)">{(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}</Field>
       <Checkbox label="Create Maintenance Requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
-      <Checkbox label="Notify residents 24 hours before" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
+      <Checkbox label="Notify residents when the inspection starts" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
       <div className="flex justify-end gap-2">
         {!isNew && (
           <Button onClick={() => pause.run()} disabled={pause.pending}>

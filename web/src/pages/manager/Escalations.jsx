@@ -33,7 +33,7 @@ function Detail({ item, assignees }) {
       notify(
         body.action === 'reassign'
           ? { title: `${item.id} reassigned`, message: `${assignees.find((a) => a.id === body.assigneeId)?.name ?? 'The new owner'} was notified. The escalation is closed.` }
-          : { type: 'info', title: 'Temporary Bed offered', message: `Residents of ${item.room} confirm the move in the app.` },
+          : { type: 'info', title: 'Temporary Bed offer recorded', message: `The escalation for ${item.id} is closed and nobody is notified. Tell the student; the move happens when Staff decide the request in the Room-Change Queue.` },
       ),
     onError: (e) => notifyError(e, 'Could not save the action'),
   })

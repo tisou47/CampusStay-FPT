@@ -61,7 +61,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-MNT-12 | Inspection Checklist | `/staff/inspections` | 98:4293 | `GET /inspection-runs/current`<br>`GET /inspection-runs/:id/rooms`<br>`PUT /inspection-runs/:id/rooms/:room`<br>`POST /inspection-runs/:id/submit`<br>`GET /inspection-runs/upcoming` | [staff/InspectionChecklist.jsx](../../web/src/pages/staff/InspectionChecklist.jsx) |
 | SCR-REQ-10 | Room-Change Queue | `/staff/room-changes` | 60:2696 | `GET /room-changes`<br>`GET /room-changes/:id/matching-beds`<br>`POST /room-changes/:id/decision` | [staff/RoomChangeQueue.jsx](../../web/src/pages/staff/RoomChangeQueue.jsx) |
 | SCR-REQ-13 | Room Swap Requests | `/staff/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
-| SCR-REQ-11 | Check-in Desk | `/staff/check-in` | 60:3026 | `GET /check-in/today`<br>`GET /check-in/lookup`<br>`POST /check-in` | [staff/CheckInDesk.jsx](../../web/src/pages/staff/CheckInDesk.jsx) |
+| SCR-REQ-11 | Check-in Desk | `/staff/check-in` | 60:3026 | `GET /check-in/today`<br>`GET /check-in/lookup`<br>`POST /check-in`<br>`POST /late-check-ins` | [staff/CheckInDesk.jsx](../../web/src/pages/staff/CheckInDesk.jsx) |
 | SCR-REQ-12 | Check-out Desk | `/staff/check-out` | 95:3876 | `GET /check-out`<br>`GET /check-out/:allocationId`<br>`POST /check-out/:allocationId` | [staff/CheckOutDesk.jsx](../../web/src/pages/staff/CheckOutDesk.jsx) |
 
 ## Block Manager — Figma page 07 Web – Manager
