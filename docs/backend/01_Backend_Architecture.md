@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.5 (Change Specification v2 phase 3 "Inventory" on `feat/v2-phase3`: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
+| Version | 1.5 (Change Specification v2 phase 3 "Inventory", in `main` since 25/10/2026: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
 | Date | 25/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
@@ -421,6 +421,7 @@ flowchart LR
 | Settings | `/opt/campusstay/.env` on the VM (`infra/prod/.env.example` lists every variable); Vercel holds `VITE_API_BASE_URL`, `VITE_PAYMENT_SIMULATOR` and `VITE_GOOGLE_CLIENT_ID`; secrets never in Git |
 | Demo switches (ADR-18), checked 24/10/2026 | On: `PAYMENT_SIMULATOR=true` and Vercel `VITE_PAYMENT_SIMULATOR=true`; base data with 6,200 fictional students (`SPRING_FLYWAY_LOCATIONS` keeps `db/seed`). Not set yet: `MAIL_REDIRECT_TO` |
 | Google sign-in, since 25/10/2026 | `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the VM's `.env`, `VITE_GOOGLE_CLIENT_ID` in Vercel (production and previews); the OAuth client's JavaScript origins are the production web URL and `http://localhost:5173`, so previews sign in with email and password only (spec P-1) |
+| Door codes, since 25/10/2026 | `DOOR_CODE_KEY` in the VM's `.env`, generated on the VM with `openssl rand -base64 32` and never printed (spec P-3); keep it for the life of the database (runbook §1.7) |
 | Not configured yet, checked 25/10/2026 | **SMTP** (`SPRING_MAIL_*`, `MAIL_FROM`, then `MAIL_REDIRECT_TO`): emails are only logged, so password-reset links, invitations and email notifications do not arrive. **SePay** (`SEPAY_WEBHOOK_API_KEY` and the receiving account): webhook off, payments by simulator or Staff confirmation. **Firebase** (`FIREBASE_CREDENTIALS_FILE`): no push until the Android app exists. Steps: runbook §3 |
 | Delivery | Every push to `main` deploys itself: Vercel builds the web; `backend.yml` runs `mvn verify`, pushes the image to GHCR, copies `infra/prod/` and restarts with the new tag, then waits for `/api/actuator/health/readiness`. A failing check stops before the image; roll back with `API_TAG=<older sha>` or Vercel → Promote (runbook §6.1) |
 | Backups | Database: Azure, 7 days point-in-time restore; uploaded files: `backup.sh` by cron on the VM (runbook §1.11, A.4) |
@@ -436,7 +437,7 @@ flowchart LR
 | Concurrency | — (not automated yet, R-18) | Same Bed or Invoice changed by two requests at once: covered by the constraints and locks of §9; a repeated SePay delivery is tested in sequence (TC-BIL-003) | — |
 | System / UAT | Web app against the dev stack or the demo server | End-to-end flows per role, by hand | Test Report workbook |
 
-On 25/10/2026 (v2 phase 3 on `feat/v2-phase3`): 45 test classes, 189 tests, 188 test case ids (27 unit, 160 integration, 2 architecture; `main` with phase 2: 41 classes, 173 tests), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
+On 25/10/2026 (v2 phase 3 in `main`): 45 test classes, 189 tests, 188 test case ids (27 unit, 160 integration, 2 architecture; `main` with phase 2: 41 classes, 173 tests), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
 
 ## 16. Risks and technical debt
 

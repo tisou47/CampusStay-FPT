@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (on `feat/v2-phase3`, not in `main` yet; until then `main` has 181).
+Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -251,7 +251,7 @@ Email redirect for fictional accounts only (spec O-3): `ntf_email_outbox.demo_re
 
 ## V2-3 — Change Specification v2 phase 3 "Inventory"
 
-Built on `feat/v2-phase3` (25/10/2026), not merged into `main` yet (ADR-27). Migrations V38–V40 (INV: Room Class per Room per Term, furniture, door codes) and V41 (NTF: door-code notifications). Room Class per Room per Term also changes `GET /inventory/rooms`, `/admin/buildings` and `/admin/room-classes` (C-40, B-04).
+Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27; `DOOR_CODE_KEY` set on the VM). Migrations V38–V40 (INV: Room Class per Room per Term, furniture, door codes) and V41 (NTF: door-code notifications). Room Class per Room per Term also changes `GET /inventory/rooms`, `/admin/buildings` and `/admin/room-classes` (C-40, B-04).
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|

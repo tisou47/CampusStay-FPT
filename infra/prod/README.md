@@ -161,6 +161,7 @@ Each service is optional: without it the API starts and the feature falls back a
 | SePay + VietQR | QR still shown; Staff confirm payments by hand | `PAYMENT_*`, `SEPAY_WEBHOOK_API_KEY` |
 | Firebase (FCM) | In-app notifications only, no Android push | `FIREBASE_CREDENTIALS_FILE` |
 | Google sign-in | Email and password only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, Vercel `VITE_GOOGLE_CLIENT_ID` |
+| Door codes (v2 phase 3) | The door-code screens answer `503`; everything else works | `DOOR_CODE_KEY` (§1.7); on the demo server since 25/10/2026 |
 
 ### 3.1 Gmail (ADR-09)
 1. Use a Gmail account made for the project, not a personal one. Turn on 2-Step Verification, then Google Account → Security → **App passwords** → create one named CampusStay.
