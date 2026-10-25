@@ -39,6 +39,8 @@ export const screens = [
   // 06 Web – Staff
   { code: 'SCR-HOME-02', title: 'Staff Dashboard', role: 'staff', path: '/staff' },
   { code: 'SCR-INV-10', title: 'Room and Bed Inventory', role: 'staff', path: '/staff/inventory' },
+  { code: 'SCR-INV-12', title: 'Door codes', role: 'staff', path: '/staff/door-codes' },
+  { code: 'SCR-INV-13', title: 'Furniture', role: 'staff', path: '/staff/furniture' },
   { code: 'SCR-MNT-10', title: 'Maintenance Queue', role: 'staff', path: '/staff/maintenance' },
   { code: 'SCR-REQ-10', title: 'Room-Change Queue', role: 'staff', path: '/staff/room-changes' },
   { code: 'SCR-REQ-13', title: 'Room Swap Requests', role: 'staff', path: '/staff/room-changes/swaps' },
@@ -64,6 +66,7 @@ export const screens = [
   { code: 'SCR-AUTH-13', title: 'Students', role: 'manager', path: '/manager/students' },
   { code: 'SCR-AUTH-15', title: 'Import student list', role: 'manager', path: '/manager/student-import' },
   { code: 'SCR-AUTH-16', title: 'Staff accounts', role: 'manager', path: '/manager/staff-accounts' },
+  { code: 'SCR-INV-11', title: 'Room Classes by Term', role: 'manager', path: '/manager/room-classes' },
 
   // 08 Web – Admin
   { code: 'SCR-HOME-04', title: 'Admin Dashboard', role: 'admin', path: '/admin' },
@@ -79,6 +82,7 @@ export const screens = [
   { code: 'SCR-NTF-21', title: 'Send Email', role: 'admin', path: '/admin/notifications/send' },
   { code: 'SCR-CFG-08', title: 'System Parameters', role: 'admin', path: '/admin/system-parameters' },
   { code: 'SCR-INV-01', title: 'Buildings and Structure', role: 'admin', path: '/admin/buildings' },
+  { code: 'SCR-INV-14', title: 'Furniture types', role: 'admin', path: '/admin/furniture-types' },
   { code: 'SCR-AUTH-11', title: 'Users and Roles', role: 'admin', path: '/admin/users' },
   { code: 'SCR-RPT-01', title: 'Occupancy Report', role: 'admin', path: '/admin/reports/occupancy' },
   { code: 'SCR-RPT-02', title: 'Financial Report', role: 'admin', path: '/admin/reports/financial' },

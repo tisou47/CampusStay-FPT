@@ -43,6 +43,9 @@ import Payments from '@/pages/staff/Payments'
 import AssignmentRuns from '@/pages/staff/AssignmentRuns'
 import ProposalReview from '@/pages/staff/ProposalReview'
 import Inventory from '@/pages/staff/Inventory'
+import DoorCodes from '@/pages/staff/DoorCodes'
+import Furniture from '@/pages/staff/Furniture'
+import RoomClassesByTerm from '@/pages/manager/RoomClassesByTerm'
 import MaintenanceQueue from '@/pages/staff/MaintenanceQueue'
 import MaintenanceDetail from '@/pages/staff/MaintenanceDetail'
 import RoomChangeQueue from '@/pages/staff/RoomChangeQueue'
@@ -72,6 +75,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard'
 import TermsWindows from '@/pages/admin/TermsWindows'
 import RoomTypes from '@/pages/admin/RoomTypes'
 import RoomClasses from '@/pages/admin/RoomClasses'
+import FurnitureTypes from '@/pages/admin/FurnitureTypes'
 import FeesRules from '@/pages/admin/FeesRules'
 import UtilitySettings from '@/pages/admin/UtilitySettings'
 import EligibilityRules from '@/pages/admin/EligibilityRules'
@@ -144,6 +148,8 @@ export const router = createBrowserRouter([
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, element: <StaffDashboard /> },
         { path: 'inventory', element: <Inventory /> },
+        { path: 'door-codes', element: <DoorCodes /> },
+        { path: 'furniture', element: <Furniture /> },
         { path: 'meter-readings', element: <MeterReadings /> },
         { path: 'maintenance', element: <MaintenanceQueue /> },
         { path: 'maintenance/:id', element: <MaintenanceDetail /> },
@@ -170,6 +176,9 @@ export const router = createBrowserRouter([
         { path: 'room-changes', element: <RoomChangeQueue /> },
         { path: 'room-changes/swaps', element: <SwapRequests /> },
         { path: 'inventory', element: <Inventory /> },
+        { path: 'room-classes', element: <RoomClassesByTerm /> },
+        { path: 'door-codes', element: <DoorCodes /> },
+        { path: 'furniture', element: <Furniture /> },
         { path: 'maintenance', element: <MaintenanceQueue /> },
         { path: 'maintenance/:id', element: <MaintenanceDetail /> },
         { path: 'inspections', element: <InspectionSchedule /> },
@@ -199,6 +208,7 @@ export const router = createBrowserRouter([
         { path: 'notifications/send', element: <SendEmail /> },
         { path: 'system-parameters', element: <SystemParameters /> },
         { path: 'buildings', element: <Buildings /> },
+        { path: 'furniture-types', element: <FurnitureTypes /> },
         { path: 'users', element: <UsersRoles /> },
         { path: 'reports/occupancy', element: <OccupancyReport /> },
         { path: 'reports/financial', element: <FinancialReport /> },

@@ -104,6 +104,20 @@ const statusTone = {
   Error: 'error',
   Preview: 'warning',
   Applied: 'success',
+  // Inventory: furniture, conformance, door codes (Change Spec v2 phase 3)
+  'In use': 'success',
+  Broken: 'error',
+  'In repair': 'warning',
+  'In store': 'info',
+  Disposed: 'neutral',
+  Done: 'success',
+  Matches: 'success',
+  'Does not match': 'warning',
+  'Change needed': 'warning',
+  'Not set': 'neutral',
+  'Waiting for confirmation': 'info',
+  Ready: 'success',
+  'Not ready': 'neutral',
 }
 
 export function toneForStatus(status) {

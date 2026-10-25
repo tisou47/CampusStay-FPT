@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Ban, Building, Check, Download, Wrench } from 'lucide-react'
+import { Ban, Building, Check, Download, KeyRound, Package, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -11,8 +11,9 @@ import { Alert, Card, Note } from '@/components/ui/Display'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
-import { Tag } from '@/components/ui/Tag'
+import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
+import { countLines, typeName } from '@/lib/furniture'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
@@ -88,7 +89,7 @@ function Row({ label, children }) {
   )
 }
 
-function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
+function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
   const { notify, notifyError } = useToast()
   const back = useMutation(() => api.inventory.backInService(room.code), {
     invalidates: ['inventory', 'dashboard'],
@@ -158,7 +159,62 @@ function RoomDetail({ room, onSetOutOfService, onMaintenance }) {
           {t('Move the {n} residents before you set this Room out of service.', { n: allocated })}
         </Note>
       )}
+      <RoomExtras room={room} termId={termId} />
     </Card>
+  )
+}
+
+/** Room Class of the next Term, furniture and its conformance, door code state (spec §11.3 "Room"). */
+function RoomExtras({ room, termId }) {
+  const base = useRoleBase()
+  const navigate = useNavigate()
+  const query = useQuery(['inventory', 'details', room.code, termId], ({ signal }) => api.inventory.details(room.code, { termId }, { signal }))
+  const d = query.data
+  if (!d) return null
+  const c = d.conformance
+  return (
+    <>
+      <dl className="flex flex-col gap-3.5 border-t border-line pt-3.5">
+        {d.next && (
+          <Row label="Next Term">
+            {t('{term}: {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}
+          </Row>
+        )}
+        {d.doorCode && (
+          <Row label="Door code">
+            <span className="inline-flex items-center gap-1.5">
+              <StatusTag status={d.doorCode.status} />
+              {d.doorCode.proposed && <Tag tone="info" dot={false}>New code waiting</Tag>}
+            </span>
+          </Row>
+        )}
+        <Row label="Furniture">
+          <StatusTag status={c.status} />
+        </Row>
+      </dl>
+      {c.missing.length > 0 && <p className="text-sm text-fg-secondary">{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
+      {c.extra.length > 0 && <p className="text-sm text-fg-secondary">{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
+      <ul className="flex flex-col gap-2" aria-label={t('Furniture')}>
+        {d.furniture.map((f) => (
+          <li key={f.id} className="flex items-center gap-2 text-sm">
+            <span className="font-medium text-fg">{f.assetCode}</span>
+            <span className="min-w-0 truncate text-fg-secondary">{typeName(f)}</span>
+            <StatusTag status={f.status} className="ml-auto" />
+          </li>
+        ))}
+        {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this Room.')}</li>}
+      </ul>
+      <div className="flex flex-wrap gap-2">
+        <Button icon={Package} onClick={() => navigate(`${base}/furniture?room=${room.code}`)}>
+          Furniture
+        </Button>
+        {d.doorCode && (
+          <Button icon={KeyRound} onClick={() => navigate(`${base}/door-codes?room=${room.code}`)}>
+            Door code
+          </Button>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -312,7 +368,7 @@ export default function Inventory() {
           </div>
         </Card>
 
-        {room && <RoomDetail room={room} onSetOutOfService={() => setSettingOos(true)} onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}`)} />}
+        {room && <RoomDetail room={room} termId={term?.id} onSetOutOfService={() => setSettingOos(true)} onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}`)} />}
       </div>
 
       {settingOos && room && <OutOfServiceModal room={room} reasons={structure.data?.outOfServiceReasons ?? []} onClose={() => setSettingOos(false)} />}

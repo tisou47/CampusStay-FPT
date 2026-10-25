@@ -16,10 +16,11 @@ import { formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-INV-01 Buildings and Structure (Figma 25:1593)
-// GET /admin/buildings → { items: [{ id, name, gender, status, floors: [{ floor, roomClassName, twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }],
-//   genders: [string], floorOptions: [number], layoutNote }
+// GET /admin/buildings → { items: [{ id, name, gender, status, floors: [{ floor, roomClassName, roomClasses: [{ name, rooms }], twoBed, fourBed,
+//   sixBed, rooms, beds, closedRooms }] }], genders: [string], floorOptions: [number], roomClasses: [{ id, name }], layoutNote }
+//   (roomClassName: the class of new Rooms of the Floor; roomClasses: what its Rooms have this Term, ADR-24)
 // POST /admin/buildings { name, gender, status } · PUT /admin/buildings/:id
-// POST /admin/buildings/:id/rooms/bulk { fromFloor, toFloor } → { created, skipped }
+// POST /admin/buildings/:id/rooms/bulk { fromFloor, toFloor, roomClassId? } → { created, skipped }
 // GET /admin/buildings/:id/floors/:floor/rooms → { items: [{ code, roomTypeName, roomClassName, outOfService }] }
 
 function BlockModal({ block, genders, onClose, onSaved }) {
@@ -63,11 +64,12 @@ function BlockModal({ block, genders, onClose, onSaved }) {
   )
 }
 
-function BulkModal({ block, floors, note, onClose }) {
+function BulkModal({ block, floors, roomClasses, note, onClose }) {
   const { notify } = useToast()
   const [from, setFrom] = useState(String(floors[0] ?? ''))
   const [to, setTo] = useState(String(floors.at(-1) ?? ''))
-  const run = useMutation(() => api.admin.buildings.bulkRooms(block.id, { fromFloor: Number(from), toFloor: Number(to) }), {
+  const [roomClassId, setRoomClassId] = useState('')
+  const run = useMutation(() => api.admin.buildings.bulkRooms(block.id, { fromFloor: Number(from), toFloor: Number(to), roomClassId: roomClassId || undefined }), {
     invalidates: ['admin-buildings', 'inventory'],
     onSuccess: (res) => {
       notify({ title: 'Rooms generated', message: `${t('{n} Rooms created in Block {code}.', { n: formatNumber(res?.created), code: block.name })}${res?.skipped ? ` ${t('{n} Floors with Allocations were skipped.', { n: res.skipped })}` : ''}` })
@@ -99,6 +101,16 @@ function BulkModal({ block, floors, note, onClose }) {
           {(id) => <Select id={id} value={to} onChange={(e) => setTo(e.target.value)} options={floors.map(String)} />}
         </Field>
       </div>
+      <Field label="Room Class of the new Rooms" helper="Each Room keeps its own class per Term afterwards (Manager › Room Classes).">
+        {(id) => (
+          <Select
+            id={id}
+            value={roomClassId}
+            onChange={(e) => setRoomClassId(e.target.value)}
+            options={[{ value: '', label: t("Keep each Floor's class") }, ...roomClasses.map((c) => ({ value: c.id, label: tr(c.name) }))]}
+          />
+        )}
+      </Field>
       {note && <div className="rounded-lg border border-line bg-subtle p-4 text-base text-fg-secondary">{tr(note)}</div>}
     </Modal>
   )
@@ -115,7 +127,7 @@ function FloorDrawer({ block, floor, onClose }) {
               <tr>
                 <Th>Room</Th>
                 <Th>Room Type</Th>
-                <Th>Room Class</Th>
+                <Th>Room Class (this Term)</Th>
                 <Th>Status</Th>
               </tr>
             </THead>
@@ -124,7 +136,7 @@ function FloorDrawer({ block, floor, onClose }) {
                 <Tr key={r.code} className="[&>td]:h-10">
                   <Td className="font-medium">{r.code}</Td>
                   <Td>{r.roomTypeName}</Td>
-                  <Td>{r.roomClassName}</Td>
+                  <Td>{tr(r.roomClassName)}</Td>
                   <Td>{r.outOfService ? <Tag tone="error">Out of service</Tag> : <Tag tone="success">In service</Tag>}</Td>
                 </Tr>
               ))}
@@ -149,7 +161,7 @@ export default function Buildings() {
     <>
       <PageHeader
         title="Buildings"
-        description="Blocks, Floors, Rooms and Beds. Room Type and Room Class are set per Room; bulk-generate a Floor layout to save time."
+        description="Blocks, Floors, Rooms and Beds. Each Room has its Room Type, and its Room Class per Term (Manager › Room Classes); bulk-generate a Floor layout to save time."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setModal({ type: 'block', block: {} })} disabled={!query.data}>
             New Block
@@ -213,7 +225,7 @@ export default function Buildings() {
                 <THead>
                   <tr>
                     <Th className="w-24">Floor</Th>
-                    <Th className="w-28">Room Class</Th>
+                    <Th className="w-56">Room Classes (this Term)</Th>
                     <Th className="w-18" align="right">
                       2-bed
                     </Th>
@@ -237,7 +249,7 @@ export default function Buildings() {
                   {floors.map((f) => (
                     <Tr key={f.floor} className="[&>td]:h-10">
                       <Td className="font-medium">{t('Floor {n}', { n: f.floor })}</Td>
-                      <Td>{f.roomClassName ?? '—'}</Td>
+                      <Td title={f.roomClassName ? t('New Rooms: {name}', { name: tr(f.roomClassName) }) : undefined}>{f.roomClasses?.length ? f.roomClasses.map((c) => `${tr(c.name)} ${c.rooms}`).join(' · ') : '—'}</Td>
                       <Td align="right">{f.twoBed}</Td>
                       <Td align="right">{f.fourBed}</Td>
                       <Td align="right">{f.sixBed}</Td>
@@ -270,7 +282,7 @@ export default function Buildings() {
           }}
         />
       )}
-      {modal?.type === 'bulk' && <BulkModal block={modal.block} floors={query.data?.floorOptions ?? []} note={query.data?.layoutNote} onClose={() => setModal(null)} />}
+      {modal?.type === 'bulk' && <BulkModal block={modal.block} floors={query.data?.floorOptions ?? []} roomClasses={query.data?.roomClasses ?? []} note={query.data?.layoutNote} onClose={() => setModal(null)} />}
       {floorOpen && block && <FloorDrawer block={block} floor={floorOpen} onClose={() => setFloorOpen(null)} />}
     </>
   )

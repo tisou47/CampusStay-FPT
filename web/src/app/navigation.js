@@ -13,11 +13,13 @@ import {
   GraduationCap,
   Gauge,
   House,
+  KeyRound,
   Layers,
   LayoutDashboard,
   LogIn,
   LogOut,
   Mail,
+  Package,
   Repeat,
   ScrollText,
   Settings,
@@ -87,7 +89,11 @@ export const backOffice = {
       },
       {
         title: 'Rooms',
-        items: [{ label: 'Rooms and Beds', icon: Building, to: '/staff/inventory' }],
+        items: [
+          { label: 'Rooms and Beds', icon: Building, to: '/staff/inventory' },
+          { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
+          { label: 'Furniture', icon: Package, to: '/staff/furniture' },
+        ],
       },
       {
         title: 'Operations',
@@ -138,9 +144,17 @@ export const backOffice = {
         ],
       },
       {
-        title: 'Rooms and people',
+        title: 'Inventory',
         items: [
           { label: 'Rooms and Beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Room Classes by Term', icon: Layers, to: '/manager/room-classes' },
+          { label: 'Furniture', icon: Package, to: '/manager/furniture' },
+          { label: 'Door codes', icon: KeyRound, to: '/manager/door-codes' },
+        ],
+      },
+      {
+        title: 'People',
+        items: [
           { label: 'Staff accounts', icon: UserCog, to: '/manager/staff-accounts' },
           { label: 'Staff and workload', icon: Users, to: '/manager/staff' },
         ],
@@ -188,6 +202,7 @@ export const backOffice = {
         title: 'System',
         items: [
           { label: 'Buildings and Rooms', icon: Building, to: '/admin/buildings' },
+          { label: 'Furniture types', icon: Package, to: '/admin/furniture-types' },
           { label: 'Users and roles', icon: User, to: '/admin/users' },
           { label: 'Students', icon: GraduationCap, to: '/admin/students' },
           { label: 'Import student list', icon: Upload, to: '/admin/student-import' },

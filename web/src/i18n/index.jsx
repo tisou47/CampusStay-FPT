@@ -58,8 +58,10 @@ function compiled() {
         names.push(m[1])
         return '(.+?)'
       })
-      return { re: new RegExp(`^${source.join('')}$`, 's'), names, value }
+      return { re: new RegExp(`^${source.join('')}$`, 's'), names, value, fixed: key.replace(/\{\w+\}/g, '').length }
     })
+    // The most specific key wins: "The stay of {name} has started…" before "{n} of {total}".
+    .sort((a, b) => b.fixed - a.fixed)
   return patterns
 }
 

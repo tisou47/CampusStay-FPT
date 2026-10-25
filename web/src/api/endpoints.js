@@ -57,6 +57,11 @@ export const api = {
     verification: g('/students/me/verification'),
     /** { studentCode, name, gender, dateOfBirth, major, cohort, phone } → 204; Pending verification. */
     sendVerification: (body) => http.put('/students/me/verification', body),
+    /** { room, status (Ready, Not ready, Not set), note, changedAt }; the code itself only through revealDoorCode. */
+    doorCode: g('/students/me/door-code'),
+    /** { room, code, changedAt }; every view is written to the Audit Log. */
+    revealDoorCode: () => http.post('/students/me/door-code/reveal'),
+    furniture: g('/students/me/furniture'),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */
@@ -143,6 +148,36 @@ export const api = {
     room: (code, opts) => http.get(`/inventory/rooms/${code}`, undefined, opts),
     setOutOfService: (code, body) => http.post(`/inventory/rooms/${code}/out-of-service`, body),
     backInService: (code) => http.post(`/inventory/rooms/${code}/back-in-service`),
+    /** The Room panel: its Room Class in the Term and the next one, furniture conformance, items, door code state. */
+    details: (code, query, opts) => http.get(`/inventory/rooms/${code}/details`, query, opts),
+    /** Room Classes per Term (ADR-24): { termId, block, floor, roomClassId, match, q, page, pageSize }. */
+    roomClasses: g('/inventory/room-classes'),
+    /** { termId, rooms: [code], roomClassId } → { changed, unchanged }; Managers, Terms not started only. */
+    setRoomClass: (body) => http.put('/inventory/room-classes', body),
+  },
+  furniture: {
+    list: g('/furniture'),
+    get: (id, opts) => http.get(`/furniture/${id}`, undefined, opts),
+    /** Managers: { typeId, block, room?, quantity, note? } → { assetCodes }. */
+    register: (body) => http.post('/furniture', body),
+    /** { status?, note?, reason? } → the item. */
+    update: (id, body) => http.put(`/furniture/${id}`, body),
+    moves: g('/furniture/moves'),
+    /** { items: [id], toRoom? | toStore? (Block code), reason, planned } → { moved, planned }. */
+    move: (body) => http.post('/furniture/moves', body),
+    finishMove: (id) => http.post(`/furniture/moves/${id}/done`),
+    cancelMove: (id) => http.post(`/furniture/moves/${id}/cancel`),
+  },
+  doorCodes: {
+    list: g('/door-codes'),
+    /** { code? } (6 digits; blank = random) → { room, code }. */
+    propose: (room, body) => http.post(`/door-codes/${room}`, body),
+    confirm: (room) => http.post(`/door-codes/${room}/confirm`),
+    cancel: (room) => http.post(`/door-codes/${room}/cancel`),
+    /** { room, active, proposed }; every view is written to the Audit Log. */
+    reveal: (room) => http.post(`/door-codes/${room}/reveal`),
+    /** multipart file (CSV room,code) → { proposed }. */
+    import: (formData) => http.post('/door-codes/import', formData),
   },
   desk: {
     /** Today's check-in numbers and recent check-ins. */
@@ -313,6 +348,16 @@ export const api = {
       updateBlock: (id, body) => http.put(`/admin/buildings/${id}`, body),
       bulkRooms: (id, body) => http.post(`/admin/buildings/${id}/rooms/bulk`, body),
       floorRooms: (id, floor, opts) => http.get(`/admin/buildings/${id}/floors/${floor}/rooms`, undefined, opts),
+    },
+    furnitureTypes: {
+      list: g('/admin/furniture-types'),
+      create: (body) => http.post('/admin/furniture-types', body),
+      update: (id, body) => http.put(`/admin/furniture-types/${id}`, body),
+    },
+    /** What furniture each Room Class requires: PUT { items: [{ typeId, quantity }] } replaces a class's list. */
+    requirements: {
+      list: g('/admin/room-class-requirements'),
+      save: (roomClassId, body) => http.put(`/admin/room-class-requirements/${roomClassId}`, body),
     },
     users: {
       list: g('/admin/users'),

@@ -1,13 +1,15 @@
-import { Bed, Calendar, ChevronRight, Clock, CreditCard, ExternalLink, MapPin, Repeat, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Bed, Calendar, ChevronRight, Clock, CreditCard, ExternalLink, Eye, EyeOff, KeyRound, MapPin, Repeat, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
-import { useQuery } from '@/api/hooks'
+import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDate, formatVnd } from '@/lib/format'
+import { typeName } from '@/lib/furniture'
+import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr, tx } from '@/i18n'
 
@@ -19,6 +21,93 @@ import { t, tr, tx } from '@/i18n'
 //   checkIn: { start, end, deskHours, location, checkedInAt } | null,
 //   balance: { invoiceId, amount, status, dueAt, paidAt } | null,
 //   application: { id, status } | null, rulesUrl }
+// GET /students/me/door-code → { room, status (Ready, Not ready, Not set), note, changedAt } · POST /students/me/door-code/reveal
+//   → { room, code, changedAt } (audited) · GET /students/me/furniture → { room, items: [{ assetCode, type, typeVi, status }] }
+
+const SHOW_SECONDS = 30
+
+/** The Room's door code (ADR-23): shown on request for a short time; every view is written to the Audit Log. */
+function DoorCodeCard() {
+  const query = useQuery(['door-code'], ({ signal }) => api.me.doorCode(undefined, { signal }))
+  const [code, setCode] = useState(null)
+  const reveal = useMutation(() => api.me.revealDoorCode(), { onSuccess: (res) => setCode(res.code), onError: () => {} })
+  useEffect(() => {
+    if (!code) return undefined
+    const timer = setTimeout(() => setCode(null), SHOW_SECONDS * 1000)
+    return () => clearTimeout(timer)
+  }, [code])
+  const d = query.data
+  if (!d) return null
+  return (
+    <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-h3 font-semibold text-fg">{t('Door code')}</h2>
+        <StatusTag status={d.status} />
+      </div>
+      {d.status === 'Ready' ? (
+        <>
+          {code ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-subtle px-4 py-3">
+              <span className="font-mono text-h1 font-semibold tracking-[0.3em] text-fg tabular">{code}</span>
+              <Button variant="text" icon={EyeOff} onClick={() => setCode(null)}>
+                Hide
+              </Button>
+            </div>
+          ) : (
+            <Button variant="primary" size="lg" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
+              Show door code
+            </Button>
+          )}
+          {reveal.error && <Alert type="error" title="Could not show the code">{reveal.error.message}</Alert>}
+          <p className="text-sm text-fg-tertiary">
+            {t('Changed {date}. It changes whenever someone leaves the Room; never share it.', { date: formatDateTime(d.changedAt) })}
+          </p>
+        </>
+      ) : (
+        <InfoRow icon={KeyRound} label={t('Room {code}', { code: d.room })} value={tr(d.note)} />
+      )}
+    </Card>
+  )
+}
+
+function FurnitureCard() {
+  const query = useQuery(['my-furniture'], ({ signal }) => api.me.furniture(undefined, { signal }))
+  const items = query.data?.items
+  if (!items) return null
+  // One line per type ("4 × Bed"); items that are not in use are named with their asset code.
+  const groups = Object.values(
+    items.reduce((acc, i) => {
+      const name = typeName(i)
+      ;(acc[name] ??= { name, items: [] }).items.push(i)
+      return acc
+    }, {}),
+  )
+  return (
+    <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+      <h2 className="text-h3 font-semibold text-fg">{t('Furniture')}</h2>
+      {items.length ? (
+        <ul className="flex flex-col gap-2">
+          {groups.map((g) => (
+            <li key={g.name} className="flex flex-col gap-1">
+              <span className="text-base text-fg">{`${g.items.length} × ${g.name}`}</span>
+              {g.items
+                .filter((i) => i.status !== 'In use')
+                .map((i) => (
+                  <span key={i.assetCode} className="flex items-center gap-2 pl-4 text-sm text-fg-tertiary">
+                    {i.assetCode}
+                    <StatusTag status={i.status} />
+                  </span>
+                ))}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-base text-fg-secondary">{t('No furniture recorded in this Room.')}</p>
+      )}
+      <Note>Something broken? Report it from Requests so Staff can repair it.</Note>
+    </Card>
+  )
+}
 
 function InfoRow({ icon: Glyph, label, value }) {
   return (
@@ -124,9 +213,11 @@ function Room({ data }) {
           )}
           <Note>Only names are shared. Contact details stay private; you meet your roommates at check-in.</Note>
         </Card>
+        <FurnitureCard />
       </div>
 
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
+        <DoorCodeCard />
         {checkIn && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
             <h2 className="text-h3 font-semibold text-fg">{t('Check-in')}</h2>
