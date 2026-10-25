@@ -46,7 +46,7 @@ public class EligibilityService {
 
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
             .withZone(TimeConfig.CAMPUS_ZONE);
-    private static final String CONTACT_COMPLETE = "CONTACT_COMPLETE";
+    static final String CONTACT_COMPLETE = "CONTACT_COMPLETE";
 
     private final CurrentUser currentUser;
     private final UserDirectory users;
@@ -117,7 +117,7 @@ public class EligibilityService {
                     "A Manager has not verified your account yet. You can apply once it is verified.", false));
             eligible = false;
         }
-        for (EligibilityRules.Criterion c : rules.enabled()) {
+        for (EligibilityRules.Criterion c : term == null ? rules.enabled() : rules.enabled(term.id())) {
             Check check = switch (c.key()) {
                 case "ENROLLED" -> new Check(c.title(), profile.enrollmentStatus().equals("ENROLLED") ? c.note()
                         : "Your enrollment status is " + profile.enrollmentStatus().toLowerCase(Locale.ROOT) + ".",

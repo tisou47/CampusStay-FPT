@@ -38,6 +38,14 @@ class JdbcMatchingCriteria implements MatchingCriteria {
     }
 
     @Override
+    public Snapshot forTerm(long termId) {
+        return jdbc.sql("SELECT matching_snapshot_id FROM cfg_term WHERE id = :id AND matching_snapshot_id IS NOT NULL")
+                .param("id", termId).query(Long.class).optional()
+                .flatMap(this::byId)
+                .orElseGet(this::active);
+    }
+
+    @Override
     public Optional<Snapshot> byId(long id) {
         return jdbc.sql("SELECT " + COLUMNS + " FROM cfg_matching_snapshot WHERE id = :id").param("id", id)
                 .query(this::map).optional();

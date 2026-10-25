@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,9 @@ import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.event.PolicyChanged;
+import vn.fpt.campusstay.event.ValueChange;
+import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.common.audit.AuditLog;
@@ -62,16 +66,21 @@ public class BlockSettingsService {
     private final UserDirectory users;
     private final Parameters parameters;
     private final AuditLog audit;
+    private final BlockDirectory blocks;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public BlockSettingsService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
-            Parameters parameters, AuditLog audit, Clock clock) {
+            Parameters parameters, AuditLog audit, BlockDirectory blocks, ApplicationEventPublisher events,
+            Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
         this.users = users;
         this.parameters = parameters;
         this.audit = audit;
+        this.blocks = blocks;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -160,9 +169,26 @@ public class BlockSettingsService {
         }
         if (!change.isEmpty()) {
             audit.record("BLOCK_SETTINGS_UPDATED", AuditLog.Tone.INFO, "Block", building, "Block settings", change);
+            // The Block's residents read the change on their board (spec §10).
+            List<ValueChange> announced = new ArrayList<>();
+            change.forEach((field, pair) -> {
+                if (pair instanceof List<?> values) {
+                    announced.add(new ValueChange(LABELS.get(field), "TEXT", (String) values.get(0),
+                            (String) values.get(1)));
+                }
+            });
+            if (change.containsKey("houseRules")) {
+                announced.add(new ValueChange("House rules", "TEXT", b == null ? null : b.houseRules(), rules));
+            }
+            String code = blocks.codesByIds(List.of(building)).getOrDefault(building, String.valueOf(building));
+            events.publishEvent(new PolicyChanged("OPERATIONS", "Block " + code + " settings", null, building,
+                    announced, null));
         }
         return get(cmd.block());
     }
+
+    private static final Map<String, String> LABELS = Map.of("deskOpens", "Desk opens", "deskCloses", "Desk closes",
+            "visitFrom", "Visitors from", "visitUntil", "Visitors until", "quiet", "Quiet hours from");
 
     private long building(String block) {
         BlockSelection selection = blockScope.resolve(block);

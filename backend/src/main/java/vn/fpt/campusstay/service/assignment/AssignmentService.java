@@ -129,7 +129,7 @@ public class AssignmentService {
                         .param("id", id).update();
             }
         }
-        MatchingCriteria.Snapshot snapshot = criteria.active();
+        MatchingCriteria.Snapshot snapshot = criteria.forTerm(term.id());
         List<Applications.Candidate> candidates = applications.approved(term.id());
         List<AssignmentEngine.Placement> placements = engines.engine(term.id(), snapshot.id(), null, null)
                 .run(engines.applicants(candidates));
@@ -320,7 +320,7 @@ public class AssignmentService {
             applications.allocated(app.applicationId(), bed.roomCode(), bed.bedLabel());
             long price = bed.roomTypeId() == app.roomTypeId() && bed.roomClassId() == app.roomClassId()
                     ? app.termPrice()
-                    : fees.termPrice(bed.roomTypeId(), bed.roomClassId()).orElse(app.termPrice());
+                    : fees.termPrice(run.termId(), bed.roomTypeId(), bed.roomClassId()).orElse(app.termPrice());
             Optional<Billing.IssuedInvoice> balance = billing.issueBalance(new Billing.BalanceRequest(run.termId(),
                     app.studentId(), app.applicationId(), app.code(), allocationId, bed.buildingId(), bed.roomCode(),
                     price, app.depositAmount(), balanceDueAt));

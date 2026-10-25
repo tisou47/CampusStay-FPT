@@ -33,8 +33,11 @@ public class MatchingService {
     public record OrderItem(String key, String title, String note) {
     }
 
-    /** {@code value} is a percentage (0–100). */
-    public record Weight(String key, String label, String note, Boolean on, Integer value) {
+    /**
+     * {@code value} is a percentage (0–100); {@code level} the same weight as people choose it (D-06): Very important,
+     * Important or Not used. A PUT with levels sets the percentages from them (Very important counts twice).
+     */
+    public record Weight(String key, String label, String note, Boolean on, Integer value, String level) {
     }
 
     /**
@@ -75,9 +78,15 @@ public class MatchingService {
     @Transactional(readOnly = true)
     public Matching get() {
         Snapshot s = active();
+        List<Integer> inUse = s.weights().stream().filter(w -> Boolean.TRUE.equals(w.get("on")))
+                .map(w -> percent(w.get("value"))).toList();
         List<Weight> weights = s.weights().stream()
-                .map(w -> new Weight((String) w.get("key"), (String) w.get("label"), (String) w.get("note"),
-                        Boolean.TRUE.equals(w.get("on")), percent(w.get("value"))))
+                .map(w -> {
+                    boolean on = Boolean.TRUE.equals(w.get("on"));
+                    int value = percent(w.get("value"));
+                    return new Weight((String) w.get("key"), (String) w.get("label"), (String) w.get("note"), on, value,
+                            MatchingLevels.level(on, value, inUse));
+                })
                 .toList();
         return new Matching(number(s.label()), s.hardConstraints(), s.order(), weights, Decimals.plain(s.boost()), null);
     }
@@ -115,10 +124,11 @@ public class MatchingService {
         return new Saved(next);
     }
 
-    /** Dry run with unsaved settings; nothing is stored or allocated. */
+    /** Dry run with unsaved settings next to the rules in use (spec §6.17); nothing is stored or allocated. */
     @Transactional(readOnly = true)
     public MatchingPreviewer.Preview preview(Matching body) {
-        Validated v = validate(body, active());
+        Snapshot current = active();
+        Validated v = validate(body, current);
         Map<String, BigDecimal> weights = new LinkedHashMap<>();
         v.weights().forEach((key, w) -> {
             if (w.on()) {
@@ -128,10 +138,16 @@ public class MatchingService {
         MatchingPreviewer engine = previewer.getIfAvailable();
         if (engine == null) {
             return new MatchingPreviewer.Preview(null, null, 0,
-                    "No Applications are approved yet, so the dry run had nobody to place.");
+                    "No Applications are approved yet, so the dry run had nobody to place.", null, null, null, null,
+                    null);
         }
-        return engine.preview(new MatchingPreviewer.Settings(v.order().stream().map(OrderItem::key).toList(), weights,
-                v.boost()));
+        Map<String, BigDecimal> inUse = new LinkedHashMap<>();
+        current.weights().stream().filter(w -> Boolean.TRUE.equals(w.get("on")))
+                .forEach(w -> inUse.put((String) w.get("key"), new BigDecimal(String.valueOf(w.get("value")))));
+        return engine.preview(
+                new MatchingPreviewer.Settings(v.order().stream().map(OrderItem::key).toList(), weights, v.boost()),
+                new MatchingPreviewer.Settings(current.order().stream().map(OrderItem::key).toList(), inUse,
+                        current.boost()));
     }
 
     private record Validated(List<OrderItem> order, Map<String, Weight> weights, BigDecimal boost) {
@@ -155,7 +171,20 @@ public class MatchingService {
         current.weights().forEach(w -> weightKeys.add((String) w.get("key")));
         Map<String, Weight> weights = new LinkedHashMap<>();
         int total = 0;
-        for (Weight w : body.weights() == null ? List.<Weight>of() : body.weights()) {
+        List<Weight> sent = body.weights() == null ? List.<Weight>of() : body.weights();
+        if (!sent.isEmpty() && sent.stream().allMatch(w -> w != null && MatchingLevels.known(w.level()))) {
+            Map<String, String> levels = new LinkedHashMap<>();
+            sent.forEach(w -> levels.put(w.key(), w.level()));
+            Map<String, Integer> percents = MatchingLevels.percents(levels);
+            if (percents == null) {
+                errors.add("weights", "Use at least one matching criterion.");
+                percents = new LinkedHashMap<>();
+            }
+            Map<String, Integer> p = percents;
+            sent = sent.stream().map(w -> new Weight(w.key(), w.label(), w.note(), p.getOrDefault(w.key(), 0) > 0,
+                    p.getOrDefault(w.key(), 0), w.level())).toList();
+        }
+        for (Weight w : sent) {
             if (w == null || !weightKeys.contains(w.key()) || weights.containsKey(w.key())) {
                 errors.add("weights", "Keep every matching weight exactly once.");
                 continue;
@@ -163,7 +192,7 @@ public class MatchingService {
             boolean on = Boolean.TRUE.equals(w.on());
             int value = w.value() == null ? 0 : w.value();
             errors.check(value >= 0 && value <= 100, "weights", "Each weight is between 0 and 100%.");
-            weights.put(w.key(), new Weight(w.key(), w.label(), w.note(), on, value));
+            weights.put(w.key(), new Weight(w.key(), w.label(), w.note(), on, value, w.level()));
             total += on ? value : 0;
         }
         errors.check(weights.size() == weightKeys.size(), "weights", "Keep every matching weight exactly once.");

@@ -138,6 +138,9 @@ public interface Billing {
     /** Any Invoice of the student, from any Term, that is Overdue. */
     boolean hasOverdueInvoice(long studentId);
 
+    /** Students with an overdue Invoice of any Term (Admin › Who may apply counts them). */
+    long studentsWithOverdueInvoice();
+
     /** Students with an unpaid or overdue Invoice in the Term (Notifications email groups). */
     Set<Long> withUnpaid(long termId);
 

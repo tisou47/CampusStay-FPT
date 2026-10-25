@@ -27,6 +27,13 @@ public final class FieldErrors {
         return fields.containsKey(field);
     }
 
+    /** The messages collected so far, by field, in the order they were added. */
+    public Map<String, String> messages() {
+        Map<String, String> result = new LinkedHashMap<>();
+        fields.forEach((field, message) -> result.put(field, String.valueOf(message)));
+        return result;
+    }
+
     public boolean isEmpty() {
         return fields.isEmpty();
     }

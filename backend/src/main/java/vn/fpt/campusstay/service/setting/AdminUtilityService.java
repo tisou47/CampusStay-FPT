@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.text.NumberFormat;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,12 +13,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.ActorResolver;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.event.PolicyChanged;
+import vn.fpt.campusstay.event.ValueChange;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
@@ -60,12 +64,15 @@ public class AdminUtilityService {
     private final JdbcClient jdbc;
     private final ActorResolver actors;
     private final AuditLog audit;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    public AdminUtilityService(JdbcClient jdbc, ActorResolver actors, AuditLog audit, Clock clock) {
+    public AdminUtilityService(JdbcClient jdbc, ActorResolver actors, AuditLog audit, ApplicationEventPublisher events,
+            Clock clock) {
         this.jdbc = jdbc;
         this.actors = actors;
         this.audit = audit;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -129,6 +136,16 @@ public class AdminUtilityService {
         if (!change.isEmpty()) {
             audit.record("UTILITY_UPDATED", AuditLog.Tone.INFO, "Utility policy", null, "Utility", change);
         }
+        // Utility prices and the Utility Deposit of new Terms are money students are told about (spec §10).
+        List<ValueChange> announced = new ArrayList<>();
+        announce(announced, "Electricity price (per kWh)", "MONEY", before.priceKwh(), after.priceKwh());
+        announce(announced, "Water price (per m³)", "MONEY", before.priceM3(), after.priceM3());
+        announce(announced, "Utility payment due (days)", "NUMBER", before.paymentDueDays(), after.paymentDueDays());
+        announce(announced, "Utility estimate per month", "MONEY", before.estimateMonthly(), after.estimateMonthly());
+        announce(announced, "Months the Utility Deposit covers", "NUMBER", before.monthsHeld(), after.monthsHeld());
+        if (!announced.isEmpty()) {
+            events.publishEvent(new PolicyChanged("FINANCE", "Utility", null, null, announced, null));
+        }
         return after;
     }
 
@@ -142,6 +159,13 @@ public class AdminUtilityService {
 
     private static boolean between(Long value, long min, long max) {
         return value != null && value >= min && value <= max;
+    }
+
+    private static void announce(List<ValueChange> out, String field, String type, Object before, Object after) {
+        if (!Objects.equals(before, after)) {
+            out.add(new ValueChange(field, type, before == null ? null : String.valueOf(before),
+                    after == null ? null : String.valueOf(after)));
+        }
     }
 
     private static void diff(Map<String, Object> change, String key, Object before, Object after) {

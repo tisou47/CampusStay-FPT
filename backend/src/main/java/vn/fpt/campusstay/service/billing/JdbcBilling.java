@@ -78,7 +78,7 @@ class JdbcBilling implements Billing {
     @Transactional(propagation = Propagation.MANDATORY)
     public IssuedInvoice issueDeposit(DepositRequest r) {
         TermSummary term = term(r.termId());
-        BigDecimal rate = fees.depositRate();
+        BigDecimal rate = fees.depositRate(r.termId());
         String line = "Deposit " + rate.movePointRight(2).stripTrailingZeros().toPlainString() + "% of the Term price "
                 + vnd(r.termPrice());
         return insert(new Draft(term, r.studentId(), r.applicationId(), null, null, "DEPOSIT", "Deposit · " + term.name(),
@@ -89,7 +89,7 @@ class JdbcBilling implements Billing {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<IssuedInvoice> issueBalance(BalanceRequest r) {
-        long utility = fees.utilityDeposit();
+        long utility = fees.utilityDeposit(r.termId());
         long amount = r.termPrice() - r.depositAmount() + utility;
         if (amount <= 0) {
             return Optional.empty();
@@ -232,6 +232,13 @@ class JdbcBilling implements Billing {
     public boolean hasOverdueInvoice(long studentId) {
         return jdbc.sql("SELECT count(*) FROM bil_invoice WHERE student_id = :student AND status = 'OVERDUE'")
                 .param("student", studentId).query(Long.class).single() > 0;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long studentsWithOverdueInvoice() {
+        return jdbc.sql("SELECT count(DISTINCT student_id) FROM bil_invoice WHERE status = 'OVERDUE'")
+                .query(Long.class).single();
     }
 
     @Override

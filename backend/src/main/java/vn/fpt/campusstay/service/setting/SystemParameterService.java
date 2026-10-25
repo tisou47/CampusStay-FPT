@@ -24,7 +24,8 @@ import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
  * Admin › System parameters: typed key/value settings grouped into sections. A
- * PUT sends the sections back; only {@code value} is read from it.
+ * PUT sends the sections back; only {@code value} is read from it. Parameters of a settings group (deadlines,
+ * refunds and terminations, stay and renewal) are edited on their own screens ({@link AdminSettingsService}).
  */
 @Service
 public class SystemParameterService {
@@ -118,7 +119,7 @@ public class SystemParameterService {
     private List<Row> rows() {
         return jdbc.sql("""
                 SELECT key, section, label, value_type, value, helper, options::text AS options
-                FROM cfg_parameter ORDER BY sort_order, key
+                FROM cfg_parameter WHERE settings_group IS NULL ORDER BY sort_order, key
                 """)
                 .query((rs, i) -> new Row(rs.getString("key"), rs.getString("section"), rs.getString("label"),
                         rs.getString("value_type"), rs.getString("value"), rs.getString("helper"),

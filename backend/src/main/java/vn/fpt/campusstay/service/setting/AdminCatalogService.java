@@ -14,7 +14,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.PolicyChanged;
 import vn.fpt.campusstay.event.RoomTypeBedsChanged;
+import vn.fpt.campusstay.event.ValueChange;
 import vn.fpt.campusstay.service.setting.RoomUsage;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
@@ -122,6 +124,7 @@ public class AdminCatalogService {
                 .orElseThrow(() -> ApiException.notFound("This Room Type does not exist."));
         Validated v = validate(values, id);
         int previousBeds = type.getBeds();
+        long previousPrice = type.getBasePrice();
         if (v.beds() != previousBeds && usage.roomTypesWithActiveAllocations().contains(id)) {
             throw ApiException.conflict("ROOM_TYPE_IN_USE",
                     "Rooms of this type have active Allocations, so the number of Beds cannot change.");
@@ -139,6 +142,12 @@ public class AdminCatalogService {
         }
         if (!change.isEmpty()) {
             audit.record("ROOM_TYPE_UPDATED", AuditLog.Tone.INFO, "Room Type", id, type.getName(), change);
+        }
+        if (change.containsKey("basePrice")) {
+            // Default prices change the Terms built afterwards only (spec §8); students are told (spec §10).
+            events.publishEvent(new PolicyChanged("FINANCE", "Room Types", null, null, List.of(new ValueChange(
+                    "Base price · " + type.getName(), "MONEY", String.valueOf(previousPrice), String.valueOf(v.basePrice()))),
+                    null));
         }
         return id;
     }
@@ -218,6 +227,7 @@ public class AdminCatalogService {
         RoomClassEntity roomClass = roomClasses.findById(id)
                 .orElseThrow(() -> ApiException.notFound("This Room Class does not exist."));
         ValidatedClass v = validate(values, id);
+        BigDecimal previousRate = Decimals.plain(roomClass.getSurchargeRate());
         Map<String, Object> change = new LinkedHashMap<>();
         put(change, "name", roomClass.getName(), v.name());
         put(change, "surchargeRate", Decimals.plain(roomClass.getSurchargeRate()), Decimals.plain(v.surchargeRate()));
@@ -227,6 +237,11 @@ public class AdminCatalogService {
         roomClasses.saveAndFlush(roomClass);
         if (!change.isEmpty()) {
             audit.record("ROOM_CLASS_UPDATED", AuditLog.Tone.INFO, "Room Class", id, roomClass.getName(), change);
+        }
+        if (change.containsKey("surchargeRate")) {
+            events.publishEvent(new PolicyChanged("FINANCE", "Room Classes", null, null, List.of(new ValueChange(
+                    "Surcharge · " + roomClass.getName(), "PERCENT", previousRate.movePointRight(2).toPlainString(),
+                    Decimals.plain(v.surchargeRate()).movePointRight(2).toPlainString())), null));
         }
         return id;
     }

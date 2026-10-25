@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,6 +58,15 @@ class JdbcTermCatalog implements TermCatalog {
     @Override
     public Optional<TermSummary> openForRegistration() {
         return publishedTerms().stream().filter(TermSummary::registrationOpen).findFirst();
+    }
+
+    @Override
+    public TermRooms rooms(long termId) {
+        return new TermRooms(
+                new HashSet<>(jdbc.sql("SELECT building_id FROM cfg_term_block WHERE term_id = :t").param("t", termId)
+                        .query(Long.class).list()),
+                new HashSet<>(jdbc.sql("SELECT room_id FROM cfg_term_room_excluded WHERE term_id = :t")
+                        .param("t", termId).query(Long.class).list()));
     }
 
     /** Stay includes today; otherwise the next Term to start; otherwise the latest past one. */

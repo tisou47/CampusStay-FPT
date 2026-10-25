@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.controller.setting;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.setting.MatchingPreviewer;
 import vn.fpt.campusstay.service.setting.AdminPolicyService;
+import vn.fpt.campusstay.service.setting.AdminSettingsService;
 import vn.fpt.campusstay.service.setting.AdminUtilityService;
 import vn.fpt.campusstay.service.setting.MatchingService;
 import vn.fpt.campusstay.service.setting.SystemParameterService;
@@ -16,7 +18,8 @@ import vn.fpt.campusstay.service.setting.SystemParameterService;
 /**
  * Admin configuration screens that load and save one document each
  * ({@code GET|PUT}, the PUT body has the GET shape): fees, eligibility,
- * matching criteria, utility and system parameters. The services validate the values.
+ * matching criteria, utility, system parameters and the settings groups ({@code /admin/settings/{group}}: deadlines,
+ * refunds, stay; A-31). The services validate the values.
  */
 @RestController
 @RequestMapping("/admin")
@@ -26,13 +29,25 @@ class AdminPolicyController {
     private final MatchingService matching;
     private final SystemParameterService parameters;
     private final AdminUtilityService utility;
+    private final AdminSettingsService settings;
 
     AdminPolicyController(AdminPolicyService policies, MatchingService matching, SystemParameterService parameters,
-            AdminUtilityService utility) {
+            AdminUtilityService utility, AdminSettingsService settings) {
         this.policies = policies;
         this.matching = matching;
         this.parameters = parameters;
         this.utility = utility;
+        this.settings = settings;
+    }
+
+    @GetMapping("/settings/{group}")
+    AdminSettingsService.Group settings(@PathVariable String group) {
+        return settings.get(group);
+    }
+
+    @PutMapping("/settings/{group}")
+    AdminSettingsService.Group saveSettings(@PathVariable String group, @RequestBody AdminSettingsService.Save body) {
+        return settings.save(group, body);
     }
 
     @GetMapping("/utility")

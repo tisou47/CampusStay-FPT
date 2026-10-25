@@ -15,7 +15,10 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import vn.fpt.campusstay.service.setting.AdminTermService;
 
-/** A Term with its registration, payment and check-in windows (Admin › Terms and Windows). */
+/**
+ * A Term with its registration, payment and check-in windows (Admin › Terms). A Draft saved by the wizard may still
+ * miss its windows (V42); the wizard writes its other columns through SQL ({@code TermWizardService}).
+ */
 @Entity
 @Table(name = "cfg_term")
 public class TermEntity {
@@ -42,35 +45,39 @@ public class TermEntity {
     @Column(name = "stay_end", nullable = false)
     private LocalDate stayEnd;
 
-    @Column(name = "registration_opens_at", nullable = false)
+    @Column(name = "registration_opens_at")
     private Instant registrationOpensAt;
 
-    @Column(name = "registration_closes_at", nullable = false)
+    @Column(name = "registration_closes_at")
     private Instant registrationClosesAt;
 
-    @Column(name = "results_published_at", nullable = false)
+    @Column(name = "results_published_at")
     private Instant resultsPublishedAt;
 
-    @Column(name = "roommate_hours", nullable = false)
-    private int roommateHours;
+    @Column(name = "roommate_hours")
+    private Integer roommateHours;
 
-    @Column(name = "deposit_hours", nullable = false)
-    private int depositHours;
+    @Column(name = "deposit_hours")
+    private Integer depositHours;
 
-    @Column(name = "balance_due_at", nullable = false)
+    @Column(name = "balance_due_at")
     private Instant balanceDueAt;
 
-    @Column(name = "check_in_start", nullable = false)
+    @Column(name = "check_in_start")
     private LocalDate checkInStart;
 
-    @Column(name = "check_in_end", nullable = false)
+    @Column(name = "check_in_end")
     private LocalDate checkInEnd;
 
-    @Column(name = "check_out_by", nullable = false)
+    @Column(name = "check_out_by")
     private LocalDate checkOutBy;
 
     @Column(name = "published_at")
     private Instant publishedAt;
+
+    /** Last wizard step saved; Terms of the form are complete (database default 7). */
+    @Column(name = "wizard_step", insertable = false, updatable = false)
+    private Integer wizardStep;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
@@ -107,14 +114,13 @@ public class TermEntity {
         checkOutBy = v.checkOutBy();
     }
 
-    public void publish(Instant now) {
-        status = Status.PUBLISHED;
-        publishedAt = now;
-    }
-
     public AdminTermService.TermValues values() {
         return new AdminTermService.TermValues(name, stayStart, stayEnd, registrationOpensAt, registrationClosesAt,
                 resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy);
+    }
+
+    public Integer getWizardStep() {
+        return wizardStep;
     }
 
     public Long getId() {

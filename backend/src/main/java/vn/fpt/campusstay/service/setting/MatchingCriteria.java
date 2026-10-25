@@ -21,5 +21,8 @@ public interface MatchingCriteria {
 
     Snapshot active();
 
+    /** The snapshot the Term opened with (ADR-20), else the active one. */
+    Snapshot forTerm(long termId);
+
     Optional<Snapshot> byId(long id);
 }

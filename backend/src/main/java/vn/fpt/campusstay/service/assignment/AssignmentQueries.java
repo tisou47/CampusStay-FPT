@@ -161,7 +161,7 @@ public class AssignmentQueries {
                         r.proposed(), conflicts(r.id()), r.waitlisted(), RunStore.statusLabel(r.status())))
                 .toList();
         RunSummary current = all.isEmpty() ? null : summary(all.getFirst(), names, snapshots);
-        MatchingCriteria.Snapshot snapshot = all.isEmpty() ? criteria.active() : snapshot(all.getFirst(), snapshots);
+        MatchingCriteria.Snapshot snapshot = all.isEmpty() ? criteria.forTerm(term.id()) : snapshot(all.getFirst(), snapshots);
         return new Overview(current, history, rules(snapshot));
     }
 
@@ -342,7 +342,7 @@ public class AssignmentQueries {
         if (free == 0) {
             return Optional.empty();
         }
-        long price = fees.termPrice(typeId, classId).orElse(0);
+        long price = fees.termPrice(app.termId(), typeId, classId).orElse(0);
         long diff = price - app.termPrice();
         NumberFormat vnd = NumberFormat.getIntegerInstance(Locale.US);
         String detail = free + (free == 1 ? " free Bed" : " free Beds") + " · Term price " + vnd.format(price) + " VND"

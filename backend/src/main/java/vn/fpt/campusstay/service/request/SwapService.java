@@ -198,14 +198,14 @@ public class SwapService {
                   AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
                 """).param("mine", p.allocationId()).query(Long.class).list());
         RoomChangeService.Names names = roomChanges.names();
-        long myPrice = fees.termPrice(p.roomTypeId(), p.roomClassId()).orElse(0);
+        long myPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(0);
         List<BoardItem> items = new ArrayList<>();
         for (Post post : posts) {
             Moves.Placement owner = owners.get(post.allocationId());
             if (post.allocationId() == p.allocationId() || owner == null || !owner.active()) {
                 continue;
             }
-            long offered = fees.termPrice(owner.roomTypeId(), owner.roomClassId()).orElse(myPrice);
+            long offered = fees.termPrice(owner.termId(), owner.roomTypeId(), owner.roomClassId()).orElse(myPrice);
             items.add(new BoardItem(String.valueOf(post.id()), names.type(owner.roomTypeId()),
                     names.roomClass(owner.roomClassId()), owner.floor(), owner.block(),
                     names.type(post.wantedTypeId()) + " · " + names.roomClass(post.wantedClassId()) + " · "
@@ -230,7 +230,7 @@ public class SwapService {
         if (roomTypeId == null) {
             return;
         }
-        if (roomClassId == null || fees.termPrice(roomTypeId, roomClassId).isEmpty()) {
+        if (roomClassId == null || fees.termPrice(p.termId(), roomTypeId, roomClassId).isEmpty()) {
             throw FieldErrors.single("roomClassId", "Choose the Room Type and Room Class you want.");
         }
         Long wanted = null;
@@ -429,8 +429,8 @@ public class SwapService {
     /** A pays the positive difference and B is credited it, or the other way round. */
     private void settle(Swap s, Moves.Placement a, Moves.Placement b, long[] moved, Instant now) {
         TermSummary term = terms.findPublished(s.termId()).orElseThrow();
-        long aPrice = fees.termPrice(a.roomTypeId(), a.roomClassId()).orElse(0);
-        long bPrice = fees.termPrice(b.roomTypeId(), b.roomClassId()).orElse(aPrice);
+        long aPrice = fees.termPrice(s.termId(), a.roomTypeId(), a.roomClassId()).orElse(0);
+        long bPrice = fees.termPrice(s.termId(), b.roomTypeId(), b.roomClassId()).orElse(aPrice);
         long difference = prices.difference(bPrice, aPrice, term);
         if (difference == 0) {
             return;
@@ -497,8 +497,8 @@ public class SwapService {
             throw ApiException.conflict("OVERDUE_INVOICE", "Pay your overdue Invoice before you ask for a swap.");
         }
         TermSummary term = terms.findPublished(mine.termId()).orElseThrow();
-        long myPrice = fees.termPrice(mine.roomTypeId(), mine.roomClassId()).orElse(0);
-        long otherPrice = fees.termPrice(other.roomTypeId(), other.roomClassId()).orElse(myPrice);
+        long myPrice = fees.termPrice(mine.termId(), mine.roomTypeId(), mine.roomClassId()).orElse(0);
+        long otherPrice = fees.termPrice(mine.termId(), other.roomTypeId(), other.roomClassId()).orElse(myPrice);
         Instant now = Instant.now(clock);
         Instant expires = now.plus(Duration.ofHours(parameters.intValue("swap.invitation_hours")));
         long id;
@@ -554,7 +554,7 @@ public class SwapService {
         }
         RoomChangeService.Names names = roomChanges.names();
         return new Side(p.room(), p.bed(), names.type(p.roomTypeId()), names.roomClass(p.roomClassId()),
-                "Block " + p.block(), fees.termPrice(p.roomTypeId(), p.roomClassId()).orElse(0));
+                "Block " + p.block(), fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(0));
     }
 
     private static Person person(Moves.Placement p, Map<Long, UserDirectory.Student> students,

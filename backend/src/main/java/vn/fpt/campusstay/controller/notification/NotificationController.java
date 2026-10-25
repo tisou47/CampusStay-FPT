@@ -10,9 +10,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.security.CurrentUser;
+import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.notification.NotificationService;
 
-/** {@code /notifications}: the bell of every layout (all roles). */
+/** {@code /notifications}: the bell of every layout (all roles); a student's also lists the board's announcements (C-41). */
 @RestController
 @RequestMapping("/notifications")
 class NotificationController {
@@ -27,18 +28,18 @@ class NotificationController {
 
     @GetMapping
     NotificationService.Inbox list(@RequestParam(required = false) Integer limit) {
-        return notifications.latest(currentUser.id(), limit);
+        return notifications.latest(currentUser.id(), currentUser.get().is(Role.STUDENT), limit);
     }
 
     @PostMapping("/read-all")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void readAll() {
-        notifications.markAllRead(currentUser.id());
+        notifications.markAllRead(currentUser.id(), currentUser.get().is(Role.STUDENT));
     }
 
     @PostMapping("/{id}/read")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void read(@PathVariable long id) {
+    void read(@PathVariable String id) {
         notifications.markRead(currentUser.id(), id);
     }
 }

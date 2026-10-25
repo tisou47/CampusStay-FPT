@@ -16,11 +16,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.setting.AdminTermService;
+import vn.fpt.campusstay.service.setting.TermWizardService;
 
 /**
- * Admin › Terms and Windows. Fields may be null (the form sends empty fields as
- * null); the service names each missing one. A null {@code depositHours} takes the
- * default of Admin › Fees.
+ * Admin › Registration periods › Terms. The wizard (A-27, spec §6.4) creates a Draft
+ * ({@code POST /admin/terms/drafts}, from a Manager's request or empty), reads it
+ * ({@code GET /{id}/wizard}), saves one step at a time ({@code PUT /{id}/wizard/{step}}) and publishes it. The
+ * one-form create and update stay for existing clients: fields may be null (the form sends empty fields as null);
+ * the service names each missing one, and a null {@code depositHours} takes the default of Admin › Fees.
  */
 @RestController
 @RequestMapping("/admin/terms")
@@ -53,9 +56,11 @@ class AdminTermController {
     }
 
     private final AdminTermService terms;
+    private final TermWizardService wizard;
 
-    AdminTermController(AdminTermService terms) {
+    AdminTermController(AdminTermService terms, TermWizardService wizard) {
         this.terms = terms;
+        this.wizard = wizard;
     }
 
     @GetMapping
@@ -73,8 +78,23 @@ class AdminTermController {
         return new Saved(String.valueOf(terms.update(id, body.values())));
     }
 
+    @PostMapping("/drafts")
+    Saved createDraft(@RequestBody TermWizardService.DraftBody body) {
+        return new Saved(String.valueOf(wizard.createDraft(body)));
+    }
+
+    @GetMapping("/{id}/wizard")
+    TermWizardService.Wizard read(@PathVariable long id) {
+        return wizard.wizard(id);
+    }
+
+    @PutMapping("/{id}/wizard/{step}")
+    Saved saveStep(@PathVariable long id, @PathVariable String step, @RequestBody TermWizardService.StepBody body) {
+        return new Saved(String.valueOf(wizard.save(id, step, body)));
+    }
+
     @PostMapping("/{id}/publish")
     Saved publish(@PathVariable long id) {
-        return new Saved(String.valueOf(terms.publish(id)));
+        return new Saved(String.valueOf(wizard.publish(id)));
     }
 }

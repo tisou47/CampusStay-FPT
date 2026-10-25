@@ -85,7 +85,7 @@ class Round2Offers {
             }
             List<Applications.Round2Option> options = new ArrayList<>();
             for (Inventory.BedSlot b : bestPerKind.values()) {
-                OptionalLong price = fees.termPrice(b.roomTypeId(), b.roomClassId());
+                OptionalLong price = fees.termPrice(termId, b.roomTypeId(), b.roomClassId());
                 if (price.isEmpty()) {
                     continue;
                 }

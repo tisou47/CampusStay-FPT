@@ -59,6 +59,21 @@ public interface UserDirectory {
     /** Number of students in the directory flagged with each priority group key. */
     Map<String, Long> studentsPerPriorityGroup();
 
+    /**
+     * Students of the directory (active accounts) and how many fail each check the directory answers, for
+     * Admin › Who may apply (spec §6.17).
+     *
+     * @param byGender {@code M} / {@code F} → students
+     */
+    record StudentCounts(long students, long notEnrolled, long notVerified, long contactIncomplete,
+            Map<String, Long> byGender) {
+    }
+
+    StudentCounts studentCounts();
+
+    /** Active accounts of a role ({@code ADMIN}, {@code MANAGER} …), by id: who is told about registration periods. */
+    List<Long> activeUserIds(String role);
+
     Optional<StudentProfile> studentProfile(long userId);
 
     /** Profiles by user id; unknown ids are left out. */

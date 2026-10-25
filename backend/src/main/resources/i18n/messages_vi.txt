@@ -583,3 +583,151 @@ This move does not exist. ⟶ Lần chuyển này không tồn tại.
 This move is already done. ⟶ Lần chuyển này đã hoàn tất.
 This move is already cancelled. ⟶ Lần chuyển này đã bị hủy.
 Room {0} is not in Block {1}. ⟶ Phòng {0} không thuộc Block {1}.
+
+# ---------- Change Spec v2 phase 4: registration periods ----------
+# Registration-period requests
+This registration-period request does not exist. ⟶ Đề nghị mở đợt đăng ký này không tồn tại.
+Enter the Term name in at most 100 characters. ⟶ Hãy nhập tên kỳ, tối đa 100 ký tự.
+Only the Manager who sent this request can change it. ⟶ Chỉ Quản lý đã gửi đề nghị này mới sửa được.
+The Admin is building this Term; comment on the request instead. ⟶ Quản trị viên đang dựng kỳ này; hãy bình luận trên đề nghị.
+This request is closed. ⟶ Đề nghị này đã đóng.
+Write a comment of at most 1,000 characters. ⟶ Hãy viết bình luận, tối đa 1.000 ký tự.
+Choose In progress, Needs changes or Rejected. ⟶ Hãy chọn Đang xử lý, Cần chỉnh sửa hoặc Từ chối.
+Say what the Manager should change. ⟶ Hãy nêu điều Quản lý cần chỉnh sửa.
+Give the reason for rejecting the request. ⟶ Hãy nêu lý do từ chối đề nghị.
+Only a submitted request can be taken in progress. ⟶ Chỉ đề nghị đã gửi mới có thể chuyển sang đang xử lý.
+This request waits for the Manager's changes. ⟶ Đề nghị này đang chờ Quản lý chỉnh sửa.
+Choose an active Room Type and Room Class for each line of places. ⟶ Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng dòng số chỗ.
+Choose male or female for each line of places. ⟶ Hãy chọn nam hoặc nữ cho từng dòng số chỗ.
+Enter 0 to 100,000 places on each line. ⟶ Nhập từ 0 đến 100.000 chỗ cho mỗi dòng.
+List each Room Type, Room Class and gender once. ⟶ Mỗi loại phòng, hạng phòng và giới tính chỉ ghi một lần.
+Choose an active Room Type and Room Class for each price. ⟶ Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng mức giá.
+Enter each price per Bed as a whole amount above 0 VND. ⟶ Nhập giá mỗi giường là số nguyên lớn hơn 0 ₫.
+List each Room Type and Room Class once. ⟶ Mỗi loại phòng và hạng phòng chỉ ghi một lần.
+Keep the notes under 2,000 characters. ⟶ Ghi chú tối đa 2.000 ký tự.
+{0} already has an open request ({1}). Comment on it instead. ⟶ {0} đã có một đề nghị đang mở ({1}). Hãy bình luận trên đề nghị đó.
+A Term named {0} is already published. ⟶ Kỳ tên {0} đã được công bố.
+
+# Timeline (spec §5.2)
+Enter the Deposit payment window in hours. ⟶ Hãy nhập thời hạn thanh toán tiền cọc theo giờ.
+Check-in starts on or after {0}, the day the residents of {1} must have checked out. ⟶ Nhận phòng bắt đầu từ {0}, ngày sinh viên của {1} phải trả phòng xong.
+No Term runs before this one, so leave the renewal milestones empty. ⟶ Không có kỳ nào trước kỳ này, nên hãy để trống các mốc ở tiếp.
+Fill in every renewal milestone, or leave them all empty. ⟶ Hãy điền đủ mọi mốc ở tiếp, hoặc để trống tất cả.
+The requests window opens on or after the Term is published. ⟶ Đợt nhận yêu cầu mở vào hoặc sau khi công bố kỳ.
+The requests window must close after it opens. ⟶ Đợt nhận yêu cầu phải đóng sau khi mở.
+Decisions are due after the requests window closes. ⟶ Hạn quyết định phải sau khi đóng đợt nhận yêu cầu.
+The reconciliation is due on or after the decision deadline. ⟶ Hạn đối soát phải vào hoặc sau hạn quyết định.
+Next-Term fees are issued on or after the reconciliation. ⟶ Phí kỳ sau được phát hành vào hoặc sau hạn đối soát.
+The next-Term fee deadline comes after the fees are issued. ⟶ Hạn nộp phí kỳ sau phải sau ngày phát hành phí.
+The next-Term fees are due before {0} ends ({1}). ⟶ Phí kỳ sau phải đến hạn trước khi {0} kết thúc ({1}).
+Assignment results come out on or after the decision deadline. ⟶ Kết quả xếp phòng được công bố vào hoặc sau hạn quyết định.
+
+# Wizard
+This wizard step does not exist. ⟶ Bước này không tồn tại.
+The stay has started, so its dates cannot change. ⟶ Kỳ ở đã bắt đầu nên không thể đổi ngày.
+Choose active Blocks only. ⟶ Chỉ chọn các Block đang hoạt động.
+Enter a share from 0 to 100%. ⟶ Nhập tỷ lệ từ 0 đến 100%.
+Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change. ⟶ Kỳ này đã có hóa đơn nên không thể đổi giá, tiền cọc và tiền cọc điện nước nữa.
+Enter a price for every Room Type and Room Class. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng.
+Enter the Utility Deposit as a whole amount of 0 VND or more. ⟶ Nhập tiền cọc điện nước là số nguyên từ 0 ₫ trở lên.
+A published Term keeps the rules it opened with. ⟶ Kỳ đã công bố giữ nguyên các quy định lúc mở.
+Keep the house rules under 10,000 characters. ⟶ Nội quy tối đa 10.000 ký tự.
+Write each question (up to 300 characters) with its answer (up to 2,000). ⟶ Hãy viết mỗi câu hỏi (tối đa 300 ký tự) kèm câu trả lời (tối đa 2.000 ký tự).
+Keep at most 30 questions. ⟶ Tối đa 30 câu hỏi.
+Give each document a title and a link that starts with https://. ⟶ Hãy đặt tên cho từng tài liệu và một liên kết bắt đầu bằng https://.
+Keep at most 20 documents. ⟶ Tối đa 20 tài liệu.
+This Term is not ready to publish. The Review step lists what to fix. ⟶ Kỳ này chưa sẵn sàng để công bố. Bước Xem lại liệt kê những việc cần sửa.
+Give a reason for changing the Manager's value. ⟶ Hãy nêu lý do thay đổi giá trị Quản lý đề nghị.
+This date has passed, so it cannot change. ⟶ Ngày này đã qua nên không thể đổi.
+This deadline is open: it can be extended but never shortened. ⟶ Hạn này đang mở: chỉ có thể gia hạn, không được rút ngắn.
+Say in up to 500 characters why you change a published Term; students read it in the announcement. ⟶ Hãy nêu lý do (tối đa 500 ký tự) khi thay đổi kỳ đã công bố; sinh viên sẽ đọc lý do trong thông báo.
+The requests window would open before students see the Term: move it after today. ⟶ Đợt nhận yêu cầu sẽ mở trước khi sinh viên thấy kỳ: hãy dời sang sau hôm nay.
+Save every step of the wizard before publishing. ⟶ Hãy lưu mọi bước trước khi công bố.
+
+# Settings groups, matching, announcements
+This settings group does not exist. ⟶ Nhóm thiết lập này không tồn tại.
+Enter a whole number from {0} to {1}. ⟶ Nhập số nguyên từ {0} đến {1}.
+Use at least one matching criterion. ⟶ Hãy dùng ít nhất một tiêu chí ghép phòng.
+This announcement does not exist. ⟶ Thông báo này không tồn tại.
+Choose who reads it. ⟶ Hãy chọn người đọc.
+Write a title of at most 200 characters. ⟶ Hãy viết tiêu đề, tối đa 200 ký tự.
+Write the announcement in at most 4,000 characters. ⟶ Hãy viết nội dung thông báo, tối đa 4.000 ký tự.
+End it after it starts and after now. ⟶ Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại.
+Choose at least one Block. ⟶ Hãy chọn ít nhất một Block.
+Choose a published Term. ⟶ Hãy chọn một kỳ đã công bố.
+Staff write to the residents of their Blocks only. ⟶ Nhân viên chỉ gửi thông báo cho sinh viên đang ở các Block của mình.
+
+# Names of values in change announcements (the announcement's Vietnamese text)
+Name ⟶ Tên
+Stay starts ⟶ Bắt đầu ở
+Stay ends ⟶ Kết thúc ở
+Publish (M1) ⟶ Công bố (M1)
+Requests window opens (M2) ⟶ Mở nhận yêu cầu (M2)
+Request deadline (M3) ⟶ Hạn gửi yêu cầu (M3)
+Decision deadline (M4) ⟶ Hạn quyết định (M4)
+Reconciliation (M5) ⟶ Đối soát (M5)
+Next-Term fees issued (M6) ⟶ Phát hành phí kỳ sau (M6)
+Next-Term fee deadline (M7) ⟶ Hạn nộp phí kỳ sau (M7)
+Registration opens ⟶ Mở đăng ký
+Registration closes ⟶ Đóng đăng ký
+Assignment results ⟶ Kết quả xếp phòng
+Roommate confirmation (hours) ⟶ Xác nhận bạn cùng phòng (giờ)
+Deposit payment (hours) ⟶ Thanh toán tiền cọc (giờ)
+Balance due ⟶ Hạn tiền phòng còn lại
+Check-in from ⟶ Nhận phòng từ
+Check-in until ⟶ Nhận phòng đến
+Check-out by ⟶ Hạn trả phòng
+Blocks used ⟶ Block sử dụng
+Rooms left out ⟶ Phòng không dùng
+Beds kept for new students ⟶ Giường dành cho sinh viên mới
+Deposit ⟶ Tiền cọc
+Utility Deposit ⟶ Tiền cọc điện nước
+House rules ⟶ Nội quy
+Questions and answers ⟶ Hỏi đáp
+Documents ⟶ Tài liệu
+All Blocks ⟶ Tất cả Block
+None ⟶ Không có
+Price · {0} · {1} ⟶ Giá · {0} · {1}
+Base price · {0} ⟶ Giá gốc · {0}
+Surcharge · {0} ⟶ Phụ phí · {0}
+Electricity price (per kWh) ⟶ Giá điện (mỗi kWh)
+Water price (per m³) ⟶ Giá nước (mỗi m³)
+Utility payment due (days) ⟶ Hạn thanh toán điện nước (ngày)
+Utility estimate per month ⟶ Ước tính điện nước mỗi tháng
+Months the Utility Deposit covers ⟶ Số tháng tiền cọc điện nước
+Balance due (days after the assignment) ⟶ Hạn tiền phòng còn lại (ngày sau khi xếp phòng)
+Desk opens ⟶ Quầy mở cửa
+Desk closes ⟶ Quầy đóng cửa
+Visitors from ⟶ Giờ thăm từ
+Visitors until ⟶ Giờ thăm đến
+Quiet hours from ⟶ Giờ yên tĩnh từ
+Room Types ⟶ Loại phòng
+Room Classes ⟶ Hạng phòng
+Deposit and refunds ⟶ Tiền cọc và hoàn tiền
+Utility ⟶ Điện nước
+Deadlines and reminders ⟶ Thời hạn và nhắc nhở
+Refunds, penalties and terminations ⟶ Hoàn tiền, phạt và chấm dứt ở
+Stay and renewal ⟶ Thời gian ở và gia hạn
+Block {0} settings ⟶ Thiết lập Block {0}
+Deposit payment window (hours) ⟶ Thời hạn thanh toán tiền cọc (giờ)
+Balance due after the assignment (days) ⟶ Hạn tiền phòng còn lại sau khi xếp phòng (ngày)
+First payment reminder (days before the deadline) ⟶ Nhắc thanh toán lần 1 (số ngày trước hạn)
+Second payment reminder (days before the deadline) ⟶ Nhắc thanh toán lần 2 (số ngày trước hạn)
+Time left after a rejected payment claim, at least (hours) ⟶ Thời gian còn lại tối thiểu sau khi xác nhận chuyển khoản bị từ chối (giờ)
+Rejected claims that cancel the Invoice ⟶ Số lần từ chối xác nhận chuyển khoản thì hủy hóa đơn
+Overdue Utility months that end a stay ⟶ Số tháng nợ điện nước thì chấm dứt ở
+End a stay when the Utility debt reaches the Utility Deposit ⟶ Chấm dứt ở khi nợ điện nước bằng tiền cọc điện nước
+Days between the final warning and the termination ⟶ Số ngày từ cảnh báo cuối đến khi chấm dứt ở
+Days to move out after a termination notice ⟶ Số ngày phải chuyển đi sau thông báo chấm dứt ở
+Longest late check-in after the check-in end (days) ⟶ Nhận phòng muộn tối đa sau hạn nhận phòng (ngày)
+Most Terms a student may commit to (Gia hạn) ⟶ Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)
+Approve extension requests of eligible students automatically ⟶ Tự động duyệt yêu cầu gia hạn của sinh viên đủ điều kiện
+Share of Beds kept for new students in new Terms (%) ⟶ Tỷ lệ giường dành cho sinh viên mới ở các kỳ mới (%)
+Alert Managers about undecided requests before the decision deadline (hours) ⟶ Báo Quản lý về yêu cầu chưa quyết định trước hạn quyết định (giờ)
+Application cancelled before results are published ⟶ Hủy đơn trước khi công bố kết quả
+Application cancelled after results, before Check-in ⟶ Hủy đơn sau khi có kết quả, trước khi nhận phòng
+Check-out before the end of the Term (unused days) ⟶ Trả phòng trước khi hết kỳ (số ngày chưa ở)
+Utility Deposit at Check-out, minus unpaid Utility and damage ⟶ Tiền cọc điện nước khi trả phòng, trừ điện nước chưa trả và hư hỏng
+Balance not paid by its deadline (the Deposit is kept) ⟶ Không thanh toán tiền phòng còn lại đúng hạn (giữ lại tiền cọc)
+Stay ended because the student is no longer enrolled (unused room fee) ⟶ Chấm dứt ở vì sinh viên không còn theo học (tiền phòng chưa dùng)
+Stay terminated for Utility debt or by a Manager (unused room fee) ⟶ Chấm dứt ở vì nợ điện nước hoặc do Quản lý quyết định (tiền phòng chưa dùng)

@@ -175,13 +175,17 @@ class AdminConfigIT {
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].status", contains("Active")));
     }
 
-    /** TC-CFG-008: fees and refund rules save as one document; a new rule gets an id; bad rates are refused. */
+    /**
+     * TC-CFG-008: fees and refund rules save as one document; a new rule gets an id; bad rates are refused. The seven
+     * refund triggers of spec §9 are there (V10, V42).
+     */
     @Test
     void feesAndRefundRules() throws Exception {
         mvc.perform(as(get("/admin/fees")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.depositPercent").value(20))
-                .andExpect(jsonPath("$.rules", hasSize(4)))
+                .andExpect(jsonPath("$.rules", hasSize(7)))
+                .andExpect(jsonPath("$.rules[4].when").value("Balance not paid by its deadline (the Deposit is kept)"))
                 .andExpect(jsonPath("$.rules[0].approver").value("System"))
                 .andExpect(jsonPath("$.approverOptions", contains("System", "Staff", "Manager", "Admin")));
         String fees = """
@@ -195,9 +199,9 @@ class AdminConfigIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.depositPercent").value(25))
                 .andExpect(jsonPath("$.policyConfirmed").value(true))
-                .andExpect(jsonPath("$.rules", hasSize(5)))
-                .andExpect(jsonPath("$.rules[4].id").value(not("new-1")))
-                .andExpect(jsonPath("$.rules[4].refundPercent").value(80));
+                .andExpect(jsonPath("$.rules", hasSize(8)))
+                .andExpect(jsonPath("$.rules[7].id").value(not("new-1")))
+                .andExpect(jsonPath("$.rules[7].refundPercent").value(80));
         mvc.perform(as(get("/admin/room-classes"))).andExpect(jsonPath("$.depositRate").value(0.25));
         mvc.perform(as(get("/admin/audit-log")).param("action", "Refund policy confirmed"))
                 .andExpect(jsonPath("$.items", hasSize(1)));

@@ -102,6 +102,36 @@ class JdbcUserDirectory implements UserDirectory {
         return result;
     }
 
+    @Override
+    public StudentCounts studentCounts() {
+        Map<String, Long> byGender = new HashMap<>();
+        jdbc.sql("""
+                SELECT trim(s.gender) AS gender, count(*) AS n FROM auth_student s JOIN auth_user u ON u.id = s.user_id
+                WHERE u.status = 'ACTIVE' GROUP BY trim(s.gender)
+                """)
+                .query((rs, i) -> Map.entry(rs.getString("gender"), rs.getLong("n"))).list()
+                .forEach(e -> byGender.put(e.getKey(), e.getValue()));
+        return jdbc.sql("""
+                SELECT count(*) AS students,
+                       count(*) FILTER (WHERE s.enrollment_status <> 'ENROLLED') AS not_enrolled,
+                       count(*) FILTER (WHERE s.verification <> 'VERIFIED') AS not_verified,
+                       count(*) FILTER (WHERE coalesce(trim(s.phone), '') = ''
+                                          OR coalesce(trim(s.emergency_name), '') = ''
+                                          OR coalesce(trim(s.emergency_phone), '') = '') AS contact
+                FROM auth_student s JOIN auth_user u ON u.id = s.user_id
+                WHERE u.status = 'ACTIVE'
+                """)
+                .query((rs, i) -> new StudentCounts(rs.getLong("students"), rs.getLong("not_enrolled"),
+                        rs.getLong("not_verified"), rs.getLong("contact"), byGender))
+                .single();
+    }
+
+    @Override
+    public List<Long> activeUserIds(String role) {
+        return jdbc.sql("SELECT id FROM auth_user WHERE role = :role AND status = 'ACTIVE' ORDER BY id")
+                .param("role", role).query(Long.class).list();
+    }
+
     private static final String PROFILE = """
             SELECT u.id, u.display_name, u.email, s.student_code, s.gender, s.major, s.cohort, s.semester_no, s.hometown,
                    s.region, s.enrollment_status, s.priority_groups, s.phone, s.emergency_name,

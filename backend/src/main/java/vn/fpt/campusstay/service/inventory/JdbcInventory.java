@@ -75,11 +75,17 @@ class JdbcInventory implements Inventory {
         return ofBuilding(currentTerm(), buildingId);
     }
 
+    /** Also only the Blocks the Term uses, without the Rooms it leaves out (ADR-20, spec §6.4 step 3). */
     private List<BedSlot> assignable(Long termId) {
-        return jdbc.sql(SLOT + """
+        List<BedSlot> beds = jdbc.sql(SLOT + """
                 WHERE b.status = 'IN_SERVICE' AND r.status = 'IN_SERVICE' AND bu.status = 'ACTIVE'
                 ORDER BY r.code, b.label
                 """).param("term", termId).query(JdbcInventory::slot).list();
+        if (termId == null) {
+            return beds;
+        }
+        TermCatalog.TermRooms rooms = terms.rooms(termId);
+        return rooms.all() ? beds : beds.stream().filter(b -> rooms.uses(b.buildingId(), b.roomId())).toList();
     }
 
     private Map<Long, BedSlot> byId(Long termId, Collection<Long> bedIds) {

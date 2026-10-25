@@ -28,7 +28,10 @@ public interface Inventory {
         }
     }
 
-    /** In-service Beds of in-service Rooms in active Blocks, by Room code then Bed label. */
+    /**
+     * In-service Beds of in-service Rooms in active Blocks, by Room code then Bed label; only in the Blocks the Term
+     * uses and not in the Rooms it leaves out (ADR-20).
+     */
     List<BedSlot> assignableBeds(long termId);
 
     /** Any Beds by id (retired or out of service included), for showing existing Allocations. */
@@ -49,6 +52,6 @@ public interface Inventory {
     /** {@link #bedsOfBuilding(long, long)} with the Room Class of the current Term. */
     List<BedSlot> bedsOfBuilding(long buildingId);
 
-    /** {@link #assignableBeds(long)} with the Room Class of the current Term. */
+    /** {@link #assignableBeds(long)} with the Room Class (and the Blocks and Rooms) of the current Term. */
     List<BedSlot> assignableBeds();
 }

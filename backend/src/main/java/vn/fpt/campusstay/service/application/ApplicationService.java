@@ -201,9 +201,9 @@ public class ApplicationService {
             partner = usablePartner(me.userId(), term, roommate.studentCode())
                     .orElseThrow(() -> FieldErrors.single("roommate", UNUSABLE_CODE));
         }
-        long termPrice = fees.termPrice(type.id(), roomClass.id())
+        long termPrice = fees.termPrice(term.id(), type.id(), roomClass.id())
                 .orElseThrow(() -> FieldErrors.single("roomClassId", "This Room Type and Room Class are not offered."));
-        long deposit = fees.deposit(termPrice);
+        long deposit = fees.deposit(term.id(), termPrice);
         Instant now = Instant.now(clock);
         Instant depositDueAt = now.plus(Duration.ofHours(term.depositWindowHours()));
 

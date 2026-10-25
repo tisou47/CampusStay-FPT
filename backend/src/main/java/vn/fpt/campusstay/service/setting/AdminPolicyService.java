@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.common.audit.ActorResolver;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.event.PolicyChanged;
+import vn.fpt.campusstay.event.ValueChange;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
@@ -38,14 +42,24 @@ public class AdminPolicyService {
             Boolean manualConfirm, Boolean policyConfirmed, List<RefundRule> rules, List<String> approverOptions) {
     }
 
-    public record Criterion(String key, String title, String note, Boolean on) {
+    /** {@code failing}: students who fail it now (spec §6.17); ignored on PUT. */
+    public record Criterion(String key, String title, String note, Boolean on, Long failing) {
+    }
+
+    /** A check every Application passes that has no switch (registration open, account verified). */
+    public record Fixed(String key, String title, String note, Long failing) {
     }
 
     /** {@code applied}: students of the directory in the group; {@code id} is left out for a new group. */
     public record Group(String id, String title, String note, Long applied) {
     }
 
-    public record Eligibility(List<Criterion> criteria, List<Group> groups, String appliesFromTermName) {
+    /**
+     * @param students students of the directory the counts are taken from
+     * @param fixed    the checks that cannot be switched off
+     */
+    public record Eligibility(List<Criterion> criteria, List<Group> groups, String appliesFromTermName, Long students,
+            List<Fixed> fixed) {
     }
 
     private static final Map<String, String> APPROVERS = Map.of("SYSTEM", "System", "STAFF", "Staff", "MANAGER",
@@ -57,14 +71,20 @@ public class AdminPolicyService {
     private final UserDirectory userDirectory;
     private final ActorResolver actors;
     private final AuditLog audit;
+    private final ApplicationEventPublisher events;
+    private final ObjectProvider<EligibilityCounts> counts;
+    private final TermCatalog terms;
     private final Clock clock;
 
     public AdminPolicyService(JdbcClient jdbc, UserDirectory userDirectory, ActorResolver actors, AuditLog audit,
-            Clock clock) {
+            ApplicationEventPublisher events, ObjectProvider<EligibilityCounts> counts, TermCatalog terms, Clock clock) {
         this.jdbc = jdbc;
         this.userDirectory = userDirectory;
         this.actors = actors;
         this.audit = audit;
+        this.events = events;
+        this.counts = counts;
+        this.terms = terms;
         this.clock = clock;
     }
 
@@ -161,6 +181,11 @@ public class AdminPolicyService {
             audit.record(after.policyConfirmed() && !before.policyConfirmed() ? "REFUND_POLICY_CONFIRMED" : "FEES_UPDATED",
                     AuditLog.Tone.INFO, "Fee policy", null, "Fees and Refunds", change);
         }
+        List<ValueChange> announced = feesAnnounced(before, after);
+        if (!announced.isEmpty()) {
+            // New Terms copy the Deposit; refund rules act at once (spec §8, §10).
+            events.publishEvent(new PolicyChanged("FINANCE", "Deposit and refunds", null, null, announced, null));
+        }
         return after;
     }
 
@@ -181,6 +206,39 @@ public class AdminPolicyService {
         return change;
     }
 
+    /** What students are told: the Deposit, its payment windows and every refund rule that changed. */
+    private static List<ValueChange> feesAnnounced(Fees before, Fees after) {
+        List<ValueChange> out = new ArrayList<>();
+        if (!Objects.equals(before.depositPercent(), after.depositPercent())) {
+            out.add(new ValueChange("Deposit", "PERCENT", String.valueOf(before.depositPercent()),
+                    String.valueOf(after.depositPercent())));
+        }
+        if (!Objects.equals(before.depositHours(), after.depositHours())) {
+            out.add(new ValueChange("Deposit payment (hours)", "NUMBER", String.valueOf(before.depositHours()),
+                    String.valueOf(after.depositHours())));
+        }
+        if (!Objects.equals(before.balanceDays(), after.balanceDays())) {
+            out.add(new ValueChange("Balance due (days after the assignment)", "NUMBER",
+                    String.valueOf(before.balanceDays()), String.valueOf(after.balanceDays())));
+        }
+        Map<String, RefundRule> old = new LinkedHashMap<>();
+        before.rules().forEach(r -> old.put(r.id(), r));
+        for (RefundRule r : after.rules()) {
+            RefundRule o = old.get(r.id());
+            String was = o == null ? null : refundText(o);
+            if (!Objects.equals(was, refundText(r))) {
+                out.add(new ValueChange(r.when(), "TEXT", was, refundText(r)));
+            }
+        }
+        return out;
+    }
+
+    /** {@code 30% · Manager} or {@code off}. */
+    private static String refundText(RefundRule r) {
+        return Boolean.FALSE.equals(r.active()) ? "off" : r.refundPercent().stripTrailingZeros().toPlainString() + "% · "
+                + r.approver();
+    }
+
     private static String ruleText(RefundRule r) {
         return r.when() + " · " + r.refundPercent() + "% · " + r.approver() + (r.active() ? "" : " · off");
     }
@@ -199,11 +257,14 @@ public class AdminPolicyService {
 
     @Transactional(readOnly = true)
     public Eligibility eligibility() {
+        EligibilityCounts port = counts.getIfAvailable();
+        EligibilityCounts.Counts now = port == null ? new EligibilityCounts.Counts(0, Map.of())
+                : port.now(terms.openForRegistration().map(t -> t.id()).orElse(null));
         List<Criterion> criteria = jdbc.sql("""
                 SELECT key, title, note, enabled FROM cfg_eligibility_criterion ORDER BY sort_order, key
                 """)
                 .query((rs, i) -> new Criterion(rs.getString("key"), rs.getString("title"), rs.getString("note"),
-                        rs.getBoolean("enabled")))
+                        rs.getBoolean("enabled"), now.failing().get(rs.getString("key"))))
                 .list();
         Map<String, Long> members = userDirectory.studentsPerPriorityGroup();
         List<Group> groups = jdbc.sql("""
@@ -218,7 +279,12 @@ public class AdminPolicyService {
                 """)
                 .param("now", Timestamp.from(Instant.now(clock)))
                 .query(String.class).optional().orElse(null);
-        return new Eligibility(criteria, groups, appliesFrom);
+        List<Fixed> fixed = List.of(
+                new Fixed("REGISTRATION_OPEN", "Registration is open", "Students apply between the opening and the "
+                        + "closing of the Term's registration", null),
+                new Fixed(EligibilityCounts.VERIFIED, "Account verified", "A Manager or the imported student list "
+                        + "confirmed the student's record", now.failing().get(EligibilityCounts.VERIFIED)));
+        return new Eligibility(criteria, groups, appliesFrom, now.students(), fixed);
     }
 
     /**

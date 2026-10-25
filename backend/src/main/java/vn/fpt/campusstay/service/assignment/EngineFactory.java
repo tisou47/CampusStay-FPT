@@ -111,7 +111,9 @@ class EngineFactory {
     List<AssignmentEngine.Applicant> applicants(Collection<Applications.Candidate> candidates) {
         Map<Long, UserDirectory.StudentProfile> profiles = users.studentProfiles(
                 candidates.stream().map(Applications.Candidate::studentId).toList());
-        List<String> groups = rules.priorityGroupKeys();
+        // The Term's own order (ADR-20): every candidate of one call belongs to the same Term.
+        List<String> groups = candidates.isEmpty() ? rules.priorityGroupKeys()
+                : rules.priorityGroupKeys(candidates.iterator().next().termId());
         List<AssignmentEngine.Applicant> result = new ArrayList<>();
         for (Applications.Candidate c : candidates) {
             UserDirectory.StudentProfile p = profiles.get(c.studentId());

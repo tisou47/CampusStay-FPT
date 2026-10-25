@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026).
+Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (branch `feat/v2-phase4`, not merged yet).
 
 | Slice | Focus |
 |---|---|
@@ -16,6 +16,7 @@ Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 cod
 | S7 | Dashboards, reports, exports, inspections, email campaigns, templates |
 | V2-2 | Change Specification v2 phase 2 "Accounts": Google sign-up, verification, student list, hub and import, Staff accounts |
 | V2-3 | Change Specification v2 phase 3 "Inventory": Room Class per Room per Term, furniture and Room Class requirements, door codes |
+| V2-4 | Change Specification v2 phase 4 "Registration periods": Managers' requests, the Term wizard with Term prices, announcements and the board, grouped configuration, rules screens, Term dashboard |
 
 ## S0 — Foundation, AUTH session, Terms
 
@@ -40,9 +41,9 @@ Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 cod
 | AUTH | GET | `/admin/users` | Must | Verified | C-15; TC-AUTH-011 |
 | AUTH | POST | `/admin/users` | Must | Verified | C-15; invitation email via outbox; TC-AUTH-012, 013 |
 | AUTH | PUT | `/admin/users/{id}` | Must | Verified | C-15; disabling signs the user out; TC-AUTH-014, 015 |
-| CFG | GET, PUT | `/admin/eligibility` | Must | Verified | C-16; TC-CFG-009 |
-| CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; TC-CFG-008 |
-| CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16; TC-CFG-010 |
+| CFG | GET, PUT | `/admin/eligibility` | Must | Verified | C-16, A-33 (students failing each check); TC-CFG-009, 025 |
+| CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; seven refund triggers since V42; a change is announced (C-41); TC-CFG-008, TC-NTF-043 |
+| CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16, A-33 (levels); TC-CFG-010, 025 |
 | CFG | POST | `/admin/matching/preview` | Must | Verified | Runs the assignment engine over the Term's approved Applications (ASG implements `cfg.MatchingPreviewer`, S3); TC-CFG-010 (nobody to place) |
 | CFG | GET | `/admin/room-classes` | Must | Verified | B-04 (`usedIn`: Rooms of the class in the current Term, v2 phase 3); TC-CFG-007, TC-INV-009 |
 | CFG | POST | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
@@ -50,11 +51,11 @@ Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 cod
 | CFG | GET | `/admin/room-types` | Must | Verified | TC-CFG-005, TC-INV-005 |
 | CFG | POST | `/admin/room-types` | Must | Verified | TC-CFG-005 |
 | CFG | PUT | `/admin/room-types/{id}` | Must | Verified | Beds change adds/retires Beds (event to INV); TC-CFG-006, TC-INV-005 |
-| CFG | GET, PUT | `/admin/system-parameters` | Must | Verified | C-16; TC-CFG-011 |
-| CFG | GET | `/admin/terms` | Must | Verified | TC-CFG-002 |
+| CFG | GET, PUT | `/admin/system-parameters` | Must | Verified | C-16; the parameters of a settings group moved to A-31; TC-CFG-011, 024 |
+| CFG | GET | `/admin/terms` | Must | Verified | A-27 (`wizardStep`, `requestCode`); TC-CFG-002, 022 |
 | CFG | POST | `/admin/terms` | Must | Verified | C-11; TC-CFG-003, 004 |
-| CFG | PUT | `/admin/terms/{id}` | Must | Verified | TC-CFG-004 |
-| CFG | POST | `/admin/terms/{id}/publish` | Must | Verified | TC-CFG-004 |
+| CFG | PUT | `/admin/terms/{id}` | Must | Verified | A published Term's change is announced (C-41); TC-CFG-004 |
+| CFG | POST | `/admin/terms/{id}/publish` | Must | Verified | A-27, C-41: checks, then fixes prices, Deposit, Utility Deposit and rules; Managers told, Term announcement; TC-CFG-004, 021 |
 | INV | GET | `/admin/buildings` | Must | Verified | C-15, C-40 (Floor classes per Term); TC-INV-001, 012 |
 | INV | POST | `/admin/buildings` | Must | Verified | TC-INV-002 |
 | INV | PUT | `/admin/buildings/{id}` | Must | Verified | TC-INV-002, 005 |
@@ -65,9 +66,9 @@ Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 cod
 | INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Verified | TC-INV-006 |
 | INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Verified | C-17; TC-INV-005, 006 |
 | INV | GET | `/inventory/structure` | Must | Verified | TC-INV-003, 007 |
-| NTF | GET | `/notifications` | Must | Verified | Moved from S2: every layout calls it; C-18; TC-NTF-001, 003 |
-| NTF | POST | `/notifications/read-all` | Must | Verified | Moved from S2; TC-NTF-002 |
-| NTF | POST | `/notifications/{id}/read` | Must | Verified | Moved from S2; TC-NTF-002 |
+| NTF | GET | `/notifications` | Must | Verified | Moved from S2: every layout calls it; C-18; a student's list also holds the board's announcements (C-41); TC-NTF-001, 003, 041 |
+| NTF | POST | `/notifications/read-all` | Must | Verified | Moved from S2; also announcements (C-41); TC-NTF-002 |
+| NTF | POST | `/notifications/{id}/read` | Must | Verified | Moved from S2; `ann-<n>` reads an announcement (C-41); TC-NTF-002, 041 |
 
 ## S2 — Application wizard, Deposit Invoice, VietQR/SePay
 
@@ -89,7 +90,7 @@ Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 cod
 | BIL | GET | `/invoices/{id}/receipt` | Must | Verified | One-page PDF; TC-BIL-003, 004 |
 | BIL | GET | `/students/me/invoices` | Must | Verified | TC-BIL-001, 003, 006 |
 | BIL | POST | `/webhooks/sepay` | Must | Verified | A-07; TC-BIL-002, 003, 004, 005 |
-| CFG | GET | `/catalog` | Must | Verified | TC-APP-001 |
+| CFG | GET | `/catalog` | Must | Verified | The Term's prices, Deposit and Utility Deposit (C-41); TC-APP-001, TC-CFG-021 |
 
 Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay reported the exact transfer; it exists only with `campusstay.payment.simulator=true` (dev profile, or `PAYMENT_SIMULATOR=true` on a demo server). Verified: TC-BIL-027, 028.
 
@@ -282,3 +283,28 @@ Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | INV | GET | `/students/me/furniture` | Must | Verified | A-26; TC-INV-023 |
 
 Door-code rotation: a check-out or a move to another Room opens the Room's task and tells the Block's Staff (`DOOR_CODE_TO_SET`): TC-INV-022, TC-ASG-022.
+
+## V2-4 — Change Specification v2 phase 4 "Registration periods"
+
+Built on `feat/v2-phase4` (ADR-20, ADR-27; not merged into `main` yet). Migrations V42 (CFG: Term milestones M1–M7, Term prices, Blocks and Rooms of a Term, the rules a Term opened with, information for students, registration-period requests and their history, grouped settings, three refund triggers, report views) and V43 (NTF: announcements with a read state per user, the request and publish notifications). A published Term keeps its prices, Deposit, Utility Deposit and rules; every reader asks the Term (C-41). Change announcements also come from `PUT /admin/room-types/{id}`, `/admin/room-classes/{id}`, `/admin/fees`, `/admin/utility` and `/block-settings`.
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| CFG | GET | `/term-requests` | Must | Verified | A-28; Managers and the Admin; TC-CFG-016 |
+| CFG | GET | `/term-requests/{id}` | Must | Verified | A-28; history, differences with reasons; TC-CFG-016, 018, 019 |
+| CFG | POST | `/term-requests` | Must | Verified | A-28; Managers; one open request per Term; Admins and other Managers told; TC-CFG-016, 017 |
+| CFG | PUT | `/term-requests/{id}` | Must | Verified | A-28; the requester, Submitted or Needs changes; TC-CFG-018 |
+| CFG | POST | `/term-requests/{id}/comments` | Must | Verified | A-28; TC-CFG-018 |
+| CFG | POST | `/term-requests/{id}/decision` | Must | Verified | A-28; Admin: In progress, Needs changes, Rejected; TC-CFG-018 |
+| CFG | POST | `/admin/terms/drafts` | Must | Verified | A-27; from a request or empty; TC-CFG-019, 020, 021 |
+| CFG | GET | `/admin/terms/{id}/wizard` | Must | Verified | A-27; TC-CFG-019, 021, 022 |
+| CFG | PUT | `/admin/terms/{id}/wizard/{step}` | Must | Verified | A-27; reasons for differences; spec §5.2 checks; after publishing extend-only, money locked, change announcement; TC-CFG-019, 020, 021, 022 |
+| CFG | GET | `/registration-periods/current` | Must | Verified | A-29; TC-CFG-023 |
+| CFG | GET | `/registration-periods/{termId}` | Must | Verified | A-29; TC-CFG-023 |
+| CFG | GET, PUT | `/admin/settings/{group}` | Must | Verified | A-31; deadlines, refunds, stay; TC-CFG-024 |
+| NTF | GET | `/students/me/board` | Must | Verified | A-30; TC-NTF-041, 042, 043, TC-CFG-021, 022 |
+| NTF | GET | `/announcements` | Must | Verified | A-30; Staff see their Blocks' and everybody's; TC-NTF-041, 042 |
+| NTF | GET | `/announcements/options` | Must | Verified | A-30; TC-NTF-042 |
+| NTF | POST | `/announcements` | Must | Verified | A-30; Staff: residents of their Blocks only; TC-NTF-041, 042 |
+| NTF | PUT | `/announcements/{id}` | Must | Verified | A-30; pin, end; TC-NTF-042 |
+| RPT | GET | `/dashboards/term` | Must | Verified | A-32; Managers and the Admin; TC-RPT-012 |

@@ -188,7 +188,7 @@ public class RoomChangeService {
         List<PriceOption> priceList = new ArrayList<>();
         for (Catalog.RoomTypeInfo t : types) {
             for (Catalog.RoomClassInfo c : classes) {
-                OptionalLong price = fees.termPrice(t.id(), c.id());
+                OptionalLong price = fees.termPrice(term.id(), t.id(), c.id());
                 if (price.isPresent()) {
                     priceList.add(new PriceOption(String.valueOf(t.id()), String.valueOf(c.id()), price.getAsLong()));
                 }
@@ -232,9 +232,9 @@ public class RoomChangeService {
         String details = cmd.details() == null || cmd.details().isBlank() ? null : cmd.details().trim();
         errors.check(details == null || details.length() <= 1000, "details", "Keep the details under 1,000 characters.");
         errors.throwIfAny();
-        long newPrice = fees.termPrice(typeId, classId)
+        long newPrice = fees.termPrice(term.id(), typeId, classId)
                 .orElseThrow(() -> FieldErrors.single("roomTypeId", "This Room Type and Room Class are not offered."));
-        long currentPrice = fees.termPrice(p.roomTypeId(), p.roomClassId()).orElse(newPrice);
+        long currentPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(newPrice);
         long difference = prices.difference(newPrice, currentPrice, term);
         Instant now = Instant.now(clock);
         Instant slaDue = now.plus(Duration.ofHours(routing.sla(p.buildingId()).roomChange()));
@@ -410,8 +410,8 @@ public class RoomChangeService {
         }
         long newAllocation = moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
         TermSummary term = terms.findPublished(r.termId()).orElseThrow();
-        long newPrice = fees.termPrice(r.typeId(), r.classId()).orElse(0);
-        long currentPrice = fees.termPrice(p.roomTypeId(), p.roomClassId()).orElse(newPrice);
+        long newPrice = fees.termPrice(r.termId(), r.typeId(), r.classId()).orElse(0);
+        long currentPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(newPrice);
         long difference = prices.difference(newPrice, currentPrice, term);
         NumberFormat vnd = NumberFormat.getIntegerInstance(Locale.US);
         StringBuilder text = new StringBuilder("Moved to Room " + bed.room() + " · Bed " + bed.bed() + ".");

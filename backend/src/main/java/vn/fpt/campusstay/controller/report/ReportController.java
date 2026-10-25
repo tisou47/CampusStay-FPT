@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.report.DashboardService;
+import vn.fpt.campusstay.service.report.TermDashboardService;
 import vn.fpt.campusstay.service.report.ExportService;
 import vn.fpt.campusstay.service.report.ReportService;
 
@@ -21,11 +22,14 @@ import vn.fpt.campusstay.service.report.ReportService;
 class ReportController {
 
     private final DashboardService dashboards;
+    private final TermDashboardService termDashboard;
     private final ReportService reports;
     private final ExportService exports;
 
-    ReportController(DashboardService dashboards, ReportService reports, ExportService exports) {
+    ReportController(DashboardService dashboards, TermDashboardService termDashboard, ReportService reports,
+            ExportService exports) {
         this.dashboards = dashboards;
+        this.termDashboard = termDashboard;
         this.reports = reports;
         this.exports = exports;
     }
@@ -40,6 +44,11 @@ class ReportController {
     DashboardService.ManagerDashboard manager(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block) {
         return dashboards.manager(termId, block);
+    }
+
+    @GetMapping("/dashboards/term")
+    TermDashboardService.TermDashboard term(@RequestParam(required = false) Long termId) {
+        return termDashboard.dashboard(termId);
     }
 
     @GetMapping("/dashboards/admin")
