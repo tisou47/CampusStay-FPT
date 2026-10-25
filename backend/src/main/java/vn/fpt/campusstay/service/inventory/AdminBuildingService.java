@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -18,12 +19,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import vn.fpt.campusstay.service.setting.Catalog;
-import vn.fpt.campusstay.service.setting.Parameters;
-import vn.fpt.campusstay.service.inventory.BedOccupancy;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
+import vn.fpt.campusstay.service.setting.Catalog;
+import vn.fpt.campusstay.service.setting.Parameters;
+import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
  * Admin › Buildings: Blocks, their Floors and bulk Room generation. The API calls
@@ -34,19 +36,31 @@ import vn.fpt.campusstay.exception.FieldErrors;
  * Floor in the first Block that has it, else that Block's top Floor. It only adds
  * missing Rooms (codes {@code <Block>-<Floor><nn>}), so running it twice is
  * harmless, and it skips Floors where an Allocation holds a Bed.
+ * <p>A Room's class is set per Room and per Term (ADR-24, Manager › Room Classes); a
+ * Floor's class is only the class bulk generation gives the new Rooms of that Floor.
  */
 @Service
 public class AdminBuildingService {
 
-    public record FloorRow(int floor, String roomClassName, long twoBed, long fourBed, long sixBed, long rooms, long beds,
-            long closedRooms) {
+    /**
+     * @param roomClassName the class new Rooms of the Floor get (null: none chosen yet)
+     * @param roomClasses   the classes its Rooms have in the current Term, with how many Rooms have each
+     */
+    public record FloorRow(int floor, String roomClassName, List<ClassCount> roomClasses, long twoBed, long fourBed,
+            long sixBed, long rooms, long beds, long closedRooms) {
+    }
+
+    public record ClassCount(String name, long rooms) {
     }
 
     public record BuildingItem(String id, String name, String gender, String status, List<FloorRow> floors) {
     }
 
+    public record ClassOption(String id, String name) {
+    }
+
     public record BuildingPage(List<BuildingItem> items, List<String> genders, List<Integer> floorOptions,
-            String layoutNote) {
+            List<ClassOption> roomClasses, String layoutNote) {
     }
 
     public record BlockValues(String name, String gender, String status) {
@@ -55,6 +69,7 @@ public class AdminBuildingService {
     public record BulkResult(int created, int skipped) {
     }
 
+    /** {@code roomClassName}: the Room's class in the current Term. */
     public record FloorRoom(String code, String roomTypeName, String roomClassName, boolean outOfService) {
     }
 
@@ -69,29 +84,31 @@ public class AdminBuildingService {
     private final Catalog catalog;
     private final Parameters parameters;
     private final BedOccupancy occupancy;
+    private final TermCatalog terms;
     private final AuditLog audit;
 
     public AdminBuildingService(JdbcClient jdbc, Catalog catalog, Parameters parameters, BedOccupancy occupancy,
-            AuditLog audit) {
+            TermCatalog terms, AuditLog audit) {
         this.jdbc = jdbc;
         this.catalog = catalog;
         this.parameters = parameters;
         this.occupancy = occupancy;
+        this.terms = terms;
         this.audit = audit;
     }
 
     private record Building(long id, String code, String gender, String status) {
     }
 
-    /** A Floor with its planned layout (Room Type id → Rooms). */
-    private record Floor(long id, long buildingId, String block, int floor, long roomClassId, Map<Long, Integer> layout) {
+    /** A Floor with its planned layout (Room Type id → Rooms); {@code roomClassId} may be null. */
+    private record Floor(long id, long buildingId, String block, int floor, Long roomClassId, Map<Long, Integer> layout) {
     }
 
-    private record Layout(long roomClassId, Map<Long, Integer> rooms) {
+    private record Layout(Long roomClassId, Map<Long, Integer> rooms) {
     }
 
-    private record FloorLayoutRow(long floorId, long buildingId, String block, int floor, long roomClassId, Long roomTypeId,
-            int roomCount) {
+    private record FloorLayoutRow(long floorId, long buildingId, String block, int floor, Long roomClassId,
+            Long roomTypeId, int roomCount) {
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +133,17 @@ public class AdminBuildingService {
                 .query((rs, i) -> Map.entry(rs.getLong("floor_id"), rs.getLong("beds")))
                 .list()
                 .forEach(e -> bedsByFloor.put(e.getKey(), e.getValue()));
+        Map<Long, Map<Long, Long>> classesByFloor = new HashMap<>();
+        jdbc.sql("""
+                SELECT c.floor_id, c.class_id, count(*) AS rooms
+                FROM (SELECT floor_id, inv_room_class_in(id, CAST(:term AS BIGINT)) AS class_id
+                      FROM inv_room WHERE status <> 'RETIRED') c
+                GROUP BY c.floor_id, c.class_id
+                """)
+                .param("term", currentTerm())
+                .query((rs, i) -> new long[] { rs.getLong("floor_id"), rs.getLong("class_id"), rs.getLong("rooms") })
+                .list()
+                .forEach(r -> classesByFloor.computeIfAbsent(r[0], k -> new TreeMap<>()).put(r[1], r[2]));
 
         Map<Long, List<Floor>> floorsByBuilding = floors().stream().collect(Collectors.groupingBy(Floor::buildingId));
         List<BuildingItem> items = new ArrayList<>();
@@ -132,14 +160,18 @@ public class AdminBuildingService {
                     rooms += count;
                     closed += e.getValue()[1];
                 }
-                rows.add(new FloorRow(f.floor(), classNames.get(f.roomClassId()), two, four, six, rooms,
-                        bedsByFloor.getOrDefault(f.id(), 0L), closed));
+                List<ClassCount> classes = classesByFloor.getOrDefault(f.id(), Map.of()).entrySet().stream()
+                        .map(e -> new ClassCount(classNames.get(e.getKey()), e.getValue())).toList();
+                rows.add(new FloorRow(f.floor(), f.roomClassId() == null ? null : classNames.get(f.roomClassId()),
+                        classes, two, four, six, rooms, bedsByFloor.getOrDefault(f.id(), 0L), closed));
             }
             items.add(new BuildingItem(String.valueOf(b.id()), b.code(), GENDERS.get(b.gender()), statusLabel(b.status()),
                     rows));
         }
+        List<ClassOption> classOptions = catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active)
+                .map(c -> new ClassOption(String.valueOf(c.id()), c.name())).toList();
         return new BuildingPage(items, List.of("Male", "Female"),
-                IntStream.rangeClosed(1, maxFloor()).boxed().toList(), layoutNote(types));
+                IntStream.rangeClosed(1, maxFloor()).boxed().toList(), classOptions, layoutNote(types));
     }
 
     @Transactional
@@ -205,8 +237,12 @@ public class AdminBuildingService {
         return id;
     }
 
+    /**
+     * @param roomClassId the class of the new Rooms (and the Floors' class for later generations); null keeps
+     *                    each Floor's class, or copies the reference Floor's
+     */
     @Transactional
-    public BulkResult generateRooms(long buildingId, Integer fromFloor, Integer toFloor) {
+    public BulkResult generateRooms(long buildingId, Integer fromFloor, Integer toFloor, Long roomClassId) {
         Building building = lockBuilding(buildingId);
         int max = maxFloor();
         FieldErrors errors = new FieldErrors();
@@ -215,6 +251,9 @@ public class AdminBuildingService {
         if (errors.isEmpty()) {
             errors.check(fromFloor <= toFloor, "toFloor", "The last Floor must not be below the first.");
         }
+        Optional<Catalog.RoomClassInfo> chosen = roomClassId == null ? Optional.empty()
+                : catalog.roomClasses().stream().filter(c -> c.id() == roomClassId && c.active()).findFirst();
+        errors.check(roomClassId == null || chosen.isPresent(), "roomClassId", "Choose an active Room Class.");
         errors.throwIfAny();
 
         Map<Long, Catalog.RoomTypeInfo> types = types();
@@ -239,15 +278,21 @@ public class AdminBuildingService {
                 continue;
             }
             Layout layout = layoutFor(building, floorNo, existing, floors, types);
+            long classId = roomClassId != null ? roomClassId
+                    : layout.roomClassId() != null ? layout.roomClassId() : firstActiveClass();
             long floorId;
             if (existing == null) {
                 floorId = jdbc.sql("""
                         INSERT INTO inv_floor (building_id, floor_no, room_class_id) VALUES (:b, :f, :c) RETURNING id
                         """)
-                        .param("b", buildingId).param("f", floorNo).param("c", layout.roomClassId())
+                        .param("b", buildingId).param("f", floorNo).param("c", classId)
                         .query(Long.class).single();
             } else {
                 floorId = existing.id();
+                if (existing.roomClassId() == null || existing.roomClassId() != classId) {
+                    jdbc.sql("UPDATE inv_floor SET room_class_id = :c WHERE id = :f")
+                            .param("c", classId).param("f", floorId).update();
+                }
             }
             if (existing == null || existing.layout().isEmpty()) {
                 for (Map.Entry<Long, Integer> e : layout.rooms().entrySet()) {
@@ -258,10 +303,14 @@ public class AdminBuildingService {
                             .param("f", floorId).param("t", e.getKey()).param("n", e.getValue()).update();
                 }
             }
-            created += createRooms(building, floorId, floorNo, layout.rooms(), types);
+            created += createRooms(building, floorId, floorNo, classId, layout.rooms(), types);
         }
-        audit.record("ROOMS_GENERATED", AuditLog.Tone.INFO, "Block", buildingId, building.code(),
-                Map.of("floors", fromFloor + "–" + toFloor, "created", created, "skipped", skipped));
+        Map<String, Object> change = new LinkedHashMap<>();
+        change.put("floors", fromFloor + "–" + toFloor);
+        change.put("created", created);
+        change.put("skipped", skipped);
+        chosen.ifPresent(c -> change.put("roomClass", c.name()));
+        audit.record("ROOMS_GENERATED", AuditLog.Tone.INFO, "Block", buildingId, building.code(), change);
         return new BulkResult(created, skipped);
     }
 
@@ -272,14 +321,16 @@ public class AdminBuildingService {
         Floor floor = floors().stream().filter(f -> f.buildingId() == buildingId && f.floor() == floorNo).findFirst()
                 .orElseThrow(() -> ApiException.notFound("Floor " + floorNo + " does not exist in Block " + b.code() + "."));
         Map<Long, Catalog.RoomTypeInfo> types = types();
-        String className = classNames().get(floor.roomClassId());
+        Map<Long, String> classNames = classNames();
         List<FloorRoom> rooms = jdbc.sql("""
-                SELECT code, room_type_id, status FROM inv_room WHERE floor_id = :f AND status <> 'RETIRED' ORDER BY code
+                SELECT code, room_type_id, inv_room_class_in(id, CAST(:term AS BIGINT)) AS room_class_id, status
+                FROM inv_room WHERE floor_id = :f AND status <> 'RETIRED' ORDER BY code
                 """)
                 .param("f", floor.id())
+                .param("term", currentTerm())
                 .query((rs, i) -> new FloorRoom(rs.getString("code"),
                         Optional.ofNullable(types.get(rs.getLong("room_type_id"))).map(Catalog.RoomTypeInfo::name).orElse(null),
-                        className, "OUT_OF_SERVICE".equals(rs.getString("status"))))
+                        classNames.get(rs.getLong("room_class_id")), "OUT_OF_SERVICE".equals(rs.getString("status"))))
                 .list();
         return new FloorRooms(rooms);
     }
@@ -298,7 +349,7 @@ public class AdminBuildingService {
                     .or(() -> referenceTopFloor(floors, building.id()));
             layout = reference.map(f -> new Layout(f.roomClassId(), f.layout()))
                     .orElseGet(() -> defaultLayout(types));
-            if (existing != null) {
+            if (existing != null && existing.roomClassId() != null) {
                 layout = new Layout(existing.roomClassId(), layout.rooms());
             }
         }
@@ -320,9 +371,7 @@ public class AdminBuildingService {
 
     /** No layout anywhere yet: one Room of every active Room Type, first active Room Class. */
     private Layout defaultLayout(Map<Long, Catalog.RoomTypeInfo> types) {
-        long classId = catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active).findFirst()
-                .map(Catalog.RoomClassInfo::id)
-                .orElseThrow(() -> ApiException.conflict("NO_ROOM_CLASS", "Create an active Room Class first."));
+        long classId = firstActiveClass();
         Map<Long, Integer> rooms = new LinkedHashMap<>();
         types.values().stream().filter(Catalog.RoomTypeInfo::active).forEach(t -> rooms.put(t.id(), 1));
         if (rooms.isEmpty()) {
@@ -331,8 +380,14 @@ public class AdminBuildingService {
         return new Layout(classId, rooms);
     }
 
+    private long firstActiveClass() {
+        return catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active).findFirst()
+                .map(Catalog.RoomClassInfo::id)
+                .orElseThrow(() -> ApiException.conflict("NO_ROOM_CLASS", "Create an active Room Class first."));
+    }
+
     /** Adds the missing Rooms of the layout, numbered by Room Type (fewest Beds first); returns how many. */
-    private int createRooms(Building building, long floorId, int floorNo, Map<Long, Integer> layout,
+    private int createRooms(Building building, long floorId, int floorNo, long roomClassId, Map<Long, Integer> layout,
             Map<Long, Catalog.RoomTypeInfo> types) {
         List<Long> typeOrder = layout.keySet().stream()
                 .sorted(Comparator.comparing((Long t) -> types.get(t).beds()).thenComparing(t -> t))
@@ -345,10 +400,12 @@ public class AdminBuildingService {
                 seq++;
                 String code = building.code() + "-" + floorNo + String.format(total > 99 ? "%03d" : "%02d", seq);
                 Optional<Long> roomId = jdbc.sql("""
-                        INSERT INTO inv_room (code, building_id, floor_id, room_type_id) VALUES (:code, :b, :f, :t)
+                        INSERT INTO inv_room (code, building_id, floor_id, room_type_id, room_class_id)
+                        VALUES (:code, :b, :f, :t, :c)
                         ON CONFLICT (code) DO NOTHING RETURNING id
                         """)
                         .param("code", code).param("b", building.id()).param("f", floorId).param("t", type)
+                        .param("c", roomClassId)
                         .query(Long.class).optional();
                 if (roomId.isPresent()) {
                     jdbc.sql("""
@@ -373,8 +430,8 @@ public class AdminBuildingService {
                 .sorted(Comparator.comparing(e -> types.get(e.getKey()).beds()))
                 .map(e -> e.getValue() + " × " + types.get(e.getKey()).name())
                 .collect(Collectors.joining(", "));
-        return "A Floor keeps its own layout; a new Floor copies the same Floor of Block " + reference.get().block()
-                + " (Room Class included), e.g. " + rooms + ". Missing Rooms are added as <Block>-<Floor><nn>; "
+        return "A Floor keeps its own layout; a new Floor copies the layout and Room Class of the same Floor in Block "
+                + reference.get().block() + ", e.g. " + rooms + ". Missing Rooms are added as <Block>-<Floor><nn>; "
                 + "existing Rooms are kept and Floors with Allocations are skipped.";
     }
 
@@ -405,8 +462,8 @@ public class AdminBuildingService {
                 ORDER BY b.code, f.floor_no, l.room_type_id
                 """)
                 .query((rs, i) -> new FloorLayoutRow(rs.getLong("id"), rs.getLong("building_id"), rs.getString("code"),
-                        rs.getInt("floor_no"), rs.getLong("room_class_id"), rs.getObject("room_type_id", Long.class),
-                        rs.getInt("room_count")))
+                        rs.getInt("floor_no"), rs.getObject("room_class_id", Long.class),
+                        rs.getObject("room_type_id", Long.class), rs.getInt("room_count")))
                 .list();
         Map<Long, Floor> floors = new LinkedHashMap<>();
         for (FloorLayoutRow r : rows) {
@@ -422,6 +479,11 @@ public class AdminBuildingService {
     private List<Long> bedIds(long buildingId) {
         return jdbc.sql("SELECT b.id FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE r.building_id = :id")
                 .param("id", buildingId).query(Long.class).list();
+    }
+
+    private Long currentTerm() {
+        return terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
+                .orElse(null);
     }
 
     private Map<Long, Catalog.RoomTypeInfo> types() {

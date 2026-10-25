@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026).
+Total: 206 endpoints (212 when the six `GET, PUT` rows count twice); all 206 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (on `feat/v2-phase3`, not in `main` yet; until then `main` has 181).
 
 | Slice | Focus |
 |---|---|
@@ -15,6 +15,7 @@ Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 cod
 | S6 | Utility billing, routing rules, SLA, escalations, Block staff/settings |
 | S7 | Dashboards, reports, exports, inspections, email campaigns, templates |
 | V2-2 | Change Specification v2 phase 2 "Accounts": Google sign-up, verification, student list, hub and import, Staff accounts |
+| V2-3 | Change Specification v2 phase 3 "Inventory": Room Class per Room per Term, furniture and Room Class requirements, door codes |
 
 ## S0 — Foundation, AUTH session, Terms
 
@@ -43,7 +44,7 @@ Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 cod
 | CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; TC-CFG-008 |
 | CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16; TC-CFG-010 |
 | CFG | POST | `/admin/matching/preview` | Must | Verified | Runs the assignment engine over the Term's approved Applications (ASG implements `cfg.MatchingPreviewer`, S3); TC-CFG-010 (nobody to place) |
-| CFG | GET | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
+| CFG | GET | `/admin/room-classes` | Must | Verified | B-04 (`usedIn`: Rooms of the class in the current Term, v2 phase 3); TC-CFG-007, TC-INV-009 |
 | CFG | POST | `/admin/room-classes` | Must | Verified | TC-CFG-007 |
 | CFG | PUT | `/admin/room-classes/{id}` | Must | Verified | TC-CFG-007 |
 | CFG | GET | `/admin/room-types` | Must | Verified | TC-CFG-005, TC-INV-005 |
@@ -54,12 +55,12 @@ Total: 181 endpoints (187 when the six `GET, PUT` rows count twice); all 181 cod
 | CFG | POST | `/admin/terms` | Must | Verified | C-11; TC-CFG-003, 004 |
 | CFG | PUT | `/admin/terms/{id}` | Must | Verified | TC-CFG-004 |
 | CFG | POST | `/admin/terms/{id}/publish` | Must | Verified | TC-CFG-004 |
-| INV | GET | `/admin/buildings` | Must | Verified | C-15; TC-INV-001 |
+| INV | GET | `/admin/buildings` | Must | Verified | C-15, C-40 (Floor classes per Term); TC-INV-001, 012 |
 | INV | POST | `/admin/buildings` | Must | Verified | TC-INV-002 |
 | INV | PUT | `/admin/buildings/{id}` | Must | Verified | TC-INV-002, 005 |
 | INV | GET | `/admin/buildings/{id}/floors/{floor}/rooms` | Must | Verified | TC-INV-002 |
-| INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Verified | Range up to parameter `inventory.max_floor` (V11); TC-INV-002 |
-| INV | GET | `/inventory/rooms` | Must | Verified | C-17; TC-INV-004, 005, 006 |
+| INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Verified | Range up to parameter `inventory.max_floor` (V11); optional `roomClassId` (C-40); TC-INV-002, 012 |
+| INV | GET | `/inventory/rooms` | Must | Verified | C-17, C-40 (each Room's class in the Term); TC-INV-004, 005, 006, 009 |
 | INV | GET | `/inventory/rooms/{code}` | Must | Verified | TC-INV-004 |
 | INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Verified | TC-INV-006 |
 | INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Verified | C-17; TC-INV-005, 006 |
@@ -123,7 +124,7 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 | ASG | GET | `/check-in/today` | Must | Verified | TC-ASG-020, 021 |
 | ASG | GET | `/check-out` | Must | Verified | C-23; TC-ASG-021, 022 |
 | ASG | GET | `/check-out/{allocationId}` | Must | Verified | B-01 (was `{studentCode}`); TC-ASG-021, 022 |
-| ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022, 023 |
+| ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022 (opens the door-code rotation, A-25), 023 |
 | MNT | GET | `/maintenance-requests` | Must | Verified | C-24; TC-MNT-002, 003 |
 | MNT | POST | `/maintenance-requests` | Must | Verified | Photos (signed links, A-10); TC-MNT-001 |
 | MNT | GET | `/maintenance-requests/options` | Must | Verified | TC-MNT-001, 002 |
@@ -247,3 +248,37 @@ Built on `feat/v2-phase2`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | AUTH | POST | `/staff-accounts/{id}/invitation` | Must | Verified | A-21; TC-AUTH-050 |
 
 Email redirect for fictional accounts only (spec O-3): `ntf_email_outbox.demo_recipient`, TC-NTF-039 (`EmailSenderConfigTest`), TC-NTF-040.
+
+## V2-3 — Change Specification v2 phase 3 "Inventory"
+
+Built on `feat/v2-phase3` (25/10/2026), not merged into `main` yet (ADR-27). Migrations V38–V40 (INV: Room Class per Room per Term, furniture, door codes) and V41 (NTF: door-code notifications). Room Class per Room per Term also changes `GET /inventory/rooms`, `/admin/buildings` and `/admin/room-classes` (C-40, B-04).
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| INV | GET | `/inventory/room-classes` | Must | Verified | A-23; Staff: their Blocks; TC-INV-008, 010, 011 |
+| INV | PUT | `/inventory/room-classes` | Must | Verified | A-23; Managers; Terms not started, Beds not given yet; TC-INV-009, 010, 011 |
+| INV | GET | `/inventory/rooms/{code}/details` | Must | Verified | A-23; TC-INV-009, 014, 017, 018 |
+| INV | GET | `/admin/furniture-types` | Must | Verified | A-24; TC-INV-013 |
+| INV | POST | `/admin/furniture-types` | Must | Verified | A-24; TC-INV-013 |
+| INV | PUT | `/admin/furniture-types/{id}` | Must | Verified | A-24; `409 TYPE_REQUIRED`; TC-INV-013 |
+| INV | GET | `/admin/room-class-requirements` | Must | Verified | A-24; TC-INV-014 |
+| INV | PUT | `/admin/room-class-requirements/{roomClassId}` | Must | Verified | A-24; TC-INV-014 |
+| INV | GET | `/furniture` | Must | Verified | A-24; TC-INV-015, 016, 018 |
+| INV | GET | `/furniture/{id}` | Must | Verified | A-24; history; TC-INV-015, 016, 017, 018 |
+| INV | POST | `/furniture` | Must | Verified | A-24; Managers register items; TC-INV-016 |
+| INV | PUT | `/furniture/{id}` | Must | Verified | A-24; TC-INV-018 |
+| INV | GET | `/furniture/moves` | Must | Verified | A-24; TC-INV-017 |
+| INV | POST | `/furniture/moves` | Must | Verified | A-24; transfers between Blocks by Managers; TC-INV-017 |
+| INV | POST | `/furniture/moves/{id}/done` | Must | Verified | A-24; TC-INV-017 |
+| INV | POST | `/furniture/moves/{id}/cancel` | Must | Verified | A-24; TC-INV-017 |
+| INV | GET | `/door-codes` | Must | Verified | A-25; TC-INV-019, 020, 022 |
+| INV | POST | `/door-codes/import` | Must | Verified | A-25; CSV checked line by line; TC-INV-021 |
+| INV | POST | `/door-codes/{room}` | Must | Verified | A-25; typed or random; TC-INV-019, 020 |
+| INV | POST | `/door-codes/{room}/confirm` | Must | Verified | A-25; residents notified (`DOOR_CODE_CHANGED`); TC-INV-019, 020, 022 |
+| INV | POST | `/door-codes/{room}/cancel` | Must | Verified | A-25; TC-INV-020 |
+| INV | POST | `/door-codes/{room}/reveal` | Must | Verified | A-25; audited; TC-INV-019, 020, 021 |
+| INV | GET | `/students/me/door-code` | Must | Verified | A-26; released to checked-in residents until phase 5; TC-INV-023 |
+| INV | POST | `/students/me/door-code/reveal` | Must | Verified | A-26; audited; TC-INV-023 |
+| INV | GET | `/students/me/furniture` | Must | Verified | A-26; TC-INV-023 |
+
+Door-code rotation: a check-out or a move to another Room opens the Room's task and tells the Block's Staff (`DOOR_CODE_TO_SET`): TC-INV-022, TC-ASG-022.

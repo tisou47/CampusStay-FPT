@@ -53,7 +53,7 @@ class JdbcRound2Placements implements Round2Placements {
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<String> place(long applicationId, long bedId, long termPrice) {
         Applications.Candidate app = applications.find(applicationId).orElseThrow();
-        Inventory.BedSlot bed = inventory.beds(List.of(bedId)).get(bedId);
+        Inventory.BedSlot bed = inventory.beds(app.termId(), List.of(bedId)).get(bedId);
         TermSummary term = terms.findPublished(app.termId()).orElseThrow();
         Instant now = Instant.now(clock);
         long allocationId;

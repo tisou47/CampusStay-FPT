@@ -6,14 +6,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.setting.RoomUsage;
-import vn.fpt.campusstay.service.inventory.BedOccupancy;
+import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /** Implements Settings's {@link RoomUsage} port for the Room Type and Room Class screens. */
 @Component
@@ -22,10 +22,12 @@ class JdbcRoomUsage implements RoomUsage {
 
     private final JdbcClient jdbc;
     private final BedOccupancy occupancy;
+    private final TermCatalog terms;
 
-    JdbcRoomUsage(JdbcClient jdbc, BedOccupancy occupancy) {
+    JdbcRoomUsage(JdbcClient jdbc, BedOccupancy occupancy, TermCatalog terms) {
         this.jdbc = jdbc;
         this.occupancy = occupancy;
+        this.terms = terms;
     }
 
     @Override
@@ -53,29 +55,30 @@ class JdbcRoomUsage implements RoomUsage {
 
     @Override
     public Map<Long, ClassUsage> usageByClass() {
-        record Row(long classId, String block, int floor, long rooms) {
+        record Row(long classId, String block, long rooms) {
         }
+        Long term = terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
+                .orElse(null);
         List<Row> rows = jdbc.sql("""
-                SELECT f.room_class_id, b.code, f.floor_no, count(r.id) FILTER (WHERE r.status <> 'RETIRED') AS rooms
-                FROM inv_floor f JOIN inv_building b ON b.id = f.building_id LEFT JOIN inv_room r ON r.floor_id = f.id
-                GROUP BY f.room_class_id, b.code, f.floor_no
-                ORDER BY b.code, f.floor_no
+                SELECT c.class_id, c.code, count(*) AS rooms
+                FROM (SELECT inv_room_class_in(r.id, CAST(:term AS BIGINT)) AS class_id, b.code
+                      FROM inv_room r JOIN inv_building b ON b.id = r.building_id
+                      WHERE r.status <> 'RETIRED') c
+                GROUP BY c.class_id, c.code
+                ORDER BY c.code
                 """)
-                .query((rs, i) -> new Row(rs.getLong("room_class_id"), rs.getString("code"), rs.getInt("floor_no"),
-                        rs.getLong("rooms")))
+                .param("term", term)
+                .query((rs, i) -> new Row(rs.getLong("class_id"), rs.getString("code"), rs.getLong("rooms")))
                 .list();
-        Map<Long, Map<String, TreeSet<Integer>>> floors = new HashMap<>();
-        Map<Long, Long> rooms = new HashMap<>();
+        Map<Long, Map<String, Long>> byBlock = new HashMap<>();
         for (Row r : rows) {
-            floors.computeIfAbsent(r.classId(), k -> new LinkedHashMap<>())
-                    .computeIfAbsent(r.block(), k -> new TreeSet<>()).add(r.floor());
-            rooms.merge(r.classId(), r.rooms(), Long::sum);
+            byBlock.computeIfAbsent(r.classId(), k -> new LinkedHashMap<>()).put(r.block(), r.rooms());
         }
         Map<Long, ClassUsage> result = new HashMap<>();
-        floors.forEach((classId, byBlock) -> {
-            List<String> parts = byBlock.entrySet().stream()
-                    .map(e -> e.getKey() + " " + FloorRanges.format(e.getValue())).toList();
-            result.put(classId, new ClassUsage(String.join(" · ", parts), rooms.getOrDefault(classId, 0L)));
+        byBlock.forEach((classId, blocks) -> {
+            List<String> parts = blocks.entrySet().stream().map(e -> e.getKey() + " " + e.getValue()).toList();
+            result.put(classId, new ClassUsage(String.join(" · ", parts),
+                    blocks.values().stream().mapToLong(Long::longValue).sum()));
         });
         return result;
     }

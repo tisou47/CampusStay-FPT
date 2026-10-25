@@ -24,7 +24,7 @@ class AdminBuildingController {
             String status) {
     }
 
-    record BulkRequest(Integer fromFloor, Integer toFloor) {
+    record BulkRequest(Integer fromFloor, Integer toFloor, Long roomClassId) {
     }
 
     record Saved(String id) {
@@ -53,7 +53,7 @@ class AdminBuildingController {
 
     @PostMapping("/{id}/rooms/bulk")
     AdminBuildingService.BulkResult generateRooms(@PathVariable long id, @RequestBody BulkRequest body) {
-        return buildings.generateRooms(id, body.fromFloor(), body.toFloor());
+        return buildings.generateRooms(id, body.fromFloor(), body.toFloor(), body.roomClassId());
     }
 
     @GetMapping("/{id}/floors/{floor}/rooms")

@@ -57,9 +57,10 @@ WHERE b.code IN ('A', 'B')
 ON CONFLICT (floor_id, room_type_id) DO NOTHING;
 
 -- Room numbers: <floor><nn>; 01-04 are 2-bed, 05-08 4-bed, 09-10 6-bed.
-INSERT INTO inv_room (code, building_id, floor_id, room_type_id)
+INSERT INTO inv_room (code, building_id, floor_id, room_type_id, room_class_id)
 SELECT b.code || '-' || fl.floor_no || lpad(r.n::text, 2, '0'), b.id, fl.id,
-       (SELECT id FROM cfg_room_type WHERE name = CASE WHEN r.n <= 4 THEN '2-bed' WHEN r.n <= 8 THEN '4-bed' ELSE '6-bed' END)
+       (SELECT id FROM cfg_room_type WHERE name = CASE WHEN r.n <= 4 THEN '2-bed' WHEN r.n <= 8 THEN '4-bed' ELSE '6-bed' END),
+       fl.room_class_id
 FROM inv_floor fl JOIN inv_building b ON b.id = fl.building_id
 CROSS JOIN generate_series(1, 10) AS r(n)
 WHERE b.code IN ('A', 'B')
@@ -75,6 +76,35 @@ ON CONFLICT (room_id, label) DO NOTHING;
 UPDATE inv_room SET status = 'OUT_OF_SERVICE', oos_since = '2026-10-10 02:00:00+00', oos_reason = 'MAINTENANCE',
                     oos_note = 'Water leak under the bathroom sink'
 WHERE code = 'A-305' AND status = 'IN_SERVICE';
+
+-- ---------- furniture: Room Class requirements and items ----------
+-- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
+INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)
+SELECT c.id, t.id, 1
+FROM cfg_room_class c JOIN inv_furniture_type t ON
+     (c.name = 'Basic' AND t.code = 'FAN')
+  OR (c.name = 'Standard' AND t.code IN ('AC', 'WH'))
+  OR (c.name = 'Premium' AND t.code IN ('AC', 'WH', 'FRG'))
+ON CONFLICT DO NOTHING;
+
+-- Every Room of Block A has what its class requires (asset code <type>-<Room>-<n>); Block B has no items yet.
+INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id)
+SELECT t.code || '-' || replace(r.code, '-', '') || '-' || n.n, t.id, 'IN_USE', r.id
+FROM inv_room r JOIN inv_building b ON b.id = r.building_id
+JOIN inv_room_class_requirement q ON q.room_class_id = r.room_class_id
+JOIN inv_furniture_type t ON t.id = q.furniture_type_id
+CROSS JOIN LATERAL generate_series(1, q.quantity) AS n(n)
+WHERE b.code = 'A'
+ON CONFLICT (asset_code) DO NOTHING;
+
+-- Block A store: two fridges and an air conditioner.
+INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, store_building_id)
+SELECT v.code, t.id, 'IN_STORE', b.id
+FROM (VALUES ('FRG-ASTORE-1', 'FRG'), ('FRG-ASTORE-2', 'FRG'), ('AC-ASTORE-1', 'AC')) AS v(code, type)
+JOIN inv_furniture_type t ON t.code = v.type
+CROSS JOIN inv_building b
+WHERE b.code = 'A'
+ON CONFLICT (asset_code) DO NOTHING;
 
 INSERT INTO cfg_block_settings (building_id, desk_opens, desk_closes, visit_from, visit_until, quiet_from, house_rules)
 SELECT id, '07:30', '21:00', '08:00', '21:30', '23:00',

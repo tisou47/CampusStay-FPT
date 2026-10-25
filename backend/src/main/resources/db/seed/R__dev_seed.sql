@@ -3,7 +3,9 @@
 --
 -- A fresh system, ready to sign in and nothing more: 8 Blocks (A–D male,
 -- E–H female; 10 floors, 960 Rooms, 3,680 Beds) with their Room Types and
--- Room Classes, one Admin, a Manager and two Staff per Block, and 6,200
+-- Room Classes, the furniture each Room has (a bed, wardrobe and desk per
+-- Bed, the items its Room Class requires, spares in every Block store), one
+-- Admin, a Manager and two Staff per Block, and 6,200
 -- students in the student directory (cohorts K18–K22, all enrolled). There is
 -- no Term, Application, Invoice or any other history: the Admin starts by
 -- confirming the fees and publishing a Term.
@@ -62,9 +64,10 @@ WHERE b.code BETWEEN 'A' AND 'H'
 ON CONFLICT (floor_id, room_type_id) DO NOTHING;
 
 -- Room numbers <floor><nn>: 01-04 are 2-bed, 05-09 4-bed, 10-12 6-bed (A-101 … A-1012).
-INSERT INTO inv_room (code, building_id, floor_id, room_type_id)
+INSERT INTO inv_room (code, building_id, floor_id, room_type_id, room_class_id)
 SELECT b.code || '-' || fl.floor_no || lpad(r.n::text, 2, '0'), b.id, fl.id,
-       (SELECT id FROM cfg_room_type WHERE name = CASE WHEN r.n <= 4 THEN '2-bed' WHEN r.n <= 9 THEN '4-bed' ELSE '6-bed' END)
+       (SELECT id FROM cfg_room_type WHERE name = CASE WHEN r.n <= 4 THEN '2-bed' WHEN r.n <= 9 THEN '4-bed' ELSE '6-bed' END),
+       fl.room_class_id
 FROM inv_floor fl JOIN inv_building b ON b.id = fl.building_id CROSS JOIN generate_series(1, 12) AS r(n)
 WHERE b.code BETWEEN 'A' AND 'H'
 ON CONFLICT (code) DO NOTHING;
@@ -73,6 +76,44 @@ INSERT INTO inv_bed (room_id, label)
 SELECT ro.id, chr(64 + s.n)
 FROM inv_room ro JOIN cfg_room_type rt ON rt.id = ro.room_type_id CROSS JOIN LATERAL generate_series(1, rt.beds) AS s(n)
 ON CONFLICT (room_id, label) DO NOTHING;
+
+-- ---------- furniture (types: V39) ----------
+-- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
+INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)
+SELECT c.id, t.id, 1
+FROM cfg_room_class c JOIN inv_furniture_type t ON
+     (c.name = 'Basic' AND t.code = 'FAN')
+  OR (c.name = 'Standard' AND t.code IN ('AC', 'WH'))
+  OR (c.name = 'Premium' AND t.code IN ('AC', 'WH', 'FRG'))
+ON CONFLICT DO NOTHING;
+
+-- Per Bed a bed, a wardrobe and a desk (asset code <type>-<Room><Bed>, BED-A101A); per Room the items of its
+-- Room Class (<type>-<Room>-<n>, AC-A501-1); in every Block store 4 fans, 2 air conditioners, 2 water heaters and
+-- 2 fridges (<type>-<Block>STORE-<n>).
+INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id)
+SELECT t.code || '-' || replace(r.code, '-', '') || bd.label, t.id, 'IN_USE', r.id
+FROM inv_bed bd JOIN inv_room r ON r.id = bd.room_id JOIN inv_building b ON b.id = r.building_id
+CROSS JOIN inv_furniture_type t
+WHERE b.code BETWEEN 'A' AND 'H' AND t.code IN ('BED', 'WRD', 'DESK')
+ON CONFLICT (asset_code) DO NOTHING;
+
+INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id)
+SELECT t.code || '-' || replace(r.code, '-', '') || '-' || n.n, t.id, 'IN_USE', r.id
+FROM inv_room r JOIN inv_building b ON b.id = r.building_id
+JOIN inv_room_class_requirement q ON q.room_class_id = r.room_class_id
+JOIN inv_furniture_type t ON t.id = q.furniture_type_id
+CROSS JOIN LATERAL generate_series(1, q.quantity) AS n(n)
+WHERE b.code BETWEEN 'A' AND 'H'
+ON CONFLICT (asset_code) DO NOTHING;
+
+INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, store_building_id)
+SELECT t.code || '-' || b.code || 'STORE-' || n.n, t.id, 'IN_STORE', b.id
+FROM inv_building b
+CROSS JOIN (VALUES ('FAN', 4), ('AC', 2), ('WH', 2), ('FRG', 2)) AS v(type, spares)
+JOIN inv_furniture_type t ON t.code = v.type
+CROSS JOIN LATERAL generate_series(1, v.spares) AS n(n)
+WHERE b.code BETWEEN 'A' AND 'H'
+ON CONFLICT (asset_code) DO NOTHING;
 
 -- ---------- back-office accounts ----------
 INSERT INTO auth_user (email, display_name, password_hash, role, title)

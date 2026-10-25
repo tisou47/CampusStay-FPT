@@ -11,55 +11,103 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.dto.setting.TermSummary;
+import vn.fpt.campusstay.service.setting.TermCatalog;
 
 @Component
 @Transactional(readOnly = true)
 class JdbcInventory implements Inventory {
 
+    /** {@code :term} null = the class each Room was built with ({@code inv_room_class_in}, V38). */
     private static final String SLOT = """
             SELECT b.id AS bed_id, b.label, r.id AS room_id, r.code AS room_code, r.building_id, bu.code AS block,
-                   trim(bu.gender) AS gender, f.floor_no, r.room_type_id, f.room_class_id
+                   trim(bu.gender) AS gender, f.floor_no, r.room_type_id,
+                   inv_room_class_in(r.id, CAST(:term AS BIGINT)) AS room_class_id
             FROM inv_bed b JOIN inv_room r ON r.id = b.room_id JOIN inv_floor f ON f.id = r.floor_id
                  JOIN inv_building bu ON bu.id = r.building_id
             """;
 
     private final JdbcClient jdbc;
+    private final TermCatalog terms;
 
-    JdbcInventory(JdbcClient jdbc) {
+    JdbcInventory(JdbcClient jdbc, TermCatalog terms) {
         this.jdbc = jdbc;
+        this.terms = terms;
+    }
+
+    @Override
+    public List<BedSlot> assignableBeds(long termId) {
+        return assignable(termId);
+    }
+
+    @Override
+    public Map<Long, BedSlot> beds(long termId, Collection<Long> bedIds) {
+        return byId(termId, bedIds);
+    }
+
+    @Override
+    public List<BedSlot> bedsOfRoom(long termId, long roomId) {
+        return ofRoom(termId, roomId);
+    }
+
+    @Override
+    public List<BedSlot> bedsOfBuilding(long termId, long buildingId) {
+        return ofBuilding(termId, buildingId);
     }
 
     @Override
     public List<BedSlot> assignableBeds() {
-        return jdbc.sql(SLOT + """
-                WHERE b.status = 'IN_SERVICE' AND r.status = 'IN_SERVICE' AND bu.status = 'ACTIVE'
-                ORDER BY r.code, b.label
-                """).query(JdbcInventory::slot).list();
+        return assignable(currentTerm());
     }
 
     @Override
     public Map<Long, BedSlot> beds(Collection<Long> bedIds) {
+        return byId(currentTerm(), bedIds);
+    }
+
+    @Override
+    public List<BedSlot> bedsOfRoom(long roomId) {
+        return ofRoom(currentTerm(), roomId);
+    }
+
+    @Override
+    public List<BedSlot> bedsOfBuilding(long buildingId) {
+        return ofBuilding(currentTerm(), buildingId);
+    }
+
+    private List<BedSlot> assignable(Long termId) {
+        return jdbc.sql(SLOT + """
+                WHERE b.status = 'IN_SERVICE' AND r.status = 'IN_SERVICE' AND bu.status = 'ACTIVE'
+                ORDER BY r.code, b.label
+                """).param("term", termId).query(JdbcInventory::slot).list();
+    }
+
+    private Map<Long, BedSlot> byId(Long termId, Collection<Long> bedIds) {
         Map<Long, BedSlot> result = new LinkedHashMap<>();
         if (bedIds == null || bedIds.isEmpty()) {
             return result;
         }
         jdbc.sql(SLOT + " WHERE b.id IN (:ids) ORDER BY r.code, b.label").param("ids", List.copyOf(bedIds))
+                .param("term", termId)
                 .query(JdbcInventory::slot).list()
                 .forEach(s -> result.put(s.bedId(), s));
         return result;
     }
 
-    @Override
-    public List<BedSlot> bedsOfRoom(long roomId) {
+    private List<BedSlot> ofRoom(Long termId, long roomId) {
         return jdbc.sql(SLOT + " WHERE r.id = :room AND b.status <> 'RETIRED' ORDER BY b.label").param("room", roomId)
-                .query(JdbcInventory::slot).list();
+                .param("term", termId).query(JdbcInventory::slot).list();
     }
 
-    @Override
-    public List<BedSlot> bedsOfBuilding(long buildingId) {
+    private List<BedSlot> ofBuilding(Long termId, long buildingId) {
         return jdbc.sql(SLOT + " WHERE r.building_id = :b AND b.status <> 'RETIRED' ORDER BY r.code, b.label")
-                .param("b", buildingId).query(JdbcInventory::slot).list();
+                .param("b", buildingId).param("term", termId).query(JdbcInventory::slot).list();
+    }
+
+    /** The current Term (stay includes today, else the next to start); null when nothing is published. */
+    private Long currentTerm() {
+        return terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
+                .orElse(null);
     }
 
     private static BedSlot slot(ResultSet rs, int i) throws SQLException {

@@ -207,7 +207,8 @@ class DeskIT {
 
     /**
      * TC-ASG-022: check-out settles the Utility Deposit: the share since the Room's last reading, the damage
-     * charge, the refund to the Manager; the Bed is free again and the figures stay as settled.
+     * charge, the refund to the Manager; the Bed is free again, the figures stay as settled and the Room's door
+     * code must change.
      */
     @Test
     void checkOutSettlesTheDeposit() throws Exception {
@@ -277,6 +278,11 @@ class DeskIT {
                 SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = 300000
                   AND status = 'PENDING'
                 """).param("a", Long.parseLong(p.allocationId())).query(Long.class).single()).isEqualTo(1);
+        // The Room's door code must change now that a resident left (spec §6.8).
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM inv_door_code_task t JOIN inv_room r ON r.id = t.room_id
+                WHERE r.code = :room AND t.reason = 'CHECK_OUT' AND t.done_at IS NULL
+                """).param("room", p.room()).query(Long.class).single()).isEqualTo(1);
     }
 
     /** TC-ASG-023: when the charges exceed the Utility Deposit, the rest is invoiced to the student. */

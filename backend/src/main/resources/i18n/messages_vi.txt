@@ -536,3 +536,50 @@ The workbook has no sheet. ⟶ Bảng tính không có trang nào.
 This account is disabled. Restore it first. ⟶ Tài khoản này đang bị vô hiệu hóa. Hãy khôi phục trước.
 This person has already set a password. ⟶ Người này đã đặt mật khẩu.
 Choose the Blocks this person works in. ⟶ Hãy chọn các Block người này làm việc.
+
+# ---------- inventory: Room Classes per Term, furniture, door codes (v2 phase 3) ----------
+Choose an active Room Class. ⟶ Hãy chọn một hạng phòng đang hoạt động.
+Choose at least one Room. ⟶ Hãy chọn ít nhất một phòng.
+Choose at most {0} Rooms at a time. ⟶ Mỗi lần chỉ chọn tối đa {0} phòng.
+The stay of {0} has started, so its Room Classes are fixed. ⟶ Kỳ {0} đã bắt đầu, nên hạng phòng của kỳ này không thể thay đổi.
+Beds of Room {0} are already given for {1} or later, so its Room Class can change only from a later Term. ⟶ Giường của phòng {0} đã được xếp cho kỳ {1} hoặc kỳ sau, nên chỉ có thể đổi hạng phòng từ một kỳ sau nữa.
+Door codes are not set up on this server yet. ⟶ Máy chủ này chưa được thiết lập mã cửa.
+Enter 6 digits. ⟶ Hãy nhập 6 chữ số.
+Choose a code different from the current one. ⟶ Hãy chọn mã khác với mã hiện tại.
+Room {0} has no new door code to confirm. ⟶ Phòng {0} không có mã cửa mới nào cần xác nhận.
+Line {0}: Room {1} is not one of your Rooms. ⟶ Dòng {0}: phòng {1} không thuộc các phòng bạn quản lý.
+Line {0}: the code must be 6 digits. ⟶ Dòng {0}: mã phải gồm 6 chữ số.
+Line {0}: Room {1} is in the file twice. ⟶ Dòng {0}: phòng {1} xuất hiện hai lần trong tệp.
+Line {0}: this is the current code of Room {1}. ⟶ Dòng {0}: đây là mã hiện tại của phòng {1}.
+The file has no Room and code lines. ⟶ Tệp không có dòng phòng và mã nào.
+Import at most {0} Rooms at a time. ⟶ Mỗi lần chỉ nhập tối đa {0} phòng.
+You do not hold a Bed this Term. ⟶ Bạn chưa có giường trong kỳ này.
+Your door code is not ready yet. ⟶ Mã cửa của bạn chưa sẵn sàng.
+This furniture type does not exist. ⟶ Loại nội thất này không tồn tại.
+A Room Class requires {0}. Remove it from the Room Class requirements first. ⟶ Một hạng phòng đang yêu cầu {0}. Hãy bỏ nó khỏi yêu cầu của hạng phòng trước.
+Only active furniture types that define a Room Class can be required. ⟶ Chỉ loại nội thất đang dùng và quyết định hạng phòng mới có thể được yêu cầu.
+List each furniture type once. ⟶ Mỗi loại nội thất chỉ ghi một lần.
+Enter a quantity from 1 to {0}. ⟶ Hãy nhập số lượng từ 1 đến {0}.
+Use 1 to 10 letters or digits, starting with a letter. ⟶ Dùng 1 đến 10 chữ cái hoặc chữ số, bắt đầu bằng chữ cái.
+A furniture type with this code already exists. ⟶ Đã có loại nội thất với mã này.
+The code cannot be changed. ⟶ Không thể đổi mã.
+Enter a name of at most 80 characters. ⟶ Hãy nhập tên tối đa 80 ký tự.
+A furniture type with this name already exists. ⟶ Đã có loại nội thất với tên này.
+This furniture item does not exist. ⟶ Món nội thất này không tồn tại.
+Choose an active furniture type. ⟶ Hãy chọn một loại nội thất đang dùng.
+Item {0} is disposed and cannot change. ⟶ Món {0} đã thanh lý nên không thể thay đổi.
+Move the item to a store to mark it In store. ⟶ Hãy chuyển món này vào kho trước khi đánh dấu Trong kho.
+Move the item to a Room to mark it In use. ⟶ Hãy chuyển món này vào một phòng trước khi đánh dấu Đang dùng.
+Choose at least one item. ⟶ Hãy chọn ít nhất một món.
+Move at most {0} items at a time. ⟶ Mỗi lần chỉ chuyển tối đa {0} món.
+Choose a Room or a Block store. ⟶ Hãy chọn một phòng hoặc kho của một Block.
+Write why the items move. ⟶ Hãy ghi lý do chuyển.
+Keep the reason under 300 characters. ⟶ Lý do không quá 300 ký tự.
+Only a Manager moves furniture to another Block. ⟶ Chỉ Quản lý mới được chuyển nội thất sang Block khác.
+Item {0} is already in Room {1}. ⟶ Món {0} đã ở phòng {1}.
+Item {0} is already in Block {1} store. ⟶ Món {0} đã ở kho Block {1}.
+Item {0} already has a planned move. Finish or cancel it first. ⟶ Món {0} đã có một lần chuyển theo kế hoạch. Hãy hoàn tất hoặc hủy nó trước.
+This move does not exist. ⟶ Lần chuyển này không tồn tại.
+This move is already done. ⟶ Lần chuyển này đã hoàn tất.
+This move is already cancelled. ⟶ Lần chuyển này đã bị hủy.
+Room {0} is not in Block {1}. ⟶ Phòng {0} không thuộc Block {1}.

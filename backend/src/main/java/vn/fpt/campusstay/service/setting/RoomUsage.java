@@ -10,8 +10,8 @@ import java.util.Set;
  */
 public interface RoomUsage {
 
-    /** @param floors where the Room Class is used, e.g. {@code A 1–2 · B 1–2} */
-    record ClassUsage(String floors, long rooms) {
+    /** @param usedIn Rooms of the class per Block in the current Term, e.g. {@code A 48 · B 24} */
+    record ClassUsage(String usedIn, long rooms) {
     }
 
     /** Room Type id → Rooms of that type (retired Rooms excluded). */
@@ -20,6 +20,6 @@ public interface RoomUsage {
     /** Room Types with at least one Bed held by an active Allocation (any Term). */
     Set<Long> roomTypesWithActiveAllocations();
 
-    /** Room Class id → Floors and Rooms that use it. */
+    /** Room Class id → the Rooms that have it in the current Term (each Room's class is set per Term). */
     Map<Long, ClassUsage> usageByClass();
 }

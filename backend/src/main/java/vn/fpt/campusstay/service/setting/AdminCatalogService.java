@@ -49,7 +49,7 @@ public class AdminCatalogService {
     public record RoomTypeValues(String name, Integer beds, Long basePrice, String roommateSelection, String status) {
     }
 
-    public record RoomClassItem(String id, String name, BigDecimal surchargeRate, List<String> amenities, String floors,
+    public record RoomClassItem(String id, String name, BigDecimal surchargeRate, List<String> amenities, String usedIn,
             long rooms, String status) {
     }
 
@@ -190,7 +190,7 @@ public class AdminCatalogService {
                 .map(c -> {
                     RoomUsage.ClassUsage u = byClass.get(c.getId());
                     return new RoomClassItem(String.valueOf(c.getId()), c.getName(),
-                            Decimals.plain(c.getSurchargeRate()), c.getAmenities(), u == null ? null : u.floors(),
+                            Decimals.plain(c.getSurchargeRate()), c.getAmenities(), u == null ? null : u.usedIn(),
                             u == null ? 0 : u.rooms(), c.getStatus().label());
                 })
                 .toList();

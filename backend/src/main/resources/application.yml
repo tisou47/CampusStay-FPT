@@ -86,6 +86,8 @@ campusstay:
     overdue-interval: 1h                # unpaid Invoices past their due date become Overdue
   mnt:
     inspection-cron: "0 0 6 * * *"      # inspection runs of active schedules start (campus time)
+  door-codes:
+    key: ${DOOR_CODE_KEY:}            # AES-256 key, base64 of 32 random bytes; blank = door codes off (503)
   files:
     dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
     link-secret: ${FILES_LINK_SECRET:}  # signs the short-lived file links; blank = random per start

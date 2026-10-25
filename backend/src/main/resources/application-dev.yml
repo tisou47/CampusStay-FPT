@@ -9,6 +9,8 @@ spring:
 campusstay:
   payment:
     simulator: true   # the "Simulate bank transfer" button of the web app (A-08)
+  door-codes:
+    key: ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=   # development only; servers set DOOR_CODE_KEY
 
 logging:
   level:

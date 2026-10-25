@@ -149,7 +149,7 @@ class AdminConfigIT {
         mvc.perform(as(get("/admin/room-classes")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.depositRate").value(0.2))
-                .andExpect(jsonPath("$.items[?(@.name == 'Basic')].floors", contains("A 1–2 · B 1–2")))
+                .andExpect(jsonPath("$.items[?(@.name == 'Basic')].usedIn", contains("A 20 · B 20")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Basic')].rooms", contains(40)))
                 .andExpect(jsonPath("$.items[?(@.name == 'Basic')].surchargeRate", contains(0)))
                 .andExpect(jsonPath("$.roomTypes[*].name", hasItem("4-bed")));
@@ -163,7 +163,7 @@ class AdminConfigIT {
         mvc.perform(as(get("/admin/room-classes")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].amenities[*]", contains("Sofa")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].status", contains("Inactive")))
-                .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].floors", contains((Object) null)));
+                .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].usedIn", contains((Object) null)));
         String deluxe = this.<List<String>>read(as(get("/admin/room-classes")), "$.items[?(@.name == 'Deluxe')].id").getFirst();
         mvc.perform(as(put("/admin/room-classes/" + deluxe)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Deluxe\",\"surchargeRate\":0.45,\"amenities\":[\"Sofa\",\"Bathtub\"],\"status\":\"Active\"}"))

@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.9 (25/10/2026): the mentor-confirmed contract plus the changes A-01…A-22, B-01…B-03 and C-01…C-39 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"). Every later change is logged there first and written here in the same commit.
+Version 1.10 (25/10/2026): the mentor-confirmed contract plus the changes A-01…A-26, B-01…B-04 and C-01…C-40 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -120,6 +120,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
 - `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null, roomTypes, roomClasses, prices, remainingDays, termDays, reasons, hasOpenRequest }`
 - `POST /room-changes` `{ termId, kind: 'same'|'class'|'type', roomTypeId, roomClassId, reason, details? }` → `{ id }`
+- `GET /students/me/door-code` → `{ room, status: 'Ready'|'Not ready'|'Not set', note, changedAt }` · `POST /students/me/door-code/reveal` → `{ room, code, changedAt }` (every view audited; `409 DOOR_CODE_NOT_READY`) · `GET /students/me/furniture` → `{ room, items: [{ assetCode, type, typeVi, status }] }`. Without a Bed in the current Term: `404`. See A-26.
 
 ### Swaps
 
@@ -167,7 +168,23 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 - `GET /inventory/rooms?termId&block&floor` → `{ roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity, outOfService: { since, reason, by, note } | null, beds: [{ id, state: 'allocated'|'available'|'oos', occupant: { name, studentCode } | null }] }], summary: { beds, allocated, available, outOfService } }`
 - `GET /inventory/rooms/{code}` → `{ code, block, floor }`
 - `POST /inventory/rooms/{code}/out-of-service` `{ reason, note? }` · `POST /inventory/rooms/{code}/back-in-service`
-- `floor` is required; `block` may be empty only when the user has one Block; without `termId` the current Term fills the Beds. A Bed `id` is its code (`A-305-B`). `reason` is one of `outOfServiceReasons`. A Room whose Bed holds an active Allocation cannot go out of service (`409 ROOM_OCCUPIED`). See C-17.
+- `floor` is required; `block` may be empty only when the user has one Block; without `termId` the current Term fills the Beds. A Bed `id` is its code (`A-305-B`). `reason` is one of `outOfServiceReasons`. A Room whose Bed holds an active Allocation cannot go out of service (`409 ROOM_OCCUPIED`). See C-17. Each Room's `roomClassName` is its class in the Term; the top-level `roomClassName` is `null` when the Floor's Rooms differ (C-40).
+- `GET /inventory/rooms/{code}/details?termId` → `{ room, block, floor, roomType, term, roomClass, next: { termId, term, roomClass } | null, conformance: { status, missing, extra }, furniture: [furniture item], doorCode: door-code item | null }` (A-23)
+- `GET /inventory/room-classes?termId&block&floor&roomClassId&match&q&page&pageSize` → `{ term: { id, name, stayStart, current, editable }, terms, items: [{ room, block, floor, roomType, roomClassId, roomClass, previousClass, setForTerm, locked, conformance: { status: 'Matches'|'Does not match', missing: [{ typeId, type, typeVi, quantity }], extra } }], total, summary: [{ roomClassId, roomClass, rooms }], roomClasses: [{ id, name }], blocks, note }` · `PUT /inventory/room-classes` `{ termId, rooms: [code], roomClassId }` → `{ changed, unchanged }` (Managers; Terms not started; `409 TERM_STARTED`, `409 ROOM_CLASS_LOCKED`). See A-23.
+
+### Furniture
+
+- `GET /furniture?block&room&location=room|store&typeId&status&q&page&pageSize` → `{ items: [{ id, assetCode, typeId, type, typeVi, category, status, location: { kind: 'Room'|'Store', room, block }, note, plannedMove: { id, to, reason } | null, updatedAt }], total, counts: { [status]: n }, options: { types: [{ id, name, nameVi }], statuses, blocks } }`
+- `GET /furniture/{id}` → `{ item, history: [{ at, kind, from, to, reason, by }] }` · `PUT /furniture/{id}` `{ status?, note?, reason? }` → the item
+- `POST /furniture` `{ typeId, block, room?, quantity, note? }` → `{ assetCodes }` (Managers)
+- `GET /furniture/moves?block&status=Planned|Done|Cancelled&page&pageSize` → `{ items: [{ id, itemId, assetCode, type, typeVi, from, to, reason, status, createdBy, createdAt, closedBy, closedAt }], total, statuses }` · `POST /furniture/moves` `{ items: [id], toRoom | toStore, reason, planned? }` → `{ moved, planned }` · `POST /furniture/moves/{id}/done` · `POST /furniture/moves/{id}/cancel`
+- Statuses: In use, Broken, In repair, In store, Disposed. Moves to another Block: Managers only (`403 CROSS_BLOCK`). See A-24.
+
+### Door codes
+
+- `GET /door-codes?block&status&q&page&pageSize` → `{ items: [{ room, block, floor, status: 'Change needed'|'Not set'|'Active', proposed, proposedAt, activeSince, task: { reason, since } | null, residents }], total, counts: { toChange, notSet, proposed, active }, statuses }`
+- `POST /door-codes/{room}` `{ code? }` → `{ room, code }` (blank = random) · `POST /door-codes/{room}/confirm` · `POST /door-codes/{room}/cancel` → `204` · `POST /door-codes/{room}/reveal` → `{ room, active, proposed }` (audited)
+- `POST /door-codes/import` (multipart) `file` (CSV `room,code`) → `{ proposed }`; a problem line → `400` with `details.fields.line<n>`. Without `DOOR_CODE_KEY` on the server: `503 DOOR_CODES_DISABLED`. See A-25.
 
 ### Maintenance
 
@@ -262,7 +279,9 @@ Student accounts, the student list and Staff accounts: A-19…A-21, C-39. Since 
 - `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }`
 - `GET /admin/terms` → `{ items: [{ id, name, status, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy }] }` · `POST /admin/terms` · `PUT /admin/terms/{id}` · `POST /admin/terms/{id}/publish`. Instants: `registrationOpensAt`, `registrationClosesAt`, `resultsPublishedAt`, `balanceDueAt`; dates (`YYYY-MM-DD`): `stayStart`, `stayEnd`, `checkInStart`, `checkInEnd`, `checkOutBy`. The Term's `depositHours` is the Deposit window used for its Applications (`/terms` returns it as `depositWindowHours`); when `POST /admin/terms` leaves it out or sends `null`, the server uses `/admin/fees.depositHours`. Empty fields are sent as `null`, never `0`.
 - `GET /admin/room-types` → `{ items: [{ id, name, beds, basePrice, roommateSelection: 'auto'|'mutual', rooms, status, hasAllocations }], roomClasses: [{ id, name, surchargeRate }], totals: { rooms, beds } }` · `POST` · `PUT /admin/room-types/{id}`
-- `GET /admin/room-classes` → `{ items: [{ id, name, surchargeRate, amenities, floors, rooms, status }], roomTypes: [{ id, name, basePrice }], depositRate }` · `POST` · `PUT /admin/room-classes/{id}`
+- `GET /admin/room-classes` → `{ items: [{ id, name, surchargeRate, amenities, usedIn, rooms, status }], roomTypes: [{ id, name, basePrice }], depositRate }` · `POST` · `PUT /admin/room-classes/{id}`. `usedIn` and `rooms`: the Rooms that have the class in the current Term (B-04).
+- `GET /admin/furniture-types` → `{ items: [{ id, code, name, nameVi, category, definesClass, status, items }], categories }` · `POST` · `PUT /admin/furniture-types/{id}` `{ code, name, nameVi, category, definesClass, status }` → `{ id }`
+- `GET /admin/room-class-requirements` → `{ items: [{ roomClassId, roomClass, status, requirements: [{ typeId, type, typeVi, quantity }] }], types: [{ id, name, nameVi }] }` · `PUT /admin/room-class-requirements/{roomClassId}` `{ items: [{ typeId, quantity }] }` → `204`. See A-24.
 - `GET|PUT /admin/fees` → `{ depositPercent, depositHours, balanceDays, blockCheckIn, manualConfirm, policyConfirmed, rules: [{ id, when, refundPercent, approver, active }], approverOptions }`. `depositHours` here is only the default proposed for a new Term; each Term keeps its own.
 - `GET|PUT /admin/utility` → `{ priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }`
 - `GET|PUT /admin/eligibility` → `{ criteria: [{ key, title, note, on }], groups: [{ id?, title, note, applied }], appliesFromTermName }`
@@ -274,7 +293,7 @@ Student accounts, the student list and Staff accounts: A-19…A-21, C-39. Since 
 - `POST /admin/emails/preview` `{ mode, studentCode?, termId, group, block?, gender?, templateKey, subject }` → `{ count, preview: { recipientName, subject, lines } | null }` · `POST /admin/emails` (same + `channel, sendAt`) → `{ queued }`
 
 Notification templates and Send email: C-35.
-- `GET /admin/buildings` → `{ items: [{ id, name, gender, status, floors: [{ floor, roomClassName, twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }], genders, floorOptions, layoutNote }` · `POST` · `PUT /admin/buildings/{id}` · `POST /admin/buildings/{id}/rooms/bulk` `{ fromFloor, toFloor }` → `{ created, skipped }` · `GET /admin/buildings/{id}/floors/{floor}/rooms` → `{ items: [{ code, roomTypeName, roomClassName, outOfService }] }`
+- `GET /admin/buildings` → `{ items: [{ id, name, gender, status, floors: [{ floor, roomClassName, roomClasses: [{ name, rooms }], twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }], genders, floorOptions, roomClasses: [{ id, name }], layoutNote }` · `POST` · `PUT /admin/buildings/{id}` · `POST /admin/buildings/{id}/rooms/bulk` `{ fromFloor, toFloor, roomClassId? }` → `{ created, skipped }` · `GET /admin/buildings/{id}/floors/{floor}/rooms` → `{ items: [{ code, roomTypeName, roomClassName, outOfService }] }`. A Floor's `roomClassName` is the class of its new Rooms; `roomClasses` and each Room's `roomClassName` are the classes in the current Term (C-40).
 - `GET /admin/users?q&role&block&status&page&pageSize` → `{ items: [{ id, name, email, role, scope, lastSignInAt, status }], total, roles, blocks, scopeOptions }` · `POST /admin/users` (invite) · `PUT /admin/users/{id}`
 - `GET /admin/permissions` → `{ roles: [{ key, short }], rows: [{ action, allowed: [bool] }] }`
 - Admin screens exchange display labels (roles, Block scope `All Blocks`/`A`/`A, B`, statuses, `gender` Male/Female, Block `name` = code); saves return `{ id }` (`PUT /admin/users/{id}`: the updated item). Fees: rules left out of a PUT are kept. Eligibility: `applied` = students in the group. Matching: `weights[].value` in whole percent (total 100), `boost` a multiplier (1 = off). See C-15, C-16; Audit Log labels and `/notifications?limit` (default 20, max 100): C-18.

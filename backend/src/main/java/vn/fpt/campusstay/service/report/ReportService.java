@@ -98,13 +98,13 @@ public class ReportService {
         }
         // A Bed of a past Term may have been held twice (a student left early, another one moved in): count Beds once.
         List<Slot> slots = jdbc.sql("""
-                SELECT b.building_id, b.room_type_id, b.room_class_id, count(DISTINCT b.bed_id) AS capacity,
+                SELECT b.building_id, b.room_type_id, rc.room_class_id, count(DISTINCT b.bed_id) AS capacity,
                        count(DISTINCT a.bed_id) AS allocated,
                        count(DISTINCT a.bed_id) FILTER (WHERE a.checked_in_at IS NOT NULL) AS checked_in
-                FROM rpt_v_bed b
+                FROM rpt_v_bed b JOIN rpt_v_room_class rc ON rc.room_id = b.room_id AND rc.term_id = :term
                 LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.building_id IN (:b) AND """ + ReportScope.inService("b")
-                + " GROUP BY b.building_id, b.room_type_id, b.room_class_id").params(p).query((rs, i) -> new Slot(rs.getLong("building_id"), rs.getLong("room_type_id"),
+                + " GROUP BY b.building_id, b.room_type_id, rc.room_class_id").params(p).query((rs, i) -> new Slot(rs.getLong("building_id"), rs.getLong("room_type_id"),
                         rs.getLong("room_class_id"), rs.getLong("capacity"), rs.getLong("allocated"),
                         rs.getLong("checked_in"))).list();
         List<Catalog.RoomClassInfo> classes = catalog.roomClasses().stream()
@@ -288,13 +288,13 @@ public class ReportService {
         Map<Long, String> types = typeNames();
         Map<Long, String> classes = classNames();
         List<List<Object>> rows = jdbc.sql("""
-                SELECT b.block, b.floor, b.room, b.room_type_id, b.room_class_id, b.room_status,
+                SELECT b.block, b.floor, b.room, b.room_type_id, rc.room_class_id, b.room_status,
                        count(DISTINCT b.bed_id) AS beds, count(DISTINCT a.bed_id) AS allocated,
                        count(DISTINCT a.bed_id) FILTER (WHERE a.checked_in_at IS NOT NULL) AS checked_in
-                FROM rpt_v_bed b
+                FROM rpt_v_bed b JOIN rpt_v_room_class rc ON rc.room_id = b.room_id AND rc.term_id = :term
                 LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
                 WHERE b.building_id IN (:b) AND b.bed_status <> 'RETIRED' AND b.room_status <> 'RETIRED'
-                GROUP BY b.block, b.floor, b.room, b.room_type_id, b.room_class_id, b.room_status
+                GROUP BY b.block, b.floor, b.room, b.room_type_id, rc.room_class_id, b.room_status
                 ORDER BY b.block, b.room
                 """).params(p).query((rs, i) -> Arrays.<Object>asList(rs.getString("block"), rs.getInt("floor"),
                         rs.getString("room"), types.get(rs.getLong("room_type_id")), classes.get(rs.getLong("room_class_id")),

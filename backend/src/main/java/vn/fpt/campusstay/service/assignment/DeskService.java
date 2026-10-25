@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -22,10 +23,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.security.BlockScope;
@@ -143,11 +146,12 @@ public class DeskService {
     private final UserDirectory users;
     private final Billing billing;
     private final AuditLog audit;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
-            UserDirectory users, Billing billing, AuditLog audit, Clock clock) {
+            UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -160,6 +164,7 @@ public class DeskService {
         this.users = users;
         this.billing = billing;
         this.audit = audit;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -218,7 +223,7 @@ public class DeskService {
                     List.of(), null, null, List.of()));
         }
         Alloc a = alloc.get();
-        Inventory.BedSlot bed = inventory.beds(List.of(a.bedId())).get(a.bedId());
+        Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
         if (bed == null || !scope.contains(bed.buildingId())) {
             return new Lookup(null);
         }
@@ -234,7 +239,7 @@ public class DeskService {
                 .orElseThrow(() -> ApiException.notFound("No Bed is allocated to this student."));
         Alloc a = activeOf(student.userId(), termId, true)
                 .orElseThrow(() -> ApiException.notFound("No Bed is allocated to this student."));
-        Inventory.BedSlot bed = inventory.beds(List.of(a.bedId())).get(a.bedId());
+        Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
         blockScope.check(bed.buildingId());
         if (a.checkedInAt() != null) {
             throw ApiException.conflict("ALREADY_CHECKED_IN",
@@ -425,6 +430,9 @@ public class DeskService {
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1
                 WHERE id = :id AND status = 'ACTIVE'
                 """).param("now", Timestamp.from(now)).param("id", p.alloc().id()).update();
+        if (p.alloc().checkedInAt() != null) {
+            events.publishEvent(new ResidentLeftRoom(p.bed().roomId(), "CHECK_OUT"));
+        }
         long refund = settled.settlement().refund();
         audit.record("CHECKED_OUT", AuditLog.Tone.SUCCESS, "Allocation", p.alloc().id(),
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
@@ -505,7 +513,7 @@ public class DeskService {
                 .query((rs, i) -> new Object[] { alloc(rs, i), rs.getString("out_reason"), rs.getString("out_status"),
                         instant(rs, "out_completed") })
                 .list();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(raw.stream().map(r -> ((Alloc) r[0]).bedId()).toList());
+        Map<Long, Inventory.BedSlot> beds = beds(raw.stream().map(r -> (Alloc) r[0]).toList());
         List<Placed> result = new ArrayList<>();
         for (Object[] r : raw) {
             Alloc a = (Alloc) r[0];
@@ -544,11 +552,19 @@ public class DeskService {
 
     // ---------------------------------------------------------------- helpers
 
+    /** The Beds of the Allocations, each with its Room's class in the Allocation's Term. */
+    private Map<Long, Inventory.BedSlot> beds(List<Alloc> allocations) {
+        Map<Long, Inventory.BedSlot> result = new HashMap<>();
+        allocations.stream().collect(Collectors.groupingBy(Alloc::termId))
+                .forEach((term, list) -> result.putAll(inventory.beds(term, list.stream().map(Alloc::bedId).toList())));
+        return result;
+    }
+
     /** Active Allocations of the Term with Beds in scope. */
     private List<Placed> active(long termId, Set<Long> scope) {
         List<Alloc> list = jdbc.sql("SELECT * FROM asg_allocation WHERE term_id = :term AND status = 'ACTIVE'")
                 .param("term", termId).query(DeskService::alloc).list();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(list.stream().map(Alloc::bedId).toList());
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(termId, list.stream().map(Alloc::bedId).toList());
         return list.stream().filter(a -> beds.get(a.bedId()) != null && scope.contains(beds.get(a.bedId()).buildingId()))
                 .map(a -> new Placed(a, beds.get(a.bedId()), null, null, null)).toList();
     }

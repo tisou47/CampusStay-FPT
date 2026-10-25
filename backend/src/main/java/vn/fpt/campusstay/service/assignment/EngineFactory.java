@@ -87,8 +87,8 @@ class EngineFactory {
                 }
             });
         }
-        List<Inventory.BedSlot> assignable = inventory.assignableBeds();
-        Map<Long, Inventory.BedSlot> allBeds = inventory.beds(takenBedStudent.keySet());
+        List<Inventory.BedSlot> assignable = inventory.assignableBeds(termId);
+        Map<Long, Inventory.BedSlot> allBeds = inventory.beds(termId, takenBedStudent.keySet());
         Map<Long, UserDirectory.StudentProfile> profiles = users.studentProfiles(new HashSet<>(takenBedStudent.values()));
         Map<Long, List<AssignmentEngine.Profile>> occupied = new HashMap<>();
         takenBedStudent.forEach((bed, student) -> {

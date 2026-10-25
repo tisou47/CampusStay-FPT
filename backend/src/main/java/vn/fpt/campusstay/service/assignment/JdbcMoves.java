@@ -15,12 +15,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.application.Applications;
 import vn.fpt.campusstay.service.assignment.Moves;
 import vn.fpt.campusstay.service.inventory.Inventory;
@@ -37,12 +39,15 @@ class JdbcMoves implements Moves {
     private final JdbcClient jdbc;
     private final Inventory inventory;
     private final Applications applications;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    JdbcMoves(JdbcClient jdbc, Inventory inventory, Applications applications, Clock clock) {
+    JdbcMoves(JdbcClient jdbc, Inventory inventory, Applications applications, ApplicationEventPublisher events,
+            Clock clock) {
         this.jdbc = jdbc;
         this.inventory = inventory;
         this.applications = applications;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -79,7 +84,7 @@ class JdbcMoves implements Moves {
                 .param("t", termId).query((rs, i) -> Map.entry(rs.getLong("bed_id"), rs.getLong("student_id"))).list()
                 .forEach(e -> occupied.put(e.getKey(), e.getValue()));
         Set<Long> held = applications.heldRound2Beds(termId);
-        List<Inventory.BedSlot> assignable = inventory.assignableBeds();
+        List<Inventory.BedSlot> assignable = inventory.assignableBeds(termId);
         Map<Long, Long> perRoom = assignable.stream().filter(b -> occupied.containsKey(b.bedId()))
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, Collectors.counting()));
         return assignable.stream()
@@ -100,7 +105,9 @@ class JdbcMoves implements Moves {
             throw bedTaken();
         }
         end(old, reason);
-        return insert(old, bedId, reason, by);
+        long moved = insert(old, bedId, reason, by);
+        leaving(old, bedId);
+        return moved;
     }
 
     @Override
@@ -114,7 +121,23 @@ class JdbcMoves implements Moves {
         }
         end(a, "SWAP");
         end(b, "SWAP");
-        return new long[] { insert(a, b.bedId(), "SWAP", by), insert(b, a.bedId(), "SWAP", by) };
+        long[] swapped = { insert(a, b.bedId(), "SWAP", by), insert(b, a.bedId(), "SWAP", by) };
+        leaving(a, b.bedId());
+        leaving(b, a.bedId());
+        return swapped;
+    }
+
+    /** A checked-in student moving to a Bed of another Room leaves the old Room: its door code must change. */
+    private void leaving(Row from, long toBedId) {
+        if (from.checkedInAt() == null) {
+            return;
+        }
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(List.of(from.bedId(), toBedId));
+        Inventory.BedSlot old = beds.get(from.bedId());
+        Inventory.BedSlot next = beds.get(toBedId);
+        if (old != null && next != null && old.roomId() != next.roomId()) {
+            events.publishEvent(new ResidentLeftRoom(old.roomId(), "MOVE_OUT"));
+        }
     }
 
     /** Active Allocations, locked in id order (no deadlock between two swaps). */
@@ -155,11 +178,15 @@ class JdbcMoves implements Moves {
         }
     }
 
+    /** Each Bed with its Room's class in the Allocation's own Term. */
     private Map<Long, Placement> placed(List<Row> rows) {
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(rows.stream().map(Row::bedId).toList());
+        Map<Long, Map<Long, Inventory.BedSlot>> bedsByTerm = new HashMap<>();
+        rows.stream().collect(Collectors.groupingBy(Row::termId))
+                .forEach((term, termRows) -> bedsByTerm.put(term,
+                        inventory.beds(term, termRows.stream().map(Row::bedId).toList())));
         Map<Long, Placement> result = new HashMap<>();
         for (Row r : rows) {
-            Inventory.BedSlot b = beds.get(r.bedId());
+            Inventory.BedSlot b = bedsByTerm.get(r.termId()).get(r.bedId());
             if (b != null) {
                 result.put(r.id(), new Placement(r.id(), r.termId(), r.studentId(), r.applicationId(), r.status(),
                         b.bedId(), b.code(), b.roomCode(), b.bedLabel(), b.floor(), b.roomId(), b.buildingId(), b.block(),

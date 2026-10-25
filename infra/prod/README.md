@@ -91,6 +91,7 @@ Check: `nslookup <API_DOMAIN>` answers the VPS's IP.
 Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VPS, fill it in, then `chmod 600 /opt/campusstay/.env`. The workflow never overwrites `.env`. Also `mkdir -p /opt/campusstay/secrets` (the Firebase key goes there, §3.3).
 - `API_DOMAIN`: the name from 1.6.
 - `DB_PASSWORD` and `FILES_LINK_SECRET`: one `openssl rand -hex 32` each.
+- `DOOR_CODE_KEY` (door codes, Change Spec v2 phase 3): `openssl rand -base64 32`, written straight into `.env` on the server and never printed. Keep it for the life of the database: with another key the stored codes cannot be read and Staff must set new ones. Without it the API starts and only the door-code screens answer `503`.
 - Database: keep `COMPOSE_PROFILES=local-db` (Postgres in the stack). A managed database (Azure, appendix A) uses `DB_URL` instead.
 - `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS`: the Vercel production URL (§2).
 - `API_MEMORY=1g` on a 2 GB VPS.

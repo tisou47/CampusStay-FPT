@@ -1,8 +1,10 @@
 package vn.fpt.campusstay;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -253,6 +255,37 @@ class InventoryIT {
                 .andExpect(status().isForbidden());
         mvc.perform(get("/inventory/rooms/Z-999").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_A)))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * TC-INV-012: bulk generation gives the new Rooms the Room Class chosen for them (the Floor keeps it as the class
+     * of its later Rooms); each Floor lists the classes its Rooms have, which are set per Room from then on.
+     */
+    @Test
+    void generatesRoomsOfAChosenClass() throws Exception {
+        String admin = bearer(mvc, ADMIN);
+        String id = JsonPath.read(mvc.perform(post("/admin/buildings").header(HttpHeaders.AUTHORIZATION, admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"D\",\"gender\":\"Male\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String premium = jdbc.sql("SELECT id FROM cfg_room_class WHERE name = 'Premium'").query(Long.class).single().toString();
+        mvc.perform(post("/admin/buildings/" + id + "/rooms/bulk").header(HttpHeaders.AUTHORIZATION, admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"fromFloor\":1,\"toFloor\":1,\"roomClassId\":\"99999\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.roomClassId").value("Choose an active Room Class."));
+        mvc.perform(post("/admin/buildings/" + id + "/rooms/bulk").header(HttpHeaders.AUTHORIZATION, admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fromFloor\":1,\"toFloor\":1,\"roomClassId\":\"" + premium + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(10));
+        mvc.perform(get("/admin/buildings").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.items[?(@.name == 'D')].floors[0].roomClassName", contains("Premium")))
+                .andExpect(jsonPath("$.items[?(@.name == 'D')].floors[0].roomClasses[0].name", contains("Premium")))
+                .andExpect(jsonPath("$.items[?(@.name == 'D')].floors[0].roomClasses[0].rooms", contains(10)))
+                .andExpect(jsonPath("$.items[?(@.name == 'A')].floors[0].roomClasses[*].name", contains("Basic")))
+                .andExpect(jsonPath("$.roomClasses[*].name", contains("Basic", "Standard", "Premium")));
+        mvc.perform(get("/admin/buildings/" + id + "/floors/1/rooms").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.items[*].roomClassName", everyItem(is("Premium"))));
     }
 
     private <T> T read(String auth, String url, String path) throws Exception {

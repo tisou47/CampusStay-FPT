@@ -62,6 +62,7 @@ public class InventoryService {
     public record Summary(int beds, int allocated, int available, int outOfService) {
     }
 
+    /** {@code roomClassName}: the class every Room of the Floor has in the Term, or null when they differ. */
     public record FloorView(String roomClassName, List<RoomView> rooms, Summary summary) {
     }
 
@@ -119,8 +120,8 @@ public class InventoryService {
         return new Structure(blocks, lookups.list(OOS_REASON).stream().map(Lookups.Lookup::label).toList());
     }
 
-    private record RoomRow(long id, String code, long roomTypeId, String status, Instant oosSince, String oosReason,
-            String oosNote, Long oosBy) {
+    private record RoomRow(long id, String code, long roomTypeId, long roomClassId, String status, Instant oosSince,
+            String oosReason, String oosNote, Long oosBy) {
     }
 
     private record BedRow(long id, long roomId, String label, String status) {
@@ -145,34 +146,40 @@ public class InventoryService {
                         .orElseThrow(() -> ApiException.notFound("This Term does not exist."))
                 : terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
                         .orElse(null);
-        long[] floor = jdbc.sql("SELECT id, room_class_id FROM inv_floor WHERE building_id = :b AND floor_no = :f")
+        long floorId = jdbc.sql("SELECT id FROM inv_floor WHERE building_id = :b AND floor_no = :f")
                 .param("b", buildingId).param("f", floorNo)
-                .query((rs, i) -> new long[] { rs.getLong("id"), rs.getLong("room_class_id") })
+                .query(Long.class)
                 .optional()
                 .orElseThrow(() -> ApiException.notFound("Floor " + floorNo + " does not exist in Block " + blockCode + "."));
-        String className = catalog.roomClasses().stream().filter(c -> c.id() == floor[1])
-                .map(Catalog.RoomClassInfo::name).findFirst().orElse(null);
+        Map<Long, String> classNames = catalog.roomClasses().stream()
+                .collect(Collectors.toMap(Catalog.RoomClassInfo::id, Catalog.RoomClassInfo::name));
         Map<Long, String> typeNames = catalog.roomTypes().stream()
                 .collect(Collectors.toMap(Catalog.RoomTypeInfo::id, Catalog.RoomTypeInfo::name));
 
+        // Each Room has its own Room Class in the Term (ADR-24).
         List<RoomRow> rooms = jdbc.sql("""
-                SELECT id, code, room_type_id, status, oos_since, oos_reason, oos_note, oos_by
+                SELECT id, code, room_type_id, inv_room_class_in(id, CAST(:term AS BIGINT)) AS room_class_id, status,
+                       oos_since, oos_reason, oos_note, oos_by
                 FROM inv_room WHERE floor_id = :f AND status <> 'RETIRED' ORDER BY code
                 """)
-                .param("f", floor[0])
+                .param("f", floorId)
+                .param("term", term)
                 .query((rs, i) -> {
                     Timestamp since = rs.getTimestamp("oos_since");
                     return new RoomRow(rs.getLong("id"), rs.getString("code"), rs.getLong("room_type_id"),
-                            rs.getString("status"), since == null ? null : since.toInstant(), rs.getString("oos_reason"),
-                            rs.getString("oos_note"), rs.getObject("oos_by", Long.class));
+                            rs.getLong("room_class_id"), rs.getString("status"), since == null ? null : since.toInstant(),
+                            rs.getString("oos_reason"), rs.getString("oos_note"), rs.getObject("oos_by", Long.class));
                 })
                 .list();
+        Set<String> floorClasses = rooms.stream().map(r -> classNames.get(r.roomClassId())).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        String className = floorClasses.size() == 1 ? floorClasses.iterator().next() : null;
         List<BedRow> beds = jdbc.sql("""
                 SELECT b.id, b.room_id, b.label, b.status FROM inv_bed b JOIN inv_room r ON r.id = b.room_id
                 WHERE r.floor_id = :f AND r.status <> 'RETIRED' AND b.status <> 'RETIRED'
                 ORDER BY b.room_id, b.label
                 """)
-                .param("f", floor[0])
+                .param("f", floorId)
                 .query((rs, i) -> new BedRow(rs.getLong("id"), rs.getLong("room_id"), rs.getString("label"),
                         rs.getString("status")))
                 .list();
@@ -210,8 +217,8 @@ public class InventoryService {
                     ? new OutOfService(room.oosSince(), reasons.getOrDefault(room.oosReason(), room.oosReason()),
                             room.oosBy() == null ? null : setterNames.get(room.oosBy()), room.oosNote())
                     : null;
-            views.add(new RoomView(room.code(), blockCode, floorNo, typeNames.get(room.roomTypeId()), className,
-                    bedViews.size(), oos, bedViews));
+            views.add(new RoomView(room.code(), blockCode, floorNo, typeNames.get(room.roomTypeId()),
+                    classNames.get(room.roomClassId()), bedViews.size(), oos, bedViews));
         }
         return new FloorView(className, views, new Summary(total, allocated, available, outOfService));
     }

@@ -258,7 +258,7 @@ public class AssignmentQueries {
             }).toList();
         }
         List<RunStore.Item> pageItems = shown.stream().skip(page.offset()).limit(page.limit()).toList();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(pageItems.stream().map(RunStore.Item::bedId)
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(run.termId(), pageItems.stream().map(RunStore.Item::bedId)
                 .filter(Objects::nonNull).toList());
         Map<Long, String> typeNames = typeNames();
         Map<Long, String> classNames = classNames();
@@ -358,12 +358,12 @@ public class AssignmentQueries {
         long building = buildingInScope(block);
         List<RunStore.Item> items = runs.items(run.id()).stream()
                 .filter(i -> Objects.equals(i.buildingId(), building) && i.bedId() != null && !i.waitlisted()).toList();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(items.stream().map(RunStore.Item::bedId).toList());
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(run.termId(), items.stream().map(RunStore.Item::bedId).toList());
         Map<Long, Applications.Candidate> apps = applications.find(items.stream().map(RunStore.Item::applicationId)
                 .toList());
         Map<Long, List<RunStore.Item>> byRoom = items.stream()
                 .collect(Collectors.groupingBy(i -> beds.get(i.bedId()).roomId(), LinkedHashMap::new, Collectors.toList()));
-        Map<Long, Inventory.BedSlot> livingBeds = inventory.beds(heldOutsideRun(run));
+        Map<Long, Inventory.BedSlot> livingBeds = inventory.beds(run.termId(), heldOutsideRun(run));
         Map<Long, String> typeNames = typeNames();
         Map<Long, String> classNames = classNames();
         List<RoomRow> rows = new ArrayList<>();
@@ -418,7 +418,7 @@ public class AssignmentQueries {
         long allocated = items.stream().filter(i -> i.bedId() != null && !i.waitlisted()).count();
         long toRound2 = items.stream().filter(i -> i.waitlisted() || i.bedId() == null).count();
         Set<Long> held = heldOutsideRun(run);
-        long bedsOffered = inventory.assignableBeds().stream()
+        long bedsOffered = inventory.assignableBeds(run.termId()).stream()
                 .filter(b -> b.buildingId() == chosen.buildingId() && !held.contains(b.bedId())).count();
         BigDecimal score = AssignmentService.average(items.stream().map(RunStore.Item::fit).toList());
         String submittedBy = chosen.submittedBy() == null ? null

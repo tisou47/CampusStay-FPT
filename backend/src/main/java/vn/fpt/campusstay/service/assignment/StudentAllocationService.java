@@ -107,7 +107,7 @@ public class StudentAllocationService {
         ApplicationRef appRef = app.map(a -> new ApplicationRef(a.code(), label(a.status()))).orElse(null);
         TermRef termRef = new TermRef(String.valueOf(term.id()), term.name(), term.stayStart(), term.stayEnd(),
                 term.resultsPublishedAt());
-        Inventory.BedSlot bed = row.map(r -> inventory.beds(List.of(r.bedId())).get(r.bedId())).orElse(null);
+        Inventory.BedSlot bed = row.map(r -> inventory.beds(term.id(), List.of(r.bedId())).get(r.bedId())).orElse(null);
         if (bed == null) {
             return new MyRoom(termRef, null, List.of(), null, null, null, appRef, null);
         }

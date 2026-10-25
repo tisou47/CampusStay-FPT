@@ -21,6 +21,8 @@ campusstay:
     overdue-interval: 1h
   mnt:
     inspection-cron: "-"           # tests start runs themselves
+  door-codes:
+    key: dGVzdC1kb29yLWNvZGUta2V5LTMyLWJ5dGVzLW9rISE=
   files:
     dir: target/test-files
     link-secret: test-link-secret

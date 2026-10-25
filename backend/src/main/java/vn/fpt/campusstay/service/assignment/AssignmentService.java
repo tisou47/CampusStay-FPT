@@ -286,7 +286,7 @@ public class AssignmentService {
         List<RunStore.Item> items = runs.items(run.id()).stream()
                 .filter(i -> Objects.equals(i.buildingId(), building)).toList();
         Map<Long, Applications.Candidate> apps = applications.find(items.stream().map(RunStore.Item::applicationId).toList());
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(items.stream().map(RunStore.Item::bedId)
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(run.termId(), items.stream().map(RunStore.Item::bedId)
                 .filter(Objects::nonNull).toList());
         Instant now = Instant.now(clock);
         Instant balanceDueAt = now.plus(Duration.ofDays(fees.balanceDays()));

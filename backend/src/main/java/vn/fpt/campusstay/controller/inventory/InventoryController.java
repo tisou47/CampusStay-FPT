@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.inventory.InventoryService;
+import vn.fpt.campusstay.service.inventory.RoomDetailService;
 
 /** Staff and Manager › Inventory (Block-scoped). */
 @RestController
@@ -28,8 +29,11 @@ class InventoryController {
 
     private final InventoryService inventory;
 
-    InventoryController(InventoryService inventory) {
+    private final RoomDetailService details;
+
+    InventoryController(InventoryService inventory, RoomDetailService details) {
         this.inventory = inventory;
+        this.details = details;
     }
 
     @GetMapping("/structure")
@@ -46,6 +50,11 @@ class InventoryController {
     @GetMapping("/rooms/{code}")
     InventoryService.RoomRef room(@PathVariable String code) {
         return inventory.room(code);
+    }
+
+    @GetMapping("/rooms/{code}/details")
+    RoomDetailService.RoomDetails details(@PathVariable String code, @RequestParam(required = false) Long termId) {
+        return details.details(code, termId);
     }
 
     @PostMapping("/rooms/{code}/out-of-service")
