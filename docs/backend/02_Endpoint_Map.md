@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (branch `feat/v2-phase4`, not merged yet).
+Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -286,7 +286,7 @@ Door-code rotation: a check-out or a move to another Room opens the Room's task 
 
 ## V2-4 — Change Specification v2 phase 4 "Registration periods"
 
-Built on `feat/v2-phase4` (ADR-20, ADR-27; not merged into `main` yet). Migrations V42 (CFG: Term milestones M1–M7, Term prices, Blocks and Rooms of a Term, the rules a Term opened with, information for students, registration-period requests and their history, grouped settings, three refund triggers, report views) and V43 (NTF: announcements with a read state per user, the request and publish notifications). A published Term keeps its prices, Deposit, Utility Deposit and rules; every reader asks the Term (C-41). Change announcements also come from `PUT /admin/room-types/{id}`, `/admin/room-classes/{id}`, `/admin/fees`, `/admin/utility` and `/block-settings`.
+Built on `feat/v2-phase4` (ADR-20, ADR-27), in `main` and production since 26/10/2026. Migrations V42 (CFG: Term milestones M1–M7, Term prices, Blocks and Rooms of a Term, the rules a Term opened with, information for students, registration-period requests and their history, grouped settings, three refund triggers, report views) and V43 (NTF: announcements with a read state per user, the request and publish notifications). A published Term keeps its prices, Deposit, Utility Deposit and rules; every reader asks the Term (C-41). Change announcements also come from `PUT /admin/room-types/{id}`, `/admin/room-classes/{id}`, `/admin/fees`, `/admin/utility` and `/block-settings`.
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|

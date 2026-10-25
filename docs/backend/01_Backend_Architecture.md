@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.6 (Change Specification v2 phase 4 "Registration periods", branch `feat/v2-phase4`: registration-period requests, the Term wizard with prices, Blocks, Rooms and rules fixed per Term, announcements and the dormitory board, configuration grouped by subject, rules screens, Term dashboard; ADR-20). 1.5 (Change Specification v2 phase 3 "Inventory", in `main` since 25/10/2026: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
+| Version | 1.6 (Change Specification v2 phase 4 "Registration periods", in `main` since 26/10/2026: registration-period requests, the Term wizard with prices, Blocks, Rooms and rules fixed per Term, announcements and the dormitory board, configuration grouped by subject, rules screens, Term dashboard; ADR-20). 1.5 (Change Specification v2 phase 3 "Inventory", in `main` since 25/10/2026: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
 | Date | 26/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
@@ -441,7 +441,7 @@ flowchart LR
 | Concurrency | — (not automated yet, R-18) | Same Bed or Invoice changed by two requests at once: covered by the constraints and locks of §9; a repeated SePay delivery is tested in sequence (TC-BIL-003) | — |
 | System / UAT | Web app against the dev stack or the demo server | End-to-end flows per role, by hand | Test Report workbook |
 
-On 26/10/2026 (v2 phase 4 on `feat/v2-phase4`): 51 test classes, 203 tests, 202 test case ids (27 unit, 174 integration, 2 architecture; `main` with phase 3: 45 classes, 189 tests), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
+On 26/10/2026 (v2 phase 4 in `main`): 51 test classes, 203 tests, 202 test case ids (27 unit, 174 integration, 2 architecture; `main` with phase 3: 45 classes, 189 tests), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
 
 ## 16. Risks and technical debt
 
