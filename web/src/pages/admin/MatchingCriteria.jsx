@@ -1,42 +1,85 @@
-import { useEffect, useState } from 'react'
-import { ArrowDown, ArrowUp, Check, CircleCheck, Ellipsis, Eye } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowDown, ArrowUp, Check, ChevronDown, CircleCheck, Ellipsis, Eye } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button, IconButton } from '@/components/ui/Button'
-import { Checkbox, Switch } from '@/components/ui/Choice'
 import { Card } from '@/components/ui/Display'
+import { Field, Input } from '@/components/ui/Field'
+import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatNumber, formatPercent } from '@/lib/format'
+import { formatPercent } from '@/lib/format'
 import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
-// SCR-CFG-06 Matching Criteria (Figma 38:1552)
-// GET /admin/matching → { snapshot, hardConstraints: [string], order: [{ key, title, note }],
-//   weights: [{ key, label, note, on, value }], boost, preview: { averageFit, sameMajorRate, toRound2, source } | null }
-// PUT /admin/matching (saves a new snapshot) · POST /admin/matching/preview (dry run, nothing allocated)
+// SCR-CFG-06 Rules › Roommate matching (spec §6.17, D-06): the processing order when Beds are short, and how much
+// each shared attribute counts as a level (Very important counts twice as much as Important); the roommate-preference
+// boost under Advanced. The preview runs the draft and the rules in use on the approved Applications.
+// GET /admin/matching → { snapshot, hardConstraints, order: [{ key, title, note }],
+//   weights: [{ key, label, note, on, value, level }], boost }
+// PUT /admin/matching { order, weights: [{ key, level }], boost } (a new snapshot)
+// POST /admin/matching/preview (same body) → { students, moved, inUse, draft: { placed, averageFit, priorityPlaced,
+//   priorityStudents }, example: { room, students, fit, attributes: [{ key, label, value, sharing }] }, toRound2, source }
+
+const LEVELS = ['Very important', 'Important', 'Not used']
+
+/** Whole percentages the levels give (Very important = 2 points, Important = 1), as the server computes them. */
+function percents(weights) {
+  const points = weights.map((w) => (w.level === 'Very important' ? 2 : w.level === 'Important' ? 1 : 0))
+  const total = points.reduce((a, b) => a + b, 0)
+  if (!total) return weights.map(() => 0)
+  const values = points.map((p) => Math.floor((p * 100) / total))
+  const first = points.findIndex((p) => p > 0)
+  values[first] += 100 - values.reduce((a, b) => a + b, 0)
+  return values
+}
+
+function PreviewTable({ preview }) {
+  const rows = [
+    ['Students placed', (r) => (r ? `${r.placed} / ${preview.students}` : '—')],
+    ['Average fit', (r) => (r?.averageFit != null ? `${r.averageFit} / 100` : '—')],
+    ['Priority students with a Bed', (r) => (r ? `${r.priorityPlaced} / ${r.priorityStudents}` : '—')],
+  ]
+  return (
+    <table className="w-full text-base">
+      <thead>
+        <tr className="text-left text-sm text-fg-tertiary">
+          <th className="py-1 font-medium" />
+          <th className="py-1 text-right font-medium">{t('Rules in use')}</th>
+          <th className="py-1 text-right font-medium">{t('This draft')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(([label, value]) => (
+          <tr key={label} className="border-t border-line">
+            <td className="py-1.5 text-fg-secondary">{t(label)}</td>
+            <td className="py-1.5 text-right text-fg tabular">{value(preview.inUse)}</td>
+            <td className="py-1.5 text-right font-medium text-fg tabular">{value(preview.draft)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
 
 export default function MatchingCriteria() {
   const { notify, notifyError } = useToast()
   const cfg = useConfigForm('matching', api.admin.matching, {
-    onSaved: (res) => notify({ title: t('Snapshot v{n} saved', { n: res?.snapshot ?? '' }), message: 'The next assignment run uses it. Runs already made keep their snapshot.' }),
+    onSaved: (res) => notify({ title: t('Snapshot v{n} saved', { n: res?.snapshot ?? '' }), message: 'Terms published from now on use it. A published Term and the runs already made keep their snapshot.' }),
   })
   const { draft } = cfg
   const [preview, setPreview] = useState(null)
-  useEffect(() => {
-    if (cfg.saved?.preview) setPreview(cfg.saved.preview)
-  }, [cfg.saved])
-  const dryRun = useMutation(() => api.admin.matching.preview({ order: draft.order, weights: draft.weights, boost: draft.boost }), {
-    onSuccess: (res) => {
-      setPreview(res)
-      notify({ type: 'info', title: 'Dry run finished', message: 'It used these unsaved settings. Nothing was allocated.' })
-    },
-    onError: (e) => notifyError(e, 'Dry run failed'),
+  const [advanced, setAdvanced] = useState(false)
+  const body = () => ({ order: draft.order, weights: draft.weights.map((w) => ({ key: w.key, level: w.level })), boost: Number(draft.boost) || 1 })
+  const dryRun = useMutation(() => api.admin.matching.preview(body()), {
+    onSuccess: (res) => setPreview(res),
+    onError: (e) => notifyError(e, 'Preview failed'),
   })
-
-  const total = (draft?.weights ?? []).reduce((n, w) => n + (w.on ? Number(w.value) : 0), 0)
-  const setWeight = (key, patch) => cfg.setValue('weights', draft.weights.map((w) => (w.key === key ? { ...w, ...patch } : w)))
+  const weights = draft?.weights ?? []
+  const shares = percents(weights)
+  const anyUsed = weights.some((w) => w.level !== 'Not used')
+  const setLevel = (key, level) => cfg.setValue('weights', draft.weights.map((w) => (w.key === key ? { ...w, level } : w)))
   const move = (i, dir) => {
     const order = [...draft.order]
     ;[order[i], order[i + dir]] = [order[i + dir], order[i]]
@@ -46,14 +89,14 @@ export default function MatchingCriteria() {
   return (
     <ConfigPage
       form={cfg}
-      title="Matching Criteria"
-      description="Rules the assignment engine uses. Each run freezes a snapshot, so later edits never change a past proposal."
+      title="Roommate matching"
+      description="Who is placed first when Beds are short, and what roommates should share. Publishing a Term fixes these rules for it."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
             Cancel
           </Button>
-          <Button variant="primary" icon={Check} disabled={!cfg.dirty || total !== 100 || cfg.saving} onClick={() => cfg.save()}>
+          <Button variant="primary" icon={Check} disabled={!cfg.dirty || !anyUsed || cfg.saving} onClick={() => cfg.save(body())}>
             {t('Save as snapshot v{n}', { n: (draft?.snapshot ?? 0) + 1 })}
           </Button>
         </>
@@ -65,8 +108,8 @@ export default function MatchingCriteria() {
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <h2 className="text-h3 font-semibold text-fg">{t('Hard constraints')}</h2>
-                  <p className="text-sm text-fg-tertiary">{t('Always applied. A Bed that breaks any of these is never proposed.')}</p>
+                  <h2 className="text-h3 font-semibold text-fg">{t('Always true')}</h2>
+                  <p className="text-sm text-fg-tertiary">{t('A Bed that breaks any of these is never proposed.')}</p>
                 </div>
                 <Tag>Locked</Tag>
               </div>
@@ -81,8 +124,8 @@ export default function MatchingCriteria() {
             </Card>
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex flex-col gap-0.5">
-                <h2 className="text-h3 font-semibold text-fg">{t('Processing order')}</h2>
-                <p className="text-sm text-fg-tertiary">{t('Who gets a Bed first when a Room Type and Room Class run short. Use the arrows to reorder.')}</p>
+                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when Beds are short?')}</h2>
+                <p className="text-sm text-fg-tertiary">{t('The engine takes the Applications in this order. Use the arrows to reorder.')}</p>
               </div>
               <ol className="flex flex-col gap-2.5">
                 {(draft.order ?? []).map((o, i) => (
@@ -99,65 +142,63 @@ export default function MatchingCriteria() {
                 ))}
               </ol>
             </Card>
+            <Card className="flex shrink-0 flex-col gap-4">
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-h3 font-semibold text-fg">{t('How are roommates matched?')}</h2>
+                <p className="text-sm text-fg-tertiary">{t('For 4-bed and 6-bed Rooms, and 2-bed students who chose automatic matching. Very important counts twice as much as Important.')}</p>
+              </div>
+              {weights.map((w, i) => (
+                <div key={w.key} className="flex items-center gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className={cx('text-base font-medium', w.level === 'Not used' ? 'text-fg-tertiary' : 'text-fg')}>{tr(w.label)}</span>
+                    <span className="text-sm text-fg-tertiary">{w.level === 'Not used' ? t('Not used') : `${tr(w.note)} · ${shares[i]}%`}</span>
+                  </div>
+                  <Segmented options={LEVELS.map((l) => ({ value: l, label: t(l) }))} value={w.level} onChange={(level) => setLevel(w.key, level)} />
+                </div>
+              ))}
+              {!anyUsed && <p className="text-sm text-error-fg">{t('Use at least one matching criterion.')}</p>}
+              <button type="button" onClick={() => setAdvanced((a) => !a)} aria-expanded={advanced} className="flex items-center gap-1 self-start text-sm font-medium text-fg-link">
+                <ChevronDown size={16} aria-hidden="true" className={cx('transition-transform', advanced && 'rotate-180')} />
+                {t('Advanced')}
+              </button>
+              {advanced && (
+                <Field label="Roommate-preference boost" helper="When a student's roommate preferences (region, semester, major) all match the Room, their fit is multiplied by this. 1 = off, at most 5.">
+                  {(id) => <Input id={id} inputMode="decimal" value={draft.boost ?? 1} onChange={(e) => cfg.setValue('boost', e.target.value)} className="w-32" />}
+                </Field>
+              )}
+            </Card>
           </div>
           <div className="flex w-120 shrink-0 flex-col gap-4 overflow-y-auto">
-            <Card className="flex shrink-0 flex-col gap-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-0.5">
-                  <h2 className="text-h3 font-semibold text-fg">{t('Roommate matching')}</h2>
-                  <p className="text-sm text-fg-tertiary">{t('For 4-bed and 6-bed Rooms, and 2-bed Students who chose automatic matching. Weights must total 100%.')}</p>
-                </div>
-                <Tag tone={total === 100 ? 'success' : 'error'}>{t('Total {n}%', { n: total })}</Tag>
-              </div>
-              {(draft.weights ?? []).map((w) => (
-                <div key={w.key} className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className={cx('text-base font-medium', w.on ? 'text-fg' : 'text-fg-tertiary')}>{tr(w.label)}</span>
-                      <span className="text-sm text-fg-tertiary">{w.on ? tr(w.note) : t('Off')}</span>
-                    </div>
-                    <Switch aria-label={tr(w.label)} checked={w.on} onChange={(on) => setWeight(w.key, { on, value: on ? w.value : 0 })} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={w.value}
-                      disabled={!w.on}
-                      aria-label={t('{label} weight', { label: tr(w.label) })}
-                      onChange={(e) => setWeight(w.key, { value: Number(e.target.value) })}
-                      className="h-1.5 flex-1 cursor-pointer accent-primary disabled:cursor-not-allowed"
-                    />
-                    <span className={cx('flex h-7 w-14 items-center justify-center rounded-md border border-line-strong text-base font-medium tabular', w.on ? 'text-fg' : 'text-fg-tertiary')}>{w.value}%</span>
-                  </div>
-                </div>
-              ))}
-              <Checkbox
-                label="Boost ×1.5 when a 2-bed Student's Roommate preferences match (free add-on service)"
-                checked={Boolean(draft.boost)}
-                onChange={(e) => cfg.setValue('boost', e.target.checked)}
-              />
-            </Card>
-            <div className="flex shrink-0 flex-col gap-2 rounded-lg border border-line bg-subtle p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-base font-medium text-fg">{t('Preview with these settings')}</p>
-                <Button icon={Eye} disabled={total !== 100 || dryRun.pending} onClick={() => dryRun.run()}>
-                  {dryRun.pending ? t('Running…') : t('Run dry run')}
+            <div className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-subtle p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-base font-medium text-fg">{t('Preview against the rules in use')}</p>
+                <Button icon={Eye} disabled={!anyUsed || dryRun.pending} onClick={() => dryRun.run()}>
+                  {dryRun.pending ? t('Running…') : t('Run preview')}
                 </Button>
               </div>
-              {[
-                ['Average Room fit', preview?.averageFit != null ? `${preview.averageFit} / 100` : '—'],
-                ['Rooms with 2+ students of the same major', preview?.sameMajorRate != null ? formatPercent(preview.sameMajorRate, 0) : '—'],
-                ['To Round 2 (no capacity or roommates)', formatNumber(preview?.toRound2)],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between text-base">
-                  <span className="text-fg-secondary">{t(label)}</span>
-                  <span className="font-medium text-fg tabular">{value}</span>
-                </div>
-              ))}
-              <p className="text-sm text-fg-tertiary">{preview?.source ? tr(preview.source) : t('Run a dry run to see the effect of these settings.')}</p>
+              {preview?.draft ? (
+                <>
+                  <PreviewTable preview={preview} />
+                  <p className="text-base text-fg">{t('{n} of {total} students get another Bed (or none) with this draft.', { n: preview.moved, total: preview.students })}</p>
+                  {preview.sameMajorRate != null && (
+                    <p className="text-sm text-fg-secondary">{t('Rooms with 2+ students of the same major: {rate}', { rate: formatPercent(preview.sameMajorRate, 0) })}</p>
+                  )}
+                  {preview.example && (
+                    <div className="flex flex-col gap-1 rounded-md bg-surface p-3">
+                      <p className="text-base font-medium text-fg">{t('Example: Room {room} · fit {fit}/100', { room: preview.example.room, fit: preview.example.fit ?? '—' })}</p>
+                      <ul className="flex flex-col gap-0.5 text-sm text-fg-secondary">
+                        {preview.example.attributes.map((a) => (
+                          <li key={a.key}>{t('{label}: {n} of {total} share {value}', { label: t(a.label), n: a.sharing, total: preview.example.students, value: tr(a.value) })}</li>
+                        ))}
+                        {preview.example.attributes.length === 0 && <li>{t('No criterion is used, so every Room fits the same.')}</li>}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-fg-tertiary">{preview?.source ? tr(preview.source) : t('Run the preview to compare these settings with the rules in use. Nothing is allocated.')}</p>
+              )}
+              {preview?.draft && <p className="text-sm text-fg-tertiary">{tr(preview.source)}</p>}
             </div>
           </div>
         </div>

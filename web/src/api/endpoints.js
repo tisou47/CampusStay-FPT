@@ -38,6 +38,11 @@ export const api = {
   terms: {
     list: (opts) => http.get('/terms', undefined, opts),
   },
+  /** What students read about a registration period (A-29): the board's card and a published Term's details. */
+  registrationPeriods: {
+    current: g('/registration-periods/current'),
+    details: (termId, opts) => http.get(`/registration-periods/${termId}`, undefined, opts),
+  },
   notifications: {
     list: g('/notifications'),
     markAllRead: () => http.post('/notifications/read-all'),
@@ -62,6 +67,8 @@ export const api = {
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
+    /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
+    board: g('/students/me/board'),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */
@@ -299,6 +306,26 @@ export const api = {
     staff: g('/dashboards/staff'),
     manager: g('/dashboards/manager'),
     admin: g('/dashboards/admin'),
+    /** A published Term: milestones, Applications by status, places, Deposits and Balances (A-32). */
+    term: g('/dashboards/term'),
+  },
+  /** Registration-period requests (A-28): Managers send them; Managers and the Admin read and comment; the Admin answers. */
+  termRequests: {
+    list: g('/term-requests'),
+    get: (id, opts) => http.get(`/term-requests/${id}`, undefined, opts),
+    create: (body) => http.post('/term-requests', body),
+    update: (id, body) => http.put(`/term-requests/${id}`, body),
+    comment: (id, body) => http.post(`/term-requests/${id}/comments`, body),
+    /** { status: In progress | Needs changes | Rejected, note } */
+    decide: (id, body) => http.post(`/term-requests/${id}/decision`, body),
+  },
+  /** Announcements to students (A-30): Staff for the residents of their Blocks, Managers and the Admin for anyone. */
+  announcements: {
+    list: g('/announcements'),
+    options: g('/announcements/options'),
+    create: (body) => http.post('/announcements', body),
+    /** { pinned?, shownUntil?, end? } */
+    change: (id, body) => http.put(`/announcements/${id}`, body),
   },
 
   /* ---------------------------------------------------------------- Admin configuration */
@@ -308,6 +335,11 @@ export const api = {
       create: (body) => http.post('/admin/terms', body),
       update: (id, body) => http.put(`/admin/terms/${id}`, body),
       publish: (id, body) => http.post(`/admin/terms/${id}/publish`, body),
+      /** The wizard (A-27): { name, stayStart, stayEnd, requestId? } → { id } (a Draft, or the request's Draft). */
+      createDraft: (body) => http.post('/admin/terms/drafts', body),
+      wizard: (id, opts) => http.get(`/admin/terms/${id}/wizard`, undefined, opts),
+      /** step: general | timeline | rooms | prices | rules | information. */
+      saveStep: (id, step, body) => http.put(`/admin/terms/${id}/wizard/${step}`, body),
     },
     roomTypes: {
       list: g('/admin/room-types'),
@@ -331,6 +363,11 @@ export const api = {
       preview: (body) => http.post('/admin/matching/preview', body),
     },
     system: { get: g('/admin/system-parameters'), save: (body) => http.put('/admin/system-parameters', body) },
+    /** Settings grouped by subject (A-31): deadlines, refunds, stay. PUT { values: { key: value } }. */
+    settings: (group) => ({
+      get: (query, opts) => http.get(`/admin/settings/${group}`, query, opts),
+      save: (body) => http.put(`/admin/settings/${group}`, body),
+    }),
     templates: {
       list: g('/admin/notification-templates'),
       save: (key, body) => http.put(`/admin/notification-templates/${key}`, body),

@@ -13,10 +13,12 @@ import { ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
+import { DormitoryBoard } from './board'
 import { CompareClassesModal, NextAction, StatusCard, StatusList, StatusRow, TermTimeline } from './shared'
 import { t, tr } from '@/i18n'
 
-// SCR-HOME-01 Student Home (13:96) and SCR-HOME-01 Student Home · Allocated (39:1165).
+// SCR-HOME-01 Student Home (13:96) and SCR-HOME-01 Student Home · Allocated (39:1165). The dormitory board (spec
+// §6.5, §11.4) comes first: the registration period card and the announcements.
 // Phone: MOB-HOME-01 Home (55:160) — Next action, a status list and the latest notification.
 // GET /students/me/home?termId → {
 //   firstName, term, application: { id, status, roomTypeName, roomClassName } | null,
@@ -203,6 +205,8 @@ function HomeContent({ home }) {
         <h1 className="text-h1 font-semibold text-fg">{greeting(home.firstName)}</h1>
         <p className="text-lg text-fg-secondary">{subtitle}</p>
       </div>
+
+      <DormitoryBoard />
 
       {next}
 

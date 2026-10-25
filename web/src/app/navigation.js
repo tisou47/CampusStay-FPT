@@ -4,14 +4,17 @@ import {
   Bell,
   Building,
   Calendar,
+  CalendarRange,
   ChartColumn,
   Check,
   CircleCheck,
   ClipboardCheck,
+  ClipboardList,
   CreditCard,
   FileText,
   GraduationCap,
   Gauge,
+  Hourglass,
   House,
   KeyRound,
   Layers,
@@ -19,12 +22,15 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Megaphone,
   Package,
   Repeat,
+  Scale,
   ScrollText,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Timer,
   TriangleAlert,
   Upload,
   User,
@@ -103,6 +109,7 @@ export const backOffice = {
           { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
         ],
       },
+      { items: [{ label: 'Announcements', icon: Megaphone, to: '/staff/announcements' }] },
     ],
   },
   manager: {
@@ -113,6 +120,8 @@ export const backOffice = {
       {
         title: 'Registration',
         items: [
+          { label: 'Period requests', icon: ClipboardList, to: '/manager/term-requests' },
+          { label: 'Term dashboard', icon: CalendarRange, to: '/manager/terms' },
           { label: 'Applications', icon: FileText, to: '/manager/applications' },
           { label: 'Assignment', icon: Layers, to: '/manager/assignment' },
         ],
@@ -159,6 +168,7 @@ export const backOffice = {
           { label: 'Staff and workload', icon: Users, to: '/manager/staff' },
         ],
       },
+      { items: [{ label: 'Announcements', icon: Megaphone, to: '/manager/announcements' }] },
       {
         title: 'Reports',
         items: [{ label: 'Block reports', icon: ChartColumn, to: '/manager/reports' }],
@@ -172,14 +182,17 @@ export const backOffice = {
       { items: [{ label: 'Overview', icon: LayoutDashboard, to: '/admin', end: true }] },
       {
         title: 'Registration periods',
-        items: [{ label: 'Terms and timeline', icon: Calendar, to: '/admin/terms' }],
+        items: [
+          { label: 'Requests', icon: ClipboardList, to: '/admin/term-requests' },
+          { label: 'Terms', icon: Calendar, to: '/admin/terms' },
+        ],
       },
       {
         title: 'Prices and fees',
         items: [
           { label: 'Room Types', icon: Bed, to: '/admin/room-types' },
           { label: 'Room Classes', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Deposit and refunds', icon: Banknote, to: '/admin/fees' },
+          { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
           { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
       },
@@ -188,6 +201,9 @@ export const backOffice = {
         items: [
           { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
           { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
+          { label: 'Deadlines and reminders', icon: Timer, to: '/admin/deadlines' },
+          { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
+          { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
         ],
       },
@@ -196,6 +212,7 @@ export const backOffice = {
         items: [
           { label: 'Notification texts', icon: Bell, to: '/admin/notifications', end: true },
           { label: 'Send email', icon: Mail, to: '/admin/notifications/send' },
+          { label: 'Announcements', icon: Megaphone, to: '/admin/announcements' },
         ],
       },
       {

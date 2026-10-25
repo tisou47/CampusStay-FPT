@@ -10,6 +10,8 @@ import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
+import Announcements from '@/pages/common/Announcements'
+import TermRequests from '@/pages/registration/TermRequests'
 
 // Student — 05 Web – Student
 import StudentHome from '@/pages/student/StudentHome'
@@ -34,6 +36,7 @@ import SwapSpecific from '@/pages/student/SwapSpecific'
 import SwapBoard from '@/pages/student/SwapBoard'
 import SwapInvitation from '@/pages/student/SwapInvitation'
 import Verification from '@/pages/student/Verification'
+import RegistrationPeriod from '@/pages/student/RegistrationPeriod'
 
 // Staff — 06 Web – Staff
 import StaffDashboard from '@/pages/staff/StaffDashboard'
@@ -69,10 +72,16 @@ import Students from '@/pages/manager/Students'
 import StudentHub from '@/pages/manager/StudentHub'
 import StudentImport from '@/pages/manager/StudentImport'
 import StaffAccounts from '@/pages/manager/StaffAccounts'
+import TermDashboard from '@/pages/manager/TermDashboard'
 
 // Admin — 08 Web – Admin
 import AdminDashboard from '@/pages/admin/AdminDashboard'
-import TermsWindows from '@/pages/admin/TermsWindows'
+import Terms from '@/pages/admin/Terms'
+import TermWizard from '@/pages/admin/TermWizard'
+import NewTerm from '@/pages/admin/NewTerm'
+import Deadlines from '@/pages/admin/Deadlines'
+import StayRenewal from '@/pages/admin/StayRenewal'
+import RefundsTerminations from '@/pages/admin/RefundsTerminations'
 import RoomTypes from '@/pages/admin/RoomTypes'
 import RoomClasses from '@/pages/admin/RoomClasses'
 import FurnitureTypes from '@/pages/admin/FurnitureTypes'
@@ -142,6 +151,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/invitations/:id', element: <SwapInvitation /> },
         { path: 'notifications', element: <Notifications /> },
         { path: 'verification', element: <Verification /> },
+        { path: 'registration-periods/:termId', element: <RegistrationPeriod /> },
       ]),
 
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
@@ -160,6 +170,7 @@ export const router = createBrowserRouter([
         { path: 'check-out', element: <CheckOutDesk /> },
         { path: 'students', element: <Students /> },
         { path: 'students/:id', element: <StudentHub /> },
+        { path: 'announcements', element: <Announcements /> },
       ]),
 
       // Managers work for every Block: registration, assignment, payments and decisions (ADR-19). They share
@@ -192,11 +203,22 @@ export const router = createBrowserRouter([
         { path: 'students/:id', element: <StudentHub /> },
         { path: 'student-import', element: <StudentImport /> },
         { path: 'staff-accounts', element: <StaffAccounts /> },
+        { path: 'term-requests', element: <TermRequests /> },
+        { path: 'terms', element: <TermDashboard /> },
+        { path: 'terms/:id', element: <TermDashboard /> },
+        { path: 'announcements', element: <Announcements /> },
       ]),
 
       portal('admin', <BackOfficeLayout role="admin" />, [
         { index: true, element: <AdminDashboard /> },
-        { path: 'terms', element: <TermsWindows /> },
+        { path: 'terms', element: <Terms /> },
+        { path: 'terms/new', element: <NewTerm /> },
+        { path: 'terms/:id', element: <TermWizard /> },
+        { path: 'term-requests', element: <TermRequests /> },
+        { path: 'deadlines', element: <Deadlines /> },
+        { path: 'refunds', element: <RefundsTerminations /> },
+        { path: 'stay', element: <StayRenewal /> },
+        { path: 'announcements', element: <Announcements /> },
         { path: 'room-types', element: <RoomTypes /> },
         { path: 'room-classes', element: <RoomClasses /> },
         { path: 'fees', element: <FeesRules /> },
