@@ -183,6 +183,7 @@ export default function Payments() {
             { value: '', label: 'Type: All' },
             { value: 'deposit', label: 'Type: Deposit' },
             { value: 'balance', label: 'Type: Balance' },
+            { value: 'termFee', label: 'Type: Next-Term fee' },
             { value: 'utility', label: 'Type: Utility' },
             { value: 'roomChange', label: 'Type: Room change' },
           ]}

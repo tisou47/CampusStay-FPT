@@ -32,6 +32,7 @@ import MyRequests from '@/pages/student/MyRequests'
 import Notifications from '@/pages/student/Notifications'
 import NewMaintenanceRequest from '@/pages/student/NewMaintenanceRequest'
 import NewRoomChangeRequest from '@/pages/student/NewRoomChangeRequest'
+import NewRoomClassChange from '@/pages/student/NewRoomClassChange'
 import SwapSpecific from '@/pages/student/SwapSpecific'
 import SwapBoard from '@/pages/student/SwapBoard'
 import SwapInvitation from '@/pages/student/SwapInvitation'
@@ -53,6 +54,8 @@ import MaintenanceQueue from '@/pages/staff/MaintenanceQueue'
 import MaintenanceDetail from '@/pages/staff/MaintenanceDetail'
 import RoomChangeQueue from '@/pages/staff/RoomChangeQueue'
 import SwapRequests from '@/pages/staff/SwapRequests'
+import OperationalMoves from '@/pages/staff/OperationalMoves'
+import TermTransition from '@/pages/transition/TermTransition'
 import CheckInDesk from '@/pages/staff/CheckInDesk'
 import CheckOutDesk from '@/pages/staff/CheckOutDesk'
 import MeterReadings from '@/pages/staff/MeterReadings'
@@ -75,6 +78,7 @@ import StaffAccounts from '@/pages/manager/StaffAccounts'
 import TermDashboard from '@/pages/manager/TermDashboard'
 import PaymentClaims from '@/pages/manager/PaymentClaims'
 import Terminations from '@/pages/manager/Terminations'
+import Reconciliation from '@/pages/manager/Reconciliation'
 
 // Admin — 08 Web – Admin
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -148,6 +152,7 @@ export const router = createBrowserRouter([
         { path: 'requests', element: <MyRequests /> },
         { path: 'requests/maintenance/new', element: <NewMaintenanceRequest /> },
         { path: 'requests/room-change/new', element: <NewRoomChangeRequest /> },
+        { path: 'requests/room-class/new', element: <NewRoomClassChange /> },
         { path: 'requests/swap/new', element: <SwapSpecific /> },
         { path: 'requests/swap/board', element: <SwapBoard /> },
         { path: 'requests/swap/invitations/:id', element: <SwapInvitation /> },
@@ -168,6 +173,9 @@ export const router = createBrowserRouter([
         { path: 'inspections', element: <InspectionChecklist /> },
         { path: 'room-changes', element: <RoomChangeQueue /> },
         { path: 'room-changes/swaps', element: <SwapRequests /> },
+        { path: 'next-term', element: <TermTransition /> },
+        { path: 'next-term/:tab', element: <TermTransition /> },
+        { path: 'moves', element: <OperationalMoves /> },
         { path: 'check-in', element: <CheckInDesk /> },
         { path: 'check-out', element: <CheckOutDesk /> },
         { path: 'students', element: <Students /> },
@@ -190,6 +198,10 @@ export const router = createBrowserRouter([
         { path: 'terminations', element: <Terminations /> },
         { path: 'room-changes', element: <RoomChangeQueue /> },
         { path: 'room-changes/swaps', element: <SwapRequests /> },
+        { path: 'next-term', element: <TermTransition /> },
+        { path: 'next-term/:tab', element: <TermTransition /> },
+        { path: 'moves', element: <OperationalMoves /> },
+        { path: 'reconciliation', element: <Reconciliation /> },
         { path: 'inventory', element: <Inventory /> },
         { path: 'room-classes', element: <RoomClassesByTerm /> },
         { path: 'door-codes', element: <DoorCodes /> },

@@ -11,8 +11,8 @@ import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-05 Swap Invitation (Figma 104:2490) — seen by the partner Student.
-// GET /swap-invitations/:id → { id, status, expiresAt, crossBlock, priceDifference,
-//   give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }
+// GET /swap-invitations/:id → { id, status, expiresAt, crossBlock, termName (the next Term),
+//   give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } } — next-Term Beds and their prices
 // POST /swap-invitations/:id/respond { accept }
 
 function RoomBox({ label, room }) {
@@ -23,7 +23,7 @@ function RoomBox({ label, room }) {
         {t('{room} · Bed {bed}', { room: room.room, bed: room.bed })}
       </p>
       <p className="text-base text-fg-secondary">{[tr(room.roomTypeName), tr(room.roomClassName), room.block && t('Block {code}', { code: room.block })].filter(Boolean).join(' · ')}</p>
-      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} per Term', { price: formatVnd(room.termPrice) })}</p>}
+      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} next Term', { price: formatVnd(room.termPrice) })}</p>}
     </div>
   )
 }
@@ -43,8 +43,7 @@ function Invitation({ inv }) {
     },
     onError: (e) => notifyError(e, 'Could not send your answer'),
   })
-  const open = inv.status === 'Pending'
-  const diff = inv.priceDifference ?? 0
+  const open = inv.status === 'Invited'
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -57,20 +56,16 @@ function Invitation({ inv }) {
       )}
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">{t('A Student wants to swap Rooms with you')}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('A Student wants to swap next-Term Beds with you')}</h2>
           <p className="text-base text-fg-secondary">{t('Their name and code stay private until the swap is approved.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
           <RoomBox label="You give" room={inv.give} />
           <RoomBox label="You get" room={inv.get} />
         </div>
-        <div className="flex justify-between text-base">
-          <span className="text-fg-secondary">{t('Price difference for the rest of the Term')}</span>
-          <span className={diff > 0 ? 'font-medium text-fg' : 'font-medium text-success-fg'}>
-            {diff === 0 ? t('None') : diff > 0 ? t('+ {amount} (invoiced)', { amount: formatVnd(diff) }) : t('− {amount} (credited)', { amount: formatVnd(-diff) })}
-          </span>
-        </div>
-        <p className="text-sm text-fg-tertiary">{t('After approval you move on the move date. Meter readings are taken for both Rooms.')}</p>
+        <p className="text-sm text-fg-tertiary">
+          {t('No price difference: each of you pays the next-Term fee of the Bed you get. After approval you move at the start of {term}.', { term: inv.termName ?? t('the next Term') })}
+        </p>
       </Card>
       {open && (
         <div className="flex shrink-0 justify-end gap-3">

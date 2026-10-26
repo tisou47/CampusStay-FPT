@@ -16,14 +16,16 @@ import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
 import { t, tr } from '@/i18n'
 
-// SCR-REQ-10 Room-Change Queue (Figma 60:2696)
-// GET /room-changes?termId&block&status&kind&page&pageSize → { items: [{ id, studentName, studentCode, kind,
-//   from: { room, bed, roomTypeName, roomClassName }, to: { roomTypeName, roomClassName }, reason, difference, submittedAt, status,
-//   decision: { by, at, bed, reason, note } | null }], total, rejectReasons }
+// SCR-REQ-10 Room-Change Queue (Figma 60:2696) — next-Term Room-Change Requests of the requests window (Change Spec v2
+// phase 6, spec §6.10): approving moves the student's next-Term Bed; nothing is invoiced or refunded.
+// GET /room-changes?termId (none = the latest open window)&block&status&kind&page&pageSize → { items: [{ id, studentName, studentCode, kind,
+//   from: { room, bed, roomTypeName, roomClassName } (the next-Term Bed), to: { roomTypeName, roomClassName }, reason, submittedAt,
+//   dueAt (M4), status,
+//   decision: { by, at, bed, reason, note } | null }], total, rejectReasons, window: { termId, termName, closesAt, decisionsDueAt } }
 // GET /room-changes/:id/matching-beds → { items: [{ bedId, floor, roommates }] }
 // POST /room-changes/:id/decision { decision: 'Approved', bedId } | { decision: 'Rejected', reason, message }
 
@@ -100,7 +102,6 @@ function Review({ request: r, onReject }) {
     onSuccess: (res) => notify({ title: t('{id} approved', { id: r.id }), message: res?.note ? tr(res.note) : t('{name} moves to {bed}.', { name: r.studentName, bed }) }),
     onError: (e) => notifyError(e, 'Could not approve'),
   })
-  const diff = r.difference ?? 0
 
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Review {id}', { id: r.id })}>
@@ -117,9 +118,7 @@ function Review({ request: r, onReject }) {
         </Row>
         <Row label="To">{target(r)}</Row>
         <Row label="Reason">{tr(r.reason) || '—'}</Row>
-        <Row label="Difference" valueClassName={cx('font-medium', diff > 0 ? 'text-fg-brand' : diff < 0 ? 'text-success-fg' : 'text-fg')}>
-          {diff > 0 ? `+${formatVnd(diff)}` : diff < 0 ? t('−{amount} refund', { amount: formatVnd(-diff) }) : t('None')}
-        </Row>
+        <Row label="Decide by">{formatDateTime(r.dueAt)}</Row>
         {!pending && r.decision && (
           <>
             {r.decision.bed && <Row label="New Bed">{r.decision.bed}</Row>}
@@ -162,15 +161,11 @@ function Review({ request: r, onReject }) {
               Reject
             </Button>
             <Button variant="primary" icon={Check} disabled={!bed || approve.pending} onClick={() => approve.run()}>
-              {diff > 0 ? 'Approve and invoice' : diff < 0 ? 'Approve and refund' : 'Approve'}
+              {t('Approve')}
             </Button>
           </div>
           <p className="text-sm text-fg-tertiary">
-            {diff > 0
-              ? t('Approving issues a {amount} Invoice; the student moves after paying.', { amount: formatVnd(diff) })
-              : diff < 0
-                ? t('Approving refunds {amount} to the student; the student moves on the agreed date.', { amount: formatVnd(-diff) })
-                : t('The student moves on the agreed date; no Invoice is issued.')}
+            {t('The student moves to this Bed at the start of the next Term and pays its next-Term price with the next-Term fee; nothing is invoiced or refunded now.')}
           </p>
         </>
       )}
@@ -189,7 +184,7 @@ export default function RoomChangeQueue() {
   const [rejecting, setRejecting] = useState(null)
   const [selectedId, setSelectedId] = useState(params.get('id'))
 
-  const filters = { ...scope, status, kind, page, pageSize }
+  const filters = { block: scope.block, status, kind, page, pageSize }
   const query = useQuery(['room-changes', filters], ({ signal }) => api.roomChanges.list(filters, { signal }))
   const items = query.data?.items ?? []
   const selected = items.find((r) => r.id === selectedId) ?? items[0]
@@ -202,8 +197,8 @@ export default function RoomChangeQueue() {
   return (
     <>
       <PageHeader
-        title="Room changes"
-        description="Room-Change Requests in your scope. Approve only when a Bed is free."
+        title="Next-Term room changes"
+        description={query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-Term Bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-Change Requests of the next Term, in your scope.'}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -246,7 +241,7 @@ export default function RoomChangeQueue() {
                       </span>
                       <span className="truncate text-sm text-fg-secondary">
                         {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
-                        {r.difference ? ` · ${r.difference > 0 ? '+' : '−'}${formatVnd(Math.abs(r.difference))}` : ''}
+                        {r.dueAt ? ` · ${t('decide by {date}', { date: formatDate(r.dueAt) })}` : ''}
                       </span>
                     </div>
                   </Td>
