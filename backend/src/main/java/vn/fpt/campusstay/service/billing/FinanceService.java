@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
-import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.event.InvoiceOverdue;
 import vn.fpt.campusstay.event.RefundDecided;
@@ -75,10 +74,11 @@ public class FinanceService {
     private static final Map<String, String> REFUND_STATUSES = Map.of("PENDING", "Pending", "APPROVED", "Approved",
             "REJECTED", "Rejected", "PAID", "Paid");
     private static final Map<String, String> SOURCES = Map.of("APPLICATION_CANCEL", "Application cancelled",
-            "CHECK_OUT", "Check-out", "ROOM_CHANGE", "Room change or swap", "OTHER", "Other");
-    /** Overdue: marked by the job, or past due and not marked yet. Deposits expire instead. */
+            "CHECK_OUT", "Check-out", "ROOM_CHANGE", "Room change or swap", "OTHER", "Other", "FORFEIT",
+            "Balance not paid", "TERMINATION", "Termination");
+    /** Overdue: marked by the job, or past due and not marked yet. Deposits expire and Balances are forfeited instead. */
     private static final String OVERDUE = "(i.status = 'OVERDUE' OR (i.status = 'UNPAID' AND i.due_at < :now)) "
-            + "AND i.type <> 'DEPOSIT'";
+            + "AND i.type NOT IN ('DEPOSIT', 'BALANCE')";
 
     private final JdbcClient jdbc;
     private final InvoiceScope scope;
@@ -204,21 +204,25 @@ public class FinanceService {
         return new Sent(due.size());
     }
 
-    /** Hourly: unpaid Invoices past their due date become Overdue and the student is told once. */
+    /**
+     * Hourly: unpaid Invoices past their due date become Overdue and the student is told once (a Utility Invoice by
+     * its debt warning, {@link UtilityDebtService}). A claim waiting for confirmation stops the clock (spec §6.7).
+     */
     @Transactional
     public int markOverdue() {
-        record Due(long id, String code, long studentId, String title, long amount, Instant dueAt) {
+        record Due(long id, String code, long studentId, String title, long amount, Instant dueAt, String type) {
         }
         List<Due> due = jdbc.sql("""
                 UPDATE bil_invoice SET status = 'OVERDUE', updated_at = :now, version = version + 1
-                WHERE status = 'UNPAID' AND due_at < :now AND type <> 'DEPOSIT'
-                RETURNING id, code, student_id, title, amount, due_at
+                WHERE status = 'UNPAID' AND due_at < :now AND type NOT IN ('DEPOSIT', 'BALANCE')
+                RETURNING id, code, student_id, title, amount, due_at, type
                 """).param("now", Timestamp.from(Instant.now(clock)))
                 .query((rs, n) -> new Due(rs.getLong("id"), rs.getString("code"), rs.getLong("student_id"),
-                        rs.getString("title"), rs.getLong("amount"), InvoiceStore.instant(rs, "due_at")))
+                        rs.getString("title"), rs.getLong("amount"), InvoiceStore.instant(rs, "due_at"),
+                        rs.getString("type")))
                 .list();
-        due.forEach(d -> events.publishEvent(new InvoiceOverdue(d.id(), d.code(), d.studentId(), d.title(), d.amount(),
-                d.dueAt(), false)));
+        due.stream().filter(d -> !d.type().equals("UTILITY")).forEach(d -> events.publishEvent(new InvoiceOverdue(
+                d.id(), d.code(), d.studentId(), d.title(), d.amount(), d.dueAt(), false)));
         return due.size();
     }
 
@@ -260,20 +264,36 @@ public class FinanceService {
         return new RefundPage(items, total);
     }
 
-    /** The Block Manager approves or rejects; a note is required to reject or to approve an exception. */
+    /**
+     * Decided by the refund rule's approver (spec §3): a Manager decides every refund, Staff those whose rule says
+     * Staff (in their Blocks), the Admin those whose rule says Admin. A note is required to reject or to approve an
+     * exception.
+     */
     @Transactional
     public void decideRefund(String id, String decision, String note) {
-        AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
+        AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER, Role.ADMIN);
         InvoiceScope.Scope s = scope.resolve(null);
-        record Refund(long id, long studentId, long amount, String status, boolean exception, String reason) {
+        record Refund(long id, long studentId, long amount, String status, boolean exception, String reason,
+                Long ruleId) {
         }
         Map<String, Object> params = new HashMap<>(s.params());
         params.put("id", parse(id).orElse(-1L));
         Refund r = jdbc.sql("SELECT * FROM bil_refund r WHERE r.id = :id AND " + s.where("r") + " FOR UPDATE")
                 .params(params)
                 .query((rs, n) -> new Refund(rs.getLong("id"), rs.getLong("student_id"), rs.getLong("amount"),
-                        rs.getString("status"), rs.getBoolean("exception"), rs.getString("reason")))
+                        rs.getString("status"), rs.getBoolean("exception"), rs.getString("reason"),
+                        rs.getObject("rule_id", Long.class)))
                 .optional().orElseThrow(() -> ApiException.notFound("This refund does not exist."));
+        String approver = r.ruleId() == null ? "MANAGER"
+                : Optional.ofNullable(fees.refundRules().get(r.ruleId())).map(FeePolicy.RefundRule::approverRole)
+                        .orElse("MANAGER");
+        boolean allowed = user.is(Role.MANAGER) || user.is(Role.STAFF) && approver.equals("STAFF")
+                || user.is(Role.ADMIN) && approver.equals("ADMIN");
+        if (!allowed) {
+            throw ApiException.forbidden("NOT_REFUND_APPROVER", "This refund is decided by "
+                    + (approver.equals("ADMIN") ? "the Admin" : approver.equals("STAFF") ? "the Block's Staff"
+                            : "a Manager") + ".");
+        }
         if (!r.status().equals("PENDING")) {
             throw ApiException.conflict("ALREADY_DECIDED", "This refund was already decided.");
         }

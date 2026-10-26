@@ -49,14 +49,8 @@ The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready 
    `UPDATE auth_user SET email = '<you>@fpt.edu.vn' WHERE email = 'se190001@fpt.edu.vn';`
 Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for accounts that already exist.
 
-### Payments (VietQR and SePay)
-The payment page shows a VietQR image for the receiving account set in `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (bank short name of SePay's QR service, e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` (see `infra/.env.example`). Every Invoice has a transfer content `CSTAY` + its id; set the same prefix as the payment-code prefix in SePay.
-- **Real bank feed:** in SePay add a webhook to `https://<public host>/api/webhooks/sepay` with API-key authentication and set the same key in `SEPAY_WEBHOOK_API_KEY`. Blank key = webhook off (`503`).
-- **Without a bank (dev profile, or a demo server with `PAYMENT_SIMULATOR=true`):** pay an Invoice as if SePay had reported it, signed in as its student or as the Admin (the web app shows a "Simulate bank transfer" button in dev builds or with `VITE_PAYMENT_SIMULATOR=true`):
-  ```bash
-  curl -X POST http://localhost:8080/api/dev/invoices/INV-SP27-000001/simulate-payment -H "Authorization: Bearer <token>"
-  ```
-- **Manual confirmation (Staff › Payments):** a transfer the feed could not match is confirmed by hand with the bank reference and an optional receipt (JPEG, PNG or PDF). Receipts are stored under `FILES_DIR` (default `data/files`, git-ignored); back that folder up with the database. Admin › Fees can turn manual confirmation off.
+### Payments (claims, ADR-22)
+Every Invoice has a transfer content `CSTAY` + its id. The student transfers and presses **I have transferred** (`POST /invoices/{id}/claim`): the Invoice waits for confirmation and its deadline stops. Managers confirm the claims one by one or in bulk (`/payment-claims`, `POST /payments/{id}/confirm` with an optional receipt) or reject them with a reason; the deadline then continues with the time that was left (at least `payment.rejected_claim_min_hours`), and `payment.rejections_to_cancel` rejections cancel a Deposit or a Balance. Receipts are stored under `FILES_DIR` (default `data/files`, git-ignored); back that folder up with the database. With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` set (the dev profile has a demo account) the payment page also shows a VietQR image of that account. SePay, its webhook and the payment simulator were removed in v2 phase 5.
 
 ### Assignment (S3)
 Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally: publish a Term as `admin`, apply as a few students of one gender (`se190001` …) and pay with the dev simulation, approve them as `staff.a1` (Block A, male students) and start a run.
@@ -126,7 +120,7 @@ src/test/resources/db/test-seed/   small fixed data of the integration tests
 | `inventory` | `inv_` | Buildings, Floors, Rooms, Beds, out-of-service, bulk Rooms (S1, S7) |
 | `application` | `app_` | Application wizard, roommate pairs, Home, profile, review, Round 2 (S2, S3, S5) |
 | `assignment` | `asg_` | assignment engine, runs, approval, Allocations, My Room, desk, late check-ins (S3–S5) |
-| `billing` | `bil_` | Invoices, VietQR, SePay webhook, receipts, payments, refunds, meters (S2–S6) |
+| `billing` | `bil_` | Invoices, payment claims, receipts, payments, refunds, meters, Utility warnings (S2–S6, v2 phase 5) |
 | `request` | `req_` | Room-Change Requests, swaps, routing rules, escalations (S4–S6) |
 | `maintenance` | `mnt_` | Maintenance Requests, photos, updates, inspections (S4, S6, S7) |
 | `notification` | `ntf_` | notifications, push (FCM), devices, email outbox, templates, campaigns (S0–S4, S7) |

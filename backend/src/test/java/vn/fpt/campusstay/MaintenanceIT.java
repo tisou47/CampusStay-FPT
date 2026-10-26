@@ -71,8 +71,8 @@ class MaintenanceIT {
     /** The student holds the Bed and has checked in (the desk is tested in DeskIT). */
     private void livesIn(int n, String room, String bed) {
         jdbc.sql("""
-                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at)
-                SELECT :term, u.id, b.id, 'MANUAL', now(), now()
+                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at, resident_at)
+                SELECT :term, u.id, b.id, 'MANUAL', now(), now(), now()
                 FROM auth_user u, inv_bed b JOIN inv_room r ON r.id = b.room_id
                 WHERE u.email = :email AND r.code = :room AND b.label = :bed
                 """).param("term", termId).param("email", student(n)).param("room", room).param("bed", bed).update();

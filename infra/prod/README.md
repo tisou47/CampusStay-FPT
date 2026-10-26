@@ -4,7 +4,7 @@ Deployment target (ADR-16): the **web app on Vercel**, the **API and PostgreSQL 
 
 ```
 Browser ──► https://campusstay-fpt-ten.vercel.app    (Vercel: static build of web/)
-Browser, Android, SePay ──► https://<API_DOMAIN>/api ──► Caddy :443 ──► api :8080 ──► db :5432   (VPS, Docker Compose)
+Browser, Android ──► https://<API_DOMAIN>/api ──► Caddy :443 ──► api :8080 ──► db :5432   (VPS, Docker Compose)
 ```
 
 | What | Where | Deployed by |
@@ -95,7 +95,7 @@ Copy [`.env.example`](.env.example) to `/opt/campusstay/.env` on the VPS, fill i
 - Database: keep `COMPOSE_PROFILES=local-db` (Postgres in the stack). A managed database (Azure, appendix A) uses `DB_URL` instead.
 - `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS`: the Vercel production URL (§2).
 - `API_MEMORY=1g` on a 2 GB VPS.
-- Gmail, VietQR/SePay, Firebase, Google: §3. Each one can be added later; the API starts without them.
+- Gmail, the receiving bank account (VietQR), Firebase, Google: §3. Each one can be added later; the API starts without them.
 - Base data: decide **before the first start** (1.10).
 
 ### 1.8 GitHub Actions access
@@ -146,7 +146,6 @@ The base data (`db/seed`) adds 8 Blocks with their Rooms and Beds, the Room Type
    |---|---|
    | `VITE_API_BASE_URL` | `https://<API_DOMAIN>/api` |
    | `VITE_GOOGLE_CLIENT_ID` | the Web OAuth client id (optional) |
-   | `VITE_PAYMENT_SIMULATOR` | `true` only on the demo server, together with the API's `PAYMENT_SIMULATOR=true` (ADR-18): shows "Simulate bank transfer" on Invoice Payment |
 
    `VITE_*` values are baked in at build time: after changing one, redeploy.
 3. Deploy, then put the final production URL into `WEB_BASE_URL` and `CORS_ALLOWED_ORIGINS` in the VPS's `.env` and run `docker compose up -d` in `/opt/campusstay`.
@@ -158,7 +157,7 @@ Each service is optional: without it the API starts and the feature falls back a
 | Service | Without it | Settings |
 |---|---|---|
 | Gmail SMTP | Emails are written to the API log only | `SPRING_MAIL_*`, `MAIL_FROM` |
-| SePay + VietQR | QR still shown; Staff confirm payments by hand | `PAYMENT_*`, `SEPAY_WEBHOOK_API_KEY` |
+| Receiving bank account (VietQR) | No QR image on the payment page; students still report transfers and Managers confirm them | `PAYMENT_*` |
 | Firebase (FCM) | In-app notifications only, no Android push | `FIREBASE_CREDENTIALS_FILE` |
 | Google sign-in | Email and password only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, Vercel `VITE_GOOGLE_CLIENT_ID` |
 | Door codes (v2 phase 3) | The door-code screens answer `503`; everything else works | `DOOR_CODE_KEY` (§1.7); on the demo server since 25/10/2026 |
@@ -170,16 +169,10 @@ Each service is optional: without it the API starts and the feature falls back a
 4. `docker compose up -d`, then test: "Forgot password" on the web for any account; the email arrives in the redirect mailbox (or, without the redirect, at an account whose email you can read).
 5. Limit: a personal Gmail account sends about 500 emails a day. Admin emails to a large student group (the base data has 6,200 students) would exceed it and get the account blocked for a day: send campaigns to small groups only, even with the redirect.
 
-### 3.2 VietQR and SePay (ADR-08)
-The payment page shows a VietQR image from SePay's free image service (`qr.sepay.vn`) for the account in `PAYMENT_*` (default: a fictional demo account), with the Invoice's transfer content (`CSTAY` + number). The SePay webhook reports each incoming transfer; an exact amount marks the Invoice Paid, any other amount waits for Staff.
+### 3.2 Payments and VietQR (ADR-22, since v2 phase 5)
+Payments are claims: the student transfers with the Invoice's transfer content (`CSTAY` + number) and presses **I have transferred**; a Manager checks the bank statement and confirms the claims (Manager › Payment confirmations, one by one or in bulk) or rejects them with a reason. No bank feed, webhook or simulator exists any more (SePay was removed); the demo works the same way, with or without a real account.
 
-**Demo without a bank (the current setup):** `PAYMENT_SIMULATOR=true` in `.env` and `VITE_PAYMENT_SIMULATOR=true` on Vercel (redeploy) add a "Simulate bank transfer" button to the payment page; it pays the Invoice as if SePay had reported the exact transfer (only the Invoice's student or an Admin). Staff › Payments manual confirmation works as well. SePay is not needed; keep the demo account in `PAYMENT_*` so nobody scans a real account.
-
-**Real transfers with SePay** (optional, OI-13):
-1. Register at sepay.vn and link the receiving bank account (OI-13). Put the same account in `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (SePay's short name, e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`.
-2. SePay → company settings → payment code structure: prefix **`CSTAY`** followed by digits (it must equal `campusstay.payment.transfer-prefix`).
-3. SePay → Webhooks → add: URL `https://<API_DOMAIN>/api/webhooks/sepay`, event incoming money, authentication **API Key** with a value from `openssl rand -hex 24`. Put the same value in `SEPAY_WEBHOOK_API_KEY`.
-4. Test with a real transfer. Invoice amounts come from the Admin configuration: for a live demo, give the demo Term a small Deposit so the transfer costs little. A refused webhook (wrong key) is written to the Audit Log.
+With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` set, the payment page also shows a VietQR image of that account (a public image service, `qr.sepay.vn`, that only receives the account, amount and transfer content) and the account details; without them it shows the transfer content only. Never put a real account on a demo whose students are fictional.
 
 ### 3.3 Firebase Cloud Messaging (Android push)
 1. console.firebase.google.com → create a project (free Spark plan) → Project settings → Service accounts → **Generate new private key**.
@@ -216,7 +209,7 @@ The payment page shows a VietQR image from SePay's free image service (`qr.sepay
 | API keeps restarting, log says "Detected applied migration not resolved locally" | The seed was loaded and `SPRING_FLYWAY_LOCATIONS` removed without the ignore pattern | Set `SPRING_FLYWAY_IGNOREMIGRATIONPATTERNS=repeatable:missing` (1.10) |
 | API keeps restarting right after a deploy, log shows SQL errors from `R__dev_seed` | The base data does not fit rows changed by hand | Fix those rows, or remove `db/seed` from `SPRING_FLYWAY_LOCATIONS` and set the ignore pattern (1.10) |
 | Emails never arrive | `SPRING_MAIL_*` not set (log says "emails are not sent"), wrong App Password, the daily Gmail limit, or the provider blocks port 587 | §3.1; `docker compose logs api \| grep -i mail`; `nc -vz smtp.gmail.com 587` on the VPS, else ask the provider to open it |
-| Payments stay Unpaid after a transfer | Webhook URL or key wrong in SePay, or the transfer content was changed by the payer | SePay → webhook history shows our answer; Staff confirm by hand meanwhile |
+| Payments stay "Awaiting confirmation" | No Manager has confirmed the claims yet (Managers receive one summary per hour) | Manager › Payment confirmations |
 | API stops at start: "Cannot read the Firebase credentials file" | Wrong path or the file is not readable | §3.3 step 2 |
 | Deploy job: `Permission denied (publickey)` or a timeout | `VM_SSH_KEY` is not the pair of the key in `~/.ssh/authorized_keys`, `VM_USER` is not `deploy`, or SSH runs on another port | Redo 1.8; set `VM_SSH_PORT` |
 | Deploy job: `no matching manifest for linux/arm64` (or amd64) on pull | The image was built for the other CPU | Set or clear `IMAGE_PLATFORM` (1.8) and run the workflow again |

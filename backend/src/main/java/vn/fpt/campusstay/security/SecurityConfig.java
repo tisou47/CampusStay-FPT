@@ -49,8 +49,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/sign-in", "/auth/google", "/auth/password/forgot",
                                 "/auth/password/reset")
                         .permitAll()
-                        // Bank-feed webhooks authenticate with their own API key (Billing).
-                        .requestMatchers(HttpMethod.POST, "/webhooks/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/students/**").hasRole("STUDENT")

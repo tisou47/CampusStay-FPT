@@ -50,11 +50,12 @@ import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.PageQuery;
 
 /**
- * The Check-in and Check-out desk. Check-in needs the Balance (with its
- * Utility Deposit) paid and today inside the Term's check-in window or an
- * approved late check-in. Check-out records the final meter reading and the
- * Room's condition; Billing settles the Utility Deposit and the refund goes to the
- * Block Manager. Allocations are addressed by id, never by student code (B-01).
+ * The Check-in and Check-out desk. Since phase 5 the desk check-in only records the hand-over (D-19): residence
+ * comes with the door code ({@link DoorCodeRelease}); a student whose Room has no code yet becomes a resident here.
+ * Check-in needs the Balance (with its Utility Deposit) paid and today inside the Term's check-in window or an
+ * approved late check-in. Check-out (every resident, with or without the desk check-in) records the final meter
+ * reading and the Room's condition; Billing settles the Utility Deposit and the refund goes to its approver; a
+ * terminated stay closes its termination. Allocations are addressed by id, never by student code (B-01).
  */
 @Service
 public class DeskService {
@@ -116,7 +117,7 @@ public class DeskService {
     // ---------------------------------------------------------------- internal rows
 
     private record Alloc(long id, long termId, long studentId, long bedId, String status, Instant checkedInAt,
-            List<String> handOverItems) {
+            List<String> handOverItems, Instant residentAt) {
     }
 
     /** An Allocation with its Bed and, for check-out, its check-out record. */
@@ -147,11 +148,13 @@ public class DeskService {
     private final Billing billing;
     private final AuditLog audit;
     private final ApplicationEventPublisher events;
+    private final TerminationService terminations;
     private final Clock clock;
 
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
-            UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events, Clock clock) {
+            UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events,
+            TerminationService terminations, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -165,6 +168,7 @@ public class DeskService {
         this.billing = billing;
         this.audit = audit;
         this.events = events;
+        this.terminations = terminations;
         this.clock = clock;
     }
 
@@ -260,7 +264,7 @@ public class DeskService {
         Instant now = Instant.now(clock);
         int updated = jdbc.sql("""
                 UPDATE asg_allocation SET checked_in_at = :now, checked_in_by = :by, hand_over_items = :items,
-                       check_in_note = :note, version = version + 1
+                       check_in_note = :note, resident_at = coalesce(resident_at, :now), version = version + 1
                 WHERE id = :id AND status = 'ACTIVE' AND checked_in_at IS NULL
                 """)
                 .param("now", Timestamp.from(now)).param("by", user.userId())
@@ -430,9 +434,10 @@ public class DeskService {
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1
                 WHERE id = :id AND status = 'ACTIVE'
                 """).param("now", Timestamp.from(now)).param("id", p.alloc().id()).update();
-        if (p.alloc().checkedInAt() != null) {
+        if (p.alloc().residentAt() != null) {
             events.publishEvent(new ResidentLeftRoom(p.bed().roomId(), "CHECK_OUT"));
         }
+        terminations.checkedOut(p.alloc().id(), user.userId());
         long refund = settled.settlement().refund();
         audit.record("CHECKED_OUT", AuditLog.Tone.SUCCESS, "Allocation", p.alloc().id(),
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
@@ -484,15 +489,15 @@ public class DeskService {
         List<Long> beds = inventory.bedsOfRoom(roomId).stream().map(Inventory.BedSlot::bedId).toList();
         return beds.isEmpty() ? 1 : Math.max(1, jdbc.sql("""
                 SELECT count(*) FROM asg_allocation
-                WHERE term_id = :term AND status = 'ACTIVE' AND checked_in_at IS NOT NULL AND bed_id IN (:beds)
+                WHERE term_id = :term AND status = 'ACTIVE' AND resident_at IS NOT NULL AND bed_id IN (:beds)
                 """).param("term", termId).param("beds", beds).query(Integer.class).single());
     }
 
-    /** A checked-in or checked-out Allocation in the user's scope. */
+    /** A resident's or a checked-out Allocation in the user's scope. */
     private Placed checkOutTarget(String allocationId, boolean lock) {
         long id = parseId(allocationId).orElseThrow(() -> ApiException.notFound("This Allocation does not exist."));
         Placed p = checkOutRows(null, null, id).stream().findFirst()
-                .orElseThrow(() -> ApiException.notFound("This student is not checked in."));
+                .orElseThrow(() -> ApiException.notFound("This student does not live in the Room."));
         blockScope.check(p.bed().buildingId());
         if (lock) {
             jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).single();
@@ -500,13 +505,13 @@ public class DeskService {
         return p;
     }
 
-    /** Checked-in Allocations and the ones ended by check-out, with their check-out record. */
+    /** Residents' Allocations and the ones ended by check-out, with their check-out record. */
     private List<Placed> checkOutRows(Long termId, Set<Long> scope, Long allocationId) {
         String where = allocationId != null ? "a.id = :id" : "a.term_id = :term";
         List<Object[]> raw = jdbc.sql("""
                 SELECT a.*, c.reason AS out_reason, c.status AS out_status, c.completed_at AS out_completed
                 FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
-                WHERE %s AND ((a.status = 'ACTIVE' AND a.checked_in_at IS NOT NULL)
+                WHERE %s AND ((a.status = 'ACTIVE' AND a.resident_at IS NOT NULL)
                               OR (a.status = 'ENDED' AND a.end_reason = 'CHECK_OUT'))
                 """.formatted(where))
                 .params(allocationId != null ? Map.of("id", allocationId) : Map.of("term", termId))
@@ -617,7 +622,7 @@ public class DeskService {
         List<String> list = items == null ? List.of() : Arrays.asList((String[]) items.getArray());
         return new Alloc(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"), rs.getLong("bed_id"),
                 rs.getString("status"), instant(rs, "checked_in_at"), List.copyOf(list.stream().filter(Objects::nonNull)
-                        .toList()));
+                        .toList()), instant(rs, "resident_at"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

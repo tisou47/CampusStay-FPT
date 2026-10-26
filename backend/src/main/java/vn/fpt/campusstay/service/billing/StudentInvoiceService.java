@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -49,8 +50,16 @@ public class StudentInvoiceService {
     public record Upcoming(String typeLabel, long amount, String note) {
     }
 
+    /**
+     * @param awaitingCount Invoices the student said they transferred, waiting for a Manager
+     * @param warning       the open Utility debt warning (spec §6.14), null without one
+     */
     public record Summary(long outstanding, long dueCount, Instant nextDueAt, long paidTotal, long paidCount,
-            Upcoming upcoming) {
+            Upcoming upcoming, long awaitingCount, UtilityWarning warning) {
+    }
+
+    /** @param level {@code Warning} or {@code Final warning}; {@code terminateOn} only for the final one */
+    public record UtilityWarning(String level, long debt, int overdue, LocalDate terminateOn, Instant issuedAt) {
     }
 
     public record InvoicePage(List<InvoiceItem> items, long total, Summary summary) {
@@ -75,7 +84,14 @@ public class StudentInvoiceService {
     public record Bank(String name, String accountName, String accountNumber) {
     }
 
-    public record PaymentPage(PaymentInvoice invoice, Qr qr, Bank bank, String transferContent) {
+    /**
+     * @param qr       null when the Invoice is not waiting for a transfer or no bank account is configured
+     * @param bank     null when no bank account is configured
+     * @param claim    the student's "I have transferred" and its decision, null before any
+     * @param canClaim the button "I have transferred" is available
+     */
+    public record PaymentPage(PaymentInvoice invoice, Qr qr, Bank bank, String transferContent,
+            PaymentClaimService.ClaimView claim, boolean canClaim) {
     }
 
     public record QrRefresh(Qr qr) {
@@ -96,11 +112,12 @@ public class StudentInvoiceService {
     private final Parameters parameters;
     private final PaymentProperties payment;
     private final JsonMapper json;
+    private final PaymentClaimService claims;
     private final Clock clock;
 
     public StudentInvoiceService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
             UserDirectory users, TermCatalog terms, Parameters parameters, PaymentProperties payment, JsonMapper json,
-            Clock clock) {
+            PaymentClaimService claims, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
@@ -110,6 +127,7 @@ public class StudentInvoiceService {
         this.parameters = parameters;
         this.payment = payment;
         this.json = json;
+        this.claims = claims;
         this.clock = clock;
     }
 
@@ -144,9 +162,10 @@ public class StudentInvoiceService {
         Upcoming upcoming = all.stream().filter(i -> i.status().equals("UPCOMING")).findFirst()
                 .map(i -> new Upcoming(InvoiceLabels.typeLabel(i.type()), i.amount(), "Due " + WHEN.format(i.dueAt())))
                 .orElse(null);
+        long awaiting = all.stream().filter(i -> i.status().equals("AWAITING_CONFIRMATION")).count();
         Summary summary = new Summary(due.stream().mapToLong(InvoiceStore.Invoice::amount).sum(), due.size(),
                 due.isEmpty() ? null : due.getFirst().dueAt(), paid.stream().mapToLong(InvoiceStore.Invoice::amount).sum(),
-                paid.size(), upcoming);
+                paid.size(), upcoming, awaiting, warning(student));
         return new InvoicePage(items, total, summary);
     }
 
@@ -167,20 +186,28 @@ public class StudentInvoiceService {
     @Transactional
     public PaymentPage payment(String idOrCode) {
         InvoiceStore.Invoice i = visible(idOrCode);
+        boolean waiting = i.status().equals("UNPAID") || i.status().equals("OVERDUE");
         Qr qr = null;
-        if (i.payable()) {
+        if (waiting && payment.accountConfigured()) {
             Instant expires = i.qrExpiresAt() != null ? i.qrExpiresAt() : startQr(i.id());
             qr = new Qr(qrImage(i), expires);
         }
+        boolean canClaim = waiting && currentUser.get().is(Role.STUDENT)
+                && (!PaymentClaimService.PLACE_TYPES.contains(i.type()) || Instant.now(clock).isBefore(i.dueAt()));
         return new PaymentPage(new PaymentInvoice(i.code(), i.title(), InvoiceLabels.typeLabel(i.type()), i.amount(),
                 InvoiceLabels.status(i.status()), i.dueAt(), i.paidAt(), i.reference()), qr,
-                new Bank(payment.bankName(), payment.accountName(), payment.accountNumber()), i.transferContent());
+                payment.accountConfigured() ? new Bank(payment.bankName(), payment.accountName(), payment.accountNumber())
+                        : null,
+                i.transferContent(), claims.view(i.id()).orElse(null), canClaim);
     }
 
     /** A new QR validity window. A transfer after the old one expired is still accepted. */
     @Transactional
     public QrRefresh refresh(String idOrCode) {
         InvoiceStore.Invoice i = visible(idOrCode);
+        if (!payment.accountConfigured()) {
+            throw ApiException.conflict("NO_BANK_ACCOUNT", "No bank account is configured for transfers yet.");
+        }
         if (!i.payable()) {
             throw ApiException.conflict("INVOICE_NOT_PAYABLE", "This Invoice cannot be paid: it is " +
                     InvoiceLabels.status(i.status()).toLowerCase(Locale.ROOT) + ".");
@@ -210,6 +237,17 @@ public class StudentInvoiceService {
         byte[] pdf = ReceiptPdf.render("Payment receipt", rows,
                 "Issued by CampusStay FPT on " + WHEN.format(Instant.now(clock)) + ". This receipt confirms the payment above.");
         return new Receipt("receipt-" + i.code() + ".pdf", pdf);
+    }
+
+    private UtilityWarning warning(long studentId) {
+        return jdbc.sql("""
+                SELECT level, debt, overdue_count, terminate_on, issued_at FROM bil_utility_warning
+                WHERE student_id = :student AND closed_at IS NULL ORDER BY (level = 'FINAL') DESC, issued_at DESC LIMIT 1
+                """).param("student", studentId)
+                .query((rs, n) -> new UtilityWarning(rs.getString("level").equals("FINAL") ? "Final warning" : "Warning",
+                        rs.getLong("debt"), rs.getInt("overdue_count"), rs.getObject("terminate_on", LocalDate.class),
+                        InvoiceStore.instant(rs, "issued_at")))
+                .optional().orElse(null);
     }
 
     private InvoiceStore.Invoice visible(String idOrCode) {

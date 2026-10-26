@@ -10,8 +10,10 @@ campusstay:
       client-id: ""
       client-secret: ""
   payment:
-    sepay-api-key: test-sepay-key
-    retry-interval: 1h
+    bank-name: MB Bank
+    bank-code: MBBank
+    account-number: "0000000000"
+    account-name: CAMPUSSTAY TEST
   app:
     expiry-interval: 1h
   req:
@@ -19,6 +21,10 @@ campusstay:
     sla-interval: 1h
   bil:
     overdue-interval: 1h
+    reminder-interval: 1h
+  asg:
+    forfeit-interval: 1h
+    release-interval: 1h
   mnt:
     inspection-cron: "-"           # tests start runs themselves
   door-codes:

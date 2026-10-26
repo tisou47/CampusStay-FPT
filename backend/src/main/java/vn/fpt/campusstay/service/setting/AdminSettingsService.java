@@ -219,11 +219,13 @@ public class AdminSettingsService {
 
     /** Counts that must be at least 1; the others may be 0 (a reminder or a share that is off). */
     private static int min(String key) {
-        return Set.of("stay.max_terms", "payment.rejections_to_cancel", "termination.overdue_months").contains(key) ? 1 : 0;
+        return Set.of("stay.max_terms", "stay.program_semesters", "payment.rejections_to_cancel",
+                "termination.overdue_months").contains(key) ? 1 : 0;
     }
 
     private static int max(String key) {
-        return key.endsWith("_percent") ? 100 : key.equals("stay.max_terms") ? 9 : 1000;
+        return key.endsWith("_percent") ? 100 : key.equals("stay.max_terms") ? 9
+                : key.equals("stay.program_semesters") ? 12 : 1000;
     }
 
     private static String groupKey(String group) {

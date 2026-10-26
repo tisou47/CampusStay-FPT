@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.6 (Change Specification v2 phase 4 "Registration periods", in `main` since 26/10/2026: registration-period requests, the Term wizard with prices, Blocks, Rooms and rules fixed per Term, announcements and the dormitory board, configuration grouped by subject, rules screens, Term dashboard; ADR-20). 1.5 (Change Specification v2 phase 3 "Inventory", in `main` since 25/10/2026: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
+| Version | 1.7 (Change Specification v2 phase 5 "Money and residence", on `feat/v2-phase5`: payment claims confirmed by Managers instead of SePay and the simulator, Gia hạn, door-code release and residence, forfeits, late check-ins online, Utility warnings and terminations, refund triggers, Invoices fixed once issued; before it 1.6: phase 4 "Registration periods", in `main` since 26/10/2026: registration-period requests, the Term wizard with prices, Blocks, Rooms and rules fixed per Term, announcements and the dormitory board, configuration grouped by subject, rules screens, Term dashboard; ADR-20). 1.5 (Change Specification v2 phase 3 "Inventory", in `main` since 25/10/2026: Room Class per Room per Term, furniture and Room Class requirements, door codes; ADR-23, ADR-24). 1.4: phase 2 "Accounts" (Google sign-up, verification, the student list and its import, Staff accounts by Managers, email redirect for fictional accounts only; ADR-26) |
 | Date | 26/10/2026 (Week 7, Sprint 4) |
 | Owner | Tisou (Leader, PM, BA, Full-stack) |
 | Status | Approved by Tisou on 20/10/2026 |
@@ -13,7 +13,7 @@
 
 ## 1. Scope
 
-This document describes how the CampusStay FPT backend is built: the architecture style, layers and features, security, integrations (VietQR via SePay, Google sign-in, Firebase Cloud Messaging, SMTP email), consistency guarantees, the assignment engine, the database and operations. It is written so that a council member can follow every design choice back to a reason, and so that Claude Code can implement the remaining slices without re-deciding anything.
+This document describes how the CampusStay FPT backend is built: the architecture style, layers and features, security, integrations (VietQR images of the receiving account, Google sign-in, Firebase Cloud Messaging, SMTP email), consistency guarantees, the assignment engine, the database and operations. It is written so that a council member can follow every design choice back to a reason, and so that Claude Code can implement the remaining slices without re-deciding anything.
 
 ## 2. Architecture overview
 
@@ -36,8 +36,7 @@ flowchart LR
     DB[("PostgreSQL 17<br/>Flyway schema")]
     FS[("File volume<br/>photos · receipts")]
     GOOG["Google Identity<br/>(token endpoint · JWKS)"]
-    SEPAY["SePay<br/>bank-feed webhook"]
-    BANK["Bank account<br/>(VietQR)"]
+    BANK["Bank account<br/>(VietQR image, statement read by Managers)"]
     FCM["Firebase Cloud<br/>Messaging"]
     SMTP["SMTP<br/>Mailpit · Gmail"]
 
@@ -49,7 +48,6 @@ flowchart LR
     JOBS --> SVC
     SVC -. "events (service.notification listens)" .-> SVC
     SVC -->|exchange code · verify ID token| GOOG
-    BANK -->|transaction| SEPAY -->|POST /webhooks/sepay| CTL
     SVC --> FCM --> MOB
     SVC --> SMTP
     SVC --> FS
@@ -64,9 +62,9 @@ flowchart LR
 | Services | Business rules and transactions, one sub-package per feature (§4); SQL through `JdbcClient`. |
 | Repositories · entities | Spring Data JPA for users, sessions, tokens, Terms, Room Types and Classes; SQL stores for the larger tables. |
 | Common · exception · config | Error model, list/paging DTOs, Audit Log, clock, files, configuration. No business rules. |
-| Scheduled jobs | Expiry of Deposit windows and invitations, overdue Invoices, SLA timers, email outbox, housekeeping (§11). |
+| Scheduled jobs | Expiry of Deposit windows and invitations, forfeits, door-code release, overdue Invoices and Utility debt, payment reminders, terminations, SLA timers, email outbox, housekeeping (§11). |
 | PostgreSQL | Single database, schema owned by Flyway; constraints enforce the critical invariants (§9). |
-| SePay | Watches the receiving bank account and posts each incoming transfer to the webhook (§10). |
+| Bank account | Receives the transfers; Managers read its statement to confirm the students' payment claims (§10). |
 | Google Identity | Issues ID tokens for `@fpt.edu.vn` accounts (directly to Android, or in exchange for the web's authorization code); the API verifies them with Google's public keys. |
 | FCM / SMTP | Push to Android; email through an outbox table. |
 
@@ -80,7 +78,7 @@ Full entries are in the Brief's Decision Log. Summary with the argument for the 
 | ADR-04 | Spring Boot 4.1.x, Java 21, Maven | Spring Boot 3.5 left open-source support on 30/06/2026; 4.1 is GA (4.1.0 on 10/06/2026, 4.1.1 on 20/08/2026). No backend code existed, so starting on 4.1 has no migration cost. |
 | ADR-06 | Room Type + Room Class choice only; no Room/Bed self-selection | Matches the UI; lets the engine guarantee gender/Block rules and fairness; removes the "two students click the same Bed" race entirely. |
 | ADR-07 | Opaque server-side sessions; password + Google (`hd = fpt.edu.vn`) | The contract has one bearer token and "401 signs out". Opaque tokens can be revoked instantly (sign-out, password change, disabled account) and need no key management. JWT would need refresh tokens (a contract change) and a deny-list for revocation. |
-| ADR-08 | VietQR through SePay webhook + mock + manual confirmation | Automatic confirmation without a merchant contract; money goes straight to the bank account; manual Staff confirmation keeps the demo working if the feed is down. |
+| ADR-08 | VietQR through SePay webhook + mock + manual confirmation (**superseded by ADR-22**, v2 phase 5) | Automatic confirmation without a merchant contract; money goes straight to the bank account; manual Staff confirmation keeps the demo working if the feed is down. |
 | ADR-09 | Email via SMTP behind a port (Mailpit dev, Gmail demo) | Free. A personal Gmail account allows 500 messages per rolling 24 hours, enough for a demo; the provider can be swapped without touching the services. |
 | ADR-10 | ~~Spring Modulith verifies module boundaries~~ (superseded by ADR-17 on 22/10/2026) | Turned "strict boundaries" into a failing test; removed with the module packages. |
 | ADR-11 | PostgreSQL 17 + Flyway SQL; JPA for writes, SQL for reads/reports | Constraints and partial indexes carry the critical invariants; migrations are the "Database Script(s)" deliverable. |
@@ -89,7 +87,7 @@ Full entries are in the Brief's Decision Log. Summary with the argument for the 
 | ADR-15 | IDs are JSON strings | URL parameters, `<select>` values and browser storage are strings, so clients compare IDs without conversion. Java and the database keep `long`/`BIGINT`; the change is only in the contract DTOs. |
 | ADR-16 | Web on Vercel; API on one VM with Docker Compose and Caddy; GitHub Actions → GHCR → SSH deploy (live on Azure for Students since 23/10/2026, with Azure Database for PostgreSQL) | A VM never sleeps, so the 30-second email outbox, the file volume, SMTP and a stable HTTPS webhook URL work as designed; Vercel cannot run a long-lived Spring Boot process; free PaaS tiers sleep, block SMTP or expire their database (§14). |
 | ADR-17 | Layered Spring MVC packages (22/10/2026) | The team and the council find code faster in the standard Controller → Service → Repository layout than in ten module packages with hidden `internal`/`web` folders. Classes moved without behaviour changes (all tests pass); the single deployable, the database and its invariants stay. Spring Modulith and `ModularityTests` are removed; `LayeringTest` checks that calls go one way (§5). |
-| ADR-18 | The production server runs as a demo: payment simulator (A-08) and email redirect switched on by settings; every push to `main` that passes its checks deploys | No bank account or SePay contract is needed to show payments; the 6,200 fictional seed accounts never receive real email and the council can follow every email in one inbox; nobody deploys by hand (§10, §14). |
+| ADR-18 | The production server runs as a demo: payment simulator (A-08, removed by ADR-22) and email redirect switched on by settings; every push to `main` that passes its checks deploys | No bank account or SePay contract is needed to show payments; the 6,200 fictional seed accounts never receive real email and the council can follow every email in one inbox; nobody deploys by hand (§10, §14). |
 
 ## 4. Features
 
@@ -101,8 +99,8 @@ Each feature has a sub-package in the layers that need one (`controller.<feature
 | CFG → `setting` | Terms (built in a step-by-step wizard and fixed when published: Term prices, Deposit, Utility Deposit, Blocks and Rooms used, the rules it opened with), registration-period requests from Managers, Room Types, Room Classes, fee policy, refund rules, utility policy, eligibility, priority groups, matching snapshots, option lists, system parameters, settings grouped by subject, Block settings | `cfg_*` | `TermCatalog` (also the Blocks and Rooms of a Term), `TermSummary`, `Catalog` (Room Types, Room Classes), `FeePolicy` (the Term's price, Deposit and Utility Deposit, the defaults of new Terms, refund rules, the rule list), `EligibilityRules` (rules and priority-group order, per Term), `MatchingCriteria` (snapshots for the engine; the one a Term opened with), `BlockSettings` (desk hours, house rules), `UtilityPolicy` (utility prices, rounding, whether an overdue Invoice blocks changes), `Parameters`, `Lookups`, ports `RoomUsage` and `TermSupply` (INV), `StudentTerms` and `EligibilityCounts` (APP), `TermInvoices` (BIL) and `MatchingPreviewer` (ASG), implements AUTH's `AuditLogSettings` and `StaffHandles`, events `RoomTypeBedsChanged`, `TermRequestSubmitted`, `TermRequestCommented`, `TermRequestDecided`, `TermPublished`, `PolicyChanged` |
 | INV → `inventory` | Buildings, Floors, Rooms, Beds, out-of-service, bulk room creation; the Room Class of each Room per Term; furniture types, Room Class requirements, furniture items, their moves and history; door codes and their rotation | `inv_*` | Implements `BlockDirectory` and CFG's `RoomUsage` and `TermSupply` (the Beds a Term offers per Room Type × Room Class × gender, with furniture conformance); port `BedOccupancy` (ASG: who holds or lives in a Bed, the Beds already promised for a Term, a student's stay); `Buildings` (active Blocks for a gender, genders of Blocks); `Inventory` (assignable Beds of a Term: only its Blocks, without the Rooms it leaves out; Beds by id, Beds of a Room or of a Building, each with its Room's class in the Term asked for); listens to `ResidentLeftRoom` (ASG); events `DoorCodeToSet`, `DoorCodeChanged` |
 | APP → `application` | Application wizard, eligibility check, roommate invitations and code check, Application review, Round-2 offers | `app_*` | `Applications` (approved candidates, the Allocated / Waitlisted transitions and Round-2 offers used by ASG, applicants of a Term for NTF email groups), ports `StudentAllocations` and `Round2Placements` (ASG), implements CFG's `StudentTerms` (also live Applications per choice) and `EligibilityCounts` (students failing each eligibility check now), events `ApplicationCreated`, `ApplicationSubmitted`, `RoommateInvited`, `ApplicationRejected`, `Round2Offered` |
-| ASG → `assignment` | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, Check-in, Check-out, late check-ins | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and `Round2Placements`, CFG's `MatchingPreviewer` and BIL's `RoomStays`; `Residences` (a student's current Bed, residents of a Room, who is checked in to which Bed, the residents of a Term), `Moves` (free Beds, moving and swapping students during the stay, for REQ); events `AllocationCreated`, `LateCheckInDecided`, `ResidentLeftRoom` (check-out, a move to another Room) |
-| BIL → `billing` | Invoices, Payments, VietQR/SePay, manual confirmation, refunds, meter readings and Utility Invoices, overdue reminders, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance with the Term's Utility Deposit, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check, what blocks check-in, the Utility Deposit settlement at check-out, charge Invoices and credits for room changes and swaps, students with an unpaid Invoice), implements CFG's `TermInvoices` (a Term's money locks with its first Invoice); port `RoomStays` (ASG: who lived in a Room and when, to split its meter by time between meter cuts), events `PaymentConfirmed`, `InvoiceIssued`, `InvoiceOverdue`, `RefundDecided` |
+| ASG → `assignment` | Assignment runs (dry-run, real, Round-2), proposals, conflicts, Manager approval, per-Block commit, Allocation, door-code release and residence, forfeits, Check-in, Check-out, late check-ins (desk and online), terminations | `asg_*` | Implements INV's `BedOccupancy`, APP's `StudentAllocations` and `Round2Placements`, CFG's `MatchingPreviewer` and BIL's `RoomStays`; `Residences` (a student's current Bed, residents of a Room, who is checked in to which Bed, the residents of a Term), `Moves` (free Beds, moving and swapping students during the stay, for REQ); events `AllocationCreated`, `LateCheckInDecided`, `LateCheckInRequested`, `ResidentLeftRoom` (check-out, a move to another Room, an overdue termination), `DoorCodeReleased`, `AllocationForfeited`, `TerminationStarted`, `TerminationCancelled`, `TerminationOverdue`; listens to `PaymentConfirmed` and INV's `DoorCodeActivated` (release), BIL's `PaymentClaimRejected` (forfeit) and `UtilityTerminationDue` |
+| BIL → `billing` | Invoices, payment claims and their confirmation by Managers, Payments, refunds, meter readings and Utility Invoices, overdue and deadline reminders, Utility debt warnings, receipts | `bil_*` | `Billing` (issue a Deposit or a Balance with the Term's Utility Deposit, void, refund by rule, Invoices and Deposits of Applications, due summary, overdue check, what blocks check-in, the Utility Deposit settlement at check-out, charge Invoices and credits for room changes and swaps, students with an unpaid Invoice), implements CFG's `TermInvoices` (a Term's money locks with its first Invoice); port `RoomStays` (ASG: who lived in a Room and when, to split its meter by time between meter cuts), events `PaymentConfirmed`, `InvoiceIssued`, `InvoiceOverdue`, `RefundDecided` |
 | REQ → `request` | Room-Change Requests, swaps and swap board, routing rules, SLA timers, escalations | `req_*` | events `RoomChangeDecided`, `SwapInvited`, `SwapDecided`, `EscalationAssigned`; implements AUTH's `StaffWorkload`. Routes new Maintenance Requests (listens to `MaintenanceReported`, assigns through `MaintenanceRequests`) and Room-Change Requests; the SLA scan keeps its own copy of what an escalation shows (code, title, Room) so it never reads MNT tables |
 | MNT → `maintenance` | Maintenance Requests, photos, updates, inspection checklists, schedules and runs | `mnt_*` | `MaintenanceRequests` (a student's requests, open requests and assignment, for REQ's requests screen, routing and escalations), implements AUTH's `StaffWorkload`, events `MaintenanceUpdated`, `MaintenanceReported`, `InspectionScheduled`. A failed inspection item creates a Maintenance Request, routed like any other |
 | NTF → `notification` | In-app notifications, FCM devices and push, templates, email outbox, campaigns, announcements and the dormitory board | `ntf_*` | Listens to events (registration-period requests and publications notify Admins and Managers; `TermPublished` and `PolicyChanged` write announcements); every in-app notification whose template has push on is pushed to the user's Android devices after commit (FCM HTTP v1). Admin campaigns pick their recipients through APP, ASG and BIL public APIs |
@@ -214,7 +212,7 @@ The Admin › Permissions matrix (`GET /admin/permissions`) is generated from th
 | A04 Insecure design | DB constraints for double booking and duplicates; privacy-safe roommate check; idempotent webhook. |
 | A05 Misconfiguration | No stack traces or messages from Spring's error page; only `health` and `info` actuator endpoints exposed; CORS closed unless configured. |
 | A07 Identification failures | Lockout, generic errors, session revocation, Google `hd` check. |
-| A08 Integrity | SePay webhook authenticated (API key), deduplicated by SePay transaction id, amounts re-checked against the Invoice. |
+| A08 Integrity | Payments are confirmed by a Manager from the bank statement, one audit entry per Invoice; an Invoice's money never changes once issued and a Paid or Void Invoice never comes back (database trigger); one live refund per Invoice. |
 | A09 Logging | Audit Log for business actions, sign-ins, failures and exports; `errorId` in error responses. |
 | Door codes (ADR-23) | Stored encrypted: AES-256-GCM, a random 96-bit nonce per code, key `DOOR_CODE_KEY` (base64 of 32 random bytes, generated on the server, never printed or logged); without the key the door-code endpoints answer `503 DOOR_CODES_DISABLED` and the API still starts. A code is shown only on request (`…/reveal`), every view is written to the Audit Log, and notification texts never contain it. |
 | Uploads | Size and count limits; content type checked by magic bytes, not the file name; files stored under random keys outside the web root and served only through authorized endpoints or through links signed after the access check (HMAC-SHA256 of id and expiry, 30 minutes, `nosniff`). |
@@ -250,10 +248,15 @@ The legal basis is the **Personal Data Protection Law 91/2025/QH15** (effective 
 | One open registration-period request per Term | Partial unique index `ux_term_request_open` on the lower-case Term name while Submitted, In progress or Needs changes; one request per built Term (`ux_term_request_term`). |
 | A Term's price never changes under an Invoice | Publishing copies the price table, Deposit and Utility Deposit into the Term (`cfg_term_price`, `cfg_term.deposit_percent`, `utility_deposit`); every reader asks `FeePolicy` for the Term; the wizard refuses money changes once BIL reports an Invoice of the Term (`409 PRICES_LOCKED`); an Application and an Invoice keep their own amounts. |
 | One planned move per furniture item | Partial unique index `ux_furniture_planned_move`; items locked in id order while they move. |
+| An Invoice keeps its money; Paid and Void are final | Trigger `tr_invoice_fixed` refuses a change of amount, lines, Utility Deposit, type, student, Term, code or transfer content, and a Paid/Refunded Invoice going back or a Void one coming back (v2 phase 5). Deadlines move only later (a rejected claim's time left, an approved late check-in). |
+| One payment claim at a time; one payment per Invoice | Partial unique index `ux_claim_open` (one Claimed per Invoice) and `ux_payment_one_confirmed`; `bil_payment.claim_id` unique. |
+| An Invoice is refunded once | Partial unique index `ux_refund_one_per_invoice` (rejected refunds do not count), checked first by `Billing.requestRefund` and the unused-fee refund. |
+| One open Utility warning per level, one live termination per Allocation | `ux_utility_warning_open` (allocation, level); `ux_termination_open`. |
+| No door code without the Balance paid | The release needs no unpaid Balance, the check-in start and a confirmed code with no change waiting; a terminated student past the move-out date is never a code holder. |
 
 Services check rules first and return a clear `ApiException`; the constraint is the safety net for the race between two requests.
 
-## 10. Payment: VietQR through SePay
+## 10. Payment: claims confirmed by Managers (ADR-22, v2 phase 5)
 
 ```mermaid
 sequenceDiagram
@@ -261,32 +264,28 @@ sequenceDiagram
     actor St as Student
     participant W as Web / Android
     participant B as BIL
-    participant Bank as Bank app
-    participant SP as SePay
+    actor M as Manager
     St->>W: Pay Invoice
     W->>B: GET /invoices/{id}/payment
-    B-->>W: qr.image (VietQR: account, amount, transfer content), bank, transferContent
-    St->>Bank: scan QR, confirm transfer
-    Bank->>SP: incoming transaction
-    SP->>B: POST /webhooks/sepay (Authorization: Apikey …)
-    B->>B: check key · insert inbox row (dedup on SePay id) · reply {"success": true}
-    B->>B: match code → Invoice, check amount, create Payment, Invoice = Paid
-    B-->>W: polling every 5 s sees status Paid
-    B->>B: publish PaymentConfirmed → APP (Application Submitted) / NTF (push + in-app)
+    B-->>W: transfer content, VietQR image (when an account is configured), claim, canClaim
+    St->>St: transfer with the banking app
+    St->>W: I have transferred
+    W->>B: POST /invoices/{id}/claim
+    B->>B: claim (time left kept) · Invoice Awaiting confirmation · deadline stops
+    B-->>M: hourly summary "n claims to confirm"
+    M->>B: POST /payment-claims/confirm (after reading the bank statement)
+    B->>B: Payment TRANSFER at the claim's time · Invoice Paid · one audit entry per Invoice
+    B->>B: PaymentConfirmed → APP (Application Submitted) · ASG (door code release) · NTF
 ```
 
 | Topic | Design |
 |---|---|
-| QR | The VietQR image URL is built from the receiving account, bank, exact amount and the Invoice's `transfer_content` (unique: prefix `CSTAY` + the Invoice id, e.g. `CSTAY000123`, written in the same INSERT as the row), using SePay's VietQR image service. The QR carries no secret. |
-| Matching | SePay extracts the payment code from the memo using the prefix configured in the SePay account; we match `code` (fallback: search `content`) to `bil_invoice.transfer_content`. |
-| Webhook auth | SePay API-key mode: header `Authorization: Apikey <key>`; compared in constant time with `SEPAY_WEBHOOK_API_KEY`. HTTPS only. |
-| Response | SePay counts a delivery as successful only for `200/201` with body `{"success": true}` within 30 s; we store the raw payload first and reply immediately, then process. |
-| Idempotency | SePay's `id` stays the same across retries and replays → unique `(provider, provider_txn_id)`. |
-| Exact amount | Paid only if amount = Invoice amount. Less, more, or an Invoice already paid → inbox status `AMOUNT_MISMATCH` / `ALREADY_PAID`, Invoice `Awaiting confirmation`, shown to Staff on Payments. Refund of overpayments is handled manually. |
-| Late transfer | A transfer after the QR expired is still accepted; the QR expiry only refreshes the image. An Application whose Deposit window expired but whose money arrived goes to Staff. |
-| Unmatched transfer | Inbox `UNMATCHED`; Staff can link it to an Invoice by manual confirmation. |
-| Fallbacks | Manual confirmation by Staff with the bank reference and a receipt (`POST /payments/{invoiceId}/confirm`); the payment simulator `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay had reported the exact transfer. The simulator exists only with `campusstay.payment.simulator=true` (always in the dev profile; `PAYMENT_SIMULATOR=true` on a demo server; never in a real deployment) and only for the Invoice's student or the Admin. |
-| Demo setup | ADR-18: the production server runs with the simulator on (and `VITE_PAYMENT_SIMULATOR=true` on Vercel, which shows "Simulate bank transfer" on Invoice Payment), so no bank account is needed (OI-13 closed). The SePay webhook is ready at `https://<API_DOMAIN>/api/webhooks/sepay` and stays off until `SEPAY_WEBHOOK_API_KEY` and the receiving account are set (runbook §3.2). |
+| Transfer content | Unique per Invoice: prefix `CSTAY` + the Invoice id (e.g. `CSTAY000123`), written in the same INSERT as the row. The Manager matches the bank statement on it and on the exact amount. |
+| QR | With `PAYMENT_*` set, the payment page shows a VietQR image of the account (a public image service receiving the account, amount and transfer content only; it carries no secret). Without an account the page shows the transfer content and the claim still works. |
+| Claim | `POST /invoices/{id}/claim` records `bil_payment_claim` with the time left to the deadline; the Invoice becomes Awaiting confirmation. Every deadline that depends on it stops: the Deposit expiry, the forfeit, the Utility debt rules and the reminders skip it. One open claim per Invoice. A Deposit or Balance cannot be claimed after its deadline; a debt (Utility, charge) can. |
+| Confirmation | Managers (`CONFIRM_PAYMENTS`) confirm claims in bulk or one Invoice with a receipt (also a transfer not claimed yet, recorded in their name). Each Invoice gets its own Payment (`TRANSFER`, `claim_id`), audit entry and `PaymentConfirmed`; it is paid at the time of the claim, which "earlier Deposit first" uses (spec §6.7). |
+| Rejection | With a reason, shown to the student. The deadline continues with the time left at the claim, at least `payment.rejected_claim_min_hours`; a debt claimed after its due date keeps the date. After `payment.rejections_to_cancel` rejections a Deposit or Balance is void and `PaymentClaimRejected(cancelled)` expires the Application or forfeits the Allocation; debts are never cancelled. |
+| Removed | SePay webhook, bank-feed inbox (kept read-only as `bil_bank_transaction_archive`), retry job, amount-mismatch handling, the payment simulator and its settings (B-07). |
 
 ## 11. Notifications and scheduled jobs
 
@@ -298,9 +297,11 @@ Events → NTF: in-app row (`ntf_notification`), FCM push to the user's Android 
 |---|---|---|
 | Expire Applications whose Deposit window passed | every 5 min | APP |
 | Expire roommate invitations, Round-2 offers, swap invitations | every 5 min | APP, REQ |
-| Mark Invoices overdue and send reminders | hourly | BIL |
+| Mark Invoices overdue (Deposits expire and Balances are forfeited instead); Utility debt warnings and the termination trigger | hourly | BIL |
+| Payment reminders 3 and 1 days before a Balance deadline; the Managers' summary of claims waiting | hourly | BIL |
+| Forfeit Allocations whose Balance passed its deadline (no claim, no approved late check-in running) | every 5 min | ASG |
+| Release door codes (Balance paid, check-in start, confirmed code); terminations past their move-out date become Overdue | every 15 min | ASG |
 | SLA check → escalations | every 15 min | REQ |
-| Process pending bank transactions (retry matching) | every 1 min | BIL |
 | Email outbox dispatch | every 30 s | NTF |
 | Purge sessions ended > 30 days | 03:15 daily | AUTH |
 | Start inspection runs from schedules | 06:00 daily | MNT |
@@ -328,7 +329,7 @@ Implementation (S3): `asg.internal.AssignmentEngine` is pure (no database) and u
 
 Conventions: feature prefix; `BIGINT` identity keys; money `BIGINT` VND; `TIMESTAMPTZ` in UTC; statuses as `UPPER_SNAKE` text with `CHECK`; `version` for optimistic locking; JSONB only for snapshots and display payloads (contact snapshot, Invoice lines, matching snapshot), never for data that is filtered or joined.
 
-Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables, `V14` the check-out settlement snapshot, `V15` the Block and Room code on Maintenance Requests, `V16` the Block on Room-Change Requests, swaps and board posts and the swap status To Manager, `V17` the student snapshot on refunds, `V18` notification templates for swaps, late check-ins and refunds, `V19` the Admin limits a Block Manager works within (`sla.*` timers, `block.*` visitor and quiet hours, `sla.unassigned_max_hours`), `V20` what an escalation shows (request code and start, subtitle, Room, link), `V21` the notification template for an escalated request handed to staff, `V22` the templates for inspections and Admin emails with push, `V23`–`V30` the reporting views (`rpt_v_*`) of INV, APP, ASG, BIL, MNT, REQ, AUTH and CFG, each defined by its owner, `V31` the student's gender on the refund view (refunds without a Bed count for the Blocks of that gender); Change Specification v2: `V32` Managers without Block links (ADR-19), `V33` the account language, `V34` notifications and emails in both languages, `V35` texts that named "the Block Manager", `V36` accounts (fictional-account flag, student verification and source, "Not enrolled", the student list import and its rows), `V37` the demo-recipient flag of queued emails and the verification notifications; phase 3: `V38` the Room Class per Room per Term (`inv_room.room_class_id` is the class a Room was built with, `inv_room_class_term` sets it from a Term on, `inv_room_class_in` and the view `rpt_v_room_class`; the Floor's class becomes the default of new Rooms), `V39` furniture types (seven to start with), Room Class requirements, items, moves and their history, `V40` door codes (encrypted) and rotation tasks, `V41` the door-code notifications; phase 4: `V42` registration periods (renewal milestones M1–M7 of a Term, its share for new students, Deposit, Utility Deposit, the rules it opened with, its information for students and the wizard step; Drafts without windows; `cfg_term_price`, `cfg_term_block`, `cfg_term_room_excluded`; Managers' requests and their history; grouped settings in `cfg_parameter`; three refund triggers; existing Terms keep today's prices; report views `rpt_v_term`, `rpt_v_term_price`, `rpt_v_term_room`, `rpt_v_term_request`), `V43` announcements and the request and publication notifications. Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Base data: `db/seed/R__dev_seed.sql` (profile `dev`; a fresh system ready to sign in: 8 Blocks, 960 Rooms, 3,680 Beds, Room Types and Classes, the furniture of every Room (a bed, wardrobe and desk per Bed and what its Room Class requires: 12,768 items) and spares in each Block store (80), 1 Admin, 8 Managers, 16 Staff and 6,200 students, no Term or history; emails `<account>@fpt.edu.vn` and `<student code>@fpt.edu.vn`, password `12321321`; idempotent). Test data: `src/test/resources/db/test-seed/R__test_seed.sql` (profile `test`; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
+Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2` CFG, `V3` INV (+ Block-scoped AUTH/CFG tables), `V4` APP, `V5` ASG, `V6` BIL, `V7` REQ, `V8` MNT, `V9` NTF, `V10` reference data, `V11` parameter `inventory.max_floor` (bulk Room generation), `V12` Invoice `reference` and a wider `bil_refund.source_type`, `V13` student snapshot (name, code, gender) on Applications and Invoices and the Invoice's Block, so APP and BIL search and scope their lists without reading AUTH tables, `V14` the check-out settlement snapshot, `V15` the Block and Room code on Maintenance Requests, `V16` the Block on Room-Change Requests, swaps and board posts and the swap status To Manager, `V17` the student snapshot on refunds, `V18` notification templates for swaps, late check-ins and refunds, `V19` the Admin limits a Block Manager works within (`sla.*` timers, `block.*` visitor and quiet hours, `sla.unassigned_max_hours`), `V20` what an escalation shows (request code and start, subtitle, Room, link), `V21` the notification template for an escalated request handed to staff, `V22` the templates for inspections and Admin emails with push, `V23`–`V30` the reporting views (`rpt_v_*`) of INV, APP, ASG, BIL, MNT, REQ, AUTH and CFG, each defined by its owner, `V31` the student's gender on the refund view (refunds without a Bed count for the Blocks of that gender); Change Specification v2: `V32` Managers without Block links (ADR-19), `V33` the account language, `V34` notifications and emails in both languages, `V35` texts that named "the Block Manager", `V36` accounts (fictional-account flag, student verification and source, "Not enrolled", the student list import and its rows), `V37` the demo-recipient flag of queued emails and the verification notifications; phase 3: `V38` the Room Class per Room per Term (`inv_room.room_class_id` is the class a Room was built with, `inv_room_class_term` sets it from a Term on, `inv_room_class_in` and the view `rpt_v_room_class`; the Floor's class becomes the default of new Rooms), `V39` furniture types (seven to start with), Room Class requirements, items, moves and their history, `V40` door codes (encrypted) and rotation tasks, `V41` the door-code notifications; phase 4: `V42` registration periods (renewal milestones M1–M7 of a Term, its share for new students, Deposit, Utility Deposit, the rules it opened with, its information for students and the wizard step; Drafts without windows; `cfg_term_price`, `cfg_term_block`, `cfg_term_room_excluded`; Managers' requests and their history; grouped settings in `cfg_parameter`; three refund triggers; existing Terms keep today's prices; report views `rpt_v_term`, `rpt_v_term_price`, `rpt_v_term_room`, `rpt_v_term_request`), `V43` announcements and the request and publication notifications; phase 5: `V44` payment claims (the SePay inbox kept as `bil_bank_transaction_archive`, Payments of method TRANSFER, the trigger that fixes an Invoice's money, one live refund per Invoice, reminder counts, Utility warnings, views `rpt_v_payment_claim` and `rpt_v_utility_warning`), `V45` residence (`resident_at`, `code_released_at` backfilled from the check-in, end reason Forfeit, late check-ins online, terminations, `rpt_v_termination`), `V46` Gia hạn (`stay_terms`) and the status Forfeited, `V47` the fee policy without its two switches, `stay.program_semesters` and the check-out reason Termination, `V48` door-code rotation after an overdue termination, `V49` the notifications and emails of money and residence. Uploaded files live on disk under `campusstay.files.dir` (env `FILES_DIR`, default `data/files`). Base data: `db/seed/R__dev_seed.sql` (profile `dev`; a fresh system ready to sign in: 8 Blocks, 960 Rooms, 3,680 Beds, Room Types and Classes, the furniture of every Room (a bed, wardrobe and desk per Bed and what its Room Class requires: 12,768 items) and spares in each Block store (80), 1 Admin, 8 Managers, 16 Staff and 6,200 students, no Term or history; emails `<account>@fpt.edu.vn` and `<student code>@fpt.edu.vn`, password `12321321`; idempotent). Test data: `src/test/resources/db/test-seed/R__test_seed.sql` (profile `test`; 2 Blocks, 100 Rooms, 360 Beds, 2 Terms, 48 students, 7 back-office users).
 
 ### 13.1 Core entities
 
@@ -359,7 +360,9 @@ erDiagram
     app_application ||--o{ bil_invoice : "billed by"
     asg_allocation ||--o{ bil_invoice : "billed by"
     bil_invoice ||--o| bil_payment : "settled by"
-    bil_bank_transaction ||--o| bil_payment : "evidence of"
+    bil_invoice ||--o{ bil_payment_claim : "claimed by"
+    bil_payment_claim ||--o| bil_payment : "confirmed as"
+    asg_allocation ||--o{ asg_termination : "ended by"
     asg_allocation ||--o{ req_room_change : "changed by"
     inv_room ||--o{ mnt_request : "reported in"
 ```
@@ -373,8 +376,8 @@ erDiagram
 | CFG | `cfg_term` (with its milestones, money and rules once published), `cfg_term_price`, `cfg_term_block`, `cfg_term_room_excluded`, `cfg_term_request`, `cfg_term_request_event`, `cfg_room_type`, `cfg_room_class`, `cfg_fee_policy` (singleton), `cfg_refund_rule`, `cfg_utility_policy` (singleton), `cfg_eligibility_criterion`, `cfg_priority_group`, `cfg_matching_snapshot`, `cfg_lookup` (option lists), `cfg_parameter`, `cfg_block_settings` |
 | INV | `inv_building`, `inv_floor` (the class of its new Rooms), `inv_floor_layout`, `inv_room` (with the class it was built with), `inv_room_class_term` (class from a Term on), `inv_bed`, `inv_furniture_type`, `inv_room_class_requirement` (named `cfg_…` in spec §12; INV owns it because it joins furniture types and is checked against each Room's items), `inv_furniture_item`, `inv_furniture_move`, `inv_furniture_event`, `inv_door_code`, `inv_door_code_task` |
 | APP | `app_application`, `app_application_event`, `app_roommate_invitation`, `app_roommate_check`, `app_round2_offer`, `app_round2_option` |
-| ASG | `asg_run`, `asg_run_block`, `asg_proposal_item`, `asg_allocation` (incl. Check-in fields), `asg_check_out`, `asg_late_check_in` |
-| BIL | `bil_invoice`, `bil_payment`, `bil_bank_transaction` (webhook inbox), `bil_refund`, `bil_meter_period`, `bil_meter_reading`, `bil_meter_cut` |
+| ASG | `asg_run`, `asg_run_block`, `asg_proposal_item`, `asg_allocation` (incl. Check-in fields, `resident_at`, `code_released_at`), `asg_check_out`, `asg_late_check_in` (desk or online), `asg_termination` |
+| BIL | `bil_invoice`, `bil_payment`, `bil_payment_claim`, `bil_utility_warning`, `bil_bank_transaction_archive` (the former SePay inbox, read-only), `bil_refund`, `bil_meter_period`, `bil_meter_reading`, `bil_meter_cut` |
 | REQ | `req_room_change`, `req_swap_post`, `req_swap`, `req_routing_rule`, `req_sla_policy`, `req_escalation`, `req_escalation_event` |
 | MNT | `mnt_request`, `mnt_request_photo`, `mnt_request_event`, `mnt_checklist`, `mnt_checklist_item`, `mnt_inspection_schedule`, `mnt_inspection_run`, `mnt_inspection_room`, `mnt_inspection_result` |
 | NTF | `ntf_notification`, `ntf_announcement`, `ntf_announcement_block`, `ntf_announcement_read`, `ntf_device`, `ntf_template`, `ntf_email_template`, `ntf_email_campaign`, `ntf_email_outbox` |
@@ -389,7 +392,7 @@ Verified on PostgreSQL (20/10/2026): all migrations and the seed apply cleanly, 
 | `test` | `mvn verify` | Testcontainers Postgres 17 | log sender | test data (`db/test-seed`) |
 | `prod` | production (run as a demo, ADR-18) | `DB_URL` (Azure Database for PostgreSQL) | Gmail SMTP (App Password, 500/day) once `SPRING_MAIL_HOST` is set, otherwise only logged (the state on 24/10/2026, §14.1); `MAIL_REDIRECT_TO` sends the emails of fictional accounts to the team mailbox (spec O-3: real accounts receive their own; each queued email carries `demo_recipient`) | base data only when `SPRING_FLYWAY_LOCATIONS` adds `db/seed` (on the demo server: yes, runbook §1.10) |
 
-Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `SEPAY_WEBHOOK_API_KEY`, `FIREBASE_CREDENTIALS_FILE`, `FILES_LINK_SECRET`, `DOOR_CODE_KEY` (the dev and test profiles carry fixed keys of their own; a changed key makes stored codes unreadable, so Staff set new ones). The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
+Secrets only in environment variables: `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SPRING_MAIL_PASSWORD`, `FIREBASE_CREDENTIALS_FILE`, `FILES_LINK_SECRET`, `DOOR_CODE_KEY` (the dev and test profiles carry fixed keys of their own; a changed key makes stored codes unreadable, so Staff set new ones). The receiving bank account (`PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE`, `PAYMENT_ACCOUNT_NUMBER`, `PAYMENT_ACCOUNT_NAME`) is operations configuration too. Business values live in the database (Admin screens), never in YAML.
 
 Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose.yml` locally; in production `infra/prod/` (API + Caddy HTTPS, plus Postgres with the Compose profile `local-db` when there is no managed database) on one Ubuntu VM, deployed by `.github/workflows/backend.yml`. Health: `/api/actuator/health` (liveness/readiness probes). Step-by-step setup and operations: `infra/prod/README.md`.
 
@@ -414,7 +417,6 @@ flowchart LR
     USER["Browser"] -->|"campusstay-fpt-ten.vercel.app"| VER
     USER -->|"campusstay-api.eastasia.cloudapp.azure.com/api"| CADDY
     API -->|SMTP 587| GMAIL["Gmail"]
-    SEPAY["SePay (optional)"] -.->|"POST /api/webhooks/sepay"| CADDY
 ```
 
 | Topic | Production |
@@ -422,11 +424,11 @@ flowchart LR
 | Web | Vercel project `campusstay-fpt`, Root Directory `web/`, https://campusstay-fpt-ten.vercel.app; `VITE_*` variables are baked in at build time (runbook §2) |
 | API | https://campusstay-api.eastasia.cloudapp.azure.com/api on the Azure for Students VM `campusstay-vm` (B2ats v2, 1 GB RAM + swap, `API_MEMORY=700m`), user `deploy`, stack in `/opt/campusstay` (runbook appendix A) |
 | Database | Azure Database for PostgreSQL Flexible Server `campusstay-db-0eb9` (PostgreSQL 17, Burstable B1ms, 32 GB, East Asia); the stack's `db` service stays off; Flyway migrates on every start of a new image |
-| Settings | `/opt/campusstay/.env` on the VM (`infra/prod/.env.example` lists every variable); Vercel holds `VITE_API_BASE_URL`, `VITE_PAYMENT_SIMULATOR` and `VITE_GOOGLE_CLIENT_ID`; secrets never in Git |
-| Demo switches (ADR-18), checked 24/10/2026 | On: `PAYMENT_SIMULATOR=true` and Vercel `VITE_PAYMENT_SIMULATOR=true`; base data with 6,200 fictional students (`SPRING_FLYWAY_LOCATIONS` keeps `db/seed`). Not set yet: `MAIL_REDIRECT_TO` |
+| Settings | `/opt/campusstay/.env` on the VM (`infra/prod/.env.example` lists every variable); Vercel holds `VITE_API_BASE_URL` and `VITE_GOOGLE_CLIENT_ID` (and `VITE_PAYMENT_SIMULATOR`, no longer read since v2 phase 5); secrets never in Git |
+| Demo switches (ADR-18), checked 24/10/2026 | On: `PAYMENT_SIMULATOR=true` and Vercel `VITE_PAYMENT_SIMULATOR=true` (no longer read once v2 phase 5 is deployed: payments are claims, ADR-22; removing them is a production setting change); base data with 6,200 fictional students (`SPRING_FLYWAY_LOCATIONS` keeps `db/seed`). Not set yet: `MAIL_REDIRECT_TO` |
 | Google sign-in, since 25/10/2026 | `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the VM's `.env`, `VITE_GOOGLE_CLIENT_ID` in Vercel (production and previews); the OAuth client's JavaScript origins are the production web URL and `http://localhost:5173`, so previews sign in with email and password only (spec P-1) |
 | Door codes, since 25/10/2026 | `DOOR_CODE_KEY` in the VM's `.env`, generated on the VM with `openssl rand -base64 32` and never printed (spec P-3); keep it for the life of the database (runbook §1.7) |
-| Not configured yet, checked 25/10/2026 | **SMTP** (`SPRING_MAIL_*`, `MAIL_FROM`, then `MAIL_REDIRECT_TO`): emails are only logged, so password-reset links, invitations and email notifications do not arrive. **SePay** (`SEPAY_WEBHOOK_API_KEY` and the receiving account): webhook off, payments by simulator or Staff confirmation. **Firebase** (`FIREBASE_CREDENTIALS_FILE`): no push until the Android app exists. Steps: runbook §3 |
+| Not configured yet, checked 25/10/2026 | **SMTP** (`SPRING_MAIL_*`, `MAIL_FROM`, then `MAIL_REDIRECT_TO`): emails are only logged, so password-reset links, invitations and email notifications do not arrive. **Receiving account** (`PAYMENT_*`): without it the payment page shows no VietQR image (v2 phase 5: payments are claims confirmed by Managers either way). **Firebase** (`FIREBASE_CREDENTIALS_FILE`): no push until the Android app exists. Steps: runbook §3 |
 | Delivery | Every push to `main` deploys itself: Vercel builds the web; `backend.yml` runs `mvn verify`, pushes the image to GHCR, copies `infra/prod/` and restarts with the new tag, then waits for `/api/actuator/health/readiness`. A failing check stops before the image; roll back with `API_TAG=<older sha>` or Vercel → Promote (runbook §6.1) |
 | Backups | Database: Azure, 7 days point-in-time restore; uploaded files: `backup.sh` by cron on the VM (runbook §1.11, A.4) |
 | Monitoring | Actions run, Vercel deployment and `GET /api/actuator/health` after each push; external uptime monitor; weekly disk, memory, logs, cost and CPU credits (runbook §6.2) |
@@ -438,10 +440,10 @@ flowchart LR
 | Unit | JUnit 5, AssertJ, hand-written fakes, `MockRestServiceServer` | Pure rules and outbound adapters: assignment engine, utility split, CSV export, Google code exchange, FCM sender, email redirect, CORS origins | `*Test.java`, `TC-<CODE>-NNN` |
 | Integration | Spring Boot test + Testcontainers PostgreSQL 17 + MockMvc, test seed `db/test-seed` | Every endpoint: happy path, validation, permission/scope, the main business rule | `*IT.java`, `TC-<CODE>-NNN` |
 | Architecture | JUnit (source scan) | Calls go controller → service → repository (§5 rule 1) | `LayeringTest` |
-| Concurrency | — (not automated yet, R-18) | Same Bed or Invoice changed by two requests at once: covered by the constraints and locks of §9; a repeated SePay delivery is tested in sequence (TC-BIL-003) | — |
+| Concurrency | — (not automated yet, R-18) | Same Bed or Invoice changed by two requests at once: covered by the constraints and locks of §9; a second claim on the same Invoice is refused in sequence (TC-BIL-034) | — |
 | System / UAT | Web app against the dev stack or the demo server | End-to-end flows per role, by hand | Test Report workbook |
 
-On 26/10/2026 (v2 phase 4 in `main`): 51 test classes, 203 tests, 202 test case ids (27 unit, 174 integration, 2 architecture; `main` with phase 3: 45 classes, 189 tests), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
+On 26/10/2026 (v2 phase 5 on `feat/v2-phase5`): 54 test classes, 211 tests, 210 test case ids (27 unit, 182 integration, 2 architecture; `main` with phase 4: 51 classes, 203 tests; the SePay and simulator tests TC-BIL-002…005, 027, 028 were retired with them), listed one by one in `04_Test_Catalog.md`, which `node docs/tools/generate-catalogs.mjs` regenerates from the tests' Javadoc. GitHub Actions runs `mvn verify` for every push and pull request that touches the backend; a failure stops the deploy. The web app has no automated tests (`npm run build` must pass).
 
 ## 16. Risks and technical debt
 
@@ -450,10 +452,10 @@ On 26/10/2026 (v2 phase 4 in `main`): 51 test classes, 203 tests, 202 test case 
 | R-11 | Backend code was written in a sandbox without access to Maven Central, so it was not compiled there | First build may need small fixes (mainly Spring Boot 4 package names) | **Closed 20/10/2026:** the skeleton compiles; `mvn verify` passes after one fix (Jackson 3 rejects a missing primitive, see §6) |
 | R-12 | Spring Boot 4 ecosystem still settling (e.g. springdoc 3.x targets Boot 4.0) | OpenAPI UI may lag | Add springdoc only after checking compatibility; the endpoint map is the API reference meanwhile |
 | R-13 | Scope: 159 endpoints for about 9 remaining weeks | Should/Could items at risk | **Closed 22/10/2026:** every endpoint of the map is built (S0–S7), 161 of 162 verified by integration tests |
-| R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | **Mitigated 24/10/2026 (ADR-18):** the demo server uses the payment simulator (A-08) and Staff manual confirmation; the webhook has a stable HTTPS URL on the VM and waits for its API key |
+| R-14 | SePay depends on a real bank account and public HTTPS | Payment demo fails | **Closed by ADR-22 (v2 phase 5):** SePay and the simulator are gone; students claim their transfers and Managers confirm them, with or without a real account |
 | R-15 | Domain events are in-memory (no event publication registry yet) | An async listener could miss an event on a crash | Emails already go through the outbox in the same transaction; add a transactional event registry (e.g. an outbox table) when async listeners appear |
 | R-16 | Cross-feature foreign keys | Harder future split into services | Accepted for integrity; documented in §5 |
 | R-17 | Gmail SMTP limit 500/day, App Password revoked on password change | Campaign emails fail | Campaigns are Could; switch provider behind `EmailSender` if needed; `MAIL_REDIRECT_TO` keeps demo mail in one mailbox |
 | R-18 | No automated test runs two requests at once | A race on a Bed, an Invoice or a run could slip past a missing lock | Partial unique indexes and row locks (§9) stop double booking and double payment at the database; add multi-thread `*IT` tests for commit vs Room-Change and duplicate webhook deliveries |
 | R-19 | Production is one small VM (1 GB RAM + 2 GB swap, B-series CPU credits) | Long assignment runs or exports can exhaust CPU credits; a VM outage stops the API | `API_MEMORY=700m`; weekly CPU-credit and memory checks and an external uptime monitor (runbook §6.2); the database is managed with 7-day point-in-time restore |
-| R-20 | Production email, SePay and Firebase are not configured (25/10/2026; Google sign-in is, since 25/10/2026) | Password-reset and invitation emails do not arrive | Set the variables of runbook §3 on the VM and in Vercel before Review 2; until then set passwords with the SQL of runbook §1.10 through the psql of appendix A.4 |
+| R-20 | Production email and Firebase are not configured (25/10/2026; Google sign-in is, since 25/10/2026) | Password-reset and invitation emails do not arrive | Set the variables of runbook §3 on the VM and in Vercel before Review 2; until then set passwords with the SQL of runbook §1.10 through the psql of appendix A.4 |

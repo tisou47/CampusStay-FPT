@@ -7,8 +7,11 @@ spring:
     port: ${MAIL_PORT:1025}
 
 campusstay:
-  payment:
-    simulator: true   # the "Simulate bank transfer" button of the web app (A-08)
+  payment:            # a demo account, so the payment page shows a VietQR image locally
+    bank-name: MB Bank
+    bank-code: MBBank
+    account-number: "0000000000"
+    account-name: CAMPUSSTAY FPT DEMO
   door-codes:
     key: ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=   # development only; servers set DOOR_CODE_KEY
 

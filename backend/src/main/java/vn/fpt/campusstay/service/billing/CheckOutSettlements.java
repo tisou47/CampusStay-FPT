@@ -20,7 +20,8 @@ import vn.fpt.campusstay.service.setting.UtilityPolicy;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
- * The Utility Deposit settlement at check-out. The final share covers the
+ * The Utility Deposit settlement at check-out. A Utility Invoice whose claim waits for a Manager is not taken from
+ * the deposit: the Manager's decision settles it (spec §6.7). The final share covers the
  * Room's consumption since its last reading (a monthly reading or a reading
  * taken when residents changed), split evenly between the current residents
  * and rounded by the Admin rule.
@@ -74,7 +75,7 @@ class CheckOutSettlements {
         List<Unpaid> unpaid = jdbc.sql("""
                 SELECT id, amount FROM bil_invoice
                 WHERE student_id = :student AND term_id = :term AND type = 'UTILITY'
-                  AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')
+                  AND status IN ('UNPAID', 'OVERDUE')
                 """).param("student", r.studentId()).param("term", r.termId())
                 .query((rs, i) -> new Unpaid(rs.getLong("id"), rs.getLong("amount"))).list();
         long unpaidTotal = unpaid.stream().mapToLong(Unpaid::amount).sum();

@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import vn.fpt.campusstay.service.application.ApplicationService;
 
-/** Application wizard, roommate pairs, cancellation and expiry (TC-APP-NNN). Each test uses its own students. */
+/** Application wizard, Gia hạn, roommate pairs, cancellation and expiry (TC-APP-NNN). Each test uses its own students. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -301,5 +301,40 @@ class ApplicationsIT {
                 .andExpect(jsonPath("$.contact.phone").value("0901234567"))
                 .andExpect(jsonPath("$.contact.email").value("me@example.com"))
                 .andExpect(jsonPath("$.contact.relationship").value("Mother"));
+    }
+
+    /**
+     * TC-APP-023: Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left
+     * (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student
+     * who already holds a Bed for the Term cannot apply (not a continuing resident).
+     */
+    @Test
+    void stayTermsOnTheApplication() throws Exception {
+        String auth = bearer(mvc, student(41)); // semester 5 of 9: 5 Terms left
+        mvc.perform(get("/applications/eligibility").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.maxStayTerms").value(5));
+        String base = flow.body("4-bed", "Basic", null);
+        flow.submit(auth, base.replaceFirst("\\{", "{\"stayTerms\":6,"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.stayTerms").value("Choose from 1 to 5 Terms."));
+        String json = flow.submit(auth, base.replaceFirst("\\{", "{\"stayTerms\":4,")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(json, "$.id");
+        mvc.perform(get("/applications/" + id).header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.stayTerms").value(4));
+        mvc.perform(get("/students/me/applications").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.items[0].stayTerms").value(4));
+        mvc.perform(get("/applications/" + id).header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.MANAGER_A)))
+                .andExpect(jsonPath("$.stayTerms").value(4));
+        mvc.perform(get("/applications/eligibility").header(HttpHeaders.AUTHORIZATION, bearer(mvc, student(42))))
+                .andExpect(jsonPath("$.maxStayTerms").value(9));
+
+        // A student who holds a Bed for the Term stays through requests, not a new Application.
+        new StayFlow(mvc, jdbc, flow, flow.openTerm()).livesIn(43, "B-201", "A", true);
+        String resident = bearer(mvc, student(43));
+        mvc.perform(get("/applications/eligibility").header(HttpHeaders.AUTHORIZATION, resident))
+                .andExpect(jsonPath("$.eligible").value(false))
+                .andExpect(jsonPath("$.checks[*].title", hasItem("Not a continuing resident of the Term")));
+        flow.submit(resident, base).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NOT_ELIGIBLE"));
     }
 }

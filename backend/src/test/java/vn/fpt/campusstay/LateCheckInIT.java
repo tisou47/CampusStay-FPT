@@ -1,5 +1,6 @@
 package vn.fpt.campusstay;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,7 +33,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.config.TimeConfig;
 
-/** Late check-ins: recorded at the desk, decided by the Block Manager (TC-ASG-030, 031). */
+/** Late check-ins: asked online or recorded at the desk, decided by a Manager (TC-ASG-030, 031, 037). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -142,5 +143,60 @@ class LateCheckInIT {
         list(manager)
                 .andExpect(jsonPath("$.items[?(@.id == '%s')].decision.status".formatted(id),
                         hasItem("Rejected")));
+    }
+
+    /**
+     * TC-ASG-037: the student asks online with a reason, the day and an evidence file, up to the check-in end plus
+     * late_check_in.max_days; the Managers are told; one request at a time; a Manager approves at most that day.
+     */
+    @Test
+    void studentAsksOnline() throws Exception {
+        stay.livesIn(17, "A-302", "B", false);
+        String auth = bearer(mvc, student(17));
+        mvc.perform(get("/students/me/late-check-in").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.canRequest").value(true))
+                .andExpect(jsonPath("$.checkInEnd").value("2031-01-05"))
+                .andExpect(jsonPath("$.latestDay").value("2031-01-19"))
+                .andExpect(jsonPath("$.request").value((Object) null));
+        mvc.perform(multipart("/students/me/late-check-in").param("reason", "Visa interview")
+                .param("requestedFor", "2031-01-20").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.requestedFor").isString())
+                .andExpect(jsonPath("$.details.fields.evidence").isString());
+        String id = JsonPath.read(mvc.perform(multipart("/students/me/late-check-in")
+                .file(new MockMultipartFile("evidence", "letter.png", "image/png", PNG))
+                .param("reason", "Visa interview").param("requestedFor", "2031-01-10")
+                .header(HttpHeaders.AUTHORIZATION, auth)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(multipart("/students/me/late-check-in").file(new MockMultipartFile("evidence", "letter.png",
+                "image/png", PNG)).param("reason", "Again").param("requestedFor", "2031-01-11")
+                .header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LATE_REQUEST_EXISTS"));
+        mvc.perform(get("/students/me/late-check-in").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.request.status").value("Pending"))
+                .andExpect(jsonPath("$.request.source").value("Online"))
+                .andExpect(jsonPath("$.canRequest").value(false));
+        mvc.perform(get("/students/me/late-check-in").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_A)))
+                .andExpect(status().isForbidden());
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = 'LATE_CHECK_IN_REQUESTED'
+                """).param("e", MANAGER_B).query(Long.class).single()).isEqualTo(1);
+
+        String manager = bearer(mvc, MANAGER_A);
+        list(manager)
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].source".formatted(id), hasItem("Online")))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].receivedBy".formatted(id), hasItem((Object) null)));
+        stay.postJson("/late-check-ins/" + id + "/decision", manager,
+                "{\"decision\":\"Approved\",\"deadline\":\"2031-01-25\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.deadline").value("Choose a day up to 19/01/2031."));
+        stay.postJson("/late-check-ins/" + id + "/decision", manager,
+                "{\"decision\":\"Approved\",\"deadline\":\"2031-01-12\"}").andExpect(status().isNoContent());
+        mvc.perform(get("/students/me/late-check-in").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.request.status").value("Approved"))
+                .andExpect(jsonPath("$.request.deadline").value("2031-01-12"));
     }
 }

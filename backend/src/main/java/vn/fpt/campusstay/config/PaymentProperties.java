@@ -3,16 +3,20 @@ package vn.fpt.campusstay.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * {@code campusstay.payment.*}: the receiving bank account and the SePay link,
- * set by operations through environment variables (ADR-08).
+ * {@code campusstay.payment.*}: the bank account students transfer to, set by operations through environment
+ * variables (ADR-22). Payments are claimed by the student ("I have transferred") and confirmed by a Manager.
  *
  * @param bankCode       bank short name for the VietQR image service, e.g. {@code MBBank}
- * @param qrImageUrl     SePay's VietQR image service
- * @param transferPrefix start of every Invoice's transfer content; must match the payment-code
- *                       prefix configured in SePay so it can extract the code
- * @param sepayApiKey    key SePay sends as {@code Authorization: Apikey …}; blank disables the webhook
+ * @param accountNumber  blank = no account configured: the payment page shows no VietQR image
+ * @param qrImageUrl     a public VietQR image service (it receives the account, amount and transfer content only)
+ * @param transferPrefix start of every Invoice's transfer content ({@code CSTAY000123})
  */
 @ConfigurationProperties("campusstay.payment")
 public record PaymentProperties(String bankName, String bankCode, String accountNumber, String accountName,
-        String qrImageUrl, String transferPrefix, String sepayApiKey) {
+        String qrImageUrl, String transferPrefix) {
+
+    /** A receiving account is set, so a VietQR image can be shown (spec §6.7). */
+    public boolean accountConfigured() {
+        return accountNumber != null && !accountNumber.isBlank() && bankCode != null && !bankCode.isBlank();
+    }
 }

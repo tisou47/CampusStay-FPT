@@ -119,11 +119,6 @@ class JdbcFeePolicy implements FeePolicy {
     }
 
     @Override
-    public boolean manualConfirmAllowed() {
-        return jdbc.sql("SELECT allow_manual_confirm FROM cfg_fee_policy WHERE id = 1").query(Boolean.class).single();
-    }
-
-    @Override
     public int balanceDays() {
         return jdbc.sql("SELECT balance_days FROM cfg_fee_policy WHERE id = 1").query(Integer.class).single();
     }

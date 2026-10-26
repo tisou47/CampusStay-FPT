@@ -212,8 +212,9 @@ class DoorCodeIT {
     }
 
     /**
-     * TC-INV-023: a student sees the code of the Room they are checked in to, once Staff confirmed it; before
-     * check-in or without a Bed there is nothing to show.
+     * TC-INV-023: a student whose Balance is paid and whose check-in start has come waits for the Room's code; once
+     * Staff confirm it, it is released to them (spec §6.8): they are told (never the code), see it and become a
+     * resident; without a Bed there is nothing to show.
      */
     @Test
     void showsTheStudentTheirCode() throws Exception {
@@ -222,22 +223,23 @@ class DoorCodeIT {
         mvc.perform(get("/students/me/door-code").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.room").value("A-104"))
-                .andExpect(jsonPath("$.status").value("Not ready"));
+                .andExpect(jsonPath("$.status").value("Not ready"))
+                .andExpect(jsonPath("$.note").value(
+                        "Staff are setting the door code of your Room. You will be told when it is ready."));
         mvc.perform(post("/students/me/door-code/reveal").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DOOR_CODE_NOT_READY"));
-        jdbc.sql("""
-                UPDATE asg_allocation SET checked_in_at = now()
-                WHERE student_id = (SELECT id FROM auth_user WHERE email = :e) AND status = 'ACTIVE'
-                """).param("e", StayFlow.student(5)).update();
-        mvc.perform(get("/students/me/door-code").header(HttpHeaders.AUTHORIZATION, student))
-                .andExpect(jsonPath("$.status").value("Not set"));
         String staff = bearer(mvc, STAFF_A);
         propose(staff, "A-104", "564738").andExpect(status().isOk());
         act(staff, "A-104", "confirm").andExpect(status().isNoContent());
         mvc.perform(get("/students/me/door-code").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(jsonPath("$.status").value("Ready"))
                 .andExpect(jsonPath("$.changedAt").isString());
+        assertThat(notifications(StayFlow.student(5), "DOOR_CODE_READY")).isEqualTo(1);
+        assertThat(jdbc.sql("""
+                SELECT resident_at IS NOT NULL AND code_released_at IS NOT NULL FROM asg_allocation
+                WHERE student_id = (SELECT id FROM auth_user WHERE email = :e) AND status = 'ACTIVE'
+                """).param("e", StayFlow.student(5)).query(Boolean.class).single()).isTrue();
         mvc.perform(post("/students/me/door-code/reveal").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("564738"));

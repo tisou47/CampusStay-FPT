@@ -188,7 +188,8 @@ class InventoryIT {
             String staff = bearer(mvc, STAFF_A);
             mvc.perform(get("/inventory/rooms").header(HttpHeaders.AUTHORIZATION, staff)
                     .param("termId", String.valueOf(termId)).param("block", "A").param("floor", "1"))
-                    .andExpect(jsonPath("$.rooms[?(@.code == 'A-101')].beds[0].state", contains("allocated")))
+                    // Held without a Balance to pay and not lived in yet: paid, waiting for the door code (spec §11.5).
+                    .andExpect(jsonPath("$.rooms[?(@.code == 'A-101')].beds[0].state", contains("paid")))
                     .andExpect(jsonPath("$.rooms[?(@.code == 'A-101')].beds[0].occupant.studentCode", contains("SE190002")))
                     .andExpect(jsonPath("$.summary.allocated").value(1));
             mvc.perform(post("/inventory/rooms/A-101/out-of-service").header(HttpHeaders.AUTHORIZATION, staff)

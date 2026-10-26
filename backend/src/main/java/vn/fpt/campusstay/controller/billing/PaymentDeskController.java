@@ -21,7 +21,7 @@ import vn.fpt.campusstay.service.billing.PaymentDeskService;
 import vn.fpt.campusstay.common.file.FileStore;
 import vn.fpt.campusstay.dto.PageQuery;
 
-/** Staff › Payments: Invoices of the Blocks in scope and manual confirmation. Invoices are addressed by code. */
+/** Manager › Payments: Invoices in scope and the confirmation of one Invoice with a receipt. Invoices are addressed by code. */
 @RestController
 class PaymentDeskController {
 
@@ -43,10 +43,9 @@ class PaymentDeskController {
 
     @PostMapping(path = "/payments/{invoiceId}/confirm", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void confirm(@PathVariable String invoiceId, @RequestParam(required = false) Long amount,
-            @RequestParam(required = false) String reference,
+    void confirm(@PathVariable String invoiceId, @RequestParam(required = false) String reference,
             @RequestPart(name = "receipt", required = false) MultipartFile receipt) {
-        payments.confirm(invoiceId, new PaymentDeskService.ConfirmCommand(amount, reference,
+        payments.confirm(invoiceId, new PaymentDeskService.ConfirmCommand(reference,
                 receipt == null ? null : receipt.getOriginalFilename(), bytes(receipt)));
     }
 

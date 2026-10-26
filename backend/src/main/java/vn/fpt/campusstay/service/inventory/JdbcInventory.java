@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -108,6 +109,18 @@ class JdbcInventory implements Inventory {
     private List<BedSlot> ofBuilding(Long termId, long buildingId) {
         return jdbc.sql(SLOT + " WHERE r.building_id = :b AND b.status <> 'RETIRED' ORDER BY r.code, b.label")
                 .param("b", buildingId).param("term", termId).query(JdbcInventory::slot).list();
+    }
+
+    @Override
+    public Set<Long> doorCodeReady(Collection<Long> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(jdbc.sql("""
+                SELECT c.room_id FROM inv_door_code c
+                WHERE c.room_id IN (:rooms) AND c.status = 'ACTIVE'
+                  AND NOT EXISTS (SELECT 1 FROM inv_door_code_task t WHERE t.room_id = c.room_id AND t.done_at IS NULL)
+                """).param("rooms", List.copyOf(roomIds)).query(Long.class).list());
     }
 
     /** The current Term (stay includes today, else the next to start); null when nothing is published. */

@@ -49,9 +49,6 @@ public interface FeePolicy {
     /** Every refund rule (inactive ones too, so old refunds still name their rule), by id. */
     Map<Long, RefundRule> refundRules();
 
-    /** Staff may confirm a transfer by hand when the bank feed cannot (Admin › Fees). */
-    boolean manualConfirmAllowed();
-
     /** Days after an Allocation the Balance Invoice is due (Admin › Fees). */
     int balanceDays();
 }

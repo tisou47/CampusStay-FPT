@@ -18,11 +18,12 @@ public interface Moves {
      * An Allocation with its Bed.
      *
      * @param bedCode {@code A-305-B}; {@code room} the Room code; {@code bed} the Bed label
-     * @param gender  the Block's gender, {@code M} or {@code F}
+     * @param gender     the Block's gender, {@code M} or {@code F}
+     * @param residentAt when the student became a resident (door code released or desk check-in), else null
      */
     record Placement(long allocationId, long termId, long studentId, Long applicationId, String status, long bedId,
             String bedCode, String room, String bed, int floor, long roomId, long buildingId, String block,
-            String gender, long roomTypeId, long roomClassId, Instant checkedInAt) {
+            String gender, long roomTypeId, long roomClassId, Instant residentAt) {
 
         public boolean active() {
             return status.equals("ACTIVE");

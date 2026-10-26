@@ -11,6 +11,9 @@ public interface EligibilityCounts {
     /** The always-on check that a student's account is verified (ADR-26); it has no switch. */
     String VERIFIED = "VERIFIED";
 
+    /** The always-on check that the student does not already hold a Bed for the Term (spec §6.6). */
+    String NOT_RESIDENT = "NOT_RESIDENT";
+
     /**
      * @param students students of the directory with an active account
      * @param failing  criterion key (and {@link #VERIFIED}) → students who fail it now

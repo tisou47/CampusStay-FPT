@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.service.inventory;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -12,8 +13,14 @@ import java.util.Set;
  */
 public interface BedOccupancy {
 
-    /** A student's active Allocation in a Term; {@code checkedIn}: the student lives there (desk Check-in done). */
-    record Stay(long allocationId, long bedId, boolean checkedIn) {
+    /**
+     * A student's active Allocation and whether its door code is released (spec §6.8).
+     *
+     * @param waitingFor why the code is not released yet: {@code PAYMENT} (the Balance), {@code CHECK_IN_START},
+     *                   {@code CODE} (Staff must confirm the Room's code), {@code TERMINATED}; null once released
+     * @param checkInStart the Term's check-in start, for the student's note
+     */
+    record Stay(long allocationId, long bedId, boolean codeReleased, String waitingFor, LocalDate checkInStart) {
     }
 
     /** Bed id → student user id of the active Allocation in the Term, for the given Beds. */
@@ -31,9 +38,19 @@ public interface BedOccupancy {
      */
     Set<Long> bedsPromised(Collection<Long> termIds, Collection<Long> bedIds);
 
-    /** Bed id → student user id of the checked-in resident (any Term), for the given Beds. */
+    /** Bed id → student user id of the resident living in it (any Term), for the given Beds. */
     Map<Long, Long> residents(Collection<Long> bedIds);
 
-    /** The student's active Allocation in the Term. */
-    Optional<Stay> stayOf(long studentId, long termId);
+    /** Students of the given Beds who hold the Room's door code now (released, not terminated past the move-out date). */
+    Set<Long> codeHolders(Collection<Long> bedIds);
+
+    /**
+     * The state of the given Beds' Allocations in the Term for the room map (spec §11.5): {@code RESIDENT} (door code
+     * released or desk check-in, orange), {@code PAID} (Balance paid, waiting for the door code) or {@code UNPAID}
+     * (yellow). Beds without an Allocation are left out.
+     */
+    Map<Long, String> bedStates(long termId, Collection<Long> bedIds);
+
+    /** The student's active Allocation now: the one whose code is released, else the earliest Term's. */
+    Optional<Stay> currentStay(long studentId);
 }

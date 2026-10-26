@@ -163,7 +163,7 @@ public class SwapService {
                 .flatMap(users::studentByCode)
                 .filter(s -> s.userId() != me.userId())
                 .flatMap(s -> moves.current(s.userId(), mine.termId()))
-                .filter(p -> p.checkedInAt() != null && p.gender().equals(mine.gender()))
+                .filter(p -> p.residentAt() != null && p.gender().equals(mine.gender()))
                 .orElseThrow(() -> FieldErrors.single("studentCode", CANNOT_SWAP));
         if (reason != null && reason.length() > 500) {
             throw FieldErrors.single("reason", "Keep the reason under 500 characters.");
@@ -525,14 +525,14 @@ public class SwapService {
 
     private Moves.Placement myPlacement(long studentId, Long termId) {
         TermSummary term = term(studentId, termId);
-        return moves.current(studentId, term.id()).filter(p -> p.checkedInAt() != null)
+        return moves.current(studentId, term.id()).filter(p -> p.residentAt() != null)
                 .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN",
                         "You can swap Beds once you have checked in."));
     }
 
     private List<Check> checks(Moves.Placement a, Moves.Placement b) {
         boolean hold = a != null && b != null && a.active() && b.active();
-        boolean checkedIn = hold && a.checkedInAt() != null && b.checkedInAt() != null;
+        boolean checkedIn = hold && a.residentAt() != null && b.residentAt() != null;
         boolean noOverdue = a != null && b != null && !billing.hasOverdueInvoice(a.studentId())
                 && !billing.hasOverdueInvoice(b.studentId());
         return List.of(new Check("Both students still hold their Beds", hold),

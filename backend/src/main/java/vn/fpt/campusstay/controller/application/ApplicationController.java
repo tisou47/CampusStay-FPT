@@ -38,7 +38,7 @@ class ApplicationController {
     }
 
     record CreateRequest(Long termId, Long roomTypeId, Long roomClassId, @Valid RoommateRequest roommate,
-            @Valid ContactRequest contact, ConsentRequest consent) {
+            @Valid ContactRequest contact, ConsentRequest consent, Integer stayTerms) {
     }
 
     record RoommateRequest(String mode, @Size(max = 20) String studentCode, @Valid PreferencesRequest preferences) {
@@ -61,7 +61,7 @@ class ApplicationController {
     record CancelRequest(@Size(max = 500, message = "Keep the reason under 500 characters.") String reason) {
     }
 
-    record RespondRequest(@NotNull(message = "Accept or decline the invitation.") Boolean accept) {
+    record RespondRequest(@NotNull(message = "Accept or decline the invitation.") Boolean accept, Integer stayTerms) {
     }
 
     record ReviewRequest(@NotBlank(message = "Choose Approved or Rejected.") String decision,
@@ -100,7 +100,8 @@ class ApplicationController {
     @PostMapping("/applications")
     ApplicationService.Created create(@Valid @RequestBody CreateRequest body) {
         return applications.create(new ApplicationService.CreateCommand(body.termId(), body.roomTypeId(),
-                body.roomClassId(), roommate(body.roommate()), contact(body.contact()), consent(body.consent())));
+                body.roomClassId(), roommate(body.roommate()), contact(body.contact()), consent(body.consent()),
+                body.stayTerms()));
     }
 
     /** Student: their own Application. Staff and Manager: the review view (the same path, C-21). */
@@ -138,7 +139,7 @@ class ApplicationController {
 
     @PostMapping("/roommate-invitations/{id}/respond")
     ApplicationService.Responded respond(@PathVariable long id, @Valid @RequestBody RespondRequest body) {
-        return applications.respond(id, body.accept());
+        return applications.respond(id, body.accept(), body.stayTerms());
     }
 
     private static ApplicationService.Roommate roommate(RoommateRequest r) {

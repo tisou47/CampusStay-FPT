@@ -43,11 +43,16 @@ final class StayFlow {
         return "se19%04d@student.campusstay.test".formatted(n);
     }
 
-    /** A checked-in Bed without the assignment run (desk and assignment are tested elsewhere). */
+    /**
+     * A Bed without the assignment run, lived in (a resident holding the door code) or not yet (desk and assignment
+     * are tested elsewhere).
+     */
     void livesIn(int n, String room, String bed, boolean checkedIn) {
         jdbc.sql("""
-                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at)
-                SELECT :term, u.id, b.id, 'MANUAL', now(), CASE WHEN :in THEN now() END
+                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at, resident_at,
+                                            code_released_at)
+                SELECT :term, u.id, b.id, 'MANUAL', now(), CASE WHEN :in THEN now() END, CASE WHEN :in THEN now() END,
+                       CASE WHEN :in THEN now() END
                 FROM auth_user u, inv_bed b JOIN inv_room r ON r.id = b.room_id
                 WHERE u.email = :email AND r.code = :room AND b.label = :bed
                 """).param("term", termId).param("in", checkedIn).param("email", student(n)).param("room", room)

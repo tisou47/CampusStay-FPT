@@ -67,23 +67,24 @@ campusstay:
       hosted-domain: ${GOOGLE_HOSTED_DOMAIN:fpt.edu.vn}
       jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
       token-uri: https://oauth2.googleapis.com/token
-  payment:                           # receiving account and SePay link (ADR-08); see infra/.env.example
-    bank-name: ${PAYMENT_BANK_NAME:MB Bank}
-    bank-code: ${PAYMENT_BANK_CODE:MBBank}         # bank short name for the VietQR image service
-    account-number: ${PAYMENT_ACCOUNT_NUMBER:0000000000}
-    account-name: ${PAYMENT_ACCOUNT_NAME:CAMPUSSTAY FPT DEMO}
-    qr-image-url: https://qr.sepay.vn/img
-    transfer-prefix: CSTAY                # must equal the payment-code prefix set in SePay
-    sepay-api-key: ${SEPAY_WEBHOOK_API_KEY:}  # blank = webhook disabled
-    simulator: ${PAYMENT_SIMULATOR:false}  # demo servers only: POST /dev/invoices/{id}/simulate-payment (A-08)
-    retry-interval: 1m
+  payment:                           # the account students transfer to (ADR-22); see infra/.env.example
+    bank-name: ${PAYMENT_BANK_NAME:}
+    bank-code: ${PAYMENT_BANK_CODE:}               # bank short name for the VietQR image service, e.g. MBBank
+    account-number: ${PAYMENT_ACCOUNT_NUMBER:}     # blank = no account: no VietQR image; "I have transferred" still works
+    account-name: ${PAYMENT_ACCOUNT_NAME:}
+    qr-image-url: https://qr.sepay.vn/img          # public VietQR image service (no webhook, no key)
+    transfer-prefix: CSTAY                         # start of every Invoice's transfer content
   app:
     expiry-interval: 5m                 # Deposit windows and roommate invitations
   req:
     expiry-interval: 5m                 # swap invitations and swap-board posts
     sla-interval: 15m                   # routing SLA checks: escalations open and close
   bil:
-    overdue-interval: 1h                # unpaid Invoices past their due date become Overdue
+    overdue-interval: 1h                # unpaid Invoices past their due date become Overdue; Utility warnings
+    reminder-interval: 1h               # payment reminders before deadlines; the Managers' summary of claims
+  asg:
+    forfeit-interval: 5m                # Allocations whose Balance passed its deadline are cancelled
+    release-interval: 15m               # door codes released to paid residents; overdue terminations
   mnt:
     inspection-cron: "0 0 6 * * *"      # inspection runs of active schedules start (campus time)
   door-codes:

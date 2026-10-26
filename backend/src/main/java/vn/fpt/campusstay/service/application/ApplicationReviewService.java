@@ -78,7 +78,7 @@ public class ApplicationReviewService {
 
     public record ReviewDetail(String id, String status, String termName, Student student, String roomTypeName,
             String roomClassName, BigDecimal surchargeRate, long termPrice, Roommate roommate, List<Check> eligibility,
-            Deposit deposit, List<Activity> activity) {
+            Deposit deposit, List<Activity> activity, int stayTerms) {
     }
 
     public record BulkResult(int approved, int skipped) {
@@ -231,7 +231,7 @@ public class ApplicationReviewService {
                         .map(c -> new Check(c.title(), c.passed())).toList(),
                 deposit == null ? null
                         : new Deposit(deposit.code(), deposit.amount(), deposit.method(), deposit.paidAt(), deposit.status()),
-                activity);
+                activity, app.stayTerms());
     }
 
     // ---------------------------------------------------------------- decision

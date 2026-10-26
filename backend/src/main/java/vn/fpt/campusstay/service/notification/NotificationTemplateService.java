@@ -77,6 +77,17 @@ public class NotificationTemplateService {
         SAMPLES.put("term", "Spring 2027");
         SAMPLES.put("title", "Shower leaks");
         SAMPLES.put("until", "04/01/2027");
+        SAMPLES.put("total", "9,400,000 VND");
+        SAMPLES.put("terminateOn", "15/01/2027");
+        SAMPLES.put("studentCode", "SE190001");
+        SAMPLES.put("requestedFor", "10/01/2027");
+        SAMPLES.put("refund", "0 VND");
+        SAMPLES.put("reason", "No transfer with this content reached the account.");
+        SAMPLES.put("name", "Nguyen Van An");
+        SAMPLES.put("moveOutBy", "20/01/2027");
+        SAMPLES.put("months", "2");
+        SAMPLES.put("debt", "650,000 VND");
+        SAMPLES.put("count", "3");
     }
 
     private final JdbcClient jdbc;

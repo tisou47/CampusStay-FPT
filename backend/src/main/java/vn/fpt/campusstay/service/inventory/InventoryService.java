@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -59,7 +60,8 @@ public class InventoryService {
             int capacity, OutOfService outOfService, List<BedView> beds) {
     }
 
-    public record Summary(int beds, int allocated, int available, int outOfService) {
+    /** @param allocated Beds held (unpaid and residents); {@code residents} those whose student is a resident */
+    public record Summary(int beds, int allocated, int available, int outOfService, int residents) {
     }
 
     /** {@code roomClassName}: the class every Room of the Floor has in the Term, or null when they differ. */
@@ -187,6 +189,7 @@ public class InventoryService {
         Map<Long, Long> occupants = term == null ? Map.of()
                 : occupancy.occupants(term, beds.stream().map(BedRow::id).toList());
         Map<Long, UserDirectory.Student> students = users.students(occupants.values());
+        Map<Long, String> bedStates = term == null ? Map.of() : occupancy.bedStates(term, occupants.keySet());
         Set<Long> setters = new HashSet<>();
         rooms.stream().map(RoomRow::oosBy).filter(Objects::nonNull).forEach(setters::add);
         Map<Long, String> setterNames = users.displayNames(setters);
@@ -195,20 +198,24 @@ public class InventoryService {
         Map<Long, List<BedRow>> bedsByRoom = beds.stream().collect(Collectors.groupingBy(BedRow::roomId));
 
         List<RoomView> views = new ArrayList<>();
-        int total = 0, allocated = 0, available = 0, outOfService = 0;
+        int total = 0, allocated = 0, available = 0, outOfService = 0, residents = 0;
         for (RoomRow room : rooms) {
             boolean roomOos = "OUT_OF_SERVICE".equals(room.status());
             List<BedView> bedViews = new ArrayList<>();
             for (BedRow bed : bedsByRoom.getOrDefault(room.id(), List.of())) {
                 Long studentId = occupants.get(bed.id());
                 UserDirectory.Student student = studentId == null ? null : students.get(studentId);
-                String state = studentId != null ? "allocated"
+                String state = studentId != null ? bedStates.getOrDefault(bed.id(), "UNPAID").toLowerCase(Locale.ROOT)
                         : roomOos || "OUT_OF_SERVICE".equals(bed.status()) ? "oos" : "available";
                 bedViews.add(new BedView(room.code() + "-" + bed.label(), state,
                         student == null ? null : new Occupant(student.name(), student.studentCode())));
                 total++;
                 switch (state) {
-                    case "allocated" -> allocated++;
+                    case "resident" -> {
+                        allocated++;
+                        residents++;
+                    }
+                    case "unpaid", "paid" -> allocated++;
                     case "oos" -> outOfService++;
                     default -> available++;
                 }
@@ -220,7 +227,7 @@ public class InventoryService {
             views.add(new RoomView(room.code(), blockCode, floorNo, typeNames.get(room.roomTypeId()),
                     classNames.get(room.roomClassId()), bedViews.size(), oos, bedViews));
         }
-        return new FloorView(className, views, new Summary(total, allocated, available, outOfService));
+        return new FloorView(className, views, new Summary(total, allocated, available, outOfService, residents));
     }
 
     /** Where a Room is, for a deep link ({@code ?room=}). */

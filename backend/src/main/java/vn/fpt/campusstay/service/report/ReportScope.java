@@ -45,7 +45,8 @@ class ReportScope {
             Map.entry("AWAITING_ROOMMATE", "Awaiting Roommate"), Map.entry("AWAITING_DEPOSIT", "Awaiting Deposit"),
             Map.entry("SUBMITTED", "Submitted"), Map.entry("UNDER_REVIEW", "Under Review"),
             Map.entry("APPROVED", "Approved"), Map.entry("WAITLISTED", "Waitlisted"), Map.entry("ALLOCATED", "Allocated"),
-            Map.entry("REJECTED", "Rejected"), Map.entry("CANCELLED", "Cancelled"), Map.entry("EXPIRED", "Expired"));
+            Map.entry("REJECTED", "Rejected"), Map.entry("CANCELLED", "Cancelled"), Map.entry("EXPIRED", "Expired"),
+            Map.entry("FORFEITED", "Forfeited"));
 
     /** Capacity counts Beds in service, in Rooms in service, in active Blocks; {@code alias} of {@code rpt_v_bed} or null. */
     static String inService(String alias) {

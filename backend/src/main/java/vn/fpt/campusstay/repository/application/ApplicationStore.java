@@ -30,12 +30,14 @@ public class ApplicationStore {
             Map.entry("AWAITING_ROOMMATE", "Awaiting Roommate"), Map.entry("AWAITING_DEPOSIT", "Awaiting Deposit"),
             Map.entry("SUBMITTED", "Submitted"), Map.entry("UNDER_REVIEW", "Under Review"),
             Map.entry("APPROVED", "Approved"), Map.entry("WAITLISTED", "Waitlisted"), Map.entry("ALLOCATED", "Allocated"),
-            Map.entry("REJECTED", "Rejected"), Map.entry("CANCELLED", "Cancelled"), Map.entry("EXPIRED", "Expired"));
+            Map.entry("REJECTED", "Rejected"), Map.entry("CANCELLED", "Cancelled"), Map.entry("EXPIRED", "Expired"),
+            Map.entry("FORFEITED", "Forfeited"));
 
     public record Application(long id, String code, long termId, long studentId, long roomTypeId, long roomClassId,
             long termPrice, BigDecimal surchargeRate, long depositAmount, String status, String roommateMode,
             Long partnerApplicationId, String preferences, String contact, Instant depositDueAt, Instant submittedAt,
-            String decisionNote, Instant createdAt, String studentName, String studentCode, String gender) {
+            String decisionNote, Instant createdAt, String studentName, String studentCode, String gender,
+            int stayTerms) {
 
         public boolean live() {
             return LIVE.contains(status);
@@ -46,7 +48,7 @@ public class ApplicationStore {
             id, code, term_id, student_id, room_type_id, room_class_id, term_price, surcharge_rate, deposit_amount,
             status, roommate_mode, partner_application_id, roommate_preferences::text AS preferences,
             contact::text AS contact, deposit_due_at, submitted_at, decision_note, created_at, student_name, student_code,
-            gender
+            gender, stay_terms
             """;
 
     private final JdbcClient jdbc;
@@ -78,7 +80,7 @@ public class ApplicationStore {
                 .param("id", id).query(ApplicationStore::map).optional();
     }
 
-    /** The student's live Application in the Term, if any. */
+    /** The student's live Application in the Term, if any (a forfeited one still counts: one per Term). */
     public Optional<Application> live(long studentId, long termId) {
         return jdbc.sql("SELECT " + COLUMNS + """
                  FROM app_application WHERE student_id = :student AND term_id = :term
@@ -120,7 +122,8 @@ public class ApplicationStore {
                 rs.getString("roommate_mode"), rs.getObject("partner_application_id", Long.class),
                 rs.getString("preferences"), rs.getString("contact"), instant(rs, "deposit_due_at"),
                 instant(rs, "submitted_at"), rs.getString("decision_note"), instant(rs, "created_at"),
-                rs.getString("student_name"), rs.getString("student_code"), rs.getString("gender").trim());
+                rs.getString("student_name"), rs.getString("student_code"), rs.getString("gender").trim(),
+                rs.getInt("stay_terms"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

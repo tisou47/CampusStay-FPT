@@ -275,7 +275,7 @@ public class InspectionScheduleService {
         }
         LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
         List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
-        Map<Long, Long> occupied = residences.checkedIn(beds.stream().map(Inventory.BedSlot::bedId).toList());
+        Map<Long, Long> occupied = residences.residentsOfBeds(beds.stream().map(Inventory.BedSlot::bedId).toList());
         Map<Long, List<Inventory.BedSlot>> rooms = beds.stream()
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, LinkedHashMap::new, Collectors.toList()));
         List<Long> inScope = new ArrayList<>();

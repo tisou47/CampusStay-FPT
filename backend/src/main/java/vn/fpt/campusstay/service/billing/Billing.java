@@ -2,6 +2,7 @@ package vn.fpt.campusstay.service.billing;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,8 @@ public interface Billing {
      *
      * @param type   contract type: {@code deposit}, {@code balance}, {@code utility}, {@code roomChange}, {@code damage}
      * @param status contract label, e.g. {@code Unpaid}, {@code Paid}
-     * @param method {@code VietQR}, {@code Manual transfer} or null while unpaid
+     * @param method {@code Bank transfer} (a confirmed claim), {@code VietQR} or {@code Manual transfer} (before
+     *               phase 5), or null while unpaid
      */
     record InvoiceLine(long id, String code, String type, String title, long amount, String status, Instant dueAt,
             Instant paidAt, String method) {
@@ -117,10 +119,50 @@ public interface Billing {
     /** Status label of the check-out refund of an Allocation ({@code Pending}, {@code Approved} …). */
     Optional<String> checkOutRefundStatus(long allocationId);
 
+    /** A refund recorded by a rule: its id and amount (VND). */
+    record RefundRequested(long id, long amount) {
+    }
+
+    /**
+     * An unpaid Balance whose deadline passed with no claim waiting for confirmation (the forfeit job, spec §6.6).
+     *
+     * @param depositInvoiceId the paid Deposit of the same Application, null without one
+     */
+    record DueBalance(long invoiceId, String code, long allocationId, Long applicationId, long studentId, long termId,
+            Instant dueAt, Long depositInvoiceId) {
+    }
+
+    /**
+     * The unused part of a resident's room fee, refunded by a rule when a termination ends the stay (spec §6.15):
+     * the room fee paid (Deposit + Balance without the Utility Deposit) × the days left from {@code from} to the end
+     * of the stay ÷ the days of the stay × the rule's percentage.
+     *
+     * @param ruleTriggerCode {@code TERMINATION} or {@code NOT_ENROLLED}
+     */
+    record UnusedFeeRefund(long termId, long studentId, long allocationId, Long applicationId, Long buildingId,
+            String sourceType, long sourceId, String reason, String ruleTriggerCode, LocalDate from,
+            LocalDate stayStart, LocalDate stayEnd) {
+    }
+
+    /** Unpaid Balances past their deadline, oldest first (claims waiting stop the clock). */
+    List<DueBalance> balancesPastDue();
+
+    /**
+     * Moves the deadline of the Allocation's unpaid Balance to {@code dueAt} when that is later (an approved late
+     * check-in, spec §6.9); reminders start again. Never moves a deadline earlier. @return whether it moved
+     */
+    boolean extendBalanceDeadline(long allocationId, Instant dueAt);
+
+    /** @return the refund, empty when nothing was paid, no rule is active or the amount is 0 */
+    Optional<RefundRequested> refundUnusedRoomFee(UnusedFeeRefund request);
+
     /** The Balance Invoice for a new Allocation; empty when the Deposit already covers the Term price. */
     Optional<IssuedInvoice> issueBalance(BalanceRequest request);
 
-    /** Voids an Invoice that is not paid; a paid one is left alone. @return whether it was voided */
+    /**
+     * Voids an Invoice that is not paid; a paid one, or one whose claim waits for a Manager, is left alone.
+     * @return whether it was voided
+     */
     boolean voidUnpaid(long invoiceId, String reason);
 
     boolean isPaid(long invoiceId);
@@ -149,8 +191,9 @@ public interface Billing {
      * the System are approved at once; the others wait for their approver.
      *
      * @param ruleTriggerCode e.g. {@code CANCEL_BEFORE_RESULTS}
-     * @return the refund id, or empty when nothing was paid or no rule is active
+     * @return the refund, or empty when nothing was paid, no rule is active, the rule gives 0 or the Invoice already
+     *         has a refund (an Invoice is refunded once)
      */
-    Optional<Long> requestRefund(long invoiceId, String sourceType, long sourceId, String reason,
+    Optional<RefundRequested> requestRefund(long invoiceId, String sourceType, long sourceId, String reason,
             String ruleTriggerCode);
 }

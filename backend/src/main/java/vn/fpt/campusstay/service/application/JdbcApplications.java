@@ -146,6 +146,6 @@ class JdbcApplications implements Applications {
                 });
         return new Candidate(a.id(), a.code(), a.termId(), a.studentId(), a.studentName(), a.studentCode(), a.gender(),
                 a.roomTypeId(), a.roomClassId(), a.termPrice(), a.depositAmount(), a.partnerApplicationId(), preferences,
-                a.submittedAt(), a.status());
+                a.submittedAt(), a.status(), a.stayTerms());
     }
 }

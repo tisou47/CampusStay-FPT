@@ -62,18 +62,29 @@ class FinanceIT {
     }
 
     /**
-     * TC-BIL-020: an unpaid Balance past its due date becomes Overdue (the student is told); the Block Manager
-     * sees it with the days overdue and sends a reminder, in-app and by email.
+     * TC-BIL-020: an unpaid charge past its due date becomes Overdue (the student is told) while a Balance past its
+     * deadline does not (it is forfeited instead, spec §6.6); a Manager sees the charge with the days overdue and
+     * sends a reminder, in-app and by email.
      */
     @Test
     void overdueAndReminders() throws Exception {
         String auth = stay.runRound1("2-bed", "Standard", 20).getFirst().auth();
-        String balance = JsonPath.read(mvc.perform(get("/students/me/allocation?termId=" + termId)
+        String unpaidBalance = JsonPath.read(mvc.perform(get("/students/me/allocation?termId=" + termId)
                 .header(HttpHeaders.AUTHORIZATION, auth)).andReturn().getResponse().getContentAsString(),
                 "$.balance.invoiceId");
-        jdbc.sql("UPDATE bil_invoice SET due_at = now() - interval '3 days' WHERE code = :code").param("code", balance)
-                .update();
+        String balance = "INV-TT31-D20";
+        jdbc.sql("""
+                INSERT INTO bil_invoice (code, term_id, student_id, allocation_id, building_id, type, title, amount, status,
+                                         transfer_content, due_at, student_name, student_code, gender)
+                SELECT :code, i.term_id, i.student_id, i.allocation_id, i.building_id, 'DAMAGE', 'Check-out balance',
+                       150000, 'UNPAID', 'CSTAYD20', now(), i.student_name, i.student_code, i.gender
+                FROM bil_invoice i WHERE i.code = :balance
+                """).param("code", balance).param("balance", unpaidBalance).update();
+        jdbc.sql("UPDATE bil_invoice SET due_at = now() - interval '3 days' WHERE code IN (:codes)")
+                .param("codes", java.util.List.of(balance, unpaidBalance)).update();
         assertThat(finance.markOverdue()).isEqualTo(1);
+        mvc.perform(get("/invoices/" + unpaidBalance).header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.status").value("Unpaid"));
         mvc.perform(get("/invoices/" + balance).header(HttpHeaders.AUTHORIZATION, auth))
                 .andExpect(jsonPath("$.status").value("Overdue"));
         mvc.perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, auth))
@@ -84,7 +95,7 @@ class FinanceIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].invoiceId").value(balance))
                 .andExpect(jsonPath("$.items[0].studentCode").value("SE190020"))
-                .andExpect(jsonPath("$.items[0].typeLabel").value("Balance"))
+                .andExpect(jsonPath("$.items[0].typeLabel").value("Damage"))
                 .andExpect(jsonPath("$.items[0].daysOverdue").value(3))
                 .andExpect(jsonPath("$.items[0].remindedAt").value((Object) null));
         getAs("/finance/overdue", bearer(mvc, MANAGER_B)) // every Manager sees every Block (ADR-19)

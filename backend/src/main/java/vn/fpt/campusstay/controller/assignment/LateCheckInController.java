@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import vn.fpt.campusstay.service.assignment.LateCheckInService;
 
-/** Late check-ins: Staff record them at the desk (A-12), the Block Manager decides. */
+/** Late check-ins: students ask online, Staff record them at the desk (A-12), a Manager decides. */
 @RestController
 class LateCheckInController {
 
@@ -40,6 +40,19 @@ class LateCheckInController {
             @RequestParam(required = false) String requestedFor,
             @RequestPart(name = "evidence", required = false) MultipartFile evidence) {
         return lateCheckIns.create(new LateCheckInService.CreateCommand(termId, studentCode, reason, requestedFor,
+                evidence == null ? null : evidence.getOriginalFilename(), bytes(evidence)));
+    }
+
+    @GetMapping("/students/me/late-check-in")
+    LateCheckInService.Mine mine() {
+        return lateCheckIns.mine();
+    }
+
+    @PostMapping(path = "/students/me/late-check-in", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    LateCheckInService.Created request(@RequestParam(required = false) String reason,
+            @RequestParam(required = false) String requestedFor,
+            @RequestPart(name = "evidence", required = false) MultipartFile evidence) {
+        return lateCheckIns.requestOnline(new LateCheckInService.OnlineCommand(reason, requestedFor,
                 evidence == null ? null : evidence.getOriginalFilename(), bytes(evidence)));
     }
 

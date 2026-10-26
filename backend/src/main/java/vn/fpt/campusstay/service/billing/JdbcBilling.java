@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -55,11 +56,12 @@ class JdbcBilling implements Billing {
     private final CheckOutSettlements settlements;
     private final UtilityPolicy utility;
     private final ApplicationEventPublisher events;
+    private final UtilityDebtService debts;
     private final Clock clock;
 
     JdbcBilling(JdbcClient jdbc, InvoiceStore invoices, TermCatalog terms, UserDirectory users, FeePolicy fees,
             PaymentProperties payment, JsonMapper json, AuditLog audit, CheckOutSettlements settlements,
-            UtilityPolicy utility, ApplicationEventPublisher events, Clock clock) {
+            UtilityPolicy utility, ApplicationEventPublisher events, UtilityDebtService debts, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.terms = terms;
@@ -71,6 +73,7 @@ class JdbcBilling implements Billing {
         this.settlements = settlements;
         this.utility = utility;
         this.events = events;
+        this.debts = debts;
         this.clock = clock;
     }
 
@@ -243,21 +246,93 @@ class JdbcBilling implements Billing {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public Optional<Long> requestRefund(long invoiceId, String sourceType, long sourceId, String reason,
+    public Optional<RefundRequested> requestRefund(long invoiceId, String sourceType, long sourceId, String reason,
             String ruleTriggerCode) {
         InvoiceStore.Invoice invoice = invoices.find(invoiceId, true).orElse(null);
         Optional<FeePolicy.RefundRule> rule = fees.refundRule(ruleTriggerCode);
-        if (invoice == null || !invoice.status().equals("PAID") || rule.isEmpty()) {
+        if (invoice == null || !invoice.status().equals("PAID") || rule.isEmpty() || refunded(invoice.id())) {
             return Optional.empty();
         }
         long amount = BigDecimal.valueOf(invoice.amount()).multiply(rule.get().refundPercent())
                 .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValueExact();
-        boolean automatic = rule.get().approverRole().equals("SYSTEM");
+        return refund(invoice, sourceType, sourceId, reason, rule.get(), invoice.amount(), amount);
+    }
+
+    /** One refund per Invoice (a rejected one does not count); the unique index is the safety net. */
+    private boolean refunded(long invoiceId) {
+        return jdbc.sql("SELECT count(*) FROM bil_refund WHERE invoice_id = :id AND status <> 'REJECTED'")
+                .param("id", invoiceId).query(Long.class).single() > 0;
+    }
+
+    /** A rule that gives nothing records nothing. */
+    private Optional<RefundRequested> refund(InvoiceStore.Invoice invoice, String sourceType, long sourceId,
+            String reason, FeePolicy.RefundRule rule, long base, long amount) {
+        if (amount <= 0) {
+            return Optional.empty();
+        }
+        boolean automatic = rule.approverRole().equals("SYSTEM");
         long id = insertRefund(new RefundDraft(invoice.termId(), invoice.studentId(), invoice.buildingId(), invoice.id(),
-                sourceType, sourceId, reason, rule.get().id(), invoice.amount(), amount, automatic));
+                sourceType, sourceId, reason, rule.id(), base, amount, automatic));
         audit.record("REFUND_REQUESTED", AuditLog.Tone.INFO, "Invoice", invoice.id(), invoice.code(),
-                Map.of("amount", amount, "rule", rule.get().description(), "status", automatic ? "Approved" : "Pending"));
-        return Optional.of(id);
+                Map.of("amount", amount, "rule", rule.description(), "status", automatic ? "Approved" : "Pending"));
+        return Optional.of(new RefundRequested(id, amount));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DueBalance> balancesPastDue() {
+        return jdbc.sql("""
+                SELECT b.id, b.code, b.allocation_id, b.application_id, b.student_id, b.term_id, b.due_at,
+                       (SELECT d.id FROM bil_invoice d WHERE d.application_id = b.application_id AND d.type = 'DEPOSIT'
+                          AND d.status = 'PAID' ORDER BY d.id LIMIT 1) AS deposit_id
+                FROM bil_invoice b
+                WHERE b.type = 'BALANCE' AND b.status IN ('UNPAID', 'OVERDUE') AND b.due_at < :now
+                  AND b.allocation_id IS NOT NULL
+                ORDER BY b.due_at, b.id
+                """).param("now", Timestamp.from(Instant.now(clock)))
+                .query((rs, i) -> new DueBalance(rs.getLong("id"), rs.getString("code"), rs.getLong("allocation_id"),
+                        rs.getObject("application_id", Long.class), rs.getLong("student_id"), rs.getLong("term_id"),
+                        InvoiceStore.instant(rs, "due_at"), rs.getObject("deposit_id", Long.class)))
+                .list();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean extendBalanceDeadline(long allocationId, Instant dueAt) {
+        Instant now = Instant.now(clock);
+        return jdbc.sql("""
+                UPDATE bil_invoice SET due_at = :due, reminders_sent = 0, updated_at = :now, version = version + 1,
+                       status = CASE WHEN status = 'OVERDUE' THEN 'UNPAID' ELSE status END
+                WHERE allocation_id = :allocation AND type = 'BALANCE'
+                  AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION') AND due_at < :due
+                """).param("due", Timestamp.from(dueAt)).param("now", Timestamp.from(now))
+                .param("allocation", allocationId).update() > 0;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<RefundRequested> refundUnusedRoomFee(UnusedFeeRefund r) {
+        Optional<FeePolicy.RefundRule> rule = fees.refundRule(r.ruleTriggerCode());
+        List<InvoiceStore.Invoice> paid = jdbc.sql("SELECT " + InvoiceStore.COLUMNS + """
+                 FROM bil_invoice
+                WHERE status = 'PAID' AND ((type = 'BALANCE' AND allocation_id = :allocation)
+                   OR (type = 'DEPOSIT' AND application_id = :application))
+                ORDER BY id FOR UPDATE
+                """).param("allocation", r.allocationId())
+                .param("application", r.applicationId() == null ? -1L : r.applicationId())
+                .query(InvoiceStore::map).list();
+        Optional<InvoiceStore.Invoice> balance = paid.stream().filter(i -> i.type().equals("BALANCE")).findFirst();
+        if (rule.isEmpty() || balance.isEmpty() || refunded(balance.get().id())) {
+            return Optional.empty();
+        }
+        long roomFee = paid.stream().mapToLong(i -> i.amount() - i.utilityDeposit()).sum();
+        long stayDays = Math.max(1, ChronoUnit.DAYS.between(r.stayStart(), r.stayEnd()) + 1);
+        long unusedDays = Math.max(0, Math.min(stayDays, ChronoUnit.DAYS.between(r.from(), r.stayEnd())));
+        long base = BigDecimal.valueOf(roomFee).multiply(BigDecimal.valueOf(unusedDays))
+                .divide(BigDecimal.valueOf(stayDays), 0, RoundingMode.HALF_UP).longValueExact();
+        long amount = BigDecimal.valueOf(base).multiply(rule.get().refundPercent())
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValueExact();
+        return refund(balance.get(), r.sourceType(), r.sourceId(), r.reason(), rule.get(), base, amount);
     }
 
     @Override
@@ -273,7 +348,7 @@ class JdbcBilling implements Billing {
         return issued;
     }
 
-    /** A monthly Utility Invoice with its meter breakdown (Meter readings › Close period). */
+    /** A monthly Utility Invoice with its meter breakdown (Meter readings › Close period); then the debt rules. */
     @Transactional(propagation = Propagation.MANDATORY)
     IssuedInvoice issueUtility(long termId, long studentId, long allocationId, long buildingId, String periodLabel,
             long amount, List<Map<String, Object>> lines, Map<String, Object> breakdown, Instant dueAt, String reference) {
@@ -284,6 +359,7 @@ class JdbcBilling implements Billing {
         jdbc.sql("UPDATE bil_invoice SET breakdown = CAST(:breakdown AS jsonb) WHERE id = :id")
                 .param("breakdown", json.writeValueAsString(breakdown)).param("id", issued.id()).update();
         events.publishEvent(new InvoiceIssued(issued.id(), issued.code(), studentId, title, amount, dueAt));
+        debts.afterIssued(studentId, issued.id());
         return issued;
     }
 
@@ -354,7 +430,7 @@ class JdbcBilling implements Billing {
             jdbc.sql("""
                     UPDATE bil_invoice SET status = 'VOID', voided_reason = 'Settled from the Utility Deposit at check-out',
                            updated_at = :now, version = version + 1
-                    WHERE id IN (:ids) AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')
+                    WHERE id IN (:ids) AND status IN ('UNPAID', 'OVERDUE')
                     """).param("now", Timestamp.from(now)).param("ids", computed.unpaidUtilityIds()).update();
         }
         TermSummary term = term(r.termId());

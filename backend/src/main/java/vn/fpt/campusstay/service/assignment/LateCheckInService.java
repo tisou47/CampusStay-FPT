@@ -24,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.event.LateCheckInDecided;
+import vn.fpt.campusstay.event.LateCheckInRequested;
+import vn.fpt.campusstay.security.Role;
+import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
@@ -41,10 +44,11 @@ import vn.fpt.campusstay.common.file.FileStore;
 import vn.fpt.campusstay.config.TimeConfig;
 
 /**
- * Late check-ins: a student who cannot arrive in the check-in window tells the
- * desk, Staff record the request with its evidence (A-12), and the Block
- * Manager approves a new deadline or rejects it. An approved deadline opens
- * check-in for that student until then (see {@link DeskService}).
+ * Late check-ins (spec §6.9, D-20): a student who cannot arrive in the check-in window asks online with a reason,
+ * the day and an evidence file, or tells the desk and Staff record it (A-12); a Manager approves a new deadline (at
+ * most {@code late_check_in.max_days} after the check-in end) or rejects it with a reason. An approved, unexpired
+ * late check-in extends the Balance deadline and the arrival deadline to that day: the desk checks the student in
+ * until then (see {@link DeskService}) and the forfeit waits for it.
  */
 @Service
 public class LateCheckInService {
@@ -58,9 +62,26 @@ public class LateCheckInService {
     public record DecisionView(String status, LocalDate deadline, String reason) {
     }
 
+    /** @param source {@code Desk} (recorded by Staff) or {@code Online} (asked by the student) */
     public record Item(String id, String studentCode, String name, String allocation, String reason, String receivedBy,
             boolean paid, String payment, LocalDate requestedFor, Evidence evidence, Instant windowClosedAt,
-            LocalDate suggestedDeadline, DecisionView decision) {
+            LocalDate suggestedDeadline, DecisionView decision, String source) {
+    }
+
+    /** The student's late check-in on My Room. */
+    public record MyRequest(String id, String status, LocalDate requestedFor, LocalDate deadline, String reason,
+            String decisionReason, Instant createdAt, String source) {
+    }
+
+    /**
+     * @param canRequest the student may ask now (a Bed not checked in, no request waiting, before the arrival
+     *                   deadline when the Balance is paid)
+     * @param latestDay  the latest day that may be asked for (the check-in end + the longest late check-in)
+     */
+    public record Mine(MyRequest request, boolean canRequest, LocalDate checkInEnd, LocalDate latestDay) {
+    }
+
+    public record OnlineCommand(String reason, String requestedFor, String evidenceName, byte[] evidence) {
     }
 
     public record Page(List<Item> items) {
@@ -72,7 +93,7 @@ public class LateCheckInService {
 
     private record Row(long id, long allocationId, long termId, long studentId, long bedId, String reason, Long receivedBy,
             LocalDate requestedFor, Long evidenceFileId, Instant windowClosedAt, LocalDate suggestedDeadline,
-            String status, LocalDate deadline, String decisionReason, Instant createdAt) {
+            String status, LocalDate deadline, String decisionReason, Instant createdAt, String source) {
     }
 
     private static final Map<String, String> STATUSES = Map.of("PENDING", "Pending", "APPROVED", "Approved",
@@ -90,11 +111,12 @@ public class LateCheckInService {
     private final FileLinks links;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
+    private final Parameters parameters;
     private final Clock clock;
 
     public LateCheckInService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, TermCatalog terms,
             Inventory inventory, UserDirectory users, Billing billing, FileStore files, FileLinks links,
-            ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ApplicationEventPublisher events, AuditLog audit, Parameters parameters, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -106,6 +128,7 @@ public class LateCheckInService {
         this.links = links;
         this.events = events;
         this.audit = audit;
+        this.parameters = parameters;
         this.clock = clock;
     }
 
@@ -164,6 +187,114 @@ public class LateCheckInService {
         }
     }
 
+    // ---------------------------------------------------------------- the student, online
+
+    @Transactional(readOnly = true)
+    public Mine mine() {
+        long me = currentUser.require(Role.STUDENT).userId();
+        Optional<Waiting> waiting = waiting(me, false);
+        if (waiting.isEmpty()) {
+            return new Mine(null, false, null, null);
+        }
+        Waiting w = waiting.get();
+        MyRequest request = jdbc.sql("""
+                SELECT * FROM asg_late_check_in WHERE allocation_id = :a ORDER BY created_at DESC, id DESC LIMIT 1
+                """).param("a", w.id())
+                .query((rs, i) -> new MyRequest(String.valueOf(rs.getLong("id")), STATUSES.get(rs.getString("status")),
+                        rs.getObject("requested_for", LocalDate.class), rs.getObject("deadline", LocalDate.class),
+                        rs.getString("reason"), rs.getString("decision_reason"), instant(rs.getTimestamp("created_at")),
+                        sourceLabel(rs.getString("source"))))
+                .optional().orElse(null);
+        boolean pending = request != null && request.status().equals("Pending");
+        return new Mine(request, w.checkedInAt() == null && !pending && open(w), w.term().checkInEnd(),
+                latestDay(w.term()));
+    }
+
+    /** The student asks online, before the arrival deadline, with an evidence file. */
+    @Transactional
+    public Created requestOnline(OnlineCommand cmd) {
+        AuthenticatedUser user = currentUser.require(Role.STUDENT);
+        Waiting w = waiting(user.userId(), true)
+                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed waiting for check-in."));
+        if (w.checkedInAt() != null) {
+            throw ApiException.conflict("ALREADY_CHECKED_IN", "You have already checked in.");
+        }
+        if (!open(w)) {
+            throw ApiException.conflict("LATE_REQUEST_CLOSED",
+                    "The check-in period has ended. Ask the dormitory desk about a late check-in.");
+        }
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        FieldErrors errors = new FieldErrors();
+        String reason = cmd.reason() == null ? "" : cmd.reason().trim();
+        errors.check(!reason.isEmpty(), "reason", "Write why you arrive late.");
+        errors.check(reason.length() <= 500, "reason", "Keep the reason under 500 characters.");
+        LocalDate requestedFor = parseDay(cmd.requestedFor()).orElse(null);
+        errors.check(requestedFor != null, "requestedFor", "Choose the day you will arrive.");
+        errors.check(requestedFor == null || !requestedFor.isBefore(today), "requestedFor",
+                "Choose today or a later day.");
+        LocalDate latest = latestDay(w.term());
+        errors.check(requestedFor == null || latest == null || !requestedFor.isAfter(latest), "requestedFor",
+                "Choose a day up to " + (latest == null ? "" : DAY.format(latest)) + ".");
+        errors.check(cmd.evidence() != null && cmd.evidence().length > 0, "evidence",
+                "Attach a document that explains the delay (JPEG, PNG or PDF).");
+        errors.throwIfAny();
+        Inventory.BedSlot bed = inventory.beds(w.termId(), List.of(w.bedId())).get(w.bedId());
+        long fileId = files.store("asg", cmd.evidenceName(), cmd.evidence(), FileStore.IMAGES_AND_PDF, user.userId()).id();
+        Instant windowClosed = w.term().checkInEnd() == null ? Instant.now(clock)
+                : w.term().checkInEnd().plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
+        if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a AND status = 'PENDING'")
+                .param("a", w.id()).query(Long.class).single() > 0) {
+            throw ApiException.conflict("LATE_REQUEST_EXISTS", "Your late check-in is already waiting for a decision.");
+        }
+        long id = jdbc.sql("""
+                INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, evidence_file_id, window_closed_at,
+                                               suggested_deadline, source, created_at)
+                VALUES (:allocation, :reason, :day, :file, :closed, :day, 'ONLINE', :now) RETURNING id
+                """)
+                .param("allocation", w.id()).param("reason", reason).param("day", requestedFor).param("file", fileId)
+                .param("closed", Timestamp.from(windowClosed)).param("now", Timestamp.from(Instant.now(clock)))
+                .query(Long.class).single();
+        UserDirectory.StudentProfile me = users.studentProfile(user.userId()).orElseThrow();
+        events.publishEvent(new LateCheckInRequested(id, user.userId(), me.name(), me.studentCode(),
+                bed == null ? null : bed.roomCode(), requestedFor));
+        return new Created(String.valueOf(id));
+    }
+
+    private record Waiting(long id, long termId, long bedId, Instant checkedInAt, TermSummary term) {
+    }
+
+    /** The student's active Allocation that is not lived in yet, the latest Term first. */
+    private Optional<Waiting> waiting(long studentId, boolean lock) {
+        return jdbc.sql("""
+                SELECT id, term_id, bed_id, checked_in_at FROM asg_allocation
+                WHERE student_id = :s AND status = 'ACTIVE' AND resident_at IS NULL
+                ORDER BY allocated_at DESC LIMIT 1""" + (lock ? " FOR UPDATE" : ""))
+                .param("s", studentId)
+                .query((rs, i) -> new Object[] { rs.getLong("id"), rs.getLong("term_id"), rs.getLong("bed_id"),
+                        instant(rs.getTimestamp("checked_in_at")) })
+                .optional()
+                .flatMap(r -> terms.findPublished((Long) r[1]).map(t -> new Waiting((Long) r[0], (Long) r[1],
+                        (Long) r[2], (Instant) r[3], t)));
+    }
+
+    /** A paid student asks before the check-in end; an unpaid one before the Balance deadline (else forfeited). */
+    private boolean open(Waiting w) {
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        boolean paid = billing.checkInDue(w.id()).isEmpty();
+        return !paid || w.term().checkInEnd() == null || !today.isAfter(w.term().checkInEnd());
+    }
+
+    private LocalDate latestDay(TermSummary term) {
+        return term.checkInEnd() == null ? null
+                : term.checkInEnd().plusDays(Math.max(0, parameters.intValue("late_check_in.max_days")));
+    }
+
+    private static String sourceLabel(String source) {
+        return "ONLINE".equals(source) ? "Online" : "Desk";
+    }
+
+    // ---------------------------------------------------------------- Managers
+
     /** The Block Manager's list: pending requests first, then the decided ones. */
     @Transactional(readOnly = true)
     public Page list(Long termId, String block) {
@@ -181,7 +312,7 @@ public class LateCheckInService {
                         rs.getObject("evidence_file_id", Long.class), instant(rs.getTimestamp("window_closed_at")),
                         rs.getObject("suggested_deadline", LocalDate.class), rs.getString("status"),
                         rs.getObject("deadline", LocalDate.class), rs.getString("decision_reason"),
-                        instant(rs.getTimestamp("created_at"))))
+                        instant(rs.getTimestamp("created_at")), rs.getString("source")))
                 .list();
         Map<Long, Inventory.BedSlot> beds = inventory.beds(rows.stream().map(Row::bedId).toList());
         List<Row> visible = rows.stream().filter(r -> beds.get(r.bedId()) != null
@@ -203,24 +334,31 @@ public class LateCheckInService {
                     due == null, due == null ? "Paid" : vnd.format(due.balance() + due.utilityDeposit()) + " VND unpaid",
                     r.requestedFor(), evidence, r.windowClosedAt(), r.suggestedDeadline(),
                     r.status().equals("PENDING") ? null
-                            : new DecisionView(STATUSES.get(r.status()), r.deadline(), r.decisionReason())));
+                            : new DecisionView(STATUSES.get(r.status()), r.deadline(), r.decisionReason()),
+                    sourceLabel(r.source())));
         }
         items.sort(Comparator.comparing((Item i) -> i.decision() != null));
         return new Page(items);
     }
 
-    /** Approve with a deadline ({@code YYYY-MM-DD}, today or later) or reject with a reason. */
+    /**
+     * Approve with a deadline ({@code YYYY-MM-DD}, today or later, at most {@code late_check_in.max_days} after the
+     * check-in end), which also moves the Balance deadline to the end of that day; or reject with a reason.
+     */
     @Transactional
     public void decide(String id, String decision, String deadline, String reason) {
         AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
-        record Target(long id, long studentId, long bedId, String status) {
+        record Target(long id, long allocationId, long termId, long studentId, long bedId, String status,
+                String allocationStatus) {
         }
         Target t = parse(id).flatMap(n -> jdbc.sql("""
-                SELECT l.id, l.status, a.student_id, a.bed_id FROM asg_late_check_in l
-                JOIN asg_allocation a ON a.id = l.allocation_id WHERE l.id = :id FOR UPDATE OF l
+                SELECT l.id, l.status, l.allocation_id, a.term_id, a.student_id, a.bed_id, a.status AS allocation_status
+                FROM asg_late_check_in l
+                JOIN asg_allocation a ON a.id = l.allocation_id WHERE l.id = :id FOR UPDATE OF l, a
                 """).param("id", n)
-                .query((rs, i) -> new Target(rs.getLong("id"), rs.getLong("student_id"), rs.getLong("bed_id"),
-                        rs.getString("status"))).optional())
+                .query((rs, i) -> new Target(rs.getLong("id"), rs.getLong("allocation_id"), rs.getLong("term_id"),
+                        rs.getLong("student_id"), rs.getLong("bed_id"), rs.getString("status"),
+                        rs.getString("allocation_status"))).optional())
                 .orElseThrow(() -> ApiException.notFound("This late check-in does not exist."));
         Inventory.BedSlot bed = inventory.beds(List.of(t.bedId())).get(t.bedId());
         blockScope.check(bed.buildingId());
@@ -236,6 +374,14 @@ public class LateCheckInService {
             if (day.isBefore(LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)))) {
                 throw FieldErrors.single("deadline", "Choose today or a later day.");
             }
+            LocalDate latest = terms.findPublished(t.termId()).map(this::latestDay).orElse(null);
+            if (latest != null && day.isAfter(latest)) {
+                throw FieldErrors.single("deadline", "Choose a day up to " + DAY.format(latest) + ".");
+            }
+            if (!t.allocationStatus().equals("ACTIVE")) {
+                throw ApiException.conflict("ALLOCATION_ENDED", "This student no longer holds the Bed.");
+            }
+            billing.extendBalanceDeadline(t.allocationId(), ForfeitService.endOf(day));
             jdbc.sql("""
                     UPDATE asg_late_check_in SET status = 'APPROVED', deadline = :day, decided_by = :by, decided_at = :now
                     WHERE id = :id

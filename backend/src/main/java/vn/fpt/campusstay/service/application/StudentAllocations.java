@@ -10,9 +10,16 @@ import java.util.Optional;
  */
 public interface StudentAllocations {
 
+    /** @param residentAt when the student became a resident (door code released or desk check-in), else null */
     record Placement(long allocationId, String room, String bed, String block, int floor, Instant allocatedAt,
-            Instant checkedInAt) {
+            Instant residentAt) {
     }
 
     Optional<Placement> ofApplication(long applicationId);
+
+    /** The student already holds a Bed for the Term (a continuing resident uses requests, not an Application). */
+    boolean holdsBed(long studentId, long termId);
+
+    /** Students who hold a Bed for the Term (Admin › Who may apply counts them). */
+    long holders(long termId);
 }

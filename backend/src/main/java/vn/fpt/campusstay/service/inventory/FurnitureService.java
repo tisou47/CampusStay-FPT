@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.dto.PageQuery;
-import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.security.BlockScope;
@@ -34,7 +33,6 @@ import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
-import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
  * Furniture items (ADR-24, spec D-21, §6.19): every piece with its asset code, status and location (a Room or
@@ -136,19 +134,17 @@ public class FurnitureService {
     private final BlockDirectory blocks;
     private final UserDirectory users;
     private final BedOccupancy occupancy;
-    private final TermCatalog terms;
     private final AuditLog audit;
     private final Clock clock;
 
     public FurnitureService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
-            UserDirectory users, BedOccupancy occupancy, TermCatalog terms, AuditLog audit, Clock clock) {
+            UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
         this.blocks = blocks;
         this.users = users;
         this.occupancy = occupancy;
-        this.terms = terms;
         this.audit = audit;
         this.clock = clock;
     }
@@ -488,13 +484,11 @@ public class FurnitureService {
                 .param("room", roomId).query((rs, i) -> item(rs)).list();
     }
 
-    /** The furniture of the Room where the student holds a Bed in the current Term. */
+    /** The furniture of the Room where the student holds a Bed now. */
     @Transactional(readOnly = true)
     public MyFurniture mine() {
         currentUser.require(Role.STUDENT);
-        long term = terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
-                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
-        BedOccupancy.Stay stay = occupancy.stayOf(currentUser.id(), term)
+        BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
                 .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
         record Room(long id, String code) {
         }

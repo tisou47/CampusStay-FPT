@@ -25,12 +25,15 @@ class JdbcEligibilityCounts implements EligibilityCounts {
     private final UserDirectory users;
     private final Billing billing;
     private final Buildings buildings;
+    private final StudentAllocations allocations;
 
-    JdbcEligibilityCounts(JdbcClient jdbc, UserDirectory users, Billing billing, Buildings buildings) {
+    JdbcEligibilityCounts(JdbcClient jdbc, UserDirectory users, Billing billing, Buildings buildings,
+            StudentAllocations allocations) {
         this.jdbc = jdbc;
         this.users = users;
         this.billing = billing;
         this.buildings = buildings;
+        this.allocations = allocations;
     }
 
     @Override
@@ -38,6 +41,7 @@ class JdbcEligibilityCounts implements EligibilityCounts {
         UserDirectory.StudentCounts students = users.studentCounts();
         Map<String, Long> failing = new LinkedHashMap<>();
         failing.put(VERIFIED, students.notVerified());
+        failing.put(NOT_RESIDENT, termId == null ? 0 : allocations.holders(termId));
         failing.put("ENROLLED", students.notEnrolled());
         failing.put("ONE_APPLICATION", termId == null ? 0 : jdbc.sql("""
                 SELECT count(DISTINCT student_id) FROM app_application

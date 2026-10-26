@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.dto.PageQuery;
-import vn.fpt.campusstay.dto.setting.TermSummary;
+import vn.fpt.campusstay.event.DoorCodeActivated;
 import vn.fpt.campusstay.event.DoorCodeChanged;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -36,15 +37,16 @@ import vn.fpt.campusstay.security.BlockSelection;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
-import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
  * Door codes (ADR-23, spec §6.8): one 6-digit code per Room, set by the Block's Staff. A code is proposed
  * (typed, imported or drawn at random), set on the lock, then confirmed: it becomes the Room's code, the
  * previous one is retired and the residents are told (without the code). Codes are stored encrypted
  * ({@link DoorCodeCipher}) and every view is written to the Audit Log.
- * <p>Release to students: until phase 5 makes payment the condition, a student sees the code of the Room
- * they are checked in to in the current Term.
+ * <p>Release to students (phase 5): Assignment releases the code to a resident once the Balance is paid, the
+ * Term's check-in start has come and the Room's code is confirmed with no change waiting; a confirmed code is
+ * released to the paid residents who waited for it ({@link DoorCodeActivated}). A terminated student past the
+ * move-out date no longer sees it.
  */
 @Service
 public class DoorCodeService {
@@ -86,7 +88,9 @@ public class DoorCodeService {
     static final String NOT_SET = "Not set";
     static final String ACTIVE = "Active";
     static final String WAITING = "Waiting for confirmation";
-    private static final Map<String, String> TASK_REASONS = Map.of("CHECK_OUT", "Check-out", "MOVE_OUT", "Moved out");
+    private static final Map<String, String> TASK_REASONS = Map.of("CHECK_OUT", "Check-out", "MOVE_OUT", "Moved out",
+            "TERMINATION", "Termination overdue");
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_IMPORT_LINES = 2000;
     private static final int MAX_LINE_PROBLEMS = 10;
 
@@ -100,19 +104,17 @@ public class DoorCodeService {
     private final CurrentUser currentUser;
     private final BlockScope blockScope;
     private final BedOccupancy occupancy;
-    private final TermCatalog terms;
     private final DoorCodeCipher cipher;
     private final AuditLog audit;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public DoorCodeService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BedOccupancy occupancy,
-            TermCatalog terms, DoorCodeCipher cipher, AuditLog audit, ApplicationEventPublisher events, Clock clock) {
+            DoorCodeCipher cipher, AuditLog audit, ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
         this.occupancy = occupancy;
-        this.terms = terms;
         this.cipher = cipher;
         this.audit = audit;
         this.events = events;
@@ -216,10 +218,12 @@ public class DoorCodeService {
         jdbc.sql("UPDATE inv_door_code_task SET done_at = :now, door_code_id = :code WHERE room_id = :room AND done_at IS NULL")
                 .param("now", now).param("code", proposal).param("room", room.id()).update();
         audit.record("DOOR_CODE_CONFIRMED", AuditLog.Tone.SUCCESS, "Room", room.id(), room.code(), null);
-        List<Long> residents = List.copyOf(new HashSet<>(occupancy.residents(bedsOf(room.id())).values()));
-        if (!residents.isEmpty()) {
-            events.publishEvent(new DoorCodeChanged(room.code(), residents));
+        List<Long> holders = List.copyOf(occupancy.codeHolders(bedsOf(room.id())));
+        if (!holders.isEmpty()) {
+            events.publishEvent(new DoorCodeChanged(room.code(), holders));
         }
+        // Paid residents who waited for a confirmed code receive it now (Assignment, same transaction).
+        events.publishEvent(new DoorCodeActivated(room.id(), room.code()));
     }
 
     @Transactional
@@ -347,17 +351,21 @@ public class DoorCodeService {
 
     private MyRoom myRoom() {
         long me = currentUser.id();
-        long term = terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()
-                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
-        BedOccupancy.Stay stay = occupancy.stayOf(me, term)
+        BedOccupancy.Stay stay = occupancy.currentStay(me)
                 .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
         Room room = jdbc.sql("""
                 SELECT r.id, r.code, r.building_id FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE b.id = :bed
                 """).param("bed", stay.bedId())
                 .query((rs, i) -> new Room(rs.getLong("id"), rs.getString("code"), rs.getLong("building_id"))).single();
-        if (!stay.checkedIn()) {
-            return new MyRoom(room.id(), new MyDoorCode(room.code(), "Not ready",
-                    "You receive the door code once you have checked in at the desk.", null));
+        if (!stay.codeReleased()) {
+            String note = switch (stay.waitingFor()) {
+                case "PAYMENT" -> "You receive the door code once your Balance is paid.";
+                case "CHECK_IN_START" -> "You receive the door code on " + DAY.format(stay.checkInStart())
+                        + ", when check-in starts.";
+                case "TERMINATED" -> "Your stay is terminated and its move-out date has passed.";
+                default -> "Staff are setting the door code of your Room. You will be told when it is ready.";
+            };
+            return new MyRoom(room.id(), new MyDoorCode(room.code(), "Not ready", note, null));
         }
         Optional<Code> active = active(room.id());
         if (active.isEmpty()) {

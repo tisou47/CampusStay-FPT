@@ -15,9 +15,9 @@ import vn.fpt.campusstay.service.billing.RoomStays;
 import vn.fpt.campusstay.service.inventory.Inventory;
 
 /**
- * Implements Billing's {@link RoomStays}. A stay starts at check-in, or at the move
- * when the student changed Room later (the moved Allocation keeps the original
- * check-in time), and ends with the Allocation.
+ * Implements Billing's {@link RoomStays}. A stay starts when the student became a resident (the door code was
+ * released, or the desk checked them in: spec §6.14), or at the move when the student changed Room later (the moved
+ * Allocation keeps the original time), and ends with the Allocation.
  */
 @Component
 @Transactional(readOnly = true)
@@ -42,11 +42,11 @@ class JdbcRoomStays implements RoomStays {
             return List.of();
         }
         return jdbc.sql("""
-                SELECT id, student_id, term_id, bed_id, greatest(checked_in_at, allocated_at) AS since, ended_at,
+                SELECT id, student_id, term_id, bed_id, greatest(resident_at, allocated_at) AS since, ended_at,
                        end_reason
                 FROM asg_allocation
-                WHERE bed_id IN (:beds) AND checked_in_at IS NOT NULL
-                  AND greatest(checked_in_at, allocated_at) < :to AND (ended_at IS NULL OR ended_at > :from)
+                WHERE bed_id IN (:beds) AND resident_at IS NOT NULL
+                  AND greatest(resident_at, allocated_at) < :to AND (ended_at IS NULL OR ended_at > :from)
                 ORDER BY since, id
                 """)
                 .param("beds", List.copyOf(roomOfBed.keySet())).param("from", Timestamp.from(from))

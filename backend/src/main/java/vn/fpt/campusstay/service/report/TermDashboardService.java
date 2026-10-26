@@ -52,11 +52,11 @@ public class TermDashboardService {
 
     public record TermDashboard(TermOption term, List<TermOption> terms, String requestCode, LocalDate stayStart,
             LocalDate stayEnd, List<Milestone> milestones, List<StatusCount> applications, long applicationsTotal,
-            List<PlaceRow> places, Money money, long checkedIn) {
+            List<PlaceRow> places, Money money, long checkedIn, long residents) {
     }
 
     private static final List<String> PIPELINE = List.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
-            "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "REJECTED", "CANCELLED", "EXPIRED");
+            "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "FORFEITED", "REJECTED", "CANCELLED", "EXPIRED");
 
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
@@ -167,8 +167,11 @@ public class TermDashboardService {
         long checkedIn = jdbc.sql("""
                 SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND checked_in_at IS NOT NULL
                 """).param("t", t.id()).query(Long.class).single();
+        long residents = jdbc.sql("""
+                SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND code_released_at IS NOT NULL
+                """).param("t", t.id()).query(Long.class).single();
         return new TermDashboard(new TermOption(String.valueOf(t.id()), t.name(), label(t, now, today)), terms, request,
-                t.stayStart(), t.stayEnd(), milestones, applications, total, places, money, checkedIn);
+                t.stayStart(), t.stayEnd(), milestones, applications, total, places, money, checkedIn, residents);
     }
 
     private static TermRow term(ResultSet rs) throws SQLException {

@@ -63,12 +63,9 @@ class PaymentDeskIT {
         return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth));
     }
 
-    private ResultActions confirm(String invoice, String auth, String amount, String reference, MockMultipartFile receipt)
+    private ResultActions confirm(String invoice, String auth, String reference, MockMultipartFile receipt)
             throws Exception {
         var request = multipart("/payments/" + invoice + "/confirm").header(HttpHeaders.AUTHORIZATION, auth);
-        if (amount != null) {
-            request.param("amount", amount);
-        }
         if (reference != null) {
             request.param("reference", reference);
         }
@@ -111,11 +108,10 @@ class PaymentDeskIT {
                 .andExpect(jsonPath("$.items[0].amount").value(2_070_000))
                 .andExpect(jsonPath("$.items[0].method").value((Object) null))
                 .andExpect(jsonPath("$.items[0].receipt").value((Object) null));
-        getAs("/payments?method=VietQR&q=SE190031", manager)
+        getAs("/payments?method=Bank transfer&q=SE190031", manager)
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.items[0].status").value("Paid"))
-                .andExpect(jsonPath("$.items[0].method").value("VietQR"))
-                .andExpect(jsonPath("$.items[0].reference").isString());
+                .andExpect(jsonPath("$.items[0].method").value("Bank transfer"));
         getAs("/payments?date=month", manager)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.date").isString());
@@ -131,8 +127,9 @@ class PaymentDeskIT {
     }
 
     /**
-     * TC-BIL-011: Staff confirm a transfer by hand with the bank reference and a receipt; the amount must be
-     * exact; the Application is submitted as with VietQR; a second confirmation is refused.
+     * TC-BIL-011: a Manager confirms one Invoice with the bank reference and a receipt, even a transfer the student
+     * did not claim (the claim is recorded in the Manager's name); the Application is submitted; a second
+     * confirmation is refused; Staff and students may not confirm (ADR-19, ADR-22).
      */
     @Test
     void manualConfirmation() throws Exception {
@@ -142,18 +139,17 @@ class PaymentDeskIT {
         String manager = bearer(mvc, MANAGER_B);
         MockMultipartFile receipt = new MockMultipartFile("receipt", "transfer.png", "image/png", PNG);
 
-        confirm(invoice, manager, "100", null, null)
+        confirm(invoice, manager, "x".repeat(61), null)
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.amount").isString())
                 .andExpect(jsonPath("$.details.fields.reference").isString());
-        confirm(invoice, bearer(mvc, TestAuth.STAFF_A), "2070000", "FT26294001", null).andExpect(status().isForbidden());
-        confirm(invoice, auth, "2070000", "FT26294001", null).andExpect(status().isForbidden());
+        confirm(invoice, bearer(mvc, TestAuth.STAFF_A), "FT26294001", null).andExpect(status().isForbidden());
+        confirm(invoice, auth, "FT26294001", null).andExpect(status().isForbidden());
 
-        confirm(invoice, manager, "2070000", "FT26294001", receipt).andExpect(status().isNoContent());
+        confirm(invoice, manager, "FT26294001", receipt).andExpect(status().isNoContent());
         assertThat(flow.statuses(auth)).containsExactly("Submitted");
         String list = getAs("/payments?q=SE190032", manager)
                 .andExpect(jsonPath("$.items[0].status").value("Paid"))
-                .andExpect(jsonPath("$.items[0].method").value("Manual transfer"))
+                .andExpect(jsonPath("$.items[0].method").value("Bank transfer"))
                 .andExpect(jsonPath("$.items[0].reference").value("FT26294001"))
                 .andExpect(jsonPath("$.items[0].paidAt").isString())
                 .andExpect(jsonPath("$.items[0].receipt.name").value("transfer.png"))
@@ -172,34 +168,37 @@ class PaymentDeskIT {
         getAs("/payments/" + invoice + "/receipt-file", bearer(mvc, TestAuth.STAFF_A)).andExpect(status().isForbidden());
         getAs("/notifications", auth).andExpect(jsonPath("$.items[*].title", hasItem("Payment received")));
 
-        confirm(invoice, manager, "2070000", "FT26294002", null)
+        confirm(invoice, manager, "FT26294002", null)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ALREADY_PAID"));
-        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'PAYMENT_CONFIRMED_MANUALLY'")
-                .query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'PAYMENT_CONFIRMED' AND object_label = :code")
+                .param("code", invoice).query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM bil_payment_claim c JOIN bil_invoice i ON i.id = c.invoice_id
+                WHERE i.code = :code AND c.status = 'CONFIRMED' AND c.claimed_by = c.decided_by
+                """).param("code", invoice).query(Long.class).single()).isEqualTo(1);
     }
 
-    /** TC-BIL-012: with manual confirmation turned off (Admin › Fees) only VietQR settles Invoices; files are sniffed. */
+    /** TC-BIL-012: receipt files are sniffed; a void Invoice (its Application cancelled) cannot be confirmed. */
     @Test
     void manualConfirmationRules() throws Exception {
         String auth = bearer(mvc, student(33));
-        String invoice = flow.apply(auth, "2-bed", "Standard", "{\"mode\":\"auto\"}").depositInvoiceId();
+        ApplyFlow.Applied app = flow.apply(auth, "2-bed", "Standard", "{\"mode\":\"auto\"}");
+        String invoice = app.depositInvoiceId();
         String manager = bearer(mvc, MANAGER_B);
 
         MockMultipartFile fake = new MockMultipartFile("receipt", "transfer.png", "image/png",
                 "not an image".getBytes(StandardCharsets.UTF_8));
-        confirm(invoice, manager, "2070000", "FT26294003", fake)
+        confirm(invoice, manager, "FT26294003", fake)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("FILE_TYPE_NOT_ALLOWED"));
-
-        jdbc.sql("UPDATE cfg_fee_policy SET allow_manual_confirm = FALSE WHERE id = 1").update();
-        try {
-            confirm(invoice, manager, "2070000", "FT26294003", null)
-                    .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.code").value("MANUAL_CONFIRM_OFF"));
-        } finally {
-            jdbc.sql("UPDATE cfg_fee_policy SET allow_manual_confirm = TRUE WHERE id = 1").update();
-        }
         assertThat(flow.statuses(auth)).containsExactly("Awaiting Deposit");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .post("/applications/" + app.id() + "/cancel").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isNoContent());
+        confirm(invoice, manager, "FT26294003", null)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVOICE_NOT_PAYABLE"));
     }
 }

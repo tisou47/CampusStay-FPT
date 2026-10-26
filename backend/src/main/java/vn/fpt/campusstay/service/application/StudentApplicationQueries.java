@@ -70,8 +70,9 @@ public class StudentApplicationQueries {
             ProfileContact contact) {
     }
 
+    /** @param stayTerms Gia hạn: the Terms the student wants to stay */
     public record ApplicationItem(String id, String termName, String roomTypeName, String roomClassName, Long deposit,
-            Instant submittedAt, String status) {
+            Instant submittedAt, String status, int stayTerms) {
     }
 
     public record ApplicationPage(List<ApplicationItem> items, long total, String activeTermName) {
@@ -93,7 +94,8 @@ public class StudentApplicationQueries {
     public record ApplicationDetail(String id, String status, String termName, String roomTypeName,
             String roomClassName, BigDecimal surchargeRate, boolean twoBed, RoommateView roommate,
             HomeAllocation allocation, List<Event> events, List<InvoiceView> invoices, boolean canCancel,
-            String cancelPolicy, Instant resultsPublishedAt, Instant registrationClosesAt, String decisionNote) {
+            String cancelPolicy, Instant resultsPublishedAt, Instant registrationClosesAt, String decisionNote,
+            int stayTerms) {
     }
 
     public record Invitation(String id, String fromName, Instant expiresAt, String termName,
@@ -176,7 +178,7 @@ public class StudentApplicationQueries {
                         names.roomClass(a.roomClassId()))).orElse(null),
                 placement.map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
                         .orElse(null),
-                placement.map(p -> p.checkedInAt() != null).orElse(false), due, count, 0);
+                placement.map(p -> p.residentAt() != null).orElse(false), due, count, 0);
     }
 
     /** The Term of a live Application that has not ended, else the one open for registration, else current. */
@@ -220,7 +222,7 @@ public class StudentApplicationQueries {
         List<ApplicationItem> items = all.stream().skip(page.offset()).limit(page.limit())
                 .map(a -> new ApplicationItem(a.code(), termName(termsById, a.termId()), names.type(a.roomTypeId()),
                         names.roomClass(a.roomClassId()), a.depositAmount(), a.submittedAt(),
-                        ApplicationStore.label(a.status())))
+                        ApplicationStore.label(a.status()), a.stayTerms()))
                 .toList();
         String active = terms.openForRegistration()
                 .filter(t -> all.stream().anyMatch(a -> a.termId() == t.id() && a.live()))
@@ -254,7 +256,8 @@ public class StudentApplicationQueries {
                         .map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
                         .orElse(null),
                 events(app, term), invoices, canCancel,
-                cancelPolicy(term), term.resultsPublishedAt(), term.registrationClosesAt(), app.decisionNote());
+                cancelPolicy(term), term.resultsPublishedAt(), term.registrationClosesAt(), app.decisionNote(),
+                app.stayTerms());
     }
 
     private RoommateView roommate(ApplicationStore.Application app) {

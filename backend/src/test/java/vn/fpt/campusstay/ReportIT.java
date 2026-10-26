@@ -150,7 +150,7 @@ class ReportIT {
                 .andExpect(jsonPath("$.blocks[*].gender", contains("Male", "Female")))
                 .andExpect(jsonPath("$.checks", hasSize(4)))
                 .andExpect(jsonPath("$.checks[?(@.link == '/admin/inspection-checklists')].ok").value(hasItem(true)))
-                .andExpect(jsonPath("$.integrations[*].name").value(hasItem("SePay bank feed")));
+                .andExpect(jsonPath("$.integrations[*].name").value(hasItem("Receiving bank account")));
         getAs("/dashboards/admin", bearer(mvc, MANAGER_A)).andExpect(status().isForbidden());
     }
 
@@ -219,9 +219,10 @@ class ReportIT {
         long past = jdbc.sql("SELECT id FROM cfg_term WHERE code = 'FA20'").query(Long.class).single();
         jdbc.sql("""
                 INSERT INTO asg_allocation (term_id, student_id, bed_id, source, status, allocated_at, checked_in_at,
-                                            ended_at, end_reason)
+                                            resident_at, ended_at, end_reason)
                 SELECT :term, u.id, b.id, 'MANUAL', 'ENDED', TIMESTAMPTZ '2020-08-10 09:00+07',
-                       TIMESTAMPTZ '2020-09-04 10:00+07', TIMESTAMPTZ '2020-12-27 10:00+07', v.reason
+                       TIMESTAMPTZ '2020-09-04 10:00+07', TIMESTAMPTZ '2020-09-04 10:00+07',
+                       TIMESTAMPTZ '2020-12-27 10:00+07', v.reason
                 FROM (VALUES ('A-204', 'ROOM_CHANGE'), ('A-205', 'CHECK_OUT')) AS v (room, reason)
                 JOIN auth_user u ON u.email = :email
                 JOIN inv_room r ON r.code = v.room JOIN inv_bed b ON b.room_id = r.id AND b.label = 'A'

@@ -12,7 +12,8 @@ final class InvoiceLabels {
     private static final Map<String, String> STATUSES = Map.of("UPCOMING", "Upcoming", "UNPAID", "Unpaid",
             "AWAITING_CONFIRMATION", "Awaiting confirmation", "PAID", "Paid", "OVERDUE", "Overdue", "REFUNDED",
             "Refunded", "VOID", "Void");
-    private static final Map<String, String> METHODS = Map.of("VIETQR", "VietQR", "MANUAL", "Manual transfer");
+    private static final Map<String, String> METHODS = Map.of("VIETQR", "VietQR", "MANUAL", "Manual transfer",
+            "TRANSFER", "Bank transfer");
 
     private InvoiceLabels() {
     }
@@ -27,6 +28,21 @@ final class InvoiceLabels {
 
     static String status(String code) {
         return STATUSES.get(code);
+    }
+
+    /** Type code of a contract type or label ({@code deposit}, {@code Deposit}), null when unknown. */
+    static String typeCode(String value) {
+        if (value == null) {
+            return null;
+        }
+        String v = value.trim();
+        for (Map.Entry<String, String> e : TYPES.entrySet()) {
+            if (e.getValue().equalsIgnoreCase(v) || TYPE_LABELS.get(e.getKey()).equalsIgnoreCase(v)
+                    || e.getKey().equalsIgnoreCase(v.replace(' ', '_'))) {
+                return e.getKey();
+            }
+        }
+        return null;
     }
 
     static String method(String code) {

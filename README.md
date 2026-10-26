@@ -47,4 +47,4 @@ Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must
 | API | https://campusstay-api.eastasia.cloudapp.azure.com/api — Azure for Students VM, Docker Compose with Caddy (HTTPS) |
 | Database | Azure Database for PostgreSQL (Flexible Server) |
 
-Pushing to `main` deploys both (ADR-16): Vercel builds `web/`, and `.github/workflows/backend.yml` runs `mvn verify`, builds the image to GHCR and ships it to the VM over SSH. The server runs as a demo with the payment simulator (ADR-18); its email, Google sign-in, SePay and Firebase settings are not set yet (architecture §14.1). One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).
+Pushing to `main` deploys both (ADR-16): Vercel builds `web/`, and `.github/workflows/backend.yml` runs `mvn verify`, builds the image to GHCR and ships it to the VM over SSH. The server runs as a demo with the fictional base data (ADR-18); payments are claims confirmed by Managers (ADR-22); its email and Firebase settings are not set yet (architecture §14.1). One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).

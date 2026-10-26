@@ -175,7 +175,7 @@ class DeskIT {
                 .andExpect(jsonPath("$.recent[0].name").value(p.name()))
                 .andExpect(jsonPath("$.recent[0].bed", startsWith(p.room() + "-")));
         getAs("/students/me/allocation", p.auth())
-                .andExpect(jsonPath("$.allocation.status").value("Checked in"))
+                .andExpect(jsonPath("$.allocation.status").value("Resident"))
                 .andExpect(jsonPath("$.checkIn.checkedInAt").isString());
         getAs("/students/me/home", p.auth()).andExpect(jsonPath("$.checkedIn").value(true));
     }

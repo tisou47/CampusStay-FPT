@@ -12,9 +12,10 @@ import java.util.List;
 public interface RoomStays {
 
     /**
-     * A checked-in stay in a Room.
+     * A resident's stay in a Room.
      *
-     * @param from       when the student started living in the Room (check-in, or the move into it)
+     * @param from       when the student started living in the Room (door code released or desk check-in, or the
+     *                   move into it)
      * @param to         when the stay ended, null while it lasts
      * @param checkedOut the stay ended with a check-out, whose utility share was settled from the Utility Deposit
      */

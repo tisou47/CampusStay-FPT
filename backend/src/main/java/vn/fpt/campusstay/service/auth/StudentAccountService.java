@@ -257,7 +257,7 @@ public class StudentAccountService {
         return new Hub(String.valueOf(r.id()), r.name(), r.email(), r.demo(),
                 new Account(accountLabel(r.status()), r.passwordSet(), r.google(), r.lastSignInAt(), r.createdAt()),
                 profile, new VerificationInfo(Verification.of(r.verification()), r.note(), r.verifiedAt(), by),
-                residence.map(h -> new Residence(h.block(), h.room(), h.bed(), h.checkedIn())).orElse(null), sections,
+                residence.map(h -> new Residence(h.block(), h.room(), h.bed(), h.resident())).orElse(null), sections,
                 auditTrail.aboutUser(r.id(), HISTORY_LIMIT),
                 new Actions(manage && r.hasProfile(), manage && pending && !locked, manage && pending && !locked,
                         manage && !locked, manage && locked));

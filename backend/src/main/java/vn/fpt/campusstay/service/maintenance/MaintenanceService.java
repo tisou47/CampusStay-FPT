@@ -119,7 +119,7 @@ public class MaintenanceService {
     @Transactional
     public Created report(ReportCommand cmd) {
         long me = currentUser.require(Role.STUDENT).userId();
-        Residences.Residence home = residences.current(me).filter(Residences.Residence::checkedIn)
+        Residences.Residence home = residences.current(me).filter(Residences.Residence::resident)
                 .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN",
                         "You can report a problem once you have checked in to your Room."));
         FieldErrors errors = new FieldErrors();

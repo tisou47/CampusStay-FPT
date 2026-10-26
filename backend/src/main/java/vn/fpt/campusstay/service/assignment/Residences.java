@@ -12,10 +12,11 @@ public interface Residences {
     /**
      * The Bed a student holds through an active Allocation.
      *
-     * @param room the Room code ({@code A-301}); {@code bed} the Bed label ({@code A})
+     * @param room     the Room code ({@code A-301}); {@code bed} the Bed label ({@code A})
+     * @param resident the student lives in the Room: the door code was released or the desk checked them in
      */
     record Residence(long allocationId, long termId, long studentId, long roomId, String room, long bedId,
-            String bed, long buildingId, String block, boolean checkedIn) {
+            String bed, long buildingId, String block, boolean resident) {
     }
 
     /** The student's active Allocation, the latest one when there are several Terms. */
@@ -27,20 +28,20 @@ public interface Residences {
     /** Students who hold a Bed in one of the Blocks now, through an active Allocation of any Term (the student list). */
     Set<Long> residentsOf(Collection<Long> buildingIds);
 
-    /** Students checked in to the Room in the Term. */
+    /** Residents of the Room in the Term. */
     int residents(long roomId, long termId);
 
     /**
      * A student with an active Allocation in the Term.
      *
-     * @param checkedIn whether the student has checked in
+     * @param resident whether the student lives in the Room (door code released or desk check-in)
      */
-    record TermResident(long studentId, long buildingId, boolean checkedIn) {
+    record TermResident(long studentId, long buildingId, boolean resident) {
     }
 
     /** Students with an active Allocation in the Term (Notifications email groups). */
     List<TermResident> ofTerm(long termId);
 
-    /** Bed id → student checked in to it now (an active Allocation of any Term), for the given Beds. */
-    Map<Long, Long> checkedIn(Collection<Long> bedIds);
+    /** Bed id → resident living in it now (an active Allocation of any Term), for the given Beds. */
+    Map<Long, Long> residentsOfBeds(Collection<Long> bedIds);
 }

@@ -40,7 +40,7 @@ class AllocationRecords implements StudentRecords {
     @Override
     public List<Item> of(long studentId, int limit) {
         List<Row> rows = jdbc.sql("""
-                SELECT id, term_id, bed_id, status, checked_in_at IS NOT NULL AS checked_in, allocated_at
+                SELECT id, term_id, bed_id, status, resident_at IS NOT NULL AS checked_in, allocated_at
                 FROM asg_allocation WHERE student_id = :student ORDER BY allocated_at DESC, id DESC LIMIT :limit
                 """).param("student", studentId).param("limit", limit)
                 .query((rs, i) -> new Row(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("bed_id"),
@@ -52,7 +52,7 @@ class AllocationRecords implements StudentRecords {
         return rows.stream().map(r -> {
             Inventory.BedSlot bed = beds.get(r.bedId());
             String status = switch (r.status()) {
-                case "ACTIVE" -> r.checkedIn() ? "Checked in" : "Allocated";
+                case "ACTIVE" -> r.checkedIn() ? StudentAllocationService.RESIDENT : StudentAllocationService.UNPAID;
                 case "ENDED" -> "Ended";
                 default -> "Cancelled";
             };

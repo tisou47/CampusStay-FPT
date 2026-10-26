@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.DoorCodeReleased;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.application.Applications;
 import vn.fpt.campusstay.service.assignment.Moves;
@@ -33,7 +34,7 @@ import vn.fpt.campusstay.exception.ApiException;
 class JdbcMoves implements Moves {
 
     private record Row(long id, long termId, long studentId, Long applicationId, String status, long bedId,
-            Instant checkedInAt, Long checkedInBy, String[] handOverItems) {
+            Instant checkedInAt, Long checkedInBy, String[] handOverItems, Instant residentAt, Instant codeReleasedAt) {
     }
 
     private final JdbcClient jdbc;
@@ -127,9 +128,9 @@ class JdbcMoves implements Moves {
         return swapped;
     }
 
-    /** A checked-in student moving to a Bed of another Room leaves the old Room: its door code must change. */
+    /** A resident moving to a Bed of another Room leaves the old Room: its door code must change. */
     private void leaving(Row from, long toBedId) {
-        if (from.checkedInAt() == null) {
+        if (from.residentAt() == null) {
             return;
         }
         Map<Long, Inventory.BedSlot> beds = inventory.beds(List.of(from.bedId(), toBedId));
@@ -158,24 +159,44 @@ class JdbcMoves implements Moves {
                 .update();
     }
 
-    /** The same stay on another Bed: check-in and hand-over carry over. */
+    /**
+     * The same stay on another Bed: check-in, hand-over and residence carry over. A student who held the door code
+     * receives the new Room's code at once when it is ready (spec §6.13), else when Staff confirm one.
+     */
     private long insert(Row from, long bedId, String source, long by) {
+        Instant now = Instant.now(clock);
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(List.of(from.bedId(), bedId));
+        Inventory.BedSlot old = beds.get(from.bedId());
+        Inventory.BedSlot next = beds.get(bedId);
+        boolean sameRoom = old != null && next != null && old.roomId() == next.roomId();
+        Instant released = from.codeReleasedAt() == null ? null
+                : sameRoom ? from.codeReleasedAt()
+                : next != null && inventory.doorCodeReady(List.of(next.roomId())).contains(next.roomId()) ? now : null;
+        long id;
         try {
-            return jdbc.sql("""
+            id = jdbc.sql("""
                     INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, source, previous_allocation_id,
-                                                allocated_at, allocated_by, checked_in_at, checked_in_by, hand_over_items)
-                    VALUES (:term, :app, :student, :bed, :source, :previous, :now, :by, :checkedIn, :checkedInBy, :items)
+                                                allocated_at, allocated_by, checked_in_at, checked_in_by, hand_over_items,
+                                                resident_at, code_released_at)
+                    VALUES (:term, :app, :student, :bed, :source, :previous, :now, :by, :checkedIn, :checkedInBy, :items,
+                            :resident, :released)
                     RETURNING id
                     """)
                     .param("term", from.termId()).param("app", from.applicationId()).param("student", from.studentId())
                     .param("bed", bedId).param("source", source).param("previous", from.id())
-                    .param("now", Timestamp.from(Instant.now(clock))).param("by", by)
+                    .param("now", Timestamp.from(now)).param("by", by)
                     .param("checkedIn", from.checkedInAt() == null ? null : Timestamp.from(from.checkedInAt()))
                     .param("checkedInBy", from.checkedInBy()).param("items", from.handOverItems())
+                    .param("resident", from.residentAt() == null ? null : Timestamp.from(from.residentAt()))
+                    .param("released", released == null ? null : Timestamp.from(released))
                     .query(Long.class).single();
         } catch (DuplicateKeyException e) {
             throw bedTaken();
         }
+        if (released != null && !sameRoom) {
+            events.publishEvent(new DoorCodeReleased(next.roomCode(), List.of(from.studentId())));
+        }
+        return id;
     }
 
     /** Each Bed with its Room's class in the Allocation's own Term. */
@@ -190,7 +211,7 @@ class JdbcMoves implements Moves {
             if (b != null) {
                 result.put(r.id(), new Placement(r.id(), r.termId(), r.studentId(), r.applicationId(), r.status(),
                         b.bedId(), b.code(), b.roomCode(), b.bedLabel(), b.floor(), b.roomId(), b.buildingId(), b.block(),
-                        b.gender(), b.roomTypeId(), b.roomClassId(), r.checkedInAt()));
+                        b.gender(), b.roomTypeId(), b.roomClassId(), r.residentAt()));
             }
         }
         return result;
@@ -202,10 +223,13 @@ class JdbcMoves implements Moves {
 
     private static Row row(ResultSet rs, int i) throws SQLException {
         Timestamp checkedIn = rs.getTimestamp("checked_in_at");
+        Timestamp resident = rs.getTimestamp("resident_at");
+        Timestamp released = rs.getTimestamp("code_released_at");
         Array items = rs.getArray("hand_over_items");
         return new Row(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"),
                 rs.getObject("application_id", Long.class), rs.getString("status"), rs.getLong("bed_id"),
                 checkedIn == null ? null : checkedIn.toInstant(), rs.getObject("checked_in_by", Long.class),
-                items == null ? new String[0] : (String[]) items.getArray());
+                items == null ? new String[0] : (String[]) items.getArray(),
+                resident == null ? null : resident.toInstant(), released == null ? null : released.toInstant());
     }
 }

@@ -124,7 +124,7 @@ class AdminSettingsIT {
                 .andExpect(jsonPath("$.students", greaterThan(40)))
                 .andExpect(jsonPath(enrolled, contains(before.getFirst() + 1)))
                 .andExpect(jsonPath("$.criteria[?(@.key == 'NO_OVERDUE_INVOICE')].failing", contains(0)))
-                .andExpect(jsonPath("$.fixed[*].key", contains("REGISTRATION_OPEN", "VERIFIED")));
+                .andExpect(jsonPath("$.fixed[*].key", contains("REGISTRATION_OPEN", "VERIFIED", "NOT_RESIDENT")));
         mvc.perform(get("/admin/matching").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.weights[*].level", contains("Important", "Important", "Important")));
 

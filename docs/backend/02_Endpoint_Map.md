@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026).
+Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, not merged yet).
 
 | Slice | Focus |
 |---|---|
@@ -17,6 +17,7 @@ Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 c
 | V2-2 | Change Specification v2 phase 2 "Accounts": Google sign-up, verification, student list, hub and import, Staff accounts |
 | V2-3 | Change Specification v2 phase 3 "Inventory": Room Class per Room per Term, furniture and Room Class requirements, door codes |
 | V2-4 | Change Specification v2 phase 4 "Registration periods": Managers' requests, the Term wizard with Term prices, announcements and the board, grouped configuration, rules screens, Term dashboard |
+| V2-5 | Change Specification v2 phase 5 "Money and residence": payment claims confirmed by Managers, Gia hạn, door code release and Bed states, forfeits, late check-ins online, Utility warnings and terminations, new refund triggers |
 
 ## S0 — Foundation, AUTH session, Terms
 
@@ -42,7 +43,7 @@ Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 c
 | AUTH | POST | `/admin/users` | Must | Verified | C-15; invitation email via outbox; TC-AUTH-012, 013 |
 | AUTH | PUT | `/admin/users/{id}` | Must | Verified | C-15; disabling signs the user out; TC-AUTH-014, 015 |
 | CFG | GET, PUT | `/admin/eligibility` | Must | Verified | C-16, A-33 (students failing each check); TC-CFG-009, 025 |
-| CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; seven refund triggers since V42; a change is announced (C-41); TC-CFG-008, TC-NTF-043 |
+| CFG | GET, PUT | `/admin/fees` | Must | Verified | C-16; seven refund triggers since V42; a change is announced (C-41); `blockCheckIn`, `manualConfirm` removed (B-05, v2 phase 5); TC-CFG-008, TC-NTF-043 |
 | CFG | GET, PUT | `/admin/matching` | Must | Verified | C-16, A-33 (levels); TC-CFG-010, 025 |
 | CFG | POST | `/admin/matching/preview` | Must | Verified | Runs the assignment engine over the Term's approved Applications (ASG implements `cfg.MatchingPreviewer`, S3); TC-CFG-010 (nobody to place) |
 | CFG | GET | `/admin/room-classes` | Must | Verified | B-04 (`usedIn`: Rooms of the class in the current Term, v2 phase 3); TC-CFG-007, TC-INV-009 |
@@ -61,7 +62,7 @@ Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 c
 | INV | PUT | `/admin/buildings/{id}` | Must | Verified | TC-INV-002, 005 |
 | INV | GET | `/admin/buildings/{id}/floors/{floor}/rooms` | Must | Verified | TC-INV-002 |
 | INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Verified | Range up to parameter `inventory.max_floor` (V11); optional `roomClassId` (C-40); TC-INV-002, 012 |
-| INV | GET | `/inventory/rooms` | Must | Verified | C-17, C-40 (each Room's class in the Term); TC-INV-004, 005, 006, 009 |
+| INV | GET | `/inventory/rooms` | Must | Verified | C-17, C-40 (each Room's class in the Term); Bed states unpaid, paid, resident (B-06); TC-INV-004, 005, 006, 009, TC-ASG-032, 033 |
 | INV | GET | `/inventory/rooms/{code}` | Must | Verified | TC-INV-004 |
 | INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Verified | TC-INV-006 |
 | INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Verified | C-17; TC-INV-005, 006 |
@@ -74,25 +75,24 @@ Total: 224 endpoints (231 when the seven `GET, PUT` rows count twice); all 224 c
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| APP | POST | `/applications` | Must | Verified | C-19, C-20; TC-APP-002, 003, 005 |
-| APP | GET | `/applications/eligibility` | Must | Verified | C-20; TC-APP-001, 008 |
+| APP | POST | `/applications` | Must | Verified | C-19, C-20; `stayTerms` (Gia hạn, A-38); TC-APP-002, 003, 005, 023 |
+| APP | GET | `/applications/eligibility` | Must | Verified | C-20; `maxStayTerms`, not a continuing resident (A-38); TC-APP-001, 008, 023 |
 | APP | POST | `/applications/roommate-check` | Must | Verified | C-08; TC-APP-004 |
 | APP | GET | `/applications/{id}` | Must | Verified | Student view and back-office view (C-21); TC-APP-002, 005, 006, 009, 010, 011 |
 | APP | POST | `/applications/{id}/cancel` | Must | Verified | Voids an unpaid Deposit, refunds a paid one by rule; TC-APP-007, 009 |
-| APP | POST | `/roommate-invitations/{id}/respond` | Must | Verified | TC-APP-005, 006 |
+| APP | POST | `/roommate-invitations/{id}/respond` | Must | Verified | `stayTerms` when accepting (A-38); TC-APP-005, 006 |
 | APP | GET | `/students/me/applications` | Must | Verified | TC-APP-002, 005 |
 | APP | GET | `/students/me/home` | Must | Verified | `allocation`, `checkedIn` from S3; `openRequests` from S4; TC-APP-002, 009, TC-ASG-010 |
 | APP | GET | `/students/me/profile` | Must | Verified | TC-APP-009 |
 | APP | GET | `/students/me/roommate-invitation` | Must | Verified | TC-APP-005, 006 |
 | BIL | GET | `/invoices/{id}` | Must | Verified | Student (own), Admin, Staff/Manager of the Block (C-22); TC-BIL-001, 004, 006, 010 |
-| BIL | GET | `/invoices/{id}/payment` | Must | Verified | TC-BIL-001, 003, 006 |
+| BIL | GET | `/invoices/{id}/payment` | Must | Verified | `claim`, `canClaim`; no QR without a bank account (A-34); TC-BIL-001, 006, 032, 033 |
 | BIL | POST | `/invoices/{id}/payment/refresh` | Must | Verified | TC-BIL-001 |
 | BIL | GET | `/invoices/{id}/receipt` | Must | Verified | One-page PDF; TC-BIL-003, 004 |
-| BIL | GET | `/students/me/invoices` | Must | Verified | TC-BIL-001, 003, 006 |
-| BIL | POST | `/webhooks/sepay` | Must | Verified | A-07; TC-BIL-002, 003, 004, 005 |
+| BIL | GET | `/students/me/invoices` | Must | Verified | `summary.awaitingCount`, `summary.warning` (A-39); TC-BIL-001, 006, 032, 037 |
 | CFG | GET | `/catalog` | Must | Verified | The Term's prices, Deposit and Utility Deposit (C-41); TC-APP-001, TC-CFG-021 |
 
-Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pays an Invoice as if SePay reported the exact transfer; it exists only with `campusstay.payment.simulator=true` (dev profile, or `PAYMENT_SIMULATOR=true` on a demo server). Verified: TC-BIL-027, 028.
+Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the payment simulator `POST /dev/invoices/{id}/simulate-payment` (A-08). Payments are claims (section V2-5).
 
 ## S3 — Review, assignment engine, approval, commit, Allocation, Balance Invoice
 
@@ -111,9 +111,9 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 | ASG | GET | `/assignment-runs/{runId}/proposal` | Must | Verified | TC-ASG-010, 011 |
 | ASG | POST | `/assignment-runs/{runId}/return` | Must | Verified | TC-ASG-010. Nothing waits for approval since v2 phase 1 (C-38): kept, not called by the web |
 | ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Verified | TC-ASG-010, 011. Not called by the web since v2 phase 1 (the Decisions page has no assignment tab) |
-| ASG | GET | `/students/me/allocation` | Must | Verified | C-21; TC-ASG-010, 011 |
+| ASG | GET | `/students/me/allocation` | Must | Verified | C-21; residency status, `stayTerms`, `termination` (A-39, B-06); TC-ASG-010, 011, 032, 035 |
 | BIL | GET | `/payments` | Must | Verified | C-22; TC-BIL-010, 011 |
-| BIL | POST | `/payments/{invoiceId}/confirm` | Must | Verified | C-22; TC-BIL-011, 012 |
+| BIL | POST | `/payments/{invoiceId}/confirm` | Must | Verified | C-22; one Invoice with an optional receipt: its claim, or a transfer not claimed yet; no `amount` (B-05); TC-BIL-011, 012 |
 | BIL | GET | `/payments/{invoiceId}/receipt-file` | Must | Verified | A-09; TC-BIL-011 |
 
 ## S4 — Check-in/out desk, Maintenance Requests, push notifications
@@ -144,9 +144,9 @@ Not in the contract count: `POST /dev/invoices/{id}/simulate-payment` (A-08) pay
 |---|---|---|---|---|---|
 | APP | POST | `/round2-offers/{id}/respond` | Should | Verified | C-27; TC-APP-020, 021 |
 | APP | GET | `/students/me/round2-offer` | Should | Verified | Offers made when a Block is approved (C-27); TC-APP-020 |
-| ASG | GET | `/late-check-ins` | Should | Verified | C-28; TC-ASG-030, 031 |
+| ASG | GET | `/late-check-ins` | Should | Verified | C-28; `source` Online or Desk (A-36); TC-ASG-030, 031, 037 |
 | ASG | POST | `/late-check-ins` | Should | Verified | A-12 (recorded at the desk); TC-ASG-030 |
-| ASG | POST | `/late-check-ins/{id}/decision` | Should | Verified | TC-ASG-030, 031 |
+| ASG | POST | `/late-check-ins/{id}/decision` | Should | Verified | at most `late_check_in.max_days` after the check-in end; moves the Balance deadline (A-36); TC-ASG-030, 031, 033, 037 |
 | BIL | GET | `/finance/overdue` | Should | Verified | Hourly overdue job (C-28); TC-BIL-020 |
 | BIL | POST | `/finance/reminders` | Should | Verified | In-app, push and email; TC-BIL-020 |
 | BIL | GET | `/finance/summary` | Should | Verified | TC-BIL-020, 021 |
@@ -278,7 +278,7 @@ Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | INV | POST | `/door-codes/{room}/confirm` | Must | Verified | A-25; residents notified (`DOOR_CODE_CHANGED`); TC-INV-019, 020, 022 |
 | INV | POST | `/door-codes/{room}/cancel` | Must | Verified | A-25; TC-INV-020 |
 | INV | POST | `/door-codes/{room}/reveal` | Must | Verified | A-25; audited; TC-INV-019, 020, 021 |
-| INV | GET | `/students/me/door-code` | Must | Verified | A-26; released to checked-in residents until phase 5; TC-INV-023 |
+| INV | GET | `/students/me/door-code` | Must | Verified | A-26; released once the Balance is paid, the check-in start has come and the Room's code is confirmed (v2 phase 5, C-42); TC-INV-023, TC-ASG-032, 036 |
 | INV | POST | `/students/me/door-code/reveal` | Must | Verified | A-26; audited; TC-INV-023 |
 | INV | GET | `/students/me/furniture` | Must | Verified | A-26; TC-INV-023 |
 
@@ -308,3 +308,21 @@ Built on `feat/v2-phase4` (ADR-20, ADR-27), in `main` and production since 26/10
 | NTF | POST | `/announcements` | Must | Verified | A-30; Staff: residents of their Blocks only; TC-NTF-041, 042 |
 | NTF | PUT | `/announcements/{id}` | Must | Verified | A-30; pin, end; TC-NTF-042 |
 | RPT | GET | `/dashboards/term` | Must | Verified | A-32; Managers and the Admin; TC-RPT-012 |
+
+## V2-5 — Change Specification v2 phase 5 "Money and residence"
+
+Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), not merged into `main` yet. Migrations V44 (BIL: payment claims, the bank-feed inbox kept as an archive, Invoices fixed once issued and refunded once, reminders, Utility warnings), V45 (ASG: residence and door-code release times, forfeits, late check-ins asked online, terminations), V46 (APP: Gia hạn, Forfeited), V47 (CFG: `cfg_fee_policy` without its two switches, `stay.program_semesters`, the Termination check-out reason), V48 (INV: rotation after an overdue termination) and V49 (NTF: the notifications and emails of money and residence). Contract changes A-34…A-39, B-05…B-07, C-42.
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| BIL | POST | `/invoices/{id}/claim` | Must | Verified | A-34; the student's "I have transferred"; one open claim; Deposit and Balance only before their deadline; TC-BIL-032, 033, 034, 035 |
+| BIL | GET | `/payment-claims` | Must | Verified | A-35; Managers; filters type, since, q, Term, Block (the web sends no Term: a queue of every Term); count and total; TC-BIL-032, 034 |
+| BIL | POST | `/payment-claims/confirm` | Must | Verified | A-35; each Invoice paid at the time of its claim, audited and announced on its own; TC-BIL-032, 034, 035 |
+| BIL | POST | `/payment-claims/reject` | Must | Verified | A-35; reason required; time left given back (min. 12 h); a second rejection cancels a Deposit or Balance; debts never cancelled; TC-BIL-033, 034, 035, TC-ASG-034 |
+| ASG | GET | `/students/me/late-check-in` | Should | Verified | A-36; TC-ASG-037 |
+| ASG | POST | `/students/me/late-check-in` | Should | Verified | A-36; reason, day (up to the check-in end + `late_check_in.max_days`), evidence file; Managers told; TC-ASG-033, 037 |
+| ASG | GET | `/terminations` | Must | Verified | A-37; Managers, Staff (their Blocks, read only); TC-ASG-035, 036, TC-BIL-038 |
+| ASG | POST | `/terminations` | Must | Verified | A-37; Managers; Manager decision (note required) or Not enrolled; TC-ASG-035, 036 |
+| ASG | POST | `/terminations/{id}/cancel` | Must | Verified | A-37; Managers, with a reason; TC-ASG-035 |
+
+Jobs (no endpoint): the forfeit every 5 minutes, the door-code release and overdue terminations every 15 minutes (TC-ASG-032…034, 036), payment reminders and the Managers' hourly summary of claims (TC-BIL-036), overdue Invoices and the Utility debt rules every hour (TC-BIL-020, 037, 038).

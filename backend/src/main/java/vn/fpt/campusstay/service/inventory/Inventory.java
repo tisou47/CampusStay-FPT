@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.inventory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Inventory public API: Beds and where they are, for the assignment engine and Allocation screens.
@@ -54,4 +55,10 @@ public interface Inventory {
 
     /** {@link #assignableBeds(long)} with the Room Class (and the Blocks and Rooms) of the current Term. */
     List<BedSlot> assignableBeds();
+
+    /**
+     * The given Rooms whose door code may be released (spec §6.8): a code is confirmed on the lock and no change is
+     * waiting because someone left the Room.
+     */
+    Set<Long> doorCodeReady(Collection<Long> roomIds);
 }

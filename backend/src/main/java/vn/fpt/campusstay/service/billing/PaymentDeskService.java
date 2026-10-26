@@ -3,7 +3,6 @@ package vn.fpt.campusstay.service.billing;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.text.NumberFormat;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,22 +11,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
-import vn.fpt.campusstay.event.PaymentConfirmed;
-import vn.fpt.campusstay.service.setting.FeePolicy;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
-import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.common.file.FileLinks;
@@ -37,9 +29,8 @@ import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.repository.billing.InvoiceStore;
 
 /**
- * Staff › Payments: the Invoices of the Blocks in scope with their Payment,
- * and manual confirmation of a bank transfer that the VietQR match could not
- * settle (wrong memo, amount mismatch reviewed with the student, cash desk).
+ * Manager › Payments: the Invoices of the Blocks in scope with their Payment, and the confirmation of one Invoice
+ * with a receipt (bulk confirmation of claims: {@link PaymentClaimService}).
  */
 @Service
 public class PaymentDeskService {
@@ -63,7 +54,7 @@ public class PaymentDeskService {
     public record PaymentPage(List<PaymentItem> items, long total, Summary summary) {
     }
 
-    public record ConfirmCommand(Long amount, String reference, String receiptName, byte[] receipt) {
+    public record ConfirmCommand(String reference, String receiptName, byte[] receipt) {
     }
 
     private record Row(String code, String studentName, String studentCode, String type, long amount, String method,
@@ -78,26 +69,21 @@ public class PaymentDeskService {
     private final InvoiceScope scope;
     private final CurrentUser currentUser;
     private final TermCatalog terms;
-    private final FeePolicy fees;
     private final FileStore files;
     private final FileLinks links;
-    private final ApplicationEventPublisher events;
-    private final AuditLog audit;
+    private final PaymentClaimService claims;
     private final Clock clock;
 
     public PaymentDeskService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
-            TermCatalog terms, FeePolicy fees, FileStore files, FileLinks links, ApplicationEventPublisher events,
-            AuditLog audit, Clock clock) {
+            TermCatalog terms, FileStore files, FileLinks links, PaymentClaimService claims, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
         this.currentUser = currentUser;
         this.terms = terms;
-        this.fees = fees;
         this.files = files;
         this.links = links;
-        this.events = events;
-        this.audit = audit;
+        this.claims = claims;
         this.clock = clock;
     }
 
@@ -136,9 +122,10 @@ public class PaymentDeskService {
         }
         if (f.method() != null && !f.method().isBlank()) {
             String m = f.method().trim().toLowerCase(Locale.ROOT);
-            String method = m.startsWith("viet") ? "VIETQR" : m.startsWith("manual") ? "MANUAL" : null;
+            String method = m.startsWith("viet") ? "VIETQR" : m.startsWith("manual") ? "MANUAL"
+                    : m.startsWith("bank") || m.startsWith("transfer") ? "TRANSFER" : null;
             if (method == null) {
-                throw FieldErrors.single("method", "Choose VietQR or Manual transfer.");
+                throw FieldErrors.single("method", "Choose Bank transfer, VietQR or Manual transfer.");
             }
             where.append(" AND i.payment_method = :method");
             params.put("method", method);
@@ -156,7 +143,7 @@ public class PaymentDeskService {
         String from = """
                  FROM bil_invoice i
                  LEFT JOIN bil_payment p ON p.invoice_id = i.id AND p.status = 'CONFIRMED'
-                 LEFT JOIN bil_bank_transaction t ON t.id = p.bank_transaction_id
+                 LEFT JOIN bil_bank_transaction_archive t ON t.id = p.bank_transaction_id
                 """;
         long total = jdbc.sql("SELECT count(*)" + from + where).params(params).query(Long.class).single();
         params.put("limit", page.limit());
@@ -202,70 +189,18 @@ public class PaymentDeskService {
                 .single();
     }
 
-    // ---------------------------------------------------------------- manual confirmation
+    // ---------------------------------------------------------------- confirmation of one Invoice
 
+    /**
+     * A Manager confirms one Invoice with an optional receipt: its payment claim, or a transfer the Manager saw
+     * although the student did not claim it (ADR-22). The amount is always the Invoice's.
+     */
     @Transactional
     public void confirm(String invoiceCode, ConfirmCommand cmd) {
-        AuthenticatedUser user = currentUser.require(Permission.CONFIRM_PAYMENTS);
-        InvoiceStore.Invoice found = invoices.find(invoiceCode).filter(scope::visible)
-                .orElseThrow(() -> ApiException.notFound("This Invoice does not exist."));
-        if (!fees.manualConfirmAllowed()) {
-            throw ApiException.conflict("MANUAL_CONFIRM_OFF",
-                    "Manual confirmation is turned off. Ask the administrator (Admin › Fees).");
-        }
-        InvoiceStore.Invoice inv = invoices.find(found.id(), true).orElseThrow();
-        if (inv.status().equals("PAID") || inv.status().equals("REFUNDED")) {
-            throw ApiException.conflict("ALREADY_PAID", "This Invoice is already paid.");
-        }
-        if (!inv.payable()) {
-            throw ApiException.conflict("INVOICE_NOT_PAYABLE", "This Invoice cannot be paid: it is "
-                    + InvoiceLabels.status(inv.status()).toLowerCase(Locale.ROOT) + ".");
-        }
-        FieldErrors errors = new FieldErrors();
-        if (cmd.amount() == null) {
-            errors.add("amount", "Enter the amount received.");
-        } else if (cmd.amount() != inv.amount()) {
-            errors.add("amount", "The amount must be exactly " + NumberFormat.getIntegerInstance(Locale.US)
-                    .format(inv.amount()) + " VND, the Invoice amount.");
-        }
-        String reference = cmd.reference() == null ? "" : cmd.reference().trim();
-        if (reference.isEmpty()) {
-            errors.add("reference", "Enter the bank reference of the transfer.");
-        } else if (reference.length() > 60) {
-            errors.add("reference", "Keep the reference under 60 characters.");
-        }
-        errors.throwIfAny();
-
-        Long receiptId = null;
-        if (cmd.receipt() != null && cmd.receipt().length > 0) {
-            receiptId = files.store("bil", Optional.ofNullable(cmd.receiptName()).orElse("receipt"), cmd.receipt(),
-                    FileStore.IMAGES_AND_PDF, user.userId()).id();
-        }
-        Instant now = Instant.now(clock);
-        try {
-            jdbc.sql("""
-                    INSERT INTO bil_payment (invoice_id, amount, method, reference, receipt_file_id, paid_at, confirmed_by)
-                    VALUES (:invoice, :amount, 'MANUAL', :reference, :receipt, :paidAt, :by)
-                    """)
-                    .param("invoice", inv.id()).param("amount", inv.amount()).param("reference", reference)
-                    .param("receipt", receiptId).param("paidAt", Timestamp.from(now)).param("by", user.userId())
-                    .update();
-        } catch (DuplicateKeyException e) {
-            throw ApiException.conflict("ALREADY_PAID", "This Invoice is already paid.");
-        }
-        jdbc.sql("""
-                UPDATE bil_invoice SET status = 'PAID', paid_at = :paidAt, payment_method = 'MANUAL', updated_at = :now,
-                       version = version + 1
-                WHERE id = :id
-                """)
-                .param("paidAt", Timestamp.from(now)).param("now", Timestamp.from(now)).param("id", inv.id()).update();
-        audit.record("PAYMENT_CONFIRMED_MANUALLY", AuditLog.Tone.SUCCESS, "Invoice", inv.id(), inv.code(),
-                Map.of("amount", inv.amount(), "method", "Manual transfer", "receipt", receiptId != null));
-        events.publishEvent(new PaymentConfirmed(inv.id(), inv.code(), inv.studentId(), inv.applicationId(), inv.type(),
-                inv.title(), inv.amount(), now));
+        claims.confirmOne(invoiceCode, cmd.reference(), cmd.receiptName(), cmd.receipt());
     }
 
-    /** The transfer receipt a Staff member attached when confirming. */
+    /** The transfer receipt a Manager attached when confirming. */
     @Transactional(readOnly = true)
     public FileStore.FileContent receiptFile(String invoiceCode) {
         currentUser.require(Permission.CONFIRM_PAYMENTS);

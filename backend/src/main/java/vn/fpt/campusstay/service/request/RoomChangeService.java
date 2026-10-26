@@ -205,7 +205,7 @@ public class RoomChangeService {
     public Created create(CreateCommand cmd) {
         long me = currentUser.require(Role.STUDENT).userId();
         TermSummary term = studentTerm(me, cmd.termId());
-        Moves.Placement p = moves.current(me, term.id()).filter(x -> x.checkedInAt() != null)
+        Moves.Placement p = moves.current(me, term.id()).filter(x -> x.residentAt() != null)
                 .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN",
                         "You can ask for a room change once you have checked in."));
         if (utility.blockChangesWhenOverdue() && billing.hasOverdueInvoice(me)) {

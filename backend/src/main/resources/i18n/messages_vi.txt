@@ -309,12 +309,7 @@ This Invoice is already paid. ⟶ Hóa đơn này đã được thanh toán.
 This Invoice cannot be paid: it is {0}. ⟶ Không thể thanh toán hóa đơn này: hóa đơn đang ở trạng thái {0}.
 A receipt is available once the Invoice is paid. ⟶ Biên lai có sau khi hóa đơn được thanh toán.
 No receipt is attached to this Payment. ⟶ Khoản thanh toán này không có biên lai.
-Manual confirmation is turned off. Ask the administrator (Admin › Fees). ⟶ Xác nhận thủ công đang tắt. Hãy liên hệ quản trị viên (Quản trị › Phí).
-Enter the amount received. ⟶ Hãy nhập số tiền đã nhận.
-The amount must be exactly {0} VND, the Invoice amount. ⟶ Số tiền phải đúng {0} VND, bằng số tiền của hóa đơn.
-Enter the bank reference of the transfer. ⟶ Hãy nhập mã giao dịch ngân hàng của lần chuyển khoản.
 Keep the reference under 60 characters. ⟶ Mã giao dịch tối đa 60 ký tự.
-Choose VietQR or Manual transfer. ⟶ Hãy chọn VietQR hoặc Chuyển khoản thủ công.
 Choose a valid Invoice status. ⟶ Hãy chọn trạng thái hóa đơn hợp lệ.
 Choose a valid Invoice type. ⟶ Hãy chọn loại hóa đơn hợp lệ.
 Select at least one Invoice. ⟶ Hãy chọn ít nhất một hóa đơn.
@@ -335,10 +330,6 @@ Choose Missing, Entered, Check value or Confirmed. ⟶ Hãy chọn Chưa có, Đ
 {0} Rooms have no reading yet. ⟶ Còn {0} phòng chưa có chỉ số.
 Confirm the {0} reading marked Check value first. ⟶ Hãy xác nhận {0} chỉ số đang cần kiểm tra trước.
 Confirm the {0} readings marked Check value first. ⟶ Hãy xác nhận {0} chỉ số đang cần kiểm tra trước.
-Invalid API key. ⟶ API key không hợp lệ.
-The bank feed is not configured. ⟶ Chưa cấu hình kết nối ngân hàng.
-The webhook body could not be read. ⟶ Không đọc được nội dung webhook.
-The webhook body has no transaction id. ⟶ Nội dung webhook không có mã giao dịch.
 
 # ---------- requests: room changes, swaps, routing, escalations ----------
 This Room-Change Request does not exist. ⟶ Yêu cầu đổi phòng này không tồn tại.
@@ -731,3 +722,37 @@ Utility Deposit at Check-out, minus unpaid Utility and damage ⟶ Tiền cọc �
 Balance not paid by its deadline (the Deposit is kept) ⟶ Không thanh toán tiền phòng còn lại đúng hạn (giữ lại tiền cọc)
 Stay ended because the student is no longer enrolled (unused room fee) ⟶ Chấm dứt ở vì sinh viên không còn theo học (tiền phòng chưa dùng)
 Stay terminated for Utility debt or by a Manager (unused room fee) ⟶ Chấm dứt ở vì nợ điện nước hoặc do Quản lý quyết định (tiền phòng chưa dùng)
+
+# ---------- Change Spec v2 phase 5: money and residence ----------
+You already said you transferred this Invoice. A Manager is checking it. ⟶ Bạn đã báo chuyển khoản cho hóa đơn này. Quản lý đang kiểm tra.
+The deadline of this Invoice has passed. ⟶ Hóa đơn này đã quá hạn thanh toán.
+No payment claim is waiting for this Invoice. ⟶ Hóa đơn này không có báo chuyển khoản nào đang chờ.
+Write why the transfer cannot be confirmed. ⟶ Hãy ghi lý do không xác nhận được khoản chuyển.
+Select at most {0} Invoices at a time. ⟶ Mỗi lần chọn tối đa {0} hóa đơn.
+Choose today, 24h or 7d. ⟶ Hãy chọn hôm nay, 24 giờ hoặc 7 ngày.
+No bank account is configured for transfers yet. ⟶ Chưa cấu hình tài khoản ngân hàng nhận chuyển khoản.
+Choose Bank transfer, VietQR or Manual transfer. ⟶ Hãy chọn Chuyển khoản ngân hàng, VietQR hoặc Chuyển khoản thủ công.
+This refund is decided by {0}. ⟶ Khoản hoàn tiền này do {0} quyết định.
+the Admin ⟶ Quản trị viên
+the Block's Staff ⟶ nhân viên của Block
+a Manager ⟶ Quản lý
+A Manager is checking your transfer. Cancel once it is confirmed or rejected. ⟶ Quản lý đang kiểm tra khoản chuyển của bạn. Hãy hủy sau khi khoản chuyển được xác nhận hoặc từ chối.
+Choose from 1 to {0} Terms. ⟶ Hãy chọn từ 1 đến {0} kỳ.
+You do not hold a Bed waiting for check-in. ⟶ Bạn không có chỗ ở nào đang chờ nhận phòng.
+You have already checked in. ⟶ Bạn đã nhận phòng rồi.
+The check-in period has ended. Ask the dormitory desk about a late check-in. ⟶ Thời gian nhận phòng đã kết thúc. Hãy hỏi quầy ký túc xá về việc nhận phòng muộn.
+Write why you arrive late. ⟶ Hãy ghi lý do bạn đến muộn.
+Choose the day you will arrive. ⟶ Hãy chọn ngày bạn sẽ đến.
+Choose a day up to {0}. ⟶ Hãy chọn một ngày đến hết {0}.
+Attach a document that explains the delay (JPEG, PNG or PDF). ⟶ Hãy đính kèm giấy tờ giải thích lý do đến muộn (JPEG, PNG hoặc PDF).
+Your late check-in is already waiting for a decision. ⟶ Yêu cầu nhận phòng muộn của bạn đang chờ quyết định.
+This student does not live in the Room. ⟶ Sinh viên này không ở trong phòng.
+Choose Notice sent, Overdue, Checked out or Cancelled. ⟶ Hãy chọn Đã gửi thông báo, Quá hạn, Đã trả phòng hoặc Đã hủy.
+Choose Manager decision or Not enrolled. ⟶ Hãy chọn Quyết định của Quản lý hoặc Không còn theo học.
+Write why the stay is terminated. ⟶ Hãy ghi lý do chấm dứt hợp đồng ở.
+This student does not live in the dormitory. ⟶ Sinh viên này không ở ký túc xá.
+Write why the termination is cancelled. ⟶ Hãy ghi lý do hủy việc chấm dứt hợp đồng ở.
+This termination does not exist. ⟶ Việc chấm dứt hợp đồng ở này không tồn tại.
+This termination is already closed. ⟶ Việc chấm dứt hợp đồng ở này đã kết thúc.
+This stay is already terminated. ⟶ Hợp đồng ở này đã bị chấm dứt.
+Semesters of a study programme (Gia hạn stops at the last one) ⟶ Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)

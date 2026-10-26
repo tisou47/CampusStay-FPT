@@ -27,6 +27,8 @@ import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.Billing;
+import vn.fpt.campusstay.event.AllocationForfeited;
+import vn.fpt.campusstay.event.PaymentClaimRejected;
 import vn.fpt.campusstay.event.PaymentConfirmed;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.FeePolicy;
@@ -64,8 +66,9 @@ public class ApplicationService {
     public record Consent(Boolean matching, Boolean rules) {
     }
 
+    /** @param stayTerms Gia hạn (1 to the student's maximum); null = 1 */
     public record CreateCommand(Long termId, Long roomTypeId, Long roomClassId, Roommate roommate, Contact contact,
-            Consent consent) {
+            Consent consent, Integer stayTerms) {
     }
 
     public record Created(String id, String depositInvoiceId, Instant depositDueAt) {
@@ -191,6 +194,7 @@ public class ApplicationService {
             preferences.put("major", code("MAJOR", roommate.preferences().major(), "major", errors));
         }
         Map<String, String> contact = contact(cmd.contact(), errors);
+        int stayTerms = stayTerms(cmd.stayTerms(), me.userId(), errors);
         Consent consent = cmd.consent();
         errors.check(consent != null && Boolean.TRUE.equals(consent.matching()) && Boolean.TRUE.equals(consent.rules()),
                 "consent", "Tick both consent boxes to apply.");
@@ -209,7 +213,7 @@ public class ApplicationService {
 
         UserDirectory.StudentProfile student = users.studentProfile(me.userId()).orElseThrow();
         NewApplication created = insert(term, student, type.id(), roomClass.id(), termPrice, roomClass.surchargeRate(),
-                deposit, invite ? "INVITE" : "AUTO", preferences, contact, depositDueAt, null);
+                deposit, invite ? "INVITE" : "AUTO", preferences, contact, depositDueAt, null, stayTerms);
         Billing.IssuedInvoice invoice = billing.issueDeposit(new Billing.DepositRequest(term.id(), me.userId(),
                 created.id(), created.code(), termPrice, deposit, depositDueAt));
         applications.event(created.id(), "AWAITING_DEPOSIT", "Application created", null, me.userId());
@@ -240,19 +244,21 @@ public class ApplicationService {
 
     private NewApplication insert(TermSummary term, UserDirectory.StudentProfile student, long roomTypeId,
             long roomClassId, long termPrice, BigDecimal surchargeRate, long deposit, String mode,
-            Map<String, String> preferences, Map<String, String> contact, Instant depositDueAt, Long partnerId) {
+            Map<String, String> preferences, Map<String, String> contact, Instant depositDueAt, Long partnerId,
+            int stayTerms) {
         Timestamp now = Timestamp.from(Instant.now(clock));
         return jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('app_application', 'id')) AS id)
                 INSERT INTO app_application (id, code, term_id, student_id, room_type_id, room_class_id, term_price,
                                              surcharge_rate, deposit_amount, status, roommate_mode, partner_application_id,
                                              roommate_preferences, contact, consent_matching, consent_rules, consented_at,
-                                             deposit_due_at, created_at, updated_at, student_name, student_code, gender)
+                                             deposit_due_at, created_at, updated_at, student_name, student_code, gender,
+                                             stay_terms)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'APP-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'),
                        :term, :student, :type, :class, :price, :surcharge, :deposit, 'AWAITING_DEPOSIT', :mode, :partner,
                        CAST(:preferences AS jsonb), CAST(:contact AS jsonb), TRUE, TRUE, :now, :due, :now, :now,
-                       :studentName, :studentCode, :gender
+                       :studentName, :studentCode, :gender, :stayTerms
                 FROM next
                 RETURNING id, code
                 """)
@@ -273,14 +279,16 @@ public class ApplicationService {
                 .param("contact", json.writeValueAsString(contact))
                 .param("now", now)
                 .param("due", Timestamp.from(depositDueAt))
+                .param("stayTerms", stayTerms)
                 .query((rs, i) -> new NewApplication(rs.getLong("id"), rs.getString("code")))
                 .single();
     }
 
     // ---------------------------------------------------------------- invitation answer
 
+    /** @param stayTerms the invitee's Gia hạn when accepting; null = 1 */
     @Transactional
-    public Responded respond(long invitationId, boolean accept) {
+    public Responded respond(long invitationId, boolean accept, Integer stayTerms) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
         record Invitation(long id, long termId, long inviterApplicationId, Instant expiresAt) {
         }
@@ -311,6 +319,9 @@ public class ApplicationService {
             throw ApiException.conflict("NOT_ELIGIBLE", "You cannot apply for " + term.name() + ". " + check.reasons());
         }
         UserDirectory.StudentProfile profile = users.studentProfile(me.userId()).orElseThrow();
+        FieldErrors errors = new FieldErrors();
+        int terms = stayTerms(stayTerms, me.userId(), errors);
+        errors.throwIfAny();
         Map<String, String> contact = new LinkedHashMap<>();
         contact.put("phone", profile.phone());
         contact.put("email", null);
@@ -322,7 +333,7 @@ public class ApplicationService {
         // Accepting the invitation on its screen is the consent to matching and the rules (it states both).
         NewApplication created = insert(term, profile, inviter.roomTypeId(), inviter.roomClassId(),
                 inviter.termPrice(), inviter.surchargeRate(), inviter.depositAmount(), "INVITE", null, contact,
-                depositDueAt, inviter.id());
+                depositDueAt, inviter.id(), terms);
         Billing.IssuedInvoice invoice = billing.issueDeposit(new Billing.DepositRequest(term.id(), me.userId(),
                 created.id(), created.code(), inviter.termPrice(), inviter.depositAmount(), depositDueAt));
         jdbc.sql("UPDATE app_application SET partner_application_id = :partner, updated_at = :now WHERE id = :id")
@@ -388,6 +399,49 @@ public class ApplicationService {
         }
     }
 
+    // ---------------------------------------------------------------- payment claims and forfeits
+
+    /**
+     * A Manager rejected the Deposit claim (Billing's transaction): the Deposit window continues to the Invoice's new
+     * deadline; after too many rejections the Invoice is void and the Application expires (spec §6.7).
+     */
+    @EventListener
+    void on(PaymentClaimRejected e) {
+        if (!e.type().equals("DEPOSIT") || e.applicationId() == null) {
+            return;
+        }
+        ApplicationStore.Application app = applications.find(e.applicationId(), true).orElse(null);
+        if (app == null || !app.status().equals("AWAITING_DEPOSIT")) {
+            return;
+        }
+        if (!e.cancelled()) {
+            jdbc.sql("UPDATE app_application SET deposit_due_at = :due, updated_at = :now WHERE id = :id")
+                    .param("due", Timestamp.from(e.dueAt())).param("now", Timestamp.from(Instant.now(clock)))
+                    .param("id", app.id()).update();
+            applications.event(app.id(), "AWAITING_DEPOSIT", "Deposit transfer not confirmed", e.reason(), null);
+            return;
+        }
+        if (applications.transition(app.id(), Set.of("AWAITING_DEPOSIT"), "EXPIRED")) {
+            applications.event(app.id(), "EXPIRED", "Expired: the Deposit transfer was rejected " + e.rejected()
+                    + " times", e.reason(), null);
+            cancelPendingInvitation(app.id());
+            if (app.partnerApplicationId() != null) {
+                applications.find(app.partnerApplicationId(), true)
+                        .ifPresent(p -> dropRoommate(p, "Your roommate's Deposit was not confirmed"));
+            }
+        }
+    }
+
+    /** The Balance was not paid in time (Assignment's transaction): the Application is Forfeited. */
+    @EventListener
+    void on(AllocationForfeited e) {
+        if (e.applicationId() != null && applications.transition(e.applicationId(), Set.of("ALLOCATED"), "FORFEITED")) {
+            applications.event(e.applicationId(), "FORFEITED", e.reason().equals("UNPAID")
+                    ? "Bed released: the Balance was not paid by its deadline"
+                    : "Bed released: the Balance transfer was not confirmed", "The Deposit is kept.", null);
+        }
+    }
+
     // ---------------------------------------------------------------- cancel
 
     @Transactional
@@ -401,6 +455,10 @@ public class ApplicationService {
         if (!canCancel(app, term)) {
             throw ApiException.conflict("CANNOT_CANCEL", "This Application can no longer be cancelled here. "
                     + "Contact the dormitory office.");
+        }
+        if (billing.invoicesOfApplication(app.id()).stream().anyMatch(i -> i.status().equals("Awaiting confirmation"))) {
+            throw ApiException.conflict("CLAIM_WAITING",
+                    "A Manager is checking your transfer. Cancel once it is confirmed or rejected.");
         }
         String note = reason == null || reason.isBlank() ? null : reason.trim();
         jdbc.sql("""
@@ -453,8 +511,8 @@ public class ApplicationService {
         for (long id : overdue) {
             ApplicationStore.Application app = applications.find(id, true).orElseThrow();
             List<Billing.InvoiceLine> invoices = billing.invoicesOfApplication(id);
-            if (invoices.stream().anyMatch(i -> billing.isPaid(i.id()))) {
-                continue; // paid at the last moment: the payment listener moves it on
+            if (invoices.stream().anyMatch(i -> billing.isPaid(i.id()) || i.status().equals("Awaiting confirmation"))) {
+                continue; // paid, or a claim stops the clock until a Manager decides (spec §6.7)
             }
             if (applications.transition(id, Set.of("AWAITING_DEPOSIT"), "EXPIRED")) {
                 expired++;
@@ -480,6 +538,16 @@ public class ApplicationService {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /** Gia hạn: 1 when not given; else 1 to the student's maximum. */
+    private int stayTerms(Integer value, long studentId, FieldErrors errors) {
+        if (value == null) {
+            return 1;
+        }
+        int max = users.studentProfile(studentId).map(eligibility::maxStayTerms).orElse(1);
+        errors.check(value >= 1 && value <= max, "stayTerms", "Choose from 1 to " + max + " Terms.");
+        return Math.max(1, Math.min(value, max));
+    }
 
     /** The pair is off: the remaining Application is matched automatically and, if paid, submitted. */
     void dropRoommate(ApplicationStore.Application app, String text) {

@@ -35,10 +35,16 @@ public class StudentAllocationService {
     public record TermRef(String id, String name, LocalDate stayStart, LocalDate stayEnd, Instant resultsPublishedAt) {
     }
 
-    /** @param pass the check-in pass payload the mobile app shows as a QR code ({@code CSTAY-PASS:<allocationId>}) */
+    /**
+     * @param status        {@code Assigned – unpaid}, {@code Paid – waiting for the door code} (the check-in start or
+     *                      the Room's code has not come), then {@code Resident} (spec §7)
+     * @param pass          the check-in pass payload the mobile app shows as a QR code ({@code CSTAY-PASS:<allocationId>})
+     * @param residentSince when the door code was released (or the desk checked the student in)
+     * @param codeReleased  the door code of the Room is released to the student
+     */
     public record AllocationView(String room, String bed, String block, String blockLabel, int floor,
             String roomTypeName, String roomClassName, List<String> amenities, Instant allocatedAt, String status,
-            String pass) {
+            String pass, Instant residentSince, boolean codeReleased) {
     }
 
     public record Roommate(String name, String bed) {
@@ -53,11 +59,21 @@ public class StudentAllocationService {
     public record ApplicationRef(String id, String status) {
     }
 
+    /**
+     * @param stayTerms   Gia hạn of the Application (Terms the student wants to stay), null without one
+     * @param termination the termination of the stay (not a cancelled one), null without one
+     */
     public record MyRoom(TermRef term, AllocationView allocation, List<Roommate> roommates, Integer roommateCapacity,
-            CheckIn checkIn, Balance balance, ApplicationRef application, String rulesUrl) {
+            CheckIn checkIn, Balance balance, ApplicationRef application, String rulesUrl, Integer stayTerms,
+            TerminationService.MyTermination termination) {
     }
 
-    private record Row(long id, Long applicationId, long bedId, Instant allocatedAt, Instant checkedInAt) {
+    static final String UNPAID = "Assigned – unpaid";
+    static final String PAID = "Paid – waiting for the door code";
+    static final String RESIDENT = "Resident";
+
+    private record Row(long id, Long applicationId, long bedId, Instant allocatedAt, Instant checkedInAt,
+            Instant residentAt, Instant codeReleasedAt) {
     }
 
     private static final DateTimeFormatter HOURS = DateTimeFormatter.ofPattern("HH:mm");
@@ -71,10 +87,11 @@ public class StudentAllocationService {
     private final BlockSettings blockSettings;
     private final Billing billing;
     private final UserDirectory users;
+    private final TerminationService terminations;
 
     public StudentAllocationService(JdbcClient jdbc, CurrentUser currentUser, TermCatalog terms,
             Applications applications, Inventory inventory, Catalog catalog, BlockSettings blockSettings,
-            Billing billing, UserDirectory users) {
+            Billing billing, UserDirectory users, TerminationService terminations) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.terms = terms;
@@ -84,6 +101,7 @@ public class StudentAllocationService {
         this.blockSettings = blockSettings;
         this.billing = billing;
         this.users = users;
+        this.terminations = terminations;
     }
 
     /** @param termId null = the Term of the student's active Allocation, else the one open for registration */
@@ -92,24 +110,27 @@ public class StudentAllocationService {
         long me = currentUser.require(Role.STUDENT).userId();
         TermSummary term = term(me, termId);
         if (term == null) {
-            return new MyRoom(null, null, List.of(), null, null, null, null, null);
+            return new MyRoom(null, null, List.of(), null, null, null, null, null, null, null);
         }
         Optional<Row> row = jdbc.sql("""
-                SELECT id, application_id, bed_id, allocated_at, checked_in_at FROM asg_allocation
+                SELECT id, application_id, bed_id, allocated_at, checked_in_at, resident_at, code_released_at
+                FROM asg_allocation
                 WHERE student_id = :me AND term_id = :term AND status = 'ACTIVE'
                 """).param("me", me).param("term", term.id())
                 .query((rs, i) -> new Row(rs.getLong("id"), rs.getObject("application_id", Long.class),
                         rs.getLong("bed_id"), instant(rs.getTimestamp("allocated_at")),
-                        instant(rs.getTimestamp("checked_in_at"))))
+                        instant(rs.getTimestamp("checked_in_at")), instant(rs.getTimestamp("resident_at")),
+                        instant(rs.getTimestamp("code_released_at"))))
                 .optional();
         Optional<Applications.Candidate> app = row.map(Row::applicationId).flatMap(id -> id == null ? Optional.empty()
                 : applications.find(id)).or(() -> applications.live(me, term.id()));
         ApplicationRef appRef = app.map(a -> new ApplicationRef(a.code(), label(a.status()))).orElse(null);
+        Integer stayTerms = app.map(Applications.Candidate::stayTerms).orElse(null);
         TermRef termRef = new TermRef(String.valueOf(term.id()), term.name(), term.stayStart(), term.stayEnd(),
                 term.resultsPublishedAt());
         Inventory.BedSlot bed = row.map(r -> inventory.beds(term.id(), List.of(r.bedId())).get(r.bedId())).orElse(null);
         if (bed == null) {
-            return new MyRoom(termRef, null, List.of(), null, null, null, appRef, null);
+            return new MyRoom(termRef, null, List.of(), null, null, null, appRef, null, stayTerms, null);
         }
         Row allocation = row.get();
         Catalog.RoomClassInfo roomClass = catalog.roomClasses().stream().filter(c -> c.id() == bed.roomClassId())
@@ -119,7 +140,9 @@ public class StudentAllocationService {
         AllocationView view = new AllocationView(bed.roomCode(), bed.bedLabel(), bed.block(), "Block " + bed.block(),
                 bed.floor(), typeName, roomClass == null ? null : roomClass.name(),
                 roomClass == null ? List.of() : roomClass.amenities(), allocation.allocatedAt(),
-                allocation.checkedInAt() == null ? "Allocated" : "Checked in", "CSTAY-PASS:" + allocation.id());
+                allocation.residentAt() != null ? RESIDENT : billing.checkInDue(allocation.id()).isPresent() ? UNPAID
+                        : PAID, "CSTAY-PASS:" + allocation.id(),
+                allocation.residentAt(), allocation.codeReleasedAt() != null);
 
         List<Inventory.BedSlot> roomBeds = inventory.bedsOfRoom(bed.roomId());
         Map<Long, String> labels = roomBeds.stream()
@@ -146,7 +169,8 @@ public class StudentAllocationService {
                 .max(Comparator.comparing(Billing.InvoiceLine::id)))
                 .map(i -> new Balance(i.code(), i.amount(), i.status(), i.dueAt(), i.paidAt()))
                 .orElse(null);
-        return new MyRoom(termRef, view, roommates, Math.max(0, roomBeds.size() - 1), checkIn, balance, appRef, null);
+        return new MyRoom(termRef, view, roommates, Math.max(0, roomBeds.size() - 1), checkIn, balance, appRef, null,
+                stayTerms, terminations.ofAllocation(allocation.id()).orElse(null));
     }
 
     private TermSummary term(long me, Long termId) {

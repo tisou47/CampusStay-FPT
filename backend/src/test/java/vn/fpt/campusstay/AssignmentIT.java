@@ -241,7 +241,7 @@ class AssignmentIT {
                 .andExpect(jsonPath("$.allocation.blockLabel").value("Block A"))
                 .andExpect(jsonPath("$.allocation.roomTypeName").value("2-bed"))
                 .andExpect(jsonPath("$.allocation.roomClassName").value("Standard"))
-                .andExpect(jsonPath("$.allocation.status").value("Allocated"))
+                .andExpect(jsonPath("$.allocation.status").value("Assigned – unpaid"))
                 .andExpect(jsonPath("$.roommateCapacity").value(1))
                 .andExpect(jsonPath("$.checkIn.start").value("2031-01-02"))
                 .andExpect(jsonPath("$.checkIn.deskHours").value("07:30–21:00"))

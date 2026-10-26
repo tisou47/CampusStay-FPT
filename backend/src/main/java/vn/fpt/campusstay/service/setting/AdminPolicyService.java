@@ -38,15 +38,15 @@ public class AdminPolicyService {
     public record RefundRule(String id, String when, BigDecimal refundPercent, String approver, Boolean active) {
     }
 
-    public record Fees(BigDecimal depositPercent, Integer depositHours, Integer balanceDays, Boolean blockCheckIn,
-            Boolean manualConfirm, Boolean policyConfirmed, List<RefundRule> rules, List<String> approverOptions) {
+    public record Fees(BigDecimal depositPercent, Integer depositHours, Integer balanceDays, Boolean policyConfirmed,
+            List<RefundRule> rules, List<String> approverOptions) {
     }
 
     /** {@code failing}: students who fail it now (spec §6.17); ignored on PUT. */
     public record Criterion(String key, String title, String note, Boolean on, Long failing) {
     }
 
-    /** A check every Application passes that has no switch (registration open, account verified). */
+    /** A check every Application passes that has no switch (registration open, account verified, not a resident). */
     public record Fixed(String key, String title, String note, Long failing) {
     }
 
@@ -100,13 +100,11 @@ public class AdminPolicyService {
                         rs.getBoolean("active")))
                 .list();
         return jdbc.sql("""
-                SELECT deposit_percent, deposit_hours, balance_days, block_check_in_if_unpaid, allow_manual_confirm,
-                       policy_confirmed
+                SELECT deposit_percent, deposit_hours, balance_days, policy_confirmed
                 FROM cfg_fee_policy WHERE id = 1
                 """)
                 .query((rs, i) -> new Fees(Decimals.plain(rs.getBigDecimal("deposit_percent")), rs.getInt("deposit_hours"),
-                        rs.getInt("balance_days"), rs.getBoolean("block_check_in_if_unpaid"),
-                        rs.getBoolean("allow_manual_confirm"), rs.getBoolean("policy_confirmed"), rules,
+                        rs.getInt("balance_days"), rs.getBoolean("policy_confirmed"), rules,
                         APPROVER_ORDER.stream().map(APPROVERS::get).toList()))
                 .single();
     }
@@ -140,15 +138,12 @@ public class AdminPolicyService {
 
         jdbc.sql("""
                 UPDATE cfg_fee_policy SET deposit_percent = :percent, deposit_hours = :hours, balance_days = :days,
-                       block_check_in_if_unpaid = :blockCheckIn, allow_manual_confirm = :manualConfirm,
                        policy_confirmed = :confirmed, updated_at = :now, updated_by = :by, version = version + 1
                 WHERE id = 1
                 """)
                 .param("percent", percent.setScale(2, RoundingMode.HALF_UP))
                 .param("hours", body.depositHours())
                 .param("days", body.balanceDays())
-                .param("blockCheckIn", Boolean.TRUE.equals(body.blockCheckIn()))
-                .param("manualConfirm", Boolean.TRUE.equals(body.manualConfirm()))
                 .param("confirmed", Boolean.TRUE.equals(body.policyConfirmed()))
                 .param("now", Timestamp.from(Instant.now(clock)))
                 .param("by", actors.currentActor().id())
@@ -194,8 +189,6 @@ public class AdminPolicyService {
         put(change, "depositPercent", before.depositPercent(), after.depositPercent());
         put(change, "depositHours", before.depositHours(), after.depositHours());
         put(change, "balanceDays", before.balanceDays(), after.balanceDays());
-        put(change, "blockCheckIn", before.blockCheckIn(), after.blockCheckIn());
-        put(change, "manualConfirm", before.manualConfirm(), after.manualConfirm());
         put(change, "policyConfirmed", before.policyConfirmed(), after.policyConfirmed());
         Map<String, RefundRule> old = new LinkedHashMap<>();
         before.rules().forEach(r -> old.put(r.id(), r));
@@ -283,7 +276,10 @@ public class AdminPolicyService {
                 new Fixed("REGISTRATION_OPEN", "Registration is open", "Students apply between the opening and the "
                         + "closing of the Term's registration", null),
                 new Fixed(EligibilityCounts.VERIFIED, "Account verified", "A Manager or the imported student list "
-                        + "confirmed the student's record", now.failing().get(EligibilityCounts.VERIFIED)));
+                        + "confirmed the student's record", now.failing().get(EligibilityCounts.VERIFIED)),
+                new Fixed(EligibilityCounts.NOT_RESIDENT, "Not a continuing resident of the Term", "A student who "
+                        + "already holds a Bed for the Term stays through requests, not a new Application",
+                        now.failing().get(EligibilityCounts.NOT_RESIDENT)));
         return new Eligibility(criteria, groups, appliesFrom, now.students(), fixed);
     }
 

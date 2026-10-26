@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.jayway.jsonpath.JsonPath;
 
@@ -18,20 +17,23 @@ import org.springframework.test.web.servlet.ResultActions;
 /**
  * Helpers for the Application and payment integration tests: a published Term
  * whose registration is open now (so tests do not depend on the seed's dates),
- * submitting an Application and paying through the SePay webhook.
+ * submitting an Application and paying it: the student's "I have transferred"
+ * confirmed by a Manager (ADR-22).
  */
 final class ApplyFlow {
 
     static final String TERM_CODE = "TT31";
     static final String TERM_NAME = "Test Term 2031";
-    static final String SEPAY_KEY = "Apikey test-sepay-key";
-    private static final AtomicLong BANK_TXN = new AtomicLong(900_000);
+    /** The first bytes of a PNG file: enough for the upload checks (evidence, receipts). */
+    static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H',
+            'D', 'R' };
 
     record Applied(String id, String depositInvoiceId) {
     }
 
     private final MockMvc mvc;
     private final JdbcClient jdbc;
+    private String manager;
 
     ApplyFlow(MockMvc mvc, JdbcClient jdbc) {
         this.mvc = mvc;
@@ -84,31 +86,31 @@ final class ApplyFlow {
         return new Applied(JsonPath.read(json, "$.id"), JsonPath.read(json, "$.depositInvoiceId"));
     }
 
-    /** What SePay posts for a transfer to the receiving account. */
-    static String sepay(long id, String code, String content, long amount) {
-        return """
-                {"id":%d,"gateway":"MBBank","transactionDate":"2026-10-21 10:15:00","accountNumber":"0000000000",
-                 "code":%s,"content":"%s","transferType":"in","transferAmount":%d,"accumulated":50000000,
-                 "subAccount":null,"referenceCode":"FT%d","description":"BankAPINotify"}"""
-                .formatted(id, code == null ? "null" : "\"" + code + "\"", content, amount, id);
+    /** The student's "I have transferred". */
+    ResultActions claim(String auth, String invoiceId) throws Exception {
+        return mvc.perform(post("/invoices/" + invoiceId + "/claim").header(HttpHeaders.AUTHORIZATION, auth)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
     }
 
-    ResultActions webhook(String body) throws Exception {
-        return mvc.perform(post("/webhooks/sepay").header(HttpHeaders.AUTHORIZATION, SEPAY_KEY)
-                .contentType(MediaType.APPLICATION_JSON).content(body));
+    /** A Manager confirms the claims of the Invoices. */
+    ResultActions confirm(String... invoiceIds) throws Exception {
+        return mvc.perform(post("/payment-claims/confirm").header(HttpHeaders.AUTHORIZATION, manager())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"invoiceIds\":[" + String.join(",", java.util.Arrays.stream(invoiceIds)
+                        .map(i -> "\"" + i + "\"").toList()) + "]}"));
     }
 
-    /** Pays the Invoice exactly, as the bank feed would report it. */
+    /** Pays the Invoice: the student claims the transfer and a Manager confirms it. */
     void pay(String auth, String invoiceId) throws Exception {
-        String page = mvc.perform(get("/invoices/" + invoiceId + "/payment").header(HttpHeaders.AUTHORIZATION, auth))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String transfer = JsonPath.read(page, "$.transferContent");
-        long amount = ((Number) JsonPath.read(page, "$.invoice.amount")).longValue();
-        webhook(sepay(BANK_TXN.incrementAndGet(), transfer, "CK " + transfer, amount)).andExpect(status().isOk());
+        claim(auth, invoiceId).andExpect(status().isOk());
+        confirm(invoiceId).andExpect(status().isOk());
     }
 
-    static long nextTxn() {
-        return BANK_TXN.incrementAndGet();
+    String manager() throws Exception {
+        if (manager == null) {
+            manager = TestAuth.bearer(mvc, TestAuth.MANAGER_A);
+        }
+        return manager;
     }
 
     List<String> statuses(String auth) throws Exception {

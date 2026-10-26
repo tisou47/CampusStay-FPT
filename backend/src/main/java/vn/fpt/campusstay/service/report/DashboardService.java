@@ -127,7 +127,7 @@ public class DashboardService {
     private static final int WAITING_ITEMS = 5;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(TimeConfig.CAMPUS_ZONE);
     private static final List<String> PIPELINE = List.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
-            "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "REJECTED", "CANCELLED", "EXPIRED");
+            "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "FORFEITED", "REJECTED", "CANCELLED", "EXPIRED");
     /** Refunds to decide, as on the Manager's refund list: the Blocks', and those without a Bed by gender. */
     private static final String PENDING_REFUNDS = """
             SELECT count(*) FROM rpt_v_refund WHERE term_id = :term
@@ -196,9 +196,11 @@ public class DashboardService {
                     + " in the allocation proposal", "Resolve them before the Block goes to its Manager.",
                     "/staff/assignment/" + proposal.runId(), "Resolve"));
         }
-        if (toConfirm > 0) {
+        // Only Managers confirm payment claims (ADR-19, ADR-22).
+        if (toConfirm > 0 && Permission.CONFIRM_PAYMENTS.allows(currentUser.get().role())) {
             attention.add(new Attention("payments", "payments", "warning", plural(toConfirm, "transfer") + " to confirm",
-                    "Students paid by bank transfer and are waiting for a check.", "/staff/payments", "Confirm"));
+                    "Students said they transferred and wait for a Manager to confirm.", "/manager/payment-claims",
+                    "Confirm"));
         }
         if (urgent > 0) {
             attention.add(new Attention("maintenance", "maintenance", "error",
@@ -511,7 +513,6 @@ public class DashboardService {
     private List<Integration> integrations() {
         List<Integration> list = new ArrayList<>();
         list.add(integration("Google sign-in", "campusstay.auth.google.client-id"));
-        list.add(integration("SePay bank feed", "campusstay.payment.sepay-api-key"));
         list.add(integration("Receiving bank account", "campusstay.payment.account-number"));
         list.add(integration("Push notifications (FCM)", "campusstay.push.fcm-credentials-file"));
         list.add(integration("Email", "spring.mail.host"));

@@ -236,7 +236,7 @@ public class EmailCampaignService {
         Map<Long, Long> buildingOf = buildings(term.id());
         Set<Long> ids = switch (group) {
             case "residents", "not-checked-in" -> residences.ofTerm(term.id()).stream()
-                    .filter(r -> r.checkedIn() == group.equals("residents"))
+                    .filter(r -> r.resident() == group.equals("residents"))
                     .map(Residences.TermResident::studentId).collect(Collectors.toSet());
             case "unpaid" -> billing.withUnpaid(term.id());
             case "waitlisted" -> applications.applicants(term.id()).entrySet().stream()

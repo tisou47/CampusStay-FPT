@@ -14,6 +14,7 @@ import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.setting.EligibilityRules;
+import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.Buildings;
@@ -33,7 +34,8 @@ public class EligibilityService {
     public record Check(String title, String detail, boolean passed) {
     }
 
-    public record Eligibility(TermView term, boolean eligible, List<Check> checks) {
+    /** @param maxStayTerms the most Terms (Gia hạn) the student may choose on the wizard */
+    public record Eligibility(TermView term, boolean eligible, List<Check> checks, int maxStayTerms) {
     }
 
     /** Result of the checks for one student and Term. */
@@ -55,9 +57,12 @@ public class EligibilityService {
     private final ApplicationStore applications;
     private final Billing billing;
     private final Buildings buildings;
+    private final StudentAllocations allocations;
+    private final Parameters parameters;
 
     public EligibilityService(CurrentUser currentUser, UserDirectory users, TermCatalog terms, EligibilityRules rules,
-            ApplicationStore applications, Billing billing, Buildings buildings) {
+            ApplicationStore applications, Billing billing, Buildings buildings, StudentAllocations allocations,
+            Parameters parameters) {
         this.currentUser = currentUser;
         this.users = users;
         this.terms = terms;
@@ -65,6 +70,21 @@ public class EligibilityService {
         this.applications = applications;
         this.billing = billing;
         this.buildings = buildings;
+        this.allocations = allocations;
+        this.parameters = parameters;
+    }
+
+    /**
+     * Gia hạn (spec §6.6, D-13): 1 to {@code stay.max_terms}, capped by the semesters the student has left in the
+     * programme ({@code stay.program_semesters}) when the directory knows the current semester.
+     */
+    int maxStayTerms(UserDirectory.StudentProfile profile) {
+        int max = Math.max(1, parameters.intValue("stay.max_terms"));
+        Integer semester = profile.semesterNo();
+        if (semester != null && semester > 0) {
+            max = Math.min(max, parameters.intValue("stay.program_semesters") - semester + 1);
+        }
+        return Math.max(1, max);
     }
 
     /** @param termId the Term the app shows; null = the Term open for registration */
@@ -72,7 +92,8 @@ public class EligibilityService {
     public Eligibility forCurrentStudent(Long termId) {
         long student = currentUser.require(Role.STUDENT).userId();
         Result r = check(student, registrationTerm(termId).orElse(null));
-        return new Eligibility(TermView.of(r.term()), r.eligible(), r.checks());
+        return new Eligibility(TermView.of(r.term()), r.eligible(), r.checks(),
+                users.studentProfile(student).map(this::maxStayTerms).orElse(1));
     }
 
     /** The Term asked for (must be published), or else the one open for registration. */
@@ -115,6 +136,12 @@ public class EligibilityService {
         if (!profile.verified()) {
             checks.add(new Check("Account verified",
                     "A Manager has not verified your account yet. You can apply once it is verified.", false));
+            eligible = false;
+        }
+        // A continuing resident of the Term stays through next-Term requests, not a new Application (spec §6.6).
+        if (term != null && allocations.holdsBed(studentId, term.id())) {
+            checks.add(new Check("Not a continuing resident of the Term",
+                    "You already hold a Bed for " + term.name() + ".", false));
             eligible = false;
         }
         for (EligibilityRules.Criterion c : term == null ? rules.enabled() : rules.enabled(term.id())) {
