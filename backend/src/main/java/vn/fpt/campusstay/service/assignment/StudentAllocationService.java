@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.service.assignment;
 
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -23,6 +25,7 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.setting.BlockSettings;
 import vn.fpt.campusstay.service.setting.Catalog;
+import vn.fpt.campusstay.service.setting.FeePolicy;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.Inventory;
@@ -62,10 +65,41 @@ public class StudentAllocationService {
     /**
      * @param stayTerms   Gia hạn of the Application (Terms the student wants to stay), null without one
      * @param termination the termination of the stay (not a cancelled one), null without one
+     * @param stay        the student's Stay (Terms committed and used), null before they became a resident
+     * @param nextTerm    where the student stays in the next Term once its requests window opened, else null
      */
     public record MyRoom(TermRef term, AllocationView allocation, List<Roommate> roommates, Integer roommateCapacity,
             CheckIn checkIn, Balance balance, ApplicationRef application, String rulesUrl, Integer stayTerms,
-            TerminationService.MyTermination termination) {
+            TerminationService.MyTermination termination, StayInfo stay, NextTermView nextTerm) {
+    }
+
+    /** @param termsLeft Terms left on the Stay after the current one; {@code status} {@code Active} or {@code Ended} */
+    public record StayInfo(int committedTerms, int termsUsed, int termsLeft, String status) {
+    }
+
+    /**
+     * @param filing     next-Term requests can be filed now (M2 ≤ now < M3)
+     * @param checkOutBy the day those who do not continue must have checked out of the current Term
+     */
+    public record WindowView(Instant opensAt, Instant closesAt, Instant decisionsDueAt, Instant feesDueAt,
+            boolean filing, LocalDate checkOutBy) {
+    }
+
+    public record Fee(String invoiceId, long amount, String status, Instant dueAt) {
+    }
+
+    /**
+     * The student's next Term (spec §6.10 step 1).
+     *
+     * @param state      {@code Continuing}, {@code Awaiting extension} (the last Term of the Stay) or
+     *                   {@code Not continuing}
+     * @param termPrice  the next Term's price of the Bed (the next-Term fee), null when not continuing
+     * @param endReason  why the student does not continue ({@code End of stay}, {@code Not extended} …), else null
+     * @param checkOutBy the day to check out of the current Term when not continuing
+     */
+    public record NextTermView(TermRef term, String state, String room, String bed, String roomTypeName,
+            String roomClassName, Long termPrice, int termsLeft, Fee fee, WindowView window, String endReason,
+            LocalDate checkOutBy) {
     }
 
     static final String UNPAID = "Assigned – unpaid";
@@ -88,10 +122,17 @@ public class StudentAllocationService {
     private final Billing billing;
     private final UserDirectory users;
     private final TerminationService terminations;
+    private final Stays stays;
+    private final FeePolicy fees;
+    private final Clock clock;
 
     public StudentAllocationService(JdbcClient jdbc, CurrentUser currentUser, TermCatalog terms,
             Applications applications, Inventory inventory, Catalog catalog, BlockSettings blockSettings,
-            Billing billing, UserDirectory users, TerminationService terminations) {
+            Billing billing, UserDirectory users, TerminationService terminations, Stays stays, FeePolicy fees,
+            Clock clock) {
+        this.stays = stays;
+        this.fees = fees;
+        this.clock = clock;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.terms = terms;
@@ -110,7 +151,7 @@ public class StudentAllocationService {
         long me = currentUser.require(Role.STUDENT).userId();
         TermSummary term = term(me, termId);
         if (term == null) {
-            return new MyRoom(null, null, List.of(), null, null, null, null, null, null, null);
+            return new MyRoom(null, null, List.of(), null, null, null, null, null, null, null, null, null);
         }
         Optional<Row> row = jdbc.sql("""
                 SELECT id, application_id, bed_id, allocated_at, checked_in_at, resident_at, code_released_at
@@ -130,7 +171,8 @@ public class StudentAllocationService {
                 term.resultsPublishedAt());
         Inventory.BedSlot bed = row.map(r -> inventory.beds(term.id(), List.of(r.bedId())).get(r.bedId())).orElse(null);
         if (bed == null) {
-            return new MyRoom(termRef, null, List.of(), null, null, null, appRef, null, stayTerms, null);
+            return new MyRoom(termRef, null, List.of(), null, null, null, appRef, null, stayTerms, null,
+                    stayInfo(me), nextTerm(me, term));
         }
         Row allocation = row.get();
         Catalog.RoomClassInfo roomClass = catalog.roomClasses().stream().filter(c -> c.id() == bed.roomClassId())
@@ -170,16 +212,71 @@ public class StudentAllocationService {
                 .map(i -> new Balance(i.code(), i.amount(), i.status(), i.dueAt(), i.paidAt()))
                 .orElse(null);
         return new MyRoom(termRef, view, roommates, Math.max(0, roomBeds.size() - 1), checkIn, balance, appRef, null,
-                stayTerms, terminations.ofAllocation(allocation.id()).orElse(null));
+                stayTerms, terminations.ofAllocation(allocation.id()).orElse(null), stayInfo(me), nextTerm(me, term));
+    }
+
+    private StayInfo stayInfo(long me) {
+        return stays.stayOf(me).map(s -> new StayInfo(s.committedTerms(), s.termsUsed(),
+                Math.max(0, s.committedTerms() - s.termsUsed()), s.status().equals("ACTIVE") ? "Active" : "Ended"))
+                .orElse(null);
+    }
+
+    private static final Map<String, String> ENDINGS = Map.of("END_OF_STAY", "End of stay", "NOT_EXTENDED",
+            "Not extended", "FEE_NOT_PAID", "Next-Term fee not paid", "NOT_ENROLLED", "Not enrolled", "TERMINATED",
+            "Terminated");
+
+    /** The Term after the one shown, once its requests window opened and the student held a Bed for it. */
+    private NextTermView nextTerm(long me, TermSummary current) {
+        Optional<Stays.Window> found = stays.openWindows().stream()
+                .filter(w -> w.previousTermId() == current.id()).findFirst();
+        if (found.isEmpty()) {
+            return null;
+        }
+        Stays.Window w = found.get();
+        TermRef ref = new TermRef(String.valueOf(w.termId()), w.termName(), w.stayStart(), null, null);
+        WindowView window = new WindowView(w.opensAt(), w.closesAt(), w.decisionsDueAt(), w.feesDueAt(),
+                w.filing(Instant.now(clock)), w.previousCheckOutBy());
+        record Held(long id, long bedId, String status, String endReason) {
+        }
+        Optional<Held> row = jdbc.sql("""
+                SELECT id, bed_id, status, end_reason FROM asg_allocation
+                WHERE student_id = :me AND term_id = :t AND (status = 'ACTIVE' OR source = 'RENEWAL')
+                ORDER BY (status = 'ACTIVE') DESC, id DESC LIMIT 1
+                """).param("me", me).param("t", w.termId())
+                .query((rs, i) -> new Held(rs.getLong("id"), rs.getLong("bed_id"), rs.getString("status"),
+                        rs.getString("end_reason")))
+                .optional();
+        if (row.isEmpty()) {
+            return null;
+        }
+        Held r = row.get();
+        if (!r.status().equals("ACTIVE")) {
+            return new NextTermView(ref, "Not continuing", null, null, null, null, null, 0, null, window,
+                    ENDINGS.getOrDefault(r.endReason(), r.endReason()), w.previousCheckOutBy());
+        }
+        Inventory.BedSlot bed = inventory.beds(w.termId(), List.of(r.bedId())).get(r.bedId());
+        Stays.NextTerm n = stays.nextTerms(List.of(r.id())).get(r.id());
+        Billing.InvoiceLine fee = billing.termFees(List.of(r.id())).get(r.id());
+        String type = bed == null ? null : catalog.roomTypes().stream().filter(t -> t.id() == bed.roomTypeId())
+                .map(Catalog.RoomTypeInfo::name).findFirst().orElse(null);
+        String roomClass = bed == null ? null : catalog.roomClasses().stream().filter(c -> c.id() == bed.roomClassId())
+                .map(Catalog.RoomClassInfo::name).findFirst().orElse(null);
+        OptionalLong price = bed == null ? OptionalLong.empty()
+                : fees.termPrice(w.termId(), bed.roomTypeId(), bed.roomClassId());
+        String state = n == null || n.continuing() ? "Continuing" : "Awaiting extension";
+        return new NextTermView(ref, state, bed == null ? null : bed.roomCode(), bed == null ? null : bed.bedLabel(),
+                type, roomClass, price.isPresent() ? price.getAsLong() : null, n == null ? 0 : n.termsLeft(),
+                fee == null ? null : new Fee(fee.code(), fee.amount(), fee.status(), fee.dueAt()), window, null, null);
     }
 
     private TermSummary term(long me, Long termId) {
         if (termId != null) {
             return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
         }
+        // The Term the student lives in (or is placed for); a next-Term Allocation only once nothing else is left.
         return jdbc.sql("""
                 SELECT term_id FROM asg_allocation WHERE student_id = :me AND status = 'ACTIVE'
-                ORDER BY allocated_at DESC LIMIT 1
+                ORDER BY (renewal IS NOT NULL AND resident_at IS NULL), allocated_at DESC LIMIT 1
                 """).param("me", me).query(Long.class).optional()
                 .flatMap(terms::findPublished)
                 .or(terms::openForRegistration)

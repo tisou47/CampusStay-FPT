@@ -6,9 +6,9 @@ import java.util.Map;
 final class InvoiceLabels {
 
     private static final Map<String, String> TYPES = Map.of("DEPOSIT", "deposit", "BALANCE", "balance", "UTILITY",
-            "utility", "ROOM_CHANGE", "roomChange", "DAMAGE", "damage");
+            "utility", "ROOM_CHANGE", "roomChange", "DAMAGE", "damage", "TERM_FEE", "termFee");
     private static final Map<String, String> TYPE_LABELS = Map.of("DEPOSIT", "Deposit", "BALANCE", "Balance",
-            "UTILITY", "Utility", "ROOM_CHANGE", "Room change", "DAMAGE", "Damage");
+            "UTILITY", "Utility", "ROOM_CHANGE", "Room change", "DAMAGE", "Damage", "TERM_FEE", "Next-Term fee");
     private static final Map<String, String> STATUSES = Map.of("UPCOMING", "Upcoming", "UNPAID", "Unpaid",
             "AWAITING_CONFIRMATION", "Awaiting confirmation", "PAID", "Paid", "OVERDUE", "Overdue", "REFUNDED",
             "Refunded", "VOID", "Void");

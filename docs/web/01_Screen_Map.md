@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 26/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 27/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -35,10 +35,11 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-BIL-01 | My Invoices | `/student/invoices` | 19:1051 | `GET /students/me/invoices` | [student/MyInvoices.jsx](../../web/src/pages/student/MyInvoices.jsx) |
 | SCR-BIL-03 | Utility Invoice | `/student/invoices/:id` | 102:2263 | `GET /invoices/:id` | [student/InvoiceDetail.jsx](../../web/src/pages/student/InvoiceDetail.jsx) |
 | SCR-BIL-02 | Invoice Payment | `/student/invoices/:id/pay` | 17:701 | `GET /invoices/:id/payment`<br>`POST /invoices/:id/claim`<br>`POST /invoices/:id/payment/refresh` | [student/InvoicePayment.jsx](../../web/src/pages/student/InvoicePayment.jsx) |
-| SCR-ASG-01 | My Room | `/student/room` | 39:1535 | `GET /students/me/allocation`<br>`GET /students/me/late-check-in`<br>`POST /students/me/late-check-in`<br>`GET /students/me/door-code`<br>`POST /students/me/door-code/reveal`<br>`GET /students/me/furniture` | [student/MyRoom.jsx](../../web/src/pages/student/MyRoom.jsx) |
-| SCR-MNT-01 | My Requests | `/student/requests` | 41:1522 | `GET /students/me/requests`<br>`GET /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/confirm` | [student/MyRequests.jsx](../../web/src/pages/student/MyRequests.jsx) |
+| SCR-ASG-01 | My Room | `/student/room` | 39:1535 | `GET /students/me/allocation`<br>`POST /students/me/stay/extension`<br>`POST /students/me/stay/end`<br>`GET /students/me/late-check-in`<br>`POST /students/me/late-check-in`<br>`GET /students/me/door-code`<br>`POST /students/me/door-code/reveal`<br>`GET /students/me/furniture` | [student/MyRoom.jsx](../../web/src/pages/student/MyRoom.jsx) |
+| SCR-MNT-01 | My Requests | `/student/requests` | 41:1522 | `GET /students/me/requests`<br>`POST /room-class-changes/:id/consent`<br>`GET /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/confirm` | [student/MyRequests.jsx](../../web/src/pages/student/MyRequests.jsx) |
 | SCR-MNT-02 | New Maintenance Request | `/student/requests/maintenance/new` | 41:1719 | `GET /maintenance-requests/options`<br>`POST /maintenance-requests` | [student/NewMaintenanceRequest.jsx](../../web/src/pages/student/NewMaintenanceRequest.jsx) |
-| SCR-REQ-02 | New Room-Change Request | `/student/requests/room-change/new` | 59:1743 | `GET /room-changes/options`<br>`POST /room-changes` | [student/NewRoomChangeRequest.jsx](../../web/src/pages/student/NewRoomChangeRequest.jsx) |
+| SCR-REQ-02 | New Room-Change Request (next Term) | `/student/requests/room-change/new` | 59:1743 | `GET /room-changes/options`<br>`POST /room-changes` | [student/NewRoomChangeRequest.jsx](../../web/src/pages/student/NewRoomChangeRequest.jsx) |
+| SCR-REQ-08 | Room Class change (next Term) | `/student/requests/room-class/new` | — | `GET /room-class-changes/options`<br>`POST /room-class-changes` | [student/NewRoomClassChange.jsx](../../web/src/pages/student/NewRoomClassChange.jsx) |
 | SCR-REQ-03 | Room Swap – Specific Student | `/student/requests/swap/new` | 104:2080 | `POST /swaps` | [student/SwapSpecific.jsx](../../web/src/pages/student/SwapSpecific.jsx) |
 | SCR-REQ-04 | Swap Board | `/student/requests/swap/board` | 104:2254 | `GET /swap-board`<br>`PUT /swap-board/my-post`<br>`POST /swap-board/posts/:id/request` | [student/SwapBoard.jsx](../../web/src/pages/student/SwapBoard.jsx) |
 | SCR-REQ-05 | Swap Invitation | `/student/requests/swap/invitations/:id` | 104:2490 | `GET /swap-invitations/:id`<br>`POST /swap-invitations/:id/respond` | [student/SwapInvitation.jsx](../../web/src/pages/student/SwapInvitation.jsx) |
@@ -60,6 +61,9 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-MNT-12 | Inspection Checklist | `/staff/inspections` | 98:4293 | `GET /inspection-runs/current`<br>`GET /inspection-runs/:id/rooms`<br>`PUT /inspection-runs/:id/rooms/:room`<br>`POST /inspection-runs/:id/submit`<br>`GET /inspection-runs/upcoming` | [staff/InspectionChecklist.jsx](../../web/src/pages/staff/InspectionChecklist.jsx) |
 | SCR-REQ-10 | Room-Change Queue | `/staff/room-changes` | 60:2696 | `GET /room-changes`<br>`GET /room-changes/:id/matching-beds`<br>`POST /room-changes/:id/decision` | [staff/RoomChangeQueue.jsx](../../web/src/pages/staff/RoomChangeQueue.jsx) |
 | SCR-REQ-13 | Room Swap Requests | `/staff/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
+| SCR-ASG-20 | Term transition – requests window and turnover | `/staff/next-term` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |
+| SCR-ASG-20 | Term transition | `/staff/next-term/:tab` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |
+| SCR-ASG-21 | Operational moves | `/staff/moves` | — | `GET /operational-moves/options`<br>`POST /operational-moves`<br>`GET /operational-moves` | [staff/OperationalMoves.jsx](../../web/src/pages/staff/OperationalMoves.jsx) |
 | SCR-REQ-11 | Check-in Desk | `/staff/check-in` | 60:3026 | `GET /check-in/today`<br>`GET /check-in/lookup`<br>`POST /check-in`<br>`POST /late-check-ins` | [staff/CheckInDesk.jsx](../../web/src/pages/staff/CheckInDesk.jsx) |
 | SCR-REQ-12 | Check-out Desk | `/staff/check-out` | 95:3876 | `GET /check-out`<br>`GET /check-out/:allocationId`<br>`POST /check-out/:allocationId` | [staff/CheckOutDesk.jsx](../../web/src/pages/staff/CheckOutDesk.jsx) |
 | SCR-AUTH-13 | Students | `/staff/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
@@ -82,6 +86,10 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-ASG-12 | Terminations | `/manager/terminations` | — | `GET /terminations`<br>`POST /terminations`<br>`POST /terminations/:id/cancel` | [manager/Terminations.jsx](../../web/src/pages/manager/Terminations.jsx) |
 | SCR-REQ-10 | Room-Change Queue | `/manager/room-changes` | 60:2696 | `GET /room-changes`<br>`GET /room-changes/:id/matching-beds`<br>`POST /room-changes/:id/decision` | [staff/RoomChangeQueue.jsx](../../web/src/pages/staff/RoomChangeQueue.jsx) |
 | SCR-REQ-13 | Room Swap Requests | `/manager/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
+| SCR-ASG-20 | Term transition – requests window, next-Term fees and turnover | `/manager/next-term` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |
+| SCR-ASG-20 | Term transition | `/manager/next-term/:tab` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |
+| SCR-ASG-21 | Operational moves | `/manager/moves` | — | `GET /operational-moves/options`<br>`POST /operational-moves`<br>`GET /operational-moves` | [staff/OperationalMoves.jsx](../../web/src/pages/staff/OperationalMoves.jsx) |
+| SCR-AUTH-17 | Reconciliation (enrolled list) | `/manager/reconciliation` | — | `GET /reconciliations`<br>`GET /reconciliations/template`<br>`POST /reconciliations`<br>`GET /reconciliations/:id`<br>`POST /reconciliations/:id/items/:itemId/resolve` | [manager/Reconciliation.jsx](../../web/src/pages/manager/Reconciliation.jsx) |
 | SCR-INV-10 | Room and Bed Inventory | `/manager/inventory` | 37:2075 | `GET /inventory/structure`<br>`GET /inventory/rooms`<br>`GET /inventory/rooms/:code`<br>`POST /inventory/rooms/:code/out-of-service`<br>`POST /inventory/rooms/:code/back-in-service` | [staff/Inventory.jsx](../../web/src/pages/staff/Inventory.jsx) |
 | SCR-INV-11 | Room Classes by Term | `/manager/room-classes` | — | `GET /inventory/room-classes`<br>`PUT /inventory/room-classes` | [manager/RoomClassesByTerm.jsx](../../web/src/pages/manager/RoomClassesByTerm.jsx) |
 | SCR-INV-12 | Door codes | `/manager/door-codes` | — | `GET /door-codes`<br>`POST /door-codes/:room`<br>`POST /door-codes/:room/confirm`<br>`POST /door-codes/:room/cancel`<br>`POST /door-codes/:room/reveal`<br>`POST /door-codes/import` | [staff/DoorCodes.jsx](../../web/src/pages/staff/DoorCodes.jsx) |

@@ -26,6 +26,7 @@ import vn.fpt.campusstay.event.DoorCodeReleased;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.application.Applications;
 import vn.fpt.campusstay.service.assignment.Moves;
+import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.exception.ApiException;
 
@@ -34,20 +35,23 @@ import vn.fpt.campusstay.exception.ApiException;
 class JdbcMoves implements Moves {
 
     private record Row(long id, long termId, long studentId, Long applicationId, String status, long bedId,
-            Instant checkedInAt, Long checkedInBy, String[] handOverItems, Instant residentAt, Instant codeReleasedAt) {
+            Instant checkedInAt, Long checkedInBy, String[] handOverItems, Instant residentAt, Instant codeReleasedAt,
+            Long stayId, String renewal, Instant feePaidAt) {
     }
 
     private final JdbcClient jdbc;
     private final Inventory inventory;
     private final Applications applications;
+    private final Billing billing;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    JdbcMoves(JdbcClient jdbc, Inventory inventory, Applications applications, ApplicationEventPublisher events,
-            Clock clock) {
+    JdbcMoves(JdbcClient jdbc, Inventory inventory, Applications applications, Billing billing,
+            ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.inventory = inventory;
         this.applications = applications;
+        this.billing = billing;
         this.events = events;
         this.clock = clock;
     }
@@ -80,6 +84,16 @@ class JdbcMoves implements Moves {
     @Override
     @Transactional(readOnly = true)
     public List<FreeBed> freeBeds(long termId, String gender, long roomTypeId, long roomClassId) {
+        return free(termId, gender, roomTypeId, roomClassId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FreeBed> freeBeds(long termId, String gender) {
+        return free(termId, gender, null, null);
+    }
+
+    private List<FreeBed> free(long termId, String gender, Long roomTypeId, Long roomClassId) {
         Map<Long, Long> occupied = new HashMap<>();
         jdbc.sql("SELECT bed_id, student_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
                 .param("t", termId).query((rs, i) -> Map.entry(rs.getLong("bed_id"), rs.getLong("student_id"))).list()
@@ -89,7 +103,9 @@ class JdbcMoves implements Moves {
         Map<Long, Long> perRoom = assignable.stream().filter(b -> occupied.containsKey(b.bedId()))
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, Collectors.counting()));
         return assignable.stream()
-                .filter(b -> b.gender().equals(gender) && b.roomTypeId() == roomTypeId && b.roomClassId() == roomClassId
+                .filter(b -> b.gender().equals(gender)
+                        && (roomTypeId == null || b.roomTypeId() == roomTypeId)
+                        && (roomClassId == null || b.roomClassId() == roomClassId)
                         && !occupied.containsKey(b.bedId()) && !held.contains(b.bedId()))
                 .sorted(Comparator.comparing((Inventory.BedSlot b) -> -perRoom.getOrDefault(b.roomId(), 0L))
                         .thenComparing(Inventory.BedSlot::code))
@@ -160,8 +176,9 @@ class JdbcMoves implements Moves {
     }
 
     /**
-     * The same stay on another Bed: check-in, hand-over and residence carry over. A student who held the door code
-     * receives the new Room's code at once when it is ready (spec §6.13), else when Staff confirm one.
+     * The same stay on another Bed: check-in, hand-over, residence, the Stay and a next-Term Allocation's state and
+     * paid fee carry over. A student who held the door code receives the new Room's code at once when it is ready
+     * (spec §6.13), else when Staff confirm one.
      */
     private long insert(Row from, long bedId, String source, long by) {
         Instant now = Instant.now(clock);
@@ -177,11 +194,13 @@ class JdbcMoves implements Moves {
             id = jdbc.sql("""
                     INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, source, previous_allocation_id,
                                                 allocated_at, allocated_by, checked_in_at, checked_in_by, hand_over_items,
-                                                resident_at, code_released_at)
+                                                resident_at, code_released_at, stay_id, renewal, fee_paid_at)
                     VALUES (:term, :app, :student, :bed, :source, :previous, :now, :by, :checkedIn, :checkedInBy, :items,
-                            :resident, :released)
+                            :resident, :released, :stay, :renewal, :feePaid)
                     RETURNING id
                     """)
+                    .param("stay", from.stayId()).param("renewal", from.renewal())
+                    .param("feePaid", from.feePaidAt() == null ? null : Timestamp.from(from.feePaidAt()))
                     .param("term", from.termId()).param("app", from.applicationId()).param("student", from.studentId())
                     .param("bed", bedId).param("source", source).param("previous", from.id())
                     .param("now", Timestamp.from(now)).param("by", by)
@@ -193,6 +212,7 @@ class JdbcMoves implements Moves {
         } catch (DuplicateKeyException e) {
             throw bedTaken();
         }
+        billing.followAllocation(from.id(), id);
         if (released != null && !sameRoom) {
             events.publishEvent(new DoorCodeReleased(next.roomCode(), List.of(from.studentId())));
         }
@@ -225,11 +245,14 @@ class JdbcMoves implements Moves {
         Timestamp checkedIn = rs.getTimestamp("checked_in_at");
         Timestamp resident = rs.getTimestamp("resident_at");
         Timestamp released = rs.getTimestamp("code_released_at");
+        Timestamp feePaid = rs.getTimestamp("fee_paid_at");
         Array items = rs.getArray("hand_over_items");
         return new Row(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"),
                 rs.getObject("application_id", Long.class), rs.getString("status"), rs.getLong("bed_id"),
                 checkedIn == null ? null : checkedIn.toInstant(), rs.getObject("checked_in_by", Long.class),
                 items == null ? new String[0] : (String[]) items.getArray(),
-                resident == null ? null : resident.toInstant(), released == null ? null : released.toInstant());
+                resident == null ? null : resident.toInstant(), released == null ? null : released.toInstant(),
+                rs.getObject("stay_id", Long.class), rs.getString("renewal"),
+                feePaid == null ? null : feePaid.toInstant());
     }
 }

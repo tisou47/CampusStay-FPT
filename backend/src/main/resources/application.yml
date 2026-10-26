@@ -85,6 +85,7 @@ campusstay:
   asg:
     forfeit-interval: 5m                # Allocations whose Balance passed its deadline are cancelled
     release-interval: 15m               # door codes released to paid residents; overdue terminations
+    renewal-interval: 15m               # requests windows: M2 opens, M3 closes, alert before M4, unpaid fees at M7
   mnt:
     inspection-cron: "0 0 6 * * *"      # inspection runs of active schedules start (campus time)
   door-codes:

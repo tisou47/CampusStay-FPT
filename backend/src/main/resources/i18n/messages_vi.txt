@@ -756,3 +756,103 @@ This termination does not exist. ⟶ Việc chấm dứt hợp đồng ở này 
 This termination is already closed. ⟶ Việc chấm dứt hợp đồng ở này đã kết thúc.
 This stay is already terminated. ⟶ Hợp đồng ở này đã bị chấm dứt.
 Semesters of a study programme (Gia hạn stops at the last one) ⟶ Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)
+# Change Specification v2 phase 6 "Term transition"
+Agree or decline the change. ⟶ Hãy đồng ý hoặc từ chối việc đổi hạng phòng.
+Choose 1 to 9 Terms. ⟶ Hãy chọn từ 1 đến 9 kỳ.
+Choose Direct or Board match. ⟶ Hãy chọn Trực tiếp hoặc Ghép từ bảng tin.
+Choose Extension or End of stay. ⟶ Hãy chọn Gia hạn hoặc Kết thúc ở.
+Choose Not enrolled or Enrolled. ⟶ Hãy chọn Không còn theo học hoặc Đang theo học.
+Choose a Bed in another Room. ⟶ Hãy chọn giường ở phòng khác.
+Choose a Room Class other than the Room's. ⟶ Hãy chọn hạng phòng khác với hạng hiện tại của phòng.
+Choose a Room of your Blocks. ⟶ Hãy chọn một phòng thuộc Block của bạn.
+Choose a Room the Term uses. ⟶ Hãy chọn một phòng được dùng trong kỳ.
+Choose at least one request. ⟶ Hãy chọn ít nhất một yêu cầu.
+Choose follow or keep. ⟶ Hãy chọn đi theo hoặc giữ nguyên.
+Choose room-change, swap, room-class-change or extension. ⟶ Hãy chọn đổi phòng, đổi chéo, đổi hạng phòng hoặc gia hạn.
+Choose the Term the list is for. ⟶ Hãy chọn kỳ của danh sách.
+Choose the enrolled list or a leavers list. ⟶ Hãy chọn danh sách đang học hoặc danh sách thôi học.
+Choose the next Term. ⟶ Hãy chọn kỳ tiếp theo.
+Choose why the student moves. ⟶ Hãy chọn lý do chuyển phòng.
+Decide at most 200 requests at once. ⟶ Mỗi lần chỉ quyết định tối đa 200 yêu cầu.
+Keep the reason under 1,000 characters. ⟶ Lý do không quá 1.000 ký tự.
+Next-Term requests open when your Bed is kept for the next Term (the requests window). ⟶ Yêu cầu cho kỳ sau mở khi giường của bạn được giữ cho kỳ sau (thời gian gửi yêu cầu).
+No Term has a requests window yet. ⟶ Chưa có kỳ nào có thời gian gửi yêu cầu.
+No matching Bed is free for this request. ⟶ Không còn giường phù hợp còn trống cho yêu cầu này.
+No requests window is open. ⟶ Không có thời gian gửi yêu cầu nào đang mở.
+No student has this code. ⟶ Không có sinh viên nào có mã này.
+Only an approved change can be set back. ⟶ Chỉ việc đổi hạng đã duyệt mới có thể đặt lại.
+Pay your overdue Utility Invoice first, then the next-Term fee. ⟶ Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng kỳ sau.
+The free Beds of this kind are kept for new students. ⟶ Các giường trống loại này được giữ cho sinh viên mới.
+The next-Term fees are issued, so next-Term Beds are fixed. A Manager can still move a student. ⟶ Tiền phòng kỳ sau đã được phát hành nên giường kỳ sau đã cố định. Quản lý vẫn có thể chuyển sinh viên.
+The next-Term fees are issued: only a Manager moves a student for the next Term now. ⟶ Tiền phòng kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho kỳ sau.
+The resident who asked for it does not continue next Term. ⟶ Cư dân đề nghị không ở tiếp kỳ sau.
+This Bed is not free any more. Choose another one. ⟶ Giường này không còn trống. Hãy chọn giường khác.
+This Room Class change does not exist. ⟶ Yêu cầu đổi hạng phòng này không tồn tại.
+This Room does not exist. ⟶ Phòng này không tồn tại.
+This Term has no requests window: it has no renewal milestones. ⟶ Kỳ này không có thời gian gửi yêu cầu: kỳ không có các mốc gia hạn.
+This change is no longer waiting for your answer. ⟶ Việc đổi hạng này không còn chờ câu trả lời của bạn.
+This is the last Term of your stay: ask for an extension first. ⟶ Đây là kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước.
+This item is already resolved. ⟶ Mục này đã được xử lý.
+This reconciliation does not exist. ⟶ Lần đối soát này không tồn tại.
+This request does not exist. ⟶ Yêu cầu này không tồn tại.
+This request is not part of a requests window. ⟶ Yêu cầu này không thuộc thời gian gửi yêu cầu nào.
+This student cannot swap with you. ⟶ Sinh viên này không thể đổi chéo với bạn.
+This student has no Bed for the next Term. ⟶ Sinh viên này không có giường cho kỳ sau.
+This student holds no Bed. ⟶ Sinh viên này không giữ giường nào.
+Type the student code. ⟶ Hãy nhập mã sinh viên.
+Write a note (up to 500 characters): it is audited. ⟶ Hãy ghi chú (tối đa 500 ký tự): ghi chú được lưu vào nhật ký.
+Write why the Room changes class. ⟶ Hãy ghi lý do phòng đổi hạng.
+Write why the change is rejected. The residents see it. ⟶ Hãy ghi lý do từ chối. Các cư dân sẽ thấy lý do này.
+Write why the class is set back (up to 1,000 characters). ⟶ Hãy ghi lý do đặt lại hạng cũ (tối đa 1.000 ký tự).
+Write why the extension is rejected. The student sees it. ⟶ Hãy ghi lý do từ chối gia hạn. Sinh viên sẽ thấy lý do này.
+Write why the requests are rejected. The students see it. ⟶ Hãy ghi lý do từ chối các yêu cầu. Sinh viên sẽ thấy lý do này.
+Write why the student moves. ⟶ Hãy ghi lý do chuyển phòng.
+You already have an extension waiting for Staff. ⟶ Bạn đã có một yêu cầu gia hạn đang chờ Nhân viên.
+You already have an open room change request. ⟶ Bạn đã có một yêu cầu đổi phòng đang chờ.
+Your Room already has a Room Class change waiting. ⟶ Phòng của bạn đã có một yêu cầu đổi hạng đang chờ.
+Every continuing resident of Room {0} must agree first. ⟶ Mọi cư dân ở tiếp của phòng {0} phải đồng ý trước.
+Beds of Room {0} are already given to new students at the current price. ⟶ Giường của phòng {0} đã được xếp cho sinh viên mới theo giá hiện tại.
+Room {0} already has a Room Class change waiting. ⟶ Phòng {0} đã có một yêu cầu đổi hạng đang chờ.
+This Room Class is not offered in {0}. ⟶ Hạng phòng này không có trong {0}.
+Next-Term requests for {0} closed on {1}. ⟶ Yêu cầu cho {0} đã đóng lúc {1}.
+Room changes are asked for {0}. ⟶ Yêu cầu đổi phòng được gửi cho {0}.
+Room {0} has no price in {1}. Ask the Admin to add it. ⟶ Phòng {0} chưa có giá trong {1}. Hãy nhờ Quản trị viên bổ sung.
+Room {0} has no price in {1}. ⟶ Phòng {0} chưa có giá trong {1}.
+The store of Block {0} does not have the furniture this Room Class needs: {1}. ⟶ Kho của Block {0} không đủ nội thất mà hạng phòng này cần: {1}.
+A stay can be at most {0} Terms. ⟶ Hợp đồng ở tối đa {0} kỳ.
+You can add at most {0} Terms (a stay has at most {1}). ⟶ Bạn chỉ có thể thêm tối đa {0} kỳ (hợp đồng ở tối đa {1} kỳ).
+Your stay already has the most Terms allowed ({0}). ⟶ Hợp đồng ở của bạn đã đạt số kỳ tối đa ({0}).
+Students can still file next-Term requests until {0}. ⟶ Sinh viên vẫn có thể gửi yêu cầu cho kỳ sau đến {0}.
+{0} next-Term requests are still open. Decide them first. ⟶ Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước.
+Reconcile the enrolled list for {0} first. ⟶ Hãy đối soát danh sách đang học của {0} trước.
+{0} reconciliation items are still open. Resolve them first. ⟶ Còn {0} mục đối soát chưa xử lý. Hãy xử lý trước.
+Continuing residents can still file next-Term requests until the request deadline. Run the assignment after it. ⟶ Cư dân ở tiếp vẫn có thể gửi yêu cầu kỳ sau đến hạn gửi yêu cầu. Hãy chạy xếp phòng sau hạn đó.
+{0} next-Term requests are still open. Decide them before the assignment. ⟶ Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước khi xếp phòng.
+The next-Term fee is paid: move this student only to a Bed of the same price. ⟶ Tiền phòng kỳ sau đã thanh toán: chỉ chuyển sinh viên này sang giường cùng giá.
+The student said they paid the next-Term fee. Confirm or reject the payment first. ⟶ Sinh viên đã báo chuyển khoản tiền phòng kỳ sau. Hãy xác nhận hoặc từ chối khoản thanh toán trước.
+The requests window of {0} has not opened yet. ⟶ Thời gian gửi yêu cầu của {0} chưa mở.
+Unknown enrollment status "{0}". Use Enrolled, Suspended, Graduated, Withdrawn or Not enrolled. ⟶ Tình trạng học "{0}" không hợp lệ. Hãy dùng Enrolled, Suspended, Graduated, Withdrawn hoặc Not enrolled.
+Enter the electricity reading of Room {0}. ⟶ Hãy nhập chỉ số điện của phòng {0}.
+Enter the water reading of Room {0}. ⟶ Hãy nhập chỉ số nước của phòng {0}.
+# notifications of the Term transition (values the system writes)
+Room Class change ⟶ Đổi hạng phòng
+Extension ⟶ Gia hạn
+End of stay ⟶ Kết thúc ở
+Next-Term Bed ⟶ Giường kỳ sau
+set back ⟶ đặt lại hạng cũ
+changed ⟶ đã thay đổi
+Room unusable ⟶ Phòng không sử dụng được
+Safety ⟶ An toàn
+Serious conflict ⟶ Mâu thuẫn nghiêm trọng
+Other ⟶ Lý do khác
+the stay was not extended by the request deadline ⟶ hợp đồng ở không được gia hạn trước hạn gửi yêu cầu
+the next-Term fee was not paid by its deadline ⟶ tiền phòng kỳ sau chưa được thanh toán trước hạn
+you are not enrolled for the Term ⟶ bạn không còn theo học trong kỳ
+your stay was terminated ⟶ hợp đồng ở của bạn đã bị chấm dứt
+Your stay is extended by {0} Term. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}.
+Your stay is extended by {0} Terms. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}.
+Your stay is extended by {0} Term. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ.
+Your stay is extended by {0} Terms. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ.
+Room {0} is {1} from {2}. Your next-Term room fee uses it. ⟶ Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng kỳ sau của bạn tính theo hạng này.
+A resident of Room {0} did not agree. ⟶ Một cư dân phòng {0} không đồng ý.
+Your Bed for {0} is now Room {1} · Bed {2}. ⟶ Giường của bạn cho {0} nay là phòng {1} · giường {2}.

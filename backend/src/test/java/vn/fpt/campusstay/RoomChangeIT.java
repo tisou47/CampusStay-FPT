@@ -3,13 +3,11 @@ package vn.fpt.campusstay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.StayFlow.student;
-import static vn.fpt.campusstay.TestAuth.MANAGER_B;
 import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
@@ -27,7 +25,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** Room-Change Requests from the student's request to the Staff decision (TC-REQ-001…003). */
+import vn.fpt.campusstay.service.assignment.RenewalService;
+
+/**
+ * Next-Term Room-Change Requests (spec §6.10, D-14): a continuing resident asks during the requests window, Staff of
+ * the Block decide with a free matching Bed of the next Term; the student moves there next Term and pays its price
+ * then, so nothing is charged or credited now (TC-REQ-001…003).
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -41,13 +45,21 @@ class RoomChangeIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    RenewalService renewals;
+
     ApplyFlow flow;
     StayFlow stay;
+    RenewalFlow renewal;
+    long next;
 
     @BeforeEach
     void openTerm() {
         flow = new ApplyFlow(mvc, jdbc);
         stay = new StayFlow(mvc, jdbc, flow, flow.openTerm());
+        renewal = new RenewalFlow(jdbc, stay);
+        next = renewal.openNextTerm();
+        renewal.reset();
     }
 
     private ResultActions getAs(String path, String auth) throws Exception {
@@ -61,19 +73,29 @@ class RoomChangeIT {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.id");
     }
 
-    /** TC-REQ-001: the options, a request for a cheaper Room Type, one open request per Term; validation. */
+    /**
+     * TC-REQ-001: the options show the next-Term Bed and the next Term's prices; a request for another Room Type, one
+     * open request per window; validation; a student without a Bed kept for the next Term, or in the last Term of the
+     * Stay, cannot ask yet.
+     */
     @Test
     void studentAsks() throws Exception {
-        stay.livesIn(3, "A-301", "A", true);
+        renewal.resident(3, "A-301", "A", 2);
+        renewal.resident(4, "A-304", "A", 1);
+        stay.livesIn(8, "A-304", "B", false);
+        renewals.openDue();
         String auth = bearer(mvc, student(3));
         getAs("/room-changes/options", auth)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentRoom.room").value("A-301"))
                 .andExpect(jsonPath("$.currentRoom.roomTypeName").value("2-bed"))
                 .andExpect(jsonPath("$.currentRoom.roomClassName").value("Standard"))
+                .andExpect(jsonPath("$.window.termName").value(RenewalFlow.NEXT_NAME))
                 .andExpect(jsonPath("$.reasons", hasItem("Roommate conflict")))
-                .andExpect(jsonPath("$.prices[0].termPrice").isNumber())
-                .andExpect(jsonPath("$.termDays").isNumber())
+                .andExpect(jsonPath("$.prices[?(@.roomTypeId == '%s' && @.roomClassId == '%s')].termPrice"
+                        .formatted(flow.roomTypeId("4-bed"), flow.roomClassId("Standard")),
+                        hasItem((int) renewal.nextPrice("4-bed", "Standard"))))
+                .andExpect(jsonPath("$.canAsk").value(true))
                 .andExpect(jsonPath("$.hasOpenRequest").value(false));
         stay.postJson("/room-changes", auth, "{\"kind\":\"class\",\"roomClassId\":\"%s\",\"reason\":\"Health\"}"
                 .formatted(flow.roomClassId("Standard")))
@@ -84,89 +106,84 @@ class RoomChangeIT {
                 .andExpect(jsonPath("$.details.fields.kind").isString());
 
         String id = ask(auth, "type", "4-bed", "Standard", "Roommate conflict");
-        assertThat(id).startsWith("RC-" + ApplyFlow.TERM_CODE + "-");
+        assertThat(id).startsWith("RC-" + RenewalFlow.NEXT_CODE + "-");
         stay.postJson("/room-changes", auth, "{\"kind\":\"type\",\"roomTypeId\":\"%s\",\"roomClassId\":\"%s\",\"reason\":\"Health\"}"
                 .formatted(flow.roomTypeId("6-bed"), flow.roomClassId("Standard")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("OPEN_REQUEST"));
-        getAs("/room-changes/options", auth).andExpect(jsonPath("$.hasOpenRequest").value(true));
+        getAs("/room-changes/options", auth).andExpect(jsonPath("$.hasOpenRequest").value(true))
+                .andExpect(jsonPath("$.canAsk").value(false));
         getAs("/students/me/requests?kind=room-changes", auth)
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.counts.roomChanges").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(id))
                 .andExpect(jsonPath("$.items[0].typeLabel").value("Room change"))
                 .andExpect(jsonPath("$.items[0].status").value("Pending"))
+                .andExpect(jsonPath("$.items[0].summary", containsString(RenewalFlow.NEXT_NAME)))
                 .andExpect(jsonPath("$.items[0].summary", containsString("4-bed · Standard")));
 
-        stay.livesIn(4, "A-304", "A", false);
         stay.postJson("/room-changes", bearer(mvc, student(4)), "{\"kind\":\"same\",\"reason\":\"Health\"}")
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NOT_CHECKED_IN"));
+                .andExpect(jsonPath("$.code").value("EXTEND_FIRST"));
+        stay.postJson("/room-changes", bearer(mvc, student(8)), "{\"kind\":\"same\",\"reason\":\"Health\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NO_NEXT_TERM_BED"));
     }
 
     /**
-     * TC-REQ-002: Staff of the Block approve with a free matching Bed: the student moves; a cheaper Room is
-     * credited to the student, a dearer one is invoiced.
+     * TC-REQ-002: Staff of the Block approve with a free matching Bed of the next Term: the next-Term Allocation moves
+     * there (the student still lives in their Room this Term) and the next-Term fee will be that Bed's price; no
+     * Invoice or refund is made; Staff of another Block see nothing; after the next-Term fees the Beds are fixed.
      */
     @Test
     void staffApprove() throws Exception {
-        stay.livesIn(5, "A-302", "A", true);
-        stay.livesIn(6, "A-303", "A", true);
-        String cheaper = bearer(mvc, student(5));
-        String dearer = bearer(mvc, student(6));
-        String first = ask(cheaper, "type", "4-bed", "Standard", "Price");
-        String second = ask(dearer, "class", "2-bed", "Premium", "Study environment");
+        renewal.resident(5, "A-302", "A", 3);
+        renewals.openDue();
+        String auth = bearer(mvc, student(5));
+        String id = ask(auth, "type", "4-bed", "Standard", "Price");
         String staff = bearer(mvc, STAFF_A);
 
-        getAs("/room-changes?termId=" + stay.termId() + "&status=Pending&kind=type", staff)
+        getAs("/room-changes?termId=" + next + "&status=Pending&kind=type", staff)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[?(@.id == '%s')].from.room".formatted(first), hasItem("A-302")))
-                .andExpect(jsonPath("$.items[?(@.id == '%s')].to.roomTypeName".formatted(first), hasItem("4-bed")))
-                .andExpect(jsonPath("$.items[?(@.id == '%s')].difference".formatted(first), hasItem(lessThan(0))))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].from.room".formatted(id), hasItem("A-302")))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].to.roomTypeName".formatted(id), hasItem("4-bed")))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].dueAt".formatted(id), hasItem(startsWith("20"))))
+                .andExpect(jsonPath("$.window.termName").value(RenewalFlow.NEXT_NAME))
                 .andExpect(jsonPath("$.rejectReasons", hasItem("Outstanding Invoice")));
-        String beds = getAs("/room-changes/" + first + "/matching-beds", staff).andExpect(status().isOk())
+        getAs("/room-changes", staff).andExpect(jsonPath("$.items[?(@.id == '%s')]".formatted(id)).isNotEmpty());
+        String beds = getAs("/room-changes/" + id + "/matching-beds", staff).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         String bed = JsonPath.read(beds, "$.items[0].bedId");
-        assertThat(bed).startsWith("A-");
-        getAs("/room-changes/" + first + "/matching-beds", bearer(mvc, TestAuth.STAFF_B2))
+        assertThat(bed).startsWith("A-3");
+        getAs("/room-changes/" + id + "/matching-beds", bearer(mvc, TestAuth.STAFF_B2))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
 
-        stay.postJson("/room-changes/" + first + "/decision", staff, "{\"decision\":\"Approved\"}")
+        stay.postJson("/room-changes/" + id + "/decision", staff, "{\"decision\":\"Approved\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.bedId").isString());
-        stay.postJson("/room-changes/" + first + "/decision", staff, "{\"decision\":\"Approved\",\"bedId\":\"%s\"}".formatted(bed))
+        stay.postJson("/room-changes/" + id + "/decision", staff, "{\"decision\":\"Approved\",\"bedId\":\"%s\"}".formatted(bed))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.note", startsWith("Moved to Room ")))
-                .andExpect(jsonPath("$.note", containsString("refund")));
-        assertThat(bed).startsWith(stay.roomOf(cheaper) + "-");
-        stay.postJson("/room-changes/" + first + "/decision", staff, "{\"decision\":\"Approved\",\"bedId\":\"%s\"}".formatted(bed))
+                .andExpect(jsonPath("$.note", startsWith("In " + RenewalFlow.NEXT_NAME + " you move to Room ")));
+        stay.postJson("/room-changes/" + id + "/decision", staff, "{\"decision\":\"Approved\",\"bedId\":\"%s\"}".formatted(bed))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ALREADY_DECIDED"));
-        getAs("/room-changes?termId=" + stay.termId() + "&status=Approved", staff)
-                .andExpect(jsonPath("$.items[?(@.id == '%s')].decision.bed".formatted(first), hasItem(bed)));
-        assertThat(jdbc.sql("""
-                SELECT count(*) FROM bil_refund WHERE source_type = 'ROOM_CHANGE' AND status = 'PENDING'
-                  AND student_id = :s
-                """).param("s", stay.userId(student(5))).query(Long.class).single()).isEqualTo(1);
-        getAs("/notifications", cheaper).andExpect(jsonPath("$.items[0].title").value("Room change decision"));
-
-        String premium = JsonPath.read(getAs("/room-changes/" + second + "/matching-beds", staff)
-                .andReturn().getResponse().getContentAsString(), "$.items[0].bedId");
-        stay.postJson("/room-changes/" + second + "/decision", staff,
-                "{\"decision\":\"Approved\",\"bedId\":\"%s\"}".formatted(premium))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.note", containsString("Invoice INV-" + ApplyFlow.TERM_CODE + "-")));
-        getAs("/students/me/requests?kind=room-changes", dearer)
-                .andExpect(jsonPath("$.items[0].status").value("Approved"))
-                .andExpect(jsonPath("$.items[0].invoiceId", startsWith("INV-")));
-        getAs("/notifications", dearer).andExpect(jsonPath("$.items[*].title", hasItem("New Invoice")));
+        getAs("/students/me/allocation", auth)
+                .andExpect(jsonPath("$.allocation.room").value("A-302"))
+                .andExpect(jsonPath("$.nextTerm.room").value(bed.substring(0, bed.lastIndexOf('-'))))
+                .andExpect(jsonPath("$.nextTerm.termPrice").value(renewal.nextPrice("4-bed", "Standard")));
+        assertThat(jdbc.sql("SELECT count(*) FROM bil_refund WHERE student_id = :s").param("s", stay.userId(student(5)))
+                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM bil_invoice WHERE student_id = :s").param("s", stay.userId(student(5)))
+                .query(Long.class).single()).isZero();
+        getAs("/notifications", auth).andExpect(jsonPath("$.items[0].title").value("Room change decision"));
     }
 
-    /** TC-REQ-003: a rejection needs a listed reason; the student sees it. */
+    /** TC-REQ-003: a rejection needs a listed reason; the student sees it; students may not decide. */
     @Test
     void staffReject() throws Exception {
-        stay.livesIn(7, "A-401", "A", true);
+        renewal.resident(7, "A-401", "A", 2);
+        renewals.openDue();
         String auth = bearer(mvc, student(7));
         String id = ask(auth, "type", "6-bed", "Standard", "Price");
         String staff = bearer(mvc, STAFF_A);
@@ -182,7 +199,7 @@ class RoomChangeIT {
         getAs("/students/me/requests?kind=room-changes", auth)
                 .andExpect(jsonPath("$.items[0].status").value("Rejected"))
                 .andExpect(jsonPath("$.items[0].decision.note", containsString("Try again next week.")));
-        getAs("/room-changes?termId=" + stay.termId() + "&status=Rejected", staff)
+        getAs("/room-changes?termId=" + next + "&status=Rejected", staff)
                 .andExpect(jsonPath("$.items[?(@.id == '%s')].decision.reason".formatted(id),
                         hasItem("No matching Bed available")));
     }

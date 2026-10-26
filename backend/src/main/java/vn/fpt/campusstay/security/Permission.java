@@ -26,7 +26,12 @@ public enum Permission {
     MANAGE_DOOR_CODES("Set, change and view the door codes of Rooms", Role.STAFF, Role.MANAGER),
     DESK("Check students in and out", Role.STAFF, Role.MANAGER),
     PROCESS_MAINTENANCE("Process Maintenance Requests", Role.STAFF, Role.MANAGER),
-    DECIDE_ROOM_CHANGES("Decide Room-Change Requests and swaps (Staff inside their Blocks)", Role.STAFF, Role.MANAGER),
+    DECIDE_ROOM_CHANGES("Decide next-Term requests: room changes, swaps, Room Class changes, extensions (Staff inside"
+            + " their Blocks)", Role.STAFF, Role.MANAGER),
+    MOVE_RESIDENTS("Move residents during a Term for an operational reason (Staff inside their Blocks)", Role.STAFF,
+            Role.MANAGER),
+    ISSUE_TERM_FEES("Issue the next-Term room fees", Role.MANAGER),
+    RECONCILE_ENROLLMENT("Reconcile the enrolled list with residents and applicants", Role.MANAGER),
     DECIDE_REFUNDS("Decide refunds and late check-ins", Role.MANAGER),
     TERMINATE_STAYS("Start and cancel terminations of stays", Role.MANAGER),
     MANAGE_BLOCK("Manage staff, routing and Block settings", Role.MANAGER),

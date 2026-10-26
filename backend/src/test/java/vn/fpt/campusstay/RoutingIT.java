@@ -14,7 +14,6 @@ import static vn.fpt.campusstay.TestAuth.MANAGER_B;
 import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
-import java.time.Duration;
 import java.time.Instant;
 
 import com.jayway.jsonpath.JsonPath;
@@ -53,6 +52,9 @@ class RoutingIT {
 
     @Autowired
     JdbcClient jdbc;
+
+    @Autowired
+    vn.fpt.campusstay.service.assignment.RenewalService renewals;
 
     StayFlow stay;
 
@@ -179,13 +181,20 @@ class RoutingIT {
         assertThat(assigneeOf(report(student, "Furniture"))).isEqualTo(ab);
     }
 
-    /** TC-REQ-015: a Room-Change Request goes to the Block's rule and is due after the Block's timer. */
+    /**
+     * TC-REQ-015: a next-Term Room-Change Request goes to the Block's rule and is due at the decision deadline of its
+     * requests window (M4, spec §6.18).
+     */
     @Test
     void roomChangesFollowTheRules() throws Exception {
         long a1 = stay.userId(STAFF_A);
         rule(bearer(mvc, MANAGER_A), """
                 {"block":"A","type":"Room change","scope":"All","assigneeId":"%d"}""".formatted(a1));
-        stay.livesIn(12, "A-202", "A", true);
+        RenewalFlow renewal = new RenewalFlow(jdbc, stay);
+        long next = renewal.openNextTerm();
+        renewal.reset();
+        renewal.resident(12, "A-202", "A", 2);
+        renewals.openDue();
         String code = JsonPath.read(stay.postJson("/room-changes", bearer(mvc, StayFlow.student(12)),
                 "{\"kind\":\"same\",\"reason\":\"Health\"}").andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString(), "$.id");
@@ -198,10 +207,9 @@ class RoutingIT {
                         rs.getTimestamp("submitted_at").toInstant(), rs.getTimestamp("sla_due_at").toInstant()))
                 .single();
         assertThat(row.assignee()).isEqualTo(a1);
-        int hours = jdbc.sql("""
-                SELECT p.room_change_hours FROM req_sla_policy p JOIN inv_building b ON b.id = p.building_id
-                WHERE b.code = 'A'
-                """).query(Integer.class).single();
-        assertThat(Duration.between(row.submitted(), row.due())).isEqualTo(Duration.ofHours(hours));
+        Instant decisionsDue = jdbc.sql("SELECT decisions_due_at FROM cfg_term WHERE id = :t").param("t", next)
+                .query((rs, i) -> rs.getTimestamp(1).toInstant()).single();
+        assertThat(row.due()).isEqualTo(decisionsDue);
+        assertThat(row.submitted()).isBefore(row.due());
     }
 }

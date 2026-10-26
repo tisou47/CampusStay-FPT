@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 import vn.fpt.campusstay.event.ApplicationRejected;
+import vn.fpt.campusstay.event.StudentNotEnrolled;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
@@ -278,7 +280,32 @@ public class ApplicationReviewService {
         return new BulkResult(approved, skipped);
     }
 
+    /**
+     * A Manager reconciled the enrolled list and found the student not enrolled (Accounts' transaction, spec §6.12):
+     * their live Application of the Term that holds no Bed yet is rejected; a paid Deposit is refunded by the rule
+     * "Not enrolled". An Allocated one is Assignment's to end (it holds a Bed).
+     */
+    @EventListener
+    void on(StudentNotEnrolled e) {
+        AuthenticatedUser user = currentUser.get();
+        List<Long> ids = jdbc.sql("""
+                SELECT id FROM app_application
+                WHERE student_id = :s AND term_id = :t AND status IN ('DRAFT', 'AWAITING_ROOMMATE', 'AWAITING_DEPOSIT',
+                      'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'WAITLISTED')
+                """).param("s", e.studentId()).param("t", e.termId()).query(Long.class).list();
+        for (long id : ids) {
+            applications.find(id, true).ifPresent(app -> decide(app, "REJECTED",
+                    "Not enrolled: " + e.note(), user, "NOT_ENROLLED"));
+        }
+    }
+
     private void decide(ApplicationStore.Application app, String code, String note, AuthenticatedUser user) {
+        decide(app, code, note, user, "CANCEL_BEFORE_RESULTS");
+    }
+
+    /** @param refundRule the refund rule of a paid Deposit when the Application is rejected */
+    private void decide(ApplicationStore.Application app, String code, String note, AuthenticatedUser user,
+            String refundRule) {
         Timestamp now = Timestamp.from(Instant.now(clock));
         jdbc.sql("""
                 UPDATE app_application SET status = :status, reviewed_by = :by, reviewed_at = :now, decision_note = :note,
@@ -299,7 +326,7 @@ public class ApplicationReviewService {
         for (Billing.InvoiceLine invoice : billing.invoicesOfApplication(app.id())) {
             if (!billing.voidUnpaid(invoice.id(), "Application rejected") && billing.isPaid(invoice.id())) {
                 billing.requestRefund(invoice.id(), "APPLICATION_CANCEL", app.id(),
-                        "Application " + app.code() + " not approved", "CANCEL_BEFORE_RESULTS");
+                        "Application " + app.code() + " not approved", refundRule);
             }
         }
         lifecycle.cancelPendingInvitation(app.id());

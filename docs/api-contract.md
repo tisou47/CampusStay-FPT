@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.12 (26/10/2026): the mentor-confirmed contract plus the changes A-01…A-39, B-01…B-07 and C-01…C-42 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence", on its branch until merged). Every later change is logged there first and written here in the same commit.
+Version 1.13 (26/10/2026): the mentor-confirmed contract plus the changes A-01…A-46, B-01…B-10 and C-01…C-43 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence"; A-40…A-46, B-08…B-10, C-43: phase 6 "Term transition", on its branch until merged). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -21,9 +21,9 @@ Version 1.12 (26/10/2026): the mentor-confirmed contract plus the changes A-01�
 | Uploads | `multipart/form-data` where noted (photos, receipts, CSV). A list of files repeats the same part name (`photos`). Photos: max 5 MB each, max 5 per Maintenance Request (Admin › System parameters); a request is at most 30 MB. Too large → `413 FILE_TOO_LARGE`. |
 | Not built yet | An endpoint that the backend has not built yet answers `404 NOT_FOUND`; the screen shows its error state with **Retry**. |
 | Exports | `GET /exports/{report}?…filters` returns the file with `Content-Disposition: attachment; filename="…"`. The server writes each export to the Audit Log. |
-| Statuses | Application: Draft, Awaiting Roommate, Awaiting Deposit, Submitted, Under Review, Approved, Waitlisted, Allocated, Forfeited, Rejected, Cancelled, Expired. Allocation: Assigned – unpaid, Paid – waiting for the door code, Resident. Invoice: Unpaid, Paid, Overdue, Awaiting confirmation (a payment claim waits for a Manager), Refunded, Void, Upcoming. Termination: Notice sent, Overdue, Checked out, Cancelled. Request: Submitted, Assigned, In progress, Resolved, Closed, Pending, Approved, Rejected. |
+| Statuses | Application: Draft, Awaiting Roommate, Awaiting Deposit, Submitted, Under Review, Approved, Waitlisted, Allocated, Forfeited, Rejected, Cancelled, Expired. Allocation: Assigned – unpaid, Paid – waiting for the door code, Resident. Invoice: Unpaid, Paid, Overdue, Awaiting confirmation (a payment claim waits for a Manager), Refunded, Void, Upcoming. Termination: Notice sent, Overdue, Checked out, Cancelled. Request: Submitted, Assigned, In progress, Resolved, Closed, Pending, Approved, Rejected. Next-Term Bed: Continuing, Awaiting extension, Not continuing. Room Class change: Awaiting consent, Waiting for Staff, Approved, Rejected, Cancelled, Set back. |
 
-Removed from this version: Period of Stay and renewal. There are no renewal endpoints, and Applications have no `period` field. Removed in v2 phase 5 (B-07): the SePay webhook and the payment simulator; payments are claims confirmed by Managers (A-34, A-35, C-42).
+Applications have no `period` field: the length of a stay is Gia hạn (`stayTerms`, A-38), and a stay continues from Term to Term through the requests window of the next Term (A-40…A-46, C-43). Removed in v2 phase 5 (B-07): the SePay webhook and the payment simulator; payments are claims confirmed by Managers (A-34, A-35, C-42). Removed in v2 phase 6 (B-08, B-09): room changes and swaps during a Term and their prorated price differences; they take effect in the next Term.
 
 ---
 
@@ -106,7 +106,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 ### Invoices and payment
 
-- `GET /students/me/invoices?termId&page&pageSize` → `{ items: [{ id, type: 'deposit'|'balance'|'utility'|'roomChange', typeLabel, title, termName, amount, dueAt, status, paidAt, paymentMethod, transferContent }], total, summary: { outstanding, dueCount, nextDueAt, paidTotal, paidCount, upcoming: { typeLabel, amount, note } | null, awaitingCount, warning: { level, debt, overdue, terminateOn, issuedAt } | null } }` (A-39; `paymentMethod` Bank transfer for confirmed claims)
+- `GET /students/me/invoices?termId&page&pageSize` → `{ items: [{ id, type: 'deposit'|'balance'|'utility'|'roomChange'|'damage'|'termFee', typeLabel, title, termName, amount, dueAt, status, paidAt, paymentMethod, transferContent }], total, summary: { outstanding, dueCount, nextDueAt, paidTotal, paidCount, upcoming: { typeLabel, amount, note } | null, awaitingCount, warning: { level, debt, overdue, terminateOn, issuedAt } | null } }` (A-39; `paymentMethod` Bank transfer for confirmed claims)
 - `GET /invoices/{id}` → `{ id, title, type, typeLabel, amount, status, issuedAt, dueAt, paidAt, room, utilityDeposit, lines: [{ label, amount }] | null, breakdown: { segments: [{ from, to, note, residents, kwh, m3, electricityCost, waterCost, share }], subtotal, roundingNote, priceKwh, priceM3 } | null }`
 - `GET /invoices/{id}/payment` → `{ invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference }, qr: { image, expiresAt } | null, bank: { name, accountName, accountNumber } | null, transferContent, claim: { status, claimedAt, reference, rejected, lastRejection: { reason, at } | null } | null, canClaim }`. `qr` and `bank` are null without a configured receiving account. While a claim waits the page asks again every 15 seconds.
 - `POST /invoices/{id}/claim` `{ reference? }` → the claim: the student's "I have transferred"; the Invoice waits for a Manager and its deadline stops (A-34, C-42).
@@ -115,29 +115,31 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 
 ### My Room and requests
 
-- `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status (Assigned – unpaid, Paid – waiting for the door code, Resident), pass, residentSince, codeReleased } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl, stayTerms, termination: { reason, note, status, moveOutBy, startedAt } | null }` (A-39, B-06)
+- `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status (Assigned – unpaid, Paid – waiting for the door code, Resident), pass, residentSince, codeReleased } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl, stayTerms, termination: { reason, note, status, moveOutBy, startedAt } | null, stay: { committedTerms, termsUsed, termsLeft, status } | null, nextTerm: { term: { id, name, stayStart }, state, room, bed, roomTypeName, roomClassName, termPrice, termsLeft, fee: { invoiceId, amount, status, dueAt } | null, window: { opensAt, closesAt, decisionsDueAt, feesDueAt, filing, checkOutBy }, endReason, checkOutBy } | null }` (A-39, B-06, A-43)
+- `POST /students/me/stay/extension` `{ terms, reason? }` · `POST /students/me/stay/end` `{ reason? }` → `{ id, status, automatic, note }` (A-43, C-43)
+- `GET /room-class-changes/options` → `{ termId, termName, room, roomType, current: { id, name, termPrice }, classes: [{ id, name, termPrice }], residents, open: { id, status, toClass, requestedBy, consents: [{ name, status }] } | null, canAsk, unavailable }` · `POST /room-class-changes` `{ roomClassId, reason }` → `{ id, status }` · `POST /room-class-changes/{id}/consent` `{ agree }` → `204` (A-42)
 - `GET /students/me/late-check-in` → `{ request: { id, status, requestedFor, deadline, reason, decisionReason, createdAt, source } | null, canRequest, checkInEnd, latestDay }` · `POST /students/me/late-check-in` (multipart) `reason, requestedFor, evidence` → `{ id }` (A-36)
-- `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges }, room }`
+- `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges, consents }, room }`
   - maintenance item: `{ id, title, location, category, reportedAt, status, assignee, visitWindow }`
-  - room-change item: `{ id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }`
+  - room-change item (every next-Term request: room change, swap, Room Class change, extension, end of stay; B-10): `{ id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId, consentId }`
 - `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
 - `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
 - `GET /maintenance-requests/{id}` (student view) → `{ id, title, status, room, category, location, reportedAt, assignee, visitWindow, description, events: [{ who, at, message }] }` (public updates only)
 - `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
-- `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null, roomTypes, roomClasses, prices, remainingDays, termDays, reasons, hasOpenRequest }`
-- `POST /room-changes` `{ termId, kind: 'same'|'class'|'type', roomTypeId, roomClassId, reason, details? }` → `{ id }`
+- `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null (the next-Term Bed), roomTypes, roomClasses, prices: [{ roomTypeId, roomClassId, termPrice }] (the next Term's), window: { termId, termName, closesAt, decisionsDueAt } | null, reasons, hasOpenRequest, canAsk, unavailable }` (B-08)
+- `POST /room-changes` `{ termId (the window's next Term), kind: 'same'|'class'|'type', roomTypeId, roomClassId, reason, details? }` → `{ id }`
 - `GET /students/me/door-code` → `{ room, status: 'Ready'|'Not ready'|'Not set', note, changedAt }` · `POST /students/me/door-code/reveal` → `{ room, code, changedAt }` (every view audited; `409 DOOR_CODE_NOT_READY`) · `GET /students/me/furniture` → `{ room, items: [{ assetCode, type, typeVi, status }] }`. Without a Bed in the current Term: `404`. See A-26.
 
 ### Swaps
 
 - `POST /swaps` `{ studentCode, reason? }` → `{ id }`
-- `GET /swap-board?termId` → `{ blocks, myPost: { block, roomTypeId, roomClassId, expiresAt } | null, items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, priceDifference, requested, crossBlock }] }`
+- `GET /swap-board?termId` → `{ blocks, myPost: { block, roomTypeId, roomClassId, expiresAt } | null, items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, termPrice, requested, crossBlock }], window }` (next-Term Beds, B-09)
 - `PUT /swap-board/my-post` `{ termId, block|null, roomTypeId, roomClassId }` → `204` (without `roomTypeId` the post comes down)
 - `POST /swap-board/posts/{id}/request` → `{ id }`
-- `GET /swap-invitations/{id}` → `{ id, status, expiresAt, crossBlock, priceDifference, give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }`
+- `GET /swap-invitations/{id}` → `{ id, status, expiresAt, crossBlock, termName, give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }` (B-09)
 - `POST /swap-invitations/{id}/respond` `{ accept }` → `204`
 
-Room changes, swaps and their errors: C-26.
+Room changes, swaps and their errors: C-26; since v2 phase 6 they act on next-Term Beds (C-43).
 
 ---
 
@@ -172,7 +174,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 ### Inventory
 
 - `GET /inventory/structure?block` → `{ blocks: [{ block, floors: [number] }], outOfServiceReasons: [string] }`
-- `GET /inventory/rooms?termId&block&floor` → `{ roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity, outOfService: { since, reason, by, note } | null, beds: [{ id, state: 'unpaid'|'paid'|'resident'|'available'|'oos', occupant: { name, studentCode } | null }] }], summary: { beds, allocated, available, outOfService, residents } }` (B-06)
+- `GET /inventory/rooms?termId&block&floor` → `{ roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity, outOfService: { since, reason, by, note } | null, beds: [{ id, state: 'unpaid'|'paid'|'resident'|'leaving'|'next_term'|'available'|'oos', occupant: { name, studentCode } | null }] }], summary: { beds, allocated, available, outOfService, residents } }` (B-06, B-10)
 - `GET /inventory/rooms/{code}` → `{ code, block, floor }`
 - `POST /inventory/rooms/{code}/out-of-service` `{ reason, note? }` · `POST /inventory/rooms/{code}/back-in-service`
 - `floor` is required; `block` may be empty only when the user has one Block; without `termId` the current Term fills the Beds. A Bed `id` is its code (`A-305-B`). `reason` is one of `outOfServiceReasons`. A Room whose Bed holds an active Allocation cannot go out of service (`409 ROOM_OCCUPIED`). See C-17. Each Room's `roomClassName` is its class in the Term; the top-level `roomClassName` is `null` when the Floor's Rooms differ (C-40).
@@ -204,11 +206,22 @@ Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: 
 
 ### Room changes and swaps
 
-- `GET /room-changes?termId&block&status&kind&page&pageSize` → `{ items: [{ id, studentName, studentCode, kind, from: { room, bed, roomTypeName, roomClassName }, to: { roomTypeName, roomClassName }, reason, difference, submittedAt, status, decision: { by, at, bed, reason, note } | null }], total, rejectReasons }`
-- `GET /room-changes/{id}/matching-beds` → `{ items: [{ bedId, floor, roommates }] }`
+- `GET /room-changes?termId&block&status&kind&page&pageSize` → `{ items: [{ id, studentName, studentCode, kind, from: { room, bed, roomTypeName, roomClassName }, to: { roomTypeName, roomClassName }, reason, submittedAt, dueAt, status, decision: { by, at, bed, reason, note } | null }], total, rejectReasons, window }` (without `termId`: the latest open window; B-08)
+- `GET /room-changes/{id}/matching-beds` → `{ items: [{ bedId, floor, roommates }] }` (free Beds of the next Term)
 - `POST /room-changes/{id}/decision` `{ decision: 'Approved', bedId }` or `{ decision: 'Rejected', reason, message? }` → `{ note }`
-- `GET /swaps?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, agreedAt, crossBlock, status, a: { name, studentCode, room, bed, roomTypeName, roomClassName }, b: { … }, checks: [{ label, passed }], decision: { by, at, reason } | null }], total }`
-- `POST /swaps/{id}/decision` `{ decision: 'Approved'|'Rejected', reason? }` → `204`; a swap across Blocks goes to the Block Manager (C-26)
+- `GET /swaps?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, agreedAt, crossBlock, status, a: { name, studentCode, room, bed, roomTypeName, roomClassName }, b: { … }, checks: [{ label, passed }], decision: { by, at, reason } | null, dueAt }], total, window }` (B-09)
+- `POST /swaps/{id}/decision` `{ decision: 'Approved'|'Rejected', reason? }` → `204`; a swap across Blocks goes to a Manager (C-26)
+
+### Term transition
+
+Staff see their Blocks, Managers every Block (C-43).
+
+- `GET /renewals` → `[{ termId, termName, previousTermName, opensAt, closesAt, decisionsDueAt, opened }]` · `GET /renewals/overview?termId` → `{ term, previousTerm, opened, filing, feesIssued, milestones, counts, requests, reconciliation, newStudentBeds }` (A-40)
+- `GET /next-term-requests?termId&block&kind` → `{ items: [{ kind, id, student, studentCode, summary, status, submittedAt, dueAt, crossBlock }], total, window }` · `POST /next-term-requests/decision` `{ items: [{ kind, id }], decision, reason? }` → `{ decided, failed: [{ kind, id, message }] }` (A-44)
+- `GET /room-class-changes?termId&block&status` → `{ items, total, window }` · `GET /room-class-changes/{id}` → `{ item, termName, reason, fromPrice, toPrice, residents, furniture, decisionNote, decidedBy }` · `POST /room-class-changes/{id}/decision` `{ decision, note? }` → detail (A-42)
+- `GET /stay-requests?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, studentName, studentCode, room, block, terms, committedTerms, termsUsed, reason, status, automatic, submittedAt, dueAt, decisionNote, decidedBy, decidedAt }], total, window }` · `POST /stay-requests/{id}/decision` `{ decision, note? }` (A-43)
+- `GET /turnover?termId&block` → `{ term, previousTerm, checkOutBy, checkInStart, counts, leavers, movers, rooms }` · `POST /turnover/meter-cuts` `{ room, electricity, water }` → `204` (A-40)
+- `GET /operational-moves/options?q|allocationId` → `{ allocationId, student, term, from, resident, nextTermAllocation, feesIssued, nextTerm, beds, reasons }` · `POST /operational-moves` `{ allocationId, bedId, reason, note?, nextTerm: 'follow'|'keep', fromElectricity, fromWater, toElectricity, toWater }` → `{ allocationId, room, bed, nextTerm, note }` · `GET /operational-moves?termId&block&page&pageSize` → `{ items, total, reasons }` (A-45)
 
 ### Desk
 
@@ -255,6 +268,9 @@ Dashboards and approval counts: C-36.
 - `GET /late-check-ins?termId&block` → `{ items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor, evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null, source }] }` (`source` Online or Desk, A-36)
 - `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` → `204` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`, at most the check-in end + `late_check_in.max_days`; approving moves the Balance deadline to the end of that day
 - `GET /terminations?termId&block&status&page&pageSize` → `{ items: [{ id, studentName, studentCode, room, block, reason, note, status, moveOutBy, startedAt, startedBy, debt, endedAt, cancelReason }], total, counts: { noticeSent, overdue }, reasons, statuses }` · `POST /terminations { studentCode, reason, note }` → `{ id, moveOutBy }` · `POST /terminations/{id}/cancel { reason }` → `204` (A-37)
+- `GET /next-term-fees?termId` → `{ term, dueAt, count, total, groups: [{ block, roomType, roomClass, count, total }], blockers: [{ code, text }], issued: { at, by, count, paid, total } | null, leavers }` · `POST /next-term-fees/issue` `{ termId }` → `{ issued, total, notices }` (A-41)
+- `POST /room-class-changes` `{ termId, room, roomClassId, reason }` (for a Room) → `{ id, status }` · `POST /room-class-changes/{id}/set-back` `{ note }` → detail (A-42)
+- `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }` · `GET /reconciliations/template?kind=enrolled|leavers` → CSV · `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }` · `GET /reconciliations/{id}` → `{ run, term, items }` · `POST /reconciliations/{id}/items/{itemId}/resolve` `{ outcome: 'Not enrolled'|'Enrolled', note }` → item (A-46)
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
 - `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
 - `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception) → `204`

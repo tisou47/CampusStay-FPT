@@ -7,10 +7,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Assignment public API for moving students between Beds during the stay (Requests:
- * Room-Change Requests and swaps). A move ends the old Allocation and creates
- * a new one on the other Bed in the same transaction; the unique index on the
- * Bed and Term is the race guard ({@code 409 BED_TAKEN}).
+ * Assignment public API for moving students between Beds of one Term: next-Term Room-Change Requests and swaps
+ * (Requests, on next-Term Allocations) and operational moves during a Term. A move ends the old Allocation and creates
+ * a new one on the other Bed in the same transaction; the unique index on the Bed and Term is the race guard
+ * ({@code 409 BED_TAKEN}). Prices never differ (spec §8).
  */
 public interface Moves {
 
@@ -51,10 +51,13 @@ public interface Moves {
     /** Free Beds of a Room Type and Room Class in Blocks of the gender (not allocated, not held by Round 2). */
     List<FreeBed> freeBeds(long termId, String gender, long roomTypeId, long roomClassId);
 
+    /** Free Beds of any Room Type and Room Class in Blocks of the gender (operational moves). */
+    List<FreeBed> freeBeds(long termId, String gender);
+
     /**
-     * Moves the student to another Bed.
+     * Moves the student to another Bed of the same Term.
      *
-     * @param reason {@code ROOM_CHANGE}
+     * @param reason {@code ROOM_CHANGE} (a next-Term Room-Change Request) or {@code MOVE} (an operational move)
      * @return the new Allocation's id
      */
     long move(long allocationId, long bedId, String reason, long by);

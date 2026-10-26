@@ -25,24 +25,28 @@ import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.event.DoorCodeActivated;
 import vn.fpt.campusstay.event.DoorCodeReleased;
 import vn.fpt.campusstay.event.PaymentConfirmed;
+import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
- * Releases a Room's door code to its paid residents (ADR-23, spec §6.8): (a) the Balance is paid, (b) the Term's
- * check-in start has come, (c) the Room's code is confirmed on the lock and no change is waiting because someone left.
- * The release makes the student a resident (orange on the room map) and Utility counts from then (spec §6.14);
- * the desk check-in only records the hand-over. It runs when a Balance is paid, when Staff confirm a Room's code and
- * every 15 minutes (the check-in start). A terminated student past the move-out date is never released a code.
+ * Releases a Room's door code to its paid residents (ADR-23, spec §6.8): (a) the Balance or the next-Term fee is
+ * paid, (b) the Term's check-in start has come, (c) the Room's code is confirmed on the lock and no change is waiting
+ * because someone left. The release makes the student a resident (orange on the room map) and Utility counts from
+ * then (spec §6.14); the desk check-in only records the hand-over. A first release starts the student's Stay; the
+ * release of a next-Term Allocation ends the Allocation of the Term before (turnover, spec §5.1 M9). It runs when a
+ * Balance or next-Term fee is paid, when Staff confirm a Room's code and every 15 minutes (the check-in start). A
+ * terminated student past the move-out date is never released a code.
  */
 @Component
 public class DoorCodeRelease {
 
-    private record Waiting(long id, long termId, long studentId, long bedId) {
+    private record Waiting(long id, long termId, long studentId, long bedId, String renewal, boolean feePaid) {
     }
 
     private final JdbcClient jdbc;
+    private final JdbcStays stays;
     private final Billing billing;
     private final Inventory inventory;
     private final TermCatalog terms;
@@ -50,9 +54,10 @@ public class DoorCodeRelease {
     private final AuditLog audit;
     private final Clock clock;
 
-    DoorCodeRelease(JdbcClient jdbc, Billing billing, Inventory inventory, TermCatalog terms,
+    DoorCodeRelease(JdbcClient jdbc, JdbcStays stays, Billing billing, Inventory inventory, TermCatalog terms,
             ApplicationEventPublisher events, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
+        this.stays = stays;
         this.billing = billing;
         this.inventory = inventory;
         this.terms = terms;
@@ -78,6 +83,13 @@ public class DoorCodeRelease {
         }
     }
 
+    /** These Allocations, if they wait for their code (a next-Term fee was just paid; the caller's transaction). */
+    void releaseAllocations(List<Long> allocationIds) {
+        if (!allocationIds.isEmpty()) {
+            release("allocation_id_list", allocationIds);
+        }
+    }
+
     /** Every Allocation waiting for its code (the check-in start passed since the last run). @return codes released */
     @Transactional
     public int releaseDue() {
@@ -88,7 +100,8 @@ public class DoorCodeRelease {
     private int release(String by, List<Long> ids) {
         String filter = by == null ? "" : by.equals("bed_list") ? " AND a.bed_id IN (:ids)" : " AND a.id IN (:ids)";
         var spec = jdbc.sql("""
-                SELECT a.id, a.term_id, a.student_id, a.bed_id FROM asg_allocation a
+                SELECT a.id, a.term_id, a.student_id, a.bed_id, a.renewal, a.fee_paid_at IS NOT NULL AS fee_paid
+                FROM asg_allocation a
                 WHERE a.status = 'ACTIVE' AND a.code_released_at IS NULL
                   AND NOT EXISTS (SELECT 1 FROM asg_termination t WHERE t.allocation_id = a.id AND t.status = 'OVERDUE')
                 """ + filter + " ORDER BY a.id FOR UPDATE OF a SKIP LOCKED");
@@ -96,7 +109,11 @@ public class DoorCodeRelease {
             spec = spec.param("ids", ids);
         }
         List<Waiting> waiting = spec.query((rs, i) -> new Waiting(rs.getLong("id"), rs.getLong("term_id"),
-                rs.getLong("student_id"), rs.getLong("bed_id"))).list();
+                rs.getLong("student_id"), rs.getLong("bed_id"), rs.getString("renewal"), rs.getBoolean("fee_paid")))
+                .list().stream()
+                // A next-Term Allocation waits for its next-Term fee (spec §6.8 (a)).
+                .filter(w -> w.renewal() == null || w.feePaid())
+                .toList();
         if (waiting.isEmpty()) {
             return 0;
         }
@@ -127,9 +144,37 @@ public class DoorCodeRelease {
                     """).param("now", Timestamp.from(now)).param("id", w.id()).update();
             audit.record(Actor.SYSTEM, "DOOR_CODE_RELEASED", AuditLog.Tone.SUCCESS, "Allocation", w.id(),
                     "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(), null);
+            if (w.renewal() != null) {
+                endPreviousTerm(w, bed, now);
+            } else {
+                stays.joinStay(w.id(), now);
+            }
             byRoom.computeIfAbsent(bed.roomCode(), r -> new ArrayList<>()).add(w.studentId());
         }
         byRoom.forEach((room, students) -> events.publishEvent(new DoorCodeReleased(room, List.copyOf(students))));
         return byRoom.values().stream().mapToInt(List::size).sum();
+    }
+
+    /**
+     * A continuing resident lives in the next Term from now (spec §5.1 M9): the Allocation of the Term before ends
+     * (Term end). A mover leaves the old Room, so its door code must change.
+     */
+    private void endPreviousTerm(Waiting w, Inventory.BedSlot bed, Instant now) {
+        record Previous(long id, long bedId, boolean resident) {
+        }
+        List<Previous> previous = jdbc.sql("""
+                UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'TERM_END', version = version + 1
+                WHERE student_id = :s AND status = 'ACTIVE' AND term_id <> :t
+                RETURNING id, bed_id, resident_at IS NOT NULL AS resident
+                """).param("now", Timestamp.from(now)).param("s", w.studentId()).param("t", w.termId())
+                .query((rs, i) -> new Previous(rs.getLong("id"), rs.getLong("bed_id"), rs.getBoolean("resident")))
+                .list();
+        Map<Long, Inventory.BedSlot> old = inventory.beds(previous.stream().map(Previous::bedId).toList());
+        for (Previous p : previous) {
+            Inventory.BedSlot from = old.get(p.bedId());
+            if (p.resident() && from != null && from.roomId() != bed.roomId()) {
+                events.publishEvent(new ResidentLeftRoom(from.roomId(), "MOVE_OUT"));
+            }
+        }
     }
 }

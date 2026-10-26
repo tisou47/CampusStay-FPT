@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026).
+Total: 259 endpoints (266 when the seven `GET, PUT` rows count twice); all 259 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026), phase 6 the 27 rows of section V2-6 (built on `feat/v2-phase6`, not merged yet).
 
 | Slice | Focus |
 |---|---|
@@ -18,6 +18,7 @@ Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 c
 | V2-3 | Change Specification v2 phase 3 "Inventory": Room Class per Room per Term, furniture and Room Class requirements, door codes |
 | V2-4 | Change Specification v2 phase 4 "Registration periods": Managers' requests, the Term wizard with Term prices, announcements and the board, grouped configuration, rules screens, Term dashboard |
 | V2-5 | Change Specification v2 phase 5 "Money and residence": payment claims confirmed by Managers, Gia hạn, door code release and Bed states, forfeits, late check-ins online, Utility warnings and terminations, new refund triggers |
+| V2-6 | Change Specification v2 phase 6 "Term transition": Stays and the requests window, next-Term room changes, swaps, Room Class changes, extensions and end of stay, operational moves, enrollment reconciliation, next-Term fees, turnover |
 
 ## S0 — Foundation, AUTH session, Terms
 
@@ -62,7 +63,7 @@ Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 c
 | INV | PUT | `/admin/buildings/{id}` | Must | Verified | TC-INV-002, 005 |
 | INV | GET | `/admin/buildings/{id}/floors/{floor}/rooms` | Must | Verified | TC-INV-002 |
 | INV | POST | `/admin/buildings/{id}/rooms/bulk` | Must | Verified | Range up to parameter `inventory.max_floor` (V11); optional `roomClassId` (C-40); TC-INV-002, 012 |
-| INV | GET | `/inventory/rooms` | Must | Verified | C-17, C-40 (each Room's class in the Term); Bed states unpaid, paid, resident (B-06); TC-INV-004, 005, 006, 009, TC-ASG-032, 033 |
+| INV | GET | `/inventory/rooms` | Must | Verified | C-17, C-40 (each Room's class in the Term); Bed states unpaid, paid, resident (B-06), leaving, next_term (B-10); TC-INV-004, 005, 006, 009, TC-ASG-032, 033, 038 |
 | INV | GET | `/inventory/rooms/{code}` | Must | Verified | TC-INV-004 |
 | INV | POST | `/inventory/rooms/{code}/back-in-service` | Must | Verified | TC-INV-006 |
 | INV | POST | `/inventory/rooms/{code}/out-of-service` | Must | Verified | C-17; TC-INV-005, 006 |
@@ -89,7 +90,7 @@ Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 c
 | BIL | GET | `/invoices/{id}/payment` | Must | Verified | `claim`, `canClaim`; no QR without a bank account (A-34); TC-BIL-001, 006, 032, 033 |
 | BIL | POST | `/invoices/{id}/payment/refresh` | Must | Verified | TC-BIL-001 |
 | BIL | GET | `/invoices/{id}/receipt` | Must | Verified | One-page PDF; TC-BIL-003, 004 |
-| BIL | GET | `/students/me/invoices` | Must | Verified | `summary.awaitingCount`, `summary.warning` (A-39); TC-BIL-001, 006, 032, 037 |
+| BIL | GET | `/students/me/invoices` | Must | Verified | `summary.awaitingCount`, `summary.warning` (A-39); type `termFee` (B-10); TC-BIL-001, 006, 032, 037 |
 | CFG | GET | `/catalog` | Must | Verified | The Term's prices, Deposit and Utility Deposit (C-41); TC-APP-001, TC-CFG-021 |
 
 Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the payment simulator `POST /dev/invoices/{id}/simulate-payment` (A-08). Payments are claims (section V2-5).
@@ -111,7 +112,7 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | ASG | GET | `/assignment-runs/{runId}/proposal` | Must | Verified | TC-ASG-010, 011 |
 | ASG | POST | `/assignment-runs/{runId}/return` | Must | Verified | TC-ASG-010. Nothing waits for approval since v2 phase 1 (C-38): kept, not called by the web |
 | ASG | GET | `/assignment-runs/{runId}/rooms` | Must | Verified | TC-ASG-010, 011. Not called by the web since v2 phase 1 (the Decisions page has no assignment tab) |
-| ASG | GET | `/students/me/allocation` | Must | Verified | C-21; residency status, `stayTerms`, `termination` (A-39, B-06); TC-ASG-010, 011, 032, 035 |
+| ASG | GET | `/students/me/allocation` | Must | Verified | C-21; residency status, `stayTerms`, `termination` (A-39, B-06); `stay`, `nextTerm` (A-43); TC-ASG-010, 011, 032, 035, 038…042, TC-REQ-019 |
 | BIL | GET | `/payments` | Must | Verified | C-22; TC-BIL-010, 011 |
 | BIL | POST | `/payments/{invoiceId}/confirm` | Must | Verified | C-22; one Invoice with an optional receipt: its claim, or a transfer not claimed yet; no `amount` (B-05); TC-BIL-011, 012 |
 | BIL | GET | `/payments/{invoiceId}/receipt-file` | Must | Verified | A-09; TC-BIL-011 |
@@ -135,7 +136,7 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | MNT | POST | `/maintenance-requests/{id}/updates` | Must | Verified | TC-MNT-002 |
 | NTF | POST | `/devices` | Must | Verified | A-05; push after commit (C-25); TC-NTF-010…012, 020, 021 |
 | NTF | POST | `/devices/unregister` | Must | Verified | A-06; TC-NTF-020 |
-| REQ | GET | `/students/me/requests` | Must | Verified | Room-change tab: Room-Change Requests and swaps (S5); TC-MNT-001, TC-REQ-001, 010 |
+| REQ | GET | `/students/me/requests` | Must | Verified | Room-change tab: every next-Term request (B-10); TC-MNT-001, TC-REQ-001, 010, 020 |
 | shared | GET | `/files/{id}` | Must | Verified | A-10 signed links (receipts, photos); TC-BIL-011, TC-MNT-002 |
 
 ## S5 — Room-Change Requests, swaps, Round-2, late check-ins, refunds, overdue
@@ -153,19 +154,19 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | BIL | GET | `/invoices` | Should | Verified | TC-BIL-020 |
 | BIL | GET | `/refunds` | Should | Verified | C-28; TC-BIL-021 |
 | BIL | POST | `/refunds/{id}/decision` | Should | Verified | TC-BIL-021 |
-| REQ | GET | `/room-changes` | Should | Verified | C-26; TC-REQ-002, 003 |
-| REQ | POST | `/room-changes` | Should | Verified | TC-REQ-001 |
-| REQ | GET | `/room-changes/options` | Should | Verified | TC-REQ-001 |
-| REQ | POST | `/room-changes/{id}/decision` | Should | Verified | Moves the student; Invoice or refund (C-26); TC-REQ-002, 003 |
+| REQ | GET | `/room-changes` | Should | Verified | C-26, B-08 (next Term since v2 phase 6); TC-REQ-002, 003 |
+| REQ | POST | `/room-changes` | Should | Verified | B-08; TC-REQ-001 |
+| REQ | GET | `/room-changes/options` | Should | Verified | B-08; TC-REQ-001 |
+| REQ | POST | `/room-changes/{id}/decision` | Should | Verified | Moves the next-Term Allocation; nothing invoiced or refunded since v2 phase 6 (B-08, C-43); TC-REQ-002, 003 |
 | REQ | GET | `/room-changes/{id}/matching-beds` | Should | Verified | TC-REQ-002 |
-| REQ | GET | `/swap-board` | Should | Verified | TC-REQ-011 |
+| REQ | GET | `/swap-board` | Should | Verified | B-09; TC-REQ-011 |
 | REQ | PUT | `/swap-board/my-post` | Should | Verified | TC-REQ-011 |
 | REQ | POST | `/swap-board/posts/{id}/request` | Should | Verified | TC-REQ-011 |
-| REQ | GET | `/swap-invitations/{id}` | Should | Verified | TC-REQ-010 |
+| REQ | GET | `/swap-invitations/{id}` | Should | Verified | B-09; TC-REQ-010 |
 | REQ | POST | `/swap-invitations/{id}/respond` | Should | Verified | TC-REQ-010, 011 |
-| REQ | GET | `/swaps` | Should | Verified | C-26; TC-REQ-010…012 |
+| REQ | GET | `/swaps` | Should | Verified | C-26, B-09; TC-REQ-010…012 |
 | REQ | POST | `/swaps` | Should | Verified | TC-REQ-010 |
-| REQ | POST | `/swaps/{id}/decision` | Should | Verified | Cross-Block swaps go to the Manager; TC-REQ-010…012 |
+| REQ | POST | `/swaps/{id}/decision` | Should | Verified | Cross-Block swaps go to a Manager; next-Term Beds, no charge or credit (B-09); TC-REQ-010…012 |
 
 ## S6 — Utility billing, routing rules, SLA, escalations, Block staff/settings
 
@@ -326,3 +327,39 @@ Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), in `main` and production sin
 | ASG | POST | `/terminations/{id}/cancel` | Must | Verified | A-37; Managers, with a reason; TC-ASG-035 |
 
 Jobs (no endpoint): the forfeit every 5 minutes, the door-code release and overdue terminations every 15 minutes (TC-ASG-032…034, 036), payment reminders and the Managers' hourly summary of claims (TC-BIL-036), overdue Invoices and the Utility debt rules every hour (TC-BIL-020, 037, 038).
+
+## V2-6 — Change Specification v2 phase 6 "Term transition"
+
+Built on `feat/v2-phase6` (ADR-21, ADR-27), not merged yet. Migrations V50 (ASG: Stays, next-Term Allocations with their renewal state and fee payment, the requests window of a Term, operational moves, report views), V51 (REQ: Room-Change Requests and swaps of the next Term without price differences, Room Class changes with consents, extension and end-of-stay requests; open in-Term requests closed), V52 (AUTH: enrollment reconciliations and their items), V53 (BIL: the next-Term room fee `TERM_FEE`, one live per Allocation; meter cuts at a move or the turnover), V54 (CFG: operational move reasons; where the Stay settings act) and V55 (NTF: the notifications and emails of the Term transition). Contract changes A-40…A-46, B-08…B-10, C-43.
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| ASG | GET | `/renewals` | Must | Verified | A-40; Staff, Managers, the Admin; TC-ASG-038 |
+| ASG | GET | `/renewals/overview` | Must | Verified | A-40; milestones M2–M7, counts, open requests, reconciliation, Beds for new students; TC-ASG-038, 039, TC-REQ-021 |
+| ASG | GET | `/next-term-fees` | Must | Verified | A-41; Managers; the blockers (filing, open requests, reconciliation, prices); TC-ASG-040, TC-AUTH-054 |
+| ASG | POST | `/next-term-fees/issue` | Must | Verified | A-41; one fee per continuing resident, end-of-stay notices; issuing again bills nobody twice; TC-ASG-040…042, 044 |
+| ASG | GET | `/turnover` | Must | Verified | A-40; leavers, movers, Rooms whose residents change; TC-ASG-042 |
+| ASG | POST | `/turnover/meter-cuts` | Must | Verified | A-40; `DESK`; TC-ASG-042 |
+| ASG | GET | `/operational-moves/options` | Must | Verified | A-45; by student code or Allocation; Staff their Blocks; TC-ASG-043 |
+| ASG | POST | `/operational-moves` | Must | Verified | A-45; reason, both meter readings for a resident, the next-Term Bed follows or stays; after M6 only a Manager, same price when paid; TC-ASG-042…044 |
+| ASG | GET | `/operational-moves` | Must | Verified | A-45; TC-ASG-043 |
+| REQ | GET | `/room-class-changes/options` | Must | Verified | A-42; TC-REQ-020 |
+| REQ | POST | `/room-class-changes` | Must | Verified | A-42; a continuing resident for their Room, a Manager for any Room; TC-REQ-020, 021 |
+| REQ | POST | `/room-class-changes/{id}/consent` | Must | Verified | A-42; every other continuing resident; a refusal cancels; TC-REQ-020 |
+| REQ | GET | `/room-class-changes` | Must | Verified | A-42; TC-REQ-020 |
+| REQ | GET | `/room-class-changes/{id}` | Must | Verified | A-42; consents, prices, furniture check; TC-REQ-020 |
+| REQ | POST | `/room-class-changes/{id}/decision` | Must | Verified | A-42; consents first, furniture reserved from the Block store; TC-REQ-020 |
+| REQ | POST | `/room-class-changes/{id}/set-back` | Must | Verified | A-42; Managers; next-Term fees issued again or the difference charged or credited (spec §6.11 step 6); TC-REQ-020 |
+| REQ | POST | `/students/me/stay/extension` | Must | Verified | A-43; approved at once when enrolled and nothing overdue, else Staff decide; TC-REQ-019, 021 |
+| REQ | POST | `/students/me/stay/end` | Must | Verified | A-43; the next-Term Bed is released at once; TC-REQ-019 |
+| REQ | GET | `/stay-requests` | Must | Verified | A-43; TC-REQ-019 |
+| REQ | POST | `/stay-requests/{id}/decision` | Must | Verified | A-43; a note to reject; TC-REQ-019 |
+| REQ | GET | `/next-term-requests` | Must | Verified | A-44; every open request of a window, oldest first; TC-REQ-021 |
+| REQ | POST | `/next-term-requests/decision` | Must | Verified | A-44; each item on its own, failures listed; TC-REQ-021 |
+| AUTH | GET | `/reconciliations` | Must | Verified | A-46; Managers; TC-AUTH-053, 054 |
+| AUTH | GET | `/reconciliations/template` | Must | Verified | A-46; TC-AUTH-053 |
+| AUTH | POST | `/reconciliations` | Must | Verified | A-46; enrolled list or leavers, CSV or XLSX; groups 1–4; TC-AUTH-053…055 |
+| AUTH | GET | `/reconciliations/{id}` | Must | Verified | A-46; TC-AUTH-053, 054 |
+| AUTH | POST | `/reconciliations/{id}/items/{itemId}/resolve` | Must | Verified | A-46; a note; Not enrolled ends what the student holds in the Term; TC-AUTH-054, 055 |
+
+Jobs (no endpoint): every 15 minutes the renewal job opens the requests windows that reached M2, closes filing at M3 (Beds still awaiting extension are released), alerts Managers before M4 and cancels the next-Term fees unpaid at M7 (TC-ASG-038, 039, 041); the door-code release of a paid continuing resident ends the Allocation of the previous Term (TC-ASG-042).

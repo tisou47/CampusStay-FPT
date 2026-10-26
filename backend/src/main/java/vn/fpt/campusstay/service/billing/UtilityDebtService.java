@@ -123,11 +123,16 @@ public class UtilityDebtService {
             return false;
         }
         long debt = overdue.stream().mapToLong(Overdue::amount).sum();
+        // The Utility Deposit is held for the whole Stay (a continuing resident's next Terms have none of their own);
+        // a check-out settled every deposit paid before it.
         long held = jdbc.sql("""
-                SELECT coalesce(sum(utility_deposit), 0) FROM bil_invoice
-                WHERE student_id = :student AND type = 'BALANCE' AND status = 'PAID' AND term_id IN (:terms)
-                """).param("student", studentId).param("terms", overdue.stream().map(Overdue::termId).distinct().toList())
-                .query(Long.class).single();
+                SELECT coalesce(sum(b.utility_deposit), 0) FROM bil_invoice b
+                WHERE b.student_id = :student AND b.status = 'PAID' AND b.utility_deposit > 0
+                  AND b.paid_at > coalesce((SELECT max(c.created_at) FROM bil_meter_cut c
+                                            JOIN bil_invoice x ON x.allocation_id = c.allocation_id
+                                            WHERE c.reason = 'CHECK_OUT' AND x.student_id = :student),
+                                           '-infinity'::timestamptz)
+                """).param("student", studentId).query(Long.class).single();
         int months = Math.max(1, parameters.intValue("termination.overdue_months"));
         boolean debtRule = Boolean.parseBoolean(parameters.textValue("termination.debt_reaches_deposit"));
         boolean debtReached = debtRule && held > 0 && debt >= held;

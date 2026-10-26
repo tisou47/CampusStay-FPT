@@ -69,6 +69,45 @@ class JdbcTermCatalog implements TermCatalog {
                         .param("t", termId).query(Long.class).list()));
     }
 
+    @Override
+    public Optional<Renewal> renewal(long termId) {
+        return renewals(termId).stream().findFirst();
+    }
+
+    @Override
+    public List<Renewal> renewals() {
+        return renewals(null);
+    }
+
+    private List<Renewal> renewals(Long termId) {
+        return jdbc.sql("""
+                SELECT t.id, t.name, t.code, t.stay_start, t.check_in_start, p.id AS previous_id, p.name AS previous_name,
+                       p.stay_end AS previous_end, p.check_out_by AS previous_check_out, t.publish_at, t.requests_open_at,
+                       t.requests_close_at, t.decisions_due_at, t.reconciliation_due_at, t.fees_issue_at, t.fees_due_at,
+                       t.reserved_new_percent
+                FROM cfg_term t
+                JOIN LATERAL (SELECT id, name, stay_end, check_out_by FROM cfg_term b
+                              WHERE b.status = 'PUBLISHED' AND b.stay_start < t.stay_start
+                              ORDER BY b.stay_start DESC LIMIT 1) p ON TRUE
+                WHERE t.status = 'PUBLISHED' AND t.requests_open_at IS NOT NULL
+                  AND (CAST(:term AS BIGINT) IS NULL OR t.id = :term)
+                ORDER BY t.stay_start DESC
+                """).param("term", termId)
+                .query((rs, i) -> new Renewal(rs.getLong("id"), rs.getString("name"), rs.getString("code"),
+                        rs.getObject("stay_start", LocalDate.class), rs.getObject("check_in_start", LocalDate.class),
+                        rs.getLong("previous_id"), rs.getString("previous_name"),
+                        rs.getObject("previous_end", LocalDate.class), rs.getObject("previous_check_out", LocalDate.class),
+                        at(rs, "publish_at"), at(rs, "requests_open_at"), at(rs, "requests_close_at"),
+                        at(rs, "decisions_due_at"), at(rs, "reconciliation_due_at"), at(rs, "fees_issue_at"),
+                        at(rs, "fees_due_at"), rs.getBigDecimal("reserved_new_percent")))
+                .list();
+    }
+
+    private static Instant at(ResultSet rs, String column) throws SQLException {
+        java.sql.Timestamp t = rs.getTimestamp(column);
+        return t == null ? null : t.toInstant();
+    }
+
     /** Stay includes today; otherwise the next Term to start; otherwise the latest past one. */
     private static Long pickCurrent(List<Row> rows, LocalDate today) {
         Row next = null;

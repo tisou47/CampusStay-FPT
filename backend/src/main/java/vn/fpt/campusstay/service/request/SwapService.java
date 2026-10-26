@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.service.assignment.Moves;
-import vn.fpt.campusstay.service.assignment.Residences;
+import vn.fpt.campusstay.service.assignment.Stays;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
@@ -46,11 +46,11 @@ import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.dto.PageQuery;
 
 /**
- * Bed swaps between two checked-in students of the same gender: a direct
- * invitation by student code or a match on the anonymous swap board. The
- * invited student accepts, Staff check and approve; a swap across Blocks then
- * goes to the Block Manager. Approval swaps the Beds and settles the price
- * difference for the days left. Swaps are addressed as {@code SW-000012}.
+ * Next-Term Bed swaps (spec §6.10): two continuing residents of the same gender agree to exchange their next-Term
+ * Beds, by a direct invitation (student code) or a match on the anonymous swap board of the requests window. The
+ * invited student accepts; Staff decide a swap inside their Block, and one across Blocks then goes to a Manager. The
+ * two next-Term Allocations exchange Beds; each student pays the next Term's price of the Bed they get, so there is
+ * no price difference, charge or credit (spec §8). Swaps are addressed as {@code SW-000012}.
  */
 @Service
 public class SwapService {
@@ -62,16 +62,19 @@ public class SwapService {
     }
 
     public record BoardItem(String id, String offeredRoomTypeName, String offeredRoomClassName, int floor, String block,
-            String wants, long priceDifference, boolean requested, boolean crossBlock) {
+            String wants, long termPrice, boolean requested, boolean crossBlock) {
     }
 
-    public record Board(List<String> blocks, MyPost myPost, List<BoardItem> items) {
+    /** @param window the requests window the board belongs to, null without one */
+    public record Board(List<String> blocks, MyPost myPost, List<BoardItem> items,
+            RoomChangeService.Window window) {
     }
 
+    /** @param termPrice the next Term's price of the Bed (what its holder pays for the next Term) */
     public record Side(String room, String bed, String roomTypeName, String roomClassName, String block, long termPrice) {
     }
 
-    public record Invitation(String id, String status, Instant expiresAt, boolean crossBlock, long priceDifference,
+    public record Invitation(String id, String status, Instant expiresAt, boolean crossBlock, String termName,
             Side give, Side get) {
     }
 
@@ -86,19 +89,23 @@ public class SwapService {
     }
 
     public record SwapItem(String id, String kind, Instant agreedAt, boolean crossBlock, String status, Person a,
-            Person b, List<Check> checks, Decision decision) {
+            Person b, List<Check> checks, Decision decision, Instant dueAt) {
     }
 
-    public record SwapPage(List<SwapItem> items, long total) {
+    public record SwapPage(List<SwapItem> items, long total, RoomChangeService.Window window) {
     }
 
     record Swap(long id, long termId, String kind, Long postId, long aAllocationId, long bAllocationId, String status,
-            boolean crossBlock, long priceDifference, String reason, Instant expiresAt, Instant agreedAt,
+            boolean crossBlock, String reason, Instant expiresAt, Instant agreedAt,
             Long decidedBy, Instant decidedAt, String decisionReason, long aBuildingId, long bBuildingId,
             Instant createdAt) {
 
         String code() {
             return SwapService.code(id);
+        }
+
+        boolean open() {
+            return status.equals("INVITED") || status.equals("PENDING") || status.equals("TO_MANAGER");
         }
     }
 
@@ -121,19 +128,19 @@ public class SwapService {
     private final UtilityPolicy utility;
     private final Parameters parameters;
     private final Moves moves;
-    private final Residences residences;
+    private final Stays stays;
     private final UserDirectory users;
     private final Billing billing;
-    private final ChangePrices prices;
+    private final NextTermContext context;
     private final RoomChangeService roomChanges;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public SwapService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, Buildings buildings,
-            TermCatalog terms, FeePolicy fees, UtilityPolicy utility, Parameters parameters, Moves moves,
-            Residences residences, UserDirectory users, Billing billing, ChangePrices prices,
-            RoomChangeService roomChanges, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            TermCatalog terms, FeePolicy fees, UtilityPolicy utility, Parameters parameters, Moves moves, Stays stays,
+            UserDirectory users, Billing billing, NextTermContext context, RoomChangeService roomChanges,
+            ApplicationEventPublisher events, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -143,10 +150,10 @@ public class SwapService {
         this.utility = utility;
         this.parameters = parameters;
         this.moves = moves;
-        this.residences = residences;
+        this.stays = stays;
         this.users = users;
         this.billing = billing;
-        this.prices = prices;
+        this.context = context;
         this.roomChanges = roomChanges;
         this.events = events;
         this.audit = audit;
@@ -158,37 +165,41 @@ public class SwapService {
     @Transactional
     public Created direct(String studentCode, String reason) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
-        Moves.Placement mine = myPlacement(me.userId(), null);
+        NextTermContext.Filing mine = filing(me.userId());
         Moves.Placement other = Optional.ofNullable(studentCode).map(String::trim).filter(c -> !c.isEmpty())
                 .flatMap(users::studentByCode)
                 .filter(s -> s.userId() != me.userId())
-                .flatMap(s -> moves.current(s.userId(), mine.termId()))
-                .filter(p -> p.residentAt() != null && p.gender().equals(mine.gender()))
+                .flatMap(s -> stays.nextTerm(s.userId(), mine.window().termId()))
+                .filter(Stays.NextTerm::continuing)
+                .flatMap(n -> moves.placement(n.allocationId()))
+                .filter(p -> p.active() && p.gender().equals(mine.placement().gender()))
                 .orElseThrow(() -> FieldErrors.single("studentCode", CANNOT_SWAP));
         if (reason != null && reason.length() > 500) {
             throw FieldErrors.single("reason", "Keep the reason under 500 characters.");
         }
-        return new Created(invite(me, mine, other, "DIRECT", null, reason == null || reason.isBlank() ? null : reason.trim())
-                .code());
+        return new Created(invite(me, mine, other, "DIRECT", null,
+                reason == null || reason.isBlank() ? null : reason.trim()).code());
     }
 
     // ---------------------------------------------------------------- swap board
 
+    /** The board of the requests window the student files in (posts of next-Term Beds). */
     @Transactional(readOnly = true)
     public Board board(Long termId) {
         long me = currentUser.require(Role.STUDENT).userId();
-        TermSummary term = term(me, termId);
-        Optional<Moves.Placement> mine = moves.current(me, term.id());
-        if (mine.isEmpty()) {
-            return new Board(List.of(), null, List.of());
+        Optional<NextTermContext.Filing> filing = context.of(me)
+                .filter(f -> termId == null || f.window().termId() == termId);
+        if (filing.isEmpty()) {
+            return new Board(List.of(), null, List.of(), null);
         }
-        Moves.Placement p = mine.get();
+        NextTermContext.Filing f = filing.get();
+        Moves.Placement p = f.placement();
         Map<Long, String> codes = buildings.activeBlocksFor(p.gender());
         List<Post> posts = jdbc.sql("""
                 SELECT * FROM req_swap_post
                 WHERE term_id = :term AND status = 'ACTIVE' AND expires_at > :now AND building_id IN (:blocks)
                 ORDER BY created_at DESC
-                """).param("term", term.id()).param("now", Timestamp.from(Instant.now(clock)))
+                """).param("term", f.window().termId()).param("now", Timestamp.from(Instant.now(clock)))
                 .param("blocks", codes.isEmpty() ? List.of(-1L) : List.copyOf(codes.keySet()))
                 .query(SwapService::post).list();
         Post own = posts.stream().filter(x -> x.allocationId() == p.allocationId()).findFirst().orElse(null);
@@ -198,32 +209,30 @@ public class SwapService {
                   AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
                 """).param("mine", p.allocationId()).query(Long.class).list());
         RoomChangeService.Names names = roomChanges.names();
-        long myPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(0);
         List<BoardItem> items = new ArrayList<>();
         for (Post post : posts) {
             Moves.Placement owner = owners.get(post.allocationId());
             if (post.allocationId() == p.allocationId() || owner == null || !owner.active()) {
                 continue;
             }
-            long offered = fees.termPrice(owner.termId(), owner.roomTypeId(), owner.roomClassId()).orElse(myPrice);
             items.add(new BoardItem(String.valueOf(post.id()), names.type(owner.roomTypeId()),
                     names.roomClass(owner.roomClassId()), owner.floor(), owner.block(),
                     names.type(post.wantedTypeId()) + " · " + names.roomClass(post.wantedClassId()) + " · "
                             + (post.wantedBuildingId() == null ? "any Block" : "Block " + codes.get(post.wantedBuildingId())),
-                    prices.difference(offered, myPrice, term), requested.contains(post.id()),
-                    owner.buildingId() != p.buildingId()));
+                    price(owner), requested.contains(post.id()), owner.buildingId() != p.buildingId()));
         }
         return new Board(List.copyOf(codes.values()),
                 own == null ? null : new MyPost(own.wantedBuildingId() == null ? null : codes.get(own.wantedBuildingId()),
                         String.valueOf(own.wantedTypeId()), String.valueOf(own.wantedClassId()), own.expiresAt()),
-                items);
+                items, RoomChangeService.window(f.window()));
     }
 
     /** Puts (or replaces) the student's post; without a Room Type the post is taken down. */
     @Transactional
     public void putMyPost(Long termId, String block, Long roomTypeId, Long roomClassId) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
-        Moves.Placement p = myPlacement(me.userId(), termId);
+        NextTermContext.Filing f = filing(me.userId());
+        Moves.Placement p = f.placement();
         Instant now = Instant.now(clock);
         jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id = :a AND status = 'ACTIVE'")
                 .param("now", Timestamp.from(now)).param("a", p.allocationId()).update();
@@ -240,6 +249,11 @@ public class SwapService {
                     .map(Map.Entry::getKey).findFirst()
                     .orElseThrow(() -> FieldErrors.single("block", "Choose one of the listed Blocks."));
         }
+        // A post never outlives the request deadline of its window.
+        Instant expires = now.plus(Duration.ofDays(parameters.intValue("swap.post_days")));
+        if (expires.isAfter(f.window().closesAt())) {
+            expires = f.window().closesAt();
+        }
         jdbc.sql("""
                 INSERT INTO req_swap_post (term_id, allocation_id, wanted_building_id, wanted_room_type_id,
                                            wanted_room_class_id, building_id, expires_at, created_at, updated_at)
@@ -247,11 +261,10 @@ public class SwapService {
                 """)
                 .param("term", p.termId()).param("a", p.allocationId()).param("block", wanted).param("type", roomTypeId)
                 .param("class", roomClassId).param("building", p.buildingId())
-                .param("expires", Timestamp.from(now.plus(Duration.ofDays(parameters.intValue("swap.post_days")))))
-                .param("now", Timestamp.from(now)).update();
+                .param("expires", Timestamp.from(expires)).param("now", Timestamp.from(now)).update();
     }
 
-    /** Proposes a swap to the student behind a board post, when the requester's Bed is what the post wants. */
+    /** Proposes a swap to the student behind a board post, when the requester's next-Term Bed is what the post wants. */
     @Transactional
     public Created requestPost(String postId) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
@@ -259,12 +272,14 @@ public class SwapService {
                 SELECT * FROM req_swap_post WHERE id = :id AND status = 'ACTIVE' AND expires_at > :now
                 """).param("id", id).param("now", Timestamp.from(Instant.now(clock))).query(SwapService::post).optional())
                 .orElseThrow(() -> ApiException.notFound("This post is no longer on the board."));
-        Moves.Placement mine = myPlacement(me.userId(), post.termId());
+        NextTermContext.Filing mine = filing(me.userId());
+        Moves.Placement my = mine.placement();
         Moves.Placement owner = moves.placement(post.allocationId()).filter(Moves.Placement::active)
-                .filter(o -> o.gender().equals(mine.gender()) && o.allocationId() != mine.allocationId())
+                .filter(o -> o.termId() == my.termId() && o.gender().equals(my.gender())
+                        && o.allocationId() != my.allocationId())
                 .orElseThrow(() -> ApiException.notFound("This post is no longer on the board."));
-        if (mine.roomTypeId() != post.wantedTypeId() || mine.roomClassId() != post.wantedClassId()
-                || (post.wantedBuildingId() != null && post.wantedBuildingId() != mine.buildingId())) {
+        if (my.roomTypeId() != post.wantedTypeId() || my.roomClassId() != post.wantedClassId()
+                || (post.wantedBuildingId() != null && post.wantedBuildingId() != my.buildingId())) {
             throw ApiException.conflict("NOT_A_MATCH", "Your Bed is not what this student is looking for.");
         }
         return new Created(invite(me, mine, owner, "BOARD", post.id(), null).code());
@@ -286,7 +301,7 @@ public class SwapService {
         Moves.Placement give = viewerIsA ? a : b;
         Moves.Placement get = viewerIsA ? b : a;
         return new Invitation(s.code(), STATUSES.get(s.status()), s.expiresAt(), s.crossBlock(),
-                viewerIsA ? s.priceDifference() : -s.priceDifference(), side(give), side(get));
+                terms.findPublished(s.termId()).map(TermSummary::name).orElse(null), side(give), side(get));
     }
 
     /** The invited student accepts (the swap waits for Staff) or declines. */
@@ -320,13 +335,16 @@ public class SwapService {
 
     // ---------------------------------------------------------------- Staff and Manager
 
-    /** @param kind Direct or Board match; {@code status} a status label */
+    /**
+     * @param termId the next Term; null = the latest open requests window
+     * @param kind   Direct or Board match; {@code status} a status label
+     */
     @Transactional(readOnly = true)
     public SwapPage queue(Long termId, String block, String kind, String status, PageQuery page) {
         Set<Long> scope = blockScope.resolve(block).ids();
-        TermSummary term = staffTerm(termId);
+        long term = roomChanges.queueTerm(termId);
         Map<String, Object> params = new HashMap<>();
-        params.put("term", term.id());
+        params.put("term", term);
         params.put("scope", List.copyOf(scope));
         StringBuilder where = new StringBuilder(
                 " WHERE term_id = :term AND (a_building_id IN (:scope) OR b_building_id IN (:scope))");
@@ -352,20 +370,22 @@ public class SwapService {
         Map<Long, String> deciders = users.displayNames(rows.stream().map(Swap::decidedBy).filter(Objects::nonNull)
                 .collect(Collectors.toSet()));
         RoomChangeService.Names names = roomChanges.names();
+        Optional<Stays.Window> window = context.window(term);
         List<SwapItem> items = rows.stream().map(s -> {
             Moves.Placement a = placed.get(s.aAllocationId());
             Moves.Placement b = placed.get(s.bAllocationId());
             return new SwapItem(s.code(), KINDS.get(s.kind()), s.agreedAt(), s.crossBlock(), STATUSES.get(s.status()),
                     person(a, students, names), person(b, students, names), checks(a, b),
                     s.decidedAt() == null ? null : new Decision(deciders.get(s.decidedBy()), s.decidedAt(),
-                            s.decisionReason()));
+                            s.decisionReason()),
+                    window.map(Stays.Window::decisionsDueAt).orElse(null));
         }).toList();
-        return new SwapPage(items, total);
+        return new SwapPage(items, total, window.map(RoomChangeService::window).orElse(null));
     }
 
     /**
-     * Staff decide an agreed swap; a swap across Blocks then waits for the Block Manager, who decides it
-     * last. Approval swaps the Beds and settles the price difference.
+     * Staff decide an agreed swap; a swap across Blocks then waits for a Manager, who decides it last. Approval
+     * exchanges the two next-Term Beds; nothing is charged or credited.
      */
     @Transactional
     public void decide(String id, String decision, String reason) {
@@ -403,6 +423,7 @@ public class SwapService {
         if (!d.equalsIgnoreCase("approved")) {
             throw FieldErrors.single("decision", "Choose Approved or Rejected.");
         }
+        context.checkDeciding(s.termId());
         if (checks(a, b).stream().anyMatch(c -> !c.passed())) {
             throw ApiException.conflict("SWAP_CHECKS_FAILED", "The swap does not pass the rule check any more.");
         }
@@ -415,36 +436,37 @@ public class SwapService {
             audit.record("SWAP_TO_MANAGER", AuditLog.Tone.INFO, "Swap", s.id(), s.code(), null);
             return;
         }
-        long[] moved = moves.swap(s.aAllocationId(), s.bAllocationId(), user.userId());
-        settle(s, a, b, moved, now);
+        moves.swap(s.aAllocationId(), s.bAllocationId(), user.userId());
         jdbc.sql("""
                 UPDATE req_swap SET status = 'APPROVED', decided_by = :by, decided_at = :now, version = version + 1
                 WHERE id = :id
                 """).param("by", user.userId()).param("now", Timestamp.from(now)).param("id", s.id()).update();
+        closeOthers(s, now);
         audit.record("SWAP_APPROVED", AuditLog.Tone.SUCCESS, "Swap", s.id(), s.code(),
-                Map.of("a", a.bedCode(), "b", b.bedCode(), "difference", s.priceDifference()));
+                Map.of("a", a.bedCode(), "b", b.bedCode(), "term",
+                        terms.findPublished(s.termId()).map(TermSummary::name).orElse("")));
         notifyBoth(s, a, b, "approved");
     }
 
-    /** A pays the positive difference and B is credited it, or the other way round. */
-    private void settle(Swap s, Moves.Placement a, Moves.Placement b, long[] moved, Instant now) {
-        TermSummary term = terms.findPublished(s.termId()).orElseThrow();
-        long aPrice = fees.termPrice(s.termId(), a.roomTypeId(), a.roomClassId()).orElse(0);
-        long bPrice = fees.termPrice(s.termId(), b.roomTypeId(), b.roomClassId()).orElse(aPrice);
-        long difference = prices.difference(bPrice, aPrice, term);
-        if (difference == 0) {
-            return;
-        }
-        Moves.Placement payer = difference > 0 ? a : b;
-        Moves.Placement payee = difference > 0 ? b : a;
-        long payerAllocation = difference > 0 ? moved[0] : moved[1];
-        long amount = Math.abs(difference);
-        billing.issueCharge(new Billing.ChargeRequest(s.termId(), payer.studentId(), payerAllocation,
-                payee.buildingId(), "ROOM_CHANGE", "Bed swap", amount,
-                List.of(new Billing.ChargeLine("Bed swap to Room " + payee.room() + " for the days left", amount)),
-                now.plus(Duration.ofDays(fees.balanceDays())), "Swap " + s.code()));
-        billing.requestCredit(s.termId(), payee.studentId(), payer.buildingId(), "ROOM_CHANGE", s.id(),
-                "Swap " + s.code() + " · cheaper Room", amount);
+    /**
+     * The two next-Term Beds changed hands: other swaps, board posts and room change requests made from them are
+     * closed (their Bed is not that one any more).
+     */
+    private void closeOthers(Swap s, Instant now) {
+        List<Long> both = List.of(s.aAllocationId(), s.bAllocationId());
+        jdbc.sql("""
+                UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The next-Term Bed changed.',
+                       decided_at = :now, version = version + 1
+                WHERE id <> :id AND (a_allocation_id IN (:both) OR b_allocation_id IN (:both))
+                  AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
+                """).param("now", Timestamp.from(now)).param("id", s.id()).param("both", both).update();
+        jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id IN (:both) AND status = 'ACTIVE'")
+                .param("now", Timestamp.from(now)).param("both", both).update();
+        jdbc.sql("""
+                UPDATE req_room_change SET status = 'CANCELLED', decided_at = :now,
+                       decision_note = 'Cancelled: the next-Term Bed changed by a swap.', version = version + 1
+                WHERE allocation_id IN (:both) AND status IN ('SUBMITTED', 'PENDING')
+                """).param("now", Timestamp.from(now)).param("both", both).update();
     }
 
     // ---------------------------------------------------------------- student's requests screen
@@ -461,16 +483,19 @@ public class SwapService {
                 .query(SwapService::swap).list();
         Map<Long, Moves.Placement> placed = moves.placements(rows.stream()
                 .flatMap(s -> Stream.of(s.aAllocationId(), s.bAllocationId())).toList());
+        Map<Long, String> termNames = terms.publishedTerms().stream()
+                .collect(Collectors.toMap(TermSummary::id, TermSummary::name));
         Instant now = Instant.now(clock);
         return rows.stream().map(s -> {
             boolean iAmB = mine.contains(s.bAllocationId());
             Moves.Placement other = placed.get(iAmB ? s.aAllocationId() : s.bAllocationId());
-            String summary = "Swap with Room " + (other == null ? "?" : other.room() + " · Bed " + other.bed());
+            String summary = termNames.getOrDefault(s.termId(), "") + " · Swap with Room "
+                    + (other == null ? "?" : other.room() + " · Bed " + other.bed());
             boolean open = iAmB && s.status().equals("INVITED") && s.expiresAt().isAfter(now);
             return new RoomChangeService.StudentItem(s.code(), "Swap", summary, s.createdAt(), STATUSES.get(s.status()),
                     s.decidedAt() == null ? null : new RoomChangeService.StudentDecision(
                             s.decisionReason() != null ? s.decisionReason() : STATUSES.get(s.status()), s.decidedAt()),
-                    null, open ? s.code() : null);
+                    null, open ? s.code() : null, null);
         }).toList();
     }
 
@@ -489,30 +514,60 @@ public class SwapService {
         return swaps;
     }
 
+    /** Open swaps of the Term (the requests window and its blockers). */
+    long openCount(long termId) {
+        return jdbc.sql("""
+                SELECT count(*) FROM req_swap WHERE term_id = :t AND status IN ('PENDING', 'TO_MANAGER')
+                """).param("t", termId).query(Long.class).single();
+    }
+
+    /**
+     * A next-Term Allocation was cancelled (Assignment's transaction): swaps and posts made from it close, an
+     * invitation still waiting for an answer included.
+     */
+    void allocationCancelled(long allocationId, Instant now) {
+        jdbc.sql("""
+                UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The student does not continue next Term.',
+                       decided_at = :now, version = version + 1
+                WHERE (a_allocation_id = :a OR b_allocation_id = :a) AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
+                """).param("now", Timestamp.from(now)).param("a", allocationId).update();
+        jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id = :a AND status = 'ACTIVE'")
+                .param("now", Timestamp.from(now)).param("a", allocationId).update();
+    }
+
     // ---------------------------------------------------------------- helpers
 
-    private Swap invite(AuthenticatedUser me, Moves.Placement mine, Moves.Placement other, String kind, Long postId,
-            String reason) {
+    /** The student files in an open window and continues next Term (an extension comes first in the last Term). */
+    private NextTermContext.Filing filing(long studentId) {
+        NextTermContext.Filing f = context.filing(studentId);
+        if (!f.nextTerm().continuing()) {
+            throw ApiException.conflict("EXTEND_FIRST", "This is the last Term of your stay: ask for an extension first.");
+        }
+        return f;
+    }
+
+    private Swap invite(AuthenticatedUser me, NextTermContext.Filing filing, Moves.Placement other, String kind,
+            Long postId, String reason) {
         if (utility.blockChangesWhenOverdue() && billing.hasOverdueInvoice(me.userId())) {
             throw ApiException.conflict("OVERDUE_INVOICE", "Pay your overdue Invoice before you ask for a swap.");
         }
-        TermSummary term = terms.findPublished(mine.termId()).orElseThrow();
-        long myPrice = fees.termPrice(mine.termId(), mine.roomTypeId(), mine.roomClassId()).orElse(0);
-        long otherPrice = fees.termPrice(mine.termId(), other.roomTypeId(), other.roomClassId()).orElse(myPrice);
+        Moves.Placement mine = filing.placement();
         Instant now = Instant.now(clock);
         Instant expires = now.plus(Duration.ofHours(parameters.intValue("swap.invitation_hours")));
+        if (expires.isAfter(filing.window().closesAt())) {
+            expires = filing.window().closesAt();
+        }
         long id;
         try {
             id = jdbc.sql("""
                     INSERT INTO req_swap (term_id, kind, post_id, a_allocation_id, b_allocation_id, cross_block,
                                           price_difference, reason, expires_at, a_building_id, b_building_id, created_at)
-                    VALUES (:term, :kind, :post, :a, :b, :cross, :difference, :reason, :expires, :aBlock, :bBlock, :now)
+                    VALUES (:term, :kind, :post, :a, :b, :cross, 0, :reason, :expires, :aBlock, :bBlock, :now)
                     RETURNING id
                     """)
                     .param("term", mine.termId()).param("kind", kind).param("post", postId)
                     .param("a", mine.allocationId()).param("b", other.allocationId())
-                    .param("cross", mine.buildingId() != other.buildingId())
-                    .param("difference", prices.difference(otherPrice, myPrice, term)).param("reason", reason)
+                    .param("cross", mine.buildingId() != other.buildingId()).param("reason", reason)
                     .param("expires", Timestamp.from(expires)).param("aBlock", mine.buildingId())
                     .param("bBlock", other.buildingId()).param("now", Timestamp.from(now))
                     .query(Long.class).single();
@@ -523,20 +578,15 @@ public class SwapService {
         return find(String.valueOf(id), false).orElseThrow();
     }
 
-    private Moves.Placement myPlacement(long studentId, Long termId) {
-        TermSummary term = term(studentId, termId);
-        return moves.current(studentId, term.id()).filter(p -> p.residentAt() != null)
-                .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN",
-                        "You can swap Beds once you have checked in."));
-    }
-
+    /** The rule check Staff see: both still hold continuing next-Term Beds and owe nothing overdue. */
     private List<Check> checks(Moves.Placement a, Moves.Placement b) {
         boolean hold = a != null && b != null && a.active() && b.active();
-        boolean checkedIn = hold && a.residentAt() != null && b.residentAt() != null;
+        Map<Long, Stays.NextTerm> next = hold ? stays.nextTerms(List.of(a.allocationId(), b.allocationId())) : Map.of();
+        boolean continuing = hold && next.size() == 2 && next.values().stream().allMatch(Stays.NextTerm::continuing);
         boolean noOverdue = a != null && b != null && !billing.hasOverdueInvoice(a.studentId())
                 && !billing.hasOverdueInvoice(b.studentId());
-        return List.of(new Check("Both students still hold their Beds", hold),
-                new Check("Both students are checked in", checkedIn),
+        return List.of(new Check("Both students still hold their next-Term Beds", hold),
+                new Check("Both students continue next Term", continuing),
                 new Check("No overdue Invoice", noOverdue));
     }
 
@@ -548,13 +598,17 @@ public class SwapService {
         }
     }
 
+    private long price(Moves.Placement p) {
+        return fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(0);
+    }
+
     private Side side(Moves.Placement p) {
         if (p == null) {
             return null;
         }
         RoomChangeService.Names names = roomChanges.names();
         return new Side(p.room(), p.bed(), names.type(p.roomTypeId()), names.roomClass(p.roomClassId()),
-                "Block " + p.block(), fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(0));
+                "Block " + p.block(), price(p));
     }
 
     private static Person person(Moves.Placement p, Map<Long, UserDirectory.Student> students,
@@ -565,23 +619,6 @@ public class SwapService {
         UserDirectory.Student s = students.get(p.studentId());
         return new Person(s == null ? null : s.name(), s == null ? null : s.studentCode(), p.room(), p.bed(),
                 names.type(p.roomTypeId()), names.roomClass(p.roomClassId()));
-    }
-
-    private TermSummary term(long studentId, Long termId) {
-        if (termId != null) {
-            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
-        }
-        return residences.current(studentId).flatMap(r -> terms.findPublished(r.termId()))
-                .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN", "You can swap Beds once you have checked in."));
-    }
-
-    private TermSummary staffTerm(Long termId) {
-        if (termId != null) {
-            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
-        }
-        return terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
-                .or(terms::openForRegistration)
-                .orElseThrow(() -> ApiException.notFound("No Term is published yet."));
     }
 
     private Optional<Swap> find(String id, boolean lock) {
@@ -614,7 +651,7 @@ public class SwapService {
     private static Swap swap(ResultSet rs, int i) throws SQLException {
         return new Swap(rs.getLong("id"), rs.getLong("term_id"), rs.getString("kind"), rs.getObject("post_id", Long.class),
                 rs.getLong("a_allocation_id"), rs.getLong("b_allocation_id"), rs.getString("status"),
-                rs.getBoolean("cross_block"), rs.getLong("price_difference"), rs.getString("reason"),
+                rs.getBoolean("cross_block"), rs.getString("reason"),
                 instant(rs, "expires_at"), instant(rs, "agreed_at"), rs.getObject("decided_by", Long.class),
                 instant(rs, "decided_at"), rs.getString("decision_reason"), rs.getLong("a_building_id"),
                 rs.getLong("b_building_id"), instant(rs, "created_at"));

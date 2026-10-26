@@ -1,5 +1,8 @@
 package vn.fpt.campusstay.service.setting;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,4 +39,23 @@ public interface TermCatalog {
 
     /** The Blocks and Rooms of any Term, Drafts included. */
     TermRooms rooms(long termId);
+
+    /**
+     * The renewal milestones of a published Term N+1 (spec §5.1, M1–M7) with the published Term N just before it,
+     * whose residents continue into it.
+     *
+     * @param previousCheckOutBy the day leavers of N must have checked out
+     * @param reservedNewPercent the share of the Term's Beds kept for new students (D-29)
+     */
+    record Renewal(long termId, String name, String code, LocalDate stayStart, LocalDate checkInStart,
+            long previousTermId, String previousName, LocalDate previousStayEnd, LocalDate previousCheckOutBy,
+            Instant publishAt, Instant requestsOpenAt, Instant requestsCloseAt, Instant decisionsDueAt,
+            Instant reconciliationDueAt, Instant feesIssueAt, Instant feesDueAt, BigDecimal reservedNewPercent) {
+    }
+
+    /** The renewal milestones of a published Term; empty when it has none (the first Term) or none runs before it. */
+    Optional<Renewal> renewal(long termId);
+
+    /** Every published Term with renewal milestones, the latest stay first. */
+    List<Renewal> renewals();
 }

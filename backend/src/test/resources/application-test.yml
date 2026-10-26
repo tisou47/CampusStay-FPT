@@ -25,6 +25,7 @@ campusstay:
   asg:
     forfeit-interval: 1h
     release-interval: 1h
+    renewal-interval: 1h
   mnt:
     inspection-cron: "-"           # tests start runs themselves
   door-codes:

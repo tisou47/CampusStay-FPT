@@ -101,14 +101,16 @@ public class TerminationService {
     private final UserDirectory users;
     private final Billing billing;
     private final Parameters parameters;
+    private final JdbcStays stays;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public TerminationService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, TermCatalog terms,
-            Inventory inventory, UserDirectory users, Billing billing, Parameters parameters,
+            Inventory inventory, UserDirectory users, Billing billing, Parameters parameters, JdbcStays stays,
             ApplicationEventPublisher events, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
+        this.stays = stays;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
         this.terms = terms;
@@ -204,6 +206,17 @@ public class TerminationService {
         resident(e.studentId(), e.allocationId()).ifPresent(a -> insertQuietly(a, "UTILITY_DEBT", null, e.debt()));
     }
 
+    /**
+     * A Manager reconciled the enrolled list and found a resident of the Term not enrolled (spec §6.12; the caller's
+     * transaction): their stay is terminated with the reason Not enrolled and the Manager's note.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void notEnrolled(long studentId, long termId, String note) {
+        resident(studentId, null).filter(a -> a.termId() == termId)
+                .filter(a -> !terminated(a.id()))
+                .ifPresent(a -> insert(a, "NOT_ENROLLED", note, null, currentUser.id()));
+    }
+
     /** Only a Manager cancels a termination, with a reason (spec §6.14). */
     @Transactional
     public void cancel(String id, String reason) {
@@ -260,20 +273,21 @@ public class TerminationService {
                 events.publishEvent(new TerminationOverdue(r.id(), r.studentId(), names.get(r.studentId()),
                         bed.roomCode(), bed.buildingId(), r.moveOutBy()));
             }
+            endNextTerm(r.studentId());
         }
         return due.size();
     }
 
     /**
      * The terminated student checked out at the desk (Desk's transaction): the termination closes and the unused room
-     * fee is refunded by its rule.
+     * fee is refunded by its rule. @return whether a termination closed
      */
     @Transactional(propagation = Propagation.MANDATORY)
-    void checkedOut(long allocationId, long by) {
+    boolean checkedOut(long allocationId, long by) {
         Optional<Row> open = jdbc.sql(SELECT + " WHERE t.allocation_id = :a AND t.status IN ('NOTICE_SENT', 'OVERDUE') FOR UPDATE OF t")
                 .param("a", allocationId).query(TerminationService::row).optional();
         if (open.isEmpty()) {
-            return;
+            return false;
         }
         Row r = open.get();
         Instant now = Instant.now(clock);
@@ -292,6 +306,13 @@ public class TerminationService {
                     r.reason().equals("NOT_ENROLLED") ? "NOT_ENROLLED" : "TERMINATION",
                     LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE), term.stayStart(), term.stayEnd()));
         }
+        return true;
+    }
+
+    /** At move-out the next-Term Allocation ends with the stay (spec §6.15). */
+    private void endNextTerm(long studentId) {
+        jdbc.sql("SELECT id FROM asg_allocation WHERE student_id = :s AND status = 'ACTIVE' AND renewal IS NOT NULL")
+                .param("s", studentId).query(Long.class).list().forEach(id -> stays.cancel(id, "TERMINATED"));
     }
 
     // ---------------------------------------------------------------- helpers
