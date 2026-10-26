@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, not merged yet).
+Total: 232 endpoints (239 when the seven `GET, PUT` rows count twice); all 232 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -311,7 +311,7 @@ Built on `feat/v2-phase4` (ADR-20, ADR-27), in `main` and production since 26/10
 
 ## V2-5 — Change Specification v2 phase 5 "Money and residence"
 
-Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), not merged into `main` yet. Migrations V44 (BIL: payment claims, the bank-feed inbox kept as an archive, Invoices fixed once issued and refunded once, reminders, Utility warnings), V45 (ASG: residence and door-code release times, forfeits, late check-ins asked online, terminations), V46 (APP: Gia hạn, Forfeited), V47 (CFG: `cfg_fee_policy` without its two switches, `stay.program_semesters`, the Termination check-out reason), V48 (INV: rotation after an overdue termination) and V49 (NTF: the notifications and emails of money and residence). Contract changes A-34…A-39, B-05…B-07, C-42.
+Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), in `main` and production since 26/10/2026. Migrations V44 (BIL: payment claims, the bank-feed inbox kept as an archive, Invoices fixed once issued and refunded once, reminders, Utility warnings), V45 (ASG: residence and door-code release times, forfeits, late check-ins asked online, terminations), V46 (APP: Gia hạn, Forfeited), V47 (CFG: `cfg_fee_policy` without its two switches, `stay.program_semesters`, the Termination check-out reason), V48 (INV: rotation after an overdue termination) and V49 (NTF: the notifications and emails of money and residence). Contract changes A-34…A-39, B-05…B-07, C-42.
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|

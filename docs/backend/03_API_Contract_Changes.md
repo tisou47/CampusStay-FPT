@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.17 (26/10/2026: Change Specification v2 phase 5 "Money and residence" (on `feat/v2-phase5`): A-34…A-39, B-05…B-07, C-42; before it, 1.16: phase 4 "Registration periods" (in `main` since 26/10/2026): A-27…A-33, C-41; before it, 1.15: phase 3 "Inventory" (in `main` since 25/10/2026): A-23…A-26, B-04, C-40; before it, 1.14: phase 2 "Accounts": A-17…A-21, C-39; Google redirect flow when the popup is blocked: A-22) |
+| Version | 1.17 (26/10/2026: Change Specification v2 phase 5 "Money and residence" (in `main` since 26/10/2026): A-34…A-39, B-05…B-07, C-42; before it, 1.16: phase 4 "Registration periods" (in `main` since 26/10/2026): A-27…A-33, C-41; before it, 1.15: phase 3 "Inventory" (in `main` since 25/10/2026): A-23…A-26, B-04, C-40; before it, 1.14: phase 2 "Accounts": A-17…A-21, C-39; Google redirect flow when the popup is blocked: A-22) |
 | Date | 26/10/2026 |
 | Contract | `docs/api-contract.md` = the mentor-confirmed base + every change below (A-01…C-14 merged on 20/10/2026, C-15…C-28, A-08…A-12 on 21/10/2026, C-29…C-37, A-13, A-14 on 22/10/2026, A-15, A-16, C-38 on 24/10/2026, A-17…A-26, B-04, C-39, C-40 on 25/10/2026, A-27…A-33, C-41 on 26/10/2026; A-34…A-39, B-05…B-07, C-42 on 26/10/2026 on the phase-5 branch) |
 | Rule | Every contract change gets a row here **and** is written into `docs/api-contract.md` in the same commit. Additions (A-) are applied by the backend directly. Breaking changes (B-) name the client action; the backend and client changes go in the same PR. Clarifications (C-) describe behaviour the clients must handle. Update the status columns when a side is done. |
