@@ -131,15 +131,24 @@ public class StudentInvoiceService {
         this.clock = clock;
     }
 
-    /** @param termId null = every Term */
+    /**
+     * @param termId null = every Term; a Term also lists the next-Term fees of the Term whose requests window follows
+     *               it, paid while the student still lives in it
+     */
     @Transactional(readOnly = true)
     public InvoicePage mine(Long termId, PageQuery page) {
         long student = currentUser.require(Role.STUDENT).userId();
-        String where = " WHERE student_id = :student" + (termId == null ? "" : " AND term_id = :term");
+        List<Long> next = termId == null ? List.of() : terms.renewals().stream()
+                .filter(r -> r.previousTermId() == termId).map(TermCatalog.Renewal::termId).toList();
+        String where = " WHERE student_id = :student" + (termId == null ? "" : next.isEmpty() ? " AND term_id = :term"
+                : " AND (term_id = :term OR (type = 'TERM_FEE' AND term_id IN (:next)))");
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("student", student);
         if (termId != null) {
             params.put("term", termId);
+        }
+        if (!next.isEmpty()) {
+            params.put("next", next);
         }
         long total = jdbc.sql("SELECT count(*) FROM bil_invoice" + where).params(params).query(Long.class).single();
         List<InvoiceStore.Invoice> rows = jdbc.sql("SELECT " + InvoiceStore.COLUMNS + " FROM bil_invoice" + where

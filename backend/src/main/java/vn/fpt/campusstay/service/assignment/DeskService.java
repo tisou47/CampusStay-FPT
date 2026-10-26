@@ -149,12 +149,14 @@ public class DeskService {
     private final AuditLog audit;
     private final ApplicationEventPublisher events;
     private final TerminationService terminations;
+    private final JdbcStays stays;
     private final Clock clock;
 
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
             UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events,
-            TerminationService terminations, Clock clock) {
+            TerminationService terminations, JdbcStays stays, Clock clock) {
+        this.stays = stays;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -273,6 +275,7 @@ public class DeskService {
         if (updated == 0) {
             throw ApiException.conflict("ALREADY_CHECKED_IN", student.name() + " is already checked in.");
         }
+        stays.joinStay(a.id(), a.residentAt() == null ? now : a.residentAt());
         audit.record("CHECKED_IN", AuditLog.Tone.SUCCESS, "Allocation", a.id(), "Room " + bed.roomCode() + " · Bed "
                 + bed.bedLabel(), Map.of("items", List.copyOf(handed)));
         return new CheckedIn(now);
@@ -349,7 +352,13 @@ public class DeskService {
         currentUser.require(Permission.DESK);
         BlockSelection scope = blockScope.resolve(block);
         TermSummary term = term(termId);
-        List<Placed> rows = checkOutRows(term.id(), scope.ids(), null);
+        // Continuing residents keep living here in the next Term: they leave the list unless a check-out started.
+        Set<Long> continuing = Set.copyOf(jdbc.sql("""
+                SELECT student_id FROM asg_allocation
+                WHERE status = 'ACTIVE' AND renewal IS NOT NULL AND term_id <> :t
+                """).param("t", term.id()).query(Long.class).list());
+        List<Placed> rows = checkOutRows(term.id(), scope.ids(), null).stream()
+                .filter(p -> p.outStatus() != null || !continuing.contains(p.alloc().studentId())).toList();
         Map<Long, UserDirectory.StudentProfile> students = users.studentProfiles(
                 rows.stream().map(p -> p.alloc().studentId()).toList());
         Names names = names();
@@ -437,7 +446,14 @@ public class DeskService {
         if (p.alloc().residentAt() != null) {
             events.publishEvent(new ResidentLeftRoom(p.bed().roomId(), "CHECK_OUT"));
         }
-        terminations.checkedOut(p.alloc().id(), user.userId());
+        boolean terminated = terminations.checkedOut(p.alloc().id(), user.userId());
+        // A resident who leaves now does not continue: a Bed held for the next Term is released.
+        jdbc.sql("""
+                SELECT id FROM asg_allocation
+                WHERE student_id = :s AND status = 'ACTIVE' AND renewal IS NOT NULL AND id <> :id
+                """).param("s", p.alloc().studentId()).param("id", p.alloc().id()).query(Long.class).list()
+                .forEach(id -> stays.cancel(id, terminated ? "TERMINATED" : "END_OF_STAY"));
+        stays.endIfLeft(p.alloc().studentId(), terminated);
         long refund = settled.settlement().refund();
         audit.record("CHECKED_OUT", AuditLog.Tone.SUCCESS, "Allocation", p.alloc().id(),
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
@@ -480,7 +496,7 @@ public class DeskService {
 
     private Billing.SettlementRequest request(Placed p, Reading reading, long damage) {
         return new Billing.SettlementRequest(p.alloc().termId(), p.alloc().studentId(), p.alloc().id(),
-                p.bed().roomId(), p.bed().roomCode(), p.bed().buildingId(),
+                stays.allocationsOfStay(p.alloc().id()), p.bed().roomId(), p.bed().roomCode(), p.bed().buildingId(),
                 reading == null ? null : reading.electricity(), reading == null ? null : reading.water(), damage,
                 residents(p.bed().roomId(), p.alloc().termId()));
     }

@@ -4,9 +4,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.text.NumberFormat;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,33 +23,34 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import vn.fpt.campusstay.service.assignment.Moves;
-import vn.fpt.campusstay.service.assignment.Residences;
+import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.dto.PageQuery;
+import vn.fpt.campusstay.dto.setting.TermSummary;
+import vn.fpt.campusstay.event.RoomChangeDecided;
+import vn.fpt.campusstay.exception.ApiException;
+import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
+import vn.fpt.campusstay.service.assignment.Moves;
+import vn.fpt.campusstay.service.assignment.Stays;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.Billing;
+import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.FeePolicy;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.setting.TermCatalog;
-import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.setting.UtilityPolicy;
-import vn.fpt.campusstay.service.inventory.Inventory;
-import vn.fpt.campusstay.event.RoomChangeDecided;
-import vn.fpt.campusstay.common.audit.AuditLog;
-import vn.fpt.campusstay.exception.ApiException;
-import vn.fpt.campusstay.exception.FieldErrors;
-import vn.fpt.campusstay.dto.PageQuery;
 
 /**
- * Room-Change Requests: a checked-in student asks for another Room (same kind,
- * another Room Class or another Room Type); Staff of the Block approve with a
- * free matching Bed or reject with a reason. Approval moves the student and
- * invoices (or credits) the price difference for the days left.
+ * Next-Term Room-Change Requests (spec §6.10, D-10, D-14): during the requests window a continuing resident asks for
+ * another Room (same kind, another Room Class or another Room Type, any Block); Staff of the Block decide a move inside
+ * it and a Manager one to another Block, picking the target Bed (students never pick one, ADR-6), or reject with a
+ * reason. Approval moves the student's next-Term Allocation; the next Term is billed on that Bed, so no price
+ * difference ever arises. Decisions are due by M4 and possible until the next-Term fees are issued.
  */
 @Service
 public class RoomChangeService {
@@ -66,11 +65,22 @@ public class RoomChangeService {
     public record ClassOption(String id, String name, BigDecimal surchargeRate) {
     }
 
+    /** @param termPrice the next Term's price per Bed (the next-Term fee of such a Bed) */
     public record PriceOption(String roomTypeId, String roomClassId, long termPrice) {
     }
 
+    /** The requests window the request belongs to. */
+    public record Window(String termId, String termName, Instant closesAt, Instant decisionsDueAt) {
+    }
+
+    /**
+     * @param currentRoom your next-Term Bed (its Room Class in the next Term)
+     * @param canAsk      the window is open, you continue next Term and have no open request
+     * @param unavailable why you cannot ask now, null when you can
+     */
     public record Options(CurrentRoom currentRoom, List<TypeOption> roomTypes, List<ClassOption> roomClasses,
-            List<PriceOption> prices, long remainingDays, long termDays, List<String> reasons, boolean hasOpenRequest) {
+            List<PriceOption> prices, Window window, List<String> reasons, boolean hasOpenRequest, boolean canAsk,
+            String unavailable) {
     }
 
     /** @param kind {@code same}, {@code class} or {@code type} */
@@ -90,34 +100,41 @@ public class RoomChangeService {
     public record Decision(String by, Instant at, String bed, String reason, String note) {
     }
 
+    /** @param dueAt the decision deadline (M4 of the window) */
     public record QueueItem(String id, String studentName, String studentCode, String kind, From from, To to,
-            String reason, long difference, Instant submittedAt, String status, Decision decision) {
+            String reason, Instant submittedAt, Instant dueAt, String status, Decision decision) {
     }
 
-    public record QueuePage(List<QueueItem> items, long total, List<String> rejectReasons) {
+    public record QueuePage(List<QueueItem> items, long total, List<String> rejectReasons, Window window) {
     }
 
     public record MatchingBed(String bedId, int floor, int roommates) {
     }
 
-    public record MatchingBeds(List<MatchingBed> items) {
+    /** @param note why no Bed is offered (the share kept for new students), else null */
+    public record MatchingBeds(List<MatchingBed> items, String note) {
     }
 
     public record Decided(String note) {
     }
 
-    /** One line of the student's requests screen ({@code kind=room-changes}). */
+    /**
+     * One line of the student's requests screen ({@code kind=room-changes}).
+     *
+     * @param invitationId a swap invitation the student can answer
+     * @param consentId    a Room Class change the student is asked to consent to
+     */
     public record StudentItem(String id, String typeLabel, String summary, Instant submittedAt, String status,
-            StudentDecision decision, String invoiceId, String invitationId) {
+            StudentDecision decision, String invoiceId, String invitationId, String consentId) {
     }
 
     public record StudentDecision(String note, Instant at) {
     }
 
     record Request(long id, String code, long termId, long studentId, long allocationId, long buildingId, String kind,
-            long typeId, long classId, String reason, String details, long difference, String status, Long targetBedId,
-            Long decidedBy, Instant decidedAt, String decisionReason, String decisionNote, Long invoiceId,
-            Instant submittedAt) {
+            long typeId, long classId, String reason, String details, String status, Long targetBedId,
+            Long decidedBy, Instant decidedAt, String decisionReason, String decisionNote, Instant submittedAt,
+            Instant dueAt) {
 
         boolean open() {
             return status.equals("SUBMITTED") || status.equals("PENDING");
@@ -137,19 +154,18 @@ public class RoomChangeService {
     private final UtilityPolicy utility;
     private final Lookups lookups;
     private final Moves moves;
-    private final Residences residences;
     private final Inventory inventory;
     private final UserDirectory users;
     private final Billing billing;
-    private final ChangePrices prices;
+    private final NextTermContext context;
     private final RoutingService routing;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public RoomChangeService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, TermCatalog terms,
-            Catalog catalog, FeePolicy fees, UtilityPolicy utility, Lookups lookups, Moves moves, Residences residences,
-            Inventory inventory, UserDirectory users, Billing billing, ChangePrices prices, RoutingService routing,
+            Catalog catalog, FeePolicy fees, UtilityPolicy utility, Lookups lookups, Moves moves, Inventory inventory,
+            UserDirectory users, Billing billing, NextTermContext context, RoutingService routing,
             ApplicationEventPublisher events, AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
@@ -160,11 +176,10 @@ public class RoomChangeService {
         this.utility = utility;
         this.lookups = lookups;
         this.moves = moves;
-        this.residences = residences;
         this.inventory = inventory;
         this.users = users;
         this.billing = billing;
-        this.prices = prices;
+        this.context = context;
         this.routing = routing;
         this.events = events;
         this.audit = audit;
@@ -176,38 +191,53 @@ public class RoomChangeService {
     @Transactional(readOnly = true)
     public Options options(Long termId) {
         long me = currentUser.require(Role.STUDENT).userId();
-        TermSummary term = studentTerm(me, termId);
-        Optional<Moves.Placement> placement = moves.current(me, term.id());
-        Names names = names();
-        CurrentRoom room = placement.map(p -> new CurrentRoom(p.room(), p.bed(), String.valueOf(p.roomTypeId()),
-                names.type(p.roomTypeId()), String.valueOf(p.roomClassId()), names.roomClass(p.roomClassId())))
-                .orElse(null);
         List<Catalog.RoomTypeInfo> types = catalog.roomTypes().stream().filter(Catalog.RoomTypeInfo::active).toList();
         List<Catalog.RoomClassInfo> classes = catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active)
                 .toList();
+        List<TypeOption> typeOptions = types.stream().map(t -> new TypeOption(String.valueOf(t.id()), t.name())).toList();
+        List<ClassOption> classOptions = classes.stream()
+                .map(c -> new ClassOption(String.valueOf(c.id()), c.name(), c.surchargeRate())).toList();
+        Optional<NextTermContext.Filing> filing = context.of(me)
+                .filter(f -> termId == null || f.window().termId() == termId);
+        if (filing.isEmpty()) {
+            return new Options(null, typeOptions, classOptions, List.of(), null, labels("ROOM_CHANGE_REASON"), false,
+                    false, "Room changes are asked for the next Term, while its requests window is open and your Bed is"
+                            + " kept for it.");
+        }
+        NextTermContext.Filing f = filing.get();
+        Moves.Placement p = f.placement();
+        Names names = names();
+        CurrentRoom room = new CurrentRoom(p.room(), p.bed(), String.valueOf(p.roomTypeId()), names.type(p.roomTypeId()),
+                String.valueOf(p.roomClassId()), names.roomClass(p.roomClassId()));
         List<PriceOption> priceList = new ArrayList<>();
         for (Catalog.RoomTypeInfo t : types) {
             for (Catalog.RoomClassInfo c : classes) {
-                OptionalLong price = fees.termPrice(term.id(), t.id(), c.id());
+                OptionalLong price = fees.termPrice(f.window().termId(), t.id(), c.id());
                 if (price.isPresent()) {
                     priceList.add(new PriceOption(String.valueOf(t.id()), String.valueOf(c.id()), price.getAsLong()));
                 }
             }
         }
-        ChangePrices.Days days = prices.days(term);
-        return new Options(room,
-                types.stream().map(t -> new TypeOption(String.valueOf(t.id()), t.name())).toList(),
-                classes.stream().map(c -> new ClassOption(String.valueOf(c.id()), c.name(), c.surchargeRate())).toList(),
-                priceList, days.remaining(), days.term(), labels("ROOM_CHANGE_REASON"), openRequest(me, term.id()));
+        boolean open = openRequest(me, f.window().termId());
+        boolean filingNow = f.window().filing(Instant.now(clock));
+        String unavailable = !filingNow ? "Next-Term requests closed on " + NextTermContext.when(f.window().closesAt()) + "."
+                : !f.nextTerm().continuing() ? "This is the last Term of your stay: ask for an extension first."
+                : open ? "You already have an open room change request." : null;
+        return new Options(room, typeOptions, classOptions, priceList, window(f.window()), labels("ROOM_CHANGE_REASON"),
+                open, unavailable == null, unavailable);
     }
 
     @Transactional
     public Created create(CreateCommand cmd) {
         long me = currentUser.require(Role.STUDENT).userId();
-        TermSummary term = studentTerm(me, cmd.termId());
-        Moves.Placement p = moves.current(me, term.id()).filter(x -> x.residentAt() != null)
-                .orElseThrow(() -> ApiException.conflict("NOT_CHECKED_IN",
-                        "You can ask for a room change once you have checked in."));
+        NextTermContext.Filing f = context.filing(me);
+        if (cmd.termId() != null && cmd.termId() != f.window().termId()) {
+            throw FieldErrors.single("termId", "Room changes are asked for " + f.window().termName() + ".");
+        }
+        if (!f.nextTerm().continuing()) {
+            throw ApiException.conflict("EXTEND_FIRST", "This is the last Term of your stay: ask for an extension first.");
+        }
+        Moves.Placement p = f.placement();
         if (utility.blockChangesWhenOverdue() && billing.hasOverdueInvoice(me)) {
             throw ApiException.conflict("OVERDUE_INVOICE", "Pay your overdue Invoice before you ask for a room change.");
         }
@@ -232,12 +262,10 @@ public class RoomChangeService {
         String details = cmd.details() == null || cmd.details().isBlank() ? null : cmd.details().trim();
         errors.check(details == null || details.length() <= 1000, "details", "Keep the details under 1,000 characters.");
         errors.throwIfAny();
-        long newPrice = fees.termPrice(term.id(), typeId, classId)
-                .orElseThrow(() -> FieldErrors.single("roomTypeId", "This Room Type and Room Class are not offered."));
-        long currentPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(newPrice);
-        long difference = prices.difference(newPrice, currentPrice, term);
+        if (fees.termPrice(f.window().termId(), typeId, classId).isEmpty()) {
+            throw FieldErrors.single("roomTypeId", "This Room Type and Room Class are not offered.");
+        }
         Instant now = Instant.now(clock);
-        Instant slaDue = now.plus(Duration.ofHours(routing.sla(p.buildingId()).roomChange()));
         Long assignee = routing.route("ROOM_CHANGE", p.buildingId(), null).orElse(null);
         try {
             return new Created(jdbc.sql("""
@@ -247,15 +275,15 @@ public class RoomChangeService {
                                                  price_difference, assignee_id, sla_due_at, submitted_at)
                     OVERRIDING SYSTEM VALUE
                     SELECT id, 'RC-' || :termCode || '-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term,
-                           :student, :allocation, :building, :kind, :type, :class, :reason, :details, :difference,
+                           :student, :allocation, :building, :kind, :type, :class, :reason, :details, 0,
                            :assignee, :sla, :now
                     FROM next
                     RETURNING code
                     """)
-                    .param("termCode", term.code()).param("term", term.id()).param("student", me)
+                    .param("termCode", f.window().termCode()).param("term", f.window().termId()).param("student", me)
                     .param("allocation", p.allocationId()).param("building", p.buildingId()).param("kind", kind)
                     .param("type", typeId).param("class", classId).param("reason", reason).param("details", details)
-                    .param("difference", difference).param("assignee", assignee).param("sla", Timestamp.from(slaDue))
+                    .param("assignee", assignee).param("sla", Timestamp.from(f.window().decisionsDueAt()))
                     .param("now", Timestamp.from(now))
                     .query(String.class).single());
         } catch (DuplicateKeyException e) {
@@ -270,33 +298,35 @@ public class RoomChangeService {
                 + (termId != null ? " AND term_id = :t" : "") + " ORDER BY submitted_at DESC, id DESC")
                 .params(termId != null ? Map.of("s", studentId, "t", termId) : Map.of("s", studentId))
                 .query(RoomChangeService::request).list();
-        Map<Long, Billing.InvoiceLine> invoices = billing.invoices(rows.stream().map(Request::invoiceId)
-                .filter(Objects::nonNull).toList());
         Map<Long, Moves.Placement> from = moves.placements(rows.stream().map(Request::allocationId).toList());
+        Map<Long, String> termNames = terms.publishedTerms().stream()
+                .collect(Collectors.toMap(TermSummary::id, TermSummary::name));
         Names names = names();
         return rows.stream().map(r -> {
             Moves.Placement p = from.get(r.allocationId());
             String current = p == null ? "" : names.type(p.roomTypeId()) + " · " + names.roomClass(p.roomClassId()) + " → ";
-            Billing.InvoiceLine invoice = r.invoiceId() == null ? null : invoices.get(r.invoiceId());
-            boolean payable = invoice != null && !invoice.status().equals("Paid") && !invoice.status().equals("Void");
+            String term = termNames.getOrDefault(r.termId(), "") + " · ";
             return new StudentItem(r.code(), "Room change", r.kind().equals("SAME")
-                    ? "Another Room · " + names.type(r.typeId()) + " · " + names.roomClass(r.classId())
-                    : current + names.type(r.typeId()) + " · " + names.roomClass(r.classId()),
+                    ? term + "Another Room · " + names.type(r.typeId()) + " · " + names.roomClass(r.classId())
+                    : term + current + names.type(r.typeId()) + " · " + names.roomClass(r.classId()),
                     r.submittedAt(), STATUSES.get(r.status()),
                     r.decidedAt() == null ? null : new StudentDecision(decisionText(r), r.decidedAt()),
-                    payable ? invoice.code() : null, null);
+                    null, null, null);
         }).toList();
     }
 
     // ---------------------------------------------------------------- Staff
 
-    /** @param status Pending, Approved, Rejected or Cancelled; {@code kind} same, class or type */
+    /**
+     * @param termId the next Term; null = the latest open requests window
+     * @param status Pending, Approved, Rejected or Cancelled; {@code kind} same, class or type
+     */
     @Transactional(readOnly = true)
     public QueuePage queue(Long termId, String block, String status, String kind, PageQuery page) {
         Set<Long> scope = blockScope.resolve(block).ids();
-        TermSummary term = term(termId);
+        long term = queueTerm(termId);
         Map<String, Object> params = new HashMap<>();
-        params.put("term", term.id());
+        params.put("term", term);
         params.put("scope", List.copyOf(scope));
         StringBuilder where = new StringBuilder(" WHERE term_id = :term AND building_id IN (:scope)");
         if (status != null && !status.isBlank()) {
@@ -338,17 +368,18 @@ public class RoomChangeService {
                     r.kind().toLowerCase(Locale.ROOT),
                     p == null ? null : new From(p.room(), p.bed(), names.type(p.roomTypeId()), names.roomClass(p.roomClassId())),
                     new To(names.type(r.typeId()), names.roomClass(r.classId())),
-                    label("ROOM_CHANGE_REASON", r.reason()), r.difference(), r.submittedAt(), STATUSES.get(r.status()),
+                    label("ROOM_CHANGE_REASON", r.reason()), r.submittedAt(), r.dueAt(), STATUSES.get(r.status()),
                     r.decidedAt() == null ? null : new Decision(deciders.get(r.decidedBy()), r.decidedAt(),
                             bed == null ? null : bed.code(),
                             r.decisionReason() == null ? null : label("ROOM_CHANGE_REJECT_REASON", r.decisionReason()),
                             r.decisionNote()));
         }).toList();
-        return new QueuePage(items, total, labels("ROOM_CHANGE_REJECT_REASON"));
+        return new QueuePage(items, total, labels("ROOM_CHANGE_REJECT_REASON"),
+                context.window(term).map(RoomChangeService::window).orElse(null));
     }
 
     /** Staff decide moves inside their Blocks; a move to another Block is a Manager's (ADR-19). */
-    private static boolean mayMoveInto(AuthenticatedUser user, long buildingId) {
+    static boolean mayMoveInto(AuthenticatedUser user, long buildingId) {
         return !user.is(Role.STAFF) || user.blockIds().contains(buildingId);
     }
 
@@ -358,9 +389,31 @@ public class RoomChangeService {
         Request r = inScope(code, false);
         Moves.Placement p = moves.placement(r.allocationId())
                 .orElseThrow(() -> ApiException.notFound("This Room-Change Request does not exist."));
-        return new MatchingBeds(moves.freeBeds(r.termId(), p.gender(), r.typeId(), r.classId()).stream()
+        List<Moves.FreeBed> free = moves.freeBeds(r.termId(), p.gender(), r.typeId(), r.classId());
+        if (reservedForNewStudents(r.termId(), p, r.typeId(), r.classId(), free.size())) {
+            return new MatchingBeds(List.of(), "The free Beds of this kind are kept for new students.");
+        }
+        return new MatchingBeds(free.stream()
                 .filter(b -> b.roomId() != p.roomId() && mayMoveInto(user, b.buildingId()))
-                .limit(50).map(b -> new MatchingBed(b.code(), b.floor(), b.roommates())).toList());
+                .limit(50).map(b -> new MatchingBed(b.code(), b.floor(), b.roommates())).toList(), null);
+    }
+
+    /**
+     * A continuing resident moving into another Room Type × Room Class must leave the share of its Beds kept for new
+     * students free (D-29): the move is refused when the free Beds of that kind would fall below it.
+     */
+    private boolean reservedForNewStudents(long termId, Moves.Placement p, long typeId, long classId, int free) {
+        if (p.roomTypeId() == typeId && p.roomClassId() == classId) {
+            return false;
+        }
+        BigDecimal percent = terms.renewal(termId).map(TermCatalog.Renewal::reservedNewPercent).orElse(BigDecimal.ZERO);
+        if (percent.signum() <= 0) {
+            return false;
+        }
+        long beds = inventory.assignableBeds(termId).stream().filter(b -> b.gender().equals(p.gender())
+                && b.roomTypeId() == typeId && b.roomClassId() == classId).count();
+        long reserved = (long) Math.ceil(beds * percent.doubleValue() / 100);
+        return free - 1 < reserved;
     }
 
     /** Approve with {@code bedId} (the Bed code, or its numeric id), or reject with a reason and an optional message. */
@@ -397,10 +450,12 @@ public class RoomChangeService {
         if (bedId == null || bedId.isBlank()) {
             throw FieldErrors.single("bedId", "Choose a Bed.");
         }
+        context.checkDeciding(r.termId());
         Moves.Placement p = moves.placement(r.allocationId()).filter(Moves.Placement::active)
                 .orElseThrow(() -> ApiException.conflict("ALLOCATION_ENDED",
                         student + " no longer holds the Bed this request was made from."));
-        Moves.FreeBed bed = moves.freeBeds(r.termId(), p.gender(), r.typeId(), r.classId()).stream()
+        List<Moves.FreeBed> free = moves.freeBeds(r.termId(), p.gender(), r.typeId(), r.classId());
+        Moves.FreeBed bed = free.stream()
                 .filter(b -> b.code().equalsIgnoreCase(bedId.trim()) || String.valueOf(b.bedId()).equals(bedId.trim()))
                 .findFirst()
                 .orElseThrow(() -> ApiException.conflict("BED_NOT_AVAILABLE",
@@ -408,42 +463,62 @@ public class RoomChangeService {
         if (!mayMoveInto(user, bed.buildingId())) {
             throw ApiException.forbidden("CROSS_BLOCK", "A move to another Block is decided by a Manager.");
         }
-        long newAllocation = moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
-        TermSummary term = terms.findPublished(r.termId()).orElseThrow();
-        long newPrice = fees.termPrice(r.termId(), r.typeId(), r.classId()).orElse(0);
-        long currentPrice = fees.termPrice(p.termId(), p.roomTypeId(), p.roomClassId()).orElse(newPrice);
-        long difference = prices.difference(newPrice, currentPrice, term);
-        NumberFormat vnd = NumberFormat.getIntegerInstance(Locale.US);
-        StringBuilder text = new StringBuilder("Moved to Room " + bed.room() + " · Bed " + bed.bed() + ".");
-        Long invoiceId = null;
-        if (difference > 0) {
-            Billing.IssuedInvoice invoice = billing.issueCharge(new Billing.ChargeRequest(r.termId(), r.studentId(),
-                    newAllocation, bed.buildingId(), "ROOM_CHANGE", "Room change",
-                    difference, List.of(new Billing.ChargeLine("Room change to Room " + bed.room() + " for the days left",
-                            difference)),
-                    now.plus(Duration.ofDays(fees.balanceDays())), "Room change " + r.code()));
-            invoiceId = invoice.id();
-            text.append(" Invoice ").append(invoice.code()).append(" of ").append(vnd.format(difference)).append(" VND.");
-        } else if (difference < 0) {
-            billing.requestCredit(r.termId(), r.studentId(), bed.buildingId(), "ROOM_CHANGE", r.id(),
-                    "Room change " + r.code() + " · cheaper Room", -difference);
-            text.append(" A refund of ").append(vnd.format(-difference))
-                    .append(" VND goes to a Manager for approval.");
+        if (reservedForNewStudents(r.termId(), p, r.typeId(), r.classId(), free.size())) {
+            throw ApiException.conflict("RESERVED_FOR_NEW_STUDENTS",
+                    "The free Beds of this kind are kept for new students.");
         }
+        moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
+        cancelSwapsOf(r.allocationId(), now);
+        String termName = terms.findPublished(r.termId()).map(TermSummary::name).orElse("the next Term");
+        String text = "In " + termName + " you move to Room " + bed.room() + " · Bed " + bed.bed() + ".";
         jdbc.sql("""
                 UPDATE req_room_change SET status = 'APPROVED', target_bed_id = :bed, decided_by = :by, decided_at = :now,
-                       price_difference = :difference, invoice_id = :invoice, decision_note = :note, version = version + 1
+                       decision_note = :note, version = version + 1
                 WHERE id = :id
                 """).param("bed", bed.bedId()).param("by", user.userId()).param("now", Timestamp.from(now))
-                .param("difference", difference).param("invoice", invoiceId).param("note", text.toString())
-                .param("id", r.id()).update();
+                .param("note", text).param("id", r.id()).update();
         audit.record("ROOM_CHANGE_APPROVED", AuditLog.Tone.SUCCESS, "Room-Change Request", r.id(), r.code(),
-                Map.of("bed", bed.code(), "difference", difference));
-        events.publishEvent(new RoomChangeDecided(r.id(), r.code(), r.studentId(), "approved", text.toString()));
-        return new Decided(text.toString());
+                Map.of("bed", bed.code(), "term", termName));
+        events.publishEvent(new RoomChangeDecided(r.id(), r.code(), r.studentId(), "approved", text));
+        return new Decided(text);
+    }
+
+    /** A next-Term Allocation was cancelled (Assignment's transaction): its open room change closes. */
+    void allocationCancelled(long allocationId, Instant now) {
+        jdbc.sql("""
+                UPDATE req_room_change SET status = 'CANCELLED', decided_at = :now, version = version + 1,
+                       decision_note = 'Cancelled: the Bed for the next Term was released.'
+                WHERE allocation_id = :a AND status IN ('SUBMITTED', 'PENDING')
+                """).param("now", Timestamp.from(now)).param("a", allocationId).update();
+    }
+
+    /** A next-Term Allocation that moved closes the swaps it was part of (their Bed is not that one any more). */
+    private void cancelSwapsOf(long allocationId, Instant now) {
+        jdbc.sql("""
+                UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The next-Term Bed changed.',
+                       decided_at = :now, version = version + 1
+                WHERE (a_allocation_id = :a OR b_allocation_id = :a) AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
+                """).param("now", Timestamp.from(now)).param("a", allocationId).update();
+        jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id = :a AND status = 'ACTIVE'")
+                .param("now", Timestamp.from(now)).param("a", allocationId).update();
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /** The Term a queue shows: the one asked for, else the latest open requests window, else the current Term. */
+    long queueTerm(Long termId) {
+        if (termId != null) {
+            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."))
+                    .id();
+        }
+        return context.current().map(Stays.Window::termId)
+                .or(() -> terms.publishedTerms().stream().filter(TermSummary::current).findFirst().map(TermSummary::id))
+                .orElseThrow(() -> ApiException.notFound("No Term is published yet."));
+    }
+
+    static Window window(Stays.Window w) {
+        return new Window(String.valueOf(w.termId()), w.termName(), w.closesAt(), w.decisionsDueAt());
+    }
 
     private Request inScope(String code, boolean lock) {
         Set<Long> scope = blockScope.resolve(null).ids();
@@ -480,23 +555,6 @@ public class RoomChangeService {
         return r.decisionNote();
     }
 
-    /** The Term of the student's Bed, else the given or current one. */
-    private TermSummary studentTerm(long studentId, Long termId) {
-        if (termId != null) {
-            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
-        }
-        return residences.current(studentId).flatMap(r -> terms.findPublished(r.termId())).orElseGet(() -> term(null));
-    }
-
-    private TermSummary term(Long termId) {
-        if (termId != null) {
-            return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
-        }
-        return terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
-                .or(terms::openForRegistration)
-                .orElseThrow(() -> ApiException.notFound("No Term is published yet."));
-    }
-
     private List<String> labels(String listKey) {
         return lookups.list(listKey).stream().map(Lookups.Lookup::label).toList();
     }
@@ -527,10 +585,10 @@ public class RoomChangeService {
         return new Request(rs.getLong("id"), rs.getString("code"), rs.getLong("term_id"), rs.getLong("student_id"),
                 rs.getLong("allocation_id"), rs.getLong("building_id"), rs.getString("kind"),
                 rs.getLong("target_room_type_id"), rs.getLong("target_room_class_id"), rs.getString("reason_code"),
-                rs.getString("details"), rs.getLong("price_difference"), rs.getString("status"),
+                rs.getString("details"), rs.getString("status"),
                 rs.getObject("target_bed_id", Long.class), rs.getObject("decided_by", Long.class),
                 instant(rs, "decided_at"), rs.getString("decision_reason"), rs.getString("decision_note"),
-                rs.getObject("invoice_id", Long.class), instant(rs, "submitted_at"));
+                instant(rs, "submitted_at"), instant(rs, "sla_due_at"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

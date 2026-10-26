@@ -46,8 +46,10 @@ public interface BedOccupancy {
 
     /**
      * The state of the given Beds' Allocations in the Term for the room map (spec §11.5): {@code RESIDENT} (door code
-     * released or desk check-in, orange), {@code PAID} (Balance paid, waiting for the door code) or {@code UNPAID}
-     * (yellow). Beds without an Allocation are left out.
+     * released or desk check-in, orange; {@code LEAVING} once the next Term's requests window opened and the student has
+     * no Bed there: orange outline), {@code PAID} (Balance paid, waiting for the door code), {@code UNPAID} (yellow) or
+     * {@code NEXT_TERM} (a continuing resident's Bed in this coming Term, blue).
+     * Beds without an Allocation are left out.
      */
     Map<Long, String> bedStates(long termId, Collection<Long> bedIds);
 

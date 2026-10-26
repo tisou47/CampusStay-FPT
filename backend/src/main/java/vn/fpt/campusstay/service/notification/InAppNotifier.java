@@ -27,7 +27,7 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
 class InAppNotifier {
 
     /** Values that are words of the system, not text people typed, and so have a Vietnamese form. */
-    private static final Set<String> SYSTEM_WORDS = Set.of("decision", "status");
+    private static final Set<String> SYSTEM_WORDS = Set.of("decision", "status", "kind", "note", "why", "reason");
 
     private record Template(String titleEn, String titleVi, String bodyEn, String bodyVi, boolean inApp, boolean push) {
     }

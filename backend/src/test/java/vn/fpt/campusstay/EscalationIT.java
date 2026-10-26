@@ -27,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import vn.fpt.campusstay.service.assignment.RenewalService;
 import vn.fpt.campusstay.service.request.EscalationService;
 
 /** Requests past their timers escalate to the Block Manager, who hands them on (TC-REQ-016…018). */
@@ -49,6 +50,9 @@ class EscalationIT {
 
     @Autowired
     EscalationService escalations;
+
+    @Autowired
+    RenewalService renewals;
 
     StayFlow stay;
 
@@ -153,10 +157,17 @@ class EscalationIT {
                 .andExpect(jsonPath(item + ".handled.note").value(hasItem("The request now has an assignee.")));
     }
 
-    /** TC-REQ-018: an undecided Room-Change Request escalates; the Manager offers a temporary Bed; Manager only. */
+    /**
+     * TC-REQ-018: an undecided next-Term Room-Change Request escalates; the Manager offers a temporary Bed; Manager
+     * only.
+     */
     @Test
     void roomChangeEscalatesAndGetsATemporaryBed() throws Exception {
-        stay.livesIn(3, "A-303", "A", true);
+        RenewalFlow renewal = new RenewalFlow(jdbc, stay);
+        renewal.openNextTerm();
+        renewal.reset();
+        renewal.resident(3, "A-303", "A", 2);
+        renewals.openDue();
         String code = JsonPath.read(stay.postJson("/room-changes", bearer(mvc, StayFlow.student(3)),
                 "{\"kind\":\"same\",\"reason\":\"Health\"}").andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString(), "$.id");

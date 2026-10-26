@@ -27,7 +27,8 @@ public interface Billing {
     /**
      * An Invoice as other modules show it.
      *
-     * @param type   contract type: {@code deposit}, {@code balance}, {@code utility}, {@code roomChange}, {@code damage}
+     * @param type   contract type: {@code deposit}, {@code balance}, {@code utility}, {@code roomChange}, {@code damage},
+     *               {@code termFee}
      * @param status contract label, e.g. {@code Unpaid}, {@code Paid}
      * @param method {@code Bank transfer} (a confirmed claim), {@code VietQR} or {@code Manual transfer} (before
      *               phase 5), or null while unpaid
@@ -52,12 +53,54 @@ public interface Billing {
     /**
      * Input of a check-out settlement.
      *
-     * @param electricity final reading in kWh; null (with {@code water}) for an estimate before the reading
-     * @param residents   residents of the Room for the last segment, the student included
+     * @param stayAllocationIds every Allocation of the student's Stay (Terms and moves): the Utility Deposit is held for
+     *                          the whole Stay, so it is found on any of them
+     * @param electricity       final reading in kWh; null (with {@code water}) for an estimate before the reading
+     * @param residents         residents of the Room for the last segment, the student included
      */
-    record SettlementRequest(long termId, long studentId, long allocationId, long roomId, String room, long buildingId,
-            BigDecimal electricity, BigDecimal water, long damageCharge, int residents) {
+    record SettlementRequest(long termId, long studentId, long allocationId, List<Long> stayAllocationIds, long roomId,
+            String room, long buildingId, BigDecimal electricity, BigDecimal water, long damageCharge, int residents) {
     }
+
+    /**
+     * A next-Term room fee (spec §6.10 step 4): 100 % of the next Term's price of the Bed's Room Type × the Room's Room
+     * Class in that Term; no Deposit, the Utility Deposit stays held.
+     */
+    record TermFeeRequest(long termId, long studentId, long allocationId, long buildingId, String room, long price,
+            Instant dueAt) {
+    }
+
+    /**
+     * Records a meter reading of a Room when its residents change (spec §6.13, §5.1 M9): the Utility of the month is
+     * split by time between such cuts. Refuses a reading lower than the Room's latest one ({@code 400}, fields named
+     * with {@code fieldPrefix}).
+     *
+     * @param reason {@code MOVE} (an operational move) or {@code TURNOVER}
+     */
+    void recordMeterCut(long roomId, String room, BigDecimal electricity, BigDecimal water, String reason,
+            Long allocationId, long recordedBy, String fieldPrefix);
+
+    /**
+     * A student moved to another Bed: the move made a new Allocation of the same Term, so the Invoices that hold the
+     * Bed (the Balance and the next-Term fee) follow it. Otherwise a moved student would look unbilled (a second fee)
+     * or escape the forfeit of an unpaid Balance. Runs in the caller's transaction.
+     */
+    void followAllocation(long fromAllocationId, long toAllocationId);
+
+    /** Room id → the day of its latest meter cut (check-in, check-out, move, turnover); Rooms without one left out. */
+    Map<Long, LocalDate> lastMeterCuts(Collection<Long> roomIds);
+
+    /** Issues the next-Term room fee "Room fee · Term · Room" and tells the student. */
+    IssuedInvoice issueTermFee(TermFeeRequest request);
+
+    /** Allocation id → its live next-Term fee (not void); Allocations without one are left out. */
+    Map<Long, InvoiceLine> termFees(Collection<Long> allocationIds);
+
+    /** Unpaid next-Term fees past their deadline with no claim waiting for confirmation, oldest first (spec §5.1 M7). */
+    List<DueBalance> termFeesPastDue();
+
+    /** The Utility Deposit held on paid Invoices of the Allocations (VND). */
+    long utilityDepositHeld(Collection<Long> allocationIds);
 
     /**
      * The Utility Deposit settlement shown at check-out.
@@ -80,8 +123,9 @@ public interface Billing {
     }
 
     /**
-     * A charge for a student who holds a Bed: a room-change difference ({@code ROOM_CHANGE}) or what is
-     * still owed at check-out ({@code DAMAGE}). {@code title} is suffixed with the Term name.
+     * A charge for a student who holds a Bed: what is still owed at check-out ({@code DAMAGE}) or the difference of a
+     * Room Class set back after the next-Term fee was paid ({@code ROOM_CHANGE}, spec §6.11 step 6, the only price
+     * difference left). {@code title} is suffixed with the Term name.
      */
     record ChargeRequest(long termId, long studentId, Long allocationId, long buildingId, String type, String title,
             long amount, List<ChargeLine> lines, Instant dueAt, String reference) {
@@ -93,9 +137,9 @@ public interface Billing {
     IssuedInvoice issueCharge(ChargeRequest request);
 
     /**
-     * Money the dormitory owes a student outside a refund rule (a cheaper Room after a change or swap, a
-     * Deposit after a declined Round-2 offer): a refund waiting for the Block Manager. {@code buildingId}
-     * is null when the student holds no Bed. @return the refund id
+     * Money the dormitory owes a student outside a refund rule (a Deposit after a declined Round-2 offer, a Room Class
+     * set back after the next-Term fee was paid): a refund waiting for a Manager. {@code buildingId} is null when the
+     * student holds no Bed. @return the refund id
      */
     long requestCredit(long termId, long studentId, Long buildingId, String sourceType, long sourceId, String reason,
             long amount);

@@ -87,7 +87,7 @@ class FinanceNotificationListener {
 
     @EventListener
     void on(PaymentDueSoon e) {
-        notifier.notify(e.studentId(), "PAYMENT_DUE_SOON",
+        notifier.notify(e.studentId(), "TERM_FEE".equals(e.type()) ? "NEXT_TERM_FEE_DUE_SOON" : "PAYMENT_DUE_SOON",
                 Map.of("title", e.title(), "amount", vnd(e.amount()), "dueAt", WHEN.format(e.dueAt())),
                 "/student/invoices/" + e.invoiceCode() + "/pay");
         email(e.studentId(), "PAYMENT_REMINDER", Map.of("title", e.title(), "amount", vnd(e.amount()),

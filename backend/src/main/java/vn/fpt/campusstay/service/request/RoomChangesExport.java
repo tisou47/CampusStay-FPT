@@ -35,10 +35,10 @@ class RoomChangesExport implements ReportExport {
         RoomChangeService.QueuePage page = roomChanges.queue(ReportExport.longFilter(f, "termId"), f.get("block"),
                 f.get("status"), f.get("kind"), ALL);
         return new Table("room-change-requests", List.of("Request", "Student", "Student code", "Kind", "From Room",
-                "From Bed", "Room Type", "Room Class", "Reason", "Difference (VND)", "Submitted at", "Status"),
+                "From Bed", "Room Type", "Room Class", "Reason", "Submitted at", "Decision due", "Status"),
                 page.items().stream().map(i -> Arrays.<Object>asList(i.id(), i.studentName(), i.studentCode(), i.kind(),
                         i.from() == null ? "" : i.from().room(), i.from() == null ? "" : i.from().bed(),
                         i.to() == null ? "" : i.to().roomTypeName(), i.to() == null ? "" : i.to().roomClassName(),
-                        i.reason(), i.difference(), i.submittedAt(), i.status())).toList());
+                        i.reason(), i.submittedAt(), i.dueAt(), i.status())).toList());
     }
 }

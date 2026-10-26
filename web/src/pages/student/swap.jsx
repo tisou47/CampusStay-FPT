@@ -53,17 +53,23 @@ export function useMyAllocation() {
   return useQuery(['allocation', term?.id], ({ signal }) => api.me.allocation({ termId: term?.id }, { signal }))
 }
 
+/** The Bed the student holds for the next Term (swaps are of next-Term Beds, spec §6.10). */
 export function YourRoomNow() {
   const query = useMyAllocation()
   return (
     <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
-      <h2 className="text-h3 font-semibold text-fg">{t('Your Room now')}</h2>
-      <QueryState query={query} compact isEmpty={(d) => !d?.allocation} empty={<p className="text-base text-fg-secondary">{t('You have no Room this Term.')}</p>}>
-        {({ allocation: a }) =>
+      <h2 className="text-h3 font-semibold text-fg">{t('Your Bed next Term')}</h2>
+      <QueryState
+        query={query}
+        compact
+        isEmpty={(d) => !d?.nextTerm?.room}
+        empty={<p className="text-base text-fg-secondary">{t('Swaps open with the requests window, when your Bed is kept for the next Term.')}</p>}
+      >
+        {({ nextTerm: n }) =>
           [
-            ['Room and Bed', t('{room} · Bed {bed}', { room: a.room, bed: a.bed })],
-            ['Type / Class', `${tr(a.roomTypeName) || '—'} · ${tr(a.roomClassName) || '—'}`],
-            ['Block', tr(a.block) || '—'],
+            ['Term', n.term?.name ?? '—'],
+            ['Room and Bed', t('{room} · Bed {bed}', { room: n.room, bed: n.bed })],
+            ['Type / Class', `${tr(n.roomTypeName) || '—'} · ${tr(n.roomClassName) || '—'}`],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 text-base">
               <span className="text-fg-secondary">{t(label)}</span>
@@ -73,7 +79,7 @@ export function YourRoomNow() {
         }
       </QueryState>
       <Divider />
-      <p className="text-sm text-fg-tertiary">{t('Swaps take effect on the move date set after approval. Same-Block swaps are approved by Staff; cross-Block swaps by a Manager.')}</p>
+      <p className="text-sm text-fg-tertiary">{t('A swap takes effect at the start of the next Term. Same-Block swaps are approved by Staff; cross-Block swaps by a Manager.')}</p>
     </Card>
   )
 }

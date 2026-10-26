@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bed, Calendar, ChevronRight, Clock, CreditCard, ExternalLink, Eye, EyeOff, KeyRound, MapPin, Repeat, Users } from 'lucide-react'
+import { Bed, Calendar, ChevronRight, Clock, CreditCard, ExternalLink, Eye, EyeOff, KeyRound, Layers, MapPin, Repeat, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -7,7 +7,8 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
-import { Field, Input, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { typeName } from '@/lib/furniture'
@@ -24,7 +25,12 @@ import { t, tr, tx } from '@/i18n'
 //   checkIn: { start, end, deskHours, location, checkedInAt } | null,
 //   balance: { invoiceId, amount, status, dueAt, paidAt } | null,
 //   application: { id, status } | null, rulesUrl, stayTerms (Gia hạn),
-//   termination: { reason, note, status, moveOutBy, startedAt } | null }
+//   termination: { reason, note, status, moveOutBy, startedAt } | null,
+//   stay: { committedTerms, termsUsed, termsLeft, status } | null,
+//   nextTerm: { term: { id, name, stayStart }, state (Continuing, Awaiting extension, Not continuing), room, bed, roomTypeName,
+//     roomClassName, termPrice, termsLeft, fee: { invoiceId, amount, status, dueAt } | null,
+//     window: { opensAt, closesAt, decisionsDueAt, feesDueAt, filing, checkOutBy }, endReason, checkOutBy } | null }
+// POST /students/me/stay/extension { terms, reason } · POST /students/me/stay/end { reason } → { id, status, automatic, note }
 // GET /students/me/late-check-in → { request: { id, status, requestedFor, deadline, reason, decisionReason, source } | null,
 //   canRequest, checkInEnd, latestDay } · POST /students/me/late-check-in (multipart reason, requestedFor, evidence)
 // GET /students/me/door-code → { room, status (Ready, Not ready, Not set), note, changedAt } · POST /students/me/door-code/reveal
@@ -228,6 +234,153 @@ function MoreLink({ icon: Glyph, to, href, children }) {
   )
 }
 
+/**
+ * The next Term (spec §6.10): where the student stays, the Stay's Terms left, the next-Term fee, and while the
+ * requests window is open the requests that change it (extension, end of stay, room change, swap, Room Class).
+ */
+function NextTermCard({ data }) {
+  const n = data.nextTerm
+  const { notify } = useToast()
+  const [extending, setExtending] = useState(false)
+  const [ending, setEnding] = useState(false)
+  const [terms, setTerms] = useState('1')
+  const [reason, setReason] = useState('')
+  const done = (r) => {
+    notify({ title: r.automatic ? 'Request approved' : 'Request sent', message: tr(r.note) })
+    setExtending(false)
+    setEnding(false)
+    setReason('')
+  }
+  const extend = useMutation(() => api.stay.extend({ terms: Number(terms), reason: reason.trim() || undefined }), {
+    invalidates: ['allocation', 'requests', 'home'],
+    onSuccess: done,
+    onError: () => {},
+  })
+  const end = useMutation(() => api.stay.end({ reason: reason.trim() || undefined }), {
+    invalidates: ['allocation', 'requests', 'home'],
+    onSuccess: done,
+    onError: () => {},
+  })
+  if (!n) return null
+  const w = n.window
+  const filing = Boolean(w?.filing)
+  const left = data.stay ? Math.max(1, 9 - data.stay.committedTerms) : 8
+  return (
+    <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-h3 font-semibold text-fg">{t('Next Term · {term}', { term: n.term?.name })}</h2>
+        <StatusTag status={n.state} />
+      </div>
+      {n.state === 'Not continuing' ? (
+        <Alert type="warning" title="No Bed for the next Term">
+          {t('Reason: {reason}.', { reason: tr(n.endReason) })} {n.checkOutBy && t('Check out at the desk by {date}.', { date: formatDate(n.checkOutBy) })}
+        </Alert>
+      ) : (
+        <>
+          <InfoRow icon={Bed} label="Your Bed next Term" value={`${t('{room} · Bed {bed}', { room: n.room, bed: n.bed })} · ${tr(n.roomTypeName)} · ${tr(n.roomClassName)}`} />
+          {n.termPrice != null && <InfoRow icon={CreditCard} label="Next-Term fee" value={formatVnd(n.termPrice)} />}
+          {n.state === 'Awaiting extension' ? (
+            <Alert type="warning" title="This is the last Term of your stay">
+              {t('Ask for an extension before {date} to keep your Bed. Otherwise it is released and you check out at the end of this Term.', { date: formatDateTime(w?.closesAt) })}
+            </Alert>
+          ) : (
+            <p className="text-sm text-fg-secondary">{t('Terms left on your stay after this one: {n}', { n: n.termsLeft })}</p>
+          )}
+          {n.fee && (
+            <div className="flex items-center justify-between gap-3 rounded-md bg-subtle px-3 py-2">
+              <div className="flex flex-col">
+                <span className="text-base font-medium text-fg">{formatVnd(n.fee.amount)}</span>
+                <span className="text-sm text-fg-secondary">{t('Due {date}', { date: formatDateTime(n.fee.dueAt) })}</span>
+              </div>
+              {n.fee.status === 'Unpaid' ? (
+                <Button variant="primary" icon={CreditCard} to={`/student/invoices/${n.fee.invoiceId}/pay`}>
+                  Pay next-Term fee
+                </Button>
+              ) : (
+                <StatusTag status={n.fee.status} />
+              )}
+            </div>
+          )}
+        </>
+      )}
+      {w && (
+        <p className="text-sm text-fg-tertiary">
+          {filing
+            ? t('Requests for the next Term are open until {date}.', { date: formatDateTime(w.closesAt) })
+            : t('Requests for the next Term closed on {date}.', { date: formatDateTime(w.closesAt) })}
+        </p>
+      )}
+      {filing && n.state !== 'Not continuing' && (
+        <div className="flex flex-col gap-2">
+          <Button variant={n.state === 'Awaiting extension' ? 'primary' : 'secondary'} block icon={Calendar} onClick={() => setExtending(true)}>
+            Extend my stay
+          </Button>
+          {n.state === 'Continuing' && (
+            <>
+              <Button block icon={Repeat} to="/student/requests/room-change/new">
+                Change Room next Term
+              </Button>
+              <Button block icon={Users} to="/student/requests/swap/new">
+                Swap Beds for next Term
+              </Button>
+              <Button block icon={Layers} to="/student/requests/room-class/new">
+                Change the Room Class
+              </Button>
+            </>
+          )}
+          <Button variant="text" onClick={() => setEnding(true)}>
+            End my stay after this Term
+          </Button>
+        </div>
+      )}
+
+      <Modal
+        open={extending}
+        onClose={() => setExtending(false)}
+        title="Extend my stay"
+        footer={
+          <>
+            <Button onClick={() => setExtending(false)}>Cancel</Button>
+            <Button variant="primary" disabled={extend.pending} onClick={() => extend.run()}>
+              {extend.pending ? t('Sending…') : t('Extend')}
+            </Button>
+          </>
+        }
+      >
+        {extend.error && <Alert type="error" title="Could not extend">{extend.error.details?.fields?.terms ?? extend.error.message}</Alert>}
+        <Field label="Terms to add" required>
+          {(id) => <Select id={id} value={terms} onChange={(e) => setTerms(e.target.value)} options={Array.from({ length: left }, (_, i) => ({ value: String(i + 1), label: t('{n} Terms', { n: i + 1 }) }))} />}
+        </Field>
+        <Field label="Reason (optional)">{(id) => <Textarea id={id} rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}</Field>
+        <Note>Approved at once when you are enrolled and owe nothing overdue; otherwise Staff decide. Each Term is still billed on its own.</Note>
+      </Modal>
+
+      <Modal
+        open={ending}
+        onClose={() => setEnding(false)}
+        title="End my stay after this Term"
+        footer={
+          <>
+            <Button onClick={() => setEnding(false)}>Keep my Bed</Button>
+            <Button variant="danger" disabled={end.pending} onClick={() => end.run()}>
+              {end.pending ? t('Sending…') : t('End my stay')}
+            </Button>
+          </>
+        }
+      >
+        {end.error && <Alert type="error" title="Could not end the stay">{end.error.message}</Alert>}
+        <p className="text-base text-fg-secondary">
+          {t('Your Bed for {term} is released at once. You check out at the desk by {date}; the Utility Deposit is settled then. Nothing is charged for ending now.', {
+            term: n.term?.name,
+            date: formatDate(w?.checkOutBy ?? n.checkOutBy) || t('the check-out day'),
+          })}
+        </p>
+        <Field label="Reason (optional)">{(id) => <Textarea id={id} rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}</Field>
+      </Modal>
+    </Card>
+  )
+}
+
 function Room({ data }) {
   const { allocation: a, roommates = [], checkIn, balance, term: tm, termination } = data
   const resident = a.status === 'Resident'
@@ -283,7 +436,14 @@ function Room({ data }) {
               ['Room Class', a.roomClassName ?? '—'],
               ['Amenities', a.amenities?.length ? a.amenities.map(tr).join(', ') : '—'],
               ['Allocated on', formatDate(a.allocatedAt)],
-              ...(data.stayTerms ? [['Gia hạn', t('{n} Terms', { n: data.stayTerms })]] : []),
+              ...(data.stay
+                ? [
+                    ['Gia hạn', t('{n} Terms', { n: data.stay.committedTerms })],
+                    ['Terms used', data.stay.termsUsed],
+                  ]
+                : data.stayTerms
+                  ? [['Gia hạn', t('{n} Terms', { n: data.stayTerms })]]
+                  : []),
               ...(a.residentSince ? [['Resident since', formatDate(a.residentSince)]] : []),
             ]}
           />
@@ -319,6 +479,7 @@ function Room({ data }) {
       </div>
 
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
+        <NextTermCard data={data} />
         <DoorCodeCard />
         {!checkIn?.checkedInAt && !resident && <LateCheckInCard />}
         {checkIn && (
@@ -368,10 +529,10 @@ function Room({ data }) {
             </MoreLink>
           )}
           <MoreLink icon={Repeat} to="/student/requests/room-change/new">
-            {checkIn?.checkedInAt ? t('Request a room change') : t('Request a room change (after check-in)')}
+            Request a room change for next Term
           </MoreLink>
           <MoreLink icon={Users} to="/student/requests/swap/new">
-            Swap Rooms with another Student
+            Swap next-Term Beds with another Student
           </MoreLink>
         </Card>
       </div>

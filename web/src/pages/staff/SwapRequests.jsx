@@ -16,10 +16,11 @@ import { formatDate } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { useRoleBase } from '@/lib/useRoleBase'
 
-// SCR-REQ-13 Room Swap Requests (Figma 98:3780)
-// GET /swaps?termId&block&kind&status&page&pageSize → { items: [{ id, kind, agreedAt, crossBlock, status,
+// SCR-REQ-13 Room Swap Requests (Figma 98:3780) — swaps of next-Term Beds (Change Spec v2 phase 6, spec §6.10): no price
+// difference, charge or credit.
+// GET /swaps?termId (none = the latest open window)&block&kind&status&page&pageSize → { items: [{ id, kind, agreedAt, crossBlock, status,
 //   a: { name, studentCode, room, bed, roomTypeName, roomClassName }, b: { … },
-//   checks: [{ label, passed }], decision: { by, at, reason } | null }], total }
+//   checks: [{ label, passed }], decision: { by, at, reason } | null, dueAt }], total, window }
 // POST /swaps/:id/decision { decision: 'Approved'|'Rejected', reason }
 
 const tone = { 'Waiting for Staff': 'warning', 'To Manager': 'info', Approved: 'success', Rejected: 'error' }
@@ -125,7 +126,7 @@ export default function SwapRequests() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [selectedId, setSelectedId] = useState(null)
-  const filters = { ...scope, kind, status, page, pageSize }
+  const filters = { block: scope.block, kind, status, page, pageSize }
   const query = useQuery(['swaps', filters], ({ signal }) => api.swaps.list(filters, { signal }))
   const items = query.data?.items ?? []
   const selected = items.find((s) => s.id === selectedId) ?? items[0]
@@ -136,7 +137,7 @@ export default function SwapRequests() {
 
   return (
     <>
-      <PageHeader title="Room swaps" description="Same-Block swaps are approved here; cross-Block swaps go to a Manager." actions={<RoomChangeModeSwitch mode="swaps" />} />
+      <PageHeader title="Next-Term swaps" description={query.data?.window ? t('{term} · Same-Block swaps are approved here; cross-Block swaps go to a Manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-Block swaps are approved here; cross-Block swaps go to a Manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
       <div className="flex shrink-0 items-center gap-3">
         <Select
           wrapperClassName="w-60"

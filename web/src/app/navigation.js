@@ -1,9 +1,11 @@
 import {
+  ArrowRightLeft,
   Banknote,
   Bed,
   Bell,
   Building,
   Calendar,
+  CalendarClock,
   CalendarRange,
   ChartColumn,
   Check,
@@ -12,6 +14,7 @@ import {
   ClipboardList,
   CreditCard,
   DoorOpen,
+  FileSearch,
   FileText,
   Gauge,
   GraduationCap,
@@ -92,6 +95,7 @@ export const backOffice = {
         title: 'Residents',
         items: [
           { label: 'Students', icon: GraduationCap, to: '/staff/students' },
+          { label: 'Term transition', icon: CalendarClock, to: '/staff/next-term' },
           { label: 'Room changes and swaps', icon: Repeat, to: '/staff/room-changes' },
         ],
       },
@@ -101,6 +105,7 @@ export const backOffice = {
           { label: 'Rooms and Beds', icon: Building, to: '/staff/inventory' },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
+          { label: 'Operational moves', icon: ArrowRightLeft, to: '/staff/moves' },
         ],
       },
       {
@@ -133,15 +138,19 @@ export const backOffice = {
         items: [
           { label: 'Students', icon: GraduationCap, to: '/manager/students' },
           { label: 'Import student list', icon: Upload, to: '/manager/student-import' },
+          { label: 'Reconciliation', icon: FileSearch, to: '/manager/reconciliation' },
+          { label: 'Term transition', icon: CalendarClock, to: '/manager/next-term' },
           { label: 'Decisions', icon: Check, to: '/manager/approvals' },
           { label: 'Terminations', icon: DoorOpen, to: '/manager/terminations' },
           { label: 'Room changes and swaps', icon: Repeat, to: '/manager/room-changes' },
+          { label: 'Operational moves', icon: ArrowRightLeft, to: '/manager/moves' },
         ],
       },
       {
         title: 'Finance',
         items: [
           { label: 'Payment confirmations', icon: HandCoins, to: '/manager/payment-claims' },
+          { label: 'Next-Term fees', icon: Banknote, to: '/manager/next-term/fees' },
           { label: 'Payments', icon: CreditCard, to: '/manager/payments' },
           { label: 'Collections and refunds', icon: Banknote, to: '/manager/finance' },
         ],

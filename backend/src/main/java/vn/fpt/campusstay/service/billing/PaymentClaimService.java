@@ -84,7 +84,7 @@ public class PaymentClaimService {
     }
 
     /** Invoice types whose deadline decides a place: cancelled after too many rejected claims. */
-    static final Set<String> PLACE_TYPES = Set.of("DEPOSIT", "BALANCE");
+    static final Set<String> PLACE_TYPES = Set.of("DEPOSIT", "BALANCE", "TERM_FEE");
     private static final int MAX_BULK = 200;
 
     private record Claim(long id, long invoiceId, Instant claimedAt, String reference, long timeLeftSeconds) {
@@ -141,6 +141,13 @@ public class PaymentClaimService {
         }
         if (PLACE_TYPES.contains(inv.type()) && !now.isBefore(inv.dueAt())) {
             throw ApiException.conflict("DEADLINE_PASSED", "The deadline of this Invoice has passed.");
+        }
+        // Utility debt is never carried into the next Term (spec §6.7 step 6).
+        if (inv.type().equals("TERM_FEE") && jdbc.sql("""
+                SELECT count(*) FROM bil_invoice WHERE student_id = :s AND type = 'UTILITY' AND status = 'OVERDUE'
+                """).param("s", inv.studentId()).query(Long.class).single() > 0) {
+            throw ApiException.conflict("UTILITY_OVERDUE",
+                    "Pay your overdue Utility Invoice first, then the next-Term fee.");
         }
         long timeLeft = Math.max(0, Duration.between(now, inv.dueAt()).toSeconds());
         insertClaim(inv, me.userId(), now, ref, timeLeft);

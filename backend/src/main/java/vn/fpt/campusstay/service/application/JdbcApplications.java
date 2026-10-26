@@ -140,6 +140,14 @@ class JdbcApplications implements Applications {
         }
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void notEnrolled(long applicationId, String note) {
+        if (applications.transition(applicationId, Set.of("ALLOCATED"), "REJECTED")) {
+            applications.event(applicationId, "REJECTED", "Not enrolled", note, null);
+        }
+    }
+
     private Candidate candidate(ApplicationStore.Application a) {
         Map<String, String> preferences = a.preferences() == null ? Map.of()
                 : json.readValue(a.preferences(), new TypeReference<Map<String, String>>() {

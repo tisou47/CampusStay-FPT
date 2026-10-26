@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Repeat } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
@@ -17,17 +16,16 @@ import { SwapModePicker, YourRoomNow } from './swap'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-04 Swap Board (Figma 104:2254). Posts are anonymous: no names or Student codes.
-// GET /swap-board?termId → { blocks: ['A','B'], myPost: { block, roomTypeId, roomClassId, expiresAt } | null,
-//   items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, priceDifference, requested }] }
+// GET /swap-board → { blocks: ['A','B'], myPost: { block, roomTypeId, roomClassId, expiresAt } | null,
+//   items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, termPrice, requested }],
+//   window: { termId, termName, closesAt, decisionsDueAt } | null } — next-Term Beds of the requests window
 // PUT /swap-board/my-post { block, roomTypeId, roomClassId } · POST /swap-board/posts/:id/request
 
-const signed = (n) => (n == null ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatVnd(Math.abs(n))}`)
 
 export default function SwapBoard() {
-  const { term } = useSession()
   const { notify, notifyError } = useToast()
   const catalog = useCatalog()
-  const board = useQuery(['swap-board', term?.id], ({ signal }) => api.swaps.board({ termId: term?.id }, { signal }))
+  const board = useQuery(['swap-board'], ({ signal }) => api.swaps.board(undefined, { signal }))
   const [want, setWant] = useState({ block: '', roomTypeId: '', roomClassId: '' })
   const myPost = board.data?.myPost
 
@@ -35,7 +33,7 @@ export default function SwapBoard() {
     if (myPost) setWant({ block: myPost.block ?? '', roomTypeId: myPost.roomTypeId ?? '', roomClassId: myPost.roomClassId ?? '' })
   }, [myPost])
 
-  const save = useMutation(() => api.swaps.savePost({ termId: term?.id, block: want.block || null, roomTypeId: want.roomTypeId, roomClassId: want.roomClassId }), {
+  const save = useMutation(() => api.swaps.savePost({ termId: board.data?.window?.termId, block: want.block || null, roomTypeId: want.roomTypeId, roomClassId: want.roomClassId }), {
     invalidates: ['swap-board'],
     onSuccess: () => notify({ title: 'Swap post saved', message: 'Compatible posts are listed below.' }),
     onError: (e) => notifyError(e, 'Could not save your post'),
@@ -105,7 +103,7 @@ export default function SwapBoard() {
                   <Th>Offered Room</Th>
                   <Th className="w-18">Block</Th>
                   <Th className="w-50">Wants</Th>
-                  <Th className="w-36">Difference</Th>
+                  <Th className="w-36">Next-Term price</Th>
                   <Th className="w-35">
                     <span className="sr-only">{t('Actions')}</span>
                   </Th>
@@ -125,7 +123,7 @@ export default function SwapBoard() {
                     </Td>
                     <Td>{p.block}</Td>
                     <Td>{tr(p.wants)}</Td>
-                    <Td className="font-medium text-fg-brand">{signed(p.priceDifference)}</Td>
+                    <Td className="font-medium text-fg-brand">{formatVnd(p.termPrice)}</Td>
                     <Td>
                       <Button onClick={() => request.run(p)} disabled={p.requested || request.pending}>
                         {p.requested ? t('Requested') : t('Request swap')}

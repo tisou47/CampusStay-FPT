@@ -78,13 +78,16 @@ public class AssignmentService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Round2Offers round2;
+    private final OpenRenewalRequests openRequests;
     private final Clock clock;
 
     public AssignmentService(JdbcClient jdbc, RunStore runs, EngineFactory engines, Applications applications,
             Inventory inventory, Catalog catalog, MatchingCriteria criteria, TermCatalog terms, FeePolicy fees,
             Billing billing, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
-            ApplicationEventPublisher events, AuditLog audit, Round2Offers round2, Clock clock) {
+            ApplicationEventPublisher events, AuditLog audit, Round2Offers round2, OpenRenewalRequests openRequests,
+            Clock clock) {
         this.jdbc = jdbc;
+        this.openRequests = openRequests;
         this.runs = runs;
         this.engines = engines;
         this.applications = applications;
@@ -116,6 +119,17 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound("This Term does not exist."));
         Instant now = Instant.now(clock);
         if (!dryRun) {
+            // New students are placed on the Beds continuing residents leave, so only once their requests are settled
+            // (spec §5.1: after M3, no next-Term request open).
+            Optional<TermCatalog.Renewal> renewal = terms.renewal(term.id());
+            if (renewal.isPresent() && now.isBefore(renewal.get().requestsCloseAt())) {
+                throw ApiException.conflict("RENEWAL_FILING", "Continuing residents can still file next-Term requests"
+                        + " until the request deadline. Run the assignment after it.");
+            }
+            if (renewal.isPresent() && openRequests.total(term.id()) > 0) {
+                throw ApiException.conflict("RENEWAL_REQUESTS_OPEN", openRequests.total(term.id())
+                        + " next-Term requests are still open. Decide them before the assignment.");
+            }
             List<Long> live = jdbc.sql("""
                     SELECT id FROM asg_run WHERE term_id = :term AND kind <> 'DRY_RUN'
                       AND status IN ('RUNNING', 'PROPOSED', 'IN_REVIEW') FOR UPDATE

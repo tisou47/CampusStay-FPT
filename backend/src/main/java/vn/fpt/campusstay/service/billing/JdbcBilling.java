@@ -109,6 +109,98 @@ class JdbcBilling implements Billing {
                 "Application " + r.applicationCode() + " · Room " + r.room(), utility)));
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordMeterCut(long roomId, String room, BigDecimal electricity, BigDecimal water, String reason,
+            Long allocationId, long recordedBy, String fieldPrefix) {
+        settlements.checkReading(roomId, room, electricity, water, fieldPrefix);
+        jdbc.sql("""
+                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason, allocation_id, recorded_by)
+                VALUES (:room, :day, :electricity, :water, :reason, :allocation, :by)
+                """)
+                .param("room", roomId).param("day", LocalDate.ofInstant(Instant.now(clock), TimeConfig.CAMPUS_ZONE))
+                .param("electricity", electricity).param("water", water).param("reason", reason)
+                .param("allocation", allocationId).param("by", recordedBy).update();
+        audit.record("METER_CUT", AuditLog.Tone.INFO, "Room", roomId, "Room " + room,
+                Map.of("reason", reason, "electricity", electricity, "water", water));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void followAllocation(long fromAllocationId, long toAllocationId) {
+        jdbc.sql("""
+                UPDATE bil_invoice SET allocation_id = :to, updated_at = :now, version = version + 1
+                WHERE allocation_id = :from AND type IN ('BALANCE', 'TERM_FEE')
+                """).param("to", toAllocationId).param("from", fromAllocationId)
+                .param("now", Timestamp.from(Instant.now(clock))).update();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, LocalDate> lastMeterCuts(Collection<Long> roomIds) {
+        Map<Long, LocalDate> result = new HashMap<>();
+        if (roomIds == null || roomIds.isEmpty()) {
+            return result;
+        }
+        jdbc.sql("SELECT room_id, max(cut_date) AS day FROM bil_meter_cut WHERE room_id IN (:rooms) GROUP BY room_id")
+                .param("rooms", List.copyOf(roomIds))
+                .query((rs, i) -> Map.entry(rs.getLong("room_id"), rs.getObject("day", LocalDate.class))).list()
+                .forEach(e -> result.put(e.getKey(), e.getValue()));
+        return result;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public IssuedInvoice issueTermFee(TermFeeRequest r) {
+        TermSummary term = term(r.termId());
+        String title = "Room fee · " + term.name();
+        IssuedInvoice issued = insert(new Draft(term, r.studentId(), null, r.allocationId(), r.buildingId(), "TERM_FEE",
+                title, r.price(), List.of(Map.of("label", "Room fee · " + term.name() + " · Room " + r.room(),
+                        "amount", r.price())), r.dueAt(), "Next-Term fee · Room " + r.room(), 0));
+        events.publishEvent(new InvoiceIssued(issued.id(), issued.code(), r.studentId(), title, issued.amount(),
+                issued.dueAt()));
+        return issued;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, InvoiceLine> termFees(Collection<Long> allocationIds) {
+        Map<Long, InvoiceLine> result = new HashMap<>();
+        if (allocationIds == null || allocationIds.isEmpty()) {
+            return result;
+        }
+        jdbc.sql("SELECT " + InvoiceStore.COLUMNS + """
+                 FROM bil_invoice WHERE allocation_id IN (:allocations) AND type = 'TERM_FEE' AND status <> 'VOID'
+                """).param("allocations", List.copyOf(allocationIds)).query(InvoiceStore::map).list()
+                .forEach(i -> result.put(i.allocationId(), line(i)));
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DueBalance> termFeesPastDue() {
+        return jdbc.sql("""
+                SELECT id, code, allocation_id, student_id, term_id, due_at FROM bil_invoice
+                WHERE type = 'TERM_FEE' AND status IN ('UNPAID', 'OVERDUE') AND due_at < :now AND allocation_id IS NOT NULL
+                ORDER BY due_at, id
+                """).param("now", Timestamp.from(Instant.now(clock)))
+                .query((rs, i) -> new DueBalance(rs.getLong("id"), rs.getString("code"), rs.getLong("allocation_id"),
+                        null, rs.getLong("student_id"), rs.getLong("term_id"), InvoiceStore.instant(rs, "due_at"), null))
+                .list();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long utilityDepositHeld(Collection<Long> allocationIds) {
+        if (allocationIds == null || allocationIds.isEmpty()) {
+            return 0;
+        }
+        return jdbc.sql("""
+                SELECT coalesce(sum(utility_deposit), 0) FROM bil_invoice
+                WHERE allocation_id IN (:allocations) AND status = 'PAID'
+                """).param("allocations", List.copyOf(allocationIds)).query(Long.class).single();
+    }
+
     private record Draft(TermSummary term, long studentId, Long applicationId, Long allocationId, Long buildingId,
             String type, String title, long amount, List<? extends Map<String, ?>> lines, Instant dueAt,
             String reference, long utilityDeposit) {
@@ -315,13 +407,15 @@ class JdbcBilling implements Billing {
         Optional<FeePolicy.RefundRule> rule = fees.refundRule(r.ruleTriggerCode());
         List<InvoiceStore.Invoice> paid = jdbc.sql("SELECT " + InvoiceStore.COLUMNS + """
                  FROM bil_invoice
-                WHERE status = 'PAID' AND ((type = 'BALANCE' AND allocation_id = :allocation)
+                WHERE status = 'PAID' AND ((type IN ('BALANCE', 'TERM_FEE') AND allocation_id = :allocation)
                    OR (type = 'DEPOSIT' AND application_id = :application))
                 ORDER BY id FOR UPDATE
                 """).param("allocation", r.allocationId())
                 .param("application", r.applicationId() == null ? -1L : r.applicationId())
                 .query(InvoiceStore::map).list();
-        Optional<InvoiceStore.Invoice> balance = paid.stream().filter(i -> i.type().equals("BALANCE")).findFirst();
+        // The room fee of the Term: its Balance (with the Deposit), or a continuing resident's next-Term fee.
+        Optional<InvoiceStore.Invoice> balance = paid.stream()
+                .filter(i -> i.type().equals("BALANCE") || i.type().equals("TERM_FEE")).findFirst();
         if (rule.isEmpty() || balance.isEmpty() || refunded(balance.get().id())) {
             return Optional.empty();
         }

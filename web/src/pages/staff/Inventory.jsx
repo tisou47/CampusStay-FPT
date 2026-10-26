@@ -24,7 +24,9 @@ import { t, tr } from '@/i18n'
 //   outOfService: { since, reason, by, note } | null, beds: [{ id, state, occupant: { name, studentCode } | null }] }],
 //   summary: { beds, allocated, available, outOfService, residents } }
 // Bed states (spec §11.5): unpaid (Assigned – unpaid, yellow), paid (Balance paid, door code not released yet),
-// resident (door code released or desk check-in, orange), available, oos.
+// resident (door code released or desk check-in, orange), leaving (a resident without a Bed in the next Term once its
+// requests window opened: orange outline), next_term (a continuing resident's Bed of this coming Term: blue), available, oos.
+// The Term picker switches the map between the current and the next Term.
 // GET /inventory/rooms/:code → { code, block, floor } (deep link ?room=)
 // POST /inventory/rooms/:code/out-of-service { reason, note } · POST /inventory/rooms/:code/back-in-service
 
@@ -32,6 +34,8 @@ const bedLook = {
   unpaid: 'bg-yellow-400',
   paid: 'border-[1.5px] border-accent bg-orange-100',
   resident: 'bg-accent',
+  leaving: 'border-2 border-dashed border-accent bg-surface',
+  next_term: 'bg-info',
   available: 'border-[1.5px] border-success bg-surface',
   oos: 'bg-line-strong',
 }
@@ -39,10 +43,12 @@ const bedLabel = {
   unpaid: 'Assigned – unpaid',
   paid: 'Paid – waiting for the door code',
   resident: 'Resident',
+  leaving: 'Leaving at the end of the Term',
+  next_term: 'Moving in next Term',
   available: 'Available',
   oos: 'Out of service',
 }
-const HELD = ['unpaid', 'paid', 'resident']
+const HELD = ['unpaid', 'paid', 'resident', 'leaving', 'next_term']
 
 function BedMark({ state }) {
   return <span aria-hidden="true" className={cx('size-3.5 shrink-0 rounded-sm', bedLook[state])} />
@@ -125,7 +131,7 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
         ['Room Class', tr(room.roomClassName)],
         ['Location', t('Block {code} · Floor {n}', { code: room.block, n: room.floor })],
         ['Allocated', `${allocated} / ${room.capacity}`],
-        ['Residents', `${room.beds.filter((b) => b.state === 'resident').length} / ${room.capacity}`],
+        ['Residents', `${room.beds.filter((b) => b.state === 'resident' || b.state === 'leaving').length} / ${room.capacity}`],
       ]
 
   return (

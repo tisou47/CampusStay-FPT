@@ -57,7 +57,7 @@ class CheckOutSettlements {
         }
         jdbc.sql("""
                 SELECT allocation_id, code, amount, utility_deposit FROM bil_invoice
-                WHERE allocation_id IN (:allocations) AND type = 'BALANCE'
+                WHERE allocation_id IN (:allocations) AND type IN ('BALANCE', 'TERM_FEE')
                   AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')
                 ORDER BY id
                 """).param("allocations", List.copyOf(allocationIds))
@@ -68,15 +68,18 @@ class CheckOutSettlements {
     }
 
     Computed compute(Billing.SettlementRequest r) {
+        // The Utility Deposit is held for the whole Stay and settles its Utility debt (spec §8).
+        List<Long> stay = r.stayAllocationIds() == null || r.stayAllocationIds().isEmpty() ? List.of(r.allocationId())
+                : r.stayAllocationIds();
         long held = jdbc.sql("""
                 SELECT coalesce(sum(utility_deposit), 0) FROM bil_invoice
-                WHERE allocation_id = :allocation AND status = 'PAID'
-                """).param("allocation", r.allocationId()).query(Long.class).single();
+                WHERE allocation_id IN (:allocations) AND status = 'PAID'
+                """).param("allocations", stay).query(Long.class).single();
         List<Unpaid> unpaid = jdbc.sql("""
                 SELECT id, amount FROM bil_invoice
-                WHERE student_id = :student AND term_id = :term AND type = 'UTILITY'
-                  AND status IN ('UNPAID', 'OVERDUE')
-                """).param("student", r.studentId()).param("term", r.termId())
+                WHERE student_id = :student AND type = 'UTILITY' AND status IN ('UNPAID', 'OVERDUE')
+                  AND (term_id = :term OR allocation_id IN (:allocations))
+                """).param("student", r.studentId()).param("term", r.termId()).param("allocations", stay)
                 .query((rs, i) -> new Unpaid(rs.getLong("id"), rs.getLong("amount"))).list();
         long unpaidTotal = unpaid.stream().mapToLong(Unpaid::amount).sum();
 
@@ -104,6 +107,31 @@ class CheckOutSettlements {
         long refund = held - share - unpaidTotal - r.damageCharge();
         return new Computed(new Billing.Settlement(held, periodLabel, share, unpaidTotal, r.damageCharge(), refund),
                 unpaid.stream().map(Unpaid::id).toList());
+    }
+
+    /**
+     * Refuses a reading lower than the Room's latest one.
+     *
+     * @param prefix put before the field names ({@code from}: {@code fromElectricity}), empty for none
+     */
+    void checkReading(long roomId, String room, BigDecimal electricity, BigDecimal water, String prefix) {
+        String e = prefix.isEmpty() ? "electricity" : prefix + "Electricity";
+        String w = prefix.isEmpty() ? "water" : prefix + "Water";
+        FieldErrors errors = new FieldErrors();
+        errors.check(electricity != null && electricity.signum() >= 0, e, "Enter the electricity reading of Room " + room
+                + ".");
+        errors.check(water != null && water.signum() >= 0, w, "Enter the water reading of Room " + room + ".");
+        errors.throwIfAny();
+        lastReading(roomId).ifPresent(from -> {
+            NumberFormat number = NumberFormat.getNumberInstance(Locale.US);
+            errors.check(electricity.compareTo(from.electricity()) >= 0, e,
+                    "The reading is lower than the last one (" + number.format(from.electricity()) + " kWh on "
+                            + DAY.format(from.date()) + ").");
+            errors.check(water.compareTo(from.water()) >= 0, w,
+                    "The reading is lower than the last one (" + number.format(from.water()) + " m³ on "
+                            + DAY.format(from.date()) + ").");
+            errors.throwIfAny();
+        });
     }
 
     Optional<String> refundStatus(long allocationId) {

@@ -132,16 +132,25 @@ class JdbcBedOccupancy implements BedOccupancy {
         if (bedIds.isEmpty()) {
             return result;
         }
-        record Held(long id, long bedId, boolean resident) {
+        // LEAVING: a resident without a Bed in the next Term once its requests window opened (spec §11.5).
+        record Held(long id, long bedId, boolean resident, boolean renewal, boolean leaving) {
         }
         List<Held> held = jdbc.sql("""
-                SELECT id, bed_id, resident_at IS NOT NULL AS resident FROM asg_allocation
-                WHERE status = 'ACTIVE' AND term_id = :term AND bed_id IN (:beds)
+                SELECT a.id, a.bed_id, a.resident_at IS NOT NULL AS resident, a.renewal IS NOT NULL AS renewal,
+                       EXISTS (SELECT 1 FROM asg_renewal w WHERE w.previous_term_id = a.term_id
+                               AND NOT EXISTS (SELECT 1 FROM asg_allocation n WHERE n.student_id = a.student_id
+                                               AND n.term_id = w.term_id AND n.status = 'ACTIVE')) AS leaving
+                FROM asg_allocation a
+                WHERE a.status = 'ACTIVE' AND a.term_id = :term AND a.bed_id IN (:beds)
                 """).param("term", termId).param("beds", List.copyOf(bedIds))
-                .query((rs, i) -> new Held(rs.getLong("id"), rs.getLong("bed_id"), rs.getBoolean("resident"))).list();
+                .query((rs, i) -> new Held(rs.getLong("id"), rs.getLong("bed_id"), rs.getBoolean("resident"),
+                        rs.getBoolean("renewal"), rs.getBoolean("leaving")))
+                .list();
         Map<Long, Billing.CheckInDue> unpaid = billing.checkInDues(held.stream().filter(h -> !h.resident())
                 .map(Held::id).toList());
-        held.forEach(h -> result.put(h.bedId(), h.resident() ? "RESIDENT" : unpaid.containsKey(h.id()) ? "UNPAID" : "PAID"));
+        // NEXT_TERM: a continuing resident's Bed for this Term (blue), until they live in it.
+        held.forEach(h -> result.put(h.bedId(), h.resident() ? (h.leaving() ? "LEAVING" : "RESIDENT")
+                : h.renewal() ? "NEXT_TERM" : unpaid.containsKey(h.id()) ? "UNPAID" : "PAID"));
         return result;
     }
 

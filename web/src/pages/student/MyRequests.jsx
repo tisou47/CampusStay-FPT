@@ -21,9 +21,31 @@ import { t, tr } from '@/i18n'
 // GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize →
 //   { items, total, counts: { maintenance, roomChanges }, room }
 //   maintenance item: { id, title, location, category, reportedAt, status, assignee, visitWindow }
-//   room-change item: { id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }
+//   room-change item (next-Term requests: room change, swap, Room Class change, extension, end of stay):
+//     { id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId, consentId }
+// POST /room-class-changes/:id/consent { agree }
 // GET /maintenance-requests/:id → { …item, room, description, events: [{ who, at, message }] }
 // POST /maintenance-requests/:id/confirm { fixed }
+
+/** A Room Class change of the student's Room waits for their answer (spec §6.11): agree or decline. */
+function ConsentButtons({ id }) {
+  const { notify, notifyError } = useToast()
+  const answer = useMutation((agree) => api.roomClassChanges.consent(id, { agree }), {
+    invalidates: ['requests', 'allocation'],
+    onSuccess: (_, agree) => notify(agree ? { title: 'You agreed', message: 'When everyone agrees, Staff check the furniture and decide.' } : { type: 'info', title: 'You declined', message: 'The change is cancelled; your roommates are told.' }),
+    onError: (e) => notifyError(e, 'Could not send your answer'),
+  })
+  return (
+    <>
+      <Button size="sm" variant="primary" onClick={() => answer.run(true)} disabled={answer.pending}>
+        Agree
+      </Button>
+      <Button size="sm" onClick={() => answer.run(false)} disabled={answer.pending}>
+        Decline
+      </Button>
+    </>
+  )
+}
 
 function MaintenanceStatus({ status }) {
   if (status === 'Resolved') return <Tag tone="success">Resolved · confirm the fix</Tag>
@@ -222,6 +244,7 @@ export default function MyRequests() {
                                 Answer
                               </Button>
                             )}
+                            {r.consentId && <ConsentButtons id={r.consentId} />}
                           </>
                         }
                       />
@@ -332,6 +355,7 @@ export default function MyRequests() {
                         Answer
                       </Button>
                     )}
+                    {r.consentId && <ConsentButtons id={r.consentId} />}
                   </div>
                 </Td>
               </Tr>

@@ -49,7 +49,10 @@ public class InventoryService {
     public record Occupant(String name, String studentCode) {
     }
 
-    /** {@code id} is the Bed code, e.g. {@code A-305-B}; {@code state}: allocated, available or oos. */
+    /**
+     * {@code id} is the Bed code, e.g. {@code A-305-B}; {@code state}: unpaid, paid, resident, leaving (no Bed in the
+     * next Term), next_term (a continuing resident's Bed of this coming Term), available or oos.
+     */
     public record BedView(String id, String state, Occupant occupant) {
     }
 
@@ -211,11 +214,11 @@ public class InventoryService {
                         student == null ? null : new Occupant(student.name(), student.studentCode())));
                 total++;
                 switch (state) {
-                    case "resident" -> {
+                    case "resident", "leaving" -> {
                         allocated++;
                         residents++;
                     }
-                    case "unpaid", "paid" -> allocated++;
+                    case "unpaid", "paid", "next_term" -> allocated++;
                     case "oos" -> outOfService++;
                     default -> available++;
                 }

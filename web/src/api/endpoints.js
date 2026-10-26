@@ -110,8 +110,68 @@ export const api = {
     update: (id, body) => http.patch(`/maintenance-requests/${id}`, body),
     addUpdate: (id, body) => http.post(`/maintenance-requests/${id}/updates`, body),
   },
+  /* ---------------------------------------------------------------- Term transition (Change Spec v2 phase 6) */
+  /** Room Class change of a Room for the next Term, with the consent of its continuing residents (spec §6.11). */
+  roomClassChanges: {
+    /** Student: their next-Term Room, its class and the classes with their next-Term price, the open change. */
+    options: g('/room-class-changes/options'),
+    /** Student { roomClassId, reason } or Manager { termId, room, roomClassId, reason } → { id, status }. */
+    create: (body) => http.post('/room-class-changes', body),
+    /** Student { agree } → 204. */
+    consent: (id, body) => http.post(`/room-class-changes/${id}/consent`, body),
+    list: g('/room-class-changes'),
+    get: (id, opts) => http.get(`/room-class-changes/${id}`, undefined, opts),
+    /** { decision: Approved | Rejected, note } → the detail. */
+    decide: (id, body) => http.post(`/room-class-changes/${id}/decision`, body),
+    /** Manager { note } → the detail: the class goes back; fees of the Room are adjusted. */
+    setBack: (id, body) => http.post(`/room-class-changes/${id}/set-back`, body),
+  },
+  /** Extension and end of stay (spec §6.10). */
+  stay: {
+    /** { terms, reason } → { id, status, automatic, note }. */
+    extend: (body) => http.post('/students/me/stay/extension', body),
+    /** { reason } → { id, status, automatic, note }: the Bed kept for the next Term is released. */
+    end: (body) => http.post('/students/me/stay/end', body),
+    requests: g('/stay-requests'),
+    decide: (id, body) => http.post(`/stay-requests/${id}/decision`, body),
+  },
+  /** Every open next-Term request of a window, decided in bulk: { items: [{ kind, id }], decision, reason }. */
+  nextTermRequests: {
+    list: g('/next-term-requests'),
+    decide: (body) => http.post('/next-term-requests/decision', body),
+  },
+  renewals: {
+    /** Terms with a requests window. */
+    list: g('/renewals'),
+    /** Milestones, counts, open requests, reconciliation, Beds of new students. */
+    overview: g('/renewals/overview'),
+    /** Manager: preview with blockers, then issue the next-Term fees: { termId }. */
+    fees: g('/next-term-fees'),
+    issueFees: (body) => http.post('/next-term-fees/issue', body),
+    /** Leavers, movers and Rooms whose residents change between two Terms. */
+    turnover: g('/turnover'),
+    /** { room, electricity, water } → 204. */
+    meterCut: (body) => http.post('/turnover/meter-cuts', body),
+  },
+  /** Operational moves during a Term (spec §6.13): nothing is charged. */
+  operationalMoves: {
+    /** { allocationId } or { q: student code } → the student, free Beds, reasons. */
+    options: g('/operational-moves/options'),
+    move: (body) => http.post('/operational-moves', body),
+    list: g('/operational-moves'),
+  },
+  /** Enrollment reconciliation of a Term (spec §6.12). */
+  reconciliations: {
+    overview: g('/reconciliations'),
+    template: (kind) => download('/reconciliations/template', { query: { kind }, fallbackName: `${kind}-template.csv` }),
+    /** Multipart: termId, kind (enrolled | leavers), file → the run with its items. */
+    upload: (formData) => http.post('/reconciliations', formData),
+    get: (id, opts) => http.get(`/reconciliations/${id}`, undefined, opts),
+    /** { outcome: Not enrolled | Enrolled, note } → the item. */
+    resolve: (id, itemId, body) => http.post(`/reconciliations/${id}/items/${itemId}/resolve`, body),
+  },
   roomChanges: {
-    /** Student form options: current Room, Room Types/Classes, prices, remaining days, reasons. */
+    /** Student form options: the next-Term Bed, Room Types/Classes, the next Term's prices, the window, reasons. */
     options: g('/room-changes/options'),
     create: (body) => http.post('/room-changes', body),
     // Back office

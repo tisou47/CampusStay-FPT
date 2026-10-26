@@ -60,7 +60,7 @@ final class StudentListFile {
                 { "hometown", "hometown", "quequan", "que" },
                 { "region", "region", "vung", "vungmien", "mien" },
                 { "enrollment", "enrollment_status", "enrollmentstatus", "enrollment", "status", "tinhtrang",
-                        "trangthai", "tinhtranghoc" },
+                        "trangthai", "tinhtranghoc", "reason", "lydo" },
                 { "priorityGroups", "priority_groups", "prioritygroups", "priority", "nhomuutien", "uutien" } };
         for (String[] c : columns) {
             HEADERS.put(c[0], c[1]);
@@ -82,6 +82,11 @@ final class StudentListFile {
     }
 
     static Table read(String fileName, byte[] bytes) {
+        return read(fileName, bytes, REQUIRED);
+    }
+
+    /** @param required the fields the file must have (an enrolled list needs only the student code) */
+    static Table read(String fileName, byte[] bytes, List<String> required) {
         boolean xlsx = bytes.length > 4 && bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 3 && bytes[3] == 4;
         List<List<String>> rows;
         if (xlsx) {
@@ -102,7 +107,7 @@ final class StudentListFile {
                 columns.put(i, field);
             }
         }
-        List<String> missing = REQUIRED.stream().filter(f -> !columns.containsValue(f)).map(HEADERS::get).toList();
+        List<String> missing = required.stream().filter(f -> !columns.containsValue(f)).map(HEADERS::get).toList();
         if (!missing.isEmpty()) {
             throw FieldErrors.single("file", "The file has no column " + String.join(", ", missing)
                     + ". Download the template to see the columns.");

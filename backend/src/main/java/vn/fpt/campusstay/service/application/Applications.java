@@ -46,6 +46,12 @@ public interface Applications {
     /** Approved → Allocated, when the Block's proposal is committed. */
     void allocated(long applicationId, String room, String bed);
 
+    /**
+     * Allocated → Rejected: the student is not enrolled and their Bed was released before they lived in it
+     * (reconciliation, spec §6.12). Runs in the caller's transaction.
+     */
+    void notEnrolled(long applicationId, String note);
+
     /** Approved → Waitlisted: no Bed of the chosen kind in this run (Round 2 may offer one). */
     void waitlisted(long applicationId, String reason);
 

@@ -207,6 +207,7 @@ public class FinanceService {
     /**
      * Hourly: unpaid Invoices past their due date become Overdue and the student is told once (a Utility Invoice by
      * its debt warning, {@link UtilityDebtService}). A claim waiting for confirmation stops the clock (spec §6.7).
+     * Deposits expire, Balances are forfeited and next-Term fees cancel their next-Term Allocation instead.
      */
     @Transactional
     public int markOverdue() {
@@ -214,7 +215,7 @@ public class FinanceService {
         }
         List<Due> due = jdbc.sql("""
                 UPDATE bil_invoice SET status = 'OVERDUE', updated_at = :now, version = version + 1
-                WHERE status = 'UNPAID' AND due_at < :now AND type NOT IN ('DEPOSIT', 'BALANCE')
+                WHERE status = 'UNPAID' AND due_at < :now AND type NOT IN ('DEPOSIT', 'BALANCE', 'TERM_FEE')
                 RETURNING id, code, student_id, title, amount, due_at, type
                 """).param("now", Timestamp.from(Instant.now(clock)))
                 .query((rs, n) -> new Due(rs.getLong("id"), rs.getString("code"), rs.getLong("student_id"),
