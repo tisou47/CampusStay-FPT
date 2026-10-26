@@ -19,24 +19,24 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber, formatPercent, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
-// SCR-BIL-10 Payments (Figma 23:614) and "Confirm manual payment" modal (23:1128).
+// SCR-BIL-10 Payments (Figma 23:614) and "Confirm payment" modal (23:1128). Bulk confirmation of claims:
+// SCR-BIL-13 Payment confirmations (/manager/payment-claims).
 // GET /payments?termId&block&q&type&status&method&date&page&pageSize → {
 //   items: [{ invoiceId, studentName, studentCode, type, typeLabel, amount, method, paidAt, dueAt, status, reference, transferContent, receipt: { name, size, url } }],
 //   total, summary: { collectedToday, collectedTodayCount, awaitingConfirmation, unpaidDeposits, depositsPaid, depositsSubmitted } }
-// POST /payments/:invoiceId/confirm (multipart) amount, reference, receipt?
+// POST /payments/:invoiceId/confirm (multipart) reference?, receipt? — the Invoice's claim, or a transfer the
+// student did not report yet (ADR-22); the amount is always the Invoice's.
 
 const AWAITING = 'Awaiting confirmation'
 
 function ConfirmPaymentModal({ payment, onClose }) {
   const { notify } = useToast()
   const fileInput = useRef(null)
-  const [amount, setAmount] = useState('')
   const [reference, setReference] = useState('')
   const [file, setFile] = useState(null)
   const [matched, setMatched] = useState(false)
   useEffect(() => {
     if (payment) {
-      setAmount(formatNumber(payment.amount))
       setReference(payment.reference ?? '')
       setFile(null)
       setMatched(false)
@@ -45,8 +45,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
   const confirm = useMutation(
     () => {
       const data = new FormData()
-      data.set('amount', String(Number(amount.replaceAll(',', ''))))
-      data.set('reference', reference.trim())
+      if (reference.trim()) data.set('reference', reference.trim())
       if (file) data.set('receipt', file)
       return api.payments.confirm(payment.invoiceId, data)
     },
@@ -60,18 +59,16 @@ function ConfirmPaymentModal({ payment, onClose }) {
     },
   )
   if (!payment) return null
-  const numeric = Number(amount.replaceAll(',', ''))
-  const amountError = numeric !== payment.amount ? t('Must equal the expected amount. Partial payments are not accepted.') : undefined
 
   return (
     <Modal
       open
       onClose={onClose}
-      title="Confirm manual payment"
+      title="Confirm payment"
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={Boolean(amountError) || !reference.trim() || !matched || confirm.pending} onClick={() => confirm.run()}>
+          <Button variant="primary" icon={Check} disabled={!matched || confirm.pending} onClick={() => confirm.run()}>
             {confirm.pending ? t('Confirming…') : t('Confirm payment')}
           </Button>
         </>
@@ -90,10 +87,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
           className="[&>div]:border-b-0"
         />
       </div>
-      <Field label="Amount received (VND)" error={amount && amountError} helper="Must equal the expected amount. Partial payments are not accepted.">
-        {(id) => <Input id={id} value={amount} onChange={(e) => setAmount(e.target.value)} invalid={Boolean(amount && amountError)} inputMode="numeric" />}
-      </Field>
-      <Field label="Bank reference">{(id) => <Input id={id} value={reference} onChange={(e) => setReference(e.target.value)} />}</Field>
+      <Field label="Bank reference (optional)">{(id) => <Input id={id} value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} />}</Field>
       {payment.receipt?.url ? (
         <a href={payment.receipt.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-md border border-line px-3 py-2.5 text-base text-fg-link hover:underline">
           <ReceiptText size={16} aria-hidden="true" />
@@ -107,7 +101,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
           <input ref={fileInput} type="file" accept="image/*,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </button>
       )}
-      <Checkbox label="I matched this transfer on the bank statement." checked={matched} onChange={(e) => setMatched(e.target.checked)} />
+      <Checkbox label="I found exactly this amount with this transfer content on the bank statement." checked={matched} onChange={(e) => setMatched(e.target.checked)} />
     </Modal>
   )
 }
@@ -152,17 +146,22 @@ export default function Payments() {
     <>
       <PageHeader
         title="Payments"
-        description="Students mark a transfer; a Manager confirms it against the bank statement."
+        description="Students report their transfer; a Manager confirms it against the bank statement."
         actions={
-          <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
-            Export
-          </Button>
+          <>
+            <Button to="/manager/payment-claims" icon={Check}>
+              Payment confirmations
+            </Button>
+            <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
+              Export
+            </Button>
+          </>
         }
       />
 
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" icon={Banknote} label="Collected today" value={s ? formatVnd(s.collectedToday) : '—'} note={s ? t('{n} payments', { n: formatNumber(s.collectedTodayCount) }) : null} />
-        <KpiTile size="md" icon={Clock} label="Awaiting confirmation" value={formatNumber(s?.awaitingConfirmation)} valueTone={s?.awaitingConfirmation ? 'warning' : undefined} note="Manual transfers" />
+        <KpiTile size="md" icon={Clock} label="Awaiting confirmation" value={formatNumber(s?.awaitingConfirmation)} valueTone={s?.awaitingConfirmation ? 'warning' : undefined} note="Reported by students" />
         <KpiTile size="md" icon={TriangleAlert} label="Unpaid deposits" value={formatNumber(s?.unpaidDeposits)} note="Expire at their deadline" />
         <KpiTile
           size="md"
@@ -207,6 +206,7 @@ export default function Payments() {
           onChange={filter(setMethod)}
           options={[
             { value: '', label: 'Method: All' },
+            { value: 'Bank transfer', label: 'Method: Bank transfer' },
             { value: 'VietQR', label: 'Method: VietQR' },
             { value: 'Manual transfer', label: 'Method: Manual' },
           ]}

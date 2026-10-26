@@ -21,8 +21,10 @@ import { t, tr } from '@/i18n'
 // The assignment is committed on the proposal itself (ADR-19), so it has no tab here.
 // GET /approvals/summary?termId&block → { lateCheckIn, swaps, refunds, … }
 // GET /late-check-ins?termId&block → { items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor,
-//   evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null }] }
-// POST /late-check-ins/:id/decision { decision, deadline, reason } — deadline is a calendar day YYYY-MM-DD (contract C-02)
+//   evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null,
+//   source (Online: asked by the student; Desk: recorded by Staff) }] }
+// POST /late-check-ins/:id/decision { decision, deadline, reason } — deadline is a calendar day YYYY-MM-DD (contract C-02),
+// at most late_check_in.max_days after the check-in end; approving it also moves the Balance deadline (spec §6.9).
 // Cross-Block swaps: GET /swaps?status=To Manager · POST /swaps/:id/decision. Refunds: GET /refunds?status=Pending.
 
 function Row({ label, children }) {
@@ -139,7 +141,7 @@ function LateTab() {
               </Td>
               <Td>{tr(r.allocation)}</Td>
               <Td>{r.reason}</Td>
-              <Td>{r.receivedBy}</Td>
+              <Td>{r.source === 'Online' ? <Tag tone="info">Online</Tag> : r.receivedBy}</Td>
               <Td>{r.decision ? <StatusTag status={r.decision.status} tone={r.decision.status === 'Approved' ? 'success' : 'error'} /> : <Tag tone={r.paid ? 'success' : 'error'}>{r.paid ? 'Paid' : 'Unpaid'}</Tag>}</Td>
             </Tr>
           ))}

@@ -67,6 +67,10 @@ export const api = {
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
+    /** { request: { id, status, requestedFor, deadline, reason, decisionReason, createdAt, source } | null, canRequest, checkInEnd, latestDay }. */
+    lateCheckIn: g('/students/me/late-check-in'),
+    /** multipart: reason, requestedFor (YYYY-MM-DD), evidence (JPEG, PNG or PDF) → { id } (spec §6.9). */
+    requestLateCheckIn: (formData) => http.post('/students/me/late-check-in', formData),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
     board: g('/students/me/board'),
   },
@@ -129,12 +133,12 @@ export const api = {
   },
   invoices: {
     get: (id, opts) => http.get(`/invoices/${id}`, undefined, opts),
-    /** VietQR payment details and live status for an unpaid Invoice. */
+    /** VietQR image (when a bank account is configured), the claim state and canClaim (ADR-22). */
     payment: (id, opts) => http.get(`/invoices/${id}/payment`, undefined, opts),
     refreshQr: (id) => http.post(`/invoices/${id}/payment/refresh`),
     receipt: (id) => download(`/invoices/${id}/receipt`, { fallbackName: `receipt-${id}.pdf` }),
-    /** Dev profile only: pays the Invoice as if SePay had reported the exact transfer → 204. */
-    simulatePayment: (id) => http.post(`/dev/invoices/${id}/simulate-payment`),
+    /** "I have transferred" { reference? } → { status, claimedAt, reference, rejected, lastRejection }. */
+    claim: (id, body) => http.post(`/invoices/${id}/claim`, body),
   },
 
   /* ---------------------------------------------------------------- Back office */
@@ -297,9 +301,24 @@ export const api = {
     /** Admin Occupancy Report. */
     occupancy: g('/reports/occupancy'),
   },
+  /** Payment claims (ADR-22): the Managers' queue; each Invoice is confirmed or rejected on its own. */
+  paymentClaims: {
+    list: g('/payment-claims'),
+    /** { invoiceIds } → { confirmed, amount, skipped: [{ invoiceId, reason }] }. */
+    confirm: (body) => http.post('/payment-claims/confirm', body),
+    /** { invoiceIds, reason } → { rejected, cancelled, skipped }. */
+    reject: (body) => http.post('/payment-claims/reject', body),
+  },
+  /** Terminations of stays (spec §6.15): Managers start and cancel them, Staff read their Blocks'. */
+  terminations: {
+    list: g('/terminations'),
+    /** { studentCode, reason: 'Manager decision' | 'Not enrolled', note } → { id, moveOutBy }. */
+    start: (body) => http.post('/terminations', body),
+    cancel: (id, body) => http.post(`/terminations/${id}/cancel`, body),
+  },
   payments: {
     list: g('/payments'),
-    /** Staff confirms a manual transfer (multipart: amount, reference, receipt?). */
+    /** A Manager confirms one Invoice (multipart: reference?, receipt?): its claim, or a transfer not claimed yet. */
     confirm: (invoiceId, formData) => http.post(`/payments/${invoiceId}/confirm`, formData),
   },
   dashboards: {

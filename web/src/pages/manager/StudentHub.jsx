@@ -335,7 +335,7 @@ function Hub({ hub }) {
                   ['Block', hub.residence.block],
                   ['Room', hub.residence.room],
                   ['Bed', hub.residence.bed],
-                  ['Checked in', hub.residence.checkedIn ? t('Yes') : t('Not yet')],
+                  ['Resident', hub.residence.checkedIn ? t('Yes') : t('Not yet')],
                 ]}
               />
             ) : (

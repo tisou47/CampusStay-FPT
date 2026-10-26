@@ -1,11 +1,16 @@
 import { useNavigate } from 'react-router'
-import { Card } from '@/components/ui/Display'
+import { api } from '@/api/endpoints'
+import { useQuery } from '@/api/hooks'
+import { useSession } from '@/app/session'
+import { Card, Note } from '@/components/ui/Display'
+import { Select } from '@/components/ui/Field'
 import { formatVnd } from '@/lib/format'
 import { OptionCard, WizardActions, WizardLayout, isTwoBed, useWizard } from './wizard'
 import { t } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 2 Room preference (Figma 14:355)
-// Room Type and Room Class only. Roommate options (and the optional preference matching) live on the
+// Room Type, Room Class and Gia hạn (1 to maxStayTerms of GET /applications/eligibility: stay.max_terms, capped by
+// the semesters the student has left). Roommate options (and the optional preference matching) live on the
 // Roommate step, which appears for 2-bed Rooms.
 export default function ApplyRoom() {
   const navigate = useNavigate()
@@ -13,6 +18,10 @@ export default function ApplyRoom() {
   const { draft, setDraft, catalog, helpers } = wizard
   const roomTypes = catalog.data?.roomTypes ?? []
   const roomClasses = catalog.data?.roomClasses ?? []
+  const { term } = useSession()
+  const eligibility = useQuery(['eligibility', term?.id], ({ signal }) => api.applications.eligibility({ termId: term?.id }, { signal }), { enabled: Boolean(term) })
+  const maxTerms = eligibility.data?.maxStayTerms ?? 1
+  const stayTerms = Math.min(draft.stayTerms ?? 1, maxTerms)
 
   return (
     <WizardLayout
@@ -66,6 +75,21 @@ export default function ApplyRoom() {
             )
           })}
         </div>
+      </Card>
+
+      <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-h3 font-semibold text-fg">{t('How long do you want to stay? (Gia hạn)')}</h2>
+          <p className="text-base text-fg-secondary">{t('The number of Terms you plan to stay. You keep your Bed from Term to Term and can extend or end your stay later.')}</p>
+        </div>
+        <Select
+          wrapperClassName="w-full lg:w-60"
+          aria-label={t('Gia hạn')}
+          value={String(stayTerms)}
+          onChange={(e) => setDraft({ stayTerms: Number(e.target.value) })}
+          options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} Term' : '{n} Terms', { n: i + 1 }) }))}
+        />
+        <Note>{t('Each Term is billed and paid on its own; Gia hạn is not a payment commitment.')}</Note>
       </Card>
     </WizardLayout>
   )

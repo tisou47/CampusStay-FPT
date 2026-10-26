@@ -20,7 +20,7 @@ import { t, tr } from '@/i18n'
 // GET /dashboards/term?termId → { term, terms, requestCode, stayStart, stayEnd, milestones: [{ key, label, at, date,
 //   done }], applications: [{ status, count }], applicationsTotal, places: [{ roomType, roomClass, gender, beds,
 //   allocated, price }], money: { depositsIssued, depositsPaid, balancesIssued, balancesPaid, paidAmount,
-//   unpaidAmount }, checkedIn }
+//   unpaidAmount }, checkedIn, residents (door code released) }
 
 const GENDER = { M: 'Male', F: 'Female' }
 
@@ -54,7 +54,7 @@ export default function TermDashboard() {
         <KpiTile icon={FileText} label="Applications" value={formatNumber(d.applicationsTotal)} note={next ? t('Next: {label} {date}', { label: t(next.label), date: next.at ? formatDateTime(next.at) : formatDate(next.date) }) : t('Every milestone has passed')} />
         <KpiTile icon={BadgeCheck} label="Beds given" value={`${formatNumber(allocated)} / ${formatNumber(beds)}`} note={t('{n}% of the places', { n: beds ? Math.round((allocated / beds) * 100) : 0 })} />
         <KpiTile icon={CreditCard} label="Deposits paid" value={`${formatNumber(d.money.depositsPaid)} / ${formatNumber(d.money.depositsIssued)}`} note={t('Balances paid {paid} / {issued}', { paid: d.money.balancesPaid, issued: d.money.balancesIssued })} />
-        <KpiTile icon={LogIn} label="Checked in" value={formatNumber(d.checkedIn)} note={t('{amount} collected', { amount: formatVnd(d.money.paidAmount) })} />
+        <KpiTile icon={LogIn} label="Residents" value={formatNumber(d.residents)} note={t('Door code released · {n} checked in at the desk', { n: formatNumber(d.checkedIn) })} />
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Card className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto">

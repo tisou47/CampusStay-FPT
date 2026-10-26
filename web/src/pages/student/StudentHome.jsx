@@ -22,7 +22,7 @@ import { t, tr } from '@/i18n'
 // Phone: MOB-HOME-01 Home (55:160) — Next action, a status list and the latest notification.
 // GET /students/me/home?termId → {
 //   firstName, term, application: { id, status, roomTypeName, roomClassName } | null,
-//   allocation: { room, bed, block, floor } | null, checkedIn,
+//   allocation: { room, bed, block, floor } | null, checkedIn (a resident: door code released or desk check-in),
 //   dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }
 
 function greeting(firstName) {
@@ -162,7 +162,7 @@ function HomeContent({ home }) {
           </Button>
         }
       >
-        {home.checkedIn ? t('You are checked in. Report problems in your Room from Requests.') : t('Bring your student ID to the {block} desk.', { block: tr(allocation.block) })}
+        {home.checkedIn ? t('You live in this Room. Report problems in your Room from Requests.') : t('Pay the Balance; the door code comes on My Room when check-in starts. The {block} desk hands over the keys and items.', { block: tr(allocation.block) })}
       </NextAction>
     )
   }

@@ -111,6 +111,7 @@ function Review({ app }) {
                 ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommate],
                 ['Term price per Bed', formatVnd(app.termPrice)],
+                ['Gia hạn', t(app.stayTerms === 1 ? '{n} Term' : '{n} Terms', { n: app.stayTerms ?? 1 })],
               ]}
             />
           </Card>

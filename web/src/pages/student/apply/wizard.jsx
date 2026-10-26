@@ -39,6 +39,7 @@ export const emptyDraft = {
   roommate: { mode: 'invite', code: '', verifiedCode: null, rejected: false, checksLeft: null, preferencesOn: false, preferences: {} },
   contact: null, // filled from the student profile on the Personal info step
   consent: { matching: false, rules: false },
+  stayTerms: 1, // Gia hạn: the Terms the student wants to stay (1 to the maximum the eligibility answer gives)
 }
 
 function readDraft() {

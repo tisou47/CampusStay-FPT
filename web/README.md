@@ -20,7 +20,6 @@ npm run preview              # serve the build
 | `VITE_API_PROXY_TARGET` | `http://localhost:8080` | Development only: where Vite forwards `/api`. |
 | `VITE_GOOGLE_CLIENT_ID` | — | Google OAuth client ID for "Sign in with Google" (only @fpt.edu.vn accounts): the same client as the backend's `GOOGLE_CLIENT_ID`. Add the site origin to the client's authorized JavaScript origins. |
 | `VITE_SKIP_AUTH` | `false` | Development only: open every portal without signing in, to review screens before the backend is ready. Ignored in production builds. |
-| `VITE_PAYMENT_SIMULATOR` | `false` | Shows "Simulate bank transfer" on Invoice Payment in a production build (always shown in development). Only for a demo server whose API has `PAYMENT_SIMULATOR=true` (ADR-18, contract A-08). |
 
 Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), React Router, lucide-react.
 
@@ -39,7 +38,7 @@ Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), Reac
 
 Production: https://campusstay-fpt-ten.vercel.app (project `campusstay-fpt`, Root Directory `web/`). Vercel builds every push to `main` for production and a preview for other branches that change `web/`. `vercel.json` sets the Vite build, rewrites every path to `index.html` for client-side routes, caches `/assets/*` for a year and adds security headers (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`).
 
-Vercel environment variables (Production and Preview): `VITE_API_BASE_URL=https://campusstay-api.eastasia.cloudapp.azure.com/api`, `VITE_PAYMENT_SIMULATOR=true` (demo server); `VITE_GOOGLE_CLIENT_ID` once the Google OAuth client exists. `VITE_*` values are baked in at build time: redeploy after changing one. The API must list the web origins in `CORS_ALLOWED_ORIGINS` (`infra/prod/.env.example`). Setup and rollback: `infra/prod/README.md` §2 and §6.
+Vercel environment variables (Production and Preview): `VITE_API_BASE_URL=https://campusstay-api.eastasia.cloudapp.azure.com/api`; `VITE_GOOGLE_CLIENT_ID` once the Google OAuth client exists. `VITE_*` values are baked in at build time: redeploy after changing one. The API must list the web origins in `CORS_ALLOWED_ORIGINS` (`infra/prod/.env.example`). Setup and rollback: `infra/prod/README.md` §2 and §6.
 
 ## Layout
 

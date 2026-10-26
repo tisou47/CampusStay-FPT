@@ -22,16 +22,27 @@ import { t, tr } from '@/i18n'
 // GET /inventory/structure?block → { blocks: [{ block, floors }], outOfServiceReasons }
 // GET /inventory/rooms?termId&block&floor → { roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity,
 //   outOfService: { since, reason, by, note } | null, beds: [{ id, state, occupant: { name, studentCode } | null }] }],
-//   summary: { beds, allocated, available, outOfService } }
+//   summary: { beds, allocated, available, outOfService, residents } }
+// Bed states (spec §11.5): unpaid (Assigned – unpaid, yellow), paid (Balance paid, door code not released yet),
+// resident (door code released or desk check-in, orange), available, oos.
 // GET /inventory/rooms/:code → { code, block, floor } (deep link ?room=)
 // POST /inventory/rooms/:code/out-of-service { reason, note } · POST /inventory/rooms/:code/back-in-service
 
 const bedLook = {
-  allocated: 'bg-accent',
+  unpaid: 'bg-yellow-400',
+  paid: 'border-[1.5px] border-accent bg-orange-100',
+  resident: 'bg-accent',
   available: 'border-[1.5px] border-success bg-surface',
   oos: 'bg-line-strong',
 }
-const bedLabel = { allocated: 'Allocated', available: 'Available', oos: 'Out of service' }
+const bedLabel = {
+  unpaid: 'Assigned – unpaid',
+  paid: 'Paid – waiting for the door code',
+  resident: 'Resident',
+  available: 'Available',
+  oos: 'Out of service',
+}
+const HELD = ['unpaid', 'paid', 'resident']
 
 function BedMark({ state }) {
   return <span aria-hidden="true" className={cx('size-3.5 shrink-0 rounded-sm', bedLook[state])} />
@@ -50,7 +61,7 @@ function Legend() {
   )
 }
 
-const allocatedOf = (room) => room.beds.filter((b) => b.state === 'allocated').length
+const allocatedOf = (room) => room.beds.filter((b) => HELD.includes(b.state)).length
 
 function RoomCard({ room, selected, onSelect }) {
   const allocated = allocatedOf(room)
@@ -72,7 +83,9 @@ function RoomCard({ room, selected, onSelect }) {
       </span>
       <span className="flex flex-wrap gap-1">
         {room.beds.map((b) => (
-          <BedMark key={b.id} state={b.state} />
+          <span key={b.id} title={`${b.id} · ${t(bedLabel[b.state] ?? b.state)}${b.occupant ? ` · ${b.occupant.name}` : ''}`}>
+            <BedMark state={b.state} />
+          </span>
         ))}
       </span>
       <span className={cx('text-sm whitespace-nowrap', room.outOfService ? 'text-error-fg' : 'text-fg-secondary')}>{caption}</span>
@@ -112,6 +125,7 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
         ['Room Class', tr(room.roomClassName)],
         ['Location', t('Block {code} · Floor {n}', { code: room.block, n: room.floor })],
         ['Allocated', `${allocated} / ${room.capacity}`],
+        ['Residents', `${room.beds.filter((b) => b.state === 'resident').length} / ${room.capacity}`],
       ]
 
   return (

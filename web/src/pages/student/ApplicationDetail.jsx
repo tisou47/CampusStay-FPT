@@ -47,6 +47,8 @@ function alertFor(app) {
       return ['success', 'Room and Bed assigned', `${t('{room} · Bed {bed}, {block}.', { room: app.allocation?.room, bed: app.allocation?.bed, block: tr(app.allocation?.block) })}${balance && balance.status !== 'Paid' && balance.dueAt ? ` ${t('Pay the balance by {date} to keep it.', { date: formatDateTime(balance.dueAt) })}` : ''}`]
     case 'Rejected':
       return ['error', 'Not approved', app.decisionNote ?? t('The dormitory office did not approve this Application.')]
+    case 'Forfeited':
+      return ['error', 'Bed released', t('The Balance was not paid in time, so the Bed was released and the Deposit is kept.')]
     case 'Cancelled':
     case 'Expired':
       return ['info', app.status === 'Expired' ? 'This Application has expired' : 'This Application is cancelled', app.decisionNote ?? t('Nothing more is needed from you.')]
@@ -117,6 +119,7 @@ function Detail({ app }) {
                 ['Room Type', tr(app.roomTypeName) || '—'],
                 ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommateText(app)],
+                ['Gia hạn', t(app.stayTerms === 1 ? '{n} Term' : '{n} Terms', { n: app.stayTerms ?? 1 })],
                 ['Room and Bed', app.allocation ? t('{room} · Bed {bed} · {block}', { room: app.allocation.room, bed: app.allocation.bed, block: tr(app.allocation.block) }) : <span className="text-fg-tertiary">{t('Assigned after review')}</span>],
               ]}
             />

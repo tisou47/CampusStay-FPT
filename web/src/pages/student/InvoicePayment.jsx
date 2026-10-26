@@ -1,29 +1,30 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { CircleCheck, Clock, Copy, Download, Info, ReceiptText } from 'lucide-react'
+import { CircleCheck, Clock, Copy, Download, Hourglass, ReceiptText, Send } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, DetailRows, Note } from '@/components/ui/Display'
+import { Field, Input } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
-// SCR-BIL-02 Invoice Payment (VietQR) — deposit (17:701), balance (39:1362), utility and room-change Invoices.
+// SCR-BIL-02 Invoice Payment — deposit (17:701), balance (39:1362), utility and charge Invoices.
 // GET /invoices/:id/payment → {
 //   invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference },
-//   qr: { image, expiresAt } | null, bank: { name, accountName, accountNumber }, transferContent }
+//   qr: { image, expiresAt } | null (no bank account configured, or not waiting for a transfer),
+//   bank: { name, accountName, accountNumber } | null, transferContent,
+//   claim: { status, claimedAt, reference, rejected, lastRejection: { reason, at } | null } | null, canClaim }
+// POST /invoices/:id/claim { reference? } — "I have transferred" (ADR-22): the Invoice waits for a Manager and its
+// deadline stops; a rejection gives the time back (at least 12 hours), too many rejections cancel a Deposit or Balance.
 // POST /invoices/:id/payment/refresh → new { qr }
-// While unpaid, the page asks the server every 5 seconds whether the bank has confirmed the transfer.
+// While a claim waits, the page asks the server every 15 seconds whether a Manager has decided.
 
-const POLL_MS = 5000
-
-// Demo aid: the API's dev profile can pay an Invoice without a bank transfer. Shown in development builds,
-// or in any build with VITE_PAYMENT_SIMULATOR=true (e.g. a demo deployment whose API runs the dev profile).
-const SHOW_SIMULATOR = import.meta.env.DEV || import.meta.env.VITE_PAYMENT_SIMULATOR === 'true'
+const POLL_MS = 15000
 
 function useSecondsLeft(expiresAt) {
   const [now, setNow] = useState(() => Date.now())
@@ -48,7 +49,7 @@ function useCopy() {
 }
 
 /**
- * Saves the QR image as a file. The image comes from SePay's VietQR service on another origin, where the
+ * Saves the QR image as a file. The image comes from a VietQR image service on another origin, where the
  * `download` attribute of a link is ignored, so the bytes are fetched (the service allows CORS) and saved
  * from a blob URL. If that fails the image opens in a new tab to be saved by hand.
  */
@@ -85,23 +86,29 @@ function CopyValue({ value, display, className }) {
 
 function Payment({ data, reload }) {
   const { notify, notifyError } = useToast()
-  const { invoice, qr, bank, transferContent } = data
+  const { invoice, qr, bank, transferContent, claim, canClaim } = data
   const paid = invoice.status === 'Paid'
+  const waiting = invoice.status === 'Awaiting confirmation'
   const left = useSecondsLeft(qr?.expiresAt)
+  const [reference, setReference] = useState('')
   const refresh = useMutation(() => api.invoices.refreshQr(invoice.id), { onSuccess: reload, onError: (e) => notifyError(e, 'Could not refresh the QR code') })
-  const simulate = useMutation(() => api.invoices.simulatePayment(invoice.id), {
-    onSuccess: reload,
-    onError: (e) => notifyError(e, 'Could not simulate the payment (the API must run the dev profile)'),
+  const sendClaim = useMutation(() => api.invoices.claim(invoice.id, reference.trim() ? { reference: reference.trim() } : {}), {
+    invalidates: ['invoices', 'home'],
+    onSuccess: () => {
+      notify({ title: 'Transfer reported', message: t('A Manager will check it. The deadline is paused until then.') })
+      reload()
+    },
+    onError: (e) => notifyError(e, 'Could not report the transfer'),
   })
   const copy = useCopy()
   const saveQr = useSaveQr()
 
-  // Poll for the bank confirmation while the Invoice is unpaid.
+  // Ask again while a Manager checks the claim.
   useEffect(() => {
-    if (paid) return undefined
-    const t = setInterval(reload, POLL_MS)
-    return () => clearInterval(t)
-  }, [paid, reload])
+    if (!waiting) return undefined
+    const timer = setInterval(reload, POLL_MS)
+    return () => clearInterval(timer)
+  }, [waiting, reload])
 
   // Announce the confirmation once.
   const [announced, setAnnounced] = useState(paid)
@@ -114,62 +121,73 @@ function Payment({ data, reload }) {
   }, [paid, announced, invoice, notify])
 
   const mmss = left == null ? null : `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`
-  const expired = !paid && left === 0
+  const expired = !paid && qr && left === 0
   const qrFile = `vietqr-${invoice.id}.png`
+  const rejection = !paid && !waiting && claim?.status === 'Rejected' ? claim.lastRejection : null
 
-  // Phone: MOB-BIL-02 Invoice Payment (Figma 56:292) — QR card, Save and Copy buttons, details, hint.
+  // Phone: MOB-BIL-02 Invoice Payment (Figma 56:292) — QR card, Save and Copy buttons, details, "I have transferred".
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <Card padding="lg" className="flex w-full shrink-0 flex-col items-center gap-2.5 lg:w-100 lg:gap-4 lg:overflow-y-auto">
-        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{paid ? t('Payment confirmed') : t('Scan with any banking app')}</h2>
+        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">
+          {paid ? t('Payment confirmed') : waiting ? t('Transfer reported') : qr ? t('Scan with any banking app') : t('Transfer to the dormitory')}
+        </h2>
         <div className="relative flex size-52 shrink-0 items-center justify-center rounded-lg border border-line lg:size-66">
           {qr?.image ? (
             <img src={qr.image} alt={t('VietQR code for {id}, {amount}', { id: invoice.id, amount: formatVnd(invoice.amount) })} className="block size-50 lg:size-64" />
-          ) : (
-            <span className="text-sm text-fg-tertiary">{t('QR code unavailable')}</span>
+          ) : paid || waiting ? null : (
+            <span className="px-6 text-center text-sm text-fg-tertiary">
+              {bank ? t('QR code unavailable') : t('Ask the dormitory office for the bank account to transfer to.')}
+            </span>
           )}
-          {paid && (
+          {(paid || waiting) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/90">
-              <CircleCheck size={48} aria-hidden="true" className="text-success" />
-              <p className="text-base font-medium text-success-fg">{t('Paid {date}', { date: formatDate(invoice.paidAt) })}</p>
+              {paid ? <CircleCheck size={48} aria-hidden="true" className="text-success" /> : <Hourglass size={48} aria-hidden="true" className="text-info" />}
+              <p className={paid ? 'text-base font-medium text-success-fg' : 'px-4 text-center text-base font-medium text-info-fg'}>
+                {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}
+              </p>
             </div>
           )}
         </div>
         <p className="text-h1 font-semibold text-fg lg:hidden">{formatVnd(invoice.amount)}</p>
-        <div className="flex items-center gap-2 max-lg:hidden">
-          <Tag tone="info">VietQR</Tag>
-          <span className="text-sm text-fg-tertiary">{t('Bank transfer · NAPAS 247')}</span>
-        </div>
-        {!paid && mmss && (
+        {qr && (
+          <div className="flex items-center gap-2 max-lg:hidden">
+            <Tag tone="info">VietQR</Tag>
+            <span className="text-sm text-fg-tertiary">{t('Bank transfer · NAPAS 247')}</span>
+          </div>
+        )}
+        {!paid && !waiting && mmss && (
           <p className="flex items-center gap-2 text-base font-medium text-warning-fg">
             <Clock size={16} aria-hidden="true" className="text-warning" />
             {left > 0 ? t('QR expires in {time}', { time: mmss }) : t('QR expired')}
           </p>
         )}
-        <div className="max-lg:hidden">
-          {expired ? (
-            <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
-              {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
-            </Button>
-          ) : (
-            qr?.image && (
-              <Button size="lg" icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
-                Download QR
+        {!waiting && (
+          <div className="max-lg:hidden">
+            {expired ? (
+              <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
+                {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
               </Button>
-            )
-          )}
-        </div>
+            ) : (
+              qr?.image && (
+                <Button size="lg" icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
+                  Download QR
+                </Button>
+              )
+            )}
+          </div>
+        )}
       </Card>
 
-      {!paid && (
+      {!paid && !waiting && (
         <div className="flex flex-col gap-2 lg:hidden">
           {expired ? (
-            <Button variant="primary" size="lg" block onClick={() => refresh.run()} disabled={refresh.pending}>
+            <Button size="lg" block onClick={() => refresh.run()} disabled={refresh.pending}>
               {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
             </Button>
           ) : (
             qr?.image && (
-              <Button variant="primary" size="lg" block icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
+              <Button size="lg" block icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
                 Save QR to gallery
               </Button>
             )
@@ -187,13 +205,44 @@ function Payment({ data, reload }) {
           <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to Payments</Button>}>
             {t('This payment was confirmed on {date}. A receipt is available under Payments.', { date: formatDateTime(invoice.paidAt) })}
           </Alert>
-        ) : (
-          <Alert type="info" title="Waiting for your payment" className="shrink-0 max-lg:hidden">
-            {t('This page updates automatically when the payment is confirmed. You can close it; we will notify you.')}
+        ) : waiting ? (
+          <Alert type="info" title="Waiting for a Manager" className="shrink-0">
+            {t('You reported the transfer on {date}. The deadline is paused until a Manager confirms or rejects it; you will be notified.', { date: formatDateTime(claim?.claimedAt) })}
           </Alert>
+        ) : (
+          <>
+            {rejection && (
+              <Alert type="warning" title="Transfer not confirmed" className="shrink-0">
+                {t('A Manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.', { reason: rejection.reason })}
+              </Alert>
+            )}
+            <Card className="flex shrink-0 flex-col gap-3">
+              <h2 className="text-h3 font-semibold text-fg">{t('Paid already? Tell the dormitory')}</h2>
+              <p className="text-sm text-fg-secondary">
+                {t('Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A Manager checks the bank account and confirms it.', { amount: formatVnd(invoice.amount), content: transferContent })}
+              </p>
+              {canClaim ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <Field label="Bank reference (optional)" className="sm:flex-1">
+                    <Input value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />
+                  </Field>
+                  <Button variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
+                    {sendClaim.pending ? t('Sending…') : t('I have transferred')}
+                  </Button>
+                </div>
+              ) : (
+                <Alert type="error" title="The deadline has passed">
+                  {t('This Invoice can no longer be paid by transfer. Contact the dormitory office.')}
+                </Alert>
+              )}
+              {claim?.rejected > 0 && (
+                <Note>{t('Transfers rejected so far: {n}. Two rejections cancel a Deposit or a Balance.', { n: claim.rejected })}</Note>
+              )}
+            </Card>
+          </>
         )}
 
-        {!paid && bank && (
+        {!paid && !waiting && bank && (
           <Card className="flex shrink-0 flex-col gap-1">
             <h2 className="text-h3 font-semibold text-fg">{t('Or transfer manually')}</h2>
             <DetailRows
@@ -217,39 +266,24 @@ function Payment({ data, reload }) {
             rows={[
               ['Invoice', `${invoice.id} · ${tr(invoice.typeLabel ?? invoice.title)}`],
               ...(invoice.reference ? [['For', tr(invoice.reference)]] : []),
-              ['Due', formatDateTime(invoice.dueAt)],
+              ['Due', <span>{formatDateTime(invoice.dueAt)}{!paid && !waiting && <TimeLeft at={invoice.dueAt} />}</span>],
               ['Total', <span className="font-medium">{formatVnd(invoice.amount)}</span>],
+              ...(claim?.reference ? [['Bank reference', claim.reference]] : []),
             ]}
           />
         </Card>
-
-        {!paid && (
-          <Note icon={Info} className="shrink-0 lg:hidden">
-            {t('Open your banking app and scan the saved QR. This screen updates when the payment is confirmed.')}
-          </Note>
-        )}
-        {!paid && SHOW_SIMULATOR && (
-          <Alert
-            type="warning"
-            title="Demo mode"
-            className="shrink-0"
-            action={
-              <Button onClick={() => simulate.run()} disabled={simulate.pending}>
-                {simulate.pending ? t('Simulating…') : t('Simulate bank transfer')}
-              </Button>
-            }
-          >
-            {t('No real bank account is linked. Simulate the exact transfer to continue the flow.')}
-          </Alert>
-        )}
-        {!paid && (
-          <Note icon={Info} className="shrink-0">
-            {t('Paid but not confirmed after 15 minutes? Bring your transfer receipt to the dormitory office; a Manager can confirm the payment manually.')}
-          </Note>
-        )}
       </div>
     </div>
   )
+}
+
+/** " · 2 days left" or " · overdue" next to a deadline. */
+function TimeLeft({ at }) {
+  const ms = new Date(at).getTime() - Date.now()
+  if (!at || Number.isNaN(ms)) return null
+  const hours = Math.floor(ms / 3600000)
+  const text = ms <= 0 ? t('overdue') : hours >= 48 ? t('{n} days left', { n: Math.floor(hours / 24) }) : t('{n} h left', { n: Math.max(1, hours) })
+  return <span className={ms <= 0 ? 'text-error-fg' : 'text-fg-tertiary'}>{' · '}{text}</span>
 }
 
 export default function InvoicePayment() {

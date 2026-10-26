@@ -118,6 +118,15 @@ const statusTone = {
   'Waiting for confirmation': 'info',
   Ready: 'success',
   'Not ready': 'neutral',
+  // Money and residence (Change Spec v2 phase 5)
+  Forfeited: 'error',
+  'Assigned – unpaid': 'warning',
+  'Paid – waiting for the door code': 'info',
+  Resident: 'success',
+  'Notice sent': 'warning',
+  Confirmed: 'success',
+  Warning: 'warning',
+  'Final warning': 'error',
 }
 
 export function toneForStatus(status) {

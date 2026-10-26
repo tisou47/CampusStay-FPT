@@ -4,13 +4,14 @@ import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
-import { ConfigPage, SettingSwitch, useConfigForm } from './shared'
+import { ConfigPage, useConfigForm } from './shared'
 import { t } from '@/i18n'
 
-// SCR-CFG-04 Prices and fees › Deposit (spec §9): the default Deposit of new Terms and how payments are confirmed.
+// SCR-CFG-04 Prices and fees › Deposit (spec §9): the default Deposit of new Terms.
 // Each Term copies the Deposit when it is built and keeps it once published (ADR-20); the payment windows are in
-// Deadlines and reminders, the refund rules in Refunds, penalties and terminations.
-// GET /admin/fees → { depositPercent, depositHours, balanceDays, blockCheckIn, manualConfirm, policyConfirmed, rules, … }
+// Deadlines and reminders, the refund rules in Refunds, penalties and terminations. Since phase 5 every payment is a
+// student's claim confirmed by a Manager and the door code needs the Balance paid (ADR-22): nothing to switch here.
+// GET /admin/fees → { depositPercent, depositHours, balanceDays, policyConfirmed, rules, … }
 // PUT /admin/fees (same shape)
 
 export default function FeesRules() {
@@ -24,7 +25,7 @@ export default function FeesRules() {
     <ConfigPage
       form={cfg}
       title="Deposit"
-      description="The Deposit new Terms start with, and how payments are confirmed."
+      description="The Deposit new Terms start with."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
@@ -45,20 +46,11 @@ export default function FeesRules() {
                 {(id) => <Input id={id} value={draft.depositPercent ?? ''} onChange={cfg.set('depositPercent')} inputMode="numeric" />}
               </Field>
             </Card>
-            <Card className="flex min-w-0 flex-1 flex-col gap-4">
+            <Card className="flex min-w-0 flex-1 flex-col gap-2">
               <h2 className="text-h3 font-semibold text-fg">{t('Payment confirmation')}</h2>
-              <SettingSwitch
-                title="Block check-in while the balance is unpaid"
-                description="Check-in Desk shows a hard stop for unpaid students."
-                checked={Boolean(draft.blockCheckIn)}
-                onChange={(v) => cfg.setValue('blockCheckIn', v)}
-              />
-              <SettingSwitch
-                title="Allow manual payment confirmation by Managers"
-                description="Managers confirm transfers that the bank feed did not match."
-                checked={Boolean(draft.manualConfirm)}
-                onChange={(v) => cfg.setValue('manualConfirm', v)}
-              />
+              <p className="text-base text-fg-secondary">
+                {t('Students transfer and press I have transferred; a Manager confirms each claim against the bank statement. The door code is released only once the Balance is paid.')}
+              </p>
             </Card>
           </div>
           <Alert title="Where the other settings are" className="shrink-0">

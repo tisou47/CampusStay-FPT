@@ -57,6 +57,7 @@ export default function ApplyReview() {
           : undefined,
         contact,
         consent: draft.consent,
+        stayTerms: draft.stayTerms ?? 1,
       }),
     {
       onSuccess: (result) => {
@@ -108,6 +109,7 @@ export default function ApplyReview() {
             ['Room Type', roomType?.name ?? '—'],
             ['Room Class', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
             ['Roommate', roommateLabel(draft, roomType) ?? '—'],
+            ['Gia hạn', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
           ]}
         />
         {usePrefs && (

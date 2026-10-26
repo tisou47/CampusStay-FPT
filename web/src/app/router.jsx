@@ -73,6 +73,8 @@ import StudentHub from '@/pages/manager/StudentHub'
 import StudentImport from '@/pages/manager/StudentImport'
 import StaffAccounts from '@/pages/manager/StaffAccounts'
 import TermDashboard from '@/pages/manager/TermDashboard'
+import PaymentClaims from '@/pages/manager/PaymentClaims'
+import Terminations from '@/pages/manager/Terminations'
 
 // Admin — 08 Web – Admin
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -184,6 +186,8 @@ export const router = createBrowserRouter([
         { path: 'assignment', element: <AssignmentRuns /> },
         { path: 'assignment/:runId', element: <ProposalReview /> },
         { path: 'payments', element: <Payments /> },
+        { path: 'payment-claims', element: <PaymentClaims /> },
+        { path: 'terminations', element: <Terminations /> },
         { path: 'room-changes', element: <RoomChangeQueue /> },
         { path: 'room-changes/swaps', element: <SwapRequests /> },
         { path: 'inventory', element: <Inventory /> },

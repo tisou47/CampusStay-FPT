@@ -57,6 +57,8 @@ export const screens = [
   { code: 'SCR-APP-10', title: 'Application Queue', role: 'manager', path: '/manager/applications' },
   { code: 'SCR-ASG-10', title: 'Assignment Runs', role: 'manager', path: '/manager/assignment' },
   { code: 'SCR-BIL-10', title: 'Payments', role: 'manager', path: '/manager/payments' },
+  { code: 'SCR-BIL-13', title: 'Payment confirmations', role: 'manager', path: '/manager/payment-claims' },
+  { code: 'SCR-ASG-12', title: 'Terminations', role: 'manager', path: '/manager/terminations' },
   { code: 'SCR-REQ-20', title: 'Decisions (late check-in, swaps, refunds)', role: 'manager', path: '/manager/approvals' },
   { code: 'SCR-MNT-20', title: 'Inspection Schedule', role: 'manager', path: '/manager/inspections' },
   { code: 'SCR-BIL-20', title: 'Block Finance', role: 'manager', path: '/manager/finance' },

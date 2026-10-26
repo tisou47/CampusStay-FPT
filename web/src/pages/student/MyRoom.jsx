@@ -4,8 +4,10 @@ import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
+import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
+import { Field, Input, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { typeName } from '@/lib/furniture'
@@ -16,11 +18,15 @@ import { t, tr, tx } from '@/i18n'
 // SCR-ASG-01 My Room (Figma 39:1535)
 // GET /students/me/allocation?termId → {
 //   term: { name, stayStart, stayEnd, resultsPublishedAt },
-//   allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status } | null,
+//   allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt,
+//                 status (Assigned – unpaid, Paid – waiting for the door code, Resident), residentSince, codeReleased } | null,
 //   roommates: [{ name, bed }], roommateCapacity,
 //   checkIn: { start, end, deskHours, location, checkedInAt } | null,
 //   balance: { invoiceId, amount, status, dueAt, paidAt } | null,
-//   application: { id, status } | null, rulesUrl }
+//   application: { id, status } | null, rulesUrl, stayTerms (Gia hạn),
+//   termination: { reason, note, status, moveOutBy, startedAt } | null }
+// GET /students/me/late-check-in → { request: { id, status, requestedFor, deadline, reason, decisionReason, source } | null,
+//   canRequest, checkInEnd, latestDay } · POST /students/me/late-check-in (multipart reason, requestedFor, evidence)
 // GET /students/me/door-code → { room, status (Ready, Not ready, Not set), note, changedAt } · POST /students/me/door-code/reveal
 //   → { room, code, changedAt } (audited) · GET /students/me/furniture → { room, items: [{ assetCode, type, typeVi, status }] }
 
@@ -66,6 +72,87 @@ function DoorCodeCard() {
       ) : (
         <InfoRow icon={KeyRound} label={t('Room {code}', { code: d.room })} value={tr(d.note)} />
       )}
+    </Card>
+  )
+}
+
+/**
+ * Late check-in (spec §6.9): a student who cannot arrive in the check-in window asks online with the day and a
+ * document; a Manager decides. An approved day also moves the Balance deadline.
+ */
+function LateCheckInCard() {
+  const { notify } = useToast()
+  const query = useQuery(['late-check-in'], ({ signal }) => api.me.lateCheckIn(undefined, { signal }))
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [day, setDay] = useState('')
+  const [file, setFile] = useState(null)
+  const send = useMutation(
+    () => {
+      const data = new FormData()
+      data.set('reason', reason.trim())
+      data.set('requestedFor', day)
+      if (file) data.set('evidence', file)
+      return api.me.requestLateCheckIn(data)
+    },
+    {
+      invalidates: ['late-check-in'],
+      onSuccess: () => {
+        notify({ title: 'Late check-in requested', message: t('A Manager will decide it. You will be notified.') })
+        setOpen(false)
+        query.reload()
+      },
+      onError: () => {},
+    },
+  )
+  const d = query.data
+  if (!d || (!d.request && !d.canRequest)) return null
+  const r = d.request
+  const fields = send.error?.details?.fields ?? {}
+  return (
+    <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-h3 font-semibold text-fg">{t('Late check-in')}</h2>
+        {r && <StatusTag status={r.status} />}
+      </div>
+      {r && (
+        <>
+          <InfoRow icon={Calendar} label="Arrival asked for" value={formatDate(r.requestedFor)} />
+          {r.status === 'Approved' && <InfoRow icon={Clock} label="Approved until" value={formatDate(r.deadline)} />}
+          {r.status === 'Rejected' && r.decisionReason && <Alert type="warning" title="Not approved">{r.decisionReason}</Alert>}
+          {r.status === 'Approved' && <Note>{t('Your Balance deadline and your arrival move to the end of that day.')}</Note>}
+        </>
+      )}
+      {d.canRequest &&
+        (open ? (
+          <div className="flex flex-col gap-3">
+            {send.error && !send.error.details?.fields && <Alert type="error" title="Could not send the request">{send.error.message}</Alert>}
+            <Field label="Why do you arrive late?" required error={fields.reason}>
+              {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
+            </Field>
+            <Field label="Day you will arrive" required error={fields.requestedFor} helper={d.latestDay ? t('Up to {date}', { date: formatDate(d.latestDay) }) : undefined}>
+              {(id) => <Input id={id} type="date" value={day} max={d.latestDay ?? undefined} onChange={(e) => setDay(e.target.value)} />}
+            </Field>
+            <Field label="Document (ticket, letter …)" required error={fields.evidence}>
+              {(id) => <input id={id} type="file" accept="image/*,application/pdf" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}
+            </Field>
+            <div className="flex gap-2">
+              <Button onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="primary" disabled={send.pending || !reason.trim() || !day || !file} onClick={() => send.run()}>
+                {send.pending ? t('Sending…') : t('Send request')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-fg-secondary">
+              {t('Cannot arrive by {date}? Ask for a late check-in with a document that explains why.', { date: formatDate(d.checkInEnd) })}
+            </p>
+            <Button block onClick={() => setOpen(true)}>
+              Ask for a late check-in
+            </Button>
+          </>
+        ))}
     </Card>
   )
 }
@@ -142,10 +229,23 @@ function MoreLink({ icon: Glyph, to, href, children }) {
 }
 
 function Room({ data }) {
-  const { allocation: a, roommates = [], checkIn, balance, term: tm } = data
+  const { allocation: a, roommates = [], checkIn, balance, term: tm, termination } = data
+  const resident = a.status === 'Resident'
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
+        {termination && (
+          <Alert type="error" title={termination.status === 'Checked out' ? 'Stay ended' : 'Your stay is terminated'} className="shrink-0">
+            {t('Reason: {reason}.', { reason: tr(termination.reason) })}
+            {termination.note ? ' ' + termination.note : ''}
+            {termination.status !== 'Checked out' && ' ' + t('Check out at the desk by {date}.', { date: formatDate(termination.moveOutBy) })}
+          </Alert>
+        )}
+        {!resident && a.status === 'Assigned – unpaid' && (
+          <Alert type="warning" title="Pay the Balance to keep your Bed" className="shrink-0">
+            {t('Your Bed is held until {date}. Unpaid by then, it is released and the Deposit is kept.', { date: formatDateTime(balance?.dueAt) })}
+          </Alert>
+        )}
         <section className="flex shrink-0 flex-col items-start gap-1.5 rounded-xl border border-orange-200 bg-brand-subtle p-4 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-5">
           <span className="hidden size-14 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
             <Bed size={28} aria-hidden="true" />
@@ -183,6 +283,8 @@ function Room({ data }) {
               ['Room Class', a.roomClassName ?? '—'],
               ['Amenities', a.amenities?.length ? a.amenities.map(tr).join(', ') : '—'],
               ['Allocated on', formatDate(a.allocatedAt)],
+              ...(data.stayTerms ? [['Gia hạn', t('{n} Terms', { n: data.stayTerms })]] : []),
+              ...(a.residentSince ? [['Resident since', formatDate(a.residentSince)]] : []),
             ]}
           />
         </Card>
@@ -218,6 +320,7 @@ function Room({ data }) {
 
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         <DoorCodeCard />
+        {!checkIn?.checkedInAt && !resident && <LateCheckInCard />}
         {checkIn && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
             <h2 className="text-h3 font-semibold text-fg">{t('Check-in')}</h2>

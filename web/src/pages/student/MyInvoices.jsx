@@ -5,7 +5,7 @@ import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
-import { StatTile } from '@/components/ui/Display'
+import { Alert, StatTile } from '@/components/ui/Display'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
@@ -17,9 +17,12 @@ import { t, tr } from '@/i18n'
 // SCR-BIL-01 My Invoices (Figma 19:1051)
 // GET /students/me/invoices?termId&page&pageSize → {
 //   items: [{ id, type, typeLabel, title, termName, amount, dueAt, status, paidAt, paymentMethod, transferContent }], total,
-//   summary: { outstanding, dueCount, nextDueAt, paidTotal, paidCount, upcoming: { typeLabel, amount, note } | null } }
+//   summary: { outstanding, dueCount, nextDueAt, paidTotal, paidCount, upcoming: { typeLabel, amount, note } | null,
+//              awaitingCount, warning: { level (Warning, Final warning), debt, overdue, terminateOn, issuedAt } | null } }
+// The Utility debt warning (spec §6.14): unpaid Utility for the configured months, or a debt reaching the Utility
+// Deposit, ends the stay after the final warning.
 
-/** Utility Invoices open their breakdown; others open the VietQR payment page. */
+/** Utility Invoices open their breakdown; others open the payment page ("I have transferred"). */
 export const invoicePath = (inv) => (inv.type === 'utility' ? `/student/invoices/${inv.id}` : `/student/invoices/${inv.id}/pay`)
 
 export default function MyInvoices() {
@@ -33,7 +36,23 @@ export default function MyInvoices() {
   const items = query.data?.items ?? []
 
   return (
-    <StudentPage title="Payments" description="Invoices for your dormitory stay. Pay each Invoice with VietQR before its due date.">
+    <StudentPage title="Payments" description="Invoices for your dormitory stay. Transfer each one before its due date, then press I have transferred.">
+      {summary?.warning && (
+        <Alert
+          type={summary.warning.level === 'Final warning' ? 'error' : 'warning'}
+          title={summary.warning.level === 'Final warning' ? 'Final warning: Utility debt' : 'Utility overdue'}
+          className="shrink-0"
+        >
+          {summary.warning.level === 'Final warning'
+            ? t('You owe {debt} for Utility. Pay everything before {date}, or your stay will be terminated.', { debt: formatVnd(summary.warning.debt), date: formatDate(summary.warning.terminateOn) })
+            : t('You owe {debt} for Utility. Pay it now: unpaid Utility can end your stay.', { debt: formatVnd(summary.warning.debt) })}
+        </Alert>
+      )}
+      {summary?.awaitingCount > 0 && (
+        <Alert type="info" title="Transfers waiting for a Manager" className="shrink-0">
+          {t('{n} of your transfers wait for confirmation. Their deadlines are paused.', { n: summary.awaitingCount })}
+        </Alert>
+      )}
       <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
         <StatTile
           icon={Banknote}
