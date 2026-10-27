@@ -15,7 +15,7 @@ import { EmptyBlock, LoadingState, ErrorState, TableStatus } from '@/components/
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
-import { DifferencesTable, MILESTONES, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
+import { DifferencesTable, ExcludedRoomsField, MILESTONES, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-22 Registration-period requests (spec §6.3, D-10, D-11): Managers ask the Admin to open a Term; Managers
@@ -51,7 +51,7 @@ function RequestForm({ request, onClose, onSaved }) {
     stayEnd: request?.stayEnd ?? '',
     timeline: timelineForm(request?.timeline),
     blocks: new Set(request?.blocks ?? []),
-    excludedRooms: (request?.excludedRooms ?? []).join(', '),
+    excludedRooms: request?.excludedRooms ?? [],
     places: request?.places?.map((p) => ({ roomTypeId: p.roomTypeId, roomClassId: p.roomClassId, gender: p.gender, places: String(p.places) })) ?? [],
     prices: request?.prices?.map((p) => ({ roomTypeId: p.roomTypeId, roomClassId: p.roomClassId, price: String(p.price) })) ?? null,
     notes: request?.notes ?? '',
@@ -73,7 +73,7 @@ function RequestForm({ request, onClose, onSaved }) {
     stayEnd: form.stayEnd || null,
     timeline: timelineBody(form.timeline),
     blocks: blocks.filter((b) => form.blocks.has(b)),
-    excludedRooms: form.excludedRooms.split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean),
+    excludedRooms: form.excludedRooms,
     places: form.places.filter((p) => p.places !== '').map((p) => ({ ...p, places: Number(p.places) })),
     prices: (form.prices ?? []).filter((p) => p.price !== '').map((p) => ({ ...p, price: Number(String(p.price).replace(/\D/g, '')) })),
     notes: form.notes.trim(),
@@ -142,9 +142,7 @@ function RequestForm({ request, onClose, onSaved }) {
         </div>
         <p className="text-sm text-fg-tertiary">{t('No Block ticked: every Block.')}</p>
         {fields.blocks && <p className="text-sm text-error-fg">{tr(fields.blocks)}</p>}
-        <Field label="Rooms to leave out" helper="Room codes separated by commas, e.g. A-101, B-512." error={fields.excludedRooms}>
-          {(id) => <Input id={id} value={form.excludedRooms} onChange={(e) => set('excludedRooms', e.target.value)} />}
-        </Field>
+        <ExcludedRoomsField label="Rooms to leave out" helper="One column of Room codes in an Excel or CSV file; the assignment and Round 2 never use these Rooms." codes={form.excludedRooms} onChange={(v) => set('excludedRooms', v)} error={fields.excludedRooms} />
       </section>
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -164,7 +162,9 @@ function RequestForm({ request, onClose, onSaved }) {
             <Select wrapperClassName="flex-1" aria-label={t('Room Type')} value={p.roomTypeId} options={types.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomTypeId: e.target.value } : x)))} />
             <Select wrapperClassName="flex-1" aria-label={t('Room Class')} value={p.roomClassId} options={classes.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomClassId: e.target.value } : x)))} />
             <Select wrapperClassName="w-32" aria-label={t('Gender')} value={p.gender} options={GENDERS} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, gender: e.target.value } : x)))} />
-            <Input className="w-28" aria-label={t('Places')} inputMode="numeric" value={p.places} placeholder="Places" onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, places: e.target.value.replace(/\D/g, '') } : x)))} />
+            <div className="w-28 shrink-0">
+              <Input aria-label={t('Places')} inputMode="numeric" value={p.places} placeholder="Places" onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, places: e.target.value.replace(/\D/g, '') } : x)))} />
+            </div>
             <IconButton icon={Trash2} aria-label={t('Remove line')} onClick={() => set('places', form.places.filter((_, j) => j !== i))} />
           </div>
         ))}

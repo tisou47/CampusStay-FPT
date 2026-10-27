@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,7 @@ import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.STUDENT;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
@@ -27,6 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -287,6 +290,34 @@ class InventoryIT {
                 .andExpect(jsonPath("$.roomClasses[*].name", contains("Basic", "Standard", "Premium")));
         mvc.perform(get("/admin/buildings/" + id + "/floors/1/rooms").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.items[*].roomClassName", everyItem(is("Premium"))));
+    }
+
+    /** TC-INV-025: a Room code list (CSV, with or without its header) gives the Rooms and the codes no Room has. */
+    @Test
+    void readsRoomCodeList() throws Exception {
+        String manager = bearer(mvc, MANAGER_B);
+        mvc.perform(multipart("/inventory/room-codes").file(csv("﻿Mã phòng\nA-101\na-103\nZ-999\nA-101\n"))
+                        .header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms[*].code", contains("A-101", "A-103")))
+                .andExpect(jsonPath("$.rooms[0].block").value("A"))
+                .andExpect(jsonPath("$.unknown", contains("Z-999")));
+        mvc.perform(multipart("/inventory/room-codes").file(csv("A-201\nA-101\n"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms[*].code", contains("A-201", "A-101")))
+                .andExpect(jsonPath("$.unknown", hasSize(0)));
+        mvc.perform(multipart("/inventory/room-codes").file(csv("Mã phòng\n"))
+                        .header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.file").value("The file has no Room codes below its header line."));
+        mvc.perform(multipart("/inventory/room-codes").file(csv("A-101\n"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(mvc, STUDENT)))
+                .andExpect(status().isForbidden());
+    }
+
+    private static MockMultipartFile csv(String text) {
+        return new MockMultipartFile("file", "rooms.csv", "text/csv", text.getBytes(StandardCharsets.UTF_8));
     }
 
     private <T> T read(String auth, String url, String path) throws Exception {

@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -28,6 +29,7 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.BedOccupancy;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.file.SheetFile;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 
@@ -74,7 +76,14 @@ public class InventoryService {
     public record RoomRef(String code, String block, int floor) {
     }
 
+    /** The Rooms of an uploaded list, in its order, and the codes no Room of the user's Blocks has. */
+    public record RoomCodes(List<RoomRef> rooms, List<String> unknown) {
+    }
+
     private static final String OOS_REASON = "OOS_REASON";
+    private static final Set<String> ROOM_HEADERS = Set.of("room", "rooms", "roomcode", "code", "phong", "maphong",
+            "sophong", "phongkhongdung");
+    private static final int MAX_ROOM_CODES = 5000;
 
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
@@ -231,6 +240,66 @@ public class InventoryService {
                     classNames.get(room.roomClassId()), bedViews.size(), oos, bedViews));
         }
         return new FloorView(className, views, new Summary(total, allocated, available, outOfService, residents));
+    }
+
+    /**
+     * The Room codes of an uploaded list (CSV or XLSX), for the Rooms a Term leaves out: the column headed Room
+     * ("Mã phòng", "Phòng", "Room code"), else the first column. Codes the user's Blocks do not hold are listed apart.
+     */
+    @Transactional(readOnly = true)
+    public RoomCodes roomCodes(String fileName, byte[] bytes) {
+        currentUser.require(Permission.VIEW_INVENTORY);
+        List<List<String>> rows = SheetFile.rows(fileName, bytes).stream()
+                .filter(r -> r.stream().anyMatch(v -> v != null && !v.isBlank())).toList();
+        if (rows.isEmpty()) {
+            throw FieldErrors.single("file", "The file is empty.");
+        }
+        List<String> header = rows.getFirst();
+        int column = -1;
+        for (int i = 0; i < header.size() && column < 0; i++) {
+            if (ROOM_HEADERS.contains(SheetFile.key(header.get(i)))) {
+                column = i;
+            }
+        }
+        boolean headed = column >= 0;
+        int col = Math.max(column, 0);
+        Set<String> given = new LinkedHashSet<>();
+        for (List<String> row : headed ? rows.subList(1, rows.size()) : rows) {
+            String v = col < row.size() && row.get(col) != null ? row.get(col).strip().toUpperCase(Locale.ROOT) : "";
+            if (!v.isEmpty()) {
+                given.add(v);
+            }
+        }
+        if (given.size() > MAX_ROOM_CODES) {
+            throw FieldErrors.single("file", "The file has more than 5,000 Room codes.");
+        }
+        Set<Long> blocks = blockScope.resolve(null).ids();
+        Map<String, RoomRef> found = new LinkedHashMap<>();
+        if (!given.isEmpty()) {
+            jdbc.sql("""
+                    SELECT r.code, r.building_id, b.code AS block, f.floor_no
+                    FROM inv_room r JOIN inv_building b ON b.id = r.building_id JOIN inv_floor f ON f.id = r.floor_id
+                    WHERE upper(r.code) IN (:codes) AND r.status <> 'RETIRED'
+                    """)
+                    .param("codes", given)
+                    .query((rs, i) -> blocks.contains(rs.getLong("building_id"))
+                            ? new RoomRef(rs.getString("code"), rs.getString("block"), rs.getInt("floor_no")) : null)
+                    .list().stream().filter(Objects::nonNull)
+                    .forEach(r -> found.put(r.code().toUpperCase(Locale.ROOT), r));
+        }
+        List<RoomRef> rooms = given.stream().filter(found::containsKey).map(found::get).toList();
+        // A first line that is not a Room code is a header the file named its own way.
+        List<String> unknown = given.stream().filter(c -> !found.containsKey(c))
+                .filter(c -> headed || !c.equals(firstCell(rows, col))).toList();
+        if (rooms.isEmpty() && unknown.isEmpty()) {
+            throw FieldErrors.single("file", "The file has no Room codes below its header line.");
+        }
+        return new RoomCodes(rooms, unknown);
+    }
+
+    private static String firstCell(List<List<String>> rows, int col) {
+        List<String> first = rows.getFirst();
+        return col < first.size() && first.get(col) != null ? first.get(col).strip().toUpperCase(Locale.ROOT) : "";
     }
 
     /** Where a Room is, for a deep link ({@code ?room=}). */

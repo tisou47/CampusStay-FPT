@@ -860,3 +860,5 @@ Choose an item of this Room. ⟶ Hãy chọn một đồ nội thất của phò
 List each damaged item of this Room once. ⟶ Mỗi đồ bị hư của phòng này chỉ ghi một lần.
 Enter a damage amount of 0 or more. ⟶ Hãy nhập tiền hư hỏng từ 0 trở lên.
 Keep each damage note under 300 characters. ⟶ Mỗi ghi chú hư hỏng không quá 300 ký tự.
+The file has more than 5,000 Room codes. ⟶ Tệp có hơn 5.000 mã phòng.
+The file has no Room codes below its header line. ⟶ Tệp không có mã phòng nào dưới dòng tiêu đề.

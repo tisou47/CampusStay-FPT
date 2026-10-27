@@ -15,7 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatVnd } from '@/lib/format'
-import { DifferencesTable, ReasonInput, TimelineFields, TimelineStrip, timelineBody, timelineForm } from '../registration/shared'
+import { DifferencesTable, ExcludedRoomsField, ReasonInput, TimelineFields, TimelineStrip, timelineBody, timelineForm } from '../registration/shared'
 import { termTone } from './Terms'
 import { t, tr } from '@/i18n'
 
@@ -172,7 +172,7 @@ function TimelineStep({ w, onSaved }) {
 function RoomsStep({ w, onSaved }) {
   const { save, fields } = useStep(w, 'rooms', onSaved)
   const [used, setUsed] = useState(() => new Set(w.rooms.blocks.filter((b) => b.used).map((b) => b.id)))
-  const [excluded, setExcluded] = useState(w.rooms.excludedRooms.join(', '))
+  const [excluded, setExcluded] = useState(w.rooms.excludedRooms)
   const [reserved, setReserved] = useState(String(w.rooms.reservedNewPercent ?? 0))
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
@@ -180,7 +180,7 @@ function RoomsStep({ w, onSaved }) {
   const codes = (list) => [...list].map((c) => c.trim().toUpperCase()).filter(Boolean).sort().join(', ')
   const chosenCodes = w.rooms.blocks.filter((b) => used.has(b.id)).map((b) => b.code)
   const blocksDiffer = proposal?.blocks?.length > 0 && codes(proposal.blocks) !== (used.size === w.rooms.blocks.length ? codes(w.rooms.blocks.map((b) => b.code)) : codes(chosenCodes))
-  const roomsDiffer = proposal?.excludedRooms?.length > 0 && codes(proposal.excludedRooms) !== codes(excluded.split(/[\s,;]+/))
+  const roomsDiffer = proposal?.excludedRooms?.length > 0 && codes(proposal.excludedRooms) !== codes(excluded)
   const supply = w.rooms.supply
   return (
     <>
@@ -214,13 +214,16 @@ function RoomsStep({ w, onSaved }) {
           </>
         )}
       </section>
+      <section className="flex flex-col gap-2">
+        <ExcludedRoomsField label="Rooms left out" helper="One column of Room codes in an Excel or CSV file; the assignment and Round 2 never use these Rooms." codes={excluded} disabled={!w.editable.rooms} onChange={setExcluded} error={fields.excludedRooms} />
+        {roomsDiffer && (
+          <>
+            <p className="text-sm text-fg-tertiary">{t('The request asked to leave out {codes}.', { codes: codes(proposal.excludedRooms) })}</p>
+            <ReasonInput value={reasons.excludedRooms} onChange={(v) => setReasons((r) => ({ ...r, excludedRooms: v }))} error={fields.excludedRooms} />
+          </>
+        )}
+      </section>
       <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <Field label="Rooms left out" helper="Room codes separated by commas; the assignment and Round 2 never use them." error={fields.excludedRooms}>
-            {(id) => <Input id={id} value={excluded} disabled={!w.editable.rooms} onChange={(e) => setExcluded(e.target.value)} />}
-          </Field>
-          {roomsDiffer && <ReasonInput value={reasons.excludedRooms} onChange={(v) => setReasons((r) => ({ ...r, excludedRooms: v }))} error={fields.excludedRooms} />}
-        </div>
         <Field label="Beds kept for new students (%)" helper={t('{n} of {beds} Beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })} error={fields.reservedNewPercent}>
           {(id) => <Input id={id} inputMode="decimal" value={reserved} disabled={!w.editable.rooms} onChange={(e) => setReserved(e.target.value)} />}
         </Field>
@@ -271,7 +274,7 @@ function RoomsStep({ w, onSaved }) {
         onSave={() =>
           save.run({
             blockIds: [...used],
-            excludedRooms: excluded.split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean),
+            excludedRooms: excluded,
             reservedNewPercent: reserved === '' ? 0 : Number(reserved),
             reasons: pick(reasons, ['blocks', 'excludedRooms']),
             changeReason,

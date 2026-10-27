@@ -219,6 +219,8 @@ export const api = {
     room: (code, opts) => http.get(`/inventory/rooms/${code}`, undefined, opts),
     setOutOfService: (code, body) => http.post(`/inventory/rooms/${code}/out-of-service`, body),
     backInService: (code) => http.post(`/inventory/rooms/${code}/back-in-service`),
+    /** multipart file (CSV or XLSX, a column of Room codes) → { rooms: [{ code, block, floor }], unknown: [code] }. */
+    roomCodes: (formData) => http.post('/inventory/room-codes', formData),
     /** The Room panel: its Room Class in the Term and the next one, furniture conformance, items, door code state. */
     details: (code, query, opts) => http.get(`/inventory/rooms/${code}/details`, query, opts),
     /** The Room hub: { details, sections: { residents, meterReadings, maintenance, inspections } } (spec §11.3). */

@@ -1,4 +1,9 @@
-import { CircleAlert } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { CircleAlert, Download, Plus, Upload, X } from 'lucide-react'
+import { api } from '@/api/endpoints'
+import { useMutation } from '@/api/hooks'
+import { Button } from '@/components/ui/Button'
+import { Alert } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
@@ -196,5 +201,131 @@ export function DifferencesTable({ differences }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+/** Codes compared without case, in the order first given. */
+function mergeCodes(list, more) {
+  const seen = new Set(list.map((c) => c.toUpperCase()))
+  const out = [...list]
+  for (const c of more) {
+    if (!seen.has(c.toUpperCase())) {
+      seen.add(c.toUpperCase())
+      out.push(c)
+    }
+  }
+  return out
+}
+
+/**
+ * Rooms a Term leaves out (spec §6.3): imported from an Excel or CSV list (one column headed "Room code"), shown as
+ * chips removed one by one; a code can still be typed in. Codes no Room has are listed after an import and never added.
+ */
+export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, error }) {
+  const file = useRef(null)
+  const [typed, setTyped] = useState('')
+  const [result, setResult] = useState(null)
+  const read = useMutation(
+    (f) => {
+      const body = new FormData()
+      body.append('file', f)
+      return api.inventory.roomCodes(body)
+    },
+    {
+      onSuccess: (res) => {
+        onChange(mergeCodes(codes, res.rooms.map((r) => r.code)))
+        setResult({ added: res.rooms.length, unknown: res.unknown })
+      },
+      onError: () => setResult(null),
+    },
+  )
+  const add = () => {
+    onChange(mergeCodes(codes, typed.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean)))
+    setTyped('')
+  }
+  const template = () => {
+    const url = URL.createObjectURL(new Blob([`﻿${t('Room code')}\nA-101\nB-512\n`], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'rooms-left-out.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-base font-medium text-fg">{t(label)}</span>
+        <span className="text-sm text-fg-tertiary">{t('{n} Rooms', { n: codes.length })}</span>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <input
+            ref={file}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) read.run(f)
+              e.target.value = ''
+            }}
+          />
+          <Button size="sm" icon={Upload} disabled={disabled || read.pending} onClick={() => file.current?.click()}>
+            {read.pending ? t('Reading…') : t('Import Excel or CSV')}
+          </Button>
+          <Button size="sm" variant="text" icon={Download} onClick={template}>
+            Template
+          </Button>
+          {codes.length > 0 && !disabled && (
+            <Button size="sm" variant="text" onClick={() => onChange([])}>
+              Clear all
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className={cx('flex max-h-40 min-h-11 flex-wrap content-start gap-1.5 overflow-y-auto rounded-md border p-2', error ? 'border-error' : 'border-line')}>
+        {codes.length === 0 && <span className="self-center px-1 text-sm text-fg-tertiary">{t('No Room left out.')}</span>}
+        {codes.map((code) => (
+          <span key={code} className="inline-flex items-center gap-1 rounded-full bg-subtle py-0.5 pr-1 pl-2.5 text-sm font-medium text-fg">
+            {code}
+            {!disabled && (
+              <button
+                type="button"
+                aria-label={t('Remove {code}', { code })}
+                className="rounded-full p-0.5 text-fg-tertiary hover:bg-line hover:text-fg"
+                onClick={() => onChange(codes.filter((c) => c !== code))}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+      {!disabled && (
+        <div className="flex gap-2">
+          <Input
+            aria-label={t('Add Room codes')}
+            placeholder="Add a Room code, e.g. A-101"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                add()
+              }
+            }}
+          />
+          <Button icon={Plus} disabled={!typed.trim()} onClick={add}>
+            Add
+          </Button>
+        </div>
+      )}
+      {read.error && <Alert type="error" title="Could not read the file">{read.error.details?.fields?.file ?? read.error.message}</Alert>}
+      {result?.unknown.length > 0 && (
+        <Alert type="warning" title={t('{n} codes are not Rooms and were left out', { n: result.unknown.length })}>
+          {result.unknown.join(', ')}
+        </Alert>
+      )}
+      {result && !result.unknown.length && <p className="text-sm text-success-fg">{t('{n} Rooms read from the file.', { n: result.added })}</p>}
+      {error ? <p className="text-sm text-error-fg">{tr(error)}</p> : helper ? <p className="text-sm text-fg-tertiary">{t(helper)}</p> : null}
+    </div>
   )
 }
