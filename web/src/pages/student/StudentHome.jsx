@@ -239,8 +239,8 @@ function HomeContent({ home }) {
 
       <LatestNotification />
 
-      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
-        <TermTimeline term={term} milestones={milestones} className="lg:flex-1" />
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
+        <TermTimeline term={term} milestones={milestones} className="lg:min-w-0 lg:flex-1" />
         {stage !== 'allocated' && <RoomTypesCard />}
       </div>
     </>
@@ -266,7 +266,7 @@ export default function StudentHome() {
   const home = useQuery(['home', term?.id], ({ signal }) => api.me.home({ termId: term?.id }, { signal }))
   useMobileBar(home.data?.firstName ? t('Hi, {name}', { name: home.data.firstName }) : t('Home'))
   return (
-    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-5 lg:py-6">
+    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:gap-4 lg:py-5">
       {home.data === undefined && <h1 className="sr-only">{t('Home')}</h1>}
       {home.data === undefined && home.loading ? (
         <LoadingState />

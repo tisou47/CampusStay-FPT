@@ -170,10 +170,14 @@ export function StatusCard({ icon: Glyph, label, value, note, to }) {
   )
 }
 
-/** Term milestones: done = success dot, current = action/primary dot, upcoming = hollow 1.5 px ring. */
+/**
+ * Term milestones: done = success dot, current = action/primary dot, upcoming = hollow 1.5 px ring. A list on
+ * phones; on wide screens one row of steps joined by a line (green up to the current step), so the whole home page
+ * fits on one screen.
+ */
 export function TermTimeline({ term, milestones, className }) {
   return (
-    <Card padding="lg" className={cx('flex min-h-0 flex-col gap-4', className)}>
+    <Card padding="lg" className={cx('flex flex-col gap-4', className)}>
       <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-h3 font-semibold text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
         {term?.stayStart && (
@@ -182,25 +186,30 @@ export function TermTimeline({ term, milestones, className }) {
           </p>
         )}
       </div>
-      <ul className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-        {milestones.map(({ label, date, state }) => (
-          <li key={label} className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className={cx(
-                'size-2.5 shrink-0 rounded-full',
-                state === 'done' && 'bg-success',
-                state === 'current' && 'bg-primary',
-                state === 'upcoming' && 'border-[1.5px] border-line-strong bg-white',
+      <ol className="flex flex-col gap-3 lg:flex-row lg:gap-0">
+        {milestones.map(({ label, date, state }, i) => (
+          <li key={label} className="flex items-center gap-3 lg:min-w-0 lg:flex-1 lg:flex-col lg:items-start lg:gap-2">
+            <span className="flex items-center lg:w-full">
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'size-2.5 shrink-0 rounded-full',
+                  state === 'done' && 'bg-success',
+                  state === 'current' && 'bg-primary ring-4 ring-primary-subtle',
+                  state === 'upcoming' && 'border-[1.5px] border-line-strong bg-white',
+                )}
+              />
+              {i < milestones.length - 1 && (
+                <span aria-hidden="true" className={cx('mx-2 hidden h-0.5 flex-1 rounded-full lg:block', state === 'done' ? 'bg-success' : 'bg-line')} />
               )}
-            />
-            <span className={cx('flex-1 text-base', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
+            </span>
+            <span className={cx('flex-1 text-base lg:flex-none lg:pr-3 lg:text-sm', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
               {tx(label)}
             </span>
-            <span className={cx('text-base whitespace-nowrap', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{date}</span>
+            <span className={cx('text-base whitespace-nowrap lg:text-sm lg:whitespace-normal', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{date}</span>
           </li>
         ))}
-      </ul>
+      </ol>
     </Card>
   )
 }
