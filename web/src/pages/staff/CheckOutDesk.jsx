@@ -12,17 +12,21 @@ import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { StatusTag } from '@/components/ui/Tag'
+import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
+import { typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { DeskModeSwitch } from './CheckInDesk'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
-// GET /check-out?termId&block&q&reason&page&pageSize → { date, pendingCount, reasons,
-//   items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }
-// GET /check-out/:allocationId → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }
-// POST /check-out/:allocationId { electricity, water, conditionGood, keyReturned, damageCharge, draft } → { refund, refundStatus }
+// GET /check-out?termId&block&q&reason&page&pageSize → { date, pendingCount, reasons, checkOutBy, overdueCount,
+//   items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt,
+//   overdue }], total }
+// GET /check-out/:allocationId → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund },
+//   refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }
+// POST /check-out/:allocationId { electricity, water, conditionGood, keyReturned, damages: [{ itemId, amount, note }], draft }
+//   → { refund, refundStatus } — the damage charge is the sum of the items' damages (spec §6.16)
 
 const tones = { 'Pending check-out': 'warning', 'Settlement due': 'error', 'Checked out': 'success' }
 const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
@@ -43,20 +47,32 @@ function CheckOutPanel({ d }) {
   const [water, setWater] = useState(formatNumber(d.reading?.water))
   const [good, setGood] = useState(true)
   const [key, setKey] = useState(true)
-  const [damaged, setDamaged] = useState(false)
-  const [damage, setDamage] = useState('')
+  // Damage per furniture item of the Room: { [itemId]: { amount, note } }; a damaged item becomes Broken.
+  const [damages, setDamages] = useState(() =>
+    Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }])),
+  )
+  const [damaged, setDamaged] = useState(Object.keys(damages).length > 0)
+  const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { amount: '', note: '', ...all[itemId], ...patch } }))
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
     setWater(d.reading?.water != null ? formatNumber(d.reading.water) : '')
   }, [d])
 
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
-  const damageAmount = done ? s.damage ?? 0 : damaged ? toNumber(damage) : 0
+  const lines = damaged ? Object.entries(damages).filter(([, v]) => toNumber(v.amount) > 0 || v.note.trim()) : []
+  const damageAmount = done ? s.damage ?? 0 : lines.reduce((sum, [, v]) => sum + toNumber(v.amount), 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
 
   const submit = useMutation(
     (draft) =>
-      api.desk.checkOut(d.allocationId, { electricity: toNumber(electricity), water: toNumber(water), conditionGood: good, keyReturned: key, damageCharge: damageAmount, draft }),
+      api.desk.checkOut(d.allocationId, {
+        electricity: toNumber(electricity),
+        water: toNumber(water),
+        conditionGood: good,
+        keyReturned: key,
+        damages: lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
+        draft,
+      }),
     {
       invalidates: ['check-out', 'dashboard', 'refunds'],
       onSuccess: (res, draft) => {
@@ -96,10 +112,22 @@ function CheckOutPanel({ d }) {
       <Checkbox label="Bed, mattress and locker in good condition" checked={good} disabled={done} onChange={(e) => setGood(e.target.checked)} />
       <Checkbox label="Key returned" checked={key} disabled={done} onChange={(e) => setKey(e.target.checked)} />
       <Checkbox label="Damage found (adds a charge)" checked={damaged || (done && (s.damage ?? 0) > 0)} disabled={done} onChange={(e) => setDamaged(e.target.checked)} />
-      {damaged && !done && (
-        <Field label="Damage charge (VND)" helper="Deducted from the Utility Deposit; anything above it is invoiced.">
-          {(id) => <Input id={id} value={damage} onChange={(e) => setDamage(e.target.value)} inputMode="numeric" />}
-        </Field>
+      {(damaged || done) && (d.furniture ?? []).length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-fg-secondary">{t('Damage per item (VND): deducted from the Utility Deposit; anything above it is invoiced. A damaged item becomes Broken.')}</p>
+          {d.furniture.map((f) => {
+            const v = damages[f.itemId] ?? { amount: '', note: '' }
+            return (
+              <div key={f.itemId} className="flex items-center gap-2">
+                <span className="w-40 shrink-0 truncate text-sm text-fg">
+                  {typeName(f)} · {f.assetCode}
+                </span>
+                <Input aria-label={t('Damage for {item}', { item: f.assetCode })} value={v.amount} disabled={done} onChange={(e) => setDamage(f.itemId, { amount: e.target.value })} inputMode="numeric" placeholder="0" className="w-28" />
+                <Input aria-label={t('Damage note for {item}', { item: f.assetCode })} value={v.note} disabled={done} onChange={(e) => setDamage(f.itemId, { note: e.target.value })} placeholder={t('What is damaged?')} maxLength={300} />
+              </div>
+            )
+          })}
+        </div>
       )}
       <Divider />
 
@@ -166,7 +194,17 @@ export default function CheckOutDesk() {
     <>
       <PageHeader
         title="Check-out desk"
-        description={list.data ? `${list.data.date ? `${formatDate(list.data.date)} · ` : ''}${t('{n} Allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) })}` : 'Allocations in Pending check-out.'}
+        description={
+          list.data
+            ? [
+                list.data.date && formatDate(list.data.date),
+                t('{n} Allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
+                list.data.checkOutBy && t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : 'Allocations in Pending check-out.'
+        }
         actions={<DeskModeSwitch mode="out" />}
       />
 
@@ -183,6 +221,12 @@ export default function CheckOutDesk() {
           options={[{ value: '', label: 'Reason: All' }, ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: t('Reason: {r}', { r: tr(r) }) }))]}
         />
       </div>
+
+      {list.data?.overdueCount > 0 && (
+        <Alert type="error" title={t('{n} leavers are past the check-out date', { n: formatNumber(list.data.overdueCount) })} className="shrink-0">
+          They still hold their Bed. Managers see them on their dashboard.
+        </Alert>
+      )}
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
@@ -207,7 +251,10 @@ export default function CheckOutDesk() {
                   </Td>
                   <Td>{tr(r.reason)}</Td>
                   <Td>
-                    <StatusTag status={r.status} tone={tones[r.status]} />
+                    <span className="flex items-center gap-2">
+                      <StatusTag status={r.status} tone={tones[r.status]} />
+                      {r.overdue && <Tag tone="error">Overdue</Tag>}
+                    </span>
                   </Td>
                 </Tr>
               ))}

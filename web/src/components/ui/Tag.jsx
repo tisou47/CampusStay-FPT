@@ -1,4 +1,4 @@
-import { tx } from '@/i18n'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Tag (status). Pill with a 6 px dot in the status solid colour.
@@ -131,6 +131,25 @@ const statusTone = {
 
 export function toneForStatus(status) {
   return statusTone[status] ?? 'neutral'
+}
+
+/**
+ * Time left until a request's deadline (spec §6.18): green, amber in the last {warnHours} hours, red once overdue.
+ * Nothing for a request that is finished (done) or has no deadline.
+ */
+export function SlaBadge({ dueAt, done = false, warnHours = 4, className }) {
+  if (!dueAt || done) return null
+  const hours = (new Date(dueAt).getTime() - Date.now()) / 3_600_000
+  const late = hours < 0
+  const abs = Math.abs(hours)
+  const n = abs >= 48 ? Math.floor(abs / 24) : late ? Math.max(1, Math.floor(abs)) : Math.max(1, Math.ceil(abs))
+  const unit = abs >= 48 ? 'd' : 'h'
+  const text = late ? t(`{n} ${unit} overdue`, { n }) : t(`{n} ${unit} left`, { n })
+  return (
+    <Tag tone={late ? 'error' : hours <= warnHours ? 'warning' : 'success'} className={className}>
+      <span title={new Date(dueAt).toLocaleString()}>{text}</span>
+    </Tag>
+  )
 }
 
 export function StatusTag({ status, tone, className, children }) {

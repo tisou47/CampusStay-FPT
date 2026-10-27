@@ -12,11 +12,13 @@ import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
+import { Tag } from '@/components/ui/Tag'
+import { formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-20 Request Routing Rules (Figma 69:949)
 // GET /routing-rules?block → { rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }],
-//   staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }],
+//   staff: [{ id, name, onDuty, open, resolvedWeek }], types, categories, gaps: [{ ruleId, title, message }],
 //   timers: { urgent, normal, roomChange }, timerOptions: { urgent: [], normal: [], roomChange: [] } }
 // POST /routing-rules · PUT /routing-rules/:id · PUT /routing-rules/timers
 
@@ -166,29 +168,46 @@ export default function RoutingRules() {
         </TBody>
       </Table>
 
-      <Card className="flex shrink-0 flex-col gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Time limits')}</h2>
-        <p className="text-sm text-fg-tertiary">{t('A request that is not resolved in time shows in Overdue requests for every Manager. Limits come from Admin; you can only make them stricter.')}</p>
-        <div className="flex gap-4">
+      <div className="flex shrink-0 items-stretch gap-4">
+        <Card className="flex min-w-0 flex-1 flex-col gap-3">
+          <h2 className="text-h3 font-semibold text-fg">{t('Time limits')}</h2>
+          <p className="text-sm text-fg-tertiary">{t('Limits come from Admin; you can only make them stricter. Every request shows the time it has left.')}</p>
           {[
-            ['urgent', 'Urgent: escalate after'],
-            ['normal', 'Normal: escalate after'],
-            ['roomChange', 'Room change: decide within'],
-          ].map(([key, label]) => (
-            <Field key={key} label={label} className="flex-1">
-              {(id) => (
-                <Select
-                  id={id}
-                  value={timers[key] ?? ''}
-                  options={data?.timerOptions?.[key] ?? [timers[key]].filter(Boolean)}
-                  disabled={!data || saveTimer.pending}
-                  onChange={(e) => saveTimer.run({ ...timers, [key]: e.target.value })}
-                />
-              )}
-            </Field>
+            ['urgent', 'An urgent Maintenance Request must be finished within', 'after that, every Manager sees it in Overdue requests.'],
+            ['normal', 'A normal Maintenance Request must be finished within', 'after that, every Manager sees it in Overdue requests.'],
+            ['roomChange', 'A Room-Change Request must be decided within', 'after that, it shows in Overdue requests.'],
+          ].map(([key, before, after]) => (
+            <p key={key} className="flex flex-wrap items-center gap-2 text-base text-fg">
+              <span>{t(before)}</span>
+              <Select
+                aria-label={t(before)}
+                wrapperClassName="w-36"
+                value={timers[key] ?? ''}
+                options={data?.timerOptions?.[key] ?? [timers[key]].filter(Boolean)}
+                disabled={!data || saveTimer.pending}
+                onChange={(e) => saveTimer.run({ ...timers, [key]: e.target.value })}
+              />
+              <span>{t(after)}</span>
+            </p>
           ))}
-        </div>
-      </Card>
+        </Card>
+        <Card className="flex w-110 shrink-0 flex-col gap-3">
+          <h2 className="text-h3 font-semibold text-fg">{t('Staff and workload')}</h2>
+          <p className="text-sm text-fg-tertiary">{t('Open work of each staff member of the Block, and what they finished in the last 7 days.')}</p>
+          <ul className="flex flex-col divide-y divide-line">
+            {(data?.staff ?? []).map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-base">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-medium text-fg">{s.name}</span>
+                  {!s.onDuty && <Tag dot={false}>Off duty</Tag>}
+                </span>
+                <span className="shrink-0 text-fg-secondary">{t('{open} open · {done} done', { open: formatNumber(s.open), done: formatNumber(s.resolvedWeek) })}</span>
+              </li>
+            ))}
+            {data && data.staff.length === 0 && <li className="py-2 text-base text-fg-tertiary">{t('No staff in this Block yet')}</li>}
+          </ul>
+        </Card>
+      </div>
 
       {editing && data && <RuleModal rule={editing} data={data} block={block} onClose={() => setEditing(null)} />}
     </>

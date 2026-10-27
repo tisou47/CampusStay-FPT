@@ -225,6 +225,9 @@ function RoomExtras({ room, termId }) {
         {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this Room.')}</li>}
       </ul>
       <div className="flex flex-wrap gap-2">
+        <Button variant="primary" onClick={() => navigate(`${base}/rooms/${room.code}`)}>
+          Room hub
+        </Button>
         <Button icon={Package} onClick={() => navigate(`${base}/furniture?room=${room.code}`)}>
           Furniture
         </Button>

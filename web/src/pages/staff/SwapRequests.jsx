@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { Tag } from '@/components/ui/Tag'
+import { SlaBadge, Tag } from '@/components/ui/Tag'
 import { formatDate } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { useRoleBase } from '@/lib/useRoleBase'
@@ -180,7 +180,10 @@ export default function SwapRequests() {
                     <Tag>{s.kind}</Tag>
                   </Td>
                   <Td>
-                    <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>
+                    <span className="flex items-center gap-2">
+                      <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>
+                      <SlaBadge dueAt={s.dueAt} done={s.status !== 'Waiting for Staff' && s.status !== 'To Manager'} warnHours={48} />
+                    </span>
                   </Td>
                 </Tr>
               ))}

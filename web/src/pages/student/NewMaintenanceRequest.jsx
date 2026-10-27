@@ -12,10 +12,12 @@ import { StudentPage } from './shared'
 import { useMyAllocation } from './swap'
 import { t, tr } from '@/i18n'
 import { formatNumber } from '@/lib/format'
+import { typeName } from '@/lib/furniture'
 
 // SCR-MNT-02 New Maintenance Request (Figma 41:1719)
-// GET /maintenance-requests/options → { categories, locations }
-// POST /maintenance-requests (multipart) title, description, category, location, urgency, staffMayEnter, photos[] → { id }
+// GET /maintenance-requests/options → { categories, locations, furniture: [{ id, assetCode, type, typeVi }] }
+// POST /maintenance-requests (multipart) title, description, category, location, urgency, staffMayEnter, furnitureItemId,
+//   photos[] → { id }
 const MAX_DESCRIPTION = 1000
 const MAX_PHOTOS = 3
 const nextSteps = ['Submitted', 'Assigned to Staff', 'In progress', 'Resolved', 'You confirm the fix']
@@ -27,7 +29,7 @@ export default function NewMaintenanceRequest() {
   const options = useQuery(['maintenance-options'], ({ signal }) => api.maintenance.options({ for: 'student' }, { signal }))
   const allocation = useMyAllocation()
   const a = allocation.data?.allocation
-  const [form, setForm] = useState({ category: '', location: '', title: '', description: '', urgency: 'Normal', entry: true })
+  const [form, setForm] = useState({ category: '', location: '', furniture: '', title: '', description: '', urgency: 'Normal', entry: true })
   const [photos, setPhotos] = useState([]) // { file, url }
   const [touched, setTouched] = useState(false)
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -52,6 +54,7 @@ export default function NewMaintenanceRequest() {
       data.set('location', form.location)
       data.set('urgency', form.urgency)
       data.set('staffMayEnter', String(form.entry))
+      if (form.furniture) data.set('furnitureItemId', form.furniture)
       photos.forEach((p) => data.append('photos', p.file))
       return api.maintenance.create(data)
     },
@@ -108,6 +111,19 @@ export default function NewMaintenanceRequest() {
                 {(id) => <Select id={id} size="lg" value={form.location} onChange={set('location')} options={[{ value: '', label: 'Choose…', disabled: true }, ...(options.data?.locations ?? [])]} />}
               </Field>
             </div>
+            {options.data?.furniture?.length > 0 && (
+              <Field label="Furniture item" helper="Optional: the bed, desk or appliance that needs the repair.">
+                {(id) => (
+                  <Select
+                    id={id}
+                    size="lg"
+                    value={form.furniture}
+                    onChange={set('furniture')}
+                    options={[{ value: '', label: 'Not about a furniture item' }, ...options.data.furniture.map((f) => ({ value: f.id, label: `${typeName(f)} · ${f.assetCode}` }))]}
+                  />
+                )}
+              </Field>
+            )}
             <Field label="Title" required error={titleError}>
               {(id) => <Input id={id} size="lg" value={form.title} onChange={set('title')} invalid={Boolean(titleError)} maxLength={120} placeholder="e.g. Shower drain is blocked" />}
             </Field>

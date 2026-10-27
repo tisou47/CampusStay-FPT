@@ -11,9 +11,12 @@ import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { StatusTag, Tag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
+
+// Statuses of requests already decided: no time left to show.
+const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'Expired']
 
 // Term transition › Extensions (spec §6.10, D-30): an extension is approved at once when the student is enrolled and
 // owes nothing overdue; the others wait for Staff of the Block. Ends of stay are listed too (always automatic).
@@ -102,7 +105,12 @@ export default function StayRequests({ termId }) {
                   {r.automatic && r.status === 'Approved' ? t('Approved · automatic') : undefined}
                 </StatusTag>
               </Td>
-              <Td className="whitespace-nowrap">{formatDateTime(r.dueAt)}</Td>
+              <Td className="whitespace-nowrap">
+                <span className="flex items-center gap-2">
+                  {formatDateTime(r.dueAt)}
+                  <SlaBadge dueAt={r.dueAt} done={DECIDED.includes(r.status)} warnHours={48} />
+                </span>
+              </Td>
               <Td>
                 {r.status === 'Pending' && (
                   <div className="flex gap-2">

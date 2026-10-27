@@ -11,11 +11,14 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
-import { StatusTag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { countLines } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
+
+// Statuses of requests already decided: no time left to show.
+const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'Expired']
 
 // Term transition › Room Class changes (spec §6.11, D-04). A continuing resident (or a Manager) asks for another class
 // of a Room for the next Term; every other continuing resident must agree; Staff of the Block check the furniture and
@@ -258,7 +261,12 @@ export default function RoomClassChanges({ termId }) {
                 <Td>
                   <StatusTag status={r.status} />
                 </Td>
-                <Td className="whitespace-nowrap">{formatDateTime(r.dueAt)}</Td>
+                <Td className="whitespace-nowrap">
+                <span className="flex items-center gap-2">
+                  {formatDateTime(r.dueAt)}
+                  <SlaBadge dueAt={r.dueAt} done={DECIDED.includes(r.status)} warnHours={48} />
+                </span>
+              </Td>
               </Tr>
             ))}
           </TBody>

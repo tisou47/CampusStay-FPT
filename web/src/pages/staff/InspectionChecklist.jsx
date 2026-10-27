@@ -15,13 +15,16 @@ import { EmptyBlock, ErrorState, LoadingState, QueryState, TableStatus } from '@
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
+import { typeName } from '@/lib/furniture'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-12 Inspection Checklist (Figma 98:4293)
 // GET /inspection-runs/current?termId&block → { run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName,
 //   checklist: { name, version, items: [{ id, label, category, severity }] } } | null }
-// GET /inspection-runs/:id/rooms?page&pageSize → { items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result, note }] }], total }
+// GET /inspection-runs/:id/rooms?page&pageSize → { items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result, note }],
+//   checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi }] }], total } — the Room's own checks
+//   (spec §6.19) are answered like checklist items
 // PUT /inspection-runs/:id/rooms/:room { results } → { createdRequests } · POST …/rooms/:room/unreachable · POST /inspection-runs/:id/submit
 // GET /inspection-runs/upcoming?block → { items: [{ id, date, scope, scheduleName }] }
 
@@ -41,7 +44,14 @@ function summary(r, total) {
 
 function Checklist({ run, room }) {
   const { notify, notifyError } = useToast()
-  const items = run.checklist?.items ?? []
+  // The checklist's items, then the Room's own: the number of people, and each furniture item in it.
+  const items = [
+    ...(run.checklist?.items ?? []),
+    ...(room.checks ?? []).map((c) => ({
+      id: c.id,
+      label: c.kind === 'people' ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 }) : `${typeName(c)} · ${c.assetCode}`,
+    })),
+  ]
   const initial = Object.fromEntries(items.map((it) => [it.id, room.results?.find((x) => x.itemId === it.id) ?? { result: 'Not checked', note: '' }]))
   const [results, setResults] = useState(initial)
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length

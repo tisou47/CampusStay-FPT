@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
+import { api } from '@/api/endpoints'
+import { useQuery } from '@/api/hooks'
 import { backOffice, isNavActive } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
-import { t, tx } from '@/i18n'
+import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { LanguageSwitch } from './LanguageSwitch'
@@ -13,7 +15,7 @@ import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 
 // Back-office shell (Change Specification v2 §11): a 248 px sidebar with the menu grouped by the work it
-// belongs to, and a top bar with the Term and Block scope, page search, language and notifications.
+// belongs to, and a top bar with the Term and Block scope, search (pages and records), language and notifications.
 function Sidebar({ role }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -135,24 +137,78 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
   )
 }
 
+// Where a search hit opens, per role (null: the role has no screen for it).
+function hitLink(role, hit) {
+  const base = `/${role}`
+  const desk = role === 'staff' || role === 'manager'
+  switch (hit.kind) {
+    case 'student':
+      return `${base}/students/${hit.id}`
+    case 'room':
+      return desk ? `${base}/rooms/${hit.id}` : '/admin/buildings'
+    case 'invoice':
+      return desk ? `${base}/payments?q=${encodeURIComponent(hit.id)}` : null
+    case 'application':
+      return role === 'manager' ? `${base}/applications/${hit.id}` : null
+    case 'maintenance':
+      return desk ? `${base}/maintenance/${hit.id}` : null
+    case 'room-change':
+      return desk ? `${base}/room-changes?id=${encodeURIComponent(hit.id)}` : null
+    case 'swap':
+      return desk ? `${base}/room-changes/swaps` : null
+    case 'room-class-change':
+      return desk ? `${base}/next-term/room-classes` : null
+    case 'stay-request':
+      return desk ? `${base}/next-term/extensions` : null
+    default:
+      return null
+  }
+}
+
+const HIT_KINDS = {
+  student: 'Student',
+  room: 'Room',
+  invoice: 'Invoice',
+  application: 'Application',
+  maintenance: 'Maintenance',
+  'room-change': 'Room change',
+  swap: 'Swap',
+  'room-class-change': 'Room Class change',
+  'stay-request': 'Stay request',
+}
+
+// Pages of the menu, and from two characters the records of the user's Blocks: student code or name, Room,
+// Invoice, Application and request codes (GET /search, spec §11.3).
 function QuickSearch({ role }) {
   const [query, setQuery] = useState('')
+  const [debounced, setDebounced] = useState('')
   const navigate = useNavigate()
   const items = useMemo(() => backOffice[role].sections.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title }))), [role])
   const q = query.trim().toLowerCase()
-  const results = items.filter((i) => t(i.label).toLowerCase().includes(q) || i.label.toLowerCase().includes(q))
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(query.trim()), 250)
+    return () => clearTimeout(id)
+  }, [query])
+  const records = useQuery(['search', debounced], ({ signal }) => api.search(debounced, { signal }), { enabled: debounced.length >= 2 })
+  const pages = items.filter((i) => t(i.label).toLowerCase().includes(q) || i.label.toLowerCase().includes(q)).slice(0, q ? 5 : items.length)
+  const hits = debounced.length >= 2 ? (records.data?.items ?? []).map((h) => ({ ...h, to: hitLink(role, h) })).filter((h) => h.to) : []
+  const go = (to, close) => {
+    close()
+    setQuery('')
+    navigate(to)
+  }
   return (
     <Popover
-      width={320}
+      width={380}
       trigger={({ toggle, props }) => (
         <button
           type="button"
           onClick={toggle}
-          className="flex h-8 w-56 items-center gap-2 rounded-md border border-line bg-canvas px-3 text-base text-fg-tertiary hover:border-line-strong"
+          className="flex h-8 w-64 items-center gap-2 rounded-md border border-line bg-canvas px-3 text-base text-fg-tertiary hover:border-line-strong"
           {...props}
         >
           <Search size={16} aria-hidden="true" />
-          {t('Go to page…')}
+          {t('Search pages, students, Rooms, codes…')}
         </button>
       )}
     >
@@ -163,23 +219,30 @@ function QuickSearch({ role }) {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('Go to page…')}
+              placeholder={t('Student code or name, Room, MR-…, INV-…')}
+              aria-label={t('Search')}
               className="h-8 w-full rounded-md px-2 text-base outline-none placeholder:text-fg-tertiary"
             />
           </div>
-          <ul className="max-h-80 overflow-y-auto py-1">
-            {results.map((item) => {
+          <ul className="max-h-96 overflow-y-auto py-1">
+            {hits.map((h) => (
+              <li key={`${h.kind}:${h.id}`}>
+                <button type="button" onClick={() => go(h.to, close)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-subtle">
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-base text-fg">{h.title}</span>
+                    {h.detail && <span className="truncate text-sm text-fg-tertiary">{tr(h.detail)}</span>}
+                  </span>
+                  <span className="shrink-0 text-sm text-fg-tertiary">{t(HIT_KINDS[h.kind] ?? h.kind)}</span>
+                </button>
+              </li>
+            ))}
+            {debounced.length >= 2 && records.loading && !records.data && <li className="px-3 py-2 text-base text-fg-tertiary">{t('Searching…')}</li>}
+            {hits.length > 0 && pages.length > 0 && <li aria-hidden="true" className="my-1 border-t border-line" />}
+            {pages.map((item) => {
               const Glyph = item.icon
               return (
                 <li key={item.to}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close()
-                      navigate(item.to)
-                    }}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left text-base text-fg hover:bg-subtle"
-                  >
+                  <button type="button" onClick={() => go(item.to, close)} className="flex w-full items-center gap-3 px-3 py-2 text-left text-base text-fg hover:bg-subtle">
                     <Glyph size={16} aria-hidden="true" className="text-fg-secondary" />
                     <span className="min-w-0 flex-1 truncate">{t(item.label)}</span>
                     {item.section && <span className="shrink-0 text-sm text-fg-tertiary">{t(item.section)}</span>}
@@ -187,7 +250,7 @@ function QuickSearch({ role }) {
                 </li>
               )
             })}
-            {results.length === 0 && <li className="px-3 py-2 text-base text-fg-tertiary">{t('No matching page')}</li>}
+            {hits.length === 0 && pages.length === 0 && !records.loading && <li className="px-3 py-2 text-base text-fg-tertiary">{t('Nothing found')}</li>}
           </ul>
         </div>
       )}

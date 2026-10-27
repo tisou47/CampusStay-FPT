@@ -14,7 +14,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { StatusTag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
@@ -247,7 +247,10 @@ export default function RoomChangeQueue() {
                   </Td>
                   <Td>{formatDateTime(r.submittedAt)}</Td>
                   <Td>
-                    <ChangeStatus status={r.status} />
+                    <span className="flex items-center gap-2">
+                      <ChangeStatus status={r.status} />
+                      <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
+                    </span>
                   </Td>
                 </Tr>
               ))}

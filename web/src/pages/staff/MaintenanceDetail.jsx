@@ -10,8 +10,9 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Breadcrumb, Card, Facts } from '@/components/ui/Display'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
-import { StatusTag, Tag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
+import { typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
@@ -19,8 +20,9 @@ import { t, tr } from '@/i18n'
 // GET /maintenance-requests/:id (back-office view) → { id, title, status, room, bed, category, location, reportedAt,
 //   reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }],
 //   assignee: { id, name } | null, suggestedAssigneeId, visitWindow,
-//   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm } }
-// PATCH /maintenance-requests/:id { priority, assigneeId, visitWindow, status }
+//   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm },
+//   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }] }
+// PATCH /maintenance-requests/:id { priority, furnitureItemId, assigneeId, visitWindow, status }
 // POST /maintenance-requests/:id/updates { message, internal }
 
 const OPEN = ['Submitted', 'Assigned', 'In progress']
@@ -48,6 +50,25 @@ function Event({ event }) {
         </p>
       </div>
     </li>
+  )
+}
+
+// The furniture item the request is about (spec §6.18): the item's history keeps the repair.
+function FurnitureItem({ r }) {
+  const { notify, notifyError } = useToast()
+  const save = useMutation((id) => api.maintenance.update(r.id, { furnitureItemId: id || null }), {
+    invalidates: ['maintenance'],
+    onSuccess: () => notify({ title: 'Furniture item saved', message: 'Its history keeps this repair.' }),
+    onError: (e) => notifyError(e, 'Could not save'),
+  })
+  const options = [
+    { value: '', label: t('Not about a furniture item') },
+    ...(r.furnitureOptions ?? []).map((f) => ({ value: f.id, label: `${typeName(f)} · ${f.assetCode}` })),
+  ]
+  return (
+    <Field label="Furniture item" helper="The item's history lists this request when it is reported and resolved.">
+      <Select value={r.furnitureItem?.id ?? ''} options={options} disabled={save.pending || r.status === 'Closed'} onChange={(e) => save.run(e.target.value)} />
+    </Field>
   )
 }
 
@@ -94,7 +115,12 @@ function RequestDetail({ r, staff, priorities }) {
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: r.id }]} />}
         title={r.title}
-        badge={<StatusTag status={r.status} />}
+        badge={
+          <>
+            <StatusTag status={r.status} />
+            <SlaBadge dueAt={r.slaDueAt} done={!open} />
+          </>
+        }
         actions={
           <>
             <Button to={`${base}/maintenance`}>Back to queue</Button>
@@ -149,6 +175,7 @@ function RequestDetail({ r, staff, priorities }) {
                 ['Entry when absent', r.staffMayEnter === false ? 'Not allowed' : 'Allowed'],
               ]}
             />
+            <FurnitureItem r={r} />
             {r.description && <p className="text-base text-fg">{r.description}</p>}
             {r.photos?.length > 0 && (
               <ul className="flex gap-3" aria-label={t('Photos')}>

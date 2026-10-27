@@ -20,7 +20,8 @@ import { t, tr } from '@/i18n'
 // GET /dashboards/term?termId → { term, terms, requestCode, stayStart, stayEnd, milestones: [{ key, label, at, date,
 //   done }], applications: [{ status, count }], applicationsTotal, places: [{ roomType, roomClass, gender, beds,
 //   allocated, price }], money: { depositsIssued, depositsPaid, balancesIssued, balancesPaid, paidAmount,
-//   unpaidAmount }, checkedIn, residents (door code released) }
+//   unpaidAmount }, checkedIn, residents (door code released),
+//   transition: { requestsOpen, continuing, feesIssued, feesPaid, released } | null (until the requests window opens) }
 
 const GENDER = { M: 'Male', F: 'Female' }
 
@@ -112,8 +113,18 @@ export default function TermDashboard() {
                 ))}
               </TBody>
             </Table>
-            <p className="text-sm text-fg-tertiary">{t('Next-Term requests, fees and door codes released join this dashboard with the renewal flow.')}</p>
           </Card>
+          {d.transition && (
+            <Card className="flex shrink-0 flex-col gap-3">
+              <h2 className="text-h3 font-semibold text-fg">{t('Requests window')}</h2>
+              <div className="grid grid-cols-4 gap-4">
+                <KpiTile size="sm" label="Requests open" value={formatNumber(d.transition.requestsOpen)} note={t('Decided by the decision deadline (M4)')} />
+                <KpiTile size="sm" label="Continuing residents" value={formatNumber(d.transition.continuing)} />
+                <KpiTile size="sm" label="Next-Term fees paid" value={`${formatNumber(d.transition.feesPaid)} / ${formatNumber(d.transition.feesIssued)}`} />
+                <KpiTile size="sm" label="Beds released" value={formatNumber(d.transition.released)} note={t('Not extended, not paid or end of stay')} />
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </>

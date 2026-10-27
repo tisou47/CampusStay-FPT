@@ -221,6 +221,8 @@ export const api = {
     backInService: (code) => http.post(`/inventory/rooms/${code}/back-in-service`),
     /** The Room panel: its Room Class in the Term and the next one, furniture conformance, items, door code state. */
     details: (code, query, opts) => http.get(`/inventory/rooms/${code}/details`, query, opts),
+    /** The Room hub: { details, sections: { residents, meterReadings, maintenance, inspections } } (spec §11.3). */
+    hub: (code, query, opts) => http.get(`/inventory/rooms/${code}/hub`, query, opts),
     /** Room Classes per Term (ADR-24): { termId, block, floor, roomClassId, match, q, page, pageSize }. */
     roomClasses: g('/inventory/room-classes'),
     /** { termId, rooms: [code], roomClassId } → { changed, unchanged }; Managers, Terms not started only. */
@@ -381,6 +383,8 @@ export const api = {
     /** A Manager confirms one Invoice (multipart: reference?, receipt?): its claim, or a transfer not claimed yet. */
     confirm: (invoiceId, formData) => http.post(`/payments/${invoiceId}/confirm`, formData),
   },
+  /** Back-office search in the top bar: { q } → { q, items: [{ kind, id, title, detail }] } (spec §11.3). */
+  search: (q, opts) => http.get('/search', { q }, opts),
   dashboards: {
     staff: g('/dashboards/staff'),
     manager: g('/dashboards/manager'),

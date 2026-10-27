@@ -47,6 +47,7 @@ import Payments from '@/pages/staff/Payments'
 import AssignmentRuns from '@/pages/staff/AssignmentRuns'
 import ProposalReview from '@/pages/staff/ProposalReview'
 import Inventory from '@/pages/staff/Inventory'
+import RoomHub from '@/pages/staff/RoomHub'
 import DoorCodes from '@/pages/staff/DoorCodes'
 import Furniture from '@/pages/staff/Furniture'
 import RoomClassesByTerm from '@/pages/manager/RoomClassesByTerm'
@@ -165,6 +166,7 @@ export const router = createBrowserRouter([
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, element: <StaffDashboard /> },
         { path: 'inventory', element: <Inventory /> },
+        { path: 'rooms/:code', element: <RoomHub /> },
         { path: 'door-codes', element: <DoorCodes /> },
         { path: 'furniture', element: <Furniture /> },
         { path: 'meter-readings', element: <MeterReadings /> },
@@ -203,6 +205,7 @@ export const router = createBrowserRouter([
         { path: 'moves', element: <OperationalMoves /> },
         { path: 'reconciliation', element: <Reconciliation /> },
         { path: 'inventory', element: <Inventory /> },
+        { path: 'rooms/:code', element: <RoomHub /> },
         { path: 'room-classes', element: <RoomClassesByTerm /> },
         { path: 'door-codes', element: <DoorCodes /> },
         { path: 'furniture', element: <Furniture /> },

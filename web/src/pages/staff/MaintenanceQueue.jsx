@@ -12,14 +12,14 @@ import { SearchInput, Select } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
-import { StatusTag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-10 Maintenance Queue (Figma 42:2251). Shared with the Manager portal.
 // GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize → {
-//   items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total,
+//   items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status, slaDueAt }], total,
 //   summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }
 // GET /maintenance-requests/options → { categories, priorities, staff: [{ id, name }] }
 
@@ -127,10 +127,11 @@ export default function MaintenanceQueue() {
             <Th className="w-40">Reported</Th>
             <Th className="w-36">Assignee</Th>
             <Th className="w-28">Status</Th>
+            <Th className="w-28">Time left</Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} emptyIcon={Wrench} emptyTitle="No Maintenance Requests match these filters" />
+          <TableStatus query={query} colSpan={9} emptyIcon={Wrench} emptyTitle="No Maintenance Requests match these filters" />
           {items.map((r) => (
             <Tr key={r.id} onClick={() => navigate(`${base}/maintenance/${r.id}`)} className="[&>td]:h-11.5">
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
@@ -144,6 +145,9 @@ export default function MaintenanceQueue() {
               <Td className={r.assignee ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{r.assignee?.name ?? '—'}</Td>
               <Td>
                 <StatusTag status={r.status} />
+              </Td>
+              <Td>
+                <SlaBadge dueAt={r.slaDueAt} done={r.status === 'Resolved' || r.status === 'Closed'} />
               </Td>
             </Tr>
           ))}

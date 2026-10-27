@@ -11,10 +11,13 @@ import { Field, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
-import { StatusTag, Tag } from '@/components/ui/Tag'
+import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
+
+// Statuses of requests already decided: no time left to show.
+const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'Expired']
 
 // Term transition › Open requests (spec §5.1 M4: every request decided; Managers decide in bulk).
 // GET /next-term-requests?termId&block&kind → { items: [{ kind (room-change, swap, room-class-change, extension), id,
@@ -131,7 +134,12 @@ export default function OpenRequests({ termId }) {
               <Td>
                 <StatusTag status={r.status} />
               </Td>
-              <Td className="whitespace-nowrap">{formatDateTime(r.dueAt)}</Td>
+              <Td className="whitespace-nowrap">
+                <span className="flex items-center gap-2">
+                  {formatDateTime(r.dueAt)}
+                  <SlaBadge dueAt={r.dueAt} done={DECIDED.includes(r.status)} warnHours={48} />
+                </span>
+              </Td>
             </Tr>
           ))}
         </TBody>
