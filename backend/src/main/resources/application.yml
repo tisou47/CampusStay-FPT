@@ -88,6 +88,8 @@ campusstay:
     renewal-interval: 15m               # requests windows: M2 opens, M3 closes, alert before M4, unpaid fees at M7
   mnt:
     inspection-cron: "0 0 6 * * *"      # inspection runs of active schedules start (campus time)
+  demo:
+    tools: ${DEMO_TOOLS:false}          # Admin › System › Reset demo data (spec §15); true only on the demo server
   door-codes:
     key: ${DOOR_CODE_KEY:}            # AES-256 key, base64 of 32 random bytes; blank = door codes off (503)
   files:

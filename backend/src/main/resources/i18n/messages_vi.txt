@@ -862,3 +862,11 @@ Enter a damage amount of 0 or more. ⟶ Hãy nhập tiền hư hỏng từ 0 tr�
 Keep each damage note under 300 characters. ⟶ Mỗi ghi chú hư hỏng không quá 300 ký tự.
 The file has more than 5,000 Room codes. ⟶ Tệp có hơn 5.000 mã phòng.
 The file has no Room codes below its header line. ⟶ Tệp không có mã phòng nào dưới dòng tiêu đề.
+Choose stage 0, A, B or C. ⟶ Hãy chọn giai đoạn 0, A, B hoặc C.
+Type RESET to confirm. ⟶ Hãy gõ RESET để xác nhận.
+The demo tools are off on this server. ⟶ Công cụ demo đang tắt trên máy chủ này.
+The demo accounts of the base data are missing. Load the base data (db/seed) first. ⟶ Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước.
+This demo file does not exist. ⟶ Không có tệp demo này.
+Load stage A, B or C first: this file lists the people of the next Term. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau.
+Load stage A, B or C first: Block A has no open meter period. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở.
+Load stage A, B or C first: no door code of Block A must change. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi.

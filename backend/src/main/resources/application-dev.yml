@@ -12,6 +12,8 @@ campusstay:
     bank-code: MBBank
     account-number: "0000000000"
     account-name: CAMPUSSTAY FPT DEMO
+  demo:
+    tools: ${DEMO_TOOLS:true}           # local development: Admin › System › Reset demo data
   door-codes:
     key: ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=   # development only; servers set DOOR_CODE_KEY
 

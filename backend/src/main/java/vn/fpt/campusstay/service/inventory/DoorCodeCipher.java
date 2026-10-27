@@ -43,6 +43,11 @@ class DoorCodeCipher {
         this.key = new SecretKeySpec(bytes, "AES");
     }
 
+    /** A key is set ({@code DOOR_CODE_KEY}). */
+    boolean enabled() {
+        return key != null;
+    }
+
     void requireEnabled() {
         if (key == null) {
             throw ApiException.unavailable("DOOR_CODES_DISABLED", "Door codes are not set up on this server yet.");

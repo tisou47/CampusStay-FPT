@@ -101,6 +101,7 @@ export const screens = [
   { code: 'SCR-NTF-21', title: 'Send Email', role: 'admin', path: '/admin/notifications/send' },
   { code: 'SCR-NTF-22', title: 'Announcements', role: 'admin', path: '/admin/announcements' },
   { code: 'SCR-CFG-08', title: 'System Parameters', role: 'admin', path: '/admin/system-parameters' },
+  { code: 'SCR-CFG-27', title: 'Demo data', role: 'admin', path: '/admin/demo' },
   { code: 'SCR-INV-01', title: 'Buildings and Structure', role: 'admin', path: '/admin/buildings' },
   { code: 'SCR-INV-14', title: 'Furniture types', role: 'admin', path: '/admin/furniture-types' },
   { code: 'SCR-AUTH-11', title: 'Users and Roles', role: 'admin', path: '/admin/users' },

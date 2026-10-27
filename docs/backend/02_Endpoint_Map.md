@@ -374,3 +374,14 @@ Built on `feat/v2-phase7-8` (both phases in one branch, one test run and one dep
 | INV | GET | `/inventory/rooms/{code}/hub` | Should | Verified | A-48; residents, meter readings, Maintenance Requests, inspections; TC-INV-024 |
 
 Changed (no new path): `/maintenance-requests` SLA deadline and furniture item (A-49, TC-MNT-008), `GET /routing-rules` staff workload (A-50, TC-REQ-022), `GET /dashboards/term` requests window (A-50, TC-RPT-014), inspection Rooms' own checks (A-51, B-11, TC-MNT-005), check-out damage per item and overdue check-outs (A-52, TC-ASG-045).
+
+## Demo data and Rooms left out (27/10/2026)
+
+The demo reset tool of spec §15 (stages 0, A, B and C; `DEMO_TOOLS=true` on the demo server) and the import of the Rooms a Term leaves out.
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| INV | POST | `/inventory/room-codes` | Should | Verified | A-53; CSV or XLSX list of Room codes; TC-INV-025 |
+| CFG | GET | `/admin/demo` | Could | Verified | A-54; stages, scenario accounts, sample files; TC-CFG-026, TC-CFG-029 |
+| CFG | POST | `/admin/demo/reset` | Could | Verified | A-54; checked by TC-CFG-027 (the stages themselves are loaded and checked against the base data locally) |
+| CFG | GET | `/admin/demo/files/{kind}` | Could | Verified | A-54; TC-CFG-028 |

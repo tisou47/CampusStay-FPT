@@ -448,6 +448,12 @@ export const api = {
       preview: (body) => http.post('/admin/matching/preview', body),
     },
     system: { get: g('/admin/system-parameters'), save: (body) => http.put('/admin/system-parameters', body) },
+    /** Demo servers only (DEMO_TOOLS=true): reset to a stage, sample files made from the stage loaded now. */
+    demo: {
+      status: g('/admin/demo'),
+      reset: (body) => http.post('/admin/demo/reset', body),
+      file: (kind, name) => download(`/admin/demo/files/${kind}`, { fallbackName: name }),
+    },
     /** Settings grouped by subject (A-31): deadlines, refunds, stay. PUT { values: { key: value } }. */
     settings: (group) => ({
       get: (query, opts) => http.get(`/admin/settings/${group}`, query, opts),

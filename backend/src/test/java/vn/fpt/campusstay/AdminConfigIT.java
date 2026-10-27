@@ -318,6 +318,19 @@ class AdminConfigIT {
                 .andExpect(status().isForbidden());
     }
 
+    /** TC-CFG-029: the demo tools are off unless the server turns them on (DEMO_TOOLS); a reset is refused. */
+    @Test
+    void demoToolsOffByDefault() throws Exception {
+        mvc.perform(as(get("/admin/demo")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.scenarios", hasSize(0)));
+        mvc.perform(as(post("/admin/demo/reset")).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"A\",\"confirm\":\"RESET\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DEMO_TOOLS_OFF"));
+    }
+
     private MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder request) throws Exception {
         return request.header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN));
     }

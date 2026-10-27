@@ -100,6 +100,7 @@ import InspectionChecklists from '@/pages/admin/InspectionChecklists'
 import NotificationTemplates from '@/pages/admin/NotificationTemplates'
 import SendEmail from '@/pages/admin/SendEmail'
 import SystemParameters from '@/pages/admin/SystemParameters'
+import DemoData from '@/pages/admin/DemoData'
 import Buildings from '@/pages/admin/Buildings'
 import UsersRoles from '@/pages/admin/UsersRoles'
 import OccupancyReport from '@/pages/admin/OccupancyReport'
@@ -248,6 +249,7 @@ export const router = createBrowserRouter([
         { path: 'notifications', element: <NotificationTemplates /> },
         { path: 'notifications/send', element: <SendEmail /> },
         { path: 'system-parameters', element: <SystemParameters /> },
+        { path: 'demo', element: <DemoData /> },
         { path: 'buildings', element: <Buildings /> },
         { path: 'furniture-types', element: <FurnitureTypes /> },
         { path: 'users', element: <UsersRoles /> },

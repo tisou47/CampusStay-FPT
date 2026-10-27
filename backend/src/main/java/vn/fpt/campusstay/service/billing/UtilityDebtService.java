@@ -122,6 +122,14 @@ public class UtilityDebtService {
         if (allocationId == null) {
             return false;
         }
+        // Once the stay is being terminated (warnings closed as TERMINATED), the debt is settled at check-out:
+        // no new warnings and no second termination.
+        boolean terminating = jdbc.sql("""
+                SELECT count(*) FROM bil_utility_warning WHERE allocation_id = :allocation AND closed_reason = 'TERMINATED'
+                """).param("allocation", allocationId).query(Long.class).single() > 0;
+        if (terminating) {
+            return false;
+        }
         long debt = overdue.stream().mapToLong(Overdue::amount).sum();
         // The Utility Deposit is held for the whole Stay (a continuing resident's next Terms have none of their own);
         // a check-out settled every deposit paid before it.
