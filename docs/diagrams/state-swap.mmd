@@ -1,0 +1,17 @@
+%% Swap (req_swap)
+stateDiagram-v2
+  [*] --> Invited : resident invites another resident or answers a board post (FR-REQ-02)
+  Invited --> Pending : the other resident agrees (FR-REQ-02)
+  Invited --> Declined : the other resident declines (FR-REQ-02)
+  Invited --> Expired : no answer before expires_at (job, FR-REQ-02)
+  Pending --> ToManager : Staff approves, across Blocks (FR-REQ-02)
+  Pending --> SwApproved : Staff approves, same Block (FR-REQ-02)
+  ToManager --> SwApproved : Manager approves (FR-REQ-02)
+  Pending --> SwRejected : Staff rejects (FR-REQ-02)
+  ToManager --> SwRejected : Manager rejects (FR-REQ-02)
+  Invited --> SwCancelled : a resident cancels
+  Pending --> SwCancelled : a resident cancels
+  ToManager : To Manager
+  SwApproved : Approved
+  SwRejected : Rejected
+  SwCancelled : Cancelled

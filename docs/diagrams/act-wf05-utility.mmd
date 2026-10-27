@@ -1,0 +1,36 @@
+%% WF-05 Utility billing and debt: activity diagram (lanes = actors)
+flowchart TD
+  subgraph SF["Staff"]
+    s(("start")) --> f1["Enter or import the month's readings<br/>(Room, electricity, water)"]
+    f2{"Value plausible?"}
+    f3["Check and correct the reading"]
+    f4["Confirm readings, close the period"]
+    f5["Check the resident out:<br/>settle the Utility Deposit"]
+  end
+  subgraph SY["System"]
+    y1["Split each Room's cost between its residents<br/>by days lived (meter cuts)"]
+    y2["Utility Invoices issued; notify residents"]
+    y3{"Paid by the due date?"}
+    y4["Invoice Overdue; Utility warning 1"]
+    y5{"Second overdue Invoice or debt<br/>≥ Utility Deposit?"}
+    y6["Final warning with a termination date"]
+    y7{"Paid before that date?"}
+    y8["Warnings closed"]
+    e((("end")))
+  end
+  subgraph STU["Student (resident)"]
+    u1["Pay by VietQR and claim"]
+  end
+  subgraph MG["Manager"]
+    g1["Confirm the claim"]
+    g2["Termination notice: move out by a date"]
+  end
+  f1 --> f2
+  f2 -- "no" --> f3 --> f2
+  f2 -- "yes" --> f4 --> y1 --> y2 --> u1 --> g1 --> y3
+  y3 -- "yes" --> y8 --> e
+  y3 -- "no" --> y4 --> y5
+  y5 -- "no" --> u1
+  y5 -- "yes" --> y6 --> y7
+  y7 -- "yes" --> y8
+  y7 -- "no" --> g2 --> f5 --> e

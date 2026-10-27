@@ -1,0 +1,26 @@
+%% System context: CampusStay FPT and everything outside it
+flowchart LR
+  student["Student<br/>(web portal, Android app)"]
+  staff["Staff<br/>(one Block)"]
+  manager["Manager<br/>(every Block)"]
+  admin["Administrator"]
+  subgraph cs["CampusStay FPT"]
+    sys(("Dormitory registration,<br/>assignment, billing,<br/>operations"))
+  end
+  google["Google Identity<br/>(sign-in)"]
+  fcm["Firebase Cloud Messaging<br/>(push)"]
+  smtp["Gmail SMTP<br/>(email)"]
+  bank["Bank account<br/>(VietQR transfers)"]
+  sis["FPT student list<br/>(CSV / XLSX files)"]
+
+  student -- "applications, payment claims,<br/>requests, door code" --> sys
+  sys -- "invoices, room, notifications" --> student
+  staff -- "check-in/out, readings,<br/>maintenance, door codes" --> sys
+  manager -- "review, assignment,<br/>confirm payments, decisions" --> sys
+  admin -- "Terms, prices, rules, users" --> sys
+  sys -- "dashboards, reports, alerts" --> manager
+  google -- "ID token" --> sys
+  sys -- "push messages" --> fcm
+  sys -- "emails" --> smtp
+  student -. "transfer with content CSTAY…" .-> bank
+  sis -. "imported by a Manager" .-> sys

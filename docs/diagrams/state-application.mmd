@@ -1,0 +1,27 @@
+%% Application lifecycle (APP): app_application.status. DRAFT exists in the schema but the current flow never stores it.
+stateDiagram-v2
+  [*] --> AwaitingDeposit : Student submits the form (FR-APP-02)
+  AwaitingDeposit --> AwaitingRoommate : Deposit confirmed, invited roommate not ready (FR-APP-03)
+  AwaitingRoommate --> Submitted : roommate's Deposit confirmed (FR-APP-03)
+  AwaitingDeposit --> Submitted : Manager confirms the Deposit claim (FR-BIL-03)
+  AwaitingDeposit --> Expired : Deposit window ends without a claim (job, FR-APP-04)
+  AwaitingDeposit --> Cancelled : Student cancels, or a second claim is rejected (FR-APP-04)
+  AwaitingRoommate --> Cancelled : Student cancels (FR-APP-04)
+  Submitted --> UnderReview : Manager opens the review (FR-APP-05)
+  Submitted --> Approved : Manager approves (FR-APP-05)
+  UnderReview --> Approved : Manager approves (FR-APP-05)
+  UnderReview --> Rejected : Manager rejects with a reason (FR-APP-05)
+  Submitted --> Rejected : Manager rejects, or the student is not enrolled (FR-APP-05, FR-AUTH-08)
+  Approved --> Allocated : assignment approved for the Block (FR-ASG-03)
+  Approved --> Waitlisted : no matching Bed left (FR-ASG-03)
+  Waitlisted --> Allocated : Round-2 offer accepted (FR-APP-07)
+  Allocated --> Forfeited : Balance not paid by its deadline (job, FR-ASG-11)
+  Expired --> [*]
+  Cancelled --> [*]
+  Rejected --> [*]
+  Forfeited --> [*]
+  Allocated --> [*] : stay ends at check-out
+
+  AwaitingDeposit : Awaiting Deposit
+  AwaitingRoommate : Awaiting Roommate
+  UnderReview : Under Review

@@ -1,0 +1,15 @@
+%% Allocation lifecycle in the current Term (ASG): asg_allocation.status ACTIVE/ENDED/CANCELLED, refined by
+%% code_released_at and resident_at
+stateDiagram-v2
+  [*] --> AssignedUnpaid : assignment approved or Round-2 offer accepted (FR-ASG-03, FR-APP-07)
+  AssignedUnpaid --> PaidWaiting : Balance claim confirmed (FR-BIL-03)
+  AssignedUnpaid --> Cancelled : Balance not paid by its deadline, forfeit (job, FR-ASG-11)
+  PaidWaiting --> Resident : check-in start reached and the Room's code confirmed (job, FR-ASG-04)
+  PaidWaiting --> Resident : checked in at the desk (FR-ASG-04)
+  Resident --> Ended : checked out (FR-ASG-06), terminated (FR-ASG-09) or moved to another Bed (FR-ASG-10)
+  Cancelled --> [*]
+  Ended --> [*]
+
+  AssignedUnpaid : Assigned – unpaid (ACTIVE)
+  PaidWaiting : Paid – waiting for the door code (ACTIVE)
+  Resident : Resident (ACTIVE, resident_at set)

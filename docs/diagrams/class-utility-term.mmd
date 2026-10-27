@@ -1,0 +1,84 @@
+%% Detailed design: Utility billing and debt (BIL) and the Term wizard (CFG)
+classDiagram
+  direction LR
+  class MeterController {
+    +periods() / readings(period)
+    +save(period, room) / confirm(period, room)
+    +importCsv(period, file)
+    +close(period)
+  }
+  class MeterService {
+    +save() / confirm() / importCsv()
+    +close(period) Utility Invoices
+  }
+  class UtilitySplit {
+    +split(points, residents, prices) shares
+  }
+  class RoomStays {
+    <<interface ASG>>
+    +stays(room, from, to)
+  }
+  class UtilityDebtService {
+    +evaluateAll() warnings
+    ~afterIssued(student, invoice)
+    ~on(PaymentConfirmed)
+  }
+  class OverdueJob {
+    <<scheduled 1 h>>
+  }
+  class UtilityTerminationDue {
+    <<event>>
+  }
+  class TerminationService {
+    <<ASG>>
+  }
+  MeterController --> MeterService
+  MeterService --> UtilitySplit
+  MeterService --> RoomStays
+  MeterService --> UtilityDebtService
+  OverdueJob --> UtilityDebtService
+  UtilityDebtService ..> UtilityTerminationDue : publishes
+  UtilityTerminationDue ..> TerminationService
+
+  class TermRequestController {
+    +list() / get(id) / create() / update(id)
+    +comment(id) / decision(id)
+  }
+  class TermRequestService {
+    +create() / update() / decide()
+    +built(request, term) / done(request)
+  }
+  class AdminTermController {
+    +createDraft(requestId)
+    +wizard(id) / save(id, step)
+    +publish(id)
+  }
+  class TermWizardService {
+    +createDraft() / wizard() / save()
+    +publish(id)
+  }
+  class TermTimelines {
+    +check(timeline) errors
+  }
+  class TermDifferences {
+    +of(request, draft) differences
+  }
+  class TermSupply {
+    <<interface INV>>
+    +roomsByCode(codes)
+  }
+  class PolicyChanged {
+    <<event>>
+  }
+  class AnnouncementService {
+    <<NTF>>
+    +publish(change)
+  }
+  TermRequestController --> TermRequestService
+  AdminTermController --> TermWizardService
+  TermWizardService --> TermTimelines
+  TermWizardService --> TermDifferences
+  TermWizardService --> TermSupply
+  TermWizardService --> TermRequestService : request Done
+  TermWizardService ..> PolicyChanged : publishes
+  PolicyChanged ..> AnnouncementService

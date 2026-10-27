@@ -1,0 +1,7 @@
+%% Door code (inv_door_code)
+stateDiagram-v2
+  [*] --> Proposed : Staff sets, randomises or imports a code (FR-INV-04)
+  Proposed --> Active : confirmed on the lock, the previous code retires (FR-INV-04)
+  Proposed --> DcCancelled : Staff cancels the proposal (FR-INV-04)
+  Active --> Retired : a new code becomes active (FR-INV-04)
+  DcCancelled : Cancelled

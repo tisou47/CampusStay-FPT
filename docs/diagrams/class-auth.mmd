@@ -1,0 +1,61 @@
+%% Detailed design: sign-in, Google sign-up and sessions (AUTH)
+classDiagram
+  direction LR
+  class AuthController {
+    +signIn(SignInRequest)
+    +google(GoogleRequest)
+    +signOut()
+    +me()
+    +setPassword(SetPasswordRequest)
+    +forgot() / reset() / change()
+  }
+  class SignInService {
+    +signInWithPassword(email, password, remember)
+    +signInWithGoogle(idToken)
+    +signInWithGoogleCode(code)
+  }
+  class SessionService {
+    +create(user, method, remember)
+    +authenticate(token)
+    +revoke(token) / revokeAll(user)
+    +purgeOldSessions()
+  }
+  class PasswordService {
+    +set() / reset() / change() / forgot()
+  }
+  class GoogleIdTokenVerifier {
+    +verify(idToken) GoogleIdentity
+  }
+  class StudentSignUp {
+    +signUp(identity) user
+    +claim(code)
+  }
+  class StudentVerificationService {
+    +get()
+    +submit(form)
+  }
+  class UserDirectory {
+    <<interface>>
+    +studentByCode(code)
+    +displayNames(ids)
+    +staffOf(block)
+  }
+  class JdbcUserDirectory
+  class AccountSetupGate {
+    <<security filter>>
+    PASSWORD_REQUIRED / PROFILE_REQUIRED
+  }
+  class AuditLog {
+    +record(action, tone, objectType, id, label, change)
+  }
+  AuthController --> SignInService
+  AuthController --> PasswordService
+  AuthController --> SessionService
+  SignInService --> GoogleIdTokenVerifier
+  SignInService --> StudentSignUp : new @fpt.edu.vn student
+  SignInService --> SessionService
+  SignInService --> UserDirectory
+  UserDirectory <|.. JdbcUserDirectory
+  StudentSignUp --> AuditLog
+  AccountSetupGate ..> SessionService : every request
+  StudentVerificationService --> AuditLog

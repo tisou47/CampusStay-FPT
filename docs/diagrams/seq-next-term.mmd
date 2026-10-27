@@ -1,0 +1,30 @@
+%% Sequence: requests window — a resident files a room change, Staff decides, Manager issues next-Term fees
+sequenceDiagram
+  autonumber
+  participant J as RenewalJobs
+  participant RS as RenewalService
+  actor St as Resident
+  actor Sf as Staff
+  actor Mg as Manager
+  participant RC as RoomChangeService
+  participant NT as NextTermRequestsService
+  participant Mv as Moves (JdbcMoves)
+  participant Rec as ReconciliationService
+  participant Fee as NextTermFeeService
+  participant DB as PostgreSQL
+  J->>RS: openDue() at M2
+  RS->>DB: next-Term Allocation per resident (Continuing / Awaiting extension)
+  St->>RC: POST /room-changes {kind, reason}
+  RC->>DB: insert req_room_change (Submitted, due M4)
+  Sf->>NT: POST /next-term-requests/decision {items, approve, bed}
+  NT->>RC: decide(id, approve, bed)
+  RC->>Mv: move(next-Term Allocation, bed)
+  Mv->>DB: lock Beds FOR UPDATE, Allocation moves, no price difference
+  RC-->>St: notification (approved, new Room next Term)
+  Mg->>Rec: POST /reconciliations (enrolled list)
+  Rec->>DB: items in groups 1–4, Manager resolves groups 1–2
+  Mg->>Fee: POST /next-term-fees/issue {termId}
+  Fee->>Fee: preview(): requests decided? list reconciled?
+  Fee->>DB: TERM_FEE Invoices (due M7)
+  J->>RS: cancelUnpaidFees() at M7
+  RS->>DB: unpaid next-Term Allocations Cancelled, Beds released

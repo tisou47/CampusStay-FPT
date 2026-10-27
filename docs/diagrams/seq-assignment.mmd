@@ -1,0 +1,33 @@
+%% Sequence: assignment run, review and approval per Block (commit)
+sequenceDiagram
+  autonumber
+  actor Mg as Manager
+  participant C as AssignmentController
+  participant A as AssignmentService
+  participant F as EngineFactory
+  participant En as AssignmentEngine
+  participant I as Inventory (INV)
+  participant B as Billing (BIL)
+  participant R2 as Round2Offers
+  participant DB as PostgreSQL
+  Mg->>C: POST /assignment-runs {termId, dryRun}
+  C->>A: start(term, dryRun)
+  alt real run before M3 or next-Term requests open
+    A-->>Mg: 409 RENEWAL_FILING / RENEWAL_REQUESTS_OPEN
+  else allowed
+    A->>F: engine(term, matching snapshot)
+    F->>I: assignableBeds(termId)
+    A->>En: run(approved Applications, free Beds)
+    En-->>A: proposal (fit scores, conflicts, waitlist)
+    A->>DB: insert asg_run + asg_proposal_item
+    A-->>Mg: run PROPOSED
+  end
+  Mg->>C: POST /assignment-runs/{id}/conflicts/{app}/resolve
+  Mg->>C: POST /assignment-runs/{id}/approve {block}
+  C->>A: approve(run, block)
+  A->>DB: SELECT … FOR UPDATE the Block's Beds
+  A->>DB: insert asg_allocation (one per Bed per Term, unique index)
+  A->>B: issueBalance(allocation) per student
+  A->>DB: Applications Allocated / Waitlisted
+  A->>R2: offer(term, waitlisted)
+  A-->>Mg: Block committed, students notified (results)

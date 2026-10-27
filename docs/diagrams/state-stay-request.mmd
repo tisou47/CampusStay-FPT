@@ -1,0 +1,10 @@
+%% Extension or end of stay (req_stay_request)
+stateDiagram-v2
+  [*] --> StSubmitted : resident files it (FR-REQ-04)
+  StSubmitted --> StApproved : Staff approves, or automatic when enrolled and nothing overdue (FR-REQ-04)
+  StSubmitted --> StRejected : Staff rejects (FR-REQ-04)
+  StSubmitted --> StCancelled : resident cancels (FR-REQ-04)
+  StSubmitted : Submitted
+  StApproved : Approved
+  StRejected : Rejected
+  StCancelled : Cancelled

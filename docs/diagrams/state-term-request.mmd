@@ -1,0 +1,19 @@
+%% Registration-period request (CFG): cfg_term_request.status, and the Term it builds: cfg_term.status
+stateDiagram-v2
+  [*] --> Submitted : Manager sends the request (FR-CFG-04)
+  Submitted --> InProgress : Admin builds a Term from it (FR-CFG-05)
+  Submitted --> NeedsChanges : Admin asks for changes with a note (FR-CFG-04)
+  NeedsChanges --> Submitted : Manager sends it again (FR-CFG-04)
+  Submitted --> Rejected : Admin rejects with a reason (FR-CFG-04)
+  InProgress --> Done : the Term is published (FR-CFG-05)
+  Done --> [*]
+  Rejected --> [*]
+
+  state "Term (cfg_term)" as TermLife {
+    [*] --> Draft : wizard draft created (FR-CFG-05)
+    Draft --> Published : Admin publishes after the review step (FR-CFG-05)
+    Published --> Closed : stay ended
+  }
+
+  InProgress : In progress
+  NeedsChanges : Needs changes

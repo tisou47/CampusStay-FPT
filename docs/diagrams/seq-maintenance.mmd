@@ -1,0 +1,29 @@
+%% Sequence: report a Maintenance Request, routing with a time limit, escalation
+sequenceDiagram
+  autonumber
+  actor St as Student
+  participant MC as MaintenanceController
+  participant MS as MaintenanceService
+  participant MR as MaintenanceRouting (REQ)
+  participant RS as RoutingService
+  participant P as MaintenanceRequests (MNT port)
+  participant EJ as EscalationJob (15 min)
+  participant ES as EscalationService
+  actor Sf as Staff
+  actor Mg as Manager
+  participant DB as PostgreSQL
+  St->>MC: POST /maintenance-requests (form + photos, furniture item)
+  MC->>MS: report(command)
+  MS->>DB: insert mnt_request (Submitted) + photos
+  MS-->>MR: MaintenanceReported
+  MR->>RS: route(request)
+  RS-->>MR: assignee (rule by type and condition)
+  MR->>P: assign(id, staff), setSlaDue(id, urgent or normal timer)
+  P->>DB: Assigned, sla_due_at
+  MR-->>Sf: notification (new request)
+  Sf->>MC: PATCH /maintenance-requests/{id} {status In progress / Resolved}
+  EJ->>ES: scan()
+  ES->>DB: requests past sla_due_at or unassigned too long → req_escalation (Open)
+  Mg->>ES: POST /escalations/{id}/actions {reassign / note}
+  St->>MC: POST /maintenance-requests/{id}/confirm {fixed}
+  MC->>DB: Closed (or reopened)

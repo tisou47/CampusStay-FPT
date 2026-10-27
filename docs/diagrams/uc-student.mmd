@@ -1,0 +1,29 @@
+%% Use cases of the Student (web portal and Android app)
+flowchart LR
+  student(["Student"])
+  system(["System (jobs)"])
+  subgraph cs["CampusStay FPT — Student portal and Android app"]
+    direction TB
+    uc01(["UC-01 Sign in (password or Google)"])
+    uc02(["UC-02 Reset or set password"])
+    uc03(["UC-03 Send the verification form"])
+    uc04(["UC-04 View home, board and notifications"])
+    uc05(["UC-05 Apply for a Term"])
+    uc06(["UC-06 Invite or answer a roommate"])
+    uc16(["UC-16 Cancel an Application"])
+    uc07(["UC-07 Pay an Invoice by VietQR and claim the transfer"])
+    uc11(["UC-11 Answer a Round-2 offer"])
+    uc08(["UC-08 View My Room, furniture and check-in pass"])
+    uc09(["UC-09 Show the door code"])
+    uc10(["UC-10 Ask for a late check-in"])
+    uc12(["UC-12 Report a Maintenance Request"])
+    uc13(["UC-13 Extend the stay or end it"])
+    uc14(["UC-14 Request a next-Term room change or swap"])
+    uc15(["UC-15 Answer a Room Class change consent"])
+  end
+  student --- uc01 & uc02 & uc03 & uc04 & uc05 & uc06 & uc16 & uc07
+  student --- uc11 & uc08 & uc09 & uc10 & uc12 & uc13 & uc14 & uc15
+  uc05 -. "include" .-> uc07
+  uc05 -. "extend" .-> uc06
+  uc60(["UC-60 Send notifications"])
+  system --- uc60

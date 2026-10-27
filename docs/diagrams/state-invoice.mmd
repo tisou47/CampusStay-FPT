@@ -1,0 +1,18 @@
+%% Invoice lifecycle (BIL): bil_invoice.status. Amounts are fixed once issued (trigger tr_invoice_fixed); Paid and
+%% Void never go back. UPCOMING is shown to students for fees not issued yet.
+stateDiagram-v2
+  [*] --> Upcoming : fee known, not issued yet
+  Upcoming --> Unpaid : issued (FR-BIL-01)
+  [*] --> Unpaid : issued — Deposit (FR-APP-02), Balance (FR-ASG-03), next-Term fee (FR-ASG-08), Utility (FR-BIL-04)
+  Unpaid --> AwaitingConfirmation : student claims the transfer (FR-BIL-02)
+  Overdue --> AwaitingConfirmation : student claims the transfer (FR-BIL-02)
+  AwaitingConfirmation --> Paid : Manager confirms the claim (FR-BIL-03)
+  AwaitingConfirmation --> Unpaid : Manager rejects the claim, the remaining time continues (FR-BIL-03)
+  Unpaid --> Overdue : due date passes, Utility and charges (job, FR-BIL-05)
+  Unpaid --> Void : forfeit, cancelled Application or settled next-Term fee (FR-ASG-11, FR-ASG-08)
+  Paid --> Refunded : refund paid (FR-BIL-06)
+  Paid --> [*]
+  Void --> [*]
+  Refunded --> [*]
+
+  AwaitingConfirmation : Awaiting confirmation

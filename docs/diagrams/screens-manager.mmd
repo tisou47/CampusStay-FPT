@@ -1,0 +1,42 @@
+%% Screen flow: Manager back office (every Block); the Manager also has every Staff screen of the Inventory menu
+flowchart LR
+  dash["SCR-HOME-03 Manager Dashboard"]
+  subgraph REG["Registration"]
+    treq["SCR-CFG-22 Period requests"]
+    term["SCR-RPT-11 Term dashboard"]
+    aq["SCR-APP-10 Application Queue"] --> ar["SCR-APP-11 Application Review"]
+    runs["SCR-ASG-10 Assignment Runs"] --> prop["SCR-ASG-11 Proposal Review"]
+  end
+  subgraph RES["Residents"]
+    stu["SCR-AUTH-13 Students"] --> hub["SCR-AUTH-14 Student hub"]
+    imp["SCR-AUTH-15 Import student list"]
+    rec["SCR-AUTH-17 Reconciliation"]
+    nt["SCR-ASG-20 Term transition (fees)"]
+    dec["SCR-REQ-20 Decisions (late check-in)"]
+    tm["SCR-ASG-12 Terminations"]
+    rcq["SCR-REQ-10 Room changes"] --> sw["SCR-REQ-13 Swaps"]
+    mv["SCR-ASG-21 Operational moves"]
+  end
+  subgraph FIN["Finance"]
+    claims["SCR-BIL-13 Payment confirmations"]
+    pays["SCR-BIL-10 Payments"]
+    fin["SCR-BIL-20 Collections and refunds"]
+  end
+  subgraph OPS["Operations"]
+    esc["SCR-REQ-21 Overdue requests"]
+    mq["SCR-MNT-10 Maintenance"] --> md["SCR-MNT-11 Detail"]
+    ins["SCR-MNT-20 Inspection schedules"]
+    route["SCR-REQ-20 Routing and timers"]
+    bset["SCR-CFG-20 Block settings"]
+  end
+  subgraph INVN["Inventory and people"]
+    rooms["SCR-INV-10 Rooms and Beds"] --> rhub["SCR-INV-14 Room hub"]
+    rcls["SCR-INV-11 Room Classes by Term"]
+    door["SCR-INV-12 Door codes"]
+    fur["SCR-INV-13 Furniture"]
+    sacc["SCR-AUTH-16 Staff accounts"]
+    staff["SCR-AUTH-10 Staff and workload"]
+    ann["SCR-NTF-22 Announcements"]
+    rep["SCR-RPT-10 Block reports"]
+  end
+  dash --> REG & RES & FIN & OPS & INVN

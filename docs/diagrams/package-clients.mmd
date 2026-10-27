@@ -1,0 +1,27 @@
+%% Web and Android package diagrams
+flowchart LR
+  subgraph WEB["web/src (React)"]
+    w1["app — router, navigation, session, toast,<br/>screens catalogue"]
+    w2["pages — public, student, staff, manager,<br/>admin, registration, transition, inventory, common"]
+    w3["components — ui (Button, Field, Table, Overlay…),<br/>layout (BackOfficeLayout, StudentLayout)"]
+    w4["api — client (fetch, errors), endpoints, hooks<br/>(useQuery, useMutation)"]
+    w5["i18n — t(), tr(), Vietnamese texts"]
+    w6["lib — format, cx"]
+    w2 --> w3
+    w2 --> w4
+    w2 --> w5
+    w2 --> w6
+    w1 --> w2
+    w3 --> w5
+  end
+  subgraph AND["android/app (Kotlin)"]
+    a1["MainActivity — navigation, theme"]
+    a2["ui — SignIn, Home, Room,<br/>Payments, Activity screens"]
+    a3["data — Api (OkHttp), Session"]
+    a4["push — Push, PushService (FCM)"]
+    a1 --> a2 --> a3
+    a1 --> a4 --> a3
+  end
+  api(["CampusStay API /api"])
+  w4 --> api
+  a3 --> api

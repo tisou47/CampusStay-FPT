@@ -1,0 +1,17 @@
+%% Maintenance Request lifecycle (MNT): mnt_request.status (MaintenanceDeskService, MaintenanceService)
+stateDiagram-v2
+  [*] --> Submitted : student, Staff or an inspection reports it (FR-MNT-01, FR-MNT-04)
+  Submitted --> Assigned : routing rule or a Manager assigns Staff, SLA deadline set (FR-REQ-06, FR-MNT-02)
+  Assigned --> Submitted : assignee removed, back to the queue (FR-MNT-02)
+  Assigned --> InProgress : Staff starts the work (FR-MNT-02)
+  InProgress --> Resolved : Staff marks it fixed (FR-MNT-02)
+  Assigned --> Resolved : Staff marks it fixed (FR-MNT-02)
+  Resolved --> Closed : reporter confirms the fix (FR-MNT-02)
+  Resolved --> Assigned : reporter reopens, not fixed yet (FR-MNT-02)
+  Submitted --> Closed : Staff closes it (duplicate, not a fault) (FR-MNT-02)
+  Assigned --> Closed : Staff closes it (FR-MNT-02)
+  InProgress --> Closed : Staff closes it (FR-MNT-02)
+  Closed --> [*]
+  note right of Assigned : past sla_due_at or unassigned too long, escalation opened (job, FR-REQ-07)
+
+  InProgress : In progress

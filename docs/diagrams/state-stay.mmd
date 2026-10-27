@@ -1,0 +1,6 @@
+%% Stay (asg_stay)
+stateDiagram-v2
+  [*] --> StayActive : first Allocation of a student (FR-ASG-03)
+  StayActive --> StayEnded : last Term checked out, end of stay or termination (FR-ASG-06, FR-ASG-09)
+  StayActive : Active
+  StayEnded : Ended

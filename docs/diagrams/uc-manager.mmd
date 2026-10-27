@@ -1,0 +1,29 @@
+%% Use cases of the Manager (dormitory manager, every Block)
+flowchart LR
+  manager(["Manager"])
+  subgraph cs["CampusStay FPT — back office (every Block)"]
+    direction TB
+    uc29(["UC-29 Request a registration period"])
+    uc30(["UC-30 Verify student accounts"])
+    uc31(["UC-31 Import the student list"])
+    uc32(["UC-32 Review Applications"])
+    uc33(["UC-33 Run the assignment and approve it"])
+    uc34(["UC-34 Confirm or reject payment claims"])
+    uc35(["UC-35 Decide late check-ins"])
+    uc36(["UC-36 Manage terminations"])
+    uc37(["UC-37 Reconcile the enrolled list"])
+    uc38(["UC-38 Issue next-Term fees"])
+    uc39(["UC-39 Set Room Classes by Term"])
+    uc40(["UC-40 Handle overdue requests"])
+    uc41(["UC-41 Set routing rules, time limits, Block settings"])
+    uc42(["UC-42 Manage Staff accounts and workload"])
+    uc43(["UC-43 Plan inspection schedules"])
+    uc44(["UC-44 Follow collections and decide refunds"])
+    uc25(["UC-25 Decide next-Term requests"])
+    uc26(["UC-26 Move a resident"])
+    uc45(["UC-45 Post announcements"])
+    uc55(["UC-55 View dashboards, reports, export CSV"])
+  end
+  manager --- uc29 & uc30 & uc31 & uc32 & uc33 & uc34 & uc35 & uc36 & uc37 & uc38
+  manager --- uc39 & uc40 & uc41 & uc42 & uc43 & uc44 & uc25 & uc26 & uc45 & uc55
+  uc38 -. "requires" .-> uc37

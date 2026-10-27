@@ -1,0 +1,30 @@
+%% Sequence: apply for a Term, claim the Deposit transfer, Manager confirms
+sequenceDiagram
+  autonumber
+  actor St as Student
+  actor Mg as Manager
+  participant AC as ApplicationController
+  participant AS as ApplicationService
+  participant E as EligibilityService
+  participant B as Billing (JdbcBilling)
+  participant PC as PaymentClaimService
+  participant N as Notifications (NTF listeners)
+  participant DB as PostgreSQL
+  St->>AC: POST /applications {roomType, roomClass, roommate, stayTerms, consents}
+  AC->>AS: create(command)
+  AS->>E: check(student, term)
+  E-->>AS: all checks pass
+  AS->>DB: insert app_application (Awaiting Deposit, price and Deposit fixed)
+  AS->>B: issueDeposit(application)
+  B->>DB: insert bil_invoice DEPOSIT (due = now + deposit window)
+  AS-->>St: 201 Application + Deposit Invoice
+  St->>B: GET /invoices/{id}/payment (VietQR image, content CSTAY…)
+  St->>PC: POST /invoices/{id}/claim {reference}
+  PC->>DB: insert bil_payment_claim (Claimed), Invoice Awaiting confirmation, clock stops
+  PC-->>N: claims waiting (hourly Manager summary)
+  Mg->>PC: POST /payment-claims/confirm {ids}
+  PC->>DB: lock Invoice, insert bil_payment, Invoice Paid, claim Confirmed
+  PC-->>AS: PaymentConfirmed (same transaction)
+  AS->>DB: Application Submitted (or Awaiting Roommate)
+  AS-->>N: ApplicationSubmitted (after commit)
+  N-->>St: in-app notification, push, email

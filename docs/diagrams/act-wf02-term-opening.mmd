@@ -1,0 +1,35 @@
+%% WF-02 Opening a registration period: activity diagram (lanes = actors)
+flowchart TD
+  subgraph MG["Manager"]
+    s(("start")) --> m1["Fill the request: Term, stay dates,<br/>milestones, Blocks"]
+    m1 --> m2["Import the Rooms left out<br/>(Excel or CSV)"]
+    m2 --> m3["Places per Room Type, Room Class<br/>and gender; proposed prices"]
+    m3 --> m4["Send the request"]
+    m5["Change the request and send it again"]
+    m9["Read the values the Admin changed"]
+  end
+  subgraph SY["System"]
+    y1["Request: Submitted<br/>notify the Admin and Managers"]
+    y4{"Timeline valid?<br/>(M1 ≤ M2 ≤ … ≤ M7, stay after<br/>registration)"}
+    y5["Fix prices, Deposit, Utility Deposit,<br/>rules for the Term; Term: Published"]
+    y6["Request: Done; announcements<br/>(Term published, price changes)"]
+    e((("end")))
+  end
+  subgraph AD["Administrator"]
+    d1{"Decide on the request"}
+    d2["Ask for changes with a note"]
+    d3["Reject with a reason"]
+    d4["Build the Term from the request:<br/>wizard steps 1–6, a reason for every<br/>value that differs"]
+    d5["Review and publish"]
+  end
+  subgraph ST["Students"]
+    t1["See the registration period<br/>on the dormitory board"]
+  end
+  m4 --> y1 --> d1
+  d1 -- "needs changes" --> d2 --> m5 --> y1
+  d1 -- "reject" --> d3 --> e
+  d1 -- "build" --> d4 --> d5 --> y4
+  y4 -- "no" --> d4
+  y4 -- "yes" --> y5 --> y6
+  y6 --> m9 --> e
+  y6 --> t1 --> e

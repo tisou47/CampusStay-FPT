@@ -1,0 +1,21 @@
+%% Screen flow: public pages and the Student portal (web; the Android app has Home, My Room, Payments, Activity)
+flowchart LR
+  signin["SCR-AUTH-01 Sign In"] --> forgot["SCR-AUTH-02 Forgot password"] --> reset["SCR-AUTH-03 Reset password"]
+  signin -- "first Google sign-in" --> setpw["SCR-AUTH-05 Set a password"] --> verify["SCR-AUTH-06 Account verification"]
+  signin --> home["SCR-HOME-01 Student Home<br/>(timeline, board)"]
+  verify --> home
+  home --> period["SCR-HOME-05 Registration period"]
+  home --> w1["SCR-APP-01 Apply 1 Term and eligibility"] --> w2["Apply 2 Room preference"] --> wr["Apply Roommate (2-bed)"] --> w3["Apply 3 Personal info"] --> w4["Apply 4 Review and submit"]
+  w4 --> appd["SCR-APP-03 Application Detail"]
+  home --> apps["SCR-APP-02 My Applications"] --> appd
+  home --> inv["SCR-BIL-01 My Invoices"] --> invd["SCR-BIL-03 Invoice detail"] --> pay["SCR-BIL-02 Invoice Payment<br/>(VietQR, I have transferred)"]
+  appd --> pay
+  home --> inviteR(["SCR-APP-04 Roommate Invitation"])
+  home --> r2(["SCR-ASG-02 Round 2 Offer"])
+  home --> room["SCR-ASG-01 My Room<br/>(door code, pass, furniture, stay, next Term)"]
+  home --> reqs["SCR-MNT-01 My Requests"]
+  reqs --> mnew["SCR-MNT-02 New Maintenance Request"]
+  reqs --> rcnew["SCR-REQ-02 Room change (next Term)"]
+  reqs --> ccnew["SCR-REQ-08 Room Class change"]
+  reqs --> swnew["SCR-REQ-03 Swap with a student"]
+  reqs --> board["SCR-REQ-04 Swap Board"] --> swinv(["SCR-REQ-05 Swap Invitation"])

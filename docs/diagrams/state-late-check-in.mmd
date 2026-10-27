@@ -1,0 +1,8 @@
+%% Late check-in (asg_late_check_in)
+stateDiagram-v2
+  [*] --> LcPending : student asks online or Staff records it (FR-ASG-05)
+  LcPending --> LcApproved : Manager approves with a deadline, Balance deadline moves (FR-ASG-05)
+  LcPending --> LcRejected : Manager rejects (FR-ASG-05)
+  LcPending : Pending
+  LcApproved : Approved
+  LcRejected : Rejected

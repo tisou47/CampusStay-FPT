@@ -1,0 +1,24 @@
+%% Sequence: door code set by Staff, released to the paid student, revealed with an audit entry
+sequenceDiagram
+  autonumber
+  actor Sf as Staff
+  actor St as Student
+  participant DC as DoorCodeService
+  participant Ci as DoorCodeCipher
+  participant J as ResidenceJobs (every 15 min)
+  participant R as DoorCodeRelease
+  participant Au as AuditLog
+  participant DB as PostgreSQL
+  Sf->>DC: POST /door-codes/{room} {code or random}
+  DC->>Ci: encrypt(code)
+  DC->>DB: insert inv_door_code (Proposed)
+  Sf->>DC: POST /door-codes/{room}/confirm (set on the lock)
+  DC->>DB: new code Active, previous Retired
+  J->>R: releaseDue()
+  R->>DB: Allocations: Balance paid, check-in start reached, Room code Active
+  R->>DB: set code_released_at, resident_at (Resident)
+  R-->>St: notification "your door code is ready" (code never in push text)
+  St->>DC: POST /students/me/door-code/reveal
+  DC->>Ci: decrypt(code_cipher)
+  DC->>Au: record DOOR_CODE_VIEWED
+  DC-->>St: room, code, changedAt

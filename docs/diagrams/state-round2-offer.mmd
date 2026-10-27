@@ -1,0 +1,9 @@
+%% Round-2 offer (app_round2_offer)
+stateDiagram-v2
+  [*] --> R2Pending : Block approved with Waitlisted Applications (FR-APP-07)
+  R2Pending --> Accepted : student picks one held Bed (FR-APP-07)
+  R2Pending --> Declined : student declines (FR-APP-07)
+  R2Pending --> R2Expired : no answer in time (job, FR-APP-07)
+  R2Pending --> Withdrawn : the Application ends
+  R2Pending : Pending
+  R2Expired : Expired
