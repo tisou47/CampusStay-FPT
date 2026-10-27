@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind Compose; the screens use Material 3 colours (ui/Theme.kt). -->
+    <style name="Theme.CampusStay" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFF26F21</item>
+        <item name="android:windowBackground">#FFF7F7F8</item>
+    </style>
+</resources>
