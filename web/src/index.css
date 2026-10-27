@@ -202,3 +202,20 @@
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Printing QR labels of furniture (FurnitureLabels): only the labels go on paper. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    max-height: none;
+    overflow: visible;
+  }
+}

@@ -3503,6 +3503,12 @@ const transition = {
 
 // Change Specification v2 phase 7 "Operations": SLA time left, routing and workload, Room and Term hubs, search.
 const operations = {
+  "QR label of {n} item": "Nhãn QR của {n} đồ",
+  "QR labels of {n} items": "Nhãn QR của {n} đồ",
+  "Stick each label on its item; scanning it gives the asset code.": "Dán mỗi nhãn lên đúng đồ; quét nhãn sẽ ra mã tài sản.",
+  "Print": "In",
+  "Print {n} labels": "In {n} nhãn",
+  "Print labels": "In nhãn",
   "Number of people matches the residents ({n})": "Số người khớp với số sinh viên đang ở ({n})",
   "Damage per item (VND): deducted from the Utility Deposit; anything above it is invoiced. A damaged item becomes Broken.": "Hư hỏng theo từng đồ (VND): trừ vào tiền cọc điện nước; phần vượt quá được lập hoá đơn. Đồ bị hư chuyển sang Hỏng.",
   "Damage for {item}": "Tiền hư hỏng của {item}",

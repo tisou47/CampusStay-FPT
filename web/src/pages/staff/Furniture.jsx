@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ArrowRight, Check, MoveRight, Package, Plus, X } from 'lucide-react'
+import { ArrowRight, Check, MoveRight, Package, Plus, X, QrCode } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { FurnitureLabels } from './FurnitureLabels'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Note } from '@/components/ui/Display'
@@ -271,6 +272,9 @@ function Items({ manages }) {
         />
         <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, Room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />
+        <Button icon={QrCode} onClick={() => setModal({ type: 'labels' })} disabled={!items.length}>
+          {selected.length ? t('Print {n} labels', { n: selected.length }) : t('Print labels')}
+        </Button>
         <Button icon={MoveRight} onClick={() => setModal({ type: 'move' })} disabled={!selected.length}>
           {selected.length ? t(selected.length === 1 ? 'Move {n} item' : 'Move {n} items', { n: selected.length }) : t('Move')}
         </Button>
@@ -338,6 +342,9 @@ function Items({ manages }) {
             setSelected([])
           }}
         />
+      )}
+      {modal?.type === 'labels' && (
+        <FurnitureLabels items={selected.length ? items.filter((i) => selected.includes(i.id)) : items} placeLabel={placeLabel} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'register' && <RegisterModal types={d?.options?.types ?? []} blocks={d?.options?.blocks ?? []} onClose={() => setModal(null)} />}
       {modal?.type === 'item' && <ItemDrawer id={modal.id} statuses={d?.options?.statuses ?? []} onClose={() => setModal(null)} />}
