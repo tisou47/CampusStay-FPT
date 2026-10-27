@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.14 (27/10/2026): the mentor-confirmed contract plus the changes A-01…A-52, B-01…B-11 and C-01…C-44 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence"; A-40…A-46, B-08…B-10, C-43: phase 6 "Term transition", in `main` since 27/10/2026; A-47…A-52, B-11, C-44: phase 7 "Operations", built on `feat/v2-phase7-8`, in `main` and production since 27/10/2026). Every later change is logged there first and written here in the same commit.
+Version 1.14 (27/10/2026): the mentor-confirmed contract plus the changes A-01…A-52, B-01…B-11 and C-01…C-45 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence"; A-40…A-46, B-08…B-10, C-43: phase 6 "Term transition", in `main` since 27/10/2026; A-47…A-52, B-11, C-44: phase 7 "Operations", built on `feat/v2-phase7-8`, in `main` and production since 27/10/2026). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
