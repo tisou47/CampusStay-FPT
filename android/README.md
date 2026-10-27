@@ -5,19 +5,24 @@ Home · My Room · Payments · Activity) and calls the same API (`docs/api-contr
 
 | Screen | What it shows | API |
 |---|---|---|
-| Sign in | the CampusStay account (email and password). A Google sign-up sets its password on the web first. Staff and Managers are sent to the web | `POST /auth/sign-in` |
+| Sign in | the CampusStay password, or Google (`@fpt.edu.vn`; a new account sets its first password in the app). Staff and Managers are sent to the web | `POST /auth/sign-in`, `POST /auth/google` (`credential`), `POST /auth/password/set` |
 | Home | registration period card, Room card, Invoice due, dormitory board | `/students/me/home`, `/students/me/board`, `/registration-periods/current` |
 | My Room | Room, roommates, door code behind "Show the code" (every view audited), check-in pass as a QR code (A-11), furniture, Stay, next Term with extension and end of stay | `/students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`, `/students/me/stay/*` |
 | Payments | outstanding, Utility warning, every Invoice; an Invoice's VietQR, transfer content and **I have transferred** | `/students/me/invoices`, `/invoices/{id}/payment`, `/invoices/{id}/claim` |
 | Activity | requests (maintenance and next-Term), notifications with announcements, **Report a problem** (with the furniture item) | `/students/me/requests`, `/notifications`, `POST /maintenance-requests` |
 
 Texts follow the phone's language (Vietnamese, else English); the API answers in the same language
-(`Accept-Language`). Push notifications (A-05, A-06) need the Firebase project's `google-services.json`, which is
-not in the repository; until it is added the app shows the in-app notifications.
+(`Accept-Language`). After sign-in the app asks for the notification permission and sends its FCM token to
+`POST /devices` (A-05); signing out calls `POST /devices/unregister` (A-06).
 
 ## Build
 
-Needs JDK 17+ and the Android SDK (`local.properties` with `sdk.dir=…`, not committed).
+Needs JDK 17+ and the Android SDK. Two files stay out of Git:
+
+- `local.properties`: `sdk.dir=…` and `campusstay.googleClientId=<the web OAuth client id>` (the API's
+  `GOOGLE_CLIENT_ID`; without it the Google button is hidden). Google sign-in also needs an **Android** OAuth client in
+  the same Google Cloud project, with package `vn.fpt.campusstay.student` and the signing key's SHA-1.
+- `app/google-services.json`: the Firebase project's file (push). Without it the app builds without push.
 
 ```bash
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/app-debug.apk, talks to production

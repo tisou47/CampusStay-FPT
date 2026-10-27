@@ -1,9 +1,13 @@
 package vn.fpt.campusstay.student
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
@@ -20,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,10 +32,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import vn.fpt.campusstay.student.data.Api
 import vn.fpt.campusstay.student.data.Session
 import vn.fpt.campusstay.student.data.SessionStore
+import vn.fpt.campusstay.student.push.Push
 import vn.fpt.campusstay.student.ui.ActivityScreen
 import vn.fpt.campusstay.student.ui.CampusStayTheme
 import vn.fpt.campusstay.student.ui.HomeScreen
@@ -38,13 +45,14 @@ import vn.fpt.campusstay.student.ui.InvoiceScreen
 import vn.fpt.campusstay.student.ui.NewMaintenanceScreen
 import vn.fpt.campusstay.student.ui.PaymentsScreen
 import vn.fpt.campusstay.student.ui.RoomScreen
+import vn.fpt.campusstay.student.ui.SetPasswordScreen
 import vn.fpt.campusstay.student.ui.SignInScreen
 import vn.fpt.campusstay.student.ui.T
 
 /**
  * The CampusStay student app (Change Specification v2 §11.2, phone menu: Home · My Room · Payments · Activity).
- * It follows the web's student portal and calls the same API; the account is the CampusStay one (email and
- * password; a Google sign-up sets its password on the web first).
+ * It follows the web's student portal and calls the same API; students sign in with their CampusStay password or
+ * with Google (a Google sign-up first sets its password), and the app registers for push once signed in.
  */
 class MainActivity : ComponentActivity() {
 
@@ -60,13 +68,19 @@ class MainActivity : ComponentActivity() {
                     runOnUiThread { session = null }
                 }
                 val current = session
-                if (current == null) {
-                    SignInScreen(onSignedIn = { token, user -> session = store.save(token, user) })
-                } else {
-                    App(current, onSignOut = {
-                        store.clear()
-                        session = null
+                val signOut = {
+                    store.clear()
+                    Api.token = null
+                    session = null
+                }
+                when {
+                    current == null -> SignInScreen(onSignedIn = { token, user ->
+                        Api.token = token
+                        session = store.save(token, user)
                     })
+                    !current.passwordSet -> SetPasswordScreen(current.email, onDone = { session = store.passwordSet() },
+                        onSignOut = signOut)
+                    else -> App(current, onSignOut = signOut)
                 }
             }
         }
@@ -85,6 +99,14 @@ private fun App(session: Session, onSignOut: () -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var detail by remember { mutableStateOf<Detail?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    // Push (A-05): ask for the notification permission (Android 13+), then send the FCM token to the API.
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(session.token) {
+        Push.createChannel(context)
+        if (Build.VERSION.SDK_INT >= 33) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        Push.register(context)
+    }
     BackHandler(enabled = detail != null) { detail = null }
     val tabs = listOf(
         T("Home", "Trang chủ") to Icons.Filled.Home,
@@ -104,6 +126,7 @@ private fun App(session: Session, onSignOut: () -> Unit) {
                 actions = {
                     IconButton(onClick = {
                         scope.launch {
+                            Push.unregister(context)
                             runCatching { Api.post("/auth/sign-out") }
                             onSignOut()
                         }
