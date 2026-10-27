@@ -3503,6 +3503,7 @@ const transition = {
 
 // Change Specification v2 phase 7 "Operations": SLA time left, routing and workload, Room and Term hubs, search.
 const operations = {
+  "Search…": "Tìm kiếm…",
   "QR label of {n} item": "Nhãn QR của {n} đồ",
   "QR labels of {n} items": "Nhãn QR của {n} đồ",
   "Stick each label on its item; scanning it gives the asset code.": "Dán mỗi nhãn lên đúng đồ; quét nhãn sẽ ra mã tài sản.",

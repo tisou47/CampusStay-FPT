@@ -46,12 +46,12 @@ function Sidebar({ role }) {
                     to={item.to}
                     aria-current={active ? 'page' : undefined}
                     className={cx(
-                      'flex h-8 shrink-0 items-center gap-2.5 rounded-md px-3 text-base whitespace-nowrap transition-colors',
+                      'flex min-h-8 shrink-0 items-center gap-2.5 rounded-md px-3 py-1 text-base leading-snug transition-colors',
                       active ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
                     )}
                   >
-                    <Glyph size={18} aria-hidden="true" />
-                    <span className="truncate">{t(item.label)}</span>
+                    <Glyph size={18} aria-hidden="true" className="shrink-0" />
+                    <span className="min-w-0">{t(item.label)}</span>
                   </Link>
                 )
               })}
@@ -204,11 +204,12 @@ function QuickSearch({ role }) {
         <button
           type="button"
           onClick={toggle}
-          className="flex h-8 w-64 items-center gap-2 rounded-md border border-line bg-canvas px-3 text-base text-fg-tertiary hover:border-line-strong"
+          title={t('Search pages, students, Rooms, codes…')}
+          className="flex h-8 w-64 items-center gap-2 rounded-md border border-line bg-canvas px-3 text-base whitespace-nowrap text-fg-tertiary hover:border-line-strong"
           {...props}
         >
-          <Search size={16} aria-hidden="true" />
-          {t('Search pages, students, Rooms, codes…')}
+          <Search size={16} aria-hidden="true" className="shrink-0" />
+          <span className="truncate">{t('Search…')}</span>
         </button>
       )}
     >
