@@ -1,36 +1,32 @@
 %% System overview: components, external services and the main data flows
-flowchart LR
-  subgraph Clients["Clients"]
-    web["Web app<br/>React 19 + Vite 8 + Tailwind 4<br/>(student portal, Staff, Manager, Admin)"]
-    android["Android app (students)<br/>Kotlin + Jetpack Compose"]
-  end
-  subgraph Vercel["Vercel"]
-    static["Static web build<br/>(CDN, HTTPS)"]
-  end
+flowchart TB
+  web["Web app — React 19, Vite 8, Tailwind 4<br/>student portal and back office (Staff, Manager, Admin)"]
+  android["Android app — Kotlin, Jetpack Compose<br/>students"]
+  vercel["Vercel<br/>static web build, CDN, HTTPS"]
   subgraph VM["Azure VM — Docker Compose"]
     caddy["Caddy<br/>reverse proxy, HTTPS (Let's Encrypt)"]
-    api["Spring Boot 4.1 API (Java 21)<br/>controller → service → repository<br/>features: AUTH CFG INV APP ASG BIL REQ MNT NTF RPT<br/>scheduled jobs, email outbox, push"]
+    api["CampusStay API — Spring Boot 4.1, Java 21<br/>controller → service → repository<br/>AUTH CFG INV APP ASG BIL REQ MNT NTF RPT<br/>scheduled jobs, events, email outbox, push"]
     files[("File volume<br/>photos, receipts, evidence")]
   end
-  db[("Azure Database for PostgreSQL<br/>98 tables, 32 report views<br/>Flyway migrations V1–V59")]
-  google["Google Identity Services<br/>(sign-in, ID token)"]
-  fcm["Firebase Cloud Messaging<br/>(push to Android)"]
-  smtp["Gmail SMTP<br/>(email)"]
-  qr["VietQR image service<br/>qr.sepay.vn (QR picture)"]
-  bank["Bank account<br/>(students transfer; no API)"]
+  db[("Azure Database for PostgreSQL 17<br/>98 tables, 32 report views<br/>Flyway migrations V1–V59")]
+  google["Google Identity Services<br/>sign-in, ID token"]
+  fcm["Firebase Cloud Messaging<br/>push to Android"]
+  smtp["Gmail SMTP<br/>email"]
+  qr["VietQR image service<br/>qr.sepay.vn"]
+  bank["Bank account<br/>students transfer, no API"]
 
+  vercel -. "serves the web app" .-> web
   web -- "HTTPS JSON /api, Bearer token" --> caddy
   android -- "HTTPS JSON /api, Bearer token" --> caddy
-  static -. "serves the web app" .-> web
   caddy --> api
-  api -- "JDBC (TLS)" --> db
   api --- files
-  web -- "Google sign-in popup" --> google
-  android -- "Credential Manager" --> google
+  api -- "JDBC over TLS" --> db
   api -- "verify ID token" --> google
-  api -- "HTTP v1 API" --> fcm
+  api -- "FCM HTTP v1" --> fcm
+  api -- "SMTP over TLS" --> smtp
+  web -- "sign-in popup" --> google
+  android -- "Credential Manager" --> google
   fcm -. "push" .-> android
-  api -- "SMTP (TLS)" --> smtp
-  web -- "QR image URL (account, amount, content)" --> qr
+  web -- "QR image URL" --> qr
   android -- "QR image URL" --> qr
-  web -. "student transfers with content CSTAY…" .-> bank
+  web -. "transfer with content CSTAY…" .-> bank

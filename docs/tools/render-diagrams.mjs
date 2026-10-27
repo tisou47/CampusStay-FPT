@@ -22,7 +22,7 @@ const log = (s) => (document.getElementById('log').textContent += '\\n' + s);
 mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose', htmlLabels: false,
   fontFamily: 'Arial', flowchart: { htmlLabels: false, curve: 'basis', useMaxWidth: false },
   sequence: { useMaxWidth: false, mirrorActors: false }, er: { useMaxWidth: false }, state: { useMaxWidth: false },
-  class: { useMaxWidth: false, htmlLabels: false }, themeVariables: { fontSize: '14px' } });
+  class: { useMaxWidth: false, htmlLabels: false }, themeVariables: { fontSize: '14px', background: '#ffffff', compositeBackground: '#f6f6f6', compositeTitleBackground: '#ececec' } });
 async function toPng(svgText) {
   const svg = new DOMParser().parseFromString(svgText, 'image/svg+xml').documentElement;
   const vb = (svg.getAttribute('viewBox') || '0 0 800 600').split(/[ ,]+/).map(Number);
@@ -38,9 +38,11 @@ async function toPng(svgText) {
   g.fillStyle = '#fff'; g.fillRect(0, 0, canvas.width, canvas.height);
   g.drawImage(img, 0, 0, canvas.width, canvas.height);
   const png = await new Promise((ok) => canvas.toBlob(ok, 'image/png'));
-  // A wide diagram is also drawn turned a quarter left, so it can fill a portrait page's height.
+  // A wide diagram is also drawn turned a quarter left when its 14 px text would print below 6.5 pt on a portrait
+  // page (text area about 16 × 23 cm) and turning it prints it at least 25 % larger.
   let rotated = null;
-  if (w / h > 2.2 && w > 1100) {
+  const upright = Math.min(16 / w, 23 / h);
+  if ((14 * upright) / 0.0353 < 6.5 && Math.min(23 / w, 16 / h) > 1.25 * upright) {
     const r = document.createElement('canvas');
     r.width = canvas.height; r.height = canvas.width;
     const rg = r.getContext('2d');
@@ -54,7 +56,9 @@ async function toPng(svgText) {
   let failed = 0;
   for (const it of items) {
     try {
-      const { svg } = await mermaid.render('d' + Math.random().toString(36).slice(2), it.code, document.getElementById('work'));
+      let { svg } = await mermaid.render('d' + Math.random().toString(36).slice(2), it.code, document.getElementById('work'));
+      // A composite state's box comes without a fill (Mermaid 10) and would print black: give its group one.
+      svg = svg.replaceAll('<g class="cluster" id=', '<g class="cluster" style="fill:#f6f6f6;stroke:#9370DB" id=');
       await fetch('/save?name=' + it.name + '&ext=svg', { method: 'POST', body: svg });
       const { png, rotated } = await toPng(svg);
       await fetch('/save?name=' + it.name + '&ext=png', { method: 'POST', body: png });

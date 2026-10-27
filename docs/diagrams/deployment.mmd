@@ -4,7 +4,7 @@ flowchart TB
   gh["GitHub repository<br/>tisou47/CampusStay-FPT (monorepo)"]
   subgraph CI["GitHub Actions — backend.yml (push to main touching backend/**)"]
     v["verify: mvn verify<br/>(unit + integration tests, Testcontainers PostgreSQL 17)"]
-    i["image: Docker build → GHCR<br/>ghcr.io/tisou47/campusstay-backend:&lt;sha&gt;"]
+    i["image: Docker build → GHCR<br/>ghcr.io/tisou47/campusstay-backend:{sha}"]
     d["deploy: SSH to the VM,<br/>docker compose pull + up -d api,<br/>readiness check /api/actuator/health"]
     v --> i --> d
   end
@@ -21,4 +21,4 @@ flowchart TB
   gh -- "fast-forward main" --> CI
   gh -- "every push" --> VER
   d --> vm
-  i -. "rollback: API_TAG=&lt;older sha&gt;" .-> vm
+  i -. "rollback: API_TAG={older sha}" .-> vm

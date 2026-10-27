@@ -1,0 +1,16 @@
+%% Development process: two-week sprints, one branch per change, checks before main, automatic deployment
+flowchart TB
+  backlog["Product backlog<br/>(Brief, Change Spec v2,<br/>mentor and review feedback)"] --> plan["Sprint planning<br/>(every 2 weeks, offline)"]
+  plan --> sprint["Sprint backlog<br/>owner per item"]
+  sprint --> branch["Branch per change<br/>feat/… fix/… docs/…"]
+  branch --> code["Design, code and tests<br/>(Claude Code assisted)"]
+  code --> checks{"Checks pass?<br/>mvn verify · npm run build"}
+  checks -- "no" --> code
+  checks -- "yes" --> review["Review by the owner<br/>and the leader"]
+  review --> main["Fast-forward main"]
+  main --> deploy["GitHub Actions and Vercel<br/>deploy automatically"]
+  deploy --> verify["Verify: Actions deploy job,<br/>Vercel Ready, health UP"]
+  verify --> demo["Weekly mentor meeting<br/>(Google Meet): demo and feedback"]
+  demo --> retro["Sprint review and<br/>retrospective (offline)"]
+  retro --> backlog
+  sync["Team meetings 2× per week<br/>(offline): progress, blockers"] -.-> sprint

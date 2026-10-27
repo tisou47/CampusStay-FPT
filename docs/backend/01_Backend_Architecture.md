@@ -21,7 +21,7 @@ This document describes how the CampusStay FPT backend is built: the architectur
 flowchart LR
     subgraph Clients
         WEB["Web app<br/>React 19 + Vite<br/>Student · Staff · Manager · Admin"]
-        MOB["Android app<br/>Flutter<br/>Student self-service"]
+        MOB["Android app<br/>Kotlin + Jetpack Compose<br/>Student self-service"]
     end
 
     subgraph API["CampusStay API — one Spring Boot 4.1 deployable (/api)"]

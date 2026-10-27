@@ -21,7 +21,7 @@
 |---|---|---|---|
 | Thân Thị Ngọc Vân | — | Supervisor (Lecturer) | vanttn@fpt.edu.vn |
 | Lê Thành Minh Trung | SE183752 | Leader: project manager, business analyst, full-stack developer | trungltmse183752@fpt.edu.vn |
-| Nguyễn Xuân Lộc | SE183762 | Member: backend developer | locnxse183782@fpt.edu.vn |
+| Nguyễn Xuân Lộc | SE183782 | Member: backend developer | locnxse183782@fpt.edu.vn |
 | Trần Võ Quang Duy | SE182146 | Member: frontend developer (web) | duytvqse182146@fpt.edu.vn |
 | Võ Minh Luân | SE182794 | Member: mobile developer (Android) and tester | luanvmse182794@fpt.edu.vn |
 
@@ -69,7 +69,7 @@ The Housing Director handles applications, move-in coordination and occupancy fo
 
 ### 3.4 VNU-HCM Dormitory Center online registration
 
-The dormitory center of Vietnam National University – Ho Chi Minh City opens online registration every school year at sv.ktxhcm.edu.vn; in 2025 it offered more than 12,000 places in rooms of 2 to 8 people to students of its member universities and 23 partner institutions ([SGGP](https://www.sggp.org.vn/ky-tuc-xa-dhqg-tphcm-tiep-nhan-hon-12000-tan-sinh-vien-post809948.html), [HCMUTE guide](https://sao.hcmute.edu.vn/Resources/Docs/SubDomain/sao/TanSV2023/Huong%20dan%20Tan%20SV%202023%20dang%20ky%20KTX%20DH%20Quoc%20Gia%20(11).pdf)).
+The dormitory center of Vietnam National University – Ho Chi Minh City opens online registration every school year at sv.ktxhcm.edu.vn; in 2025 it offered more than 12,000 places in rooms of 2 to 8 people to students of its member universities and 23 partner institutions ([SGGP](https://www.sggp.org.vn/ky-tuc-xa-dhqg-tphcm-tiep-nhan-hon-12000-tan-sinh-vien-post809948.html), [HCMUTE guide](https://sao.hcmute.edu.vn/Resources/Docs/SubDomain/sao/TanSV2023/Huong%20dan%20Tan%20SV%202023%20dang%20ky%20KTX%20DH%20Quoc%20Gia%20%2811%29.pdf)).
 
 - **Features:** online registration window, eligibility by school (some schools must recommend their students first), room types by size and price, proof of enrollment.
 - **Pros:** free for students; the closest Vietnamese practice; shows the rooms-by-size pricing the team adopted.

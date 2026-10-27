@@ -64,6 +64,13 @@ try {
         }
     }
 
+    # IDs such as UC-01, FR-AUTH-01 or TC-BIL-033 never break at their hyphens: Word's non-breaking hyphen is
+    # character 30. Twice, because a match consumes the letter after the hyphen (A-B-C).
+    for ($pass = 0; $pass -lt 2; $pass++) {
+        $r = $doc.Range($bodyStart, $doc.Content.End)
+        $null = $r.Find.Execute('([A-Z])-([A-Z0-9])', $true, $false, $true, $false, $false, $true, 0, $false, ('\1' + [char]30 + '\2'), 2)
+    }
+
     # Tables: borders, shaded header row repeated on each page, 10 pt, fit to the page width.
     foreach ($t in $doc.Tables) {
         if ($t.Range.Start -lt $bodyStart) { continue }

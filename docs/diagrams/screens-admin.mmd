@@ -1,41 +1,35 @@
-%% Screen flow: Administrator
+%% Screen flow: Administrator. Grey boxes are menu groups.
 flowchart LR
   dash["SCR-HOME-04 Admin Dashboard"]
-  subgraph RP["Registration periods"]
-    treq["SCR-CFG-22 Requests"] --> wiz["SCR-CFG-23 Term wizard<br/>(7 steps: general, timeline, Rooms,<br/>prices, rules, information, publish)"]
-    terms["SCR-CFG-01 Terms"] --> wiz
-  end
-  subgraph PF["Prices and fees"]
-    rt["SCR-CFG-02 Room Types"]
-    rc["SCR-CFG-03 Room Classes"]
-    dep["SCR-CFG-04 Deposit"]
-    utl["SCR-CFG-20 Utility"]
-  end
-  subgraph RU["Rules"]
-    el["SCR-CFG-05 Who may apply"]
-    mt["SCR-CFG-06 Roommate matching"]
-    dl["SCR-CFG-24 Deadlines and reminders"]
-    rf["SCR-CFG-25 Refunds, penalties, terminations"]
-    st["SCR-CFG-26 Stay and renewal"]
-    cl["SCR-CFG-21 Inspection checklists"]
-  end
-  subgraph NT["Notifications"]
-    tpl["SCR-CFG-07 Notification texts"]
-    mail["SCR-NTF-21 Send email"]
-    ann["SCR-NTF-22 Announcements"]
-  end
-  subgraph SY["System"]
-    bld["SCR-INV-01 Blocks and Rooms"]
-    ft["SCR-INV-14 Furniture types"]
-    usr["SCR-AUTH-11 Users and roles"]
-    stu["SCR-AUTH-13 Students"] --> hub["SCR-AUTH-14 Student hub"]
-    imp["SCR-AUTH-15 Import student list"]
-    par["SCR-CFG-08 System parameters"]
-    demo["SCR-CFG-27 Demo data"]
-    aud["SCR-AUTH-12 Audit Log"]
-  end
-  subgraph RE["Reports"]
-    occ["SCR-RPT-01 Occupancy"]
-    fin["SCR-RPT-02 Finance"]
-  end
-  dash --> RP & PF & RU & NT & SY & RE
+  dash --> RP[Registration periods]:::grp
+  dash --> PF[Prices and fees]:::grp
+  dash --> RU[Rules]:::grp
+  dash --> NT[Notifications]:::grp
+  dash --> SY[System]:::grp
+  dash --> RE[Reports]:::grp
+  RP --> treq["SCR-CFG-22 Requests"] --> wiz["SCR-CFG-23 Term wizard (7 steps: general, timeline,<br/>Rooms, prices, rules, information, publish)"]
+  RP --> terms["SCR-CFG-01 Terms"] --> wiz
+  PF --> rt["SCR-CFG-02 Room Types"]
+  PF --> rc["SCR-CFG-03 Room Classes"]
+  PF --> dep["SCR-CFG-04 Deposit"]
+  PF --> utl["SCR-CFG-20 Utility"]
+  RU --> el["SCR-CFG-05 Who may apply"]
+  RU --> mt["SCR-CFG-06 Roommate matching"]
+  RU --> dl["SCR-CFG-24 Deadlines and reminders"]
+  RU --> rf["SCR-CFG-25 Refunds, penalties, terminations"]
+  RU --> st["SCR-CFG-26 Stay and renewal"]
+  RU --> cl["SCR-CFG-21 Inspection checklists"]
+  NT --> tpl["SCR-CFG-07 Notification texts"]
+  NT --> mail["SCR-NTF-21 Send email"]
+  NT --> ann["SCR-NTF-22 Announcements"]
+  SY --> bld["SCR-INV-01 Blocks and Rooms"]
+  SY --> ft["SCR-INV-14 Furniture types"]
+  SY --> usr["SCR-AUTH-11 Users and roles"]
+  SY --> stu["SCR-AUTH-13 Students"] --> hub["SCR-AUTH-14 Student hub"]
+  SY --> imp["SCR-AUTH-15 Import student list"]
+  SY --> par["SCR-CFG-08 System parameters"]
+  SY --> demo["SCR-CFG-27 Demo data"]
+  SY --> aud["SCR-AUTH-12 Audit Log"]
+  RE --> occ["SCR-RPT-01 Occupancy"]
+  RE --> fin["SCR-RPT-02 Finance"]
+  classDef grp fill:#eeeeee,stroke:#999999

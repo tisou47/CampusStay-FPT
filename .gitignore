@@ -25,3 +25,6 @@ Thumbs.db
 # Local settings
 .claude/
 .postman/
+# Report builds: intermediate files and editable Word copies (the PDFs and workbooks in docs/reports/out are kept)
+/docs/reports/build/
+/docs/reports/out/*.docx

@@ -1,29 +1,24 @@
 %% Backend package diagram (vn.fpt.campusstay): layers, feature sub-packages and the allowed dependencies
 flowchart TB
-  subgraph controller["controller.&lt;feature&gt; — REST endpoints (54 classes)"]
-    c1["auth · setting · inventory · application · assignment<br/>billing · request · maintenance · notification · report · file"]
-  end
-  subgraph service["service.&lt;feature&gt; — business rules, jobs, ports (242 classes)"]
-    s1["auth (AUTH) · setting (CFG) · inventory (INV)<br/>application (APP) · assignment (ASG) · billing (BIL)<br/>request (REQ) · maintenance (MNT) · notification (NTF) · report (RPT)"]
-  end
-  subgraph repository["repository / entity — persistence"]
-    r1["JPA repositories and entities<br/>+ JdbcClient stores per feature"]
-  end
-  dto["dto — shared records"]
-  event["event — domain events (53 records)"]
-  security["security — CurrentUser, Permission,<br/>BlockScope, filters, SecurityConfig"]
-  config["config — properties, clock, jobs, CORS"]
-  exception["exception — ApiException, FieldErrors,<br/>LocalizedErrors"]
-  common["common — audit, file, export,<br/>search, i18n, demo"]
+  controller["controller.{feature} — REST endpoints (54 classes)<br/>auth · setting · inventory · application · assignment · billing<br/>request · maintenance · notification · report · file"]
+  service["service.{feature} — business rules, jobs, ports (242 classes)<br/>auth (AUTH) · setting (CFG) · inventory (INV) · application (APP)<br/>assignment (ASG) · billing (BIL) · request (REQ)<br/>maintenance (MNT) · notification (NTF) · report (RPT)"]
+  repository["repository / entity — persistence<br/>JPA repositories and entities, JdbcClient stores per feature"]
   db[("PostgreSQL")]
+  dto["dto<br/>shared records"]
+  event["event<br/>domain events (53)"]
+  security["security<br/>CurrentUser, Permission,<br/>BlockScope, SecurityConfig"]
+  exception["exception<br/>ApiException, FieldErrors,<br/>LocalizedErrors"]
+  common["common<br/>audit, files, export,<br/>search, i18n, demo"]
+  config["config<br/>properties, clock, jobs, CORS"]
   controller --> service
-  controller --> dto
   service --> repository
-  service --> event
-  service --> dto
-  service --> common
-  service --> security
-  controller --> security
-  service --> exception
   repository --> db
   service -- "JdbcClient (owned tables only)" --> db
+  controller --> dto
+  controller --> security
+  service --> dto
+  service --> event
+  service --> security
+  service --> exception
+  service --> common
+  config ~~~ common

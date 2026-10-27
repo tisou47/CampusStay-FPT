@@ -1,18 +1,19 @@
 %% Invoice lifecycle (BIL): bil_invoice.status. Amounts are fixed once issued (trigger tr_invoice_fixed); Paid and
-%% Void never go back. UPCOMING is shown to students for fees not issued yet.
+%% Void never go back. UPCOMING and REFUNDED exist in the schema's CHECK but no code stores them: fees not issued yet
+%% are computed for display, and a refund is a bil_refund row while its Invoice stays Paid.
 stateDiagram-v2
-  [*] --> Upcoming : fee known, not issued yet
-  Upcoming --> Unpaid : issued (FR-BIL-01)
   [*] --> Unpaid : issued — Deposit (FR-APP-02), Balance (FR-ASG-03), next-Term fee (FR-ASG-08), Utility (FR-BIL-04)
   Unpaid --> AwaitingConfirmation : student claims the transfer (FR-BIL-02)
   Overdue --> AwaitingConfirmation : student claims the transfer (FR-BIL-02)
   AwaitingConfirmation --> Paid : Manager confirms the claim (FR-BIL-03)
   AwaitingConfirmation --> Unpaid : Manager rejects the claim, the remaining time continues (FR-BIL-03)
+  AwaitingConfirmation --> Overdue : Manager rejects the claim of a debt already past due (FR-BIL-03)
+  AwaitingConfirmation --> Void : second rejection of a Deposit or Balance claim (FR-BIL-03)
   Unpaid --> Overdue : due date passes, Utility and charges (job, FR-BIL-05)
-  Unpaid --> Void : forfeit, cancelled Application or settled next-Term fee (FR-ASG-11, FR-ASG-08)
-  Paid --> Refunded : refund paid (FR-BIL-06)
+  Unpaid --> Void : forfeit, cancelled Application, cancelled next-Term Allocation, or Utility settled from the Utility Deposit at check-out (FR-ASG-11, FR-APP-04, FR-ASG-08, FR-ASG-06)
+  Overdue --> Void : cancelled next-Term Allocation, or Utility settled from the Utility Deposit at check-out (FR-ASG-08, FR-ASG-06)
   Paid --> [*]
   Void --> [*]
-  Refunded --> [*]
+  note right of Paid : a refund (FR-BIL-06) is a bil_refund row, the Invoice stays Paid
 
   AwaitingConfirmation : Awaiting confirmation

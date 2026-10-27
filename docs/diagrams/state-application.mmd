@@ -1,21 +1,27 @@
 %% Application lifecycle (APP): app_application.status. DRAFT exists in the schema but the current flow never stores it.
+%% "Live" groups the states from which the student may cancel (ApplicationService.CANCELLABLE) and in which a
+%% "Not enrolled" reconciliation rejects the Application (ApplicationReviewService.on(StudentNotEnrolled)).
 stateDiagram-v2
   [*] --> AwaitingDeposit : Student submits the form (FR-APP-02)
-  AwaitingDeposit --> AwaitingRoommate : Deposit confirmed, invited roommate not ready (FR-APP-03)
-  AwaitingRoommate --> Submitted : roommate's Deposit confirmed (FR-APP-03)
-  AwaitingDeposit --> Submitted : Manager confirms the Deposit claim (FR-BIL-03)
-  AwaitingDeposit --> Expired : Deposit window ends without a claim (job, FR-APP-04)
-  AwaitingDeposit --> Cancelled : Student cancels, or a second claim is rejected (FR-APP-04)
-  AwaitingRoommate --> Cancelled : Student cancels (FR-APP-04)
-  Submitted --> UnderReview : Manager opens the review (FR-APP-05)
-  Submitted --> Approved : Manager approves (FR-APP-05)
-  UnderReview --> Approved : Manager approves (FR-APP-05)
+  state Live {
+    AwaitingDeposit --> AwaitingRoommate : Deposit confirmed, invited roommate not ready (FR-APP-03)
+    AwaitingRoommate --> Submitted : roommate's Deposit confirmed, or the roommate declines (FR-APP-03)
+    AwaitingDeposit --> Submitted : Manager confirms the Deposit claim (FR-BIL-03)
+    Submitted --> UnderReview : Manager opens the review (FR-APP-05)
+    Submitted --> Approved : Manager approves (FR-APP-05)
+    UnderReview --> Approved : Manager approves (FR-APP-05)
+    Approved --> Waitlisted : no matching Bed left (FR-ASG-03)
+  }
+  AwaitingDeposit --> Expired : Deposit window ends without a claim, or a second claim is rejected (job, FR-APP-04, FR-BIL-03)
+  Submitted --> Rejected : Manager rejects with a reason (FR-APP-05)
   UnderReview --> Rejected : Manager rejects with a reason (FR-APP-05)
-  Submitted --> Rejected : Manager rejects, or the student is not enrolled (FR-APP-05, FR-AUTH-08)
+  Live --> Cancelled : Student cancels before the cancel deadline (FR-APP-04)
+  Live --> Rejected : not enrolled (FR-AUTH-08)
   Approved --> Allocated : assignment approved for the Block (FR-ASG-03)
-  Approved --> Waitlisted : no matching Bed left (FR-ASG-03)
   Waitlisted --> Allocated : Round-2 offer accepted (FR-APP-07)
+  Waitlisted --> Cancelled : Round-2 offer declined or expired (FR-APP-07)
   Allocated --> Forfeited : Balance not paid by its deadline (job, FR-ASG-11)
+  Allocated --> Rejected : not enrolled before moving in, the Bed is released (FR-AUTH-08)
   Expired --> [*]
   Cancelled --> [*]
   Rejected --> [*]
@@ -25,3 +31,4 @@ stateDiagram-v2
   AwaitingDeposit : Awaiting Deposit
   AwaitingRoommate : Awaiting Roommate
   UnderReview : Under Review
+  Live : Live (may be cancelled)
