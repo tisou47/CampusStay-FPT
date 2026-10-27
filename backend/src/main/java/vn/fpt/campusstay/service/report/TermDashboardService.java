@@ -50,9 +50,17 @@ public class TermDashboardService {
             long unpaidAmount) {
     }
 
+    /**
+     * The Term's requests window (spec §11.3), once it opened: next-Term requests still open, Continuing residents,
+     * next-Term fees issued and paid, and next-Term Allocations released (not extended, not paid, ended).
+     */
+    public record Transition(long requestsOpen, long continuing, long feesIssued, long feesPaid, long released) {
+    }
+
+    /** {@code transition}: null until the Term's requests window opened. */
     public record TermDashboard(TermOption term, List<TermOption> terms, String requestCode, LocalDate stayStart,
             LocalDate stayEnd, List<Milestone> milestones, List<StatusCount> applications, long applicationsTotal,
-            List<PlaceRow> places, Money money, long checkedIn, long residents) {
+            List<PlaceRow> places, Money money, long checkedIn, long residents, Transition transition) {
     }
 
     private static final List<String> PIPELINE = List.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
@@ -171,7 +179,34 @@ public class TermDashboardService {
                 SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND code_released_at IS NOT NULL
                 """).param("t", t.id()).query(Long.class).single();
         return new TermDashboard(new TermOption(String.valueOf(t.id()), t.name(), label(t, now, today)), terms, request,
-                t.stayStart(), t.stayEnd(), milestones, applications, total, places, money, checkedIn, residents);
+                t.stayStart(), t.stayEnd(), milestones, applications, total, places, money, checkedIn, residents,
+                transition(t.id()));
+    }
+
+    private Transition transition(long termId) {
+        boolean opened = jdbc.sql("SELECT count(*) FROM rpt_v_renewal WHERE term_id = :t").param("t", termId)
+                .query(Long.class).single() > 0;
+        if (!opened) {
+            return null;
+        }
+        return jdbc.sql("""
+                SELECT (SELECT count(*) FROM rpt_v_room_change WHERE term_id = :t AND status IN ('SUBMITTED', 'PENDING'))
+                     + (SELECT count(*) FROM rpt_v_swap WHERE term_id = :t AND status IN ('INVITED', 'PENDING', 'TO_MANAGER'))
+                     + (SELECT count(*) FROM rpt_v_room_class_change
+                        WHERE term_id = :t AND status IN ('AWAITING_CONSENT', 'SUBMITTED'))
+                     + (SELECT count(*) FROM rpt_v_stay_request WHERE term_id = :t AND status = 'SUBMITTED') AS open,
+                       (SELECT count(*) FROM rpt_v_allocation
+                        WHERE term_id = :t AND status = 'ACTIVE' AND renewal = 'CONTINUING') AS continuing,
+                       (SELECT count(*) FROM rpt_v_invoice WHERE term_id = :t AND type = 'TERM_FEE' AND status <> 'VOID')
+                           AS issued,
+                       (SELECT count(*) FROM rpt_v_invoice
+                        WHERE term_id = :t AND type = 'TERM_FEE' AND status IN ('PAID', 'REFUNDED')) AS paid,
+                       (SELECT count(*) FROM rpt_v_allocation
+                        WHERE term_id = :t AND source = 'RENEWAL' AND status = 'CANCELLED') AS released
+                """).param("t", termId)
+                .query((rs, i) -> new Transition(rs.getLong("open"), rs.getLong("continuing"), rs.getLong("issued"),
+                        rs.getLong("paid"), rs.getLong("released")))
+                .single();
     }
 
     private static TermRow term(ResultSet rs) throws SQLException {

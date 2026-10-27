@@ -61,11 +61,12 @@ class MaintenanceController {
     MaintenanceService.Created report(@RequestParam(required = false) String title,
             @RequestParam(required = false) String description, @RequestParam(required = false) String category,
             @RequestParam(required = false) String location, @RequestParam(required = false) String urgency,
-            @RequestParam(required = false) String staffMayEnter,
+            @RequestParam(required = false) String staffMayEnter, @RequestParam(required = false) String furnitureItemId,
             @RequestPart(name = "photos", required = false) List<MultipartFile> photos) {
         return maintenance.report(new MaintenanceService.ReportCommand(title, description, category, location, urgency,
                 staffMayEnter, photos == null ? List.of() : photos.stream()
-                        .map(p -> new MaintenanceService.Photo(p.getOriginalFilename(), bytes(p))).toList()));
+                        .map(p -> new MaintenanceService.Photo(p.getOriginalFilename(), bytes(p))).toList(),
+                furnitureItemId));
     }
 
     @GetMapping("/maintenance-requests")

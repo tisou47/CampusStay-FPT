@@ -33,7 +33,7 @@ public class RequestStore {
             long reporterId, String source, String title, String description, String category, String location,
             String urgency, String priority, boolean staffMayEnter, String status, Long assigneeId,
             Instant visitStart, Instant visitEnd, Instant reportedAt, Instant resolvedAt, Instant closedAt,
-            int reopenCount) {
+            int reopenCount, Instant slaDueAt, Long furnitureItemId) {
 
         public boolean open() {
             return OPEN.contains(status);
@@ -174,7 +174,8 @@ public class RequestStore {
                 rs.getString("urgency"), rs.getString("priority"), rs.getBoolean("staff_may_enter"),
                 rs.getString("status"), rs.getObject("assignee_id", Long.class), instant(rs, "visit_window_start"),
                 instant(rs, "visit_window_end"), instant(rs, "reported_at"), instant(rs, "resolved_at"),
-                instant(rs, "closed_at"), rs.getInt("reopen_count"));
+                instant(rs, "closed_at"), rs.getInt("reopen_count"), instant(rs, "sla_due_at"),
+                rs.getObject("furniture_item_id", Long.class));
     }
 
     public static Instant instant(ResultSet rs, String column) throws SQLException {

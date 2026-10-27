@@ -39,7 +39,7 @@ class DeskController {
             Boolean conditionGood, Boolean keyReturned,
             @Min(value = 0, message = "The damage charge cannot be negative.")
             @Max(value = 1_000_000_000, message = "Enter a valid amount.") Long damageCharge,
-            Boolean draft) {
+            Boolean draft, @Size(max = 100) List<DeskService.Damage> damages) {
     }
 
     private final DeskService desk;
@@ -79,6 +79,7 @@ class DeskController {
     @PostMapping("/check-out/{allocationId}")
     DeskService.CheckedOut checkOut(@PathVariable String allocationId, @Valid @RequestBody CheckOutRequest body) {
         return desk.checkOut(allocationId, new DeskService.CheckOutCommand(body.electricity(), body.water(),
-                body.conditionGood(), body.keyReturned(), body.damageCharge(), Boolean.TRUE.equals(body.draft())));
+                body.conditionGood(), body.keyReturned(), body.damageCharge(), Boolean.TRUE.equals(body.draft()),
+                body.damages()));
     }
 }

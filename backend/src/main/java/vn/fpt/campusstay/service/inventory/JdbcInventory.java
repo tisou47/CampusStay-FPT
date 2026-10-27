@@ -123,6 +123,18 @@ class JdbcInventory implements Inventory {
                 """).param("rooms", List.copyOf(roomIds)).query(Long.class).list());
     }
 
+    @Override
+    public List<RoomFurniture> furnitureOf(long roomId) {
+        return jdbc.sql("""
+                SELECT i.id, i.asset_code, t.name, t.name_vi FROM inv_furniture_item i
+                JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                WHERE i.room_id = :room AND i.status <> 'DISPOSED' ORDER BY t.sort_order, i.asset_code
+                """).param("room", roomId)
+                .query((rs, i) -> new RoomFurniture(rs.getLong("id"), rs.getString("asset_code"), rs.getString("name"),
+                        rs.getString("name_vi")))
+                .list();
+    }
+
     /** The current Term (stay includes today, else the next to start); null when nothing is published. */
     private Long currentTerm() {
         return terms.publishedTerms().stream().filter(TermSummary::current).map(TermSummary::id).findFirst()

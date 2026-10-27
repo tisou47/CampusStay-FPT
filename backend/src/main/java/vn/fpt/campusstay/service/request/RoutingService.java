@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +25,7 @@ import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.service.auth.StaffWorkload;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.setting.Parameters;
@@ -44,7 +46,11 @@ public class RoutingService {
             String assigneeName, String fallbackId, String fallbackName, boolean active) {
     }
 
-    public record StaffOption(String id, String name) {
+    /**
+     * A staff member of the Block with their workload (spec §6.18): open items (Maintenance Requests, requests to
+     * decide) and items finished in the last 7 days.
+     */
+    public record StaffOption(String id, String name, boolean onDuty, long open, long resolvedWeek) {
     }
 
     public record Gap(String ruleId, String title, String message) {
@@ -94,10 +100,11 @@ public class RoutingService {
     private final Lookups lookups;
     private final Parameters parameters;
     private final AuditLog audit;
+    private final List<StaffWorkload> workloads;
     private final Clock clock;
 
     public RoutingService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
-            Lookups lookups, Parameters parameters, AuditLog audit, Clock clock) {
+            Lookups lookups, Parameters parameters, AuditLog audit, List<StaffWorkload> workloads, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -105,6 +112,7 @@ public class RoutingService {
         this.lookups = lookups;
         this.parameters = parameters;
         this.audit = audit;
+        this.workloads = workloads;
         this.clock = clock;
     }
 
@@ -140,6 +148,16 @@ public class RoutingService {
                         + " requests without a matching rule wait unassigned in the queue."));
             }
         }
+        Map<Long, long[]> load = new HashMap<>();
+        List<Long> staffIds = staff.stream().map(UserDirectory.StaffMember::userId).toList();
+        Instant weekAgo = Instant.now(clock).minus(java.time.Duration.ofDays(7));
+        for (StaffWorkload w : workloads) {
+            w.workload(staffIds, weekAgo).forEach((id, l) -> {
+                long[] sum = load.computeIfAbsent(id, k -> new long[2]);
+                sum[0] += l.open();
+                sum[1] += l.resolved();
+            });
+        }
         Sla sla = sla(building);
         List<String> categories = new ArrayList<>();
         categories.add("All");
@@ -149,7 +167,10 @@ public class RoutingService {
                         r.condition(), String.valueOf(r.assigneeId()), names.get(r.assigneeId()),
                         r.fallbackId() == null ? null : String.valueOf(r.fallbackId()),
                         r.fallbackId() == null ? null : names.get(r.fallbackId()), r.active())).toList(),
-                staff.stream().map(m -> new StaffOption(String.valueOf(m.userId()), m.name())).toList(),
+                staff.stream().map(m -> {
+                    long[] l = load.getOrDefault(m.userId(), new long[2]);
+                    return new StaffOption(String.valueOf(m.userId()), m.name(), m.onDuty(), l[0], l[1]);
+                }).toList(),
                 List.copyOf(TYPES.values()), categories, gaps,
                 new Timers(hours(sla.urgent()), hours(sla.normal()), hours(sla.roomChange())),
                 new TimerOptions(options(URGENT, "sla.urgent_max_hours"), options(NORMAL, "sla.normal_max_hours"),

@@ -856,3 +856,7 @@ Your stay is extended by {0} Terms. ⟶ Hợp đồng ở của bạn được g
 Room {0} is {1} from {2}. Your next-Term room fee uses it. ⟶ Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng kỳ sau của bạn tính theo hạng này.
 A resident of Room {0} did not agree. ⟶ Một cư dân phòng {0} không đồng ý.
 Your Bed for {0} is now Room {1} · Bed {2}. ⟶ Giường của bạn cho {0} nay là phòng {1} · giường {2}.
+Choose an item of this Room. ⟶ Hãy chọn một đồ nội thất của phòng này.
+List each damaged item of this Room once. ⟶ Mỗi đồ bị hư của phòng này chỉ ghi một lần.
+Enter a damage amount of 0 or more. ⟶ Hãy nhập tiền hư hỏng từ 0 trở lên.
+Keep each damage note under 300 characters. ⟶ Mỗi ghi chú hư hỏng không quá 300 ký tự.

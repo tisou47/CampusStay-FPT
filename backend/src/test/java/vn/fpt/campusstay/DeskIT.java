@@ -303,4 +303,48 @@ class DeskIT {
         getAs("/students/me/invoices", p.auth())
                 .andExpect(jsonPath("$.items[?(@.type == 'damage')].amount", hasItem((int) owed)));
     }
+
+    /**
+     * TC-ASG-045: check-out records the damage of each furniture item of the Room (spec §6.16): the damage charge
+     * is their sum, a damaged item becomes Broken with the reason in its history, an item of another Room is
+     * refused; the list shows the Term's check-out date and whether a leaver is past it.
+     */
+    @Test
+    void checkOutRecordsDamagePerItem() throws Exception {
+        Placed p = allocate(16).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
+                .andExpect(status().isOk());
+        getAs("/check-out?termId=" + termId + "&q=" + p.studentCode(), staff)
+                .andExpect(jsonPath("$.checkOutBy").isString())
+                .andExpect(jsonPath("$.overdueCount").value(0))
+                .andExpect(jsonPath("$.items[0].overdue").value(false));
+        String path = "/check-out/" + p.allocationId();
+        String detail = getAs(path, staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.furniture[0].amount").value(0))
+                .andReturn().getResponse().getContentAsString();
+        String item = JsonPath.read(detail, "$.furniture[0].itemId");
+        String elsewhere = jdbc.sql("""
+                SELECT i.id::text FROM inv_furniture_item i JOIN inv_room r ON r.id = i.room_id
+                WHERE r.code <> :room ORDER BY i.id LIMIT 1
+                """).param("room", p.room()).query(String.class).single();
+
+        postJson(path, staff, ("{\"electricity\":10,\"water\":1,\"conditionGood\":false,\"keyReturned\":true,"
+                + "\"damages\":[{\"itemId\":\"%s\",\"amount\":100000}]}").formatted(elsewhere))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.damages").value("List each damaged item of this Room once."));
+        postJson(path, staff, ("{\"electricity\":10,\"water\":1,\"conditionGood\":false,\"keyReturned\":true,"
+                + "\"damages\":[{\"itemId\":\"%s\",\"amount\":120000,\"note\":\"Cracked casing\"}]}").formatted(item))
+                .andExpect(status().isOk());
+        getAs(path, staff)
+                .andExpect(jsonPath("$.status").value("Checked out"))
+                .andExpect(jsonPath("$.settlement.damage").value(120_000))
+                .andExpect(jsonPath("$.furniture[?(@.itemId == '%s')].amount".formatted(item)).value(hasItem(120_000)))
+                .andExpect(jsonPath("$.furniture[?(@.itemId == '%s')].note".formatted(item)).value(hasItem("Cracked casing")));
+        getAs("/furniture/" + item, staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.status").value("Broken"))
+                .andExpect(jsonPath("$.history[0].to").value("Broken"))
+                .andExpect(jsonPath("$.history[0].reason", startsWith("Damaged at the check-out of Room " + p.room())));
+    }
 }

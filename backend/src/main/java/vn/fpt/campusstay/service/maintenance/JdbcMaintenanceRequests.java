@@ -63,6 +63,13 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
+    public void setSlaDue(long requestId, Instant dueAt) {
+        jdbc.sql("UPDATE mnt_request SET sla_due_at = :due WHERE id = :id")
+                .param("due", java.sql.Timestamp.from(dueAt)).param("id", requestId).update();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void assign(long requestId, long assigneeId, String why) {
         RequestStore.Request r = requests.find(String.valueOf(requestId), true)
                 .orElseThrow(() -> ApiException.notFound("This Maintenance Request does not exist."));

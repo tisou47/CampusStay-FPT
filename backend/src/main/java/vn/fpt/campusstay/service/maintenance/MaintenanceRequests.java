@@ -37,4 +37,7 @@ public interface MaintenanceRequests {
 
     /** Assigns an open request (a routing rule, or the Block Manager after an escalation); {@code why} goes in its log. */
     void assign(long requestId, long assigneeId, String why);
+
+    /** Sets the time by which the request must be finished (the Block's timer when it is routed, spec §6.18). */
+    void setSlaDue(long requestId, Instant dueAt);
 }

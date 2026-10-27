@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.service.inventory;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,15 @@ public class RoomDetailService {
             DoorCodeService.DoorCodeItem doorCode) {
     }
 
+    /**
+     * The Room hub (spec §11.3): the details above and what each feature holds about the Room ({@code residents},
+     * {@code meterReadings}, {@code maintenance}, {@code inspections}).
+     */
+    public record RoomHub(RoomDetails details, Map<String, List<RoomRecords.Item>> sections) {
+    }
+
+    private static final int HUB_LIMIT = 20;
+
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
     private final BlockScope blockScope;
@@ -41,9 +51,11 @@ public class RoomDetailService {
     private final RoomConformance conformance;
     private final FurnitureService furniture;
     private final DoorCodeService doorCodes;
+    private final List<RoomRecords> records;
 
     public RoomDetailService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, TermCatalog terms,
-            Catalog catalog, RoomConformance conformance, FurnitureService furniture, DoorCodeService doorCodes) {
+            Catalog catalog, RoomConformance conformance, FurnitureService furniture, DoorCodeService doorCodes,
+            List<RoomRecords> records) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -52,6 +64,23 @@ public class RoomDetailService {
         this.conformance = conformance;
         this.furniture = furniture;
         this.doorCodes = doorCodes;
+        this.records = records;
+    }
+
+    /** @param termId null = the current Term (for the class and furniture conformance) */
+    @Transactional(readOnly = true)
+    public RoomHub hub(String code, Long termId) {
+        RoomDetails details = details(code, termId);
+        long roomId = jdbc.sql("SELECT id FROM inv_room WHERE code = :code").param("code", details.room())
+                .query(Long.class).single();
+        Map<String, List<RoomRecords.Item>> sections = new LinkedHashMap<>();
+        for (String section : List.of("residents", "meterReadings", "maintenance", "inspections")) {
+            sections.put(section, List.of());
+        }
+        for (RoomRecords source : records) {
+            sections.put(source.section(), source.of(roomId, HUB_LIMIT));
+        }
+        return new RoomHub(details, sections);
     }
 
     /** @param termId null = the current Term */

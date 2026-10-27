@@ -61,4 +61,11 @@ public interface Inventory {
      * waiting because someone left the Room.
      */
     Set<Long> doorCodeReady(Collection<Long> roomIds);
+
+    /** A furniture item in a Room, for the Maintenance Request form ({@code type} in English, {@code typeVi}). */
+    record RoomFurniture(long id, String assetCode, String type, String typeVi) {
+    }
+
+    /** The items in the Room that are not disposed, by type then asset code. */
+    List<RoomFurniture> furnitureOf(long roomId);
 }

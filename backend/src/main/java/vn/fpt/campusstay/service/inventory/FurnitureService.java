@@ -18,11 +18,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.event.FurnitureDamaged;
+import vn.fpt.campusstay.event.FurnitureRepairLogged;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -94,7 +97,7 @@ public class FurnitureService {
     private static final Map<String, String> MOVE_STATUSES = Map.of("PLANNED", "Planned", "DONE", "Done",
             "CANCELLED", "Cancelled");
     private static final Map<String, String> EVENT_KINDS = Map.of("REGISTERED", "Registered", "STATUS", "Status changed",
-            "MOVED", "Moved");
+            "MOVED", "Moved", "REPAIR", "Repair");
     private static final int MAX_REGISTER = 100;
     private static final int MAX_MOVE = 200;
 
@@ -619,6 +622,38 @@ public class FurnitureService {
                 SELECT COALESCE(r.building_id, i.store_building_id) FROM inv_furniture_item i
                 LEFT JOIN inv_room r ON r.id = i.room_id WHERE i.id = :id
                 """).param("id", itemId).query(Long.class).single();
+    }
+
+    /** A Maintenance Request names the item: its history keeps the repair (spec §6.18). */
+    @EventListener
+    void on(FurnitureRepairLogged repair) {
+        jdbc.sql("""
+                INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
+                VALUES (:item, 'REPAIR', :code, :step, :title, :by, :now)
+                """)
+                .param("item", repair.itemId()).param("code", repair.requestCode()).param("step", repair.step())
+                .param("title", repair.title().length() > 500 ? repair.title().substring(0, 500) : repair.title())
+                .param("by", repair.byUserId()).param("now", Timestamp.from(Instant.now(clock)))
+                .update();
+    }
+
+    /** Damage recorded at a check-out: the item is Broken until it is repaired (spec §6.16). */
+    @EventListener
+    void on(FurnitureDamaged damaged) {
+        String before = jdbc.sql("SELECT status FROM inv_furniture_item WHERE id = :id FOR UPDATE")
+                .param("id", damaged.itemId()).query(String.class).single();
+        if (before.equals("BROKEN") || before.equals("DISPOSED")) {
+            return;
+        }
+        jdbc.sql("UPDATE inv_furniture_item SET status = 'BROKEN', updated_at = :now WHERE id = :id")
+                .param("now", Timestamp.from(Instant.now(clock))).param("id", damaged.itemId()).update();
+        jdbc.sql("""
+                INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
+                VALUES (:item, 'STATUS', :from, 'Broken', :reason, :by, :now)
+                """)
+                .param("item", damaged.itemId()).param("from", STATUSES.get(before))
+                .param("reason", damaged.reason().length() > 500 ? damaged.reason().substring(0, 500) : damaged.reason())
+                .param("by", damaged.byUserId()).param("now", Timestamp.from(Instant.now(clock))).update();
     }
 
     private void event(long itemId, String kind, String from, String to, String reason) {

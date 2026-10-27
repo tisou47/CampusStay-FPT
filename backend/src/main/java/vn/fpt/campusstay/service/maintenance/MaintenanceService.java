@@ -22,8 +22,10 @@ import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
+import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.setting.Parameters;
+import vn.fpt.campusstay.event.FurnitureRepairLogged;
 import vn.fpt.campusstay.event.MaintenanceReported;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -41,15 +43,20 @@ public class MaintenanceService {
     public record StaffOption(String id, String name, List<String> skills) {
     }
 
+    /** A furniture item of the Room the request may name; {@code label} e.g. {@code Air conditioner · AC-A501-1}. */
+    public record FurnitureOption(String id, String assetCode, String type, String typeVi) {
+    }
+
+    /** {@code furniture}: the items of the student's Room (empty for staff and for students not living in a Room). */
     public record Options(List<String> categories, List<String> locations, List<String> priorities,
-            List<StaffOption> staff) {
+            List<StaffOption> staff, List<FurnitureOption> furniture) {
     }
 
     public record Photo(String name, byte[] bytes) {
     }
 
     public record ReportCommand(String title, String description, String category, String location, String urgency,
-            String staffMayEnter, List<Photo> photos) {
+            String staffMayEnter, List<Photo> photos, String furnitureItemId) {
     }
 
     public record Created(String id) {
@@ -73,12 +80,13 @@ public class MaintenanceService {
     private final Lookups lookups;
     private final Parameters parameters;
     private final FileStore files;
+    private final Inventory inventory;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public MaintenanceService(JdbcClient jdbc, RequestStore requests, CurrentUser currentUser, BlockScope blockScope,
             Residences residences, UserDirectory users, Lookups lookups, Parameters parameters, FileStore files,
-            ApplicationEventPublisher events, Clock clock) {
+            Inventory inventory, ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.requests = requests;
         this.currentUser = currentUser;
@@ -88,6 +96,7 @@ public class MaintenanceService {
         this.lookups = lookups;
         this.parameters = parameters;
         this.files = files;
+        this.inventory = inventory;
         this.events = events;
         this.clock = clock;
     }
@@ -99,7 +108,10 @@ public class MaintenanceService {
         List<String> categories = labels("MAINTENANCE_CATEGORY");
         List<String> locations = labels("MAINTENANCE_LOCATION");
         if (!"staff".equalsIgnoreCase(forWhom == null ? "" : forWhom.trim()) || !user.role().isBackOffice()) {
-            return new Options(categories, locations, List.of(), List.of());
+            List<FurnitureOption> furniture = user.role() != Role.STUDENT ? List.of()
+                    : residences.current(user.userId()).filter(Residences.Residence::resident)
+                            .map(home -> furnitureOf(home.roomId())).orElse(List.of());
+            return new Options(categories, locations, List.of(), List.of(), furniture);
         }
         List<Lookups.Lookup> handles = lookups.list("STAFF_HANDLE");
         Map<String, String> handleLabels = handles.stream()
@@ -113,7 +125,25 @@ public class MaintenanceService {
                         .sorted(Comparator.comparing((String h) -> !h.equals(MAINTENANCE)).thenComparing(order::indexOf))
                         .map(handleLabels::get).toList()))
                 .toList();
-        return new Options(categories, locations, RequestStore.PRIORITY_LABELS, staff);
+        return new Options(categories, locations, RequestStore.PRIORITY_LABELS, staff, List.of());
+    }
+
+    /** The Room's furniture items, as the request forms list them. */
+    List<FurnitureOption> furnitureOf(long roomId) {
+        return inventory.furnitureOf(roomId).stream()
+                .map(f -> new FurnitureOption(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi())).toList();
+    }
+
+    /** The item, when it is one of the Room's; null for a blank id. */
+    Long furnitureItem(Object value, long roomId, FieldErrors errors) {
+        String id = value == null ? "" : String.valueOf(value).trim();
+        if (id.isEmpty()) {
+            return null;
+        }
+        Long item = id.length() < 19 && id.chars().allMatch(Character::isDigit) ? Long.parseLong(id) : null;
+        boolean inRoom = item != null && inventory.furnitureOf(roomId).stream().anyMatch(f -> f.id() == item);
+        errors.check(inRoom, "furnitureItemId", "Choose an item of this Room.");
+        return inRoom ? item : null;
     }
 
     @Transactional
@@ -144,6 +174,7 @@ public class MaintenanceService {
         errors.check(photos.size() <= maxPhotos, "photos", "Attach at most " + maxPhotos + " photos.");
         errors.check(photos.stream().allMatch(p -> p.bytes().length <= maxBytes), "photos",
                 "Each photo must be " + parameters.intValue("upload.max_photo_mb") + " MB or smaller.");
+        Long furnitureItem = furnitureItem(cmd.furnitureItemId(), home.roomId(), errors);
         errors.throwIfAny();
 
         Instant now = Instant.now(clock);
@@ -154,11 +185,11 @@ public class MaintenanceService {
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
                 INSERT INTO mnt_request (id, code, term_id, room_id, bed_id, building_id, room_code, reporter_id, source,
                                          title, description, category, location, urgency, priority, staff_may_enter,
-                                         reported_at)
+                                         reported_at, furniture_item_id)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term, :room, :bed, :building,
                        :roomCode, :reporter, 'STUDENT', :title, :description, :category, :location, :urgency, :priority,
-                       :mayEnter, :now
+                       :mayEnter, :now, :item
                 FROM next
                 RETURNING id, code
                 """)
@@ -167,7 +198,7 @@ public class MaintenanceService {
                 .param("title", title).param("description", description).param("category", category)
                 .param("location", location).param("urgency", urgency)
                 .param("priority", urgency.equals("URGENT") ? "HIGH" : "MEDIUM").param("mayEnter", staffMayEnter)
-                .param("now", Timestamp.from(now))
+                .param("now", Timestamp.from(now)).param("item", furnitureItem)
                 .query((rs, i) -> new Inserted(rs.getLong("id"), rs.getString("code"))).single();
         for (Photo photo : photos) {
             long fileId = files.store("mnt", photo.name(), photo.bytes(), FileStore.IMAGES, me).id();
@@ -176,6 +207,9 @@ public class MaintenanceService {
         }
         requests.event(row.id(), me, "STUDENT", "Request submitted", null, false, now);
         events.publishEvent(new MaintenanceReported(row.id(), row.code(), home.buildingId(), category, urgency));
+        if (furnitureItem != null) {
+            events.publishEvent(new FurnitureRepairLogged(furnitureItem, row.code(), title, "Reported", me));
+        }
         return new Created(row.code());
     }
 

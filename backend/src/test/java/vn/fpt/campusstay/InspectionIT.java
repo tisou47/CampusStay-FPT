@@ -120,8 +120,9 @@ class InspectionIT {
     }
 
     /**
-     * TC-MNT-005: a schedule starts its first run at once and notifies residents; Staff record the Rooms, a failed
-     * item creates a Maintenance Request with the severity's priority; the run is submitted; the job starts the next.
+     * TC-MNT-005: a schedule starts its first run at once and notifies residents; Staff record the Rooms with their own
+     * checks (people, furniture), a failed item creates a Maintenance Request with the severity's priority (a failed
+     * furniture item one that names it); the run is submitted; the job starts the next.
      */
     @Test
     void scheduleAndRun() throws Exception {
@@ -167,13 +168,21 @@ class InspectionIT {
         String run = JsonPath.read(current, "$.run.id");
         assertThat(run).startsWith("INS-");
         List<String> itemIds = JsonPath.read(current, "$.run.checklist.items[*].id");
-        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff).andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[?(@.room == 'A-401')].status").value(hasItem("To do")));
+        String rooms = getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.room == 'A-401')].status").value(hasItem("To do")))
+                .andExpect(jsonPath("$.items[?(@.room == 'A-401')].checks[0].kind").value(hasItem("people")))
+                .andExpect(jsonPath("$.items[?(@.room == 'A-401')].checks[0].expected").value(hasItem(org.hamcrest.Matchers.greaterThanOrEqualTo(0))))
+                .andReturn().getResponse().getContentAsString();
+        List<String> checks401 = JsonPath.read(rooms, "$.items[?(@.room == 'A-401')].checks[*].id");
+        assertThat(checks401).contains("people").anyMatch(c -> c.startsWith("furniture-"));
 
         StringBuilder results = new StringBuilder();
         for (int i = 0; i < itemIds.size(); i++) {
             results.append(i == 0 ? "" : ",").append("{\"itemId\":\"").append(itemIds.get(i)).append("\",\"result\":\"")
                     .append(i == 0 ? "Fail\",\"note\":\"No beep when tested\"}" : "Pass\"}");
+        }
+        for (String check : checks401) {
+            results.append(",{\"itemId\":\"").append(check).append("\",\"result\":\"Pass\"}");
         }
         String saved = putAs("/inspection-runs/" + run + "/rooms/A-401", staff, "{\"results\":[" + results + "]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(1)))
@@ -201,6 +210,8 @@ class InspectionIT {
                 .andExpect(jsonPath("$.run.inspected").value(1))
                 .andExpect(jsonPath("$.run.failed").value(1))
                 .andExpect(jsonPath("$.run.unreachable").value(1));
+
+        roomChecks(run, staff, itemIds, rooms);
 
         getAs("/inspection-runs/" + run + "/rooms", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isNoContent());
@@ -247,5 +258,40 @@ class InspectionIT {
         putAs("/inspection-schedules/999999", bearer(mvc, MANAGER_A), "{\"status\":\"Paused\"}")
                 .andExpect(status().isNotFound());
         getAs("/inspection-runs/current", bearer(mvc, StayFlow.student(2))).andExpect(status().isForbidden());
+    }
+
+    /**
+     * The Room's own checks of the run above (spec §6.19): the Room is not done until the people count and each furniture
+     * item are answered; a failed furniture item creates a Furniture Maintenance Request naming the item, and the
+     * item's history keeps the repair.
+     */
+    private void roomChecks(String run, String staff, List<String> itemIds, String rooms) throws Exception {
+        List<String> checks = JsonPath.read(rooms, "$.items[?(@.room == 'A-404')].checks[*].id");
+        String furniture = checks.stream().filter(c -> c.startsWith("furniture-")).findFirst().orElseThrow();
+        StringBuilder items = new StringBuilder();
+        for (int i = 0; i < itemIds.size(); i++) {
+            items.append(i == 0 ? "" : ",").append("{\"itemId\":\"").append(itemIds.get(i)).append("\",\"result\":\"Pass\"}");
+        }
+        putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + items + "]}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(0)));
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("In progress")));
+        StringBuilder own = new StringBuilder();
+        for (String check : checks) {
+            own.append(own.isEmpty() ? "" : ",").append("{\"itemId\":\"").append(check).append("\",\"result\":\"")
+                    .append(check.equals(furniture) ? "Fail\",\"note\":\"Door hinge broken\"}" : "Pass\"}");
+        }
+        String saved = putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + own + "]}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        String request = JsonPath.read(saved, "$.createdRequests[0]");
+        Map<String, Object> mr = jdbc.sql("SELECT category, furniture_item_id::text AS item, description FROM mnt_request WHERE code = :c")
+                .param("c", request).query().singleRow();
+        assertThat(mr).containsEntry("category", "FURNITURE").containsEntry("item", furniture.substring("furniture-".length()))
+                .containsEntry("description", "Door hinge broken");
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("Done")));
+        getAs("/furniture/" + furniture.substring("furniture-".length()), staff)
+                .andExpect(jsonPath("$.history[?(@.kind == 'Repair')].from").value(hasItem(request)));
     }
 }

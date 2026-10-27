@@ -2,7 +2,7 @@
 
 What the web and Android apps send and expect from the CampusStay backend. On the web, every call goes through `web/src/api/client.js`; the endpoint list lives in `web/src/api/endpoints.js`, and each page repeats the shapes it reads in a comment at the top of its file.
 
-Version 1.13 (26/10/2026): the mentor-confirmed contract plus the changes A-01…A-46, B-01…B-10 and C-01…C-43 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence"; A-40…A-46, B-08…B-10, C-43: phase 6 "Term transition", in `main` since 27/10/2026). Every later change is logged there first and written here in the same commit.
+Version 1.14 (27/10/2026): the mentor-confirmed contract plus the changes A-01…A-52, B-01…B-11 and C-01…C-44 of [`backend/03_API_Contract_Changes.md`](backend/03_API_Contract_Changes.md) (A-15, A-16, C-38: Change Specification v2 phase 1; A-17…A-21, C-39: phase 2 "Accounts"; A-23…A-26, B-04, C-40: phase 3 "Inventory"; A-27…A-33, C-41: phase 4 "Registration periods"; A-34…A-39, B-05…B-07, C-42: phase 5 "Money and residence"; A-40…A-46, B-08…B-10, C-43: phase 6 "Term transition", in `main` since 27/10/2026; A-47…A-52, B-11, C-44: phase 7 "Operations", on `feat/v2-phase7-8` until merged). Every later change is logged there first and written here in the same commit.
 
 ## Conventions
 
@@ -28,6 +28,8 @@ Applications have no `period` field: the length of a stay is Gia hạn (`stayTer
 ---
 
 ## Session and shared
+
+- `GET /search?q` (back office) → `{ q, items: [{ kind, id, title, detail }] }`: students, Rooms, Invoices, Applications, Maintenance Requests and next-Term request codes inside the user's Blocks (A-47)
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
@@ -178,6 +180,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 - `GET /inventory/rooms/{code}` → `{ code, block, floor }`
 - `POST /inventory/rooms/{code}/out-of-service` `{ reason, note? }` · `POST /inventory/rooms/{code}/back-in-service`
 - `floor` is required; `block` may be empty only when the user has one Block; without `termId` the current Term fills the Beds. A Bed `id` is its code (`A-305-B`). `reason` is one of `outOfServiceReasons`. A Room whose Bed holds an active Allocation cannot go out of service (`409 ROOM_OCCUPIED`). See C-17. Each Room's `roomClassName` is its class in the Term; the top-level `roomClassName` is `null` when the Floor's Rooms differ (C-40).
+- `GET /inventory/rooms/{code}/hub?termId` → `{ details, sections: { residents, meterReadings, maintenance, inspections: [{ kind, id, title, detail, status, at }] } }` (Room hub, A-48)
 - `GET /inventory/rooms/{code}/details?termId` → `{ room, block, floor, roomType, term, roomClass, next: { termId, term, roomClass } | null, conformance: { status, missing, extra }, furniture: [furniture item], doorCode: door-code item | null }` (A-23)
 - `GET /inventory/room-classes?termId&block&floor&roomClassId&match&q&page&pageSize` → `{ term: { id, name, stayStart, current, editable }, terms, items: [{ room, block, floor, roomType, roomClassId, roomClass, previousClass, setForTerm, locked, conformance: { status: 'Matches'|'Does not match', missing: [{ typeId, type, typeVi, quantity }], extra } }], total, summary: [{ roomClassId, roomClass, rooms }], roomClasses: [{ id, name }], blocks, note }` · `PUT /inventory/room-classes` `{ termId, rooms: [code], roomClassId }` → `{ changed, unchanged }` (Managers; Terms not started; `409 TERM_STARTED`, `409 ROOM_CLASS_LOCKED`). See A-23.
 
@@ -199,7 +202,8 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 
 - `GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize` → `{ items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total, summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }`. `status=open` means Submitted, Assigned or In progress; `assigneeId=none` means unassigned.
 - `GET /maintenance-requests/{id}` (back-office view) → `{ id, title, status, room, bed, category, location, reportedAt, reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }], assignee, suggestedAssigneeId, visitWindow, events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm } }`
-- `PATCH /maintenance-requests/{id}` `{ priority?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change)
+- `PATCH /maintenance-requests/{id}` `{ priority?, furnitureItemId?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change)
+- Queue items and the detail carry `slaDueAt`; the detail `furnitureItem` and `furnitureOptions`; the student's options `furniture` and the report the field `furnitureItemId` (A-49)
 - `POST /maintenance-requests/{id}/updates` `{ message, internal }` → `204`
 
 Ids are codes (`MR-000321`); reporting, filters, transitions and notifications: C-24. `photos[].url` are signed links (A-10).
@@ -229,7 +233,8 @@ Staff see their Blocks, Managers every Block (C-43).
 - `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
 - `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
 - `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
-- `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus }`
+- `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }`
+- The list carries `checkOutBy`, `overdueCount` and `items[].overdue`; `POST /check-out/{allocationId}` takes `damages: [{ itemId, amount, note? }]` (A-52)
 - `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
 - The URL carries the Allocation id, never the student code (personal data, B-01). Check-in rules, the pass and the Utility Deposit settlement: C-23 (`allocation.pass`, A-11).
 
@@ -244,6 +249,8 @@ Staff see their Blocks, Managers every Block (C-43).
 Meter readings, Utility Invoices and Admin › Utility: C-29.
 
 ### Inspections
+
+- Rooms of a run carry `checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi }]`, answered in `results` like checklist items; a Room is Done when both are answered (A-51, B-11)
 
 - `GET /inspection-runs/current?termId&block` → `{ run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName, checklist: { name, version, items: [{ id, label, category, severity }] } } | null }`
 - `GET /inspection-runs/{id}/rooms?page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result: 'Pass'|'Fail'|'Not checked', note }] }], total }`

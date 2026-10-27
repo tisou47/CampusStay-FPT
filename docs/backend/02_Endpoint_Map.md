@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 259 endpoints (266 when the seven `GET, PUT` rows count twice); all 259 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026), phase 6 the 27 rows of section V2-6 (built on `feat/v2-phase6`, in `main` and production since 27/10/2026).
+Total: 261 endpoints (268 when the seven `GET, PUT` rows count twice); all 261 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026), phase 6 the 27 rows of section V2-6 (built on `feat/v2-phase6`, in `main` and production since 27/10/2026), phase 7 the 2 rows of section V2-7 and new fields on existing endpoints (on `feat/v2-phase7-8` until merged).
 
 | Slice | Focus |
 |---|---|
@@ -363,3 +363,14 @@ Built on `feat/v2-phase6` (ADR-21, ADR-27), in `main` and production since 27/10
 | AUTH | POST | `/reconciliations/{id}/items/{itemId}/resolve` | Must | Verified | A-46; a note; Not enrolled ends what the student holds in the Term; TC-AUTH-054, 055 |
 
 Jobs (no endpoint): every 15 minutes the renewal job opens the requests windows that reached M2, closes filing at M3 (Beds still awaiting extension are released), alerts Managers before M4 and cancels the next-Term fees unpaid at M7 (TC-ASG-038, 039, 041); the door-code release of a paid continuing resident ends the Allocation of the previous Term (TC-ASG-042).
+
+## V2-7 — Change Specification v2 phases 7 "Operations" and 8 "Documents"
+
+Built on `feat/v2-phase7-8` (both phases in one branch, one test run and one deployment: user decision 27/10/2026), on `feat/v2-phase7-8` until merged. Migrations V56 (MNT: SLA deadline set when a request is routed, the furniture item of a request), V57 (INV: Repair entries in a furniture item's history), V58 (MNT: the Room's own checks in inspections), V59 (ASG: damage per furniture item at check-out). Contract changes A-47…A-52, B-11, C-44. The demo reset tool of phase 8 waits until the demo scenarios are planned (user decision 27/10/2026).
+
+| Module | Method | Path | Priority | Status | Note |
+|---|---|---|---|---|---|
+| RPT | GET | `/search` | Should | Verified | A-47; students, Rooms, Invoices, Applications, requests inside the Blocks; TC-RPT-013 |
+| INV | GET | `/inventory/rooms/{code}/hub` | Should | Verified | A-48; residents, meter readings, Maintenance Requests, inspections; TC-INV-024 |
+
+Changed (no new path): `/maintenance-requests` SLA deadline and furniture item (A-49, TC-MNT-008), `GET /routing-rules` staff workload (A-50, TC-REQ-022), `GET /dashboards/term` requests window (A-50, TC-RPT-014), inspection Rooms' own checks (A-51, B-11, TC-MNT-005), check-out damage per item and overdue check-outs (A-52, TC-ASG-045).

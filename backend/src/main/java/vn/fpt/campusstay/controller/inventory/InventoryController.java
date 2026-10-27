@@ -57,6 +57,11 @@ class InventoryController {
         return details.details(code, termId);
     }
 
+    @GetMapping("/rooms/{code}/hub")
+    RoomDetailService.RoomHub hub(@PathVariable String code, @RequestParam(required = false) Long termId) {
+        return details.hub(code, termId);
+    }
+
     @PostMapping("/rooms/{code}/out-of-service")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void outOfService(@PathVariable String code, @Valid @RequestBody OutOfServiceRequest body) {

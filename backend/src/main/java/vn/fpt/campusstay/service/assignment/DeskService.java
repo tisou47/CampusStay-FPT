@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +29,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.FurnitureDamaged;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
@@ -88,12 +90,23 @@ public class DeskService {
 
     // ---------------------------------------------------------------- check-out records
 
+    /** @param overdue the Term's check-out date passed and the student has not checked out (spec §6.16) */
     public record CheckOutRow(String allocationId, String studentCode, String name, String room, String bed,
-            String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt) {
+            String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
+            boolean overdue) {
     }
 
+    /** @param checkOutBy the day leavers of the Term must have checked out */
     public record CheckOutPage(LocalDate date, long pendingCount, List<String> reasons, List<CheckOutRow> items,
-            long total) {
+            long total, LocalDate checkOutBy, long overdueCount) {
+    }
+
+    /** Damage to one furniture item of the Room; {@code amount} VND. */
+    public record Damage(String itemId, Long amount, String note) {
+    }
+
+    /** A furniture item of the Room with the damage recorded for it (0 when none). */
+    public record DamageItem(String itemId, String assetCode, String type, String typeVi, long amount, String note) {
     }
 
     public record Reading(BigDecimal electricity, BigDecimal water) {
@@ -104,11 +117,12 @@ public class DeskService {
 
     public record CheckOutDetail(String allocationId, String studentCode, String name, String room, String bed,
             String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
-            Reading reading, SettlementView settlement, String refundStatus) {
+            Reading reading, SettlementView settlement, String refundStatus, List<DamageItem> furniture) {
     }
 
+    /** @param damages per furniture item; when sent, the damage charge is their sum */
     public record CheckOutCommand(BigDecimal electricity, BigDecimal water, Boolean conditionGood, Boolean keyReturned,
-            Long damageCharge, boolean draft) {
+            Long damageCharge, boolean draft, List<Damage> damages) {
     }
 
     public record CheckedOut(long refund, String refundStatus) {
@@ -363,13 +377,15 @@ public class DeskService {
                 rows.stream().map(p -> p.alloc().studentId()).toList());
         Names names = names();
         long pending = rows.stream().filter(p -> !"COMPLETED".equals(p.outStatus())).count();
+        LocalDate checkOutBy = checkOutBy(term);
+        boolean late = today().isAfter(checkOutBy);
         String needle = q == null || q.isBlank() ? null : fold(q.trim());
         String reasonCode = reason == null || reason.isBlank() ? null
                 : lookups.find("CHECK_OUT_REASON", reason.trim())
                         .orElseThrow(() -> FieldErrors.single("reason", "Choose a reason from the list.")).code();
         List<CheckOutRow> items = rows.stream()
                 .filter(p -> reasonCode == null || reasonCode.equals(p.reason()))
-                .map(p -> row(p, students.get(p.alloc().studentId()), names))
+                .map(p -> row(p, students.get(p.alloc().studentId()), names, late))
                 .filter(r -> needle == null || fold(r.name()).contains(needle) || fold(r.studentCode()).contains(needle)
                         || fold(r.room()).contains(needle))
                 .sorted(Comparator.comparing((CheckOutRow r) -> r.status().equals("Checked out"))
@@ -377,7 +393,8 @@ public class DeskService {
                 .toList();
         return new CheckOutPage(today(), pending,
                 lookups.list("CHECK_OUT_REASON").stream().map(Lookups.Lookup::label).toList(),
-                items.stream().skip(page.offset()).limit(page.limit()).toList(), items.size());
+                items.stream().skip(page.offset()).limit(page.limit()).toList(), items.size(), checkOutBy,
+                items.stream().filter(CheckOutRow::overdue).count());
     }
 
     @Transactional(readOnly = true)
@@ -385,7 +402,8 @@ public class DeskService {
         currentUser.require(Permission.DESK);
         Placed p = checkOutTarget(allocationId, false);
         OutRecord record = outRecord(p.alloc().id()).orElse(null);
-        CheckOutRow row = row(p, users.studentProfile(p.alloc().studentId()).orElse(null), names());
+        CheckOutRow row = row(p, users.studentProfile(p.alloc().studentId()).orElse(null), names(),
+                today().isAfter(checkOutBy(term(p.alloc().termId()))));
         Reading reading = record == null || record.electricity() == null ? null
                 : new Reading(record.electricity(), record.water());
         SettlementView settlement;
@@ -404,9 +422,24 @@ public class DeskService {
             }
             settlement = view(s);
         }
+        Map<Long, Damage> damages = new HashMap<>();
+        if (record != null) {
+            jdbc.sql("""
+                    SELECT d.furniture_item_id, d.amount, d.note FROM asg_check_out_damage d
+                    JOIN asg_check_out c ON c.id = d.check_out_id WHERE c.allocation_id = :a
+                    """).param("a", p.alloc().id())
+                    .query((rs, i) -> Map.entry(rs.getLong("furniture_item_id"), new Damage(null, rs.getLong("amount"),
+                            rs.getString("note")))).list()
+                    .forEach(e -> damages.put(e.getKey(), e.getValue()));
+        }
+        List<DamageItem> furniture = inventory.furnitureOf(p.bed().roomId()).stream().map(f -> {
+            Damage d = damages.get(f.id());
+            return new DamageItem(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi(), d == null ? 0 : d.amount(),
+                    d == null ? null : d.note());
+        }).toList();
         return new CheckOutDetail(row.allocationId(), row.studentCode(), row.name(), row.room(), row.bed(),
                 row.roomTypeName(), row.roomClassName(), row.reason(), row.status(), row.checkedOutAt(), reading,
-                settlement, refundStatus);
+                settlement, refundStatus, furniture);
     }
 
     @Transactional
@@ -424,8 +457,11 @@ public class DeskService {
         if (!cmd.draft() && Boolean.FALSE.equals(cmd.keyReturned())) {
             errors.add("keyReturned", "Collect the Room key before you confirm.");
         }
+        Map<Long, Damage> damages = damages(cmd.damages(), p.bed().roomId(), errors);
         errors.throwIfAny();
-        long damage = cmd.damageCharge() == null ? 0 : cmd.damageCharge();
+        long damage = cmd.damages() != null
+                ? damages.values().stream().mapToLong(Damage::amount).sum()
+                : cmd.damageCharge() == null ? 0 : cmd.damageCharge();
         Reading reading = new Reading(cmd.electricity(), cmd.water());
         Billing.SettlementRequest request = request(p, reading, damage);
         Instant now = Instant.now(clock);
@@ -434,11 +470,16 @@ public class DeskService {
         if (cmd.draft()) {
             Billing.Settlement estimate = billing.estimateCheckOut(request);
             upsert(p.alloc().id(), reason, "DRAFT", cmd, damage, null, null, user.userId(), now);
+            saveDamages(p.alloc().id(), cmd.damages() == null ? null : damages);
             return new CheckedOut(estimate.refund(), null);
         }
         Billing.SettledCheckOut settled = billing.settleCheckOut(request, user.userId());
         upsert(p.alloc().id(), reason, "COMPLETED", cmd, damage, settled.settlement(),
                 settled.refundId().isPresent() ? "PENDING" : "NONE", user.userId(), now);
+        saveDamages(p.alloc().id(), cmd.damages() == null ? null : damages);
+        String where = "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel();
+        damages.forEach((itemId, d) -> events.publishEvent(new FurnitureDamaged(itemId,
+                "Damaged at the check-out of " + where + (d.note() == null ? "" : ": " + d.note()), user.userId())));
         jdbc.sql("""
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1
                 WHERE id = :id AND status = 'ACTIVE'
@@ -459,6 +500,58 @@ public class DeskService {
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
                 Map.of("refund", refund, "damage", damage, "conditionGood", cmd.conditionGood()));
         return new CheckedOut(refund, settled.refundId().isPresent() ? "Pending" : "None");
+    }
+
+    /** The damages sent, by furniture item of the Room; an item may be listed once. */
+    private Map<Long, Damage> damages(List<Damage> input, long roomId, FieldErrors errors) {
+        Map<Long, Damage> damages = new LinkedHashMap<>();
+        if (input == null) {
+            return damages;
+        }
+        Set<Long> items = inventory.furnitureOf(roomId).stream().map(Inventory.RoomFurniture::id)
+                .collect(Collectors.toSet());
+        for (Damage d : input) {
+            Long id = d == null ? null : parseId(d.itemId()).orElse(null);
+            if (id == null || !items.contains(id) || damages.containsKey(id)) {
+                errors.add("damages", "List each damaged item of this Room once.");
+                return damages;
+            }
+            long amount = d.amount() == null ? 0 : d.amount();
+            if (amount < 0 || amount > 1_000_000_000) {
+                errors.add("damages", "Enter a damage amount of 0 or more.");
+                return damages;
+            }
+            String note = d.note() == null || d.note().isBlank() ? null : d.note().trim();
+            if (note != null && note.length() > 300) {
+                errors.add("damages", "Keep each damage note under 300 characters.");
+                return damages;
+            }
+            if (amount > 0 || note != null) {
+                damages.put(id, new Damage(String.valueOf(id), amount, note));
+            }
+        }
+        return damages;
+    }
+
+    /** Replaces the check-out's damage lines; null leaves them as they are (an older client). */
+    private void saveDamages(long allocationId, Map<Long, Damage> damages) {
+        if (damages == null) {
+            return;
+        }
+        long checkOutId = jdbc.sql("SELECT id FROM asg_check_out WHERE allocation_id = :a").param("a", allocationId)
+                .query(Long.class).single();
+        jdbc.sql("DELETE FROM asg_check_out_damage WHERE check_out_id = :c").param("c", checkOutId).update();
+        damages.forEach((itemId, d) -> jdbc.sql("""
+                INSERT INTO asg_check_out_damage (check_out_id, furniture_item_id, amount, note)
+                VALUES (:c, :item, :amount, :note)
+                """).param("c", checkOutId).param("item", itemId).param("amount", d.amount()).param("note", d.note())
+                .update());
+    }
+
+    /** The day leavers of the Term must have checked out: N's date in the next Term's renewal, else the day after the stay. */
+    private LocalDate checkOutBy(TermSummary term) {
+        return terms.renewals().stream().filter(r -> r.previousTermId() == term.id()).findFirst()
+                .map(TermCatalog.Renewal::previousCheckOutBy).orElse(term.stayEnd().plusDays(1));
     }
 
     private void upsert(long allocationId, String reason, String status, CheckOutCommand cmd, long damage,
@@ -556,7 +649,7 @@ public class DeskService {
                 .optional();
     }
 
-    private CheckOutRow row(Placed p, UserDirectory.StudentProfile student, Names names) {
+    private CheckOutRow row(Placed p, UserDirectory.StudentProfile student, Names names, boolean late) {
         String reason = lookups.find("CHECK_OUT_REASON", p.reason() == null ? DEFAULT_REASON : p.reason())
                 .map(Lookups.Lookup::label).orElse(p.reason());
         String status = "COMPLETED".equals(p.outStatus()) ? "Checked out"
@@ -564,7 +657,7 @@ public class DeskService {
         return new CheckOutRow(String.valueOf(p.alloc().id()), student == null ? null : student.studentCode(),
                 student == null ? null : student.name(), p.bed().roomCode(), p.bed().bedLabel(),
                 names.types().get(p.bed().roomTypeId()), names.classes().get(p.bed().roomClassId()), reason, status,
-                p.completedAt());
+                p.completedAt(), late && !"COMPLETED".equals(p.outStatus()));
     }
 
     private static SettlementView view(Billing.Settlement s) {

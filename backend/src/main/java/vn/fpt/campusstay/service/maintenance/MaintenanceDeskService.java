@@ -30,6 +30,7 @@ import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.event.FurnitureRepairLogged;
 import vn.fpt.campusstay.event.MaintenanceUpdated;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
@@ -51,8 +52,13 @@ public class MaintenanceDeskService {
     public record Assignee(String id, String name) {
     }
 
+    /** {@code slaDueAt}: when the request must be finished (the Block's timer), null for older requests. */
     public record QueueItem(String id, String room, String title, String category, String priority,
-            Instant reportedAt, Assignee assignee, String status) {
+            Instant reportedAt, Assignee assignee, String status, Instant slaDueAt) {
+    }
+
+    /** The furniture item a request names. */
+    public record FurnitureRef(String id, String assetCode, String type, String typeVi) {
     }
 
     public record Summary(long open, long urgent, long urgentUnassigned, long unassigned, Instant oldestUnassignedAt,
@@ -82,7 +88,8 @@ public class MaintenanceDeskService {
     public record Detail(String id, String title, String status, String room, String bed, String category,
             String location, Instant reportedAt, Reporter reporter, String urgency, String priority,
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
-            String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary) {
+            String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
+            Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions) {
     }
 
     private static final Map<String, String> ROLES = Map.of("STUDENT", "Student", "STAFF", "Staff", "MANAGER",
@@ -188,7 +195,8 @@ public class MaintenanceDeskService {
                 .filter(Objects::nonNull).collect(Collectors.toSet()));
         List<QueueItem> items = rows.stream().map(r -> new QueueItem(r.code(), r.roomCode(), r.title(),
                 labels.label("MAINTENANCE_CATEGORY", r.category()), RequestStore.priorityLabel(r.priority()),
-                r.reportedAt(), assignee(r.assigneeId(), names), RequestStore.statusLabel(r.status()))).toList();
+                r.reportedAt(), assignee(r.assigneeId(), names), RequestStore.statusLabel(r.status()), r.slaDueAt()))
+                .toList();
         return new QueuePage(items, total, summary(base.toString(), params));
     }
 
@@ -243,6 +251,11 @@ public class MaintenanceDeskService {
                 """).param("room", r.roomId()).param("id", r.id()).param("term", r.termId()).query(Long.class).single();
         RoomSummary room = new RoomSummary(r.termId() == null ? 0 : residences.residents(r.roomId(), r.termId()),
                 inventory.bedsOfRoom(r.roomId()).size(), otherOpen, pastThisTerm);
+        List<MaintenanceService.FurnitureOption> furniture = labels.furnitureOf(r.roomId());
+        FurnitureRef item = r.furnitureItemId() == null ? null : furniture.stream()
+                .filter(f -> f.id().equals(String.valueOf(r.furnitureItemId()))).findFirst()
+                .map(f -> new FurnitureRef(f.id(), f.assetCode(), f.type(), f.typeVi()))
+                .orElse(new FurnitureRef(String.valueOf(r.furnitureItemId()), null, null, null));
         return new Detail(r.code(), r.title(), RequestStore.statusLabel(r.status()), r.roomCode(), bed,
                 labels.label("MAINTENANCE_CATEGORY", r.category()), labels.label("MAINTENANCE_LOCATION", r.location()),
                 r.reportedAt(), new Reporter(names.get(r.reporterId()), SOURCES.get(r.source())),
@@ -253,7 +266,7 @@ public class MaintenanceDeskService {
                 history.stream().map(e -> new DeskEvent(e.actorId() == null ? "CampusStay" : names.get(e.actorId()),
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
-                room);
+                room, r.slaDueAt(), item, furniture);
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */
@@ -277,8 +290,8 @@ public class MaintenanceDeskService {
     // ---------------------------------------------------------------- changes
 
     /**
-     * Applies the fields present in the body: {@code priority}, {@code assigneeId} (null = unassign),
-     * {@code visitWindow} (null = clear) and {@code status}, in that order.
+     * Applies the fields present in the body: {@code priority}, {@code furnitureItemId} (null = none),
+     * {@code assigneeId} (null = unassign), {@code visitWindow} (null = clear) and {@code status}, in that order.
      */
     @Transactional
     public void update(String idOrCode, Map<String, Object> body) {
@@ -304,6 +317,23 @@ public class MaintenanceDeskService {
                 requests.event(r.id(), user.userId(), role, "Priority set to " + RequestStore.priorityLabel(priority),
                         null, true, now);
                 changes.put("priority", RequestStore.priorityLabel(priority));
+            }
+        }
+        Long furnitureItem = r.furnitureItemId();
+        if (body.containsKey("furnitureItemId")) {
+            FieldErrors errors = new FieldErrors();
+            Long wanted = labels.furnitureItem(body.get("furnitureItemId"), r.roomId(), errors);
+            errors.throwIfAny();
+            if (!Objects.equals(wanted, furnitureItem)) {
+                jdbc.sql("UPDATE mnt_request SET furniture_item_id = :f WHERE id = :id").param("f", wanted)
+                        .param("id", r.id()).update();
+                requests.event(r.id(), user.userId(), role, wanted == null ? "Furniture item removed"
+                        : "Furniture item set", null, true, now);
+                if (wanted != null) {
+                    events.publishEvent(new FurnitureRepairLogged(wanted, r.code(), r.title(), "Reported", user.userId()));
+                }
+                furnitureItem = wanted;
+                changes.put("furnitureItem", wanted == null ? "none" : String.valueOf(wanted));
             }
         }
         if (body.containsKey("assigneeId")) {
@@ -359,6 +389,10 @@ public class MaintenanceDeskService {
                         now);
                 changes.put("status", RequestStore.statusLabel(status));
                 studentVisible = true;
+                if (status.equals("RESOLVED") && furnitureItem != null) {
+                    events.publishEvent(new FurnitureRepairLogged(furnitureItem, r.code(), r.title(), "Resolved",
+                            user.userId()));
+                }
             }
         }
         jdbc.sql("UPDATE mnt_request SET version = version + 1 WHERE id = :id").param("id", r.id()).update();

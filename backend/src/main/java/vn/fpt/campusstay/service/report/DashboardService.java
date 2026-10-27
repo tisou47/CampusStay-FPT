@@ -217,6 +217,19 @@ public class DashboardService {
             attention.add(new Attention("room", "room", "info", plural(outOfService.size(), "Room") + " out of service",
                     "Oldest: " + first.room() + " since " + DAY.format(first.since()), "/staff/inventory", "View"));
         }
+        p.put("today", LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)));
+        long lateCheckOuts = count("""
+                SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_term t ON t.id = a.term_id
+                JOIN rpt_v_bed b ON b.bed_id = a.bed_id
+                WHERE a.status = 'ACTIVE' AND t.check_out_by < :today AND b.building_id IN (:b)
+                  AND NOT EXISTS (SELECT 1 FROM rpt_v_allocation n JOIN rpt_v_term nt ON nt.id = n.term_id
+                                  WHERE n.student_id = a.student_id AND n.status = 'ACTIVE'
+                                    AND nt.stay_start > t.stay_start)
+                """, p);
+        if (lateCheckOuts > 0) {
+            attention.add(new Attention("check-out", "check-out", "error", plural(lateCheckOuts, "leaver")
+                    + " past the check-out date", "They have not checked out at the desk.", "/staff/check-out", "Open"));
+        }
         if (expired > 0) {
             attention.add(new Attention("expired", "expired", "neutral", plural(expired, "Deposit") + " expired this week",
                     "Their Applications were cancelled; the students may apply again.", "/staff/applications", "View"));
@@ -374,6 +387,20 @@ public class DashboardService {
                 """).params(p).query((rs, i) -> new Attention(rs.getString("source_code"), "escalation",
                         rs.getString("tone").equals("DANGER") ? "error" : "warning", rs.getString("title"),
                         rs.getString("why"), "/manager/escalations", "Handle")).list().forEach(waiting::add);
+        p.put("today", LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)));
+        long lateCheckOuts = count("""
+                SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_term t ON t.id = a.term_id
+                JOIN rpt_v_bed b ON b.bed_id = a.bed_id
+                WHERE a.status = 'ACTIVE' AND t.check_out_by < :today AND b.building_id IN (:b)
+                  AND NOT EXISTS (SELECT 1 FROM rpt_v_allocation n JOIN rpt_v_term nt ON nt.id = n.term_id
+                                  WHERE n.student_id = a.student_id AND n.status = 'ACTIVE'
+                                    AND nt.stay_start > t.stay_start)
+                """, p);
+        if (lateCheckOuts > 0) {
+            waiting.add(new Attention("check-out", "check-out", "error", plural(lateCheckOuts, "leaver")
+                    + " past the check-out date", "Staff list them at the check-out desk; their Beds stay held.",
+                    "/manager/next-term/turnover", "View"));
+        }
         for (Map.Entry<Long, String> b : blocks.codes().entrySet()) {
             for (String[] type : new String[][] { { "MAINTENANCE", "Maintenance Requests" },
                     { "ROOM_CHANGE", "Room-Change Requests" } }) {
