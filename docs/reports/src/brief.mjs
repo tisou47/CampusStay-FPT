@@ -47,7 +47,7 @@ const BM01 = {
   out: 'docs/reports/out/SWP490_FA26SE260_R2_DesignBrief',
   deleteColor: 6710886,
   paragraphs: [
-    { after: '2. System at a Glance', text: 'FPT University\'s Tân Uyên campus will open dormitories for thousands of students and has no system to run them. CampusStay FPT takes a student from sign-in to a Bed and through every Term of the stay: Applications by Room Type and Room Class, a fair batch assignment, VietQR payments confirmed by Managers, door codes, the check-in and check-out desk, Term transitions for continuing residents, maintenance with time limits, monthly Utility billing and reports. Users: students (web and Android), Staff of each Block, dormitory Managers and the Administrator. Core value: every Bed, payment and deadline follows one set of configurable rules, with an audit trail, instead of spreadsheets and messages. Architecture: one Spring Boot API with PostgreSQL, a React web app and an Android app (Report 4 §1.1, Figure 1).' },
+    { after: '2. System at a Glance', text: 'FPT University\'s Tân Uyên campus will open dormitories for thousands of students and has no system to run them. CampusStay FPT takes a student from sign-in to a Bed and through every Term of the stay: Applications by Room Type and Room Class, a fair batch assignment, VietQR payments confirmed by Managers, door codes, the check-in and check-out desk, Term transitions for continuing residents, maintenance with time limits, monthly Utility billing and reports. Users: students (web and the Flutter mobile app), Staff of each Block, dormitory Managers and the Administrator. Core value: every Bed, payment and deadline follows one set of configurable rules, with an audit trail, instead of spreadsheets and messages. Architecture: one Spring Boot API with PostgreSQL, a React web app and an Android app (Report 4 §1.1, Figure 1).' },
   ],
   replaceText: [['Automated in CI: at least 50% of the committed total.', `Automated in CI: ${c.automated} of ${c.total} committed test cases (${pct(c.automated, c.total)}); the rest are the end-to-end workflow cases, the manual state transitions and the measured NFRs (Report 5 §4).`]],
   tables: [
@@ -57,13 +57,13 @@ const BM01 = {
       ['Room choice, contract, check-in/out', 'Select room/bed; digital contract; self check-in/out', 'Choose Room Type and Class, engine assigns; consent to rules; desk check-in (QR pass) and check-out (damage per item); door codes', 'Fairness; no e-signature; keys need Staff'],
       ['Payment, communication', 'VietQR payment; in-app, email, SMS', 'VietQR transfer + claim confirmed by a Manager; in-app, push, email', 'No bank API; SMS cost'],
       ['Added scope', '—', 'Term transition (stay length, requests window, next-Term fees), registration-period requests, late check-in, Round 2, Utility and debt', 'Iteration 1: a dorm runs across Terms'],
-      ['Integration, technology', 'SIS link; forecast; Flutter', 'Student list import + reconciliation; dashboards; Android (Kotlin)', 'SIS not accessible'],
+      ['Integration, technology', 'SIS link; forecast; Flutter', 'Student list import + reconciliation; dashboards; Flutter mobile app', 'SIS not accessible'],
     ] },
     { index: 3, fontSize: 9, widths: [6, 11], rows: [
       ['Room or Bed self-selection by students', 'The engine keeps gender and Block rules and fairness (D2)'],
       ['Electronic contract signing', 'Needs a legal e-signature provider; consent is recorded instead'],
       ['SMS notifications', 'Cost; in-app, push and email cover the cases'],
-      ['Live SIS integration, bank API, forecasting, iOS app', 'No access or contract; list import, reconciliation, Manager confirmation, reports and Android instead'],
+      ['Live SIS integration, bank API, forecasting, iOS app', 'No access or contract; list import, reconciliation, Manager confirmation, reports and the Flutter app (Android) instead'],
     ] },
     { index: 4, fontSize: 9, widths: [0.8, 2.3, 3.2, 6.6, 2.0, 2.1], rows: [
       ['D1', 'System structure', 'Microservices; modular monolith', 'One Spring Boot API + one PostgreSQL, layered packages per feature: Allocation and payment in one ACID transaction; one API for three clients', T, 'SDD §1.1–1.2'],
@@ -82,7 +82,7 @@ const BM01 = {
       ['G2', 'Workflow tests TC-WF-01..05 are manual (SR-21)', 'Report 5 §4.2', 'Run on staging; automate in CI', V, '30/11/2026'],
       ['G3', 'NFR-01, 04, 06 not measured yet (SR-06)', 'Report 5 §4.4', 'Load script, uptime check, run times', V, '15/11/2026'],
       ['G4', 'No concurrency test for one Allocation per Bed per Term (SR-06)', 'TC-NFR-03', 'Parallel-commit test', L, '15/11/2026'],
-      ['G5', 'Android app has no automated or manual test cases (SR-08)', 'android/, Report 5', 'UI tests of key screens', V, '30/11/2026'],
+      ['G5', 'Mobile app has only a few automated tests and no manual test cases (SR-08)', 'mobile/, Report 5', 'UI tests of key screens', V, '30/11/2026'],
       ['G6', 'Statuses in the schema never stored (SR-12); Term never Closed (SR-13)', 'V4, V6, V7; SDD §3.1', 'Drop or use them; close Terms after the stay', T, '15/11/2026'],
       ['G7', 'Round 2 run by a Manager not built; freed Beds not offered (SR-01, High)', 'FR-APP-07', 'Manager run, pool of freed Beds, M8', T, '15/11/2026'],
     ] },
@@ -99,7 +99,7 @@ const BM01 = {
       [`${T} (SE183752)`, 'Leader, PM, BA, full-stack', 'Applications and payments (APP, BIL claims); assignment and residence (ASG); architecture and DevOps', 'WF-01, WF-05', 'D1, D2; ADR-17, ADR-22; v2 phases 1–8'],
       [`${L} (SE183782)`, 'Backend developer', 'Term transition (requests window, next-Term requests, fees); enrollment reconciliation', 'WF-03', 'D3; v2 phase 6'],
       [`${D} (SE182146)`, 'Frontend developer (web)', 'Registration periods and the Term wizard (CFG + web); inventory, furniture and door-code screens; web UI and i18n', 'WF-02', 'D4; v2 phases 3–4'],
-      [`${V} (SE182794)`, 'Mobile developer, tester', 'Android app and push (NTF); maintenance, routing and escalations (MNT, REQ); test documentation', 'WF-04', 'D5; Android app'],
+      [`${V} (SE182794)`, 'Mobile developer, tester', 'Flutter mobile app and push (NTF); maintenance, routing and escalations (MNT, REQ); test documentation', 'WF-04', 'D5; mobile app'],
     ] },
     { index: 10, fontSize: 9, widths: [1.1, 2.2, 2.2, 2.1, 2.5, 1.6, 3.5, 1.8], rows: wf.map((w) => [w.id, w.name, w.actors, w.trigger, w.outcome, w.features, w.states, w.owner]) },
     { index: 11, fontSize: 9, widths: [1.1, 1.2, 1.6, 3.0, 4.8, 3.6, 1.7], rows: wf.flatMap((w, i) => [
@@ -134,7 +134,7 @@ const BM03 = {
       ['8', '3.2 c) Added functions', '—', 'Registration-period requests and the Term wizard; Term transition (stay length, requests window M2–M7, next-Term fees); late check-in; Round 2; monthly Utility billing and debt; door codes; furniture', 'Iteration 1: a dormitory runs across Terms; these add business complexity', L],
       ['9', '3.2 c) SIS integration, forecasting', 'Integrate with the SIS; forecast occupancy and vacancy', 'Import of the student list and reconciliation of the enrolled list per Term; occupancy and Term dashboards', 'Constraint from data: the SIS is not accessible; a new campus has no history to forecast from', T],
       ['10', '3.2 d) Non-functional requirements', 'Decree 13/2023/NĐ-CP; capacity 4,000 learners; SIS and gateway interoperability', 'Law 91/2025/QH15; measurable NFRs: p95 ≤ 1 s at 200 users, integrity, availability, two languages, deployability', 'The Law replaces the Decree from 01/01/2026; NFRs need metric, threshold and method', V],
-      ['11', '3.2 e), f) Technologies, products', 'ReactJS or Flutter/React Native; Spring Boot or Node.js; mobile/web app, staff web app, admin dashboard', 'React web app for all roles; Android app (Kotlin, Jetpack Compose) for students; Spring Boot API; Docker, GitHub Actions, Vercel, Azure', 'Team skills; native push and Google sign-in on Android; one web app for all back-office roles', D],
+      ['11', '3.2 e), f) Technologies, products', 'ReactJS or Flutter/React Native; Spring Boot or Node.js; mobile/web app, staff web app, admin dashboard', 'React web app for all roles; Flutter mobile app (Android) for students; Spring Boot API; Docker, GitHub Actions, Vercel, Azure', 'Team skills; native push and Google sign-in on Android; one web app for all back-office roles', D],
       ['12', '3.2 g) Proposed tasks', 'P1–P7 around room selection and a payment gateway', 'P1–P7 updated to the scope above', 'Follows changes 4–11', T],
     ] },
     { index: 3, rows: [['', '', ''], ['', '', ''], ['', '', '']] },

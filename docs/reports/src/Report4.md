@@ -6,14 +6,14 @@ Every diagram of this document is a draw.io file in the repository (`docs/diagra
 
 ### 1.1 System Architecture
 
-CampusStay FPT is one Spring Boot API (a modular monolith with one database) used by two clients: a React web app for the four roles and an Android app for students. The web app is a static build served by Vercel; the API runs in a Docker container behind Caddy on an Azure virtual machine and stores its data in a managed PostgreSQL server. Four external services are used: Google Identity (sign-in), Firebase Cloud Messaging (push), Gmail SMTP (email) and a VietQR image service (the QR picture of a transfer). Money moves outside the system: a student transfers to the dormitory's bank account and a Manager confirms the student's claim; there is no bank API.
+CampusStay FPT is one Spring Boot API (a modular monolith with one database) used by two clients: a React web app for the four roles and a Flutter mobile app for students (built for Android). The web app is a static build served by Vercel; the API runs in a Docker container behind Caddy on an Azure virtual machine and stores its data in a managed PostgreSQL server. Four external services are used: Google Identity (sign-in), Firebase Cloud Messaging (push), Gmail SMTP (email) and a VietQR image service (the QR picture of a transfer). Money moves outside the system: a student transfers to the dormitory's bank account and a Manager confirms the student's claim; there is no bank API.
 
 ![System overview: components, external services and the main data flows](../../diagrams/out/architecture.png)
 
 | Component | Responsibility | Technology |
 |---|---|---|
 | Web app | Student portal (phone-first) and the Staff, Manager and Admin back office; calls only `/api` with a bearer token; Vietnamese and English | React 19, React Router 8, Vite 8, Tailwind CSS 4 |
-| Android app | Students: Home, My Room (door code, check-in pass), Payments (VietQR, claim), Activity (notifications, requests); push notifications | Kotlin 2.1, Jetpack Compose, OkHttp, Firebase Messaging |
+| Mobile app (Flutter, Android) | Students: Home, My Room (door code, check-in pass), Payments (VietQR, claim), Activity (notifications, requests); push notifications | Flutter 3.47 (Dart 3.13), http, Firebase Messaging |
 | Caddy | Reverse proxy on the VM: HTTPS with Let's Encrypt certificates, forwards `/api` to the API container | Caddy 2 |
 | CampusStay API | REST API (`/api`): security filter (bearer session, role rules), controllers, services with the business rules and transactions, repositories; scheduled jobs; domain events; email outbox; push after commit | Spring Boot 4.1.1, Java 21 |
 | PostgreSQL | One database: 98 tables, 32 report views; constraints and partial unique indexes carry the critical rules (one Allocation per Bed per Term, one payment per Invoice) | Azure Database for PostgreSQL 17 (Flexible Server) |
@@ -51,7 +51,7 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 | 09 | `exception` | `ApiException`, `FieldErrors`, `GlobalExceptionHandler`, `LocalizedErrors` (Vietnamese messages from `i18n/messages_vi.txt`). |
 | 10 | `common` | Audit Log, file store and signed links, CSV and XLSX reading and export, search, i18n, the demo scenario data. |
 
-![Web and Android packages](../../diagrams/out/package-clients.png)
+![Web and mobile packages](../../diagrams/out/package-clients.png)
 
 | No | Package | Description |
 |---|---|---|
@@ -60,9 +60,9 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 | 13 | `web/src/components` | `ui` (Button, Field, Table, Overlay, Tag …) and `layout` (StudentLayout, BackOfficeLayout, Block picker, notifications bell). |
 | 14 | `web/src/api` | `client` (fetch with the token and `Accept-Language`, error handling, 401 signs out), `endpoints` (one function per API call), `hooks` (`useQuery`, `useMutation`). |
 | 15 | `web/src/i18n`, `web/src/lib` | `t()` and the Vietnamese texts; formatting of money, dates and times in the campus time zone. |
-| 16 | `android/…/student/ui` | Compose screens: SignIn, Home, Room, Payments, Activity, common widgets, theme. |
-| 17 | `android/…/student/data` | `Api` (OkHttp, JSON, bearer token, language), `Session` (token storage). |
-| 18 | `android/…/student/push` | FCM service: registers the device token with the API, shows notifications that open the matching screen. |
+| 16 | `mobile/lib` (`main.dart`, `screens/`, `common.dart`) | Flutter screens: sign-in, Home, Room, Payments, Activity; session gate, tabs, theme, common widgets and formats. |
+| 17 | `mobile/lib` (`api.dart`, `session.dart`) | `Api` (http, JSON, bearer token, language), `SessionStore` (token storage). |
+| 18 | `mobile/lib/push.dart` | FCM: registers the device token with the API, shows messages that arrive while the app is open. |
 
 ### 1.3 Technology Declaration
 
@@ -72,7 +72,7 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 |---|---|---|
 | Front-end (web) | React 19.3, React Router 8.4, Vite 8.3, Tailwind CSS 4.3, lucide-react 1.59, qrcode-generator 1.4.4, Inter font | JavaScript (JSX); built to static files |
 | Back-end | Java 21 (Temurin), Spring Boot 4.1.1 (Web MVC, Validation, Security, OAuth2 JOSE, Data JPA, Flyway, Mail, Actuator), Maven | One deployable `campusstay-backend` |
-| Mobile | Kotlin 2.1.10, Android Gradle Plugin 8.9, Jetpack Compose (BOM 2025.01.01, Material 3), OkHttp 4.12, ZXing 3.5 (QR), Firebase BOM 33.7 (Messaging), Credential Manager 1.3 + Google ID 1.1 | compileSdk/targetSdk 35, minSdk 26 (Android 8.0) |
+| Mobile | Flutter 3.47.8 (Dart 3.13, Material 3), http 1.6, shared_preferences 2.5, qr_flutter 4.1 (QR), firebase_core 5.1 + firebase_messaging 17.0, google_sign_in 7.2 (Credential Manager); Android host: Android Gradle Plugin 9.1 | compileSdk/targetSdk 36, minSdk 26 (Android 8.0) |
 | Database | PostgreSQL 17 (production: Azure Database for PostgreSQL Flexible Server; tests: Testcontainers `postgres:17-alpine`; development: local PostgreSQL), Flyway migrations V1–V60 | Schema owned by Flyway; the migrations are the database script |
 | Testing | JUnit 5, AssertJ, Spring Boot Test, Testcontainers 2.0, Maven Surefire (unit) and Failsafe (integration) | 235 automated tests (section 3 of Report 5) |
 | Packaging and runtime | Docker (API image built by GitHub Actions), Docker Compose, Caddy 2 | Images in GitHub Container Registry |
@@ -95,10 +95,10 @@ No AI API is called by the product. Secrets live only in the server's `/opt/camp
 
 | Topic | Practice |
 |---|---|
-| Platform | GitHub, one monorepo `tisou47/CampusStay-FPT` (ADR-05): `backend/`, `web/`, `android/`, `docs/`, `infra/`, `.github/workflows/` |
+| Platform | GitHub, one monorepo `tisou47/CampusStay-FPT` (ADR-05): `backend/`, `web/`, `mobile/`, `docs/`, `infra/`, `.github/workflows/` |
 | Branches | `main` is production. Work is done on a branch per change (`feat/…`, `fix/…`, `docs/…`); until Review 2 each phase of the Change Specification v2 is built on `feat/v2-phase<n>` and merged when the phase is complete, its checks pass and the demo works. `main` is updated only by fast-forward after the checks pass. |
 | Commits | Conventional format with the feature code: `feat(web): …`, `fix(bil): …`, `docs: …`. |
-| Checks before merging | `mvn -o verify` in `backend/` for any backend change (unit, integration and architecture tests; Testcontainers needs Docker); `npm run build` in `web/` for any web change; Android: Gradle build. Never merge with a failing check. |
+| Checks before merging | `mvn -o verify` in `backend/` for any backend change (unit, integration and architecture tests; Testcontainers needs Docker); `npm run build` in `web/` for any web change; `flutter analyze`, `flutter test` and `flutter build apk` in `mobile/` for any mobile change. Never merge with a failing check. |
 | CI/CD (backend) | GitHub Actions `backend.yml` on every push to `main` touching `backend/**` or the production stack: job `verify` (`mvn verify` on Ubuntu with Temurin 21), job `image` (Docker build, push to GHCR tagged with the commit SHA and `latest`), job `deploy` (SSH to the VM, `docker compose pull` and `up -d api`, readiness check `GET /api/actuator/health` = UP). Pull requests run `verify` only. |
 | CD (web) | Vercel builds production on every push to `main` and a preview deployment for other branches when `web/` changed. |
 | Database changes | Only new Flyway migrations (`V<next>__….sql`); an applied migration is never edited; migrations run when the new image starts, after passing `mvn verify`. |
@@ -109,7 +109,7 @@ No AI API is called by the product. Secrets live only in the server's `/opt/camp
 
 | Environment | Where | How it is deployed | Data | Rollback |
 |---|---|---|---|---|
-| Development (dev) | Each developer's machine: API with profile `dev` on a local PostgreSQL, web with `npm run dev` (Vite proxy to `/api`), Android Studio emulator or phone | By the developer | Base data seed `R__dev_seed.sql` (8 Blocks, 3,680 Beds, 6,200 fictional students), demo stages | — |
+| Development (dev) | Each developer's machine: API with profile `dev` on a local PostgreSQL, web with `npm run dev` (Vite proxy to `/api`), mobile app with `flutter run` on an Android emulator or phone | By the developer | Base data seed `R__dev_seed.sql` (8 Blocks, 3,680 Beds, 6,200 fictional students), demo stages | — |
 | Test (CI) | GitHub Actions runner | Every push and pull request touching the backend | Testcontainers PostgreSQL 17 with the test seed (2 Blocks, 48 students) | — |
 | Preview (web) | Vercel preview URL per branch | Automatic when `web/` changed on a branch | Uses the production API | Not promoted |
 | Staging / demo = production | Web https://campusstay-fpt-ten.vercel.app; API https://campusstay-api.eastasia.cloudapp.azure.com/api (Azure VM B2ats v2 in East Asia, Docker Compose in `/opt/campusstay`, Azure Database for PostgreSQL B1ms) | Automatically from `main` (section 1.3.3); nobody deploys by hand | Fictional base data; demo stages 0, A, B, C loaded by Admin › System › Demo data (only with `DEMO_TOOLS=true`); emails of fictional accounts redirected to the team mailbox | API: set `API_TAG=<previous SHA>` in `.env` and `docker compose up -d api` (≤ 5 min); web: promote the previous Vercel deployment; database: Azure point-in-time restore (7 days) |
