@@ -89,7 +89,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Trigger | Admin › System › Audit Log (SCR-AUTH-12); Manager or Staff › Students and the student hub (SCR-AUTH-13, SCR-AUTH-14). |
 | Actors | Administrator (Audit Log); Manager, Staff (students) |
 | Description | The Audit Log lists every configuration change, irreversible action, export, import, door-code view and demo reset with who, when, what and the old and new values, filtered by date, actor, action and object. The student hub shows a student's profile, account, Bed, Applications, Invoices, requests and history. |
-| Details | Nobody can edit or delete Audit Log entries; a date range longer than allowed is refused. Managers see every student and correct directory fields (checked and audited); Staff see only the residents of their Blocks and cannot edit. |
+| Details | Nobody can edit or delete Audit Log entries; a date range longer than allowed is refused. Managers see every student, correct directory fields (checked and audited) and lock or unlock a student account (a locked account is signed out at once); Staff see only the residents of their Blocks and cannot edit. |
 | Tests | TC-AUTH-018, 042, 043, 044 |
 
 ### 3.3 Registration periods and configuration (CFG)
@@ -131,7 +131,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Trigger | Manager › Registration › Period requests › New (SCR-CFG-22); the Admin opens the request from the notification. |
 | Actors | Manager, Administrator |
 | Description | A Manager proposes a Term: dates and milestones, Blocks, Rooms left out (typed or imported from an Excel or CSV list of Room codes), places per Room Type × Room Class × gender, prices and notes. Other Managers comment; the Admin comments, asks for changes with a note, rejects with a reason, or builds the Term from it (FR-CFG-05). |
-| Details | Statuses Submitted → In progress → Needs changes → Done / Rejected. One open request per target Term. Missing fields and unknown Blocks are named per field. Every Admin and Manager concerned is notified at each step. |
+| Details | Statuses: Submitted; In progress when the Admin takes it or builds the Term; Done when the Term is published. From any open status the Admin may ask for changes (Needs changes; the Manager sends it again) or reject it. One open request per target Term. Missing fields and unknown Blocks are named per field. Every Admin and Manager concerned is notified at each step. |
 | Tests | TC-CFG-016, 017, 018, TC-INV-025 |
 
 #### 3.3.5 FR-CFG-05 Build and publish a Term
@@ -438,7 +438,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | Manager › Finance › Payment confirmations (SCR-BIL-13); the hourly summary of waiting claims. |
 | Actors | Manager |
-| Description | The queue lists claims with filters (type, Term, Block, claimed since). The Manager confirms one or many (dialog with count and total; optional bank reference and receipt) or rejects with a reason. A confirmed Invoice is Paid and the next step runs (Application Submitted, door code release, Stay counts the Term). |
+| Description | The queue lists claims with filters (type, Term, Block, claimed since). The Manager confirms one or many (dialog with count and total; optional bank reference and receipt) or rejects with a reason. A Manager may also confirm one Invoice whose transfer is on the bank statement although the student did not claim it; the claim is then recorded in the Manager's name. A confirmed Invoice is Paid and the next step runs (Application Submitted, door code release, Stay counts the Term). |
 | Details | A rejection returns the Invoice to Unpaid with the time that was left (at least the minimum); a second rejection cancels it and what depends on it. Each Invoice is audited separately; receipt files are checked by content; a Void Invoice cannot be confirmed. |
 | Tests | TC-BIL-010, 011, 012, 033 |
 
@@ -509,9 +509,9 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Item | Description |
 |---|---|
 | Trigger | Student › Requests › Room Class change (SCR-REQ-08). |
-| Actors | Student, Staff |
-| Description | A continuing resident asks for another class for the Room from the next Term; every other continuing resident must agree (BR-19); Staff check the furniture and approve, and the Room's class for the next Term is set. |
-| Details | A resident in the Stay's last Term is not asked; a refusal ends the request. |
+| Actors | Student, Staff, Manager |
+| Description | A continuing resident or a Manager asks for another class for the Room from the next Term; every other continuing resident must agree (BR-19); Staff check the furniture and approve, and the Room's class for the next Term is set. After approval a Manager may set the class back, and the price difference of that Term is settled. |
+| Details | A resident in the Stay's last Term is not asked; a refusal, or the requester not continuing next Term, cancels the request; a resident who joins the Room before the decision must consent too. |
 | Tests | TC-REQ-020 |
 
 #### 3.8.4 FR-REQ-04 Extension and end of stay
@@ -615,7 +615,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Trigger | A notification whose template asks for push or email. |
 | Actors | System |
 | Description | Push messages go to the user's registered Android devices through FCM after the transaction commits; emails are queued and sent by the dispatcher in the recipient's language. |
-| Details | Device tokens are stored hashed; an unregistered token is disabled. With the demo mailbox set, emails to fictional accounts go to it (recipient in the subject), real accounts receive their own; without SMTP nothing is sent or thrown. |
+| Details | A device token is stored with its hash, which is used to find it; an unregistered token is disabled. With the demo mailbox set, emails to fictional accounts go to it (recipient in the subject), real accounts receive their own; without SMTP nothing is sent or thrown. |
 | Tests | TC-NTF-010, 011, 012, 020, 021, 034, 035, 039, 040 |
 
 #### 3.10.3 FR-NTF-03 Announcements and the dormitory board

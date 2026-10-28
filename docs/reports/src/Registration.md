@@ -70,6 +70,7 @@ Assignment engine and automation. The system shall automatically:
 - Security and privacy: access by role and Block; passwords hashed, door codes encrypted; personal data processed according to the Personal Data Protection Law 91/2025/QH15.
 - Performance and capacity: p95 response ≤ 1 s with 200 concurrent users on 3,680 Beds and 6,200 students.
 - Integrity: a Bed is never given twice in a Term; money of an Invoice never changes once issued.
+- Availability: the API answers its health check in at least 99 % of 5-minute checks during the demo period.
 - Configurability: Terms, prices, rules and time limits change without a new release.
 - Usability: Vietnamese and English; student portal usable on phones.
 - Deployability: every change that passes its tests is deployed automatically; rollback in minutes.

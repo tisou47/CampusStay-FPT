@@ -79,11 +79,12 @@ const BM01 = {
     ] },
     { index: 6, fontSize: 9, widths: [0.8, 6.0, 2.6, 4.0, 2.0, 1.6], rows: [
       ['G1', 'Registration v1 items not built as written (self-selection, e-contract, self check-in/out, SMS, forecast, live SIS)', 'Registration form', 'Form v2 changes them (BM03)', T, '31/10/2026'],
-      ['G2', 'Workflow tests TC-WF-01..05 are manual', 'Report 5 §4.2', 'Run on staging; automate in CI', V, '30/11/2026'],
-      ['G3', 'NFR-01 and NFR-04 not measured yet', 'Report 5 §4.4', 'Load script, uptime check', V, '15/11/2026'],
-      ['G4', 'No concurrency test for one Allocation per Bed per Term', 'TC-NFR-03', 'Parallel-commit test', L, '15/11/2026'],
-      ['G5', 'Android app has no automated tests', 'android/', 'UI tests of key screens', V, '30/11/2026'],
-      ['G6', 'Statuses DRAFT, UPCOMING, REFUNDED in the schema are never stored', 'V4, V6; SDD §3.1', 'Keep documented or drop', T, '15/11/2026'],
+      ['G2', 'Workflow tests TC-WF-01..05 are manual (SR-21)', 'Report 5 §4.2', 'Run on staging; automate in CI', V, '30/11/2026'],
+      ['G3', 'NFR-01, 04, 06 not measured yet (SR-06)', 'Report 5 §4.4', 'Load script, uptime check, run times', V, '15/11/2026'],
+      ['G4', 'No concurrency test for one Allocation per Bed per Term (SR-06)', 'TC-NFR-03', 'Parallel-commit test', L, '15/11/2026'],
+      ['G5', 'Android app has no automated or manual test cases (SR-08)', 'android/, Report 5', 'UI tests of key screens', V, '30/11/2026'],
+      ['G6', 'Statuses in the schema never stored (SR-12); Term never Closed (SR-13)', 'V4, V6, V7; SDD §3.1', 'Drop or use them; close Terms after the stay', T, '15/11/2026'],
+      ['G7', 'Round 2 run by a Manager not built; freed Beds not offered (SR-01, High)', 'FR-APP-07', 'Manager run, pool of freed Beds, M8', T, '15/11/2026'],
     ] },
     { index: 7, fontSize: 9, widths: [1.0, 3.3, 2.0, 7.9, 1.9, 0.9], rows: features },
     { index: 8, fontSize: 9, widths: [1.4, 2.3, 5.0, 2.8, 5.5], rows: [
@@ -163,8 +164,27 @@ const ps = (script, cfg, name) => {
   fs.writeFileSync(file, JSON.stringify(cfg, null, 1));
   execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, `docs/tools/${script}`), '-Config', file], { stdio: 'inherit', cwd: root });
 };
+// Self-review (BM02): the AI's findings exactly as produced (docs/reports/data/selfreview.json, `raw`), the
+// team's response per finding and the counts.
+function bm02() {
+  const sr = JSON.parse(fs.readFileSync(path.join(root, 'docs/reports/data/selfreview.json'), 'utf8'));
+  const count = (sev, kind) => sr.findings.filter((f) => f.severity === sev && (!kind || f.response.startsWith(kind))).length;
+  return {
+    template: `${forms}/SWP490_R2_BM02_Self_Review_Report_1.docx`,
+    out: 'docs/reports/out/SWP490_FA26SE260_R2_SelfReview',
+    deleteColor: 6710886,
+    tables: [
+      { index: 1, column: 2, values: ['FA26SE260', PROJECT, `CampusStay FPT — ${T} (Leader), ${L}, ${D}, ${V}`, 'Thân Thị Ngọc Vân', sr.tool, sr.runDate, sr.tag, '2.0 (proposed, 28/10/2026)', '1.0', sr.runDate] },
+      { index: 3, fontSize: 8, widths: [1.1, 1.6, 2.6, 4.2, 1.3, 3.3, 2.9], rows: sr.findings.map((f) => [f.id, f.category, f.location, f.finding, f.severity, f.evidence, f.response]) },
+      { index: 4, fontSize: 9, rows: sr.top5.map((t, i) => [String(i + 1), t.id, t.summary]) },
+      { index: 5, rows: ['High', 'Medium', 'Low'].map((s) => [s, String(count(s)), String(count(s, 'Fixed')), String(count(s, 'Kept')), String(count(s, 'Planned'))]) },
+    ],
+  };
+}
+
 const which = process.argv[2] ?? 'BM01';
 if (which === 'BM01') ps('fill-form.ps1', BM01, 'BM01');
+if (which === 'BM02') ps('fill-form.ps1', bm02(), 'BM02');
 if (which === 'Registration') {
   ps('fill-form.ps1', BM03, 'BM03');
   execFileSync('node', [path.join(root, 'docs/tools/md2html.mjs'), path.join(here, 'Registration.md'), path.join(root, REGISTRATION.html)], { stdio: 'inherit' });

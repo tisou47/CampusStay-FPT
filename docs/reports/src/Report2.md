@@ -185,7 +185,7 @@ D = Do; R = Review; S = Support; I = Informed; blank = omitted.
 
 ### 6.1 Document Management
 
-- All project documents live in the repository under `docs/`: the Brief, the Change Specification v2, the API contract, the backend and web design notes, the report sources (`docs/reports/src/*.md`) and diagrams as Mermaid source (`docs/diagrams/*.mmd`).
+- All project documents live in the repository under `docs/`: the Brief, the Change Specification v2, the API contract, the backend and web design notes, the report sources (`docs/reports/src/*.md`) and the diagrams as draw.io files (`docs/diagrams/*.drawio`).
 - Report PDFs are generated from these sources into the school's Word templates (`node docs/reports/src/build.mjs`), so every version is reproducible; tables that must match the code (screens, messages, test cases, ERDs) are generated from the code.
 - Each document has a Record of Changes; review versions are frozen by the Git tag of the review (`review-2`); file names follow `SWP490_FA26SE260_R2_<name>.pdf`.
 
@@ -202,7 +202,7 @@ D = Do; R = Review; S = Support; I = Informed; blank = omitted.
 | Technology | Java 21, Spring Boot 4.1, PostgreSQL 17, React 19, Vite 8, Tailwind CSS 4, Kotlin 2.1, Jetpack Compose |
 | IDEs and editors | IntelliJ IDEA, VS Code, Android Studio |
 | AI tools | Claude Code (Anthropic) — specification, design, code, tests, review (Report 4 section 1.3.5) |
-| Design | Figma (file *CampusStay-FPT*), Mermaid diagrams |
+| Design | Figma (file *CampusStay-FPT*), draw.io (UML diagrams, ERDs in Chen's notation) |
 | Source control and CI/CD | Git, GitHub, GitHub Actions, GitHub Container Registry |
 | Hosting | Vercel (web), Microsoft Azure for Students (VM with Docker Compose and Caddy, Azure Database for PostgreSQL) |
 | Testing | JUnit 5, AssertJ, Testcontainers, Postman |

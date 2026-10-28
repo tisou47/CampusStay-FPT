@@ -41,27 +41,30 @@
 | TC-ST-39 | Invoice | Unpaid → Awaiting confirmation | Student claims the transfer | FR-BIL-02 | TC-BIL-032 | Passed |
 | TC-ST-40 | Invoice | Overdue → Awaiting confirmation | Student claims an overdue debt | FR-BIL-02 | TC-BIL-035 | Passed |
 | TC-ST-41 | Invoice | Awaiting confirmation → Paid | Manager confirms the claim | FR-BIL-03 | TC-BIL-011 | Passed |
-| TC-ST-42 | Invoice | Awaiting confirmation → Unpaid | Manager rejects the claim, time left continues | FR-BIL-03 | TC-BIL-033 | Passed |
-| TC-ST-43 | Invoice | Awaiting confirmation → Overdue | Rejected claim of a debt already past due | FR-BIL-03 | TC-BIL-035 | Passed |
-| TC-ST-44 | Invoice | Awaiting confirmation → Void | Second rejection of a Deposit or Balance claim | FR-BIL-03 | TC-ASG-034 | Passed |
-| TC-ST-45 | Invoice | Unpaid → Overdue | Due date passes (Utility, charges) | FR-BIL-05 | TC-BIL-020 | Passed |
-| TC-ST-46 | Invoice | Unpaid → Void | Forfeit or cancelled Application | FR-ASG-11, FR-APP-04 | TC-APP-007 | Passed |
-| TC-ST-47 | Invoice | Overdue → Void | Overdue Utility settled from the Utility Deposit at check-out | FR-ASG-06 | Manual | Not run |
-| TC-ST-48 | Payment claim | (new) → Claimed | Student presses "I have transferred" | FR-BIL-02 | TC-BIL-032 | Passed |
-| TC-ST-49 | Payment claim | Claimed → Confirmed | Manager confirms | FR-BIL-03 | TC-BIL-011 | Passed |
-| TC-ST-50 | Payment claim | Claimed → Rejected | Manager rejects with a reason | FR-BIL-03 | TC-BIL-033 | Passed |
-| TC-ST-51 | Maintenance Request | (new) → Submitted | Resident reports a problem | FR-MNT-01 | TC-MNT-001 | Passed |
-| TC-ST-52 | Maintenance Request | Submitted → Assigned | Routing rule or Staff assigns, deadline set | FR-REQ-06 | TC-REQ-014 | Passed |
-| TC-ST-53 | Maintenance Request | Assigned → Submitted | Assignee removed | FR-MNT-02 | Manual | Not run |
-| TC-ST-54 | Maintenance Request | Assigned → In Progress | Staff starts the work | FR-MNT-02 | TC-MNT-002 | Passed |
-| TC-ST-55 | Maintenance Request | In Progress → Resolved | Staff marks it fixed | FR-MNT-02 | TC-MNT-002 | Passed |
-| TC-ST-56 | Maintenance Request | Assigned → Resolved | Staff fixes it without starting it first | FR-MNT-02 | Manual | Not run |
-| TC-ST-57 | Maintenance Request | Resolved → Closed | Reporter confirms the fix | FR-MNT-02 | TC-MNT-002 | Passed |
-| TC-ST-58 | Maintenance Request | Resolved → Assigned | Reporter reopens (once) | FR-MNT-02 | TC-MNT-002 | Passed |
-| TC-ST-59 | Maintenance Request | Submitted → Closed | Staff closes a duplicate | FR-MNT-02 | Manual | Not run |
-| TC-ST-60 | Maintenance Request | Assigned → Closed | Staff closes it | FR-MNT-02 | Manual | Not run |
-| TC-ST-61 | Maintenance Request | In Progress → Closed | Staff closes it | FR-MNT-02 | Manual | Not run |
-| TC-ST-62 | Invoice | Paid / Void → (refused) | Claim a Paid or Void Invoice, or a Deposit past its deadline | FR-BIL-02 | TC-BIL-034 | Passed |
-| TC-ST-63 | Invoice | Void → (refused) | Confirm a Void Invoice | FR-BIL-03 | TC-BIL-012 | Passed |
-| TC-ST-64 | Invoice | Paid → (refused) | Confirm an Invoice a second time | FR-BIL-03 | TC-BIL-011 | Passed |
-| TC-ST-65 | Next-Term Allocation | Continuing (fees issued) → (refused) | Staff move a next-Term Bed after the fees are issued | FR-ASG-10 | TC-ASG-044 | Passed |
+| TC-ST-42 | Invoice | Unpaid → Paid | Manager confirms a transfer the student did not claim | FR-BIL-03 | TC-BIL-011 | Passed |
+| TC-ST-43 | Invoice | Overdue → Paid | Manager confirms an overdue debt the student did not claim | FR-BIL-03 | Manual | Not run |
+| TC-ST-44 | Invoice | Awaiting confirmation → Unpaid | Manager rejects the claim, time left continues | FR-BIL-03 | TC-BIL-033 | Passed |
+| TC-ST-45 | Invoice | Awaiting confirmation → Overdue | Rejected claim of a debt already past due | FR-BIL-03 | TC-BIL-035 | Passed |
+| TC-ST-46 | Invoice | Awaiting confirmation → Void | Second rejection of a Deposit or Balance claim | FR-BIL-03 | TC-ASG-034 | Passed |
+| TC-ST-47 | Invoice | Unpaid → Overdue | Due date passes (Utility, charges) | FR-BIL-05 | TC-BIL-020 | Passed |
+| TC-ST-48 | Invoice | Unpaid → Void | Forfeit or cancelled Application | FR-ASG-11, FR-APP-04 | TC-APP-007 | Passed |
+| TC-ST-49 | Invoice | Overdue → Void | Overdue Utility settled from the Utility Deposit at check-out | FR-ASG-06 | Manual | Not run |
+| TC-ST-50 | Payment claim | (new) → Claimed | Student presses "I have transferred" | FR-BIL-02 | TC-BIL-032 | Passed |
+| TC-ST-51 | Payment claim | Claimed → Confirmed | Manager confirms | FR-BIL-03 | TC-BIL-011 | Passed |
+| TC-ST-52 | Payment claim | (new) → Confirmed | Manager confirms a transfer the student did not claim (claim in the Manager's name) | FR-BIL-03 | TC-BIL-011 | Passed |
+| TC-ST-53 | Payment claim | Claimed → Rejected | Manager rejects with a reason | FR-BIL-03 | TC-BIL-033 | Passed |
+| TC-ST-54 | Maintenance Request | (new) → Submitted | Resident reports a problem | FR-MNT-01 | TC-MNT-001 | Passed |
+| TC-ST-55 | Maintenance Request | Submitted → Assigned | Routing rule or Staff assigns, deadline set | FR-REQ-06 | TC-REQ-014 | Passed |
+| TC-ST-56 | Maintenance Request | Assigned → Submitted | Assignee removed | FR-MNT-02 | Manual | Not run |
+| TC-ST-57 | Maintenance Request | Assigned → In Progress | Staff starts the work | FR-MNT-02 | TC-MNT-002 | Passed |
+| TC-ST-58 | Maintenance Request | In Progress → Resolved | Staff marks it fixed | FR-MNT-02 | TC-MNT-002 | Passed |
+| TC-ST-59 | Maintenance Request | Assigned → Resolved | Staff fixes it without starting it first | FR-MNT-02 | Manual | Not run |
+| TC-ST-60 | Maintenance Request | Resolved → Closed | Reporter confirms the fix | FR-MNT-02 | TC-MNT-002 | Passed |
+| TC-ST-61 | Maintenance Request | Resolved → Assigned | Reporter reopens (once) | FR-MNT-02 | TC-MNT-002 | Passed |
+| TC-ST-62 | Maintenance Request | Submitted → Closed | Staff closes a duplicate | FR-MNT-02 | Manual | Not run |
+| TC-ST-63 | Maintenance Request | Assigned → Closed | Staff closes it | FR-MNT-02 | Manual | Not run |
+| TC-ST-64 | Maintenance Request | In Progress → Closed | Staff closes it | FR-MNT-02 | Manual | Not run |
+| TC-ST-65 | Invoice | Paid / Void → (refused) | Claim a Paid or Void Invoice, or a Deposit past its deadline | FR-BIL-02 | TC-BIL-034 | Passed |
+| TC-ST-66 | Invoice | Void → (refused) | Confirm a Void Invoice | FR-BIL-03 | TC-BIL-012 | Passed |
+| TC-ST-67 | Invoice | Paid → (refused) | Confirm an Invoice a second time | FR-BIL-03 | TC-BIL-011 | Passed |
+| TC-ST-68 | Next-Term Allocation | Continuing (fees issued) → (refused) | Staff move a next-Term Bed after the fees are issued | FR-ASG-10 | TC-ASG-044 | Passed |

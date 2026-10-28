@@ -34,7 +34,7 @@ Glossary used in every report: **Term** (kỳ), **Block** (Building), **Floor**,
 | 3 | Manager | Dormitory manager working for every Block (added after Review 1). Requests registration periods, verifies student accounts, imports the student list, reviews Applications, runs and approves the assignment, confirms payment claims, decides late check-ins, terminations and refunds, reconciles the enrolled list, issues next-Term fees, handles escalations, sets routing rules and Block settings, manages Staff accounts, reads reports. |
 | 4 | Administrator | Configures the system: answers registration-period requests and builds and publishes Terms, sets Room Types, Room Classes, fees, Utility, rules and system parameters, manages Blocks, Rooms, furniture types and users, edits notification texts, sends emails, reads the Audit Log and reports, resets demo data on the demo server. |
 | 5 | System (scheduled jobs) | Time-driven work: Deposit expiry, Balance forfeit, door code release, requests-window milestones (M2, M3, M4, M7), overdue Invoices and Utility warnings, payment reminders, time-limit scans and escalations, swap expiry, inspection runs, email dispatch. |
-| 6 | Google Identity, Firebase Cloud Messaging, Gmail SMTP | External services: sign-in, push and email (section 4.1). |
+| 6 | Google Identity, Firebase Cloud Messaging, Gmail SMTP, VietQR image service | External services: sign-in, push, email and the QR picture of a transfer (section 4.1). |
 
 ### 2.2 Use Cases
 
@@ -159,9 +159,9 @@ Activities inside screens that need more than the screen's role:
 
 | # | Feature | System Function | Description |
 |---|---|---|---|
-| 1 | Applications | Deposit expiry (every 5 min) | An Application Awaiting Deposit whose window ended without a claim becomes Expired and its Invoice Void. |
+| 1 | Applications | Deposit and offer expiry (every 5 min) | An Application Awaiting Deposit whose window ended without a claim becomes Expired and its Invoice Void; roommate invitations and Round-2 offers not answered in time expire. |
 | 2 | Assignment | Forfeit (every 5 min) | A Balance past its deadline with no claim waiting is forfeited: Allocation cancelled, Application Forfeited, Deposit kept by rule. |
-| 3 | Assignment | Door code release (every 15 min) | Releases the Room's door code to students whose Balance is paid, whose check-in start has come and whose Room code is active; they become residents. |
+| 3 | Assignment | Door code release (every 15 min) | Releases the Room's door code to students whose Balance is paid, whose check-in start has come and whose Room code is active; they become residents. Terminations past their move-out date become Overdue. |
 | 4 | Term transition | Requests window jobs (every 15 min) | M2 opens the window (next-Term Allocations), M3 closes filing and releases Beds not extended, M4 − 48 h alerts Managers, M7 cancels unpaid next-Term fees. |
 | 5 | Billing | Overdue and Utility debt (hourly) | Unpaid charges past due become Overdue; Utility warnings (first, final) and the termination when the rule is met. |
 | 6 | Billing | Payment reminders (hourly) | Reminders before Balance and next-Term fee deadlines (days set by the Admin); hourly summary of waiting claims to Managers. |
@@ -177,7 +177,7 @@ Activities inside screens that need more than the screen's role:
 
 The main entities and their relationships (the full logical ERD of 98 tables is in Report 4, section 2).
 
-![Conceptual ERD of the main entities (every line is a foreign key of the schema)](../../diagrams/out/erd-main.png)
+![Conceptual ERD of the main entities in Chen's notation (every relationship is a foreign key of the schema)](../../diagrams/out/erd-main.png)
 
 | # | Entity | Description |
 |---|---|---|

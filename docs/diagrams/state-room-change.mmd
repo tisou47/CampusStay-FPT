@@ -1,6 +1,0 @@
-%% Room change (req_room_change)
-stateDiagram-v2
-  [*] --> Submitted : resident files it (FR-REQ-01)
-  Submitted --> Approved : Staff picks a free Bed and approves (FR-REQ-01, FR-REQ-05)
-  Submitted --> Rejected : Staff rejects with a reason (FR-REQ-05)
-  Submitted --> Cancelled : resident cancels, or the next-Term Allocation ends (FR-REQ-01)

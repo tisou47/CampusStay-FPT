@@ -1,6 +1,6 @@
 ### 2.2 Accounts and access (AUTH)
 
-![Logical ERD: Accounts and access (AUTH)](../../diagrams/out/erd-auth.png)
+![Logical ERD (Chen's notation): Accounts and access (AUTH)](../../diagrams/out/erd-auth.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -18,7 +18,7 @@
 
 ### 2.3 Settings and Terms (CFG)
 
-![Logical ERD: Settings and Terms (CFG)](../../diagrams/out/erd-cfg.png)
+![Logical ERD (Chen's notation): Settings and Terms (CFG)](../../diagrams/out/erd-cfg.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -42,7 +42,7 @@
 
 ### 2.4 Inventory: Blocks, Rooms, Beds, furniture, door codes (INV)
 
-![Logical ERD: Inventory: Blocks, Rooms, Beds, furniture, door codes (INV)](../../diagrams/out/erd-inv.png)
+![Logical ERD (Chen's notation): Inventory: Blocks, Rooms, Beds, furniture, door codes (INV)](../../diagrams/out/erd-inv.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -62,7 +62,7 @@
 
 ### 2.5 Applications (APP)
 
-![Logical ERD: Applications (APP)](../../diagrams/out/erd-app.png)
+![Logical ERD (Chen's notation): Applications (APP)](../../diagrams/out/erd-app.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -75,7 +75,7 @@
 
 ### 2.6 Assignment and residence (ASG)
 
-![Logical ERD: Assignment and residence (ASG)](../../diagrams/out/erd-asg.png)
+![Logical ERD (Chen's notation): Assignment and residence (ASG)](../../diagrams/out/erd-asg.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -93,7 +93,7 @@
 
 ### 2.7 Billing and Utility (BIL)
 
-![Logical ERD: Billing and Utility (BIL)](../../diagrams/out/erd-bil.png)
+![Logical ERD (Chen's notation): Billing and Utility (BIL)](../../diagrams/out/erd-bil.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -109,7 +109,7 @@
 
 ### 2.8 Requests, routing and escalations (REQ)
 
-![Logical ERD: Requests, routing and escalations (REQ)](../../diagrams/out/erd-req.png)
+![Logical ERD (Chen's notation): Requests, routing and escalations (REQ)](../../diagrams/out/erd-req.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -126,7 +126,7 @@
 
 ### 2.9 Maintenance and inspections (MNT)
 
-![Logical ERD: Maintenance and inspections (MNT)](../../diagrams/out/erd-mnt.png)
+![Logical ERD (Chen's notation): Maintenance and inspections (MNT)](../../diagrams/out/erd-mnt.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -143,7 +143,7 @@
 
 ### 2.10 Notifications and announcements (NTF)
 
-![Logical ERD: Notifications and announcements (NTF)](../../diagrams/out/erd-ntf.png)
+![Logical ERD (Chen's notation): Notifications and announcements (NTF)](../../diagrams/out/erd-ntf.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|
@@ -159,7 +159,7 @@
 
 ### 2.11 Shared: Audit Log and files
 
-![Logical ERD: Shared: Audit Log and files](../../diagrams/out/erd-shared.png)
+![Logical ERD (Chen's notation): Shared: Audit Log and files](../../diagrams/out/erd-shared.png)
 
 | No | Table | Description | Keys |
 |---|---|---|---|

@@ -1,7 +1,0 @@
-%% Payment claim lifecycle (BIL): bil_payment_claim.status
-stateDiagram-v2
-  [*] --> Claimed : student presses "I have transferred" with the reference (FR-BIL-02)
-  Claimed --> Confirmed : Manager confirms one or many claims (FR-BIL-03)
-  Claimed --> Rejected : Manager rejects with a reason (FR-BIL-03)
-  Confirmed --> [*] : a Payment is recorded, the Invoice is Paid
-  Rejected --> [*] : the Invoice's time continues, a second rejection cancels a Deposit or Balance

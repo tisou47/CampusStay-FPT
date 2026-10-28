@@ -17,41 +17,9 @@ This document describes how the CampusStay FPT backend is built: the architectur
 
 ## 2. Architecture overview
 
-```mermaid
-flowchart LR
-    subgraph Clients
-        WEB["Web app<br/>React 19 + Vite<br/>Student · Staff · Manager · Admin"]
-        MOB["Android app<br/>Kotlin + Jetpack Compose<br/>Student self-service"]
-    end
+![Backend architecture overview](../diagrams/out/backend-overview.png)
 
-    subgraph API["CampusStay API — one Spring Boot 4.1 deployable (/api)"]
-        SEC["Security filter<br/>Bearer session · RBAC"]
-        CTL["Controllers<br/>REST endpoints · request/response records"]
-        SVC["Services<br/>business rules · SQL · events · jobs"]
-        REPO["Repositories · entities<br/>Spring Data JPA · SQL stores"]
-        SH["Common · exception · config<br/>errors · paging · audit · clock · files"]
-        JOBS["Scheduled jobs"]
-    end
-
-    DB[("PostgreSQL 17<br/>Flyway schema")]
-    FS[("File volume<br/>photos · receipts")]
-    GOOG["Google Identity<br/>(token endpoint · JWKS)"]
-    BANK["Bank account<br/>(VietQR image, statement read by Managers)"]
-    FCM["Firebase Cloud<br/>Messaging"]
-    SMTP["SMTP<br/>Mailpit · Gmail"]
-
-    WEB -->|HTTPS JSON| SEC
-    MOB -->|HTTPS JSON| SEC
-    SEC --> CTL --> SVC --> REPO --> DB
-    SVC --> DB
-    SVC --> SH
-    JOBS --> SVC
-    SVC -. "events (service.notification listens)" .-> SVC
-    SVC -->|exchange code · verify ID token| GOOG
-    SVC --> FCM --> MOB
-    SVC --> SMTP
-    SVC --> FS
-```
+*Diagrams of this document are draw.io files (`docs/diagrams/*.drawio`); the pictures are exported from them by `node docs/tools/drawio.mjs export`.*
 
 | Component | Responsibility |
 |---|---|
@@ -154,28 +122,7 @@ Rules (`LayeringTest` checks rule 1; the others are checked in review):
 
 ## 7. Request lifecycle
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as Client
-    participant F as BearerTokenFilter
-    participant S as SessionService
-    participant R as Role rules
-    participant Ctl as Controller
-    participant Svc as Service (@Transactional)
-    participant DB as PostgreSQL
-    C->>F: GET /api/applications?block=A (Bearer token)
-    F->>S: authenticate(token)
-    S->>DB: session by SHA-256(token) + user + Blocks
-    S-->>F: AuthenticatedUser (or empty)
-    F->>R: URL prefix role check
-    R->>Ctl: allowed
-    Ctl->>Svc: list(filter, PageQuery)
-    Svc->>Svc: BlockScope.resolve("A")
-    Svc->>DB: query
-    Svc-->>Ctl: DTO
-    Ctl-->>C: 200 { items, total, counts }
-```
+![Request lifecycle](../diagrams/out/seq-request-lifecycle.png)
 
 ## 8. Security
 
@@ -261,25 +208,7 @@ Services check rules first and return a clear `ApiException`; the constraint is 
 
 ## 10. Payment: claims confirmed by Managers (ADR-22, v2 phase 5)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor St as Student
-    participant W as Web / Android
-    participant B as BIL
-    actor M as Manager
-    St->>W: Pay Invoice
-    W->>B: GET /invoices/{id}/payment
-    B-->>W: transfer content, VietQR image (when an account is configured), claim, canClaim
-    St->>St: transfer with the banking app
-    St->>W: I have transferred
-    W->>B: POST /invoices/{id}/claim
-    B->>B: claim (time left kept) · Invoice Awaiting confirmation · deadline stops
-    B-->>M: hourly summary "n claims to confirm"
-    M->>B: POST /payment-claims/confirm (after reading the bank statement)
-    B->>B: Payment TRANSFER at the claim's time · Invoice Paid · one audit entry per Invoice
-    B->>B: PaymentConfirmed → APP (Application Submitted) · ASG (door code release) · NTF
-```
+![Payment: claims confirmed by Managers](../diagrams/out/seq-payment-claims.png)
 
 | Topic | Design |
 |---|---|
@@ -337,46 +266,9 @@ Migrations (`backend/src/main/resources/db/migration`): `V1` shared + AUTH, `V2`
 
 ### 13.1 Core entities
 
-```mermaid
-erDiagram
-    cfg_term ||--o{ app_application : "for"
-    auth_user ||--o| auth_student : "is"
-    auth_user ||--o{ app_application : "submits"
-    cfg_room_type ||--o{ app_application : "requested"
-    cfg_room_class ||--o{ app_application : "requested"
-    inv_building ||--o{ inv_floor : has
-    cfg_room_class |o--o{ inv_floor : "class of new Rooms"
-    inv_floor ||--o{ inv_room : has
-    cfg_room_type ||--o{ inv_room : "type of"
-    cfg_room_class ||--o{ inv_room : "built as"
-    inv_room ||--o{ inv_room_class_term : "class per Term"
-    cfg_term ||--o{ inv_room_class_term : "from"
-    inv_room ||--o{ inv_bed : has
-    inv_room ||--o{ inv_furniture_item : "furnished with"
-    inv_furniture_type ||--o{ inv_furniture_item : "type of"
-    cfg_room_class ||--o{ inv_room_class_requirement : requires
-    inv_room ||--o{ inv_door_code : "locked by"
-    app_application ||--o{ app_roommate_invitation : sends
-    asg_run ||--o{ asg_proposal_item : proposes
-    app_application ||--o{ asg_proposal_item : "placed in"
-    app_application ||--o| asg_allocation : "results in"
-    inv_bed ||--o{ asg_allocation : "held by"
-    app_application ||--o{ bil_invoice : "billed by"
-    asg_allocation ||--o{ bil_invoice : "billed by"
-    bil_invoice ||--o| bil_payment : "settled by"
-    bil_invoice ||--o{ bil_payment_claim : "claimed by"
-    bil_payment_claim ||--o| bil_payment : "confirmed as"
-    asg_allocation ||--o{ asg_termination : "ended by"
-    asg_stay ||--o{ asg_allocation : "Terms of"
-    cfg_term ||--o| asg_renewal : "requests window"
-    asg_allocation ||--o{ asg_move : "moved by"
-    asg_allocation ||--o{ req_room_change : "changed by"
-    inv_room ||--o{ req_room_class_change : "class change asked"
-    req_room_class_change ||--o{ req_room_class_consent : "agreed by"
-    asg_allocation ||--o{ req_stay_request : "extended or ended by"
-    auth_reconciliation ||--o{ auth_reconciliation_item : "differences"
-    inv_room ||--o{ mnt_request : "reported in"
-```
+![Core entities, logical ERD in Chen's notation](../diagrams/out/erd-main.png)
+
+Conceptual overview in Chen's notation (`docs/diagrams/erd-main.drawio`); the logical ERD of each feature, with its attributes, is generated from the migrated schema (`docs/tools/gen-db-docs.mjs`, `docs/diagrams/erd-<feature>.drawio`, Report 4 §2).
 
 ### 13.2 Table catalog
 
@@ -409,26 +301,7 @@ Deployment (ADR-16): Docker image (multi-stage, non-root); `infra/docker-compose
 
 ### 14.1 Production (live since 23/10/2026)
 
-```mermaid
-flowchart LR
-    DEV["Push to main"] --> GH["GitHub<br/>tisou47/CampusStay-FPT"]
-    GH -->|"every push (production)<br/>web/** (previews)"| VER["Vercel<br/>builds web/ (web/vercel.json)"]
-    GH -->|"backend/**, infra/prod stack files"| GA["GitHub Actions backend.yml<br/>mvn verify → image"]
-    GA -->|push| GHCR[("GHCR<br/>campusstay-backend:&lt;sha&gt;")]
-    GA -->|"SSH: copy infra/prod,<br/>compose pull + up, readiness"| VM
-    subgraph AZ["Azure for Students · East Asia"]
-        subgraph VM["VM campusstay-vm · Docker Compose in /opt/campusstay"]
-            CADDY["caddy<br/>HTTPS (Let's Encrypt)"] --> API["api<br/>Spring Boot, profile prod"]
-            API --- FILES[("api-files volume<br/>receipts, photos")]
-        end
-        PG[("Azure Database for PostgreSQL<br/>Flexible Server, 7-day PITR")]
-    end
-    API -->|"JDBC, sslmode=require"| PG
-    VM -.->|pull image| GHCR
-    USER["Browser"] -->|"campusstay-fpt-ten.vercel.app"| VER
-    USER -->|"campusstay-api.eastasia.cloudapp.azure.com/api"| CADDY
-    API -->|SMTP 587| GMAIL["Gmail"]
-```
+![Production delivery](../diagrams/out/backend-production.png)
 
 | Topic | Production |
 |---|---|

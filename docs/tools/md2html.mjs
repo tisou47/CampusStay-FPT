@@ -47,7 +47,7 @@ while (i < lines.length) {
     flush();
     figure++;
     let file = path.resolve(base, img[2]);
-    // A wide diagram has a turned copy (<name>-r.png, see render-diagrams.mjs) that fills the page's height.
+    // A wide diagram has a turned copy (<name>-r.png, see drawio.mjs) that fills the page's height.
     const turned = file.replace(/.png$/, '-r.png');
     if (!img[3] && fs.existsSync(turned)) file = turned;
     if (!fs.existsSync(file)) throw new Error(`Missing image ${file}`);

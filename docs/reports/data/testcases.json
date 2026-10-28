@@ -3,14 +3,14 @@
   "features": 18,
   "featureCases": 79,
   "workflows": 5,
-  "states": 65,
-  "statesAutomated": 55,
+  "states": 68,
+  "statesAutomated": 57,
   "nfrs": 6,
-  "total": 155,
-  "automated": 136,
-  "passed": 136,
+  "total": 158,
+  "automated": 138,
+  "passed": 138,
   "failed": 0,
-  "notRun": 19,
+  "notRun": 20,
   "runDate": "2026-10-27T23:20:12.359Z",
   "suite": {
    "tests": 235,
@@ -1856,6 +1856,32 @@
   {
    "id": "TC-ST-42",
    "entity": "Invoice",
+   "from": "Unpaid",
+   "to": "Paid",
+   "trigger": "Manager confirms a transfer the student did not claim",
+   "fr": "FR-BIL-03",
+   "auto": "TC-BIL-011",
+   "test": "PaymentDeskIT.manualConfirmation",
+   "expected": "Status becomes Paid",
+   "result": "Passed",
+   "run": "Automated"
+  },
+  {
+   "id": "TC-ST-43",
+   "entity": "Invoice",
+   "from": "Overdue",
+   "to": "Paid",
+   "trigger": "Manager confirms an overdue debt the student did not claim",
+   "fr": "FR-BIL-03",
+   "auto": null,
+   "test": null,
+   "expected": "Status becomes Paid",
+   "result": "Not run",
+   "run": "Manual"
+  },
+  {
+   "id": "TC-ST-44",
+   "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Unpaid",
    "trigger": "Manager rejects the claim, time left continues",
@@ -1867,7 +1893,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-43",
+   "id": "TC-ST-45",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Overdue",
@@ -1880,7 +1906,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-44",
+   "id": "TC-ST-46",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Void",
@@ -1893,7 +1919,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-45",
+   "id": "TC-ST-47",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Overdue",
@@ -1906,7 +1932,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-46",
+   "id": "TC-ST-48",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Void",
@@ -1919,7 +1945,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-47",
+   "id": "TC-ST-49",
    "entity": "Invoice",
    "from": "Overdue",
    "to": "Void",
@@ -1932,7 +1958,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-48",
+   "id": "TC-ST-50",
    "entity": "Payment claim",
    "from": "(new)",
    "to": "Claimed",
@@ -1945,7 +1971,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-49",
+   "id": "TC-ST-51",
    "entity": "Payment claim",
    "from": "Claimed",
    "to": "Confirmed",
@@ -1958,7 +1984,20 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-50",
+   "id": "TC-ST-52",
+   "entity": "Payment claim",
+   "from": "(new)",
+   "to": "Confirmed",
+   "trigger": "Manager confirms a transfer the student did not claim (claim in the Manager's name)",
+   "fr": "FR-BIL-03",
+   "auto": "TC-BIL-011",
+   "test": "PaymentDeskIT.manualConfirmation",
+   "expected": "Status is Confirmed",
+   "result": "Passed",
+   "run": "Automated"
+  },
+  {
+   "id": "TC-ST-53",
    "entity": "Payment claim",
    "from": "Claimed",
    "to": "Rejected",
@@ -1971,7 +2010,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-51",
+   "id": "TC-ST-54",
    "entity": "Maintenance Request",
    "from": "(new)",
    "to": "Submitted",
@@ -1984,7 +2023,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-52",
+   "id": "TC-ST-55",
    "entity": "Maintenance Request",
    "from": "Submitted",
    "to": "Assigned",
@@ -1997,7 +2036,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-53",
+   "id": "TC-ST-56",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Submitted",
@@ -2010,7 +2049,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-54",
+   "id": "TC-ST-57",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "In Progress",
@@ -2023,7 +2062,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-55",
+   "id": "TC-ST-58",
    "entity": "Maintenance Request",
    "from": "In Progress",
    "to": "Resolved",
@@ -2036,7 +2075,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-56",
+   "id": "TC-ST-59",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Resolved",
@@ -2049,7 +2088,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-57",
+   "id": "TC-ST-60",
    "entity": "Maintenance Request",
    "from": "Resolved",
    "to": "Closed",
@@ -2062,7 +2101,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-58",
+   "id": "TC-ST-61",
    "entity": "Maintenance Request",
    "from": "Resolved",
    "to": "Assigned",
@@ -2075,7 +2114,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-59",
+   "id": "TC-ST-62",
    "entity": "Maintenance Request",
    "from": "Submitted",
    "to": "Closed",
@@ -2088,7 +2127,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-60",
+   "id": "TC-ST-63",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Closed",
@@ -2101,7 +2140,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-61",
+   "id": "TC-ST-64",
    "entity": "Maintenance Request",
    "from": "In Progress",
    "to": "Closed",
@@ -2114,7 +2153,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-62",
+   "id": "TC-ST-65",
    "entity": "Invoice",
    "from": "Paid / Void",
    "to": "(refused)",
@@ -2127,7 +2166,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-63",
+   "id": "TC-ST-66",
    "entity": "Invoice",
    "from": "Void",
    "to": "(refused)",
@@ -2140,7 +2179,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-64",
+   "id": "TC-ST-67",
    "entity": "Invoice",
    "from": "Paid",
    "to": "(refused)",
@@ -2153,7 +2192,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-65",
+   "id": "TC-ST-68",
    "entity": "Next-Term Allocation",
    "from": "Continuing (fees issued)",
    "to": "(refused)",

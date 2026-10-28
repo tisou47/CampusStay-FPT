@@ -1,6 +1,6 @@
 # II. Software Design Document
 
-Every diagram of this document is kept as Mermaid source in the repository (`docs/diagrams/*.mmd`) and rendered by `node docs/tools/render-diagrams.mjs`; the database diagrams and table lists are generated from the migrated schema (`docs/tools/gen-db-docs.mjs`), so they cannot drift from the database script.
+Every diagram of this document is a draw.io file in the repository (`docs/diagrams/*.drawio`), drawn with draw.io's UML shapes and exported to the pictures below by draw.io itself (`node docs/tools/drawio.mjs export`). The ERDs use Chen's notation: entities as rectangles, attributes as ovals (the key underlined), relationships as diamonds with the cardinalities 1 and N; they and the table lists are generated from the migrated schema (`docs/tools/gen-db-docs.mjs`), so they cannot drift from the database script.
 
 ## 1. System Design
 
@@ -41,7 +41,7 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 | No | Package | Description |
 |---|---|---|
 | 01 | `controller.<feature>` | REST endpoints (54 controllers) with their request and response records; validate input, call one service method, return the contract record. No SQL, no entities. |
-| 02 | `service.<feature>` | Business rules and transactions (242 classes), one sub-package per feature: `auth` (AUTH), `setting` (CFG), `inventory` (INV), `application` (APP), `assignment` (ASG), `billing` (BIL), `request` (REQ), `maintenance` (MNT), `notification` (NTF), `report` (RPT). Also the scheduled jobs, event listeners, exports and the interfaces other features call (`Billing`, `Inventory`, `Moves`, `TermCatalog` …). |
+| 02 | `service.<feature>` | Business rules and transactions (242 classes), one sub-package per feature: `auth` (AUTH), `setting` (CFG), `inventory` (INV), `application` (APP), `assignment` (ASG), `billing` (BIL), `request` (REQ), `maintenance` (MNT), `notification` (NTF), `report` (RPT). Also the scheduled jobs, event listeners, exports and the interfaces other features call (`Billing`, `Inventory`, `Moves`, `TermCatalog` …). The demo data reset (`service.setting.DemoResetService`, demo server only) is the one service that writes every feature's tables. |
 | 03 | `repository`, `repository.<feature>` | Spring Data JPA repositories (users, sessions, Terms, Room Types and Classes) and SQL stores per feature (`JdbcClient`) for the larger tables. A table is written only by the feature whose prefix it carries. |
 | 04 | `entity` | JPA entities of the tables read through JPA. |
 | 05 | `dto` | Records shared by several layers (`ListResponse`, `PageQuery`, `TermSummary`). |
@@ -49,7 +49,7 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 | 07 | `security` | `SecurityConfig`, `BearerTokenFilter`, `CurrentUser`, `Role`, `Permission` (the role-by-action table, also shown as the Admin permission matrix), `BlockScope`, `AccountSetupGate`. |
 | 08 | `config` | Spring configuration and typed properties (clock, mail, push, payment, door codes, files). |
 | 09 | `exception` | `ApiException`, `FieldErrors`, `GlobalExceptionHandler`, `LocalizedErrors` (Vietnamese messages from `i18n/messages_vi.txt`). |
-| 10 | `common` | Audit Log, file store and signed links, CSV and XLSX reading and export, search, i18n, demo data reset. |
+| 10 | `common` | Audit Log, file store and signed links, CSV and XLSX reading and export, search, i18n, the demo scenario data. |
 
 ![Web and Android packages](../../diagrams/out/package-clients.png)
 
@@ -73,7 +73,7 @@ Main architectural decisions (full list: Design Brief section 3 and `docs/00_Pro
 | Front-end (web) | React 19.3, React Router 8.4, Vite 8.3, Tailwind CSS 4.3, lucide-react 1.59, qrcode-generator 1.4.4, Inter font | JavaScript (JSX); built to static files |
 | Back-end | Java 21 (Temurin), Spring Boot 4.1.1 (Web MVC, Validation, Security, OAuth2 JOSE, Data JPA, Flyway, Mail, Actuator), Maven | One deployable `campusstay-backend` |
 | Mobile | Kotlin 2.1.10, Android Gradle Plugin 8.9, Jetpack Compose (BOM 2025.01.01, Material 3), OkHttp 4.12, ZXing 3.5 (QR), Firebase BOM 33.7 (Messaging), Credential Manager 1.3 + Google ID 1.1 | compileSdk/targetSdk 35, minSdk 26 (Android 8.0) |
-| Database | PostgreSQL 17 (production: Azure Database for PostgreSQL Flexible Server; tests: Testcontainers `postgres:17`; development: local PostgreSQL), Flyway migrations V1–V59 | Schema owned by Flyway; the migrations are the database script |
+| Database | PostgreSQL 17 (production: Azure Database for PostgreSQL Flexible Server; tests: Testcontainers `postgres:17-alpine`; development: local PostgreSQL), Flyway migrations V1–V59 | Schema owned by Flyway; the migrations are the database script |
 | Testing | JUnit 5, AssertJ, Spring Boot Test, Testcontainers 2.0, Maven Surefire (unit) and Failsafe (integration) | 235 automated tests (section 3 of Report 5) |
 | Packaging and runtime | Docker (API image built by GitHub Actions), Docker Compose, Caddy 2 | Images in GitHub Container Registry |
 
@@ -120,17 +120,17 @@ Before the final defense the production server is also the demo (staging) enviro
 
 | Tool | Model | Stages where it is used | Rules followed |
 |---|---|---|---|
-| Claude Code (Anthropic), in IntelliJ IDEA, VS Code and the Claude desktop app | Claude Opus family (Claude Opus 5.5 at the time of writing) | Specification: drafting the Change Specification v2, SRS tables and business rules from the team's decisions. Design: ADRs, Mermaid diagrams, database migrations. Code: backend features, web screens, Android screens, generators in `docs/tools/`. Testing: integration tests and the test catalog. Review: code review of each change and the BM02 self-review with the standard prompt. | Every AI output is reviewed and tested (`mvn verify`, `npm run build`) before it reaches `main`; no real personal data, passwords, API keys or secrets are given to the tool (fictional seed data; secrets stay in the server `.env` and a local folder outside the repository); each member answers for the parts they own (Report 2, ownership). |
+| Claude Code (Anthropic), in IntelliJ IDEA, VS Code and the Claude desktop app | Claude Opus family (Claude Opus 5.5 at the time of writing) | Specification: drafting the Change Specification v2, SRS tables and business rules from the team's decisions. Design: ADRs, the draw.io diagrams (laid out by generators in `docs/tools/`), database migrations. Code: backend features, web screens, Android screens, generators in `docs/tools/`. Testing: integration tests and the test catalog. Review: code review of each change and the BM02 self-review with the standard prompt. | Every AI output is reviewed and tested (`mvn verify`, `npm run build`) before it reaches `main`; no real personal data, passwords, API keys or secrets are given to the tool (fictional seed data; secrets stay in the server `.env` and a local folder outside the repository); each member answers for the parts they own (Report 2, ownership). |
 
 ## 2. Database Design
 
 ### 2.1 Overview
 
-The database script is the set of Flyway migrations `backend/src/main/resources/db/migration/V1__…sql` to `V59__…sql`, applied automatically when the API starts; the base data are `db/seed/R__dev_seed.sql`. The logical ERDs and table lists below are generated by `docs/tools/gen-db-docs.mjs` from `information_schema` of a database migrated to V59 (98 tables), so every table and key in the ERD exists in the script and every table of the script is in an ERD. The ERDs show the keys and the main business attributes; the complete columns, types, checks and indexes are in the migrations.
+The database script is the set of Flyway migrations `backend/src/main/resources/db/migration/V1__…sql` to `V59__…sql`, applied automatically when the API starts; the base data are `db/seed/R__dev_seed.sql`. The logical ERDs and table lists below are generated by `docs/tools/gen-db-docs.mjs` from `information_schema` of a database migrated to V59 (98 tables), so every table and key in the ERD exists in the script and every table of the script is in an ERD. The ERDs are drawn in Chen's notation: a rectangle per table, ovals for its key (underlined) and main business attributes, and a diamond per foreign key, named after the column, with 1 on the referenced side and N on the referencing side (1 when the key is also the whole primary key). Tables of another area appear as dashed rectangles. The complete columns, types, checks and indexes are in the migrations.
 
 Conventions: tables are prefixed with their feature (`auth_`, `cfg_`, `inv_`, `app_`, `asg_`, `bil_`, `req_`, `mnt_`, `ntf_`, `shared_`); keys are `BIGINT` identities; money is `BIGINT` VND; times are `TIMESTAMPTZ` in UTC; statuses are upper-case text with a `CHECK`; mutable rows carry a `version` for optimistic locking; JSONB only for snapshots (Invoice lines, contact snapshot, matching snapshot). Reports read 32 views `rpt_v_*`, each defined by the feature that owns the tables.
 
-![Conceptual ERD of the main entities; the logical ERD of each area (all 98 tables) follows in sections 2.2–2.11](../../diagrams/out/erd-main.png)
+![Conceptual ERD of the main entities in Chen's notation; the logical ERD of each area (all 98 tables) follows in sections 2.2–2.11](../../diagrams/out/erd-main.png)
 
 Rules guaranteed by the database (the safety net behind the services' checks):
 
