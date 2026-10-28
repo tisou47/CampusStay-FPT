@@ -161,7 +161,7 @@ export function TimelineStrip({ form, className }) {
     <ol className={cx('flex flex-col gap-2', className)}>
       {points.map((p) => (
         <li key={p.key} className="flex items-center gap-3 text-base">
-          <span aria-hidden="true" className={cx('size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-white')} />
+          <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-white')} />
           <span className="flex-1 text-fg">{t(p.label)}</span>
           <span className="text-fg-secondary tabular">{showValue(p.type, fromInput(p.type, form[p.key]))}</span>
         </li>

@@ -11,7 +11,7 @@
   "passed": 138,
   "failed": 0,
   "notRun": 20,
-  "runDate": "2026-10-27T23:20:12.359Z",
+  "runDate": "2026-10-28T09:21:59.539Z",
   "suite": {
    "tests": 235,
    "passed": 235,
@@ -382,10 +382,10 @@
    "auto": "TC-APP-023",
    "test": "ApplicationsIT.stayTermsOnTheApplication",
    "role": "Student",
-   "description": "Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident).",
+   "description": "The stay length (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident).",
    "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Student signed in",
    "steps": "Automated (ApplicationsIT.stayTermsOnTheApplication): POST /api/applications; GET /api/applications/eligibility; check the answer and the database",
-   "expected": "Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident).",
+   "expected": "The stay length (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident).",
    "result": "Passed"
   },
   {
@@ -2212,7 +2212,7 @@
    "name": "Registration to residence",
    "owner": "Lê Thành Minh Trung",
    "pre": "Stage A (registration open); se220001 eligible, no Application",
-   "steps": "1. se220001 applies (4-bed, Standard, Gia hạn 2) and claims the Deposit transfer. 2. manager.a confirms the claim and approves the Application. 3. Stage B: se220004 (assigned, unpaid) claims the Balance; manager.a confirms. 4. staff.a1 confirms the Room code; the release job runs.",
+   "steps": "1. se220001 applies (4-bed, Standard, stay length 2) and claims the Deposit transfer. 2. manager.a confirms the claim and approves the Application. 3. Stage B: se220004 (assigned, unpaid) claims the Balance; manager.a confirms. 4. staff.a1 confirms the Room code; the release job runs.",
    "expected": "Application Submitted then Approved; se220004 is a resident (orange Bed) and sees the code; each step notified",
    "run": "Manual (staging, demo data)",
    "result": "Not run"
@@ -2330,7 +2330,7 @@
    "states": "Application: Awaiting Deposit → Submitted → Approved → Allocated; Allocation: Assigned – unpaid → Paid → Resident; Invoice: Unpaid → Awaiting confirmation → Paid",
    "main": {
     "pre": "Stage A (registration open); se220001 eligible, no Application",
-    "steps": "1. se220001 applies (4-bed, Standard, Gia hạn 2) and claims the Deposit transfer. 2. manager.a confirms the claim and approves the Application. 3. Stage B: se220004 (assigned, unpaid) claims the Balance; manager.a confirms. 4. staff.a1 confirms the Room code; the release job runs.",
+    "steps": "1. se220001 applies (4-bed, Standard, stay length 2) and claims the Deposit transfer. 2. manager.a confirms the claim and approves the Application. 3. Stage B: se220004 (assigned, unpaid) claims the Balance; manager.a confirms. 4. staff.a1 confirms the Room code; the release job runs.",
     "expected": "Application Submitted then Approved; se220004 is a resident (orange Bed) and sees the code; each step notified"
    },
    "exc": {

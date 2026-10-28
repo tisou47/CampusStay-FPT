@@ -17,7 +17,7 @@ Total: 261 endpoints (268 when the seven `GET, PUT` rows count twice); all 261 c
 | V2-2 | Change Specification v2 phase 2 "Accounts": Google sign-up, verification, student list, hub and import, Staff accounts |
 | V2-3 | Change Specification v2 phase 3 "Inventory": Room Class per Room per Term, furniture and Room Class requirements, door codes |
 | V2-4 | Change Specification v2 phase 4 "Registration periods": Managers' requests, the Term wizard with Term prices, announcements and the board, grouped configuration, rules screens, Term dashboard |
-| V2-5 | Change Specification v2 phase 5 "Money and residence": payment claims confirmed by Managers, Gia hạn, door code release and Bed states, forfeits, late check-ins online, Utility warnings and terminations, new refund triggers |
+| V2-5 | Change Specification v2 phase 5 "Money and residence": payment claims confirmed by Managers, stay length, door code release and Bed states, forfeits, late check-ins online, Utility warnings and terminations, new refund triggers |
 | V2-6 | Change Specification v2 phase 6 "Term transition": Stays and the requests window, next-Term room changes, swaps, Room Class changes, extensions and end of stay, operational moves, enrollment reconciliation, next-Term fees, turnover |
 
 ## S0 — Foundation, AUTH session, Terms
@@ -76,7 +76,7 @@ Total: 261 endpoints (268 when the seven `GET, PUT` rows count twice); all 261 c
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| APP | POST | `/applications` | Must | Verified | C-19, C-20; `stayTerms` (Gia hạn, A-38); TC-APP-002, 003, 005, 023 |
+| APP | POST | `/applications` | Must | Verified | C-19, C-20; `stayTerms` (stay length, A-38); TC-APP-002, 003, 005, 023 |
 | APP | GET | `/applications/eligibility` | Must | Verified | C-20; `maxStayTerms`, not a continuing resident (A-38); TC-APP-001, 008, 023 |
 | APP | POST | `/applications/roommate-check` | Must | Verified | C-08; TC-APP-004 |
 | APP | GET | `/applications/{id}` | Must | Verified | Student view and back-office view (C-21); TC-APP-002, 005, 006, 009, 010, 011 |
@@ -312,7 +312,7 @@ Built on `feat/v2-phase4` (ADR-20, ADR-27), in `main` and production since 26/10
 
 ## V2-5 — Change Specification v2 phase 5 "Money and residence"
 
-Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), in `main` and production since 26/10/2026. Migrations V44 (BIL: payment claims, the bank-feed inbox kept as an archive, Invoices fixed once issued and refunded once, reminders, Utility warnings), V45 (ASG: residence and door-code release times, forfeits, late check-ins asked online, terminations), V46 (APP: Gia hạn, Forfeited), V47 (CFG: `cfg_fee_policy` without its two switches, `stay.program_semesters`, the Termination check-out reason), V48 (INV: rotation after an overdue termination) and V49 (NTF: the notifications and emails of money and residence). Contract changes A-34…A-39, B-05…B-07, C-42.
+Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), in `main` and production since 26/10/2026. Migrations V44 (BIL: payment claims, the bank-feed inbox kept as an archive, Invoices fixed once issued and refunded once, reminders, Utility warnings), V45 (ASG: residence and door-code release times, forfeits, late check-ins asked online, terminations), V46 (APP: stay length, Forfeited), V47 (CFG: `cfg_fee_policy` without its two switches, `stay.program_semesters`, the Termination check-out reason), V48 (INV: rotation after an overdue termination) and V49 (NTF: the notifications and emails of money and residence). Contract changes A-34…A-39, B-05…B-07, C-42.
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|

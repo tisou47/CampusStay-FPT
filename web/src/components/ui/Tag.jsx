@@ -22,7 +22,7 @@ export function Tag({ tone = 'neutral', dot = true, className, children }) {
         className,
       )}
     >
-      {dot && <span aria-hidden="true" className={cx('size-1.5 shrink-0 rounded-full', t.dot)} />}
+      {dot && <span aria-hidden="true" className={cx('inline-block size-1.5 shrink-0 rounded-full', t.dot)} />}
       {tx(children)}
     </span>
   )

@@ -70,7 +70,7 @@ public class StudentApplicationQueries {
             ProfileContact contact) {
     }
 
-    /** @param stayTerms Gia hạn: the Terms the student wants to stay */
+    /** @param stayTerms stay length: the Terms the student wants to stay */
     public record ApplicationItem(String id, String termName, String roomTypeName, String roomClassName, Long deposit,
             Instant submittedAt, String status, int stayTerms) {
     }

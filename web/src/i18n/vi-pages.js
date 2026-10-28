@@ -98,6 +98,9 @@ const student = {
   "Unpaid Applications expire at the deadline.": "Đơn chưa đóng cọc sẽ hết hạn khi đến hạn chót.",
   "An unpaid balance blocks check-in.": "Chưa thanh toán tiền phòng còn lại thì chưa thể nhận phòng.",
   "Your Application is under review": "Đơn của bạn đang được xét duyệt",
+  "Your Deposit transfer is being confirmed": "Chuyển khoản tiền cọc của bạn đang được xác nhận",
+  "A Manager checks the transfer against the bank statement; your Application is submitted once it is confirmed.":
+    "Quản lý đối chiếu chuyển khoản với sao kê ngân hàng; đơn của bạn được gửi khi chuyển khoản được xác nhận.",
   "Assignment results on {date}": "Kết quả xếp phòng vào {date}",
   "View application": "Xem đơn",
   "The dormitory office reviews Applications after registration closes, then assigns Rooms and Beds.": "Văn phòng ký túc xá xét duyệt đơn sau khi đóng đăng ký, sau đó xếp phòng và giường.",
@@ -2949,7 +2952,7 @@ const registration = {
   "Utility debt terminations": "Chấm dứt ở do nợ điện nước",
   "Termination notices": "Thông báo chấm dứt ở",
   "Late check-in decisions": "Quyết định nhận phòng muộn",
-  "Most Terms a student may commit to (Gia hạn)": "Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)",
+  "Most Terms a student may commit to (stay length)": "Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)",
   "Approve extension requests of eligible students automatically": "Tự động duyệt yêu cầu gia hạn của sinh viên đủ điều kiện",
   "Share of Beds kept for new students in new Terms (%)": "Tỷ lệ giường dành cho sinh viên mới ở các kỳ mới (%)",
   "Alert Managers about undecided requests before the decision deadline (hours)": "Báo Quản lý về yêu cầu chưa quyết định trước hạn quyết định (giờ)",
@@ -3104,7 +3107,7 @@ const money = {
   'Document (ticket, letter …)': 'Giấy tờ (vé, thư …)',
   'Pay the Balance to keep your Bed': 'Hãy thanh toán tiền phòng còn lại để giữ chỗ',
   'Late check-in requested': 'Đã gửi yêu cầu nhận phòng muộn',
-  'Gia hạn': 'Gia hạn',
+  'Stay length': 'Gia hạn',
   'Resident since': 'Cư dân từ',
   'Ask for a late check-in': 'Xin nhận phòng muộn',
   'Your stay is terminated': 'Hợp đồng ở của bạn bị chấm dứt',
@@ -3123,11 +3126,11 @@ const money = {
   'Not a continuing resident of the Term': 'Không phải cư dân ở tiếp của kỳ',
   'You already hold a Bed for {term}.': 'Bạn đã có chỗ ở trong {term}.',
   'A student who already holds a Bed for the Term stays through requests, not a new Application': 'Sinh viên đã có chỗ ở trong kỳ thì ở tiếp qua yêu cầu, không nộp đơn mới',
-  'How long do you want to stay? (Gia hạn)': 'Bạn muốn ở bao lâu? (Gia hạn)',
+  'How long do you want to stay?': 'Bạn muốn ở bao lâu? (Gia hạn)',
   'The number of Terms you plan to stay. You keep your Bed from Term to Term and can extend or end your stay later.': 'Số kỳ bạn dự định ở. Bạn giữ chỗ từ kỳ này sang kỳ sau và có thể gia hạn hoặc kết thúc sau.',
-  'Each Term is billed and paid on its own; Gia hạn is not a payment commitment.': 'Mỗi kỳ được lập hóa đơn và thanh toán riêng; Gia hạn không phải là cam kết thanh toán.',
+  'Each Term is billed and paid on its own; the stay length is not a payment commitment.': 'Mỗi kỳ được lập hóa đơn và thanh toán riêng; Gia hạn không phải là cam kết thanh toán.',
   'The Balance was not paid in time, so the Bed was released and the Deposit is kept.': 'Tiền phòng còn lại không được thanh toán đúng hạn nên chỗ ở đã bị hủy và tiền cọc không được hoàn.',
-  'Semesters of a study programme (Gia hạn stops at the last one)': 'Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)',
+  'Semesters of a study programme (the stay length stops at the last one)': 'Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)',
   'Students transfer and press I have transferred; a Manager confirms each claim against the bank statement. The door code is released only once the Balance is paid.': 'Sinh viên chuyển khoản và bấm Tôi đã chuyển khoản; Quản lý đối chiếu từng khoản với sao kê ngân hàng và xác nhận. Mã cửa chỉ được cấp sau khi thanh toán tiền phòng còn lại.',
   'The Deposit new Terms start with.': 'Tiền cọc mặc định cho các kỳ mới.',
   'Door code released · {n} checked in at the desk': 'Đã cấp mã cửa · {n} đã nhận phòng tại quầy',
@@ -3531,8 +3534,10 @@ const transition = {
   "Room unusable": "Phòng không sử dụng được",
   "Safety": "An toàn",
   "Serious conflict": "Mâu thuẫn nghiêm trọng",
-  "Application wizard (Gia hạn) and extension requests (the most Terms of a Stay)":
+  "Application wizard (stay length) and extension requests (the most Terms of a Stay)":
     "Trình đăng ký (Gia hạn) và yêu cầu gia hạn (số kỳ tối đa của hợp đồng ở)",
+  "Application wizard: the stay length is at most the semesters the student has left":
+    "Trình đăng ký: Gia hạn không vượt quá số học kỳ còn lại của sinh viên",
   "Extension requests: approved at once when the student is enrolled and owes nothing overdue":
     "Yêu cầu gia hạn: duyệt ngay khi sinh viên đang học và không nợ quá hạn",
   "Next-Term room changes and swaps: continuing residents never take this share of the Beds":

@@ -24,7 +24,7 @@ import { t, tr, tx } from '@/i18n'
 //   roommates: [{ name, bed }], roommateCapacity,
 //   checkIn: { start, end, deskHours, location, checkedInAt } | null,
 //   balance: { invoiceId, amount, status, dueAt, paidAt } | null,
-//   application: { id, status } | null, rulesUrl, stayTerms (Gia hạn),
+//   application: { id, status } | null, rulesUrl, stayTerms (the stay length),
 //   termination: { reason, note, status, moveOutBy, startedAt } | null,
 //   stay: { committedTerms, termsUsed, termsLeft, status } | null,
 //   nextTerm: { term: { id, name, stayStart }, state (Continuing, Awaiting extension, Not continuing), room, bed, roomTypeName,
@@ -438,11 +438,11 @@ function Room({ data }) {
               ['Allocated on', formatDate(a.allocatedAt)],
               ...(data.stay
                 ? [
-                    ['Gia hạn', t('{n} Terms', { n: data.stay.committedTerms })],
+                    ['Stay length', t('{n} Terms', { n: data.stay.committedTerms })],
                     ['Terms used', data.stay.termsUsed],
                   ]
                 : data.stayTerms
-                  ? [['Gia hạn', t('{n} Terms', { n: data.stayTerms })]]
+                  ? [['Stay length', t('{n} Terms', { n: data.stayTerms })]]
                   : []),
               ...(a.residentSince ? [['Resident since', formatDate(a.residentSince)]] : []),
             ]}

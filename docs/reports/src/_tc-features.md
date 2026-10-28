@@ -33,7 +33,7 @@
 |---|---|---|---|---|
 | TC-F04-01 | Main | Submit with a Deposit Invoice, then the list, detail, Home and notification; a second one is refused. | TC-APP-002 | Passed |
 | TC-F04-02 | Main | An invited pair reaches the office together: the first to pay waits as Awaiting Roommate; both are Submitted when the second Deposit is paid. | TC-APP-005 | Passed |
-| TC-F04-03 | Rule | Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident). | TC-APP-023 | Passed |
+| TC-F04-03 | Rule | The stay length (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident). | TC-APP-023 | Passed |
 | TC-F04-04 | Rule | Contact, consent and roommate rules are named per field. | TC-APP-003 | Passed |
 | TC-F04-05 | Exception | Staff cannot use student screens; another student's Application is 404. | TC-APP-009 | Passed |
 
