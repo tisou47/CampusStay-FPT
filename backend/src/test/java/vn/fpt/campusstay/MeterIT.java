@@ -31,6 +31,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import vn.fpt.campusstay.common.file.SheetFile;
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.config.TimeConfig;
 
 /** Monthly meter readings and Utility Invoices (TC-BIL-023…026). */
@@ -178,6 +180,36 @@ class MeterIT {
         mvc.perform(multipart("/meter-periods/" + period + "/import").file(good).header(HttpHeaders.AUTHORIZATION, staff))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.imported").value(1));
         readings(staff, period).andExpect(jsonPath("$.items[?(@.room == 'A-103')].status").value(hasItem("Entered")));
+    }
+
+    /**
+     * TC-BIL-039: the template lists the period's Rooms with their previous values; filled in Excel with Vietnamese
+     * headers it is read back, and Rooms left blank are skipped, not refused.
+     */
+    @Test
+    void templateFilledInExcel() throws Exception {
+        residentsWithLastMonth("A", "A-105", 28, 29);
+        String staff = bearer(mvc, STAFF_A2);
+        String period = currentPeriod(staff, "A");
+
+        byte[] template = mvc.perform(get("/meter-periods/" + period + "/template").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        List<List<String>> rows = SheetFile.rows("meter-readings.xlsx", template);
+        assertThat(rows.getFirst()).containsExactly("room", "electricity", "water", "previous electricity",
+                "previous water");
+        assertThat(rows).anySatisfy(r -> assertThat(r).startsWith("A-105", "", "", "1000", "40"));
+        mvc.perform(get("/meter-periods/" + period + "/template")
+                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.STAFF_B2))).andExpect(status().isForbidden());
+
+        byte[] filled = XlsxFile.of("Readings", List.of(List.of("Phòng", "Điện", "Nước"), List.of("A-105", "1080", "44"),
+                List.of("A-101", "", "")));
+        mvc.perform(multipart("/meter-periods/" + period + "/import")
+                        .file(new MockMultipartFile("file", "readings.xlsx", "application/octet-stream", filled))
+                        .header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(1))
+                .andExpect(jsonPath("$.skipped").value(1));
+        readings(staff, period).andExpect(jsonPath("$.items[?(@.room == 'A-105')].status").value(hasItem("Entered")));
     }
 
     /** TC-BIL-026: closing the month issues each resident's Utility Invoice with its breakdown; then it is read-only. */

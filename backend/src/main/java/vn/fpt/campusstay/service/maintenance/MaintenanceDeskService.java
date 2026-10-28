@@ -27,6 +27,7 @@ import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.inventory.Inventory;
@@ -384,6 +385,12 @@ public class MaintenanceDeskService {
             String wanted = RequestStore.statusCode(String.valueOf(body.get("status")))
                     .orElseThrow(() -> FieldErrors.single("status", "Choose a valid status."));
             if (!wanted.equals(status)) {
+                // The person in charge does the work: other Staff take the request over first (Managers may act).
+                if (user.role() == Role.STAFF && assignee != null && assignee != user.userId()) {
+                    throw ApiException.conflict("ASSIGNED_TO_SOMEONE_ELSE", "This request is assigned to "
+                            + users.displayNames(List.of(assignee)).get(assignee)
+                            + ". Take it over before you change its status.");
+                }
                 status = transition(r, status, wanted, assignee, now);
                 requests.event(r.id(), user.userId(), role, "Status: " + RequestStore.statusLabel(status), null, false,
                         now);

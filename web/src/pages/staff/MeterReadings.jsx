@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Gauge, Upload } from 'lucide-react'
+import { ArrowRight, Download, FileSpreadsheet, Gauge, Upload } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -24,7 +24,8 @@ import { t, tr } from '@/i18n'
 //   electricity: { previous, current, cut: { date, value } | null }, water: { … }, status }], total }
 // GET /meter-periods/:id/readings/:room → { …item, priceKwh, priceM3, roundingNote,
 //   segments: [{ from, to, residents, kwh, m3, electricityCost, waterCost }], shares: [{ label, amount }] }
-// PUT …/readings/:room { electricity, water } · POST …/readings/:room/confirm · POST /meter-periods/:id/import (CSV) · POST /meter-periods/:id/close
+// PUT …/readings/:room { electricity, water } · POST …/readings/:room/confirm · POST /meter-periods/:id/close
+// GET /meter-periods/:id/template (XLSX to fill in) · POST /meter-periods/:id/import (the file filled in, XLSX or CSV) → { imported, skipped }
 
 const statusTone = { Entered: 'success', Confirmed: 'info', Missing: 'warning', 'Check value': 'error' }
 const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, ''))
@@ -192,10 +193,20 @@ export default function MeterReadings() {
     },
     {
       invalidates: ['meters'],
-      onSuccess: (res) => notify({ type: 'info', title: 'CSV imported', message: t('{n} readings added.', { n: formatNumber(res?.imported ?? 0) }) }),
-      onError: (e) => notifyError(e, 'Import failed'),
+      onSuccess: (res) =>
+        notify({
+          type: 'info',
+          title: 'Readings uploaded',
+          message: res?.skipped
+            ? t('{n} readings saved. {s} Rooms left blank wait for their reading.', { n: formatNumber(res?.imported ?? 0), s: formatNumber(res.skipped) })
+            : t('{n} readings saved.', { n: formatNumber(res?.imported ?? 0) }),
+        }),
+      onError: (e) => notifyError(e, 'Upload failed'),
     },
   )
+  const template = useMutation(() => api.meters.template(activePeriod, period?.label?.replace('/', '-')), {
+    onError: (e) => notifyError(e, 'Download failed'),
+  })
   const close = useMutation(() => api.meters.close(activePeriod), {
     invalidates: ['meters', 'payments'],
     onSuccess: (res) => {
@@ -212,13 +223,16 @@ export default function MeterReadings() {
         description="Monthly readings per Room. Every check-in, check-out, room change and swap also cuts a reading."
         actions={
           <>
+            <Button icon={Download} onClick={() => template.run()} disabled={!activePeriod || template.pending}>
+              Download template
+            </Button>
             <Button icon={Upload} onClick={() => fileInput.current?.click()} disabled={closed || !activePeriod || importCsv.pending}>
-              Import CSV
+              Upload filled file
             </Button>
             <input
               ref={fileInput}
               type="file"
-              accept=".csv,text/csv"
+              accept=".xlsx,.csv,text/csv"
               hidden
               onChange={(e) => {
                 const file = e.target.files?.[0]
@@ -269,6 +283,25 @@ export default function MeterReadings() {
           options={[{ value: '', label: 'Status: All' }, ...Object.keys(statusTone).map((v) => ({ value: v, label: t('Status: {s}', { s: t(v) }) }))]}
         />
       </div>
+
+      {!closed && activePeriod && (
+        <ol className="flex shrink-0 items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm text-fg-secondary">
+          <li className="flex items-center gap-2">
+            <FileSpreadsheet size={16} aria-hidden="true" className="text-fg-brand" />
+            <span>
+              <strong className="font-medium text-fg">1.</strong> {t('Download the template: one line per Room with last month’s values.')}
+            </span>
+          </li>
+          <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+          <li>
+            <strong className="font-medium text-fg">2.</strong> {t('Fill the electricity and water columns in Excel; leave Rooms you have not read blank.')}
+          </li>
+          <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+          <li>
+            <strong className="font-medium text-fg">3.</strong> {t('Upload it (XLSX or CSV). Every line is checked before any is saved.')}
+          </li>
+        </ol>
+      )}
 
       {closed && (
         <Alert type="success" title={t('{period} is closed', { period: tr(period.label) })} className="shrink-0">

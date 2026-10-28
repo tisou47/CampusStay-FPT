@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { Bed, Check, RotateCcw, SearchX, Wrench } from 'lucide-react'
+import { Bed, Check, RotateCcw, SearchX, UserCheck, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
@@ -96,10 +97,28 @@ function RequestDetail({ r, staff, priorities }) {
     onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
     onError: (e) => notifyError(e, 'Could not save'),
   })
-  const setStatus = useMutation((status) => api.maintenance.update(r.id, { status, assigneeId: status === 'In progress' && !r.assignee ? assigneeId || undefined : undefined }), {
+  // The person in charge does the work: other Staff take the request over first (Managers may act on any request).
+  const { user } = useSession()
+  const isStaff = user?.role === 'staff'
+  const mine = r.assignee && String(r.assignee.id) === String(user?.id)
+  const someoneElse = isStaff && r.assignee && !mine
+  const setStatus = useMutation(
+    (status) =>
+      api.maintenance.update(r.id, {
+        status,
+        // Staff starting an unassigned request take it themselves; a Manager starts it for the chosen person.
+        assigneeId: status === 'In progress' && !r.assignee ? (isStaff ? user.id : assigneeId || undefined) : undefined,
+      }),
+    {
+      ...options,
+      onSuccess: (_, status) => notify({ title: t('{id} is now {status}', { id: r.id, status: t(status) }), message: studentRequest ? t('{name} was notified.', { name: r.reporter.name }) : undefined }),
+      onError: (e) => notifyError(e, 'Could not change the status'),
+    },
+  )
+  const takeOver = useMutation(() => api.maintenance.update(r.id, { assigneeId: user.id }), {
     ...options,
-    onSuccess: (_, status) => notify({ title: t('{id} is now {status}', { id: r.id, status: t(status) }), message: studentRequest ? t('{name} was notified.', { name: r.reporter.name }) : undefined }),
-    onError: (e) => notifyError(e, 'Could not change the status'),
+    onSuccess: () => notify({ title: t('You are now in charge of {id}', { id: r.id }), message: t('{name} sees the change in the request history.', { name: r.assignee?.name ?? t('Your colleague') }) }),
+    onError: (e) => notifyError(e, 'Could not take the request over'),
   })
   const post = useMutation(() => api.maintenance.addUpdate(r.id, { message: message.trim(), internal }), {
     ...options,
@@ -109,7 +128,7 @@ function RequestDetail({ r, staff, priorities }) {
     },
     onError: (e) => notifyError(e, 'Could not post the update'),
   })
-  const busy = save.pending || setStatus.pending
+  const busy = save.pending || setStatus.pending || takeOver.pending
 
   return (
     <>
@@ -125,7 +144,11 @@ function RequestDetail({ r, staff, priorities }) {
         actions={
           <>
             <Button to={`${base}/maintenance`}>Back to queue</Button>
-            {open ? (
+            {someoneElse && r.status !== 'Closed' ? (
+              <Button variant="primary" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
+                Take over
+              </Button>
+            ) : open ? (
               <>
                 <Button variant={r.status === 'In progress' ? 'primary' : 'default'} icon={Check} onClick={() => setStatus.run('Resolved')} disabled={busy}>
                   Mark resolved
@@ -147,6 +170,16 @@ function RequestDetail({ r, staff, priorities }) {
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+          {someoneElse && r.status !== 'Closed' && (
+            <Alert type="warning" title={t('{name} is in charge of this request', { name: r.assignee.name })} className="shrink-0">
+              {t('Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.')}
+            </Alert>
+          )}
+          {isStaff && mine && open && (
+            <Alert type="info" title="You are in charge of this request" className="shrink-0">
+              Start the work, keep the student updated and mark it resolved when it is fixed.
+            </Alert>
+          )}
           {r.status === 'Resolved' && studentRequest && (
             <Alert title={t('Waiting for {name} to confirm the fix', { name: r.reporter.name })} className="shrink-0">
               The request closes when the student confirms, or automatically after a few days.

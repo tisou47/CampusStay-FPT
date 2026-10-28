@@ -1,12 +1,7 @@
 package vn.fpt.campusstay.service.billing;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -41,6 +36,8 @@ import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.UtilityPolicy;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.file.SheetFile;
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.config.TimeConfig;
@@ -94,7 +91,8 @@ public class MeterService {
             List<ShareView> shares) {
     }
 
-    public record Imported(int imported) {
+    /** @param skipped lines left blank (Rooms read later) */
+    public record Imported(int imported, int skipped) {
     }
 
     public record Closed(int invoicesIssued) {
@@ -252,53 +250,110 @@ public class MeterService {
                 .param("by", user.userId()).param("now", Timestamp.from(Instant.now(clock))).param("id", r.id()).update();
     }
 
-    /** CSV {@code room,electricity,water} with a header line; every line is checked before any is saved. */
+    /**
+     * The file to fill in (A-59): one line per Room due in the period with its previous values, the readings entered
+     * so far filled in. Given as XLSX: Excel set to Vietnamese opens a comma CSV as one column.
+     */
     @Transactional
-    public Imported importCsv(String periodId, byte[] file) {
+    public byte[] template(String periodId) {
+        currentUser.require(Role.STAFF, Role.MANAGER);
+        Period p = period(periodId, false);
+        Map<Long, Room> rooms = rooms(p.buildingId());
+        if (p.closedAt() == null) {
+            ensureRows(p, rooms);
+        }
+        List<List<String>> table = new ArrayList<>();
+        table.add(List.of("room", "electricity", "water", "previous electricity", "previous water"));
+        rows(p.id()).stream().sorted(Comparator.comparing(r -> rooms.get(r.roomId()).code())).forEach(r -> table.add(List.of(
+                rooms.get(r.roomId()).code(), plain(r.electricityCurr()), plain(r.waterCurr()),
+                plain(r.electricityPrev()), plain(r.waterPrev()))));
+        return XlsxFile.of("Readings " + p.label().replace('/', '-'), table);
+    }
+
+    /**
+     * The template filled in, as XLSX or CSV (comma, semicolon or tab): the columns room, electricity and water by
+     * their header (also ph\u00F2ng, \u0111i\u1EC7n, n\u01B0\u1EDBc), or the first three columns of a file without a header. Lines whose two
+     * readings are blank are skipped (Rooms read later); every other line is checked before any is saved.
+     */
+    @Transactional
+    public Imported importCsv(String periodId, String fileName, byte[] file) {
         AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
         Period p = period(periodId, true);
         open(p);
         if (file == null || file.length == 0) {
-            throw FieldErrors.single("file", "Choose a CSV file.");
+            throw FieldErrors.single("file", "Choose the filled template (XLSX or CSV).");
         }
         Map<Long, Room> rooms = rooms(p.buildingId());
         ensureRows(p, rooms);
         Map<String, Reading> byRoom = new HashMap<>();
         rows(p.id()).forEach(r -> byRoom.put(rooms.get(r.roomId()).code().toUpperCase(Locale.ROOT), r));
+        List<List<String>> table = SheetFile.rows(fileName, file);
+        List<String> header = table.isEmpty() ? List.of() : table.getFirst().stream().map(SheetFile::key).toList();
+        int roomColumn = column(header, "room", "phong", "maphong");
+        int electricityColumn = column(header, "electricity", "dien", "sodien", "chisodien");
+        int waterColumn = column(header, "water", "nuoc", "sonuoc", "chisonuoc");
+        boolean headed = roomColumn >= 0 && electricityColumn >= 0 && waterColumn >= 0;
+        if (!headed) {
+            roomColumn = 0;
+            electricityColumn = 1;
+            waterColumn = 2;
+        }
         record Line(Reading reading, BigDecimal electricity, BigDecimal water) {
         }
         List<Line> lines = new ArrayList<>();
         List<String> problems = new ArrayList<>();
-        try (BufferedReader in = new BufferedReader(new StringReader(new String(file, StandardCharsets.UTF_8)))) {
-            String text;
-            int n = 0;
-            while ((text = in.readLine()) != null) {
-                n++;
-                String[] cells = text.replace("\uFEFF", "").split("[,;]");
-                if (text.isBlank() || (n == 1 && cells[0].trim().equalsIgnoreCase("room"))) {
-                    continue;
-                }
-                Reading r = cells.length < 3 ? null : byRoom.get(cells[0].trim().toUpperCase(Locale.ROOT));
-                BigDecimal e = cells.length < 3 ? null : number(cells[1]);
-                BigDecimal w = cells.length < 3 ? null : number(cells[2]);
-                if (r == null) {
-                    problems.add("Line " + n + ": the Room is not in this period.");
-                } else if (e == null || w == null) {
-                    problems.add("Line " + n + ": enter two readings.");
-                } else {
-                    lines.add(new Line(r, e, w));
-                }
+        int skipped = 0;
+        for (int i = headed ? 1 : 0; i < table.size(); i++) {
+            List<String> row = table.get(i);
+            String code = cell(row, roomColumn);
+            String e = cell(row, electricityColumn);
+            String w = cell(row, waterColumn);
+            if (code.isEmpty() && e.isEmpty() && w.isEmpty()) {
+                continue;
             }
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
+            if (e.isEmpty() && w.isEmpty()) {
+                skipped++;
+                continue;
+            }
+            Reading r = byRoom.get(code.toUpperCase(Locale.ROOT));
+            BigDecimal ev = number(e);
+            BigDecimal wv = number(w);
+            if (r == null) {
+                problems.add("Line " + (i + 1) + ": the Room is not in this period.");
+            } else if (ev == null || wv == null) {
+                problems.add("Line " + (i + 1) + ": enter two readings.");
+            } else {
+                lines.add(new Line(r, ev, wv));
+            }
         }
         if (!problems.isEmpty()) {
             throw FieldErrors.single("file", String.join(" ", problems.subList(0, Math.min(5, problems.size()))));
         }
+        if (lines.isEmpty() && skipped == 0) {
+            throw FieldErrors.single("file", "The file has no readings.");
+        }
         for (Line l : lines) {
             apply(p, l.reading(), l.electricity(), l.water(), user.userId());
         }
-        return new Imported(lines.size());
+        return new Imported(lines.size(), skipped);
+    }
+
+    private static int column(List<String> header, String... names) {
+        for (String n : names) {
+            int i = header.indexOf(n);
+            if (i >= 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String cell(List<String> row, int i) {
+        return i < row.size() && row.get(i) != null ? row.get(i).trim() : "";
+    }
+
+    private static String plain(BigDecimal value) {
+        return value == null ? "" : value.stripTrailingZeros().toPlainString();
     }
 
     /** Issues the period's Utility Invoices; every Room needs a reading and no value may wait for a check. */

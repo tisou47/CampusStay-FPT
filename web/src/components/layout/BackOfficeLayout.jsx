@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useQuery } from '@/api/hooks'
+import { useMutation, useQuery } from '@/api/hooks'
 import { backOffice, isNavActive } from '@/app/navigation'
 import { useSession } from '@/app/session'
+import { useToast } from '@/app/toast'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
 import { t, tr, tx } from '@/i18n'
@@ -259,7 +260,45 @@ function QuickSearch({ role }) {
   )
 }
 
-// Term selector for every role; Block scope for Staff (their Blocks) and Managers (every Block, ADR-19).
+/**
+ * The person's shift (A-60): routing gives new requests to people on duty first, so Staff say when they start and
+ * end work. Signing in is not the same as being on duty: an off-duty person may still look things up.
+ */
+function DutyToggle() {
+  const { notify, notifyError } = useToast()
+  const me = useQuery(['me-duty'], ({ signal }) => api.blockStaff.me(undefined, { signal }))
+  const onDuty = me.data?.onDuty
+  const change = useMutation((next) => api.blockStaff.setDuty({ onDuty: next }), {
+    invalidates: ['me-duty', 'block-staff', 'routing'],
+    onSuccess: (r) =>
+      notify({
+        type: 'info',
+        title: r.onDuty ? 'Shift started' : 'Shift ended',
+        message: r.onDuty ? 'New requests of your types can be routed to you.' : 'New requests go to colleagues on duty; your open requests stay yours.',
+      }),
+    onError: (e) => notifyError(e, 'Could not change your shift'),
+  })
+  if (!me.data) return null
+  return (
+    <button
+      type="button"
+      onClick={() => change.run(!onDuty)}
+      disabled={change.pending}
+      title={onDuty ? t('On duty: new requests can be routed to you. Click to end your shift.') : t('Off duty: new requests are not routed to you. Click to start your shift.')}
+      className={cx(
+        'flex h-8 items-center gap-2 rounded-full border px-3 text-base font-medium whitespace-nowrap transition-colors disabled:opacity-60',
+        onDuty ? 'border-success bg-success-bg text-success-fg hover:bg-green-100' : 'border-line-strong bg-subtle text-fg-secondary hover:border-primary hover:text-fg',
+      )}
+    >
+      <span aria-hidden="true" className={cx('size-2 rounded-full', onDuty ? 'bg-success' : 'bg-gray-400')} />
+      {onDuty ? t('On duty') : t('Off duty')}
+      <span className="text-sm font-normal opacity-80">· {onDuty ? t('End shift') : t('Start shift')}</span>
+    </button>
+  )
+}
+
+// Term selector for every role. Block scope: Managers choose among every Block (ADR-19); Staff with several Blocks
+// choose among theirs; Staff with one Block see it as a fixed label, since a Manager sets their Blocks.
 function BackOfficeTopBar({ role }) {
   const { terms, term, setTermId, blocks, block, setBlock } = useSession()
   const termOptions = terms.map((x) => ({ value: x.id, label: t('Term: {name}', { name: x.name }) }))
@@ -267,13 +306,24 @@ function BackOfficeTopBar({ role }) {
     ...(blocks.length > 1 ? [{ value: null, label: role === 'manager' ? t('All Blocks') : t('Blocks: {list}', { list: blocks.join(', ') }) }] : []),
     ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) })),
   ]
+  const fixedBlock = role === 'staff' && blocks.length === 1
   return (
     <header className="z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-line bg-surface px-6">
       <div className="flex items-center gap-3">
         <SelectorButton icon={Calendar} label={t('Term')} value={term?.id} options={termOptions} onChange={setTermId} disabled={!termOptions.length} />
-        {role !== 'admin' && blockOptions.length > 0 && (
-          <SelectorButton icon={Building} label={t('Block scope')} value={block} options={blockOptions} onChange={setBlock} />
+        {fixedBlock ? (
+          <span
+            title={t('Your Block. A Manager sets the Blocks of your account.')}
+            className="flex items-center gap-2 rounded-md bg-subtle px-3 py-1.5 text-base font-medium whitespace-nowrap text-fg"
+          >
+            <Building size={16} aria-hidden="true" className="text-fg-secondary" />
+            {t('Block {code}', { code: blocks[0] })}
+          </span>
+        ) : (
+          role !== 'admin' &&
+          blockOptions.length > 0 && <SelectorButton icon={Building} label={t('Block scope')} value={block} options={blockOptions} onChange={setBlock} />
         )}
+        {role !== 'admin' && <DutyToggle />}
       </div>
       <div className="flex items-center gap-3">
         <QuickSearch role={role} />

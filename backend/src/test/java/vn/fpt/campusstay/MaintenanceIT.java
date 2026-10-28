@@ -241,12 +241,14 @@ class MaintenanceIT {
         postJson(path + "/confirm", auth, "{\"fixed\":true}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_RESOLVED"));
-        patchAs(path, staff, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
-        patchAs(path, staff, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        // The person in charge does the work.
+        String assigneeAuth = bearer(mvc, STAFF_A2);
+        patchAs(path, assigneeAuth, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
+        patchAs(path, assigneeAuth, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         postJson(path + "/confirm", auth, "{\"fixed\":false,\"comment\":\"Still leaking at night.\"}")
                 .andExpect(status().isNoContent());
         getAs(path, auth).andExpect(jsonPath("$.status").value("Assigned"));
-        patchAs(path, staff, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        patchAs(path, assigneeAuth, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         postJson(path + "/confirm", auth, "{\"fixed\":true}").andExpect(status().isNoContent());
         getAs(path, auth).andExpect(jsonPath("$.status").value("Closed"));
         patchAs(path, staff, "{\"priority\":\"Low\"}")
@@ -255,6 +257,34 @@ class MaintenanceIT {
         patchAs(path, auth, "{\"priority\":\"Low\"}").andExpect(status().isForbidden());
         assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'MAINTENANCE_UPDATED'")
                 .query(Long.class).single()).isGreaterThanOrEqualTo(4);
+    }
+
+    /**
+     * TC-MNT-009: only the person in charge changes the status; another Staff member of the Block takes the request
+     * over first (recorded in its history), and a Manager may act on any request.
+     */
+    @Test
+    void personInChargeChangesTheStatus() throws Exception {
+        livesIn(24, "A-306", "A");
+        String id = reported(bearer(mvc, student(24)), "Normal");
+        String path = "/maintenance-requests/" + id;
+        String staff = bearer(mvc, STAFF_A);
+        long a1 = userId(STAFF_A);
+        long a2 = userId(STAFF_A2);
+        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(a2)).andExpect(status().isNoContent());
+
+        patchAs(path, staff, "{\"status\":\"In progress\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ASSIGNED_TO_SOMEONE_ELSE"))
+                .andExpect(jsonPath("$.message").value(startsWith("This request is assigned to Vo Thanh Tung.")));
+        patchAs(path, staff, "{\"assigneeId\":\"%d\",\"status\":\"In progress\"}".formatted(a1))
+                .andExpect(status().isNoContent());
+        getAs(path, staff)
+                .andExpect(jsonPath("$.status").value("In progress"))
+                .andExpect(jsonPath("$.assignee.id").value(String.valueOf(a1)));
+
+        patchAs(path, bearer(mvc, MANAGER_B), "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        getAs(path, staff).andExpect(jsonPath("$.status").value("Resolved"));
     }
 
     /** TC-MNT-003: the queue is scoped: another Block's Staff neither see nor count the request; Managers do (ADR-19). */
