@@ -1,0 +1,31 @@
+$kind: http-request
+name: '/inspection-runs/{id}/rooms/{room}'
+method: PUT
+url: '{{baseUrl}}/inspection-runs/:id/rooms/:room'
+order: 256000
+description: |-
+  `PUT /inspection-runs/{id}/rooms/{room}` `{ results }` → `{ createdRequests: [id] }`. A failed item creates a Maintenance Request; its severity sets the request priority.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "results": [
+        {
+          "itemId": "",
+          "result": "",
+          "note": ""
+        }
+      ]
+    }

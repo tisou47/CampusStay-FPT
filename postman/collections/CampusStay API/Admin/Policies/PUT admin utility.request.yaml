@@ -1,0 +1,52 @@
+$kind: http-request
+name: '/admin/utility'
+method: PUT
+url: '{{baseUrl}}/admin/utility'
+order: 322001
+description: |-
+  `GET|PUT /admin/utility` → `{ priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }`
+
+  Contract: `docs/api-contract.md` › Admin › Policies
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "priceKwh": 0,
+      "priceM3": 0,
+      "readingDay": 0,
+      "paymentDueDays": 0,
+      "rounding": "",
+      "overdueReminder": "",
+      "estimateMonthly": 0,
+      "monthsHeld": 0,
+      "blockChangesWhenOverdue": false,
+      "options": {
+        "readingDays": [
+          {
+            "value": "",
+            "label": ""
+          }
+        ],
+        "paymentDueDays": [
+          {
+            "value": "",
+            "label": ""
+          }
+        ],
+        "rounding": [
+          {
+            "value": "",
+            "label": ""
+          }
+        ],
+        "overdueReminder": [
+          {
+            "value": "",
+            "label": ""
+          }
+        ]
+      }
+    }

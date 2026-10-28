@@ -1,0 +1,25 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/dashboards/staff?termId={{termId}}&block={{cs.otherBlock}}'
+order: 12000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{cs.otherBlock}}'
+scripts:
+  - type: beforeRequest
+    language: text/javascript
+    code: |-
+      // A Block the Manager sees and this Staff account does not; none means nothing to check.
+      const mine = JSON.parse(pm.variables.get('cs.staffBlocks') || '[]');
+      const other = JSON.parse(pm.variables.get('cs.allBlocks') || '[]').find((b) => !mine.includes(b));
+      if (other) pm.variables.set('cs.otherBlock', other);
+      else pm.execution.skipRequest();
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('403 BLOCK_OUT_OF_SCOPE', () => {
+        pm.response.to.have.status(403);
+        pm.expect(pm.response.json().code).to.eql('BLOCK_OUT_OF_SCOPE');
+      });

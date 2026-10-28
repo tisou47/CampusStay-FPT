@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/inspection-runs/upcoming'
+method: GET
+url: '{{baseUrl}}/inspection-runs/upcoming?block={{block}}'
+order: 258000
+description: |-
+  `GET /inspection-runs/upcoming?block` → `{ items: [{ id, date, scope, scheduleName }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+queryParams:
+  - key: block
+    value: '{{block}}'

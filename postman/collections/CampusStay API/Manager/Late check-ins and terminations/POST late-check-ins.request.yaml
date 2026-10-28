@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/late-check-ins'
+method: POST
+url: '{{baseUrl}}/late-check-ins'
+order: 273001
+description: |-
+  `POST /late-check-ins` (multipart, Staff at the desk) `studentCode, reason, requestedFor, evidence?` → `{ id }` (A-12)
+
+  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+body:
+  type: formdata
+  content:
+    - key: termId
+      type: text
+      value: '{{termId}}'
+    - key: studentCode
+      type: text
+      value: ''
+    - key: reason
+      type: text
+      value: ''
+    - key: requestedFor
+      type: text
+      value: ''
+    - key: evidence
+      type: file
+      src: ''

@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/inventory/room-classes'
+method: PUT
+url: '{{baseUrl}}/inventory/room-classes'
+order: 184001
+description: |-
+  `PUT /inventory/room-classes` `{ termId, rooms: [code], roomClassId }` → `{ changed, unchanged }` (Managers; Terms not started; `409 TERM_STARTED`, `409 ROOM_CLASS_LOCKED`). See A-23.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "rooms": [],
+      "roomClassId": ""
+    }

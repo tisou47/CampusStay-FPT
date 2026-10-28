@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/files/{id}'
+method: GET
+url: '{{baseUrl}}/files/:id'
+order: 46000
+description: |-
+  GET `/files/{id}?exp&sig` — request: A signed link handed out by another endpoint (`receipt.url`, `photos[].url`); no token — response: The file; `404` once expired (A-10)
+
+  Contract: `docs/api-contract.md` › Session and shared › Public
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+queryParams:
+  - key: exp
+    value: ''
+    disabled: true
+  - key: sig
+    value: ''
+    disabled: true

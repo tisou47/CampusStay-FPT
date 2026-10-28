@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/inspection-checklists'
+method: GET
+url: '{{baseUrl}}/inspection-checklists'
+order: 336000
+description: |-
+  `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit

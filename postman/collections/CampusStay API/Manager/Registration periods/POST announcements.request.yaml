@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/announcements'
+method: POST
+url: '{{baseUrl}}/announcements'
+order: 304001
+description: |-
+  `POST /announcements { category, audience, blocks?, termId?, title, body, pinned?, shownFrom?, shownUntil? }` → `201 { id }`
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "category": "",
+      "audience": "",
+      "blocks": [],
+      "termId": "{{termId}}",
+      "title": "",
+      "body": "",
+      "pinned": false,
+      "shownFrom": "2026-12-01T00:00:00Z",
+      "shownUntil": "2026-12-01T00:00:00Z"
+    }

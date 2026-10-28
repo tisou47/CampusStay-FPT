@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/admin/settings/{group}'
+method: PUT
+url: '{{baseUrl}}/admin/settings/:group'
+order: 315001
+description: |-
+  `GET|PUT /admin/settings/{deadlines|refunds|stay}` → `{ group, title, appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] }`; `PUT { values }` (A-31)
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+pathVariables:
+  - key: group
+    value: ''
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "values": {}
+    }

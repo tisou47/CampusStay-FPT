@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/door-codes'
+method: GET
+url: '{{baseUrl}}/door-codes?block={{block}}'
+order: 196000
+description: |-
+  `GET /door-codes?block&status&q&page&pageSize` → `{ items: [{ room, block, floor, status: 'Change needed'|'Not set'|'Active', proposed, proposedAt, activeSince, task: { reason, since } | null, residents }], total, counts: { toChange, notSet, proposed, active }, statuses }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

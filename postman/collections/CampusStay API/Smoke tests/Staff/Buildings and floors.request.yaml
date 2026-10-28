@@ -1,0 +1,15 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/inventory/structure?block={{block}}'
+order: 9000
+queryParams:
+  - key: block
+    value: '{{block}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with the Blocks in scope', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().blocks).to.be.an('array').that.is.not.empty;
+      });

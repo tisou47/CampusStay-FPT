@@ -1,0 +1,12 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/admin/terms'
+order: 11000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('403 FORBIDDEN', () => {
+        pm.response.to.have.status(403);
+        pm.expect(pm.response.json().code).to.eql('FORBIDDEN');
+      });

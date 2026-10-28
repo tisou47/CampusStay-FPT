@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/emails/options'
+method: GET
+url: '{{baseUrl}}/admin/emails/options'
+order: 328000
+description: |-
+  `GET /admin/emails/options` → `{ templates: [{ key, name, subject }], groups: [{ key, label }], blocks, genders, channels: [{ value, label }], sendTimes: [{ value, label }] }`
+
+  Contract: `docs/api-contract.md` › Admin › Messages

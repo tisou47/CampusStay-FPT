@@ -1,0 +1,4 @@
+$kind: collection
+description: |-
+  The Manager account {{managerEmail}}, who works for every Block (ADR-19). Runs before Staff, whose scope check needs the Blocks seen here.
+order: 3000

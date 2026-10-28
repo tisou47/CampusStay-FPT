@@ -1,0 +1,36 @@
+$kind: http-request
+name: '/student-accounts'
+method: GET
+url: '{{baseUrl}}/student-accounts?block={{block}}'
+order: 297000
+description: |-
+  `GET /student-accounts?q&verification&enrollment&gender&cohort&resident&block&page&pageSize` → `{ items: [{ id, studentCode, name, email, gender, cohort, major, enrollment, verification, account, block, residence, demo }], total, counts: { pending }, options }` (Staff: residents of their Blocks)
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+queryParams:
+  - key: q
+    value: ''
+    disabled: true
+  - key: verification
+    value: ''
+    disabled: true
+  - key: enrollment
+    value: ''
+    disabled: true
+  - key: gender
+    value: ''
+    disabled: true
+  - key: cohort
+    value: ''
+    disabled: true
+  - key: resident
+    value: ''
+    disabled: true
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

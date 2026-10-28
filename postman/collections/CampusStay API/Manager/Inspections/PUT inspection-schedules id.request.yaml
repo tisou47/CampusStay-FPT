@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/inspection-schedules/{id}'
+method: PUT
+url: '{{baseUrl}}/inspection-schedules/:id'
+order: 306000
+description: |-
+  `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`)
+
+  Contract: `docs/api-contract.md` › Manager › Inspections
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "Active"
+    }

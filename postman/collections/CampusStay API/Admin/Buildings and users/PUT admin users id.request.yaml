@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/admin/users/{id}'
+method: PUT
+url: '{{baseUrl}}/admin/users/:id'
+order: 333000
+description: |-
+  `PUT /admin/users/{id}`
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "email": "",
+      "role": "",
+      "scope": "",
+      "status": ""
+    }

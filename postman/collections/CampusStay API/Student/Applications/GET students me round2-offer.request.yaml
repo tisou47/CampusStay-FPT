@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/round2-offer'
+method: GET
+url: '{{baseUrl}}/students/me/round2-offer'
+order: 105000
+description: |-
+  `GET /students/me/round2-offer` → `{ offer: { id, expiresAt, termName, application: { id, roomTypeName, roomClassName, termPrice, depositPaid }, options: [{ id, roomTypeName, roomClassName, block, note, fill, termPrice, difference }] } | null }`
+
+  Contract: `docs/api-contract.md` › Student › Applications

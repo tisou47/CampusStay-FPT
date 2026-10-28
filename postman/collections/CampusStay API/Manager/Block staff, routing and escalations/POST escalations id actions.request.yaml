@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/escalations/{id}/actions'
+method: POST
+url: '{{baseUrl}}/escalations/:id/actions'
+order: 292000
+description: |-
+  `POST /escalations/{id}/actions` `{ action: 'reassign', assigneeId, note? }` or `{ action: 'temporary-bed', note? }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "",
+      "assigneeId": "",
+      "note": ""
+    }

@@ -1,0 +1,28 @@
+$kind: http-request
+name: '/inspection-checklists/{id}/publish'
+method: POST
+url: '{{baseUrl}}/inspection-checklists/:id/publish'
+order: 336000
+description: |-
+  `POST /inspection-checklists/{id}/publish` `{ items }` → `{ id, version }` (A-14)
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "label": "",
+          "category": "",
+          "severity": ""
+        }
+      ]
+    }

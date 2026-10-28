@@ -1,0 +1,28 @@
+$kind: http-request
+name: '/admin/audit-log'
+method: GET
+url: '{{baseUrl}}/admin/audit-log'
+order: 339000
+description: |-
+  `GET /admin/audit-log?q&actor&action&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+queryParams:
+  - key: q
+    value: ''
+    disabled: true
+  - key: actor
+    value: ''
+    disabled: true
+  - key: action
+    value: ''
+    disabled: true
+  - key: range
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

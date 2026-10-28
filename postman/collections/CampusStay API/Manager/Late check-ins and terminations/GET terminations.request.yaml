@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/terminations'
+method: GET
+url: '{{baseUrl}}/terminations?termId={{termId}}&block={{block}}'
+order: 276000
+description: |-
+  `GET /terminations?termId&block&status&page&pageSize` → `{ items: [{ id, studentName, studentCode, room, block, reason, note, status, moveOutBy, startedAt, startedBy, debt, endedAt, cancelReason }], total, counts: { noticeSent, overdue }, reasons, statuses }`
+
+  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

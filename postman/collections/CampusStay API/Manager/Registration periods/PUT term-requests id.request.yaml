@@ -1,0 +1,60 @@
+$kind: http-request
+name: '/term-requests/{id}'
+method: PUT
+url: '{{baseUrl}}/term-requests/:id'
+order: 302001
+description: |-
+  `PUT /term-requests/{id}`
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termName": "",
+      "stayStart": "2026-12-01",
+      "stayEnd": "2026-12-01",
+      "timeline": {
+        "publishAt": "2026-12-01T00:00:00Z",
+        "requestsOpenAt": "2026-12-01T00:00:00Z",
+        "requestsCloseAt": "2026-12-01T00:00:00Z",
+        "decisionsDueAt": "2026-12-01T00:00:00Z",
+        "reconciliationDueAt": "2026-12-01T00:00:00Z",
+        "feesIssueAt": "2026-12-01T00:00:00Z",
+        "feesDueAt": "2026-12-01T00:00:00Z",
+        "registrationOpensAt": "2026-12-01T00:00:00Z",
+        "registrationClosesAt": "2026-12-01T00:00:00Z",
+        "resultsPublishedAt": "2026-12-01T00:00:00Z",
+        "roommateHours": 0,
+        "depositHours": 0,
+        "balanceDueAt": "2026-12-01T00:00:00Z",
+        "checkInStart": "2026-12-01",
+        "checkInEnd": "2026-12-01",
+        "checkOutBy": "2026-12-01"
+      },
+      "blocks": [],
+      "excludedRooms": [],
+      "places": [
+        {
+          "roomTypeId": "",
+          "roomClassId": "",
+          "gender": "",
+          "places": 0
+        }
+      ],
+      "prices": [
+        {
+          "roomTypeId": "",
+          "roomClassId": "",
+          "price": 0
+        }
+      ],
+      "notes": ""
+    }

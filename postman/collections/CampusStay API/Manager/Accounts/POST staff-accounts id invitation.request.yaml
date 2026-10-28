@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/staff-accounts/{id}/invitation'
+method: POST
+url: '{{baseUrl}}/staff-accounts/:id/invitation'
+order: 299000
+description: |-
+  `POST /staff-accounts/{id}/invitation` → `204` (A-21)
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

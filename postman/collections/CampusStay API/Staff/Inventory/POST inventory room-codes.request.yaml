@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/inventory/room-codes'
+method: POST
+url: '{{baseUrl}}/inventory/room-codes'
+order: 900000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `roomCodes` of `inventory-controller`). Add it to the contract or remove it from the backend.
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''

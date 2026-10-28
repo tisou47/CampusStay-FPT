@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/students/me/late-check-in'
+method: POST
+url: '{{baseUrl}}/students/me/late-check-in'
+order: 122001
+description: |-
+  `POST /students/me/late-check-in` (multipart) `reason, requestedFor, evidence` → `{ id }` (A-36)
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+body:
+  type: formdata
+  content:
+    - key: reason
+      type: text
+      value: ''
+    - key: requestedFor
+      type: text
+      value: ''
+    - key: evidence
+      type: file
+      src: ''

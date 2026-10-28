@@ -38,7 +38,7 @@ When something does not compile, check the real API (do not guess); keep the des
 5. Errors: throw `ApiException` with a stable `code` (UPPER_SNAKE) and a user-facing `message`. Add new constraint names to `ConstraintMessages`.
 6. Audit: `auditLog.record(...)` inside the transaction for every state change made by Staff/Manager/Admin and every export.
 7. Tests: an `*IT` class per controller covering happy path, validation, permission/scope and the main business rule; name each test with its own `TC-<CODE>-NNN` id in the Javadoc (the next free number of that code: one id, one test), then run `node docs/tools/generate-catalogs.mjs` from the repository root and commit `docs/backend/04_Test_Catalog.md` with the change.
-8. Update `02_Endpoint_Map.md` status (Planned → Coded → Verified) in the same commit.
+8. Update `02_Endpoint_Map.md` status (Planned → Coded → Verified) in the same commit, and refresh the Postman collection: with the backend running, `node docs/tools/generate-postman.mjs` from the repository root (it reads `/api/v3/api-docs`, which needs `springdoc.use-fqn` because records share names such as `CreateRequest`).
 
 ## Conventions
 - Statuses: DB `UPPER_SNAKE`; enums expose `@JsonValue` labels exactly as the contract (`Awaiting Deposit`, `Awaiting confirmation`, `In progress`).

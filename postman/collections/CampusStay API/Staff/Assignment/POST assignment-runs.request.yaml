@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/assignment-runs'
+method: POST
+url: '{{baseUrl}}/assignment-runs'
+order: 169001
+description: |-
+  `POST /assignment-runs` `{ termId, dryRun }` → `{ id }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "dryRun": false
+    }

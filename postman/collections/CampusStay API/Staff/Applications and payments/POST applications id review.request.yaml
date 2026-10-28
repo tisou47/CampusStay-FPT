@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/applications/{id}/review'
+method: POST
+url: '{{baseUrl}}/applications/:id/review'
+order: 157000
+description: |-
+  `POST /applications/{id}/review` `{ decision: 'Approved'|'Rejected', note? }` (note required when rejecting) → `204`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "note": ""
+    }

@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/check-in/today'
+method: GET
+url: '{{baseUrl}}/check-in/today?termId={{termId}}&block={{block}}'
+order: 231000
+description: |-
+  `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

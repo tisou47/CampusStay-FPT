@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/maintenance-requests/options'
+method: GET
+url: '{{baseUrl}}/maintenance-requests/options'
+order: 126000
+description: |-
+  `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+queryParams:
+  - key: for
+    value: ''
+    disabled: true

@@ -1,0 +1,15 @@
+$kind: http-request
+name: '/check-in/lookup'
+method: GET
+url: '{{baseUrl}}/check-in/lookup?termId={{termId}}'
+order: 232000
+description: |-
+  `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: q
+    value: ''
+    disabled: true

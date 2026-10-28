@@ -1,0 +1,25 @@
+$kind: http-request
+name: '/next-term-requests/decision'
+method: POST
+url: '{{baseUrl}}/next-term-requests/decision'
+order: 223000
+description: |-
+  `POST /next-term-requests/decision` `{ items: [{ kind, id }], decision, reason? }` → `{ decided, failed: [{ kind, id, message }] }` (A-44)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "kind": "",
+          "id": ""
+        }
+      ],
+      "decision": "",
+      "reason": ""
+    }

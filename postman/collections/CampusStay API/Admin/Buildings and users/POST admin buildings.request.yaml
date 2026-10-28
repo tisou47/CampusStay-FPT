@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/admin/buildings'
+method: POST
+url: '{{baseUrl}}/admin/buildings'
+order: 332001
+description: |-
+  `POST`
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "gender": "",
+      "status": ""
+    }

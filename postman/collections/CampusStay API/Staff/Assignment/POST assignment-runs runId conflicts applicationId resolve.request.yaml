@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/assignment-runs/{runId}/conflicts/{applicationId}/resolve'
+method: POST
+url: '{{baseUrl}}/assignment-runs/:runId/conflicts/:applicationId/resolve'
+order: 172000
+description: |-
+  `POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve` `{ optionKey }` or `{ waitlist: true }` → `{ applicationId, bed, resolved, waitlisted }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+pathVariables:
+  - key: runId
+    value: ''
+    description: 'Assignment run id, e.g. RUN-3'
+  - key: applicationId
+    value: ''
+    description: 'Application code, e.g. APP-SP27-000123'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "optionKey": "",
+      "waitlist": false
+    }

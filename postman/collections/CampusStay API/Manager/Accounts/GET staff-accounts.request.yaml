@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/staff-accounts'
+method: GET
+url: '{{baseUrl}}/staff-accounts?block={{block}}'
+order: 299000
+description: |-
+  `GET /staff-accounts?q&block&status&page&pageSize` → `{ items: [{ id, name, email, title, blocks, status, lastSignInAt }], total, blocks, statuses }`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+queryParams:
+  - key: q
+    value: ''
+    disabled: true
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

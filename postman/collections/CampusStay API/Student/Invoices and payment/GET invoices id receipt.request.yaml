@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/invoices/{id}/receipt'
+method: GET
+url: '{{baseUrl}}/invoices/:id/receipt'
+order: 115000
+description: |-
+  `GET /invoices/{id}/receipt` → PDF file
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

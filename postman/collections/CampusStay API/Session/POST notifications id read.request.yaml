@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/notifications/{id}/read'
+method: POST
+url: '{{baseUrl}}/notifications/:id/read'
+order: 48000
+description: |-
+  POST `/notifications/read-all`, `/notifications/{id}/read` — request: `id` may be `ann-<n>` (an announcement) — response: `204`
+
+  Contract: `docs/api-contract.md` › Session and shared
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

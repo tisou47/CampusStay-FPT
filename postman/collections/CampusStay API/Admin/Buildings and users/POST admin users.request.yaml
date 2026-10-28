@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/admin/users'
+method: POST
+url: '{{baseUrl}}/admin/users'
+order: 333001
+description: |-
+  `POST /admin/users` (invite)
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "email": "",
+      "role": "",
+      "scope": ""
+    }

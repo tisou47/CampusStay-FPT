@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/check-out'
+method: GET
+url: '{{baseUrl}}/check-out?termId={{termId}}&block={{block}}'
+order: 234000
+description: |-
+  `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: q
+    value: ''
+    disabled: true
+  - key: reason
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

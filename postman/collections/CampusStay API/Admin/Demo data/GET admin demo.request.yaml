@@ -1,0 +1,7 @@
+$kind: http-request
+name: '/admin/demo'
+method: GET
+url: '{{baseUrl}}/admin/demo'
+order: 900000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `status` of `demo-controller`). Add it to the contract or remove it from the backend.

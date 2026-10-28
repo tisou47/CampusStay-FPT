@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/admin/room-types/{id}'
+method: PUT
+url: '{{baseUrl}}/admin/room-types/:id'
+order: 317000
+description: |-
+  `PUT /admin/room-types/{id}`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "beds": 0,
+      "basePrice": 0,
+      "roommateSelection": "",
+      "status": ""
+    }

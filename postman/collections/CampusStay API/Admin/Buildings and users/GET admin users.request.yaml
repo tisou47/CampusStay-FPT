@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/admin/users'
+method: GET
+url: '{{baseUrl}}/admin/users?block={{block}}'
+order: 333000
+description: |-
+  `GET /admin/users?q&role&block&status&page&pageSize` → `{ items: [{ id, name, email, role, scope, lastSignInAt, status }], total, roles, blocks, scopeOptions }`
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users
+queryParams:
+  - key: q
+    value: ''
+    disabled: true
+  - key: role
+    value: ''
+    disabled: true
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

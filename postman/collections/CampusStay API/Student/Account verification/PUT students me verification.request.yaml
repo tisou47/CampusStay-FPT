@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/students/me/verification'
+method: PUT
+url: '{{baseUrl}}/students/me/verification'
+order: 58001
+description: |-
+  `PUT /students/me/verification` (the form) → `204`: Pending verification; `409 ALREADY_VERIFIED` (A-18). Only a Verified account may apply (C-39).
+
+  Contract: `docs/api-contract.md` › Student › Account verification
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "studentCode": "",
+      "name": "",
+      "gender": "",
+      "dateOfBirth": "2026-12-01",
+      "major": "",
+      "cohort": "",
+      "phone": ""
+    }

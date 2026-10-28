@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/finance/reminders'
+method: POST
+url: '{{baseUrl}}/finance/reminders'
+order: 283000
+description: |-
+  `POST /finance/reminders` `{ invoiceIds }` → `{ sent }`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "invoiceIds": []
+    }

@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/furniture/moves'
+method: POST
+url: '{{baseUrl}}/furniture/moves'
+order: 191001
+description: |-
+  `POST /furniture/moves` `{ items: [id], toRoom | toStore, reason, planned? }` → `{ moved, planned }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [],
+      "toRoom": "",
+      "toStore": "",
+      "reason": "",
+      "planned": false
+    }

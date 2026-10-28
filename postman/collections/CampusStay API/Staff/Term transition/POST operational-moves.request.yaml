@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/operational-moves'
+method: POST
+url: '{{baseUrl}}/operational-moves'
+order: 227001
+description: |-
+  `POST /operational-moves` `{ allocationId, bedId, reason, note?, nextTerm: 'follow'|'keep', fromElectricity, fromWater, toElectricity, toWater }` → `{ allocationId, room, bed, nextTerm, note }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "allocationId": "",
+      "bedId": "",
+      "reason": "",
+      "note": "",
+      "nextTerm": "",
+      "fromElectricity": 0,
+      "fromWater": 0,
+      "toElectricity": 0,
+      "toWater": 0
+    }

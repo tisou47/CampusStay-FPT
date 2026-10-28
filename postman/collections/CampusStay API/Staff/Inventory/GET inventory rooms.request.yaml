@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/inventory/rooms'
+method: GET
+url: '{{baseUrl}}/inventory/rooms?termId={{termId}}&block={{block}}&floor='
+order: 178000
+description: |-
+  `GET /inventory/rooms?termId&block&floor` → `{ roomClassName, rooms: [{ code, block, floor, roomTypeName, roomClassName, capacity, outOfService: { since, reason, by, note } | null, beds: [{ id, state: 'unpaid'|'paid'|'resident'|'leaving'|'next_term'|'available'|'oos', occupant: { name, studentCode } | null }] }], summary: { beds, allocated, available, outOfService, residents } }` (B-06, B-10)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: floor
+    value: ''

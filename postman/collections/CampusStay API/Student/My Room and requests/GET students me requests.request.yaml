@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/students/me/requests'
+method: GET
+url: '{{baseUrl}}/students/me/requests?termId={{termId}}'
+order: 123000
+description: |-
+  `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges, consents }, room }`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+queryParams:
+  - key: kind
+    value: ''
+    disabled: true
+  - key: termId
+    value: '{{termId}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/admin/room-types'
+method: POST
+url: '{{baseUrl}}/admin/room-types'
+order: 317001
+description: |-
+  `POST`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "beds": 0,
+      "basePrice": 0,
+      "roommateSelection": "",
+      "status": ""
+    }

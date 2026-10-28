@@ -1,0 +1,41 @@
+$kind: http-request
+name: '/applications'
+method: POST
+url: '{{baseUrl}}/applications'
+order: 73001
+description: |-
+  `POST /applications` → `{ id, depositInvoiceId, depositDueAt }`
+
+  Contract: `docs/api-contract.md` › Student › Application wizard
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "roomTypeId": "",
+      "roomClassId": "",
+      "roommate": {
+        "mode": "",
+        "studentCode": "",
+        "preferences": {
+          "region": "",
+          "semester": "",
+          "major": ""
+        }
+      },
+      "contact": {
+        "phone": "",
+        "email": "",
+        "emergencyName": "",
+        "relationship": "",
+        "emergencyPhone": ""
+      },
+      "consent": {
+        "matching": false,
+        "rules": false
+      },
+      "stayTerms": 0
+    }

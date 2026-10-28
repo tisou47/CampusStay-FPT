@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/invoices/{id}'
+method: GET
+url: '{{baseUrl}}/invoices/:id'
+order: 111000
+description: |-
+  `GET /invoices/{id}` → `{ id, title, type, typeLabel, amount, status, issuedAt, dueAt, paidAt, room, utilityDeposit, lines: [{ label, amount }] | null, breakdown: { segments: [{ from, to, note, residents, kwh, m3, electricityCost, waterCost, share }], subtotal, roundingNote, priceKwh, priceM3 } | null }`
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

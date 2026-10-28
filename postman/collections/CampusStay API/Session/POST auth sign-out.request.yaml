@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/auth/sign-out'
+method: POST
+url: '{{baseUrl}}/auth/sign-out'
+order: 37000
+description: |-
+  POST `/auth/sign-out` — request: — — response: `204`
+
+  Contract: `docs/api-contract.md` › Session and shared

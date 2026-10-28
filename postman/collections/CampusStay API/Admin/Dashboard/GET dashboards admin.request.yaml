@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/dashboards/admin'
+method: GET
+url: '{{baseUrl}}/dashboards/admin?termId={{termId}}'
+order: 312000
+description: |-
+  `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }`
+
+  Contract: `docs/api-contract.md` › Admin › Dashboard
+queryParams:
+  - key: termId
+    value: '{{termId}}'

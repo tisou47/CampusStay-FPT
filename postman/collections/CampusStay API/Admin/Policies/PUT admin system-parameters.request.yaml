@@ -1,0 +1,31 @@
+$kind: http-request
+name: '/admin/system-parameters'
+method: PUT
+url: '{{baseUrl}}/admin/system-parameters'
+order: 326001
+description: |-
+  `GET|PUT /admin/system-parameters` → `{ sections: [{ title, fields: [{ key, label, value, helper?, options? }] }] }`
+
+  Contract: `docs/api-contract.md` › Admin › Policies
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "sections": [
+        {
+          "title": "",
+          "fields": [
+            {
+              "key": "",
+              "label": "",
+              "value": "",
+              "helper": "",
+              "options": []
+            }
+          ]
+        }
+      ]
+    }

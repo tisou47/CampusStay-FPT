@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/assignment-runs/{runId}/return'
+method: POST
+url: '{{baseUrl}}/assignment-runs/:runId/return'
+order: 272000
+description: |-
+  `POST /assignment-runs/{runId}/return` `{ block, comment }` → `204` (C-21)
+
+  Contract: `docs/api-contract.md` › Manager › Assignment approval
+pathVariables:
+  - key: runId
+    value: ''
+    description: 'Assignment run id, e.g. RUN-3'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}",
+      "comment": ""
+    }

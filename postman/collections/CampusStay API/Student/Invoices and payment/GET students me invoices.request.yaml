@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/students/me/invoices'
+method: GET
+url: '{{baseUrl}}/students/me/invoices?termId={{termId}}'
+order: 110000
+description: |-
+  `GET /students/me/invoices?termId&page&pageSize` → `{ items: [{ id, type: 'deposit'|'balance'|'utility'|'roomChange'|'damage'|'termFee', typeLabel, title, termName, amount, dueAt, status, paidAt, paymentMethod, transferContent }], total, summary: { outstanding, dueCount, nextDueAt, paidTotal, paidCount, upcoming: { typeLabel, amount, note } | null, awaitingCount, warning: { level, debt, overdue, terminateOn, issuedAt } | null } }` (A-39; `paymentMethod` Bank transfer for confirmed claims)
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

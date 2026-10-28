@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/assignment-runs'
+method: GET
+url: '{{baseUrl}}/assignment-runs?termId={{termId}}&block={{block}}'
+order: 168000
+description: |-
+  `GET /assignment-runs?termId&block` → `{ current: { id, kind, status, statusTone, stage (0–5), startedAt, finishedAt, startedBy, snapshot, input, proposed, conflicts, waitlisted, averageFit } | null, history: [{ id, kind, startedAt, startedBy, proposed, conflicts, waitlisted, status }], rules: { snapshot, groups: [{ title, items: [string] }] } }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

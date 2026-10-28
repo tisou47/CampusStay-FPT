@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/maintenance-requests/{id}'
+method: GET
+url: '{{baseUrl}}/maintenance-requests/:id'
+order: 128000
+description: |-
+  `GET /maintenance-requests/{id}` (student view) → `{ id, title, status, room, category, location, reportedAt, assignee, visitWindow, description, events: [{ who, at, message }] }` (public updates only)
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

@@ -1,0 +1,102 @@
+$kind: collection
+name: CampusStay API
+description: |-
+  Every endpoint of the CampusStay FPT backend, filed like `docs/api-contract.md` (Session, Student, Staff, Manager, Admin, Exports), plus **Smoke tests**: read-only checks of each role that are safe to run against any environment.
+
+  ## Use it
+  1. Pick an environment: **Local** (`mvn spring-boot:run`, dev base data) or **Production** (fill in `password` first; it is never committed).
+  2. Send any request. The collection signs in by itself as the role named by the request's folder (Student, Staff, Manager, Admin) with `{{<role>Email}}` and `{{password}}` (or `{{<role>Password}}`), and keeps the token in the collection variable `<role>Token`. Folders without a role (Session, Exports) run as `{{sessionRole}}`; folders named **Public** and `POST /auth/sign-in` send no token. A `401` forgets the token, so the next request signs in again. A refused sign-in is not repeated with the same credentials (5 failures lock an account for 15 minutes). The Postman CLI prints that automatic sign-in as `POST …/auth/sign-in [errored] Could not read response data`, a display quirk of `pm.sendRequest`: the token is kept.
+  3. `termId` and `block` left empty let the server choose (the current Term, every Block of the user); set them in the environment to look at another Term or Block. Path variables (`:id`, `:room` …) are left for you to fill.
+  4. `lang` (`en` or `vi`) is sent as `Accept-Language`, so error messages and notifications come back in that language.
+
+  Every response is checked against the contract's conventions: error bodies carry a `message` for the user, and every `id` / `…Id` field is a string (ADR-15).
+
+  ## Run the smoke tests
+  ```
+  postman collection run "postman/collections/CampusStay API" -i "Smoke tests" -e postman/environments/Local.environment.yaml
+  ```
+  Against production, pass the password without saving it: `--env-var "password=…"`.
+
+  ## Keep it up to date
+  The role folders are generated from the backend's OpenAPI document (`/api/v3/api-docs`, Swagger UI at `/api/swagger-ui.html`) and the contract: with the backend running, `node docs/tools/generate-postman.mjs`. This file and **Smoke tests** are written by hand.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{authToken}}'
+scripts:
+  - type: http:beforeRequest
+    language: text/javascript
+    code: |-
+      // Every request runs as the role named by its innermost folder (Student, Staff, Manager or Admin), the others as
+      // {{sessionRole}}; folders named "Public" send no token. The first request of a role signs in and keeps the token.
+      const ROLES = ['student', 'staff', 'manager', 'admin'];
+      if (!pm.request.headers.has('Accept-Language')) {
+        pm.request.headers.add({ key: 'Accept-Language', value: pm.variables.get('lang') || 'en' });
+      }
+      const folders = Array.from(pm.execution.location).slice(1, -1).map((f) => f.toLowerCase());
+      const role = folders.reverse().find((f) => ROLES.includes(f)) || pm.variables.get('sessionRole') || 'manager';
+      const tokenless = folders.includes('public') || pm.request.url.getPath().endsWith('/auth/sign-in');
+      pm.variables.set('cs.role', role);
+      pm.variables.set('authToken', tokenless ? '' : pm.collectionVariables.get(role + 'Token') || '');
+
+      if (!tokenless && !pm.variables.get('authToken')) {
+        const email = pm.variables.get(role + 'Email');
+        const password = pm.variables.get(role + 'Password') || pm.variables.get('password');
+        // Five refused sign-ins lock the account for 15 minutes: never repeat one with the same credentials,
+        // remembered by a short hash (FNV-1a) rather than the password itself.
+        let attempt = 2166136261;
+        for (const c of `${email}\n${password}`) attempt = Math.imul(attempt ^ c.charCodeAt(0), 16777619) >>> 0;
+        attempt = String(attempt);
+        if (!email || !password) {
+          console.warn(`Set ${role}Email and password in the environment to call as ${role}.`);
+        } else if (pm.collectionVariables.get(role + 'Refused') === attempt) {
+          console.warn(`Sign-in as ${email} was refused before: fix ${role}Email or the password first.`);
+        } else {
+          pm.sendRequest({
+            url: pm.variables.replaceIn('{{baseUrl}}/auth/sign-in'),
+            method: 'POST',
+            header: { 'Content-Type': 'application/json', 'Accept-Language': 'en' },
+            body: { mode: 'raw', raw: JSON.stringify({ email, password, remember: false }) },
+          }, (err, res) => {
+            if (!err && res.code === 200) {
+              pm.collectionVariables.set(role + 'Token', res.json().token);
+              pm.variables.set('authToken', res.json().token);
+            } else {
+              if (res && (res.code === 401 || res.code === 403)) pm.collectionVariables.set(role + 'Refused', attempt);
+              console.error(`Sign-in as ${email} failed: ${err ? err.message : res.code + ' ' + res.text()}`);
+            }
+          });
+        }
+      }
+  - type: http:afterResponse
+    language: text/javascript
+    code: |-
+      // A 401 to a request that carried a token means the token ended: forget it, so the next request signs in again.
+      if (pm.response.code === 401 && pm.request.headers.has('Authorization')) {
+        pm.collectionVariables.unset(pm.variables.get('cs.role') + 'Token');
+      }
+
+      // The contract's conventions hold for every response (docs/api-contract.md › Conventions).
+      if ((pm.response.headers.get('Content-Type') || '').includes('json') && pm.response.text()) {
+        const body = pm.response.json();
+        if (pm.response.code >= 400) {
+          pm.test('Error body has a message for the user', () => {
+            pm.expect(body.message, 'message').to.be.a('string').and.not.empty;
+          });
+        } else {
+          pm.test('Every id and …Id is a string (ADR-15)', () => {
+            const numeric = [];
+            (function walk(value, at) {
+              if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${at}[${i}]`));
+              else if (value && typeof value === 'object') {
+                for (const [key, v] of Object.entries(value)) {
+                  if ((key === 'id' || key.endsWith('Id')) && v !== null && typeof v !== 'string') numeric.push(`${at}.${key}`);
+                  walk(v, `${at}.${key}`);
+                }
+              }
+            })(body, '$');
+            pm.expect(numeric, numeric.slice(0, 5).join(', ')).to.be.empty;
+          });
+        }
+      }

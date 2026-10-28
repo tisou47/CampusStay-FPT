@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/terms'
+method: GET
+url: '{{baseUrl}}/admin/terms'
+order: 316000
+description: |-
+  `GET /admin/terms` → `{ items: [{ id, name, status, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy, wizardStep, requestCode }] }` (a Draft's windows may be `null`, A-27)
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods

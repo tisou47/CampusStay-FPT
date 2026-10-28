@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/term-requests/{id}/decision'
+method: POST
+url: '{{baseUrl}}/term-requests/:id/decision'
+order: 314000
+description: |-
+  `POST /term-requests/{id}/decision { status: 'In progress'|'Needs changes'|'Rejected', note }` → `204` (A-28)
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "",
+      "note": ""
+    }

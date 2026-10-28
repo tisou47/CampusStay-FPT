@@ -1,0 +1,15 @@
+$kind: http-request
+name: '/door-codes/import'
+method: POST
+url: '{{baseUrl}}/door-codes/import'
+order: 198000
+description: |-
+  `POST /door-codes/import` (multipart) `file` (CSV `room,code`) → `{ proposed }`; a problem line → `400` with `details.fields.line<n>`. Without `DOOR_CODE_KEY` on the server: `503 DOOR_CODES_DISABLED`. See A-25.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''

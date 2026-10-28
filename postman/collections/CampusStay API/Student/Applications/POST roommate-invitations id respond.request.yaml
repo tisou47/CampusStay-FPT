@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/roommate-invitations/{id}/respond'
+method: POST
+url: '{{baseUrl}}/roommate-invitations/:id/respond'
+order: 104000
+description: |-
+  `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`
+
+  Contract: `docs/api-contract.md` › Student › Applications
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "accept": false,
+      "stayTerms": 0
+    }

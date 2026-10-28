@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/payments/{invoiceId}/receipt-file'
+method: GET
+url: '{{baseUrl}}/payments/:invoiceId/receipt-file'
+order: 162000
+description: |-
+  `GET /payments/{invoiceId}/receipt-file` → the attached receipt (A-09)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+pathVariables:
+  - key: invoiceId
+    value: ''
+    description: 'Invoice code, e.g. INV-SP27-000123'

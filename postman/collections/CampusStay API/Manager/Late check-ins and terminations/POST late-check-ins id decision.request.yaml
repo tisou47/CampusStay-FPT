@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/late-check-ins/{id}/decision'
+method: POST
+url: '{{baseUrl}}/late-check-ins/:id/decision'
+order: 275000
+description: |-
+  `POST /late-check-ins/{id}/decision` `{ decision, deadline?, reason? }` → `204` — `deadline` (required when approving) is a date `YYYY-MM-DD`, like `requestedFor` and `suggestedDeadline`, at most the check-in end + `late_check_in.max_days`; approving moves the Balance deadline to the end of that day
+
+  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "deadline": "",
+      "reason": ""
+    }

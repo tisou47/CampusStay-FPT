@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/swap-invitations/{id}'
+method: GET
+url: '{{baseUrl}}/swap-invitations/:id'
+order: 140000
+description: |-
+  `GET /swap-invitations/{id}` → `{ id, status, expiresAt, crossBlock, termName, give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }` (B-09)
+
+  Contract: `docs/api-contract.md` › Student › Swaps
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

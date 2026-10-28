@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/inventory/rooms/{code}/out-of-service'
+method: POST
+url: '{{baseUrl}}/inventory/rooms/:code/out-of-service'
+order: 180000
+description: |-
+  `POST /inventory/rooms/{code}/out-of-service` `{ reason, note? }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+pathVariables:
+  - key: code
+    value: ''
+    description: 'Room code, e.g. A-305'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": "",
+      "note": ""
+    }

@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/admin/room-classes'
+method: POST
+url: '{{baseUrl}}/admin/room-classes'
+order: 318001
+description: |-
+  `POST`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "surchargeRate": 0,
+      "amenities": [],
+      "status": ""
+    }

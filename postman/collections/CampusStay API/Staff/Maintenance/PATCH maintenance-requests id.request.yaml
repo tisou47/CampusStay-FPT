@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/maintenance-requests/{id}'
+method: PATCH
+url: '{{baseUrl}}/maintenance-requests/:id'
+order: 204001
+description: |-
+  `PATCH /maintenance-requests/{id}` `{ priority?, furnitureItemId?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "priority": "",
+      "furnitureItemId": "",
+      "assigneeId": "",
+      "visitWindow": "",
+      "status": ""
+    }

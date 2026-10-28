@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/reconciliations/{id}'
+method: GET
+url: '{{baseUrl}}/reconciliations/:id'
+order: 279000
+description: |-
+  `GET /reconciliations/{id}` → `{ run, term, items }`
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

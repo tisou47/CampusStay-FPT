@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/door-codes/{room}'
+method: POST
+url: '{{baseUrl}}/door-codes/:room'
+order: 197000
+description: |-
+  `POST /door-codes/{room}` `{ code? }` → `{ room, code }` (blank = random)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+pathVariables:
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": ""
+    }

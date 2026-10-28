@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/admin/terms/{id}/publish'
+method: POST
+url: '{{baseUrl}}/admin/terms/:id/publish'
+order: 316000
+description: |-
+  `POST /admin/terms/{id}/publish`. Instants: `registrationOpensAt`, `registrationClosesAt`, `resultsPublishedAt`, `balanceDueAt`; dates (`YYYY-MM-DD`): `stayStart`, `stayEnd`, `checkInStart`, `checkInEnd`, `checkOutBy`. The Term's `depositHours` is the Deposit window used for its Applications (`/terms` returns it as `depositWindowHours`); when `POST /admin/terms` leaves it out or sends `null`, the server uses `/admin/fees.depositHours`. Empty fields are sent as `null`, never `0`.
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

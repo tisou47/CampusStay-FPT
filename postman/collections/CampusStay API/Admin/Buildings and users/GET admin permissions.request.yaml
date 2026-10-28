@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/permissions'
+method: GET
+url: '{{baseUrl}}/admin/permissions'
+order: 334000
+description: |-
+  `GET /admin/permissions` → `{ roles: [{ key, short }], rows: [{ action, allowed: [bool] }] }`
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users

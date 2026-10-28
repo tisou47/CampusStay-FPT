@@ -1,0 +1,12 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/admin/system-parameters'
+order: 8000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with the sections', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().sections).to.be.an('array').that.is.not.empty;
+      });

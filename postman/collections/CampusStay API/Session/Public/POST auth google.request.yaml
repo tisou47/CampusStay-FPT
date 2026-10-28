@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/auth/google'
+method: POST
+url: '{{baseUrl}}/auth/google'
+order: 36000
+description: |-
+  POST `/auth/google` — request: `{ code, remember }` (web: authorization code from the Google Identity Services popup, `ux_mode: popup`; the server exchanges it with `redirect_uri=postmessage`), `{ code, redirectUri, remember }` (web, when the popup was blocked: Google's redirect flow returned to `redirectUri` = the web's `/signin`, A-22) or `{ credential, remember }` (Android: Google ID token) — response: Same as sign-in. Only `@fpt.edu.vn` Google Workspace accounts. An account CampusStay does not know signs up as a student (`passwordSet: false`); an address ending with the code of an imported, unused account signs in to that account (A-17).
+
+  Contract: `docs/api-contract.md` › Session and shared › Public
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": "",
+      "credential": "",
+      "redirectUri": "",
+      "remember": false
+    }

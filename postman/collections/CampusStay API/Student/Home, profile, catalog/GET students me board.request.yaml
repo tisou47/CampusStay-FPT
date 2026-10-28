@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/board'
+method: GET
+url: '{{baseUrl}}/students/me/board'
+order: 66000
+description: |-
+  `GET /students/me/board` → `{ items: [{ id: 'ann-<n>', category, title, body, changes: [{ field, type, before, after }] | null, link, pinned, shownFrom, createdAt, read }], unread }`: the dormitory board, pinned first (A-30)
+
+  Contract: `docs/api-contract.md` › Student › Home, profile, catalog

@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/inspection-runs/{id}/submit'
+method: POST
+url: '{{baseUrl}}/inspection-runs/:id/submit'
+order: 257000
+description: |-
+  `POST /inspection-runs/{id}/submit`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/meter-periods/{id}/readings/{room}'
+method: GET
+url: '{{baseUrl}}/meter-periods/:id/readings/:room'
+order: 244000
+description: |-
+  `GET /meter-periods/{id}/readings/{room}` → `{ …item, priceKwh, priceM3, roundingNote, segments: [{ from, to, residents, kwh, m3, electricityCost, waterCost }], shares: [{ label, amount }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'

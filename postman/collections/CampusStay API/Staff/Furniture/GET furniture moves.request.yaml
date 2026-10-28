@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/furniture/moves'
+method: GET
+url: '{{baseUrl}}/furniture/moves?block={{block}}'
+order: 191000
+description: |-
+  `GET /furniture/moves?block&status=Planned|Done|Cancelled&page&pageSize` → `{ items: [{ id, itemId, assetCode, type, typeVi, from, to, reason, status, createdBy, createdAt, closedBy, closedAt }], total, statuses }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

@@ -1,0 +1,35 @@
+$kind: http-request
+name: '/payments'
+method: GET
+url: '{{baseUrl}}/payments?termId={{termId}}&block={{block}}'
+order: 159000
+description: |-
+  `GET /payments?termId&block&q&type&status&method&date=today|7d|term&page&pageSize` → `{ items: [{ invoiceId, studentName, studentCode, type, typeLabel, amount, method, paidAt, dueAt, status, reference, transferContent, receipt: { name, size, url } | null }], total, summary: { collectedToday, collectedTodayCount, awaitingConfirmation, unpaidDeposits, depositsPaid, depositsSubmitted } }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: q
+    value: ''
+    disabled: true
+  - key: type
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: method
+    value: ''
+    disabled: true
+  - key: date
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

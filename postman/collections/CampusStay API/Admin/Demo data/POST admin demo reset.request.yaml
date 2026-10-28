@@ -1,0 +1,17 @@
+$kind: http-request
+name: '/admin/demo/reset'
+method: POST
+url: '{{baseUrl}}/admin/demo/reset'
+order: 900000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `reset_1` of `demo-controller`). Add it to the contract or remove it from the backend.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "stage": "",
+      "confirm": ""
+    }

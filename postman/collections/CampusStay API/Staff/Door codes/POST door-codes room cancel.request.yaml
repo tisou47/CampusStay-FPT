@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/door-codes/{room}/cancel'
+method: POST
+url: '{{baseUrl}}/door-codes/:room/cancel'
+order: 197000
+description: |-
+  `POST /door-codes/{room}/cancel` → `204`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+pathVariables:
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'

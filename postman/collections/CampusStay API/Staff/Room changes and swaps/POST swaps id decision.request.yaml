@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/swaps/{id}/decision'
+method: POST
+url: '{{baseUrl}}/swaps/:id/decision'
+order: 216000
+description: |-
+  `POST /swaps/{id}/decision` `{ decision: 'Approved'|'Rejected', reason? }` → `204`; a swap across Blocks goes to a Manager (C-26)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "reason": ""
+    }

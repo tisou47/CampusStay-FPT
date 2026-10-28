@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/meter-periods/{id}/import'
+method: POST
+url: '{{baseUrl}}/meter-periods/:id/import'
+order: 246000
+description: |-
+  `POST /meter-periods/{id}/import` (multipart `file` CSV) → `{ imported }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''

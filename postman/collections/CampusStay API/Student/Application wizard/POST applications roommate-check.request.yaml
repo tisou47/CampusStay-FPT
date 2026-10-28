@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/applications/roommate-check'
+method: POST
+url: '{{baseUrl}}/applications/roommate-check'
+order: 72000
+description: |-
+  `POST /applications/roommate-check` `{ termId, studentCode }` → `{ valid, checksLeft }`. Return the same answer for every unusable code (privacy). When `checksLeft` is 0 the next check answers `429 ROOMMATE_CHECKS_EXHAUSTED`.
+
+  Contract: `docs/api-contract.md` › Student › Application wizard
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "studentCode": ""
+    }

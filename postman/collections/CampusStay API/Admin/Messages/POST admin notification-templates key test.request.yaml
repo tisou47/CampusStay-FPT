@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/admin/notification-templates/{key}/test'
+method: POST
+url: '{{baseUrl}}/admin/notification-templates/:key/test'
+order: 327000
+description: |-
+  `POST /admin/notification-templates/{key}/test`
+
+  Contract: `docs/api-contract.md` › Admin › Messages
+pathVariables:
+  - key: key
+    value: ''
+    description: 'Template or setting key'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "push": false,
+      "inApp": false,
+      "titleEn": "",
+      "titleVi": "",
+      "body": "",
+      "bodyVi": ""
+    }

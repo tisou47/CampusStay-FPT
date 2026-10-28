@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/staff-account-requests'
+method: POST
+url: '{{baseUrl}}/staff-account-requests'
+order: 288000
+description: |-
+  `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "email": "",
+      "role": "",
+      "block": "{{block}}"
+    }

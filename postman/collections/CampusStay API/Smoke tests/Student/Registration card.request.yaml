@@ -1,0 +1,12 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/registration-periods/current'
+order: 5000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with card', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json()).to.include.keys('card');
+      });

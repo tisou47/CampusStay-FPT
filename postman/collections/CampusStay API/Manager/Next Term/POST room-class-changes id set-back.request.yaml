@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/room-class-changes/{id}/set-back'
+method: POST
+url: '{{baseUrl}}/room-class-changes/:id/set-back'
+order: 278000
+description: |-
+  `POST /room-class-changes/{id}/set-back` `{ note }` → detail (A-42)
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "note": ""
+    }

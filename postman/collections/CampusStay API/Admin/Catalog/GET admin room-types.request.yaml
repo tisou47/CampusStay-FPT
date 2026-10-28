@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/room-types'
+method: GET
+url: '{{baseUrl}}/admin/room-types'
+order: 317000
+description: |-
+  `GET /admin/room-types` → `{ items: [{ id, name, beds, basePrice, roommateSelection: 'auto'|'mutual', rooms, status, hasAllocations }], roomClasses: [{ id, name, surchargeRate }], totals: { rooms, beds } }`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog

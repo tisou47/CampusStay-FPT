@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/inventory/rooms/{code}/details'
+method: GET
+url: '{{baseUrl}}/inventory/rooms/:code/details?termId={{termId}}'
+order: 183000
+description: |-
+  `GET /inventory/rooms/{code}/details?termId` → `{ room, block, floor, roomType, term, roomClass, next: { termId, term, roomClass } | null, conformance: { status, missing, extra }, furniture: [furniture item], doorCode: door-code item | null }` (A-23)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+pathVariables:
+  - key: code
+    value: ''
+    description: 'Room code, e.g. A-305'
+queryParams:
+  - key: termId
+    value: '{{termId}}'

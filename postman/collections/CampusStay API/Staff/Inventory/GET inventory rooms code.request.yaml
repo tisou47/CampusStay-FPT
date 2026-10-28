@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/inventory/rooms/{code}'
+method: GET
+url: '{{baseUrl}}/inventory/rooms/:code'
+order: 179000
+description: |-
+  `GET /inventory/rooms/{code}` → `{ code, block, floor }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+pathVariables:
+  - key: code
+    value: ''
+    description: 'Room code, e.g. A-305'

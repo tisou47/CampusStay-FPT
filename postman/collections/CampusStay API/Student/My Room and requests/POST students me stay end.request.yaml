@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/students/me/stay/end'
+method: POST
+url: '{{baseUrl}}/students/me/stay/end'
+order: 120000
+description: |-
+  `POST /students/me/stay/end` `{ reason? }` → `{ id, status, automatic, note }` (A-43, C-43)
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": ""
+    }

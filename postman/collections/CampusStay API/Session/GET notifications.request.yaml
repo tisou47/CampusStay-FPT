@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/notifications'
+method: GET
+url: '{{baseUrl}}/notifications'
+order: 47000
+description: |-
+  GET `/notifications?limit` — request: — — response: `{ items: [{ id, title, body, createdAt, link, read, kind: 'notification'\|'announcement' }], unread }`; a student's list also holds the board's announcements (`id: 'ann-<n>'`) and `unread` counts them (C-41)
+
+  Contract: `docs/api-contract.md` › Session and shared
+queryParams:
+  - key: limit
+    value: ''
+    disabled: true

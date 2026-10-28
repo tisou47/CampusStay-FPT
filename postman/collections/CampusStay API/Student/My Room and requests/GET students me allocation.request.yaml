@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/students/me/allocation'
+method: GET
+url: '{{baseUrl}}/students/me/allocation?termId={{termId}}'
+order: 119000
+description: |-
+  `GET /students/me/allocation?termId` → `{ term: { id, name, stayStart, stayEnd, resultsPublishedAt }, allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt, status (Assigned – unpaid, Paid – waiting for the door code, Resident), pass, residentSince, codeReleased } | null, roommates: [{ name, bed }], roommateCapacity, checkIn: { start, end, deskHours, location, checkedInAt } | null, balance: { invoiceId, amount, status, dueAt, paidAt } | null, application: { id, status } | null, rulesUrl, stayTerms, termination: { reason, note, status, moveOutBy, startedAt } | null, stay: { committedTerms, termsUsed, termsLeft, status } | null, nextTerm: { term: { id, name, stayStart }, state, room, bed, roomTypeName, roomClassName, termPrice, termsLeft, fee: { invoiceId, amount, status, dueAt } | null, window: { opensAt, closesAt, decisionsDueAt, feesDueAt, filing, checkOutBy }, endReason, checkOutBy } | null }` (A-39, B-06, A-43)
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+queryParams:
+  - key: termId
+    value: '{{termId}}'

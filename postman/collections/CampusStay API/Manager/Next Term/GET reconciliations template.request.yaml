@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/reconciliations/template'
+method: GET
+url: '{{baseUrl}}/reconciliations/template'
+order: 279000
+description: |-
+  `GET /reconciliations/template?kind=enrolled|leavers` → XLSX
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+queryParams:
+  - key: kind
+    value: ''
+    disabled: true

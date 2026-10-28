@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/reports/financial'
+method: GET
+url: '{{baseUrl}}/reports/financial?termId={{termId}}&block={{block}}'
+order: 338000
+description: |-
+  `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

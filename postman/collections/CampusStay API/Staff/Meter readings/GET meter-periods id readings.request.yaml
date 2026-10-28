@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/meter-periods/{id}/readings'
+method: GET
+url: '{{baseUrl}}/meter-periods/:id/readings'
+order: 243000
+description: |-
+  `GET /meter-periods/{id}/readings?block&status&page&pageSize` → `{ period: { id, label, closed, dueAt }, summary: { roomsDue, entered, missing, segments }, items: [{ room, roomTypeName, roomClassName, residents, electricity: { previous, current, cut: { date, value } | null }, water: { … }, status: 'Entered'|'Confirmed'|'Missing'|'Check value' }], total }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+queryParams:
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

@@ -1,0 +1,4 @@
+$kind: collection
+description: |-
+  The Staff account {{staffEmail}}, scoped to its Blocks: its desk and Block screens, the page size limit, the reviews kept for Managers (ADR-19) and a Block outside its scope.
+order: 4000

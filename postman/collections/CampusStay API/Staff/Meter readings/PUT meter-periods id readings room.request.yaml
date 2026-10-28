@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/meter-periods/{id}/readings/{room}'
+method: PUT
+url: '{{baseUrl}}/meter-periods/:id/readings/:room'
+order: 245001
+description: |-
+  `PUT /meter-periods/{id}/readings/{room}` `{ electricity, water }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "electricity": 0,
+      "water": 0
+    }

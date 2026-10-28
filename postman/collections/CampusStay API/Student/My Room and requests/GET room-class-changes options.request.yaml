@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/room-class-changes/options'
+method: GET
+url: '{{baseUrl}}/room-class-changes/options'
+order: 121000
+description: |-
+  `GET /room-class-changes/options` → `{ termId, termName, room, roomType, current: { id, name, termPrice }, classes: [{ id, name, termPrice }], residents, open: { id, status, toClass, requestedBy, consents: [{ name, status }] } | null, canAsk, unavailable }`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests

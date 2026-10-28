@@ -1,0 +1,38 @@
+$kind: http-request
+name: '/admin/matching'
+method: PUT
+url: '{{baseUrl}}/admin/matching'
+order: 324001
+description: |-
+  `GET|PUT /admin/matching` → `{ snapshot, hardConstraints: [string], order: [{ key, title, note }], weights: [{ key, label, note, on, value, level }], boost, preview }`; weights sent with `level` (Very important, Important, Not used) set the percentages (A-33). `PUT` saves a new snapshot and returns `{ snapshot }`. `boost` multiplies the score when a 2-bed student's Roommate preferences match.
+
+  Contract: `docs/api-contract.md` › Admin › Policies
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "snapshot": 0,
+      "hardConstraints": [],
+      "order": [
+        {
+          "key": "",
+          "title": "",
+          "note": ""
+        }
+      ],
+      "weights": [
+        {
+          "key": "",
+          "label": "",
+          "note": "",
+          "on": false,
+          "value": 0,
+          "level": ""
+        }
+      ],
+      "boost": "",
+      "preview": ""
+    }

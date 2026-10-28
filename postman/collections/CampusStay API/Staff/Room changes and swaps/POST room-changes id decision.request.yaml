@@ -1,0 +1,25 @@
+$kind: http-request
+name: '/room-changes/{id}/decision'
+method: POST
+url: '{{baseUrl}}/room-changes/:id/decision'
+order: 214000
+description: |-
+  `POST /room-changes/{id}/decision` `{ decision: 'Approved', bedId }` or `{ decision: 'Rejected', reason, message? }` → `{ note }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "bedId": "",
+      "reason": "",
+      "message": ""
+    }

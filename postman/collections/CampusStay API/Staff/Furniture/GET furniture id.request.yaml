@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/furniture/{id}'
+method: GET
+url: '{{baseUrl}}/furniture/:id'
+order: 189000
+description: |-
+  `GET /furniture/{id}` → `{ item, history: [{ at, kind, from, to, reason, by }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/student-accounts/{id}/verify'
+method: POST
+url: '{{baseUrl}}/student-accounts/:id/verify'
+order: 297000
+description: |-
+  `POST /student-accounts/{id}/verify`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

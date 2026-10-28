@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/utility'
+method: GET
+url: '{{baseUrl}}/admin/utility'
+order: 322000
+description: |-
+  `GET|PUT /admin/utility` → `{ priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }`
+
+  Contract: `docs/api-contract.md` › Admin › Policies

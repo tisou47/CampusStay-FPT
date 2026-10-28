@@ -1,0 +1,35 @@
+$kind: http-request
+name: '/maintenance-requests'
+method: GET
+url: '{{baseUrl}}/maintenance-requests?termId={{termId}}&block={{block}}'
+order: 202000
+description: |-
+  `GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize` → `{ items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total, summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }`. `status=open` means Submitted, Assigned or In progress; `assigneeId=none` means unassigned.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: q
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: priority
+    value: ''
+    disabled: true
+  - key: category
+    value: ''
+    disabled: true
+  - key: assigneeId
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

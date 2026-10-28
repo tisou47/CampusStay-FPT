@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/operational-moves/options'
+method: GET
+url: '{{baseUrl}}/operational-moves/options'
+order: 227000
+description: |-
+  `GET /operational-moves/options?q|allocationId` → `{ allocationId, student, term, from, resident, nextTermAllocation, feesIssued, nextTerm, beds, reasons }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: allocationId
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true

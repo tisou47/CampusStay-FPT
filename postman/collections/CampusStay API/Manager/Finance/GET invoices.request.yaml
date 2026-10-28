@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/invoices'
+method: GET
+url: '{{baseUrl}}/invoices?termId={{termId}}&block={{block}}'
+order: 284000
+description: |-
+  `GET /invoices?termId&block&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

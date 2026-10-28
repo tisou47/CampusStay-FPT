@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/finance/overdue'
+method: GET
+url: '{{baseUrl}}/finance/overdue?termId={{termId}}&block={{block}}'
+order: 283000
+description: |-
+  `GET /finance/overdue?termId&block&page&pageSize` → `{ items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

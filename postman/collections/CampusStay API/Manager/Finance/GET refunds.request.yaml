@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/refunds'
+method: GET
+url: '{{baseUrl}}/refunds?termId={{termId}}&block={{block}}'
+order: 281000
+description: |-
+  `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

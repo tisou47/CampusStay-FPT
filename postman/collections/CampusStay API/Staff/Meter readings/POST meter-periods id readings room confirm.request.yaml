@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/meter-periods/{id}/readings/{room}/confirm'
+method: POST
+url: '{{baseUrl}}/meter-periods/:id/readings/:room/confirm'
+order: 245000
+description: |-
+  `POST …/readings/{room}/confirm`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'

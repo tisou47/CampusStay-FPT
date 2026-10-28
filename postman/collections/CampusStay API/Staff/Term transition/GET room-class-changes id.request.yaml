@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/room-class-changes/{id}'
+method: GET
+url: '{{baseUrl}}/room-class-changes/:id'
+order: 224000
+description: |-
+  `GET /room-class-changes/{id}` → `{ item, termName, reason, fromPrice, toPrice, residents, furniture, decisionNote, decidedBy }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

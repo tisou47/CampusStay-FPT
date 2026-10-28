@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/furniture'
+method: GET
+url: '{{baseUrl}}/students/me/furniture'
+order: 132000
+description: |-
+  `GET /students/me/furniture` → `{ room, items: [{ assetCode, type, typeVi, status }] }`. Without a Bed in the current Term: `404`. See A-26.
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests

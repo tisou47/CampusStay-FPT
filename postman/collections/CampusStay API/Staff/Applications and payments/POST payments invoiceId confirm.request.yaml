@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/payments/{invoiceId}/confirm'
+method: POST
+url: '{{baseUrl}}/payments/:invoiceId/confirm'
+order: 160000
+description: |-
+  `POST /payments/{invoiceId}/confirm` (multipart) `reference?, receipt?` → `204` — the Invoice's claim, or a transfer not claimed yet (B-05)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+pathVariables:
+  - key: invoiceId
+    value: ''
+    description: 'Invoice code, e.g. INV-SP27-000123'
+body:
+  type: formdata
+  content:
+    - key: reference
+      type: text
+      value: ''
+    - key: receipt
+      type: file
+      src: ''

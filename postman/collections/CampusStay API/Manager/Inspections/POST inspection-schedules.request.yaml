@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/inspection-schedules'
+method: POST
+url: '{{baseUrl}}/inspection-schedules'
+order: 306001
+description: |-
+  `POST /inspection-schedules`
+
+  Contract: `docs/api-contract.md` › Manager › Inspections
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {}

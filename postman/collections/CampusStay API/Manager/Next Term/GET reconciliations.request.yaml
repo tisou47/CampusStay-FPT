@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/reconciliations'
+method: GET
+url: '{{baseUrl}}/reconciliations?termId={{termId}}'
+order: 279000
+description: |-
+  `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }`
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+queryParams:
+  - key: termId
+    value: '{{termId}}'

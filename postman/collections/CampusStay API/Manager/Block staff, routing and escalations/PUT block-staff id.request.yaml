@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/block-staff/{id}'
+method: PUT
+url: '{{baseUrl}}/block-staff/:id'
+order: 288000
+description: |-
+  `PUT /block-staff/{id}` `{ handles, onDuty }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "handles": [],
+      "onDuty": false
+    }
