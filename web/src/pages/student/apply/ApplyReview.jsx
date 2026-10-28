@@ -109,7 +109,7 @@ export default function ApplyReview() {
             ['Room Type', roomType?.name ?? '—'],
             ['Room Class', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
             ['Roommate', roommateLabel(draft, roomType) ?? '—'],
-            ['Gia hạn', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
+            ['Stay length', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
           ]}
         />
         {usePrefs && (

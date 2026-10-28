@@ -23,7 +23,7 @@ Version 1.14 (27/10/2026): the mentor-confirmed contract plus the changes A-01�
 | Exports | `GET /exports/{report}?…filters` returns the file with `Content-Disposition: attachment; filename="…"`. The server writes each export to the Audit Log. |
 | Statuses | Application: Draft, Awaiting Roommate, Awaiting Deposit, Submitted, Under Review, Approved, Waitlisted, Allocated, Forfeited, Rejected, Cancelled, Expired. Allocation: Assigned – unpaid, Paid – waiting for the door code, Resident. Invoice: Unpaid, Paid, Overdue, Awaiting confirmation (a payment claim waits for a Manager), Refunded, Void, Upcoming. Termination: Notice sent, Overdue, Checked out, Cancelled. Request: Submitted, Assigned, In progress, Resolved, Closed, Pending, Approved, Rejected. Next-Term Bed: Continuing, Awaiting extension, Not continuing. Room Class change: Awaiting consent, Waiting for Staff, Approved, Rejected, Cancelled, Set back. |
 
-Applications have no `period` field: the length of a stay is Gia hạn (`stayTerms`, A-38), and a stay continues from Term to Term through the requests window of the next Term (A-40…A-46, C-43). Removed in v2 phase 5 (B-07): the SePay webhook and the payment simulator; payments are claims confirmed by Managers (A-34, A-35, C-42). Removed in v2 phase 6 (B-08, B-09): room changes and swaps during a Term and their prorated price differences; they take effect in the next Term.
+Applications have no `period` field: the length of a stay is the stay length (`stayTerms`, A-38), and a stay continues from Term to Term through the requests window of the next Term (A-40…A-46, C-43). Removed in v2 phase 5 (B-07): the SePay webhook and the payment simulator; payments are claims confirmed by Managers (A-34, A-35, C-42). Removed in v2 phase 6 (B-08, B-09): room changes and swaps during a Term and their prorated price differences; they take effect in the next Term.
 
 ---
 
@@ -89,7 +89,7 @@ Applications have no `period` field: the length of a stay is Gia hạn (`stayTer
 }
 ```
 
-`stayTerms` is Gia hạn, the number of Terms the student wants to stay: 1 to `maxStayTerms` of `GET /applications/eligibility` (default 1, A-38).
+`stayTerms` is the stay length, the number of Terms the student wants to stay: 1 to `maxStayTerms` of `GET /applications/eligibility` (default 1, A-38).
 
 `roommate` is sent only for Room Types with 2 Beds. `roommate.preferences` is the free, optional **Roommate preferences** service: it is sent only when the student chose *Match me automatically* and turned the service on. The matcher weighs it on top of the Admin Matching Criteria (see the boost setting).
 
@@ -277,7 +277,7 @@ Dashboards and approval counts: C-36.
 - `GET /terminations?termId&block&status&page&pageSize` → `{ items: [{ id, studentName, studentCode, room, block, reason, note, status, moveOutBy, startedAt, startedBy, debt, endedAt, cancelReason }], total, counts: { noticeSent, overdue }, reasons, statuses }` · `POST /terminations { studentCode, reason, note }` → `{ id, moveOutBy }` · `POST /terminations/{id}/cancel { reason }` → `204` (A-37)
 - `GET /next-term-fees?termId` → `{ term, dueAt, count, total, groups: [{ block, roomType, roomClass, count, total }], blockers: [{ code, text }], issued: { at, by, count, paid, total } | null, leavers }` · `POST /next-term-fees/issue` `{ termId }` → `{ issued, total, notices }` (A-41)
 - `POST /room-class-changes` `{ termId, room, roomClassId, reason }` (for a Room) → `{ id, status }` · `POST /room-class-changes/{id}/set-back` `{ note }` → detail (A-42)
-- `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }` · `GET /reconciliations/template?kind=enrolled|leavers` → CSV · `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }` · `GET /reconciliations/{id}` → `{ run, term, items }` · `POST /reconciliations/{id}/items/{itemId}/resolve` `{ outcome: 'Not enrolled'|'Enrolled', note }` → item (A-46)
+- `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }` · `GET /reconciliations/template?kind=enrolled|leavers` → XLSX · `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }` · `GET /reconciliations/{id}` → `{ run, term, items }` · `POST /reconciliations/{id}/items/{itemId}/resolve` `{ outcome: 'Not enrolled'|'Enrolled', note }` → item (A-46)
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
 - `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
 - `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception) → `204`
@@ -296,7 +296,7 @@ Late check-ins, refunds, overdue Invoices and reminders: C-28.
 
 Block staff: C-32 and A-13. Routing rules and timers: C-30. Escalations: C-31. Block settings: C-33.
 - `GET /student-accounts?q&verification&enrollment&gender&cohort&resident&block&page&pageSize` → `{ items: [{ id, studentCode, name, email, gender, cohort, major, enrollment, verification, account, block, residence, demo }], total, counts: { pending }, options }` (Staff: residents of their Blocks) · `GET /student-accounts/{id}` → the student hub `{ id, name, email, demo, account, profile, verification, residence, sections: { applications, allocations, invoices, requests }, history, actions }` · `PUT /student-accounts/{id}` (directory fields) → the hub · `POST /student-accounts/{id}/verify` · `POST …/reject { reason }` · `POST …/lock { reason }` · `POST …/unlock` → `204` (A-19)
-- `GET /student-imports` · `GET /student-imports/template` (CSV) · `POST /student-imports` (multipart `file`, CSV or XLSX) → the preview `{ id, fileName, status, fields, counts: { created, updated, unchanged, errors }, missing, rows: { items: [{ line, studentCode, name, email, outcome, message, changes }], total }, result }` · `GET /student-imports/{id}?outcome&page&pageSize` · `POST /student-imports/{id}/confirm { markMissingNotEnrolled? }` (A-20)
+- `GET /student-imports` · `GET /student-imports/template` (XLSX) · `POST /student-imports` (multipart `file`, CSV or XLSX) → the preview `{ id, fileName, status, fields, counts: { created, updated, unchanged, errors }, missing, rows: { items: [{ line, studentCode, name, email, outcome, message, changes }], total }, result }` · `GET /student-imports/{id}?outcome&page&pageSize` · `POST /student-imports/{id}/confirm { markMissingNotEnrolled? }` (A-20)
 - `GET /staff-accounts?q&block&status&page&pageSize` → `{ items: [{ id, name, email, title, blocks, status, lastSignInAt }], total, blocks, statuses }` · `POST /staff-accounts { name, email, title?, blocks }` → `{ id }` · `PUT /staff-accounts/{id} { name?, title?, blocks?, status? }` → the item · `POST /staff-accounts/{id}/invitation` → `204` (A-21)
 
 Student accounts, the student list and Staff accounts: A-19…A-21, C-39.

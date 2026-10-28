@@ -1,6 +1,5 @@
 package vn.fpt.campusstay.service.auth;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -24,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.config.AuthProperties;
 import vn.fpt.campusstay.config.TimeConfig;
@@ -126,12 +126,13 @@ public class StudentImportService {
         this.clock = clock;
     }
 
+    /** The template is XLSX, not CSV: Excel set to Vietnamese opens a comma CSV as one column. */
     public Template template() {
         currentUser.require(Permission.MANAGE_STUDENTS);
-        String csv = "﻿" + String.join(",", StudentListFile.HEADERS.values()) + "\r\n"
-                + "SE190421,Nguyen Van An,annvse190421@fpt.edu.vn,Male,2005-03-14,SE,K19,4,Da Nang,CENTRAL,Enrolled,"
-                + "FAR_FROM_CAMPUS\r\n";
-        return new Template("student-list-template.csv", csv.getBytes(StandardCharsets.UTF_8));
+        return new Template("student-list-template.xlsx", XlsxFile.of("Students", List.of(
+                List.copyOf(StudentListFile.HEADERS.values()),
+                List.of("SE190421", "Nguyen Van An", "annvse190421@fpt.edu.vn", "Male", "2005-03-14", "SE", "K19", "4",
+                        "Da Nang", "CENTRAL", "Enrolled", "FAR_FROM_CAMPUS"))));
     }
 
     /** Reads the file and stores its preview; nothing changes in the directory yet. */

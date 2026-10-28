@@ -9,7 +9,7 @@ import { OptionCard, WizardActions, WizardLayout, isTwoBed, useWizard } from './
 import { t } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 2 Room preference (Figma 14:355)
-// Room Type, Room Class and Gia hạn (1 to maxStayTerms of GET /applications/eligibility: stay.max_terms, capped by
+// Room Type, Room Class and the stay length (1 to maxStayTerms of GET /applications/eligibility: stay.max_terms, capped by
 // the semesters the student has left). Roommate options (and the optional preference matching) live on the
 // Roommate step, which appears for 2-bed Rooms.
 export default function ApplyRoom() {
@@ -79,17 +79,17 @@ export default function ApplyRoom() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('How long do you want to stay? (Gia hạn)')}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('How long do you want to stay?')}</h2>
           <p className="text-base text-fg-secondary">{t('The number of Terms you plan to stay. You keep your Bed from Term to Term and can extend or end your stay later.')}</p>
         </div>
         <Select
           wrapperClassName="w-full lg:w-60"
-          aria-label={t('Gia hạn')}
+          aria-label={t('Stay length')}
           value={String(stayTerms)}
           onChange={(e) => setDraft({ stayTerms: Number(e.target.value) })}
           options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} Term' : '{n} Terms', { n: i + 1 }) }))}
         />
-        <Note>{t('Each Term is billed and paid on its own; Gia hạn is not a payment commitment.')}</Note>
+        <Note>{t('Each Term is billed and paid on its own; the stay length is not a payment commitment.')}</Note>
       </Card>
     </WizardLayout>
   )

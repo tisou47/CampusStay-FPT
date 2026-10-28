@@ -66,7 +66,7 @@ public class ApplicationService {
     public record Consent(Boolean matching, Boolean rules) {
     }
 
-    /** @param stayTerms Gia hạn (1 to the student's maximum); null = 1 */
+    /** @param stayTerms stay length (1 to the student's maximum); null = 1 */
     public record CreateCommand(Long termId, Long roomTypeId, Long roomClassId, Roommate roommate, Contact contact,
             Consent consent, Integer stayTerms) {
     }
@@ -286,7 +286,7 @@ public class ApplicationService {
 
     // ---------------------------------------------------------------- invitation answer
 
-    /** @param stayTerms the invitee's Gia hạn when accepting; null = 1 */
+    /** @param stayTerms the invitee's stay length when accepting; null = 1 */
     @Transactional
     public Responded respond(long invitationId, boolean accept, Integer stayTerms) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
@@ -539,7 +539,7 @@ public class ApplicationService {
 
     // ---------------------------------------------------------------- helpers
 
-    /** Gia hạn: 1 when not given; else 1 to the student's maximum. */
+    /** Stay length: 1 when not given; else 1 to the student's maximum. */
     private int stayTerms(Integer value, long studentId, FieldErrors errors) {
         if (value == null) {
             return 1;

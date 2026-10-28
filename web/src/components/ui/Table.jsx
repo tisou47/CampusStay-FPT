@@ -46,8 +46,8 @@ export function Th({ className, align = 'left', children, ...props }) {
       scope="col"
       className={cx(
         'border-b border-line bg-subtle text-sm font-medium whitespace-nowrap text-fg-secondary',
-        insets[inset],
-        sizes[size].th,
+        insets[inset] ?? insets.md,
+        (sizes[size] ?? sizes.md).th,
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',
         className,
@@ -82,8 +82,8 @@ export function Td({ className, align = 'left', children, ...props }) {
     <td
       className={cx(
         'align-middle text-fg',
-        insets[inset],
-        sizes[size].td,
+        insets[inset] ?? insets.md,
+        (sizes[size] ?? sizes.md).td,
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',
         className,

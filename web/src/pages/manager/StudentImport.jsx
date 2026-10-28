@@ -20,7 +20,7 @@ import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
 // SCR-AUTH-15 Import student list (D-07, spec §6.2): template → upload CSV or XLSX → preview line by line → confirm.
-// GET /student-imports/template (CSV) · POST /student-imports (multipart file) → the preview:
+// GET /student-imports/template (XLSX) · POST /student-imports (multipart file) → the preview:
 //   { id, fileName, status, uploadedAt, uploadedBy, fields, counts: { created, updated, unchanged, errors }, missing,
 //   rows: { items: [{ line, studentCode, name, email, outcome, message, changes }], total }, result }
 // GET /student-imports/:id?outcome&page&pageSize · POST /student-imports/:id/confirm { markMissingNotEnrolled }

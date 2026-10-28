@@ -1,7 +1,6 @@
 package vn.fpt.campusstay.controller.auth;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -47,7 +46,7 @@ class ReconciliationController {
     ResponseEntity<byte[]> template(@RequestParam(required = false) String kind) {
         ReconciliationService.Template template = reconciliations.template(kind);
         return ResponseEntity.ok()
-                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(template.fileName()).build().toString())
                 .body(template.bytes());

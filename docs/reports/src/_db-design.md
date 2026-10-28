@@ -66,7 +66,7 @@
 
 | No | Table | Description | Keys |
 |---|---|---|---|
-| 01 | app_application | A student's Application for one Term: chosen Room Type and Room Class, price and Deposit fixed at submission, roommate mode, Gia hạn (stay_terms), status from Awaiting Deposit to Allocated, Forfeited, Rejected, Expired or Cancelled. | PK: id<br>FK: term_id → cfg_term<br>student_id → auth_user<br>room_type_id → cfg_room_type<br>room_class_id → cfg_room_class<br>partner_application_id → app_application<br>reviewed_by → auth_user |
+| 01 | app_application | A student's Application for one Term: chosen Room Type and Room Class, price and Deposit fixed at submission, roommate mode, stay length (stay_terms), status from Awaiting Deposit to Allocated, Forfeited, Rejected, Expired or Cancelled. | PK: id<br>FK: term_id → cfg_term<br>student_id → auth_user<br>room_type_id → cfg_room_type<br>room_class_id → cfg_room_class<br>partner_application_id → app_application<br>reviewed_by → auth_user |
 | 02 | app_application_event | History of an Application (status changes and notes) shown on the student's Application page. | PK: id<br>FK: application_id → app_application<br>actor_id → auth_user |
 | 03 | app_roommate_check | Rate limit for roommate code checks (privacy: the same answer for every unusable code, limited attempts). | PK: id<br>FK: term_id → cfg_term<br>student_id → auth_user |
 | 04 | app_roommate_invitation | Invitation of a 2-bed roommate by student code: pending, accepted, declined or expired within roommate_hours. | PK: id<br>FK: term_id → cfg_term<br>inviter_application_id → app_application<br>invitee_student_id → auth_user<br>invitee_application_id → app_application |
@@ -88,7 +88,7 @@
 | 07 | asg_renewal | The requests window of a Term (M2 to M7): when it opened, closed filing, alerted Managers, issued and closed next-Term fees. | PK: term_id<br>FK: term_id → cfg_term<br>previous_term_id → cfg_term<br>fees_issued_by → auth_user |
 | 08 | asg_run | An assignment run of a Term (dry run or real): matching snapshot used, counts, average fit and status. | PK: id<br>FK: term_id → cfg_term<br>matching_snapshot_id → cfg_matching_snapshot<br>started_by → auth_user |
 | 09 | asg_run_block | Per-Block review state of a real run: submitted, approved or returned, committed. | PK: run_id, building_id<br>FK: run_id → asg_run<br>building_id → inv_building<br>submitted_by → auth_user<br>decided_by → auth_user |
-| 10 | asg_stay | A student's continuous stay: Terms committed (Gia hạn, grown by extensions) and used, Active or Ended. | PK: id<br>FK: student_id → auth_user<br>first_term_id → cfg_term<br>last_term_id → cfg_term |
+| 10 | asg_stay | A student's continuous stay: Terms committed (stay length, grown by extensions) and used, Active or Ended. | PK: id<br>FK: student_id → auth_user<br>first_term_id → cfg_term<br>last_term_id → cfg_term |
 | 11 | asg_termination | Termination of a stay (Utility debt, discipline, not enrolled): notice sent, move-out date, overdue, checked out or cancelled. | PK: id<br>FK: allocation_id → asg_allocation<br>term_id → cfg_term<br>student_id → auth_user<br>started_by → auth_user<br>ended_by → auth_user |
 
 ### 2.7 Billing and Utility (BIL)

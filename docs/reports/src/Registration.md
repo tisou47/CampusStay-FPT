@@ -31,7 +31,7 @@ System actors:
 Student. The Student shall be able to:
 
 - Sign in with a password or the FPT Google account; a new Google account is verified by a Manager before applying
-- Apply for a Term, with eligibility checked, choosing Room Type, Room Class, roommate (2-bed) and *Gia hạn* (number of Terms), and accept the house rules
+- Apply for a Term, with eligibility checked, choosing Room Type, Room Class, roommate (2-bed) and stay length (number of Terms), and accept the house rules
 - Pay the Deposit, Balance, next-Term fee and Utility Invoices by VietQR transfer and claim the transfer
 - See the assigned Room and Bed, roommates, furniture, the door code (once paid and from the check-in start) and the check-in pass
 - Ask for a late check-in; answer a Round-2 offer

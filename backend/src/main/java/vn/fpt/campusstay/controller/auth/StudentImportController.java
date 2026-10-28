@@ -1,7 +1,6 @@
 package vn.fpt.campusstay.controller.auth;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import jakarta.validation.Valid;
 
@@ -48,7 +47,7 @@ class StudentImportController {
     ResponseEntity<byte[]> template() {
         StudentImportService.Template template = imports.template();
         return ResponseEntity.ok()
-                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(template.fileName()).build().toString())
                 .body(template.bytes());
