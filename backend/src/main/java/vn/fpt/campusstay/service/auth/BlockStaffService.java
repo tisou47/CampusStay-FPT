@@ -53,6 +53,10 @@ public class BlockStaffService {
     public record Created(String id) {
     }
 
+    /** @param open requests assigned now; {@code resolved7d} resolved in the last 7 days */
+    public record Me(String id, boolean onDuty, List<String> handles, List<String> blocks, long open, long resolved7d) {
+    }
+
     private record Person(long id, String name, Role role, String title, List<String> handles, boolean onDuty) {
     }
 
@@ -166,6 +170,63 @@ public class BlockStaffService {
         if (!change.isEmpty()) {
             audit.record("STAFF_PROFILE_UPDATED", AuditLog.Tone.INFO, "User", p.id(), p.name(), change);
         }
+    }
+
+    /** The signed-in Staff member's or Manager's own duty, request types and workload (A-60). */
+    @Transactional(readOnly = true)
+    public Me me() {
+        AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
+        return me(self(user.userId(), false));
+    }
+
+    /**
+     * Starts or ends the signed-in person's shift (A-60). Routing gives new requests to people on duty first, so the
+     * person who is at work says so; a Manager can still change it on Block staff.
+     */
+    @Transactional
+    public Me setDuty(Boolean onDuty) {
+        if (onDuty == null) {
+            throw FieldErrors.single("onDuty", "Say whether you are on duty.");
+        }
+        AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
+        Person p = self(user.userId(), true);
+        jdbc.sql("""
+                INSERT INTO auth_staff_profile (user_id, handles, on_duty) VALUES (:id, :handles, :duty)
+                ON CONFLICT (user_id) DO UPDATE SET on_duty = EXCLUDED.on_duty
+                """).param("id", p.id()).param("handles", p.handles().toArray(String[]::new)).param("duty", onDuty).update();
+        if (onDuty != p.onDuty()) {
+            audit.record("STAFF_DUTY_CHANGED", AuditLog.Tone.INFO, "User", p.id(), p.name(),
+                    Map.of("onDuty", Arrays.asList(p.onDuty(), onDuty)));
+        }
+        return me(new Person(p.id(), p.name(), p.role(), p.title(), p.handles(), onDuty));
+    }
+
+    private Me me(Person p) {
+        long[] sum = new long[2];
+        Instant since = Instant.now(clock).minus(RESOLVED_WINDOW);
+        for (StaffWorkload w : workloads) {
+            StaffWorkload.Load l = w.workload(List.of(p.id()), since).get(p.id());
+            if (l != null) {
+                sum[0] += l.open();
+                sum[1] += l.resolved();
+            }
+        }
+        Map<String, String> labels = handles.labels();
+        return new Me(String.valueOf(p.id()), p.onDuty(), p.handles().stream().map(h -> labels.getOrDefault(h, h)).toList(),
+                blockCodes(List.of(p.id())).getOrDefault(p.id(), List.of()), sum[0], sum[1]);
+    }
+
+    private Person self(long userId, boolean lock) {
+        return jdbc.sql("""
+                SELECT u.id, u.display_name, u.role, u.title, coalesce(p.handles, '{}') AS handles,
+                       coalesce(p.on_duty, FALSE) AS on_duty
+                FROM auth_user u LEFT JOIN auth_staff_profile p ON p.user_id = u.id
+                WHERE u.id = :id
+                """ + (lock ? " FOR UPDATE OF u" : "")).param("id", userId)
+                .query((rs, i) -> new Person(rs.getLong("id"), rs.getString("display_name"),
+                        Role.valueOf(rs.getString("role")), rs.getString("title"),
+                        List.of((String[]) rs.getArray("handles").getArray()), rs.getBoolean("on_duty")))
+                .single();
     }
 
     /**

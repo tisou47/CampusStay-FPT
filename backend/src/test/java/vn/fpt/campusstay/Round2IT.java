@@ -138,7 +138,8 @@ class Round2IT {
 
     /**
      * TC-APP-024: a Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the
-     * Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it.
+     * Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it. The
+     * Manager's list shows who is waiting without an offer, then who got one with its options (A-58).
      */
     @Test
     void managerRunsRound2() throws Exception {
@@ -152,6 +153,16 @@ class Round2IT {
                 .andExpect(jsonPath("$.waitlisted").value(2))
                 .andExpect(jsonPath("$.openOffers").value(0))
                 .andExpect(jsonPath("$.freeBeds").isNumber());
+        getAs("/round2/offers?status=No offer&termId=" + stay.termId(), manager)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.counts.noOffer").value(2))
+                .andExpect(jsonPath("$.items[*].applicationId", hasItem(applied.getFirst().applicationId())))
+                .andExpect(jsonPath("$.items[0].status").value("No offer"))
+                .andExpect(jsonPath("$.items[0].options.length()").value(0));
+        getAs("/round2/offers?status=Lost&termId=" + stay.termId(), manager)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.status").isString());
+        getAs("/round2/offers?termId=" + stay.termId(), applied.getFirst().auth()).andExpect(status().isForbidden());
         stay.postJson("/round2/run", applied.getFirst().auth(), "{\"termId\":%d}".formatted(stay.termId()))
                 .andExpect(status().isForbidden());
         stay.postJson("/round2/run", manager, "{\"termId\":%d}".formatted(stay.termId()))
@@ -164,5 +175,15 @@ class Round2IT {
         getAs("/round2?termId=" + stay.termId(), manager)
                 .andExpect(jsonPath("$.waitlisted").value(0))
                 .andExpect(jsonPath("$.openOffers").value(2));
+        getAs("/round2/offers?status=Pending&termId=" + stay.termId(), manager)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.counts.pending").value(2))
+                .andExpect(jsonPath("$.counts.noOffer").value(0))
+                .andExpect(jsonPath("$.counts.withdrawn").isNumber())
+                .andExpect(jsonPath("$.items[0].studentCode", startsWith("SE19")))
+                .andExpect(jsonPath("$.items[0].expiresAt").isString())
+                .andExpect(jsonPath("$.items[0].options[0].block").value("A"))
+                .andExpect(jsonPath("$.items[0].options[0].chosen").value(false));
     }
 }

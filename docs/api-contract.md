@@ -105,6 +105,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`
 - `GET /students/me/round2-offer` → `{ offer: { id, expiresAt, termName, application: { id, roomTypeName, roomClassName, termPrice, depositPaid }, options: [{ id, roomTypeName, roomClassName, block, note, fill, termPrice, difference }] } | null }`
 - `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
+- `GET /round2/offers?termId&status&q&page&pageSize` (Managers) → `{ items: [{ id, applicationId, studentName, studentCode, requested, status: Pending|Accepted|Declined|Expired|Withdrawn|No offer, offeredAt, expiresAt, respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }` (A-58)
 
 ### Invoices and payment
 
@@ -202,7 +203,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 
 - `GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize` → `{ items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total, summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }`. `status=open` means Submitted, Assigned or In progress; `assigneeId=none` means unassigned.
 - `GET /maintenance-requests/{id}` (back-office view) → `{ id, title, status, room, bed, category, location, reportedAt, reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }], assignee, suggestedAssigneeId, visitWindow, events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm } }`
-- `PATCH /maintenance-requests/{id}` `{ priority?, furnitureItemId?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change)
+- `PATCH /maintenance-requests/{id}` `{ priority?, furnitureItemId?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change). A Staff member changes `status` only when the request is assigned to them (or unassigned); another Staff member sends `assigneeId` = themselves first, in the same body or before: `409 ASSIGNED_TO_SOMEONE_ELSE` otherwise. Managers may change any request (B-12)
 - Queue items and the detail carry `slaDueAt`; the detail `furnitureItem` and `furnitureOptions`; the student's options `furniture` and the report the field `furnitureItemId` (A-49)
 - `POST /maintenance-requests/{id}/updates` `{ message, internal }` → `204`
 
@@ -244,7 +245,7 @@ Staff see their Blocks, Managers every Block (C-43).
 - `GET /meter-periods/{id}/readings?block&status&page&pageSize` → `{ period: { id, label, closed, dueAt }, summary: { roomsDue, entered, missing, segments }, items: [{ room, roomTypeName, roomClassName, residents, electricity: { previous, current, cut: { date, value } | null }, water: { … }, status: 'Entered'|'Confirmed'|'Missing'|'Check value' }], total }`
 - `GET /meter-periods/{id}/readings/{room}` → `{ …item, priceKwh, priceM3, roundingNote, segments: [{ from, to, residents, kwh, m3, electricityCost, waterCost }], shares: [{ label, amount }] }`
 - `PUT /meter-periods/{id}/readings/{room}` `{ electricity, water }` · `POST …/readings/{room}/confirm`
-- `POST /meter-periods/{id}/import` (multipart `file` CSV) → `{ imported }` · `POST /meter-periods/{id}/close` → `{ invoicesIssued }`
+- `GET /meter-periods/{id}/template` → XLSX (`room, electricity, water, previous electricity, previous water`, one line per Room of the period) · `POST /meter-periods/{id}/import` (multipart `file`, the template filled in: XLSX or CSV; headers room/phòng, electricity/điện, water/nước, or the first three columns) → `{ imported, skipped }` (lines with both readings blank are skipped) (A-59) · `POST /meter-periods/{id}/close` → `{ invoicesIssued }`
 
 Meter readings, Utility Invoices and Admin › Utility: C-29.
 
@@ -286,6 +287,7 @@ Dashboards and approval counts: C-36.
 
 Late check-ins, refunds, overdue Invoices and reminders: C-28.
 - `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
+- `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }` · `PUT /block-staff/me/duty` `{ onDuty }` → the same (Staff and Managers start and end their own shift; A-60)
 - `PUT /block-staff/{id}` `{ handles, onDuty }` · `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
 - `GET /routing-rules?block` → `{ rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }], staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }], timers: { urgent, normal, roomChange }, timerOptions: { urgent, normal, roomChange } }`
 - `POST /routing-rules` · `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }` · `PUT /routing-rules/timers` `{ block, urgent, normal, roomChange }`
