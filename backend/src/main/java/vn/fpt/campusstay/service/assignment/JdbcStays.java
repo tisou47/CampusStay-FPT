@@ -246,7 +246,7 @@ class JdbcStays implements Stays {
     }
 
     /**
-     * The Allocation's student became a resident: their Stay starts (Gia hạn from the Application, 1 without one), or
+     * The Allocation's student became a resident: their Stay starts (stay length from the Application, 1 without one), or
      * the Allocation joins the Stay they already have. Runs in the caller's transaction.
      */
     @Transactional(propagation = Propagation.MANDATORY)

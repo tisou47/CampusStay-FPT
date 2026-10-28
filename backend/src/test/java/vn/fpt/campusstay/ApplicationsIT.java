@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import vn.fpt.campusstay.service.application.ApplicationService;
 
-/** Application wizard, Gia hạn, roommate pairs, cancellation and expiry (TC-APP-NNN). Each test uses its own students. */
+/** Application wizard, stay length, roommate pairs, cancellation and expiry (TC-APP-NNN). Each test uses its own students. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -304,7 +304,7 @@ class ApplicationsIT {
     }
 
     /**
-     * TC-APP-023: Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left
+     * TC-APP-023: The stay length (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left
      * (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student
      * who already holds a Bed for the Term cannot apply (not a continuing resident).
      */

@@ -18,7 +18,7 @@ public interface Applications {
      * @param partnerApplicationId the invited roommate's Application, for an invited pair
      * @param preferences          Roommate preferences (codes of REGION, SEMESTER, MAJOR), or empty
      * @param submittedAt          when the Deposit was paid (the time of the confirmed claim)
-     * @param stayTerms            Gia hạn: the Terms the student wants to stay (1–9)
+     * @param stayTerms            stay length: the Terms the student wants to stay (1–9)
      */
     record Candidate(long applicationId, String code, long termId, long studentId, String studentName,
             String studentCode, String gender, long roomTypeId, long roomClassId, long termPrice, long depositAmount,

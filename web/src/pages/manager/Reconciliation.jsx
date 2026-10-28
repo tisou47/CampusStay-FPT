@@ -25,7 +25,7 @@ import { t, tr } from '@/i18n'
 //   stay of a resident of a Term that has started. The next-Term fees wait until no item of groups 1–2 is open.
 // GET /reconciliations?termId → { term, terms, runs: [{ id, kind, fileName, rowsRead, by, createdAt, counts: { notEnrolled,
 //   notFound, unknownCodes, changed, open } }], openItems, resolved, people }
-// GET /reconciliations/template?kind=enrolled|leavers · POST /reconciliations (multipart termId, kind, file) → detail
+// GET /reconciliations/template?kind=enrolled|leavers (XLSX) · POST /reconciliations (multipart termId, kind, file) → detail
 // GET /reconciliations/:id → { run, term, items: [{ id, group, studentCode, studentName, roles, fileStatus,
 //   directoryStatus, line, status (Open, Resolved, Info), outcome, note, resolvedBy, resolvedAt }] }
 // POST /reconciliations/:id/items/:itemId/resolve { outcome: Not enrolled | Enrolled, note } → item

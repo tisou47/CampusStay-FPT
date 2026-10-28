@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 27/10/2026 by `node docs/tools/generate-catalogs.mjs` from the Javadoc of every `@Test` in `backend/src/test/java` |
+| Generated | 28/10/2026 by `node docs/tools/generate-catalogs.mjs` from the Javadoc of every `@Test` in `backend/src/test/java` |
 | Feeds | Report 5 (Test Documentation), the Unit Test and Test Report workbooks |
 | Related | `docs/backend/01_Backend_Architecture.md` §15 (strategy), `docs/backend/02_Endpoint_Map.md` (which test verifies which endpoint) |
 
@@ -174,7 +174,7 @@ How they run: `mvn test` (unit + architecture), `mvn verify` (+ integration, Doc
 | TC-APP-011 | scope | every Manager sees every Block's Applications (ADR-19); Staff and students cannot review. | [`AssignmentIT.reviewIsScopedByBlock`](../../backend/src/test/java/vn/fpt/campusstay/AssignmentIT.java) | Integration |
 | TC-APP-020, TC-APP-021 | — | three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager. | [`Round2IT.round2Lifecycle`](../../backend/src/test/java/vn/fpt/campusstay/Round2IT.java) | Integration |
 | TC-APP-022 | — | only a verified account may apply: a pending one sees why and is refused (ADR-26). | [`StudentAccountsIT.pendingAccountCannotApply`](../../backend/src/test/java/vn/fpt/campusstay/StudentAccountsIT.java) | Integration |
-| TC-APP-023 | — | Gia hạn (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident). | [`ApplicationsIT.stayTermsOnTheApplication`](../../backend/src/test/java/vn/fpt/campusstay/ApplicationsIT.java) | Integration |
+| TC-APP-023 | — | The stay length (spec §6.6, D-13) is 1 to stay.max_terms, capped by the semesters the student has left (stay.program_semesters); it is kept on the Application and shown to the student and the back office; a student who already holds a Bed for the Term cannot apply (not a continuing resident). | [`ApplicationsIT.stayTermsOnTheApplication`](../../backend/src/test/java/vn/fpt/campusstay/ApplicationsIT.java) | Integration |
 
 ## ASG — Assignment engine and runs, approval, Allocation, residence and door-code release, forfeits, desk, late check-ins, terminations
 

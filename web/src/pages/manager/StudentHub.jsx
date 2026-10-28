@@ -164,7 +164,7 @@ function Section({ title, empty, items, linkOf }) {
     <Card className="flex flex-col gap-3">
       <CardHeader title={title} />
       {items.length ? (
-        <Table size="sm" bare>
+        <Table bare>
           <THead>
             <tr>
               <Th>Record</Th>

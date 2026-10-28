@@ -51,7 +51,7 @@ const bedLabel = {
 const HELD = ['unpaid', 'paid', 'resident', 'leaving', 'next_term']
 
 function BedMark({ state }) {
-  return <span aria-hidden="true" className={cx('size-3.5 shrink-0 rounded-sm', bedLook[state])} />
+  return <span aria-hidden="true" className={cx('inline-block size-3.5 shrink-0 rounded-sm', bedLook[state])} />
 }
 
 function Legend() {

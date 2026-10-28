@@ -14,6 +14,7 @@ import static vn.fpt.campusstay.TestAuth.MANAGER_A;
 import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
+import vn.fpt.campusstay.common.file.SheetFile;
 import java.nio.charset.StandardCharsets;
 
 import com.jayway.jsonpath.JsonPath;
@@ -96,9 +97,10 @@ class ReconciliationIT {
         renewal.resident(3, "A-102", "A", 2);
         renewals.openDue();
         String manager = bearer(mvc, MANAGER_A);
-        getAs("/reconciliations/template?kind=enrolled", manager)
+        byte[] template = getAs("/reconciliations/template?kind=enrolled", manager)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("student_code,full_name,enrollment_status")));
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(SheetFile.rows("template.xlsx", template).getFirst()).containsExactly("student_code", "full_name", "enrollment_status");
         upload(manager, next, "enrolled", "name\nNguyen Van A\n")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.file").isString());

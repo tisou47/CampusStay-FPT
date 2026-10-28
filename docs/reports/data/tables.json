@@ -1,5 +1,5 @@
 {
-  "app_application": "A student's Application for one Term: chosen Room Type and Room Class, price and Deposit fixed at submission, roommate mode, Gia hạn (stay_terms), status from Awaiting Deposit to Allocated, Forfeited, Rejected, Expired or Cancelled.",
+  "app_application": "A student's Application for one Term: chosen Room Type and Room Class, price and Deposit fixed at submission, roommate mode, stay length (stay_terms), status from Awaiting Deposit to Allocated, Forfeited, Rejected, Expired or Cancelled.",
   "app_application_event": "History of an Application (status changes and notes) shown on the student's Application page.",
   "app_roommate_check": "Rate limit for roommate code checks (privacy: the same answer for every unusable code, limited attempts).",
   "app_roommate_invitation": "Invitation of a 2-bed roommate by student code: pending, accepted, declined or expired within roommate_hours.",
@@ -14,7 +14,7 @@
   "asg_renewal": "The requests window of a Term (M2 to M7): when it opened, closed filing, alerted Managers, issued and closed next-Term fees.",
   "asg_run": "An assignment run of a Term (dry run or real): matching snapshot used, counts, average fit and status.",
   "asg_run_block": "Per-Block review state of a real run: submitted, approved or returned, committed.",
-  "asg_stay": "A student's continuous stay: Terms committed (Gia hạn, grown by extensions) and used, Active or Ended.",
+  "asg_stay": "A student's continuous stay: Terms committed (stay length, grown by extensions) and used, Active or Ended.",
   "asg_termination": "Termination of a stay (Utility debt, discipline, not enrolled): notice sent, move-out date, overdue, checked out or cancelled.",
   "auth_action_token": "One-time tokens (hashed) for password reset and account invitation links.",
   "auth_reconciliation": "An enrollment reconciliation run of a Term: the uploaded enrolled list or leavers list.",

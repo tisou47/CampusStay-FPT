@@ -87,7 +87,7 @@ WHERE r.code IN ('A-501', 'A-502', 'A-503', 'A-505', 'A-506', 'A-507', 'A-508', 
                  'A-702', 'A-703', 'A-704', 'A-705', 'A-801', 'A-802', 'A-803', 'E-501');
 
 -- ---------- residents of Term N ----------
--- fate at the start of the requests window: CONTINUING (Gia hạn left), LAST (last Term of the Stay), NONE.
+-- fate at the start of the requests window: CONTINUING (stay length left), LAST (last Term of the Stay), NONE.
 CREATE TEMP TABLE demo_res ON COMMIT DROP AS
 WITH scen (code, room, bed, scenario, committed, fate) AS (VALUES
     ('SE210001', 'A-501', 'A', 'S08', 3, 'CONTINUING'),
