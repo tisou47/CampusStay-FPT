@@ -1,0 +1,272 @@
+{
+ "tool": "Claude Code (Anthropic), general-purpose subagent with read-only use of the repository; model Claude Opus 5.5",
+ "runDate": "28/10/2026",
+ "tag": "review-2 (commit 2c4f35e)",
+ "findings": [
+  {
+   "id": "SR-01",
+   "category": "Scope",
+   "location": "Registration 3.2 c) Manager \"run Round 2\"; SRS FR-APP-07",
+   "finding": "Round 2 run by a Manager has no implementation. Offers are created only automatically when a Block of the assignment is committed. There is no Manager endpoint or screen. Beds freed later (unpaid Balance, unpaid next-Term fee, ended stay, termination) are never offered, although FR-APP-07 says they are. The trigger milestone \"M8\" is defined nowhere.",
+   "severity": "High",
+   "evidence": "AssignmentService.java:345 is the only caller of Round2Offers.offer; Round2Controller has only GET /students/me/round2-offer and POST /round2-offers/{id}/respond; web router has only /student/round-2-offer; ForfeitService.java:28 \"Round 2 may offer it\"; \"M8\" appears only in r3-fr.md:295",
+   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: a Manager runs Round 2 from the assignment screen; Beds freed by forfeit, unpaid next-Term fee, end of stay and termination join the pool; M8 defined in the Term timeline (Design Brief gap G7)"
+  },
+  {
+   "id": "SR-02",
+   "category": "Scope",
+   "location": "SRS FR-CFG-08, UC-56",
+   "finding": "The demo data reset (Admin › System › Demo data) is an FR with no item in the registration form.",
+   "severity": "Low",
+   "evidence": "Registration.md c) Administrator bullets list no demo or reset function; r3-fr.md §3.3.8",
+   "response": "Kept – the demo reset is a support tool of the demo server (off unless DEMO_TOOLS=true), not a business function of the registration form"
+  },
+  {
+   "id": "SR-03",
+   "category": "Scope",
+   "location": "SRS FR-RPT-04, FR-INV-05; StudentAccountController",
+   "finding": "Header search and the Room hub have no registration item. Manager lock and unlock of student accounts is implemented but has neither an FR nor a registration item.",
+   "severity": "Low",
+   "evidence": "Registration.md c); StudentAccountController.java:82 POST /{id}/lock, :88 POST /{id}/unlock; FR-AUTH-04 and FR-AUTH-09 do not mention lock or unlock",
+   "response": "Fixed – commit 8ef7b3c: FR-AUTH-09 names lock and unlock of student accounts; search and the Room hub are supporting screens of the Staff and Manager items"
+  },
+  {
+   "id": "SR-04",
+   "category": "Scope",
+   "location": "Registration 3.2 d); SRS §4.2",
+   "finding": "The registration NFR \"Configurability\" has no measurable SRS NFR (only a 4.2.5 bullet). SRS NFR-04 Availability has no item in registration d), although the Record of Changes (BM03 item 10) lists availability.",
+   "severity": "Medium",
+   "evidence": "Registration.md d) has 6 bullets without availability; Report3.md 4.2.5 \"every business value is configuration\"; Registration PDF BM03 row 10",
+   "response": "Fixed – commit 8ef7b3c: availability added to registration 3.2 d); configurability stays a design principle checked by the configuration tests (FR-CFG)"
+  },
+  {
+   "id": "SR-05",
+   "category": "Requirements",
+   "location": "SRS §4.2.1, 4.2.2, 4.2.4, 4.2.5 (non-ID bullets)",
+   "finding": "Several quality requirements lack a metric, a threshold or a method: Application in ≤ 5 screens and claim in 2 actions (no method); search, filters, paging and export on every list (no metric); 375 px without horizontal scroll (no method); BCrypt, lockout and AES-GCM; PDPL 91/2025 compliance; \"every business value is configuration\".",
+   "severity": "Medium",
+   "evidence": "Report3.md lines 233–235, 241, 251–252, 257",
+   "response": "Kept – these bullets are design rules checked in review; the six agreed NFRs (NFR-01…06) have metric, threshold and method (Design Brief §7)"
+  },
+  {
+   "id": "SR-06",
+   "category": "Requirements",
+   "location": "SRS NFR-01, NFR-03, NFR-04, NFR-06, §4.2.3",
+   "finding": "The measurement methods are not in the repository or not run: the NFR-01 load script, the \"≤ 60 s for about 3,000 Applications\" timed run and the NFR-03 concurrency test do not exist. NFR-04 (from 01/11/2026) and NFR-06 are not measured. 4 of 6 NFR cases are Not run. Production uptime cannot be verified from the repository.",
+   "severity": "Medium",
+   "evidence": "No load or parallel test in backend/src/test or docs/tools; _tc-nfr.md TC-NFR-01, 03, 04, 06 \"Not run\"; _tc-report.md NFRs 2/6; tests use the test seed (2 Blocks, 48 students)",
+   "response": "Planned – Võ Minh Luân (NFR-01, 04, 06) and Nguyễn Xuân Lộc (NFR-03 concurrency test, timed assignment run), 15/11/2026 (gaps G3, G4)"
+  },
+  {
+   "id": "SR-07",
+   "category": "Requirements",
+   "location": "SRS FR-AUTH-01, FR-AUTH-09, FR-BIL-04, FR-REQ-07, FR-APP-07",
+   "finding": "Acceptance criteria rely on values the SRS does not state: \"the configured time\", \"a date range longer than allowed\", \"an unusual jump\", \"unassigned too long\", \"the configured time\" for offers. They cannot be tested from the SRS alone.",
+   "severity": "Low",
+   "evidence": "r3-fr.md Details rows; the values exist only in code or data: application.yml lock-duration 15m, cfg_parameter round2.offer_hours 48 (V10), sla.unassigned_max_hours 1 (V19)",
+   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: list the default values of these system parameters in the SRS appendix"
+  },
+  {
+   "id": "SR-08",
+   "category": "Requirements",
+   "location": "SRS FR-MOB-01; Report 5",
+   "finding": "FR-MOB-01 says it is \"checked by the manual cases of Report 5\", but Report 5 has no Android/MOB case among the feature, workflow or state cases. The Android app has no automated tests.",
+   "severity": "Medium",
+   "evidence": "r3-fr.md §3.12.1 Tests; grep \"mob/android\" in _tc-features.md = 0; android/app/src has no test or androidTest folder",
+   "response": "Planned – Võ Minh Luân, 30/11/2026: manual Android cases in Report 5 and UI tests (gap G5)"
+  },
+  {
+   "id": "SR-09",
+   "category": "Requirements",
+   "location": "SRS FR-NTF-02",
+   "finding": "The SRS says device tokens are \"stored hashed\", but ntf_device stores the raw FCM token and uses the hash only for lookup.",
+   "severity": "Low",
+   "evidence": "V9__ntf.sql:23–24 (token VARCHAR(4096), token_hash); DeviceService.java:48–53",
+   "response": "Fixed – commit 8ef7b3c: FR-NTF-02 says the token is stored with its hash for lookup"
+  },
+  {
+   "id": "SR-10",
+   "category": "Requirements",
+   "location": "SRS §2.1 actor 5, §3.1.4 Non-Screen Functions",
+   "finding": "Jobs that run in code are not specified: Round-2 offer expiry and roommate invitation expiry (inside the Deposit expiry job), and termination Overdue marking (inside the door-code release job).",
+   "severity": "Low",
+   "evidence": "ApplicationExpiryJob.java:28–35 (round2.expire()); ResidenceJobs.java release() calls terminations.markOverdue()",
+   "response": "Fixed – commit 8ef7b3c: SRS §3.1.4 lists invitation and Round-2 offer expiry and Overdue terminations"
+  },
+  {
+   "id": "SR-11",
+   "category": "Data",
+   "location": "Report 4 §2.1 rules table; V44__bil_payment_claims.sql",
+   "finding": "No ERD/script mismatch was found. However, ux_refund_one_per_invoice, listed as a database guarantee, is created conditionally: the migration only raises a WARNING and skips the index if duplicate refunds exist. Whether it exists in production cannot be verified from the repository.",
+   "severity": "Low",
+   "evidence": "98 CREATE TABLE names (one renamed) = 98 ERD tables; all 499 ERD attributes found in V1–V59; V44 lines 85–87 RAISE WARNING … \"is not created\"",
+   "response": "Planned – Lê Thành Minh Trung, 05/11/2026: check that ux_refund_one_per_invoice exists on the production database and record it"
+  },
+  {
+   "id": "SR-12",
+   "category": "Data",
+   "location": "Schema CHECK lists vs code",
+   "finding": "Status values exist in the schema but no code stores them: app_application DRAFT, bil_invoice UPCOMING and REFUNDED (these three are documented), bil_refund PAID, bil_payment REVERSED, req_room_change PENDING (only read).",
+   "severity": "Low",
+   "evidence": "V6__bil.sql:17, 73, 99; V7__req.sql:19; FinanceService.java:312 sets only APPROVED/REJECTED; RoomChangeService.java:491, 546 only read PENDING",
+   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: document or drop the unused statuses in a new migration (gap G6)"
+  },
+  {
+   "id": "SR-13",
+   "category": "States",
+   "location": "Report 4 §3.1.8 Term (cfg_term)",
+   "finding": "State Closed (\"stay ended\") has no triggering FR and no code sets it, so published Terms never close. Queries filter on status <> 'CLOSED'.",
+   "severity": "Medium",
+   "evidence": "state-term-request.mmd \"Published --> Closed : stay ended\"; TermWizardService.java:562 sets only PUBLISHED; 'CLOSED' is only read (AdminPolicyService.java:270, AdminSettingsService.java:94)",
+   "response": "Planned – Trần Võ Quang Duy, 15/11/2026: a job closes a Term after its stay end (FR-CFG-05); Closed removed from the diagram until then (commit 8ef7b3c)"
+  },
+  {
+   "id": "SR-14",
+   "category": "States",
+   "location": "Report 4 §3.1.5 Invoice, §3.1.6 payment claim; FR-BIL-03",
+   "finding": "A Manager can confirm an Unpaid or Overdue Invoice that has no student claim (the code inserts a claim and pays it). The direct path Unpaid/Overdue → Paid is missing from the Invoice and claim state machines and is not described in FR-BIL-03.",
+   "severity": "Medium",
+   "evidence": "PaymentClaimService.confirmOne lines 267–290; PaymentDeskService.java:195–200 \"a transfer the Manager saw although the student did not claim it\"; POST /payments/{invoiceId}/confirm",
+   "response": "Fixed – commit 8ef7b3c: Unpaid/Overdue → Paid and the claim recorded by the Manager added to both state machines and FR-BIL-03, with state test cases"
+  },
+  {
+   "id": "SR-15",
+   "category": "States",
+   "location": "Report 4 §3.1.7 Maintenance Request; FR-MNT-02",
+   "finding": "Code allows transitions the diagram lacks: Staff close a Resolved request without the reporter; Resolved → Assigned or In progress by Staff; In progress → Assigned. \"Reopens once\" is not enforced: reopen_count is incremented but never checked.",
+   "severity": "Medium",
+   "evidence": "MaintenanceDeskService.transition lines 408–427 (only RESOLVED is guarded; CLOSED is allowed from any open status); MaintenanceService.confirm lines 250–258",
+   "response": "Planned – Võ Minh Luân, 15/11/2026: enforce \"reopen once\" in MaintenanceService and add the Staff transitions to the diagram and FR-MNT-02"
+  },
+  {
+   "id": "SR-16",
+   "category": "States",
+   "location": "Report 4 §3.1.9 Room Class change; FR-REQ-03",
+   "finding": "The diagram says a \"resident or Staff asks\", but the code lets a Student or a Manager ask. A decline gives Cancelled, not Rejected. There is no consent deadline and no requester cancel action. Set back (Manager only) has no FR. Submitted → Awaiting consent (new continuing residents) is missing. FR-REQ-03 omits the Manager actor.",
+   "severity": "Medium",
+   "evidence": "RoomClassChangeService.java:215 createForRoom require(MANAGER), :306 close(CANCELLED) on decline, :457 setBack require(MANAGER), :589; V51 requester_role IN ('STUDENT','MANAGER'); controller has no cancel endpoint",
+   "response": "Fixed – commit 8ef7b3c: diagram and FR-REQ-03 follow the code (Manager may ask, a decline cancels, set back by a Manager, new residents consent)"
+  },
+  {
+   "id": "SR-17",
+   "category": "States",
+   "location": "Report 4 §3.1.8 registration-period request; FR-CFG-04",
+   "finding": "Code lets the Admin move any open request (In progress, Needs changes) to Needs changes or Rejected. These transitions are not in the diagram. FR-CFG-04 gives a linear order \"Submitted → In progress → Needs changes → Done / Rejected\" that contradicts the diagram.",
+   "severity": "Low",
+   "evidence": "TermRequestService.decide lines 347–358 (OPEN = SUBMITTED, IN_PROGRESS, NEEDS_CHANGES); r3-fr.md:134",
+   "response": "Fixed – commit 8ef7b3c: diagram and FR-CFG-04 show that any open request can be sent back or rejected"
+  },
+  {
+   "id": "SR-18",
+   "category": "States",
+   "location": "Report 4 §3.1.9–3.1.10 termination, swap, room change, Round-2 offer",
+   "finding": "Some code transitions are missing from the diagrams: termination Overdue → Cancelled; swap To Manager → Cancelled; a Manager approving a room change into another Block. Some diagram transitions have no FR: swap cancel, Room-2 offer Withdrawn (\"the Application ends\").",
+   "severity": "Low",
+   "evidence": "TerminationService.java:236–241; SwapService.java:458–461, 530–532; RoomChangeService.java:498–500 and CROSS_BLOCK check; JdbcApplications.java:115 sets WITHDRAWN",
+   "response": "Planned – Nguyễn Xuân Lộc, 15/11/2026: add the missing transitions and their FRs to the secondary state machines"
+  },
+  {
+   "id": "SR-19",
+   "category": "States",
+   "location": "Report 4 §3.1 (missing diagrams)",
+   "finding": "Entities with status lifecycles in code have no state machine: the assignment run and run Block (Running/Proposed/In review/Committed/Discarded/Failed; Review → Submitted → Approved/Returned → Committed, where \"return a Block\" has no FR), refunds (Pending/Approved/Rejected), check-outs (Pending/Draft/Completed), and User/Student (Invited/Active/Disabled; verification Pending/Verified/Rejected).",
+   "severity": "Medium",
+   "evidence": "V5__asg.sql:11, 37, 101; V6__bil.sql:99; V36 ck_student_verification; AssignmentService.java:276, 280, 377 (RETURNED)",
+   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: state machines of the assignment run and Block, refund, check-out and account in Report 4; FR for returning a Block"
+  },
+  {
+   "id": "SR-20",
+   "category": "States",
+   "location": "state-late-check-in, -door-code, -round2-offer, -stay-request, -swap, -room-change, -room-class-change, -termination, -stay .mmd",
+   "finding": "Terminal states are drawn without an end marker and have no exit, so final states cannot be told apart from stuck ones.",
+   "severity": "Low",
+   "evidence": "These diagrams contain no \"--> [*]\" for Approved, Rejected, Retired, Accepted, Expired, Checked out, Ended and so on",
+   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: end markers on the final states of the secondary state machines"
+  },
+  {
+   "id": "SR-21",
+   "category": "Flows",
+   "location": "Report 4 §3.2 WF-01…WF-05; Report 5 §4.2",
+   "finding": "The five main workflows are implemented but have no executed end-to-end test: TC-WF-01…05 are manual and Not run, with 0 automated. Only per-feature integration tests cover the individual steps.",
+   "severity": "Medium",
+   "evidence": "_tc-workflows.md \"Run: Manual … Result: Not run\"; _tc-report.md \"Main workflows 5 / 0 passed / 5 not run\"",
+   "response": "Planned – Võ Minh Luân, 30/11/2026: run TC-WF-01…05 on staging, then automate them in CI (gap G2)"
+  },
+  {
+   "id": "SR-22",
+   "category": "Flows",
+   "location": "act-wf01, act-wf02, act-wf05 .mmd",
+   "finding": "The activity diagrams differ from the SRS or the code. WF-01: the \"Waitlisted: Round-2 offers\" node has no outgoing flow, and the Deposit is fixed at \"48 h\" although depositHours is configurable. WF-02: the timeline check is \"M1 ≤ M2 ≤ … ≤ M7\", while FR-CFG-05 and the code use a strict order with extra rules. WF-05: the Utility-debt termination is in the Manager lane, but the code starts it automatically.",
+   "severity": "Low",
+   "evidence": "act-wf01 node b6; AdminPolicyService.java:119 depositHours 1–720; TermTimelines.java:11–12; UtilityDebtService.java:185 → TerminationService.java:205 on(UtilityTerminationDue)",
+   "response": "Planned – workflow owners (Lê Thành Minh Trung, Trần Võ Quang Duy), 15/11/2026: correct WF-01, WF-02 and WF-05 to the code"
+  },
+  {
+   "id": "SR-23",
+   "category": "Flows",
+   "location": "Report 5 §4.3",
+   "finding": "State-transition tests cover only 6 entities, and 10 of the 65 TC-ST cases are manual and Not run. The other 10 state machines (Stay, registration-period request, room change, swap, Room Class change, stay request, late check-in, termination, door code, Round-2 offer) have no TC-ST case.",
+   "severity": "Low",
+   "evidence": "_tc-states.md entity counts: Allocation 10, Application 19, Invoice 13, Maintenance 11, Next-Term Allocation 9, claim 3; TC-ST-09, 11, 19, 24, 47, 53, 56, 59–61 Manual",
+   "response": "Kept – the commitment covers the main entities named by the guide; secondary lifecycles are covered by the feature tests of Report 5 §4.1"
+  },
+  {
+   "id": "SR-24",
+   "category": "Architecture",
+   "location": "Report 3 §1 context diagram, §2.1 actor 6",
+   "finding": "The VietQR image service (qr.sepay.vn), used by the web and Android apps, is in the context table and the architecture diagram but missing from the context diagram and the actor list.",
+   "severity": "Low",
+   "evidence": "context.mmd has no QR node; Report3.md line 20; application.yml:75 qr-image-url",
+   "response": "Fixed – commit 8ef7b3c: VietQR image service added to the context diagram and the actor list"
+  },
+  {
+   "id": "SR-25",
+   "category": "Architecture",
+   "location": "Report 4 §1.1 architecture.mmd, deployment.mmd",
+   "finding": "The diagrams show only \"verify ID token\" with Google. The API also exchanges web authorization codes at Google's token endpoint and gets FCM access tokens from Google OAuth. The production stack has an optional local PostgreSQL container (profile local-db) and a daily backup script; neither is shown.",
+   "severity": "Low",
+   "evidence": "application.yml:69 token-uri; GoogleCodeExchanger.java; FcmPushSender.java:103; infra/prod/docker-compose.yml db \"profiles: [local-db]\"; infra/prod/backup.sh",
+   "response": "Fixed – commit 8ef7b3c: architecture diagram shows the Google code exchange, the FCM access token and the optional local database with backup"
+  },
+  {
+   "id": "SR-26",
+   "category": "Design vs code",
+   "location": "Report 4 §1.2 rows 03 and 10; §3.3 UserDirectory",
+   "finding": "The rules \"a table is written only by the feature whose prefix it carries\" and \"other features never read auth_*\" are broken by the demo reset. DemoResetService sits in service/setting (not in common as §1.2 says), reads auth_, app_, asg_, bil_ and inv_ tables, and runs db/demo scripts that write every feature's tables.",
+   "severity": "Low",
+   "evidence": "DemoResetService.java:176–288; backend/src/main/resources/db/demo/*.sql; no other cross-feature write found in service/*",
+   "response": "Kept – the demo reset is a deliberate, audited exception for the demo server; Report 4 §1.2 now names it in service.setting (commit 8ef7b3c)"
+  },
+  {
+   "id": "SR-27",
+   "category": "Design vs code",
+   "location": "docs/api-contract.md (named in SRS §3.1.4)",
+   "finding": "The contract (v1.14, A-01…A-52) lacks implemented endpoints A-53 POST /inventory/room-codes and A-54 GET /admin/demo, POST /admin/demo/reset, GET /admin/demo/files/{kind}, although it says every change is written there in the same commit.",
+   "severity": "Low",
+   "evidence": "grep in api-contract.md = 0 hits; 03_API_Contract_Changes.md:68–69 \"Done\"; 02_Endpoint_Map.md:384–387 \"Verified\"",
+   "response": "Planned – Trần Võ Quang Duy, 05/11/2026: add A-53 and A-54 to docs/api-contract.md"
+  }
+ ],
+ "top5": [
+  {
+   "id": "SR-01",
+   "summary": "Round 2 run by a Manager (FR-APP-07) is not implemented: offers are made only when a Block is committed, and Beds freed later are never offered."
+  },
+  {
+   "id": "SR-21",
+   "summary": "None of the five main workflows WF-01…WF-05 has an executed end-to-end test (5 manual cases, all Not run)."
+  },
+  {
+   "id": "SR-06",
+   "summary": "NFR-01, NFR-03, NFR-04 and NFR-06 cannot be shown met: the load script, timed run and concurrency test do not exist and 4 of 6 NFR cases are Not run."
+  },
+  {
+   "id": "SR-14",
+   "summary": "A Manager can mark an Unpaid or Overdue Invoice Paid with no student claim; this path is missing from the Invoice and claim state machines and from FR-BIL-03."
+  },
+  {
+   "id": "SR-13",
+   "summary": "The Term state Closed has no triggering FR and is never set by code, so published Terms never close."
+  }
+ ]
+}
