@@ -66,7 +66,7 @@ export default function TermDashboard() {
           <ol className="flex flex-col gap-2.5">
             {d.milestones.map((m) => (
               <li key={m.key} className="flex items-center gap-3">
-                <span aria-hidden="true" className={cx('size-2.5 shrink-0 rounded-full', m.done ? 'bg-success' : m === next ? 'bg-primary' : 'border-[1.5px] border-line-strong bg-white')} />
+                <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', m.done ? 'bg-success' : m === next ? 'bg-primary' : 'border-[1.5px] border-line-strong bg-white')} />
                 <span className={cx('flex-1 text-base', m === next ? 'font-medium text-fg' : m.done ? 'text-fg' : 'text-fg-secondary')}>{t(m.label)}</span>
                 <span className="text-base whitespace-nowrap text-fg-secondary tabular">{m.at ? formatDateTime(m.at) : formatDate(m.date)}</span>
               </li>

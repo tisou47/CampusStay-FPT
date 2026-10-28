@@ -711,7 +711,7 @@ End a stay when the Utility debt reaches the Utility Deposit ⟶ Chấm dứt �
 Days between the final warning and the termination ⟶ Số ngày từ cảnh báo cuối đến khi chấm dứt ở
 Days to move out after a termination notice ⟶ Số ngày phải chuyển đi sau thông báo chấm dứt ở
 Longest late check-in after the check-in end (days) ⟶ Nhận phòng muộn tối đa sau hạn nhận phòng (ngày)
-Most Terms a student may commit to (Gia hạn) ⟶ Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)
+Most Terms a student may commit to (stay length) ⟶ Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)
 Approve extension requests of eligible students automatically ⟶ Tự động duyệt yêu cầu gia hạn của sinh viên đủ điều kiện
 Share of Beds kept for new students in new Terms (%) ⟶ Tỷ lệ giường dành cho sinh viên mới ở các kỳ mới (%)
 Alert Managers about undecided requests before the decision deadline (hours) ⟶ Báo Quản lý về yêu cầu chưa quyết định trước hạn quyết định (giờ)
@@ -755,7 +755,7 @@ Write why the termination is cancelled. ⟶ Hãy ghi lý do hủy việc chấm 
 This termination does not exist. ⟶ Việc chấm dứt hợp đồng ở này không tồn tại.
 This termination is already closed. ⟶ Việc chấm dứt hợp đồng ở này đã kết thúc.
 This stay is already terminated. ⟶ Hợp đồng ở này đã bị chấm dứt.
-Semesters of a study programme (Gia hạn stops at the last one) ⟶ Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)
+Semesters of a study programme (the stay length stops at the last one) ⟶ Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)
 # Change Specification v2 phase 6 "Term transition"
 Agree or decline the change. ⟶ Hãy đồng ý hoặc từ chối việc đổi hạng phòng.
 Choose 1 to 9 Terms. ⟶ Hãy chọn từ 1 đến 9 kỳ.

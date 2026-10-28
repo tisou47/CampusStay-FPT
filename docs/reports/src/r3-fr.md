@@ -120,7 +120,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | Admin › Rules (SCR-CFG-05, SCR-CFG-06, SCR-CFG-24, SCR-CFG-25, SCR-CFG-26). |
 | Actors | Administrator |
-| Description | *Who may apply?* criteria as sentences with on/off and "n students fail this now"; *Who is placed first?* ordered priority groups; *How are roommates matched?* criteria with levels and weights; deadlines and reminders; refund, penalty and termination rules; stay and renewal (*Gia hạn* maximum, automatic extension, reserved share, escalation before M4). |
+| Description | *Who may apply?* criteria as sentences with on/off and "n students fail this now"; *Who is placed first?* ordered priority groups; *How are roommates matched?* criteria with levels and weights; deadlines and reminders; refund, penalty and termination rules; stay and renewal (maximum stay length, automatic extension, reserved share, escalation before M4). |
 | Details | Matching weights must total 100 %; saving creates a new snapshot that later Terms copy; a dry run shows the effect on current Applications without allocating. Out-of-range values are refused; each group lists where its settings act. |
 | Tests | TC-CFG-009, 010, 024, 025 |
 
@@ -244,7 +244,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | SCR-APP-01 steps 2–4. |
 | Actors | Student |
-| Description | The student chooses a Room Type and a Room Class, a roommate mode (2-bed only), *Gia hạn* (1 to the maximum, capped by the semesters left), contact details and consent to the house rules, reviews and submits. The Application is Awaiting Deposit and a Deposit Invoice is issued (BR-06); the student is notified and sees it on Home and My Applications. |
+| Description | The student chooses a Room Type and a Room Class, a roommate mode (2-bed only), a stay length (1 to the maximum, capped by the semesters left), contact details and consent to the house rules, reviews and submits. The Application is Awaiting Deposit and a Deposit Invoice is issued (BR-06); the student is notified and sees it on Home and My Applications. |
 | Details | One open Application per Term (a second is refused). Contact, consent and roommate rules are named per field. |
 | Tests | TC-APP-002, 003, 023 |
 
@@ -254,7 +254,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | The roommate step of the wizard (SCR-APP-01) and the invitation page (SCR-APP-04). |
 | Actors | Student |
-| Description | For a 2-bed Room Type a student invites another student by code; the invitee accepts within the roommate window (choosing their own *Gia hạn*) and pays their own Deposit, or declines. |
+| Description | For a 2-bed Room Type a student invites another student by code; the invitee accepts within the roommate window (choosing their own stay length) and pays their own Deposit, or declines. |
 | Details | Every unusable code gets the same answer and the number of checks is limited (no student discovery). The first to pay waits as Awaiting Roommate; both become Submitted when both Deposits are confirmed. A declined or expired invitation leaves the inviter matched automatically. |
 | Tests | TC-APP-004, 005, 006 |
 
@@ -284,7 +284,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | Student › Registration › My Applications (SCR-APP-02, SCR-APP-03). |
 | Actors | Student |
-| Description | The student's Applications with status, Term, Room Type and Class, *Gia hạn*, roommate, Invoices and history. |
+| Description | The student's Applications with status, Term, Room Type and Class, stay length, roommate, Invoices and history. |
 | Details | Another student's Application answers 404; Staff cannot use student screens. |
 | Tests | TC-APP-009 |
 
@@ -326,7 +326,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | "Commit" per Block or for all Blocks on SCR-ASG-11. |
 | Actors | Manager |
-| Description | Committing creates the Allocations (Assigned – unpaid), marks the Applications Allocated or Waitlisted, issues the Balance Invoices (Term price − Deposit + Utility Deposit) and notifies the students; the Stay starts with *Gia hạn* Terms. |
+| Description | Committing creates the Allocations (Assigned – unpaid), marks the Applications Allocated or Waitlisted, issues the Balance Invoices (Term price − Deposit + Utility Deposit) and notifies the students; the Stay starts with the chosen stay length. |
 | Details | Students and Staff cannot run or commit. Bed locks and the unique index keep one Allocation per Bed per Term (NFR-03). |
 | Tests | TC-ASG-010, 011 |
 

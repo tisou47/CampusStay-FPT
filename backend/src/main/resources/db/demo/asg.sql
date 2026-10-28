@@ -1,5 +1,5 @@
 -- =====================================================================
--- Demo data — Assignment (ASG): the Round-1 runs, Stays (Gia hạn), the
+-- Demo data — Assignment (ASG): the Round-1 runs, Stays (stay length), the
 -- residents of Term N with their door code released, the requests window
 -- of N+1 with its next-Term Allocations, the new students' Allocations
 -- (B, C), late check-ins, a termination and, in the turnover week, the
@@ -22,7 +22,7 @@ SELECT t.x_id, 'REAL', 'COMMITTED', 5, (SELECT max(id) FROM cfg_matching_snapsho
        (SELECT count(*) FROM demo_app WHERE status = 'WAITLISTED'), 0.8130
 FROM demo_t t WHERE t.stage IN ('B', 'C');
 
--- Stays: the Terms committed (Gia hạn, grown by an approved extension) and used.
+-- Stays: the Terms committed (stay length, grown by an approved extension) and used.
 INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, status, end_kind, started_at,
                       ended_at)
 SELECT d.student_id, t.n_id, t.n_id,

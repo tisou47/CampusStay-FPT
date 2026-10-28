@@ -15,6 +15,7 @@ import static vn.fpt.campusstay.TestAuth.MANAGER_A;
 import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
+import vn.fpt.campusstay.common.file.SheetFile;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -116,10 +117,11 @@ class StudentImportIT {
     @Order(1)
     void previewsTheFile() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
-        mvc.perform(get("/student-imports/template").header(HttpHeaders.AUTHORIZATION, manager))
+        byte[] template = mvc.perform(get("/student-imports/template").header(HttpHeaders.AUTHORIZATION, manager))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("student-list-template.csv")))
-                .andExpect(content().string(containsString(HEADER)));
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("student-list-template.xlsx")))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(String.join(",", SheetFile.rows("template.xlsx", template).getFirst())).isEqualTo(HEADER);
         upload(manager, "list.csv", CSV.getBytes(StandardCharsets.UTF_8))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("Preview"))

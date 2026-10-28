@@ -34,7 +34,7 @@ public class EligibilityService {
     public record Check(String title, String detail, boolean passed) {
     }
 
-    /** @param maxStayTerms the most Terms (Gia hạn) the student may choose on the wizard */
+    /** @param maxStayTerms the most Terms (stay length) the student may choose on the wizard */
     public record Eligibility(TermView term, boolean eligible, List<Check> checks, int maxStayTerms) {
     }
 
@@ -75,7 +75,7 @@ public class EligibilityService {
     }
 
     /**
-     * Gia hạn (spec §6.6, D-13): 1 to {@code stay.max_terms}, capped by the semesters the student has left in the
+     * Stay length (spec §6.6, D-13): 1 to {@code stay.max_terms}, capped by the semesters the student has left in the
      * programme ({@code stay.program_semesters}) when the directory knows the current semester.
      */
     int maxStayTerms(UserDirectory.StudentProfile profile) {

@@ -63,7 +63,7 @@ public class StudentAllocationService {
     }
 
     /**
-     * @param stayTerms   Gia hạn of the Application (Terms the student wants to stay), null without one
+     * @param stayTerms   stay length of the Application (Terms the student wants to stay), null without one
      * @param termination the termination of the stay (not a cancelled one), null without one
      * @param stay        the student's Stay (Terms committed and used), null before they became a resident
      * @param nextTerm    where the student stays in the next Term once its requests window opened, else null

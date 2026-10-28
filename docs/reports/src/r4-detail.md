@@ -35,7 +35,7 @@ Covers FR-APP-01 … FR-APP-05 and FR-BIL-01 … FR-BIL-03.
 |---|---|
 | `ApplicationController` | Eligibility, roommate code check, create, review (one and bulk), cancel. |
 | `ApplicationService` | Creates the Application with its Deposit Invoice in one transaction; roommate invitations and answers; cancellation; expiry job; listens to `PaymentConfirmed` (Deposit paid → Submitted, or Awaiting Roommate) and publishes `ApplicationSubmitted`. |
-| `EligibilityService` | Runs the Term's enabled eligibility checks for a student (verified account, enrolled, gender, not a continuing resident …) and the *Gia hạn* maximum. |
+| `EligibilityService` | Runs the Term's enabled eligibility checks for a student (verified account, enrolled, gender, not a continuing resident …) and the maximum stay length. |
 | `ApplicationReviewService` | Review queue, approve or reject (note required); rejects live Applications when a student is not enrolled. |
 | `Billing` / `JdbcBilling` | The billing interface other features call: issue Deposit, Balance and next-Term fee Invoices, check payment, refunds by rule. |
 | `StudentInvoiceController` | The student's Invoices, the payment page (VietQR data, transfer content) and receipts. |

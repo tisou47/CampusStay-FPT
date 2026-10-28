@@ -133,7 +133,22 @@ function HomeContent({ home }) {
         {stage === 'awaiting-deposit' ? t('Unpaid Applications expire at the deadline.') : t('An unpaid balance blocks check-in.')}
       </NextAction>
     )
-  } else if (stage === 'applied') {
+  } else if (stage === 'awaiting-deposit') {
+    // The Deposit is claimed: nothing is due while a Manager checks the transfer.
+    next = (
+      <NextAction
+        icon={Clock}
+        title="Your Deposit transfer is being confirmed"
+        action={
+          <Button variant="primary" size="lg" to={`/student/applications/${app.id}`}>
+            View application
+          </Button>
+        }
+      >
+        A Manager checks the transfer against the bank statement; your Application is submitted once it is confirmed.
+      </NextAction>
+    )
+  } else if (stage === 'applied' || !allocation) {
     next = (
       <NextAction
         icon={Clock}

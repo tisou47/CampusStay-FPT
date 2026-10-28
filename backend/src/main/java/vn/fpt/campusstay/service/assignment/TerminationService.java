@@ -47,7 +47,7 @@ import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
- * Terminations of a stay (*buộc rời*, spec §6.15, D-27): Utility debt (automatic, from Billing's rule), not enrolled,
+ * Terminations of a stay (spec §6.15, D-27): Utility debt (automatic, from Billing's rule), not enrolled,
  * or a Manager's decision with a reason. Notice sent → the student checks out at the desk by the move-out date
  * ({@code termination.move_out_days} after the start): Checked out; or a Manager cancels with a reason; or the date
  * passes: Overdue, Managers and the Block's Staff are told and the Room's door code is rotated, so the student can no

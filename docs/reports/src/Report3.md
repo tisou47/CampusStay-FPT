@@ -21,7 +21,7 @@ The users are students (web portal and Android app), Staff of one Block, Manager
 | FPT student list | CSV or XLSX files imported by a Manager | — |
 | Bank account | Transfers by students (outside the system) | — |
 
-Glossary used in every report: **Term** (kỳ), **Block** (Building), **Floor**, **Room**, **Room Type** (number of Beds), **Room Class** (Basic, Standard, Premium), **Bed**, **Application**, **Allocation** (a student's Bed in a Term), **Stay** (Terms a student lives in a row), ***Gia hạn*** (Terms a student commits to), **Invoice** (Deposit, Balance, next-Term fee, Utility, charge), **Payment claim** ("I have transferred"), **requests window** (M2–M7 of the next Term), **next-Term Allocation**, **Maintenance Request**, **check-in**, **check-out**.
+Glossary used in every report: **Term**, **Block** (Building), **Floor**, **Room**, **Room Type** (number of Beds), **Room Class** (Basic, Standard, Premium), **Bed**, **Application**, **Allocation** (a student's Bed in a Term), **Stay** (Terms a student lives in a row), **Stay length** (Terms a student commits to), **Invoice** (Deposit, Balance, next-Term fee, Utility, charge), **Payment claim** ("I have transferred"), **requests window** (M2–M7 of the next Term), **next-Term Allocation**, **Maintenance Request**, **check-in**, **check-out**.
 
 ## 2. User Requirements
 
@@ -56,7 +56,7 @@ Glossary used in every report: **Term** (kỳ), **Block** (Building), **Floor**,
 | UC-02 | Reset or set password | All | Asks for a reset link by email, sets a password from an invitation link, or sets the first password after a Google sign-up. (FR-AUTH-03) |
 | UC-03 | Send the verification form | Student | A new Google account fills the sign-up form (student code, gender, major, contact); a Manager verifies it before the student can apply. (FR-AUTH-04) |
 | UC-04 | View home, board and notifications | Student | Home with the Term timeline, the dormitory board (announcements), the Room, the Invoice due and notifications. (FR-NTF-01, FR-NTF-03) |
-| UC-05 | Apply for a Term | Student | Checks eligibility, chooses Room Type and Room Class, a roommate mode, *Gia hạn* and contact, accepts the rules and submits; a Deposit Invoice is issued. (FR-APP-01, FR-APP-02) |
+| UC-05 | Apply for a Term | Student | Checks eligibility, chooses Room Type and Room Class, a roommate mode, a stay length and contact, accepts the rules and submits; a Deposit Invoice is issued. (FR-APP-01, FR-APP-02) |
 | UC-06 | Invite or answer a roommate | Student | For a 2-bed Room, invites another student by code or answers an invitation within the roommate window. (FR-APP-03) |
 | UC-07 | Pay an Invoice by VietQR and claim the transfer | Student | Opens the payment page (QR image, account, amount, transfer content), transfers in a banking app and presses "I have transferred" with the reference. (FR-BIL-01, FR-BIL-02) |
 | UC-08 | View My Room, furniture and check-in pass | Student | Room, Bed, roommates, furniture, check-in pass (QR), Stay and next-Term state. (FR-ASG-04, FR-INV-03) |
@@ -64,7 +64,7 @@ Glossary used in every report: **Term** (kỳ), **Block** (Building), **Floor**,
 | UC-10 | Ask for a late check-in | Student | Asks to arrive after the check-in window with a reason, the day and evidence. (FR-ASG-05) |
 | UC-11 | Answer a Round-2 offer | Student | A waitlisted student accepts one held Bed or declines. (FR-APP-07) |
 | UC-12 | Report a Maintenance Request | Student | Reports a problem with category, location, urgency, photos and the furniture item. (FR-MNT-01) |
-| UC-13 | Extend the stay or end it | Student | In the requests window, extends *Gia hạn* or ends the stay after this Term. (FR-REQ-04) |
+| UC-13 | Extend the stay or end it | Student | In the requests window, extends the stay length or ends the stay after this Term. (FR-REQ-04) |
 | UC-14 | Request a next-Term room change or swap | Student | Asks for another Room for the next Term, a direct swap or a swap from the board. (FR-REQ-01, FR-REQ-02) |
 | UC-15 | Answer a Room Class change consent | Student | Agrees or declines when a roommate asks to change the Room's class from the next Term. (FR-REQ-03) |
 | UC-16 | Cancel an Application | Student | Cancels before the assignment; an unpaid Deposit is voided, a paid one is refunded by rule. (FR-APP-04) |
@@ -266,7 +266,7 @@ Each attribute has a metric, a threshold and a measurement method; NFR-01…NFR-
 | BR-02 | Only a verified, enrolled student who passes every enabled eligibility check may apply; a pending Google account cannot apply. |
 | BR-03 | Students do not choose a Room or Bed; they choose a Room Type and a Room Class, and the assignment places them in a Block of their gender. |
 | BR-04 | Roommate invitations exist only for 2-bed Room Types; both students must accept within `roommateHours` and each pays their own Deposit; 4-, 6- and 8-bed Rooms are matched automatically. |
-| BR-05 | *Gia hạn* (Terms committed) is from 1 to `stay.max_terms`, capped by the semesters the student has left. |
+| BR-05 | The stay length (Terms committed) is from 1 to `stay.max_terms`, capped by the semesters the student has left. |
 | BR-06 | The Deposit is `depositPercent` of the Term price of the chosen Room Type and Room Class, rounded; it must be claimed within the Deposit window (`depositHours`) or the Application expires. |
 | BR-07 | A claim ("I have transferred") stops every deadline of its Invoice; a rejected claim gives back the time that was left (at least `payment.rejected_claim_min_hours`); a second rejection cancels a Deposit or Balance. Only a confirmed claim counts as payment. |
 | BR-08 | The Balance is the Term price minus the Deposit plus the Utility Deposit; a Balance not paid by its deadline is forfeited: the Bed is released and the Deposit kept by the refund rule. |

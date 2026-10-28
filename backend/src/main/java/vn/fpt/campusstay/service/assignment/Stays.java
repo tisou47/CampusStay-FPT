@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Assignment public API for the Term transition (spec §4, §5.1, §6.10): Stays (Gia hạn and Terms used), the requests
+ * Assignment public API for the Term transition (spec §4, §5.1, §6.10): Stays (stay length and Terms used), the requests
  * window of a Term and the next-Term Allocations of its continuing residents. Requests decides next-Term changes on
  * these Allocations (moves and swaps go through {@link Moves}); Accounts reconciles them with the enrolled list.
  */
@@ -50,7 +50,7 @@ public interface Stays {
      *
      * @param state          {@code AWAITING_EXTENSION} (the current Term is the Stay's last) or {@code CONTINUING}
      * @param feePaid        its next-Term room fee is paid
-     * @param committedTerms Gia hạn of the Stay; {@code termsUsed} the Terms counted so far
+     * @param committedTerms stay length of the Stay; {@code termsUsed} the Terms counted so far
      */
     record NextTerm(long allocationId, long termId, long studentId, long stayId, String state, boolean feePaid,
             int committedTerms, int termsUsed) {

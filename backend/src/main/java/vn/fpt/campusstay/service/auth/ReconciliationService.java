@@ -1,6 +1,5 @@
 package vn.fpt.campusstay.service.auth;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -23,6 +22,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.event.StudentNotEnrolled;
@@ -146,14 +146,18 @@ public class ReconciliationService {
                 open, !runs.isEmpty() && open == 0, people(term.id()).size());
     }
 
-    /** CSV template: the student code, the name (optional) and the enrollment status or the reason of leaving. */
+    /**
+     * XLSX template (Excel set to Vietnamese opens a comma CSV as one column): the student code, the name (optional)
+     * and the enrollment status or the reason of leaving.
+     */
     public Template template(String kind) {
         currentUser.require(Permission.RECONCILE_ENROLLMENT);
         boolean leavers = "leavers".equalsIgnoreCase(kind == null ? "" : kind.trim());
-        String csv = leavers ? "student_code,full_name,reason\nSE190001,Nguyen Van A,Graduated\n"
-                : "student_code,full_name,enrollment_status\nSE190001,Nguyen Van A,Enrolled\n";
-        return new Template(leavers ? "leavers-template.csv" : "enrolled-list-template.csv",
-                ("﻿" + csv).getBytes(StandardCharsets.UTF_8));
+        List<List<String>> rows = leavers
+                ? List.of(List.of("student_code", "full_name", "reason"), List.of("SE190001", "Nguyen Van A", "Graduated"))
+                : List.of(List.of("student_code", "full_name", "enrollment_status"), List.of("SE190001", "Nguyen Van A", "Enrolled"));
+        return new Template(leavers ? "leavers-template.xlsx" : "enrolled-list-template.xlsx",
+                XlsxFile.of(leavers ? "Leavers" : "Enrolled", rows));
     }
 
     /** Reads the file and records every difference with the people of the Term (one Audit Log entry). */
