@@ -48,6 +48,9 @@ management:
         enabled: true
 
 springdoc:
+  # Request and response records share short names across controllers (CreateRequest, Saved …): without the
+  # qualified name one schema would stand for all of them.
+  use-fqn: true
   swagger-ui:
     path: /swagger-ui.html
     display-request-duration: true
