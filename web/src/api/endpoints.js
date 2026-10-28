@@ -215,6 +215,12 @@ export const api = {
     round2: (termId, opts) => http.get('/round2', { termId }, opts),
     /** A Manager offers the free Beds to the waitlisted students: { termId } → { offered, waitlisted, freeBeds }. */
     runRound2: (body) => http.post('/round2/run', body),
+    /**
+     * Who Round 2 reached (A-58): { termId, status (Pending, Accepted, Declined, Expired, Withdrawn, No offer), q, page,
+     * pageSize } → { items: [{ id, applicationId, studentName, studentCode, requested, status, offeredAt, expiresAt,
+     * respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts }.
+     */
+    round2Offers: g('/round2/offers'),
   },
   inventory: {
     structure: g('/inventory/structure'),
@@ -285,6 +291,9 @@ export const api = {
     room: (periodId, room, opts) => http.get(`/meter-periods/${periodId}/readings/${room}`, undefined, opts),
     save: (periodId, room, body) => http.put(`/meter-periods/${periodId}/readings/${room}`, body),
     confirm: (periodId, room) => http.post(`/meter-periods/${periodId}/readings/${room}/confirm`),
+    /** The period's Rooms with their previous values, to fill in Excel (A-59). */
+    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.xlsx` }),
+    /** multipart file: the template filled in (XLSX or CSV) → { imported, skipped }; blank lines are Rooms read later. */
     import: (periodId, formData) => http.post(`/meter-periods/${periodId}/import`, formData),
     close: (periodId) => http.post(`/meter-periods/${periodId}/close`),
   },
@@ -352,6 +361,10 @@ export const api = {
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
   blockStaff: {
+    /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
+    me: g('/block-staff/me'),
+    /** { onDuty } → the same: starts or ends the signed-in person's shift. */
+    setDuty: (body) => http.put('/block-staff/me/duty', body),
     list: g('/block-staff'),
     update: (id, body) => http.put(`/block-staff/${id}`, body),
     requestAccount: (body) => http.post('/staff-account-requests', body),

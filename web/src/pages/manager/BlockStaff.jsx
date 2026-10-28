@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { UserPlus, Users } from 'lucide-react'
+import { Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -88,13 +88,33 @@ export default function BlockStaff() {
     <>
       <PageHeader
         title={block ? t('Staff · Block {code}', { code: block }) : 'Staff'}
-        description="Staff of the Blocks in your scope and the request types they handle. Accounts are created on Staff accounts."
+        description="Staff of the Blocks in your scope, the request types they handle and who is on duty. Staff start and end their own shift from the top bar; you can change it here."
         actions={
-          <Button icon={UserPlus} onClick={() => navigate('/manager/staff-accounts?new=1')}>
-            New Staff account
-          </Button>
+          <>
+            <Button icon={Route} to="/manager/routing-rules">
+              Routing and timers
+            </Button>
+            <Button icon={UserPlus} onClick={() => navigate('/manager/staff-accounts?new=1')}>
+              New Staff account
+            </Button>
+          </>
         }
       />
+      <div className="grid shrink-0 grid-cols-3 gap-4">
+        {[
+          { icon: Route, title: 'Who gets new requests', text: 'A new Maintenance or Room-Change Request goes to the person its routing rule names while they are on duty, else to the rule’s fallback.' },
+          { icon: UserCheck, title: 'Who works on a request', text: 'Only the person in charge changes a request’s status. A colleague who covers takes it over first; the history keeps both names.' },
+          { icon: ShieldCheck, title: 'What duty does not do', text: 'Off duty is not a lock: Staff keep access to their Blocks to look things up. To stop someone working, lock the account on Staff accounts.' },
+        ].map((x) => (
+          <div key={x.title} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3.5">
+            <x.icon size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <p className="text-base font-medium text-fg">{t(x.title)}</p>
+              <p className="text-sm text-fg-secondary">{t(x.text)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="Staff" value={formatNumber(s?.total)} note={s?.shared ? t('{n} work in several Blocks', { n: s.shared }) : null} />
         <KpiTile size="md" label="Open requests per Staff" value={s?.averageOpen != null ? s.averageOpen.toFixed(1) : '—'} note="Average this week" />
