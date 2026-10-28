@@ -56,13 +56,14 @@ class CheckOutSettlements {
             return result;
         }
         jdbc.sql("""
-                SELECT allocation_id, code, amount, utility_deposit FROM bil_invoice
+                SELECT allocation_id, code, amount, utility_deposit, due_at FROM bil_invoice
                 WHERE allocation_id IN (:allocations) AND type IN ('BALANCE', 'TERM_FEE')
                   AND status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')
                 ORDER BY id
                 """).param("allocations", List.copyOf(allocationIds))
                 .query((rs, i) -> Map.entry(rs.getLong("allocation_id"), new Billing.CheckInDue(rs.getString("code"),
-                        rs.getLong("amount") - rs.getLong("utility_deposit"), rs.getLong("utility_deposit"))))
+                        rs.getLong("amount") - rs.getLong("utility_deposit"), rs.getLong("utility_deposit"),
+                        rs.getTimestamp("due_at") == null ? null : rs.getTimestamp("due_at").toInstant())))
                 .list().forEach(e -> result.put(e.getKey(), e.getValue()));
         return result;
     }
@@ -131,6 +132,21 @@ class CheckOutSettlements {
                     "The reading is lower than the last one (" + number.format(from.water()) + " m³ on "
                             + DAY.format(from.date()) + ").");
             errors.throwIfAny();
+        });
+    }
+
+    Optional<String> readingProblem(long roomId, BigDecimal electricity, BigDecimal water) {
+        return lastReading(roomId).flatMap(from -> {
+            NumberFormat number = NumberFormat.getNumberInstance(Locale.US);
+            if (electricity.compareTo(from.electricity()) < 0) {
+                return Optional.of("The reading is lower than the last one (" + number.format(from.electricity())
+                        + " kWh on " + DAY.format(from.date()) + ").");
+            }
+            if (water.compareTo(from.water()) < 0) {
+                return Optional.of("The reading is lower than the last one (" + number.format(from.water()) + " m³ on "
+                        + DAY.format(from.date()) + ").");
+            }
+            return Optional.empty();
         });
     }
 

@@ -15,6 +15,7 @@ import { typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr, tx } from '@/i18n'
+import { DateInput } from '@/components/ui/DatePicker'
 
 // SCR-ASG-01 My Room (Figma 39:1535)
 // GET /students/me/allocation?termId → {
@@ -137,7 +138,7 @@ function LateCheckInCard() {
               {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
             </Field>
             <Field label="Day you will arrive" required error={fields.requestedFor} helper={d.latestDay ? t('Up to {date}', { date: formatDate(d.latestDay) }) : undefined}>
-              {(id) => <Input id={id} type="date" value={day} max={d.latestDay ?? undefined} onChange={(e) => setDay(e.target.value)} />}
+              {(id) => <DateInput id={id} value={day} max={d.latestDay ?? undefined} onChange={(e) => setDay(e.target.value)} />}
             </Field>
             <Field label="Document (ticket, letter …)" required error={fields.evidence}>
               {(id) => <input id={id} type="file" accept="image/*,application/pdf" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}
@@ -287,17 +288,20 @@ function NextTermCard({ data }) {
             <p className="text-sm text-fg-secondary">{t('Terms left on your stay after this one: {n}', { n: n.termsLeft })}</p>
           )}
           {n.fee && (
-            <div className="flex items-center justify-between gap-3 rounded-md bg-subtle px-3 py-2">
-              <div className="flex flex-col">
-                <span className="text-base font-medium text-fg">{formatVnd(n.fee.amount)}</span>
-                <span className="text-sm text-fg-secondary">{t('Due {date}', { date: formatDateTime(n.fee.dueAt) })}</span>
+            // Stacked: the card sits in a narrow column, where amount, date and button do not fit on one line.
+            <div className="flex flex-col gap-2 rounded-md bg-subtle px-3 py-2.5">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span className="text-base font-medium whitespace-nowrap text-fg">{formatVnd(n.fee.amount)}</span>
+                {n.fee.status === 'Unpaid' ? (
+                  <span className="text-sm whitespace-nowrap text-fg-secondary">{t('Due {date}', { date: formatDateTime(n.fee.dueAt) })}</span>
+                ) : (
+                  <StatusTag status={n.fee.status} />
+                )}
               </div>
-              {n.fee.status === 'Unpaid' ? (
-                <Button variant="primary" icon={CreditCard} to={`/student/invoices/${n.fee.invoiceId}/pay`}>
+              {n.fee.status === 'Unpaid' && (
+                <Button variant="primary" icon={CreditCard} block to={`/student/invoices/${n.fee.invoiceId}/pay`}>
                   Pay next-Term fee
                 </Button>
-              ) : (
-                <StatusTag status={n.fee.status} />
               )}
             </div>
           )}

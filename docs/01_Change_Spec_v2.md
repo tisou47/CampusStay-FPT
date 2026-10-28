@@ -21,7 +21,7 @@ Domain terms are English throughout (the Vietnamese ones belong to the translati
 4. **Registration periods are organised.** A Manager asks the Admin to open a registration period with the dates, rooms and prices they want; the Admin builds the Term from that request in a step-by-step wizard (timeline, rooms and places, prices of that Term, rules, house rules) and publishes it. Students read it on a news board on their Home page.
 5. **Every money or policy change is announced** in-app to the students it concerns.
 6. **Payments are confirmed by hand.** The student marks an Invoice as transferred; Managers confirm (in bulk) or reject. SePay, the bank feed and the payment simulator are removed.
-7. **Door codes.** A paid student receives the 6-digit door code of their Room; that makes them a resident. Unpaid Balance past its deadline loses the Deposit and the Bed, unless an approved late check-in still runs.
+7. **Door codes.** A paid student receives the 6-digit door code of their Room; that makes them a resident. Unpaid Balance past its deadline loses the Deposit and the Bed (the Balance is paid before check-in, also after a late check-in).
 8. **Room Class per Room, furniture tracked.** Each Room has its own Room Class per Term; Room Classes are defined by required furniture; every furniture item is tracked with its location and history.
 9. **Student accounts.** Students sign up with Google (`@fpt.edu.vn`), set a password, and are verified against the student list the Manager imports. Every Term the enrolled list is reconciled against the residents.
 10. **Utility debt.** Monthly Utility Invoices; one overdue month gives a warning, two months (or a debt reaching the Utility Deposit) end the stay after a final warning.
@@ -51,7 +51,7 @@ Domain terms are English throughout (the Vietnamese ones belong to the translati
 | D-17 | Routing rules are kept and shown with the staff list; SLA time left is shown on every request | Q18 |
 | D-18 | One door code per Room (6 digits), set by the Block's Staff, rotated whenever someone leaves the Room; shown only inside the app (web now, Android later) | Q19 |
 | D-19 | The desk check-in stays for hand-over items and is no longer a gate; Utility is charged from the day the door code is released | Q20 |
-| D-20 | A late check-in extends both the payment deadline and the arrival deadline; students request it online with evidence, Staff can still record it at the desk; Managers decide | Q21 |
+| D-20 | A late check-in extends the arrival deadline; the Balance deadline moves only if the Manager chooses a later day, at most the arrival day (revised 28/10/2026: pay before check-in); one per student per Term; students request it online with evidence, Staff can still record it at the desk; Managers decide | Q21 |
 | D-21 | Every furniture item is tracked individually | Q22 |
 | D-22 | No Figma updates; the code is the design source from now on | Q23 |
 | D-23 | Demo scenarios with an Admin "reset demo data" tool, enabled only on the demo server | Q24 |
@@ -196,7 +196,7 @@ After publishing, money and policy fields stay editable within §5.2; every save
 3. Deposit confirmed → Application Submitted → a Manager reviews (single or bulk) → Approved.
 4. A Manager runs the assignment (dry run, then real), resolves conflicts and commits (per Block or all at once) → Allocations (bed **yellow**) and Balance Invoices (price − Deposit + Utility Deposit).
 5. Balance confirmed → the door code is released (§6.8) → **resident** (bed **orange**); the Stay counts its first Term.
-6. Balance unpaid at its deadline, no open claim, no approved late check-in still running → Allocation cancelled, Deposit kept (refund rule *Balance not paid*, default 0 %), Bed to Round 2, student notified. Reminders 3 days and 1 day before.
+6. Balance unpaid at its deadline, no open claim → Allocation cancelled, Deposit kept (refund rule *Balance not paid*, default 0 %), Bed to Round 2, student notified. Reminders 3 days and 1 day before.
 
 ### 6.7 Payment claims and confirmation (D-12)
 1. Every Invoice shows the VietQR image (when the bank account is configured), the amount, the transfer content and **I have transferred**.
@@ -215,7 +215,7 @@ After publishing, money and policy fields stay editable within §5.2; every save
 ### 6.9 Late check-in (D-20)
 - Requested online by the student before the deadline (reason, evidence file, requested date) or recorded by Staff at the desk.
 - A Manager approves with a new deadline (at most the configured number of days after the check-in end) or rejects with a reason.
-- An approved, unexpired late check-in extends the Balance deadline and the arrival deadline to its date.
+- An approved late check-in extends the arrival deadline to its date; an unpaid student's Balance deadline moves only to a later day the Manager chooses, at most that date (revised 28/10/2026). One late check-in per student per Term.
 
 ### 6.10 Term transition for continuing residents (D-13 … D-15, D-30, D-31)
 1. M2: next-Term Allocations are created (§5.1). Students see on My Room: "You stay in Room X next Term (Terms left: n)" or "This is the last Term of your stay".
@@ -318,7 +318,7 @@ Kept. Beds freed by unpaid Balances, unpaid next-Term fees, ended stays and term
 | Amount | Issued | Amount | Deadline | If not paid |
 |---|---|---|---|---|
 | Deposit (an advance on the room fee, not a held deposit) | Application created | Deposit % × the Term's price of the chosen Room Type × Room Class | Deposit hours | Application expires |
-| Balance | Assignment committed | Term price − Deposit + Utility Deposit | Balance due (or approved late check-in) | Allocation cancelled; Deposit refund per rule *Balance not paid* (default 0 %) |
+| Balance | Assignment committed | Term price − Deposit + Utility Deposit | Balance due (a later day chosen when a late check-in is approved, at most its date) | Allocation cancelled; Deposit refund per rule *Balance not paid* (default 0 %) |
 | Next-Term room fee | Manager at M6 | 100 % of N+1 price of the next-Term Bed | M7 | Next-Term Allocation cancelled; no money is kept because nothing of N+1 was used |
 | Utility | Meter period closed | consumption × unit prices, split by days | period due date | warnings → termination (§6.14) |
 | Utility Deposit | with the first Balance | estimate per month × months held (default 300,000 × 2) | — | held for the whole Stay; settles debt and damage at the final check-out |

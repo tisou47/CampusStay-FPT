@@ -16,6 +16,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { DateInput } from '@/components/ui/DatePicker'
 
 // SCR-REQ-20 Decisions (Figma 99:2192): late check-ins, cross-Block swaps and refunds waiting for a Manager.
 // The assignment is committed on the proposal itself (ADR-19), so it has no tab here.
@@ -47,12 +48,24 @@ function LateDecision({ req }) {
   const [deadline, setDeadline] = useState(toDateInput(req.suggestedDeadline))
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
+  // An unpaid student pays the Balance before check-in: its deadline stays, or moves later up to the arrival day.
+  const [balanceDue, setBalanceDue] = useState('')
   useEffect(() => {
     setDeadline(toDateInput(req.suggestedDeadline))
     setRejecting(false)
     setReason('')
+    setBalanceDue('')
   }, [req])
-  const decide = useMutation((decision) => api.approvals.decideLateCheckIn(req.id, { decision, deadline: decision === 'Approved' ? deadline : undefined, reason: reason.trim() || undefined }), {
+  const balanceTooLate = Boolean(balanceDue && deadline && balanceDue > deadline)
+  const decide = useMutation(
+    (decision) =>
+      api.approvals.decideLateCheckIn(req.id, {
+        decision,
+        deadline: decision === 'Approved' ? deadline : undefined,
+        balanceDue: decision === 'Approved' && !req.paid && balanceDue ? balanceDue : undefined,
+        reason: reason.trim() || undefined,
+      }),
+    {
     invalidates: ['approvals'],
     onSuccess: (_, decision) =>
       notify({
@@ -61,7 +74,8 @@ function LateDecision({ req }) {
         message: decision === 'Approved' ? t('{name} can check in until {date}.', { name: req.name, date: formatDate(deadline) }) : t('{name}’s Allocation is released if they do not arrive.', { name: req.name }),
       }),
     onError: (e) => notifyError(e, 'Could not save the decision'),
-  })
+  },
+  )
   const d = req.decision
 
   return (
@@ -92,7 +106,29 @@ function LateDecision({ req }) {
         </Alert>
       ) : (
         <>
-          <Field label="New check-in deadline">{(id) => <Input id={id} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />}</Field>
+          <Field label="New check-in deadline">{(id) => <DateInput id={id} value={deadline} onChange={(e) => setDeadline(e.target.value)} />}</Field>
+          {!req.paid && (
+            <Field
+              label="Balance deadline"
+              error={balanceTooLate ? 'The Balance is paid before check-in: choose a day up to the new check-in deadline.' : undefined}
+              helper={
+                req.balanceDueAt
+                  ? t('Now due {date}. Leave it empty to keep it, or choose a later day up to the new check-in deadline.', { date: formatDateTime(req.balanceDueAt) })
+                  : 'Leave it empty to keep the current deadline.'
+              }
+            >
+              {(id) => (
+                <DateInput
+                  id={id}
+                  value={balanceDue}
+                  min={toDateInput(req.balanceDueAt) || undefined}
+                  max={deadline || undefined}
+                  invalid={balanceTooLate}
+                  onChange={(e) => setBalanceDue(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
           {rejecting && (
             <Field label="Reason shown to the student" required>
               {(id) => <Textarea id={id} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}
@@ -103,7 +139,7 @@ function LateDecision({ req }) {
             <Button variant="danger" onClick={() => (rejecting ? decide.run('Rejected') : setRejecting(true))} disabled={(rejecting && !reason.trim()) || decide.pending}>
               {rejecting ? t('Confirm reject') : t('Reject')}
             </Button>
-            <Button variant="primary" onClick={() => decide.run('Approved')} disabled={!deadline || decide.pending}>
+            <Button variant="primary" onClick={() => decide.run('Approved')} disabled={!deadline || balanceTooLate || decide.pending}>
               Approve
             </Button>
           </div>

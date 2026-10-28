@@ -188,7 +188,7 @@ function HomeContent({ home }) {
       : { value: t('No application yet'), note: term ? t('{term} · not started', { term: term.name }) : t('Not started'), to: '/student/applications' },
     room: allocation
       ? { value: t('{room} · Bed {bed}', { room: allocation.room, bed: allocation.bed }), note: [tr(allocation.block), tr(allocation.floor)].filter(Boolean).join(' · '), to: '/student/room' }
-      : { value: t('Not assigned'), note: t('Assigned after the review and assignment run') },
+      : { value: t('Not assigned'), note: t('Assigned after the review and assignment run'), to: '/student/room' },
     payments:
       home.invoices?.total === 0
         ? { value: t('No invoices'), note: t('The deposit Invoice is issued when you submit'), to: '/student/invoices' }
@@ -229,7 +229,7 @@ function HomeContent({ home }) {
         <StatusCard icon={FileText} label="Application" {...cards.application} />
         <StatusCard icon={Bed} label="My Room" {...cards.room} />
         <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
-        <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and Room-Change Requests" to={allocation ? '/student/requests' : undefined} />
+        <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and Room-Change Requests" to="/student/requests" />
       </div>
 
       <StatusList className="lg:hidden">
@@ -249,7 +249,7 @@ function HomeContent({ home }) {
           <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), tr(allocation.block)].filter(Boolean).join(' · ')} to="/student/room" />
         )}
         <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
-        {allocation && <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and Room-Change Requests" to="/student/requests" />}
+        <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and Room-Change Requests" to="/student/requests" />
       </StatusList>
 
       <LatestNotification />

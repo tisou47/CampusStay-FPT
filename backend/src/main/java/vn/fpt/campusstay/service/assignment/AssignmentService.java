@@ -56,6 +56,14 @@ public class AssignmentService {
     public record Resolved(String applicationId, String bed, boolean resolved, boolean waitlisted) {
     }
 
+    /** Round 2 of a Term: waitlisted students without an open offer, open offers, Beds nobody holds. */
+    public record Round2Status(String termId, int waitlisted, int openOffers, int freeBeds) {
+    }
+
+    /** @param offered students who received an offer; {@code waitlisted} those still without one */
+    public record Round2Run(int offered, int waitlisted, int freeBeds) {
+    }
+
     public record Approved(int allocated, int waitlisted) {
     }
 
@@ -107,6 +115,45 @@ public class AssignmentService {
     }
 
     // ---------------------------------------------------------------- start
+
+    @Transactional(readOnly = true)
+    public Round2Status round2(Long termId) {
+        currentUser.require(Permission.RUN_ASSIGNMENT);
+        TermSummary term = round2Term(termId);
+        return new Round2Status(String.valueOf(term.id()), applications.waitlistedWithoutOffer(term.id()).size(),
+                applications.openRound2Offers(term.id()), round2.freeBeds(term.id()));
+    }
+
+    /**
+     * Round 2 (FR-APP-07, M8): offers the Term's free Beds (left by Round 1, or freed later by forfeits, unpaid
+     * next-Term fees, ended stays and terminations) to the Waitlisted students without an open offer, by the rules of
+     * the offers made when a Block is approved. Not while a Round-1 proposal is in review: its Beds are promised.
+     */
+    @Transactional
+    public Round2Run runRound2(Long termId) {
+        currentUser.require(Permission.RUN_ASSIGNMENT);
+        TermSummary term = round2Term(termId);
+        long live = jdbc.sql("""
+                SELECT count(*) FROM asg_run WHERE term_id = :term AND kind <> 'DRY_RUN'
+                  AND status IN ('RUNNING', 'PROPOSED', 'IN_REVIEW')
+                """).param("term", term.id()).query(Long.class).single();
+        if (live > 0) {
+            throw ApiException.conflict("ASSIGNMENT_IN_REVIEW",
+                    "A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2.");
+        }
+        List<Applications.Candidate> waiting = applications.waitlistedWithoutOffer(term.id());
+        int offered = round2.offer(term.id(), waiting);
+        audit.record("ROUND2_RUN", AuditLog.Tone.INFO, "Term", term.id(), term.name(),
+                Map.of("offered", offered, "waitlisted", waiting.size()));
+        return new Round2Run(offered, waiting.size() - offered, round2.freeBeds(term.id()));
+    }
+
+    private TermSummary round2Term(Long termId) {
+        if (termId == null) {
+            throw FieldErrors.single("termId", "Choose a Term.");
+        }
+        return terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
+    }
 
     /** A final run replaces the proposal in review, unless a Block of it is already committed. */
     @Transactional

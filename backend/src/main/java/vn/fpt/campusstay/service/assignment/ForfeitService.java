@@ -56,12 +56,8 @@ public class ForfeitService {
     public int forfeitDue() {
         int forfeited = 0;
         for (Billing.DueBalance b : billing.balancesPastDue()) {
-            Optional<LocalDate> late = approvedLateCheckIn(b.allocationId());
-            if (late.isPresent()) {
-                // An approved late check-in moves the deadline (decided before its deadline reached the Balance).
-                billing.extendBalanceDeadline(b.allocationId(), endOf(late.get()));
-                continue;
-            }
+            // An approved late check-in does not hold the Balance back: it is paid before check-in, by the deadline
+            // the Manager kept or chose when approving (spec §6.9).
             if (forfeit(b.allocationId(), b.invoiceId(), b.dueAt(), "UNPAID")) {
                 forfeited++;
             }
@@ -118,16 +114,7 @@ public class ForfeitService {
         return true;
     }
 
-    private Optional<LocalDate> approvedLateCheckIn(long allocationId) {
-        return jdbc.sql("""
-                SELECT deadline FROM asg_late_check_in
-                WHERE allocation_id = :id AND status = 'APPROVED' AND deadline >= :today
-                ORDER BY deadline DESC LIMIT 1
-                """).param("id", allocationId).param("today", LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)))
-                .query(LocalDate.class).optional();
-    }
-
-    /** The end of a campus day: an approved late check-in runs until that day is over. */
+    /** The end of a campus day: a deadline on that day runs until it is over. */
     static Instant endOf(LocalDate day) {
         return day.plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
     }

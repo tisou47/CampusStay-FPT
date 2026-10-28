@@ -50,8 +50,8 @@ class DemoResetIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C")))
-                .andExpect(jsonPath("$.scenarios[?(@.id == 'S08')].account", contains("se210001@fpt.edu.vn")))
-                .andExpect(jsonPath("$.scenarios[?(@.id == 'S08')].scenarioVi").isNotEmpty())
+                .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager.a@fpt.edu.vn")))
+                .andExpect(jsonPath("$.scenarios[?(@.id == 'D12')].scenarioVi").isNotEmpty())
                 .andExpect(jsonPath("$.files", hasSize(5)))
                 .andExpect(jsonPath("$.lastReset").isEmpty());
         mvc.perform(get("/admin/demo").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)))

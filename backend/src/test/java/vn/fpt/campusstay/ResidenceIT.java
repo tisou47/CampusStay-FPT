@@ -152,8 +152,9 @@ class ResidenceIT {
     /**
      * TC-ASG-033 (business rule): a Balance past its deadline without a claim is forfeited: the Allocation is
      * cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule "Balance not paid" (a 0 %
-     * rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting or an approved
-     * late check-in still running keeps the Bed.
+     * rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting keeps the Bed,
+     * and so does a later Balance deadline a Manager chose when approving a late check-in, which may not pass the
+     * arrival day (the Balance is paid before check-in).
      */
     @Test
     void unpaidBalanceIsForfeited() throws Exception {
@@ -178,7 +179,13 @@ class ResidenceIT {
                 """).param("app", late.applicationId()).query(String.class).single();
         mvc.perform(post("/late-check-ins/" + requestId + "/decision").header(HttpHeaders.AUTHORIZATION,
                 bearer(mvc, MANAGER_A)).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"decision\":\"Approved\",\"deadline\":\"2031-01-08\"}")).andExpect(status().isNoContent());
+                .content("{\"decision\":\"Approved\",\"deadline\":\"2031-01-08\",\"balanceDue\":\"2031-01-09\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.balanceDue").value("The Balance is paid before check-in: choose a day up to 08/01/2031."));
+        mvc.perform(post("/late-check-ins/" + requestId + "/decision").header(HttpHeaders.AUTHORIZATION,
+                bearer(mvc, MANAGER_A)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"Approved\",\"deadline\":\"2031-01-08\",\"balanceDue\":\"2031-01-07\"}"))
+                .andExpect(status().isNoContent());
         for (StayFlow.Applied p : placed) {
             jdbc.sql("UPDATE bil_invoice SET due_at = now() - interval '1 minute' WHERE code = :c AND due_at < now() + interval '1 day'")
                     .param("c", balanceOf(p.applicationId())).update();
@@ -199,7 +206,7 @@ class ResidenceIT {
         assertThat(flow.statuses(late.auth())).containsExactly("Allocated");
         assertThat(jdbc.sql("SELECT due_at FROM bil_invoice WHERE code = :c").param("c", balanceOf(late.applicationId()))
                 .query(java.sql.Timestamp.class).single().toInstant())
-                .isEqualTo(java.time.Instant.parse("2031-01-08T17:00:00Z"));
+                .isEqualTo(java.time.Instant.parse("2031-01-07T17:00:00Z"));
         // A new student applies again for the Term: the forfeited Application still counts (one per Term).
         mvc.perform(post("/applications").header(HttpHeaders.AUTHORIZATION, unpaid.auth())
                 .contentType(MediaType.APPLICATION_JSON).content(flow.body("4-bed", "Basic", null)))

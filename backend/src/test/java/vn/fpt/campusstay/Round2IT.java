@@ -7,6 +7,8 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static vn.fpt.campusstay.TestAuth.MANAGER_A;
+import static vn.fpt.campusstay.TestAuth.bearer;
 
 import java.util.List;
 
@@ -26,7 +28,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.service.application.Round2Service;
 
-/** Round 2 for Waitlisted students: held options, accept, decline and expiry (TC-APP-020, 021). */
+/** Round 2 for Waitlisted students: held options, accept, decline and expiry, the Manager's run (TC-APP-020, 021, 024). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -132,5 +134,35 @@ class Round2IT {
                 SELECT count(*) FROM bil_refund WHERE source_type = 'APPLICATION_CANCEL' AND status = 'PENDING'
                   AND amount > 0
                 """).query(Long.class).single()).isEqualTo(2);
+    }
+
+    /**
+     * TC-APP-024: a Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the
+     * Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it.
+     */
+    @Test
+    void managerRunsRound2() throws Exception {
+        List<StayFlow.Applied> applied = stay.runRound1("6-bed", "Premium", 18, 19);
+        // As if the first offers had found no Bed: the students wait without an offer.
+        jdbc.sql("UPDATE app_round2_option SET held = FALSE WHERE held").update();
+        jdbc.sql("UPDATE app_round2_offer SET status = 'WITHDRAWN' WHERE status = 'PENDING'").update();
+        String manager = bearer(mvc, MANAGER_A);
+        getAs("/round2?termId=" + stay.termId(), manager)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.waitlisted").value(2))
+                .andExpect(jsonPath("$.openOffers").value(0))
+                .andExpect(jsonPath("$.freeBeds").isNumber());
+        stay.postJson("/round2/run", applied.getFirst().auth(), "{\"termId\":%d}".formatted(stay.termId()))
+                .andExpect(status().isForbidden());
+        stay.postJson("/round2/run", manager, "{\"termId\":%d}".formatted(stay.termId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offered").value(2))
+                .andExpect(jsonPath("$.waitlisted").value(0));
+        for (StayFlow.Applied a : applied) {
+            getAs("/students/me/round2-offer", a.auth()).andExpect(jsonPath("$.offer.options[0].id").isString());
+        }
+        getAs("/round2?termId=" + stay.termId(), manager)
+                .andExpect(jsonPath("$.waitlisted").value(0))
+                .andExpect(jsonPath("$.openOffers").value(2));
     }
 }

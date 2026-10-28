@@ -16,9 +16,11 @@ import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
 import vn.fpt.campusstay.common.file.SheetFile;
+import vn.fpt.campusstay.common.file.XlsxFile;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -228,6 +230,28 @@ class StudentImportIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.file").value("Save the file as XLSX or CSV UTF-8 and upload it again."));
         upload(bearer(mvc, STAFF_A), "list.csv", CSV.getBytes(StandardCharsets.UTF_8)).andExpect(status().isForbidden());
+    }
+
+    /**
+     * TC-AUTH-056: a major is read from its code, its English label or its Vietnamese name, the other FPT majors are in
+     * the list (V61), and a student-code prefix such as SS put in the major column gets an error that says so; the file
+     * is the XLSX the template writer makes.
+     */
+    @Test
+    @Order(4)
+    void readsMajorsByCodeOrNameAndExplainsCodePrefixes() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        byte[] file = XlsxFile.of("Students", List.of(
+                List.of(HEADER.split(",")),
+                List.of("SS219061", "Ngo Thi Kinh", "ittest.major1@fpt.edu.vn", "Female", "", "Quản trị kinh doanh", "K21", "", "", "", "", ""),
+                List.of("SA219062", "Ho Van Han", "ittest.major2@fpt.edu.vn", "Male", "", "KR", "K21", "", "", "", "", ""),
+                List.of("SS219063", "Vu Thi Ma", "ittest.major3@fpt.edu.vn", "Female", "", "SS", "K21", "", "", "", "", "")));
+        upload(manager, "majors.xlsx", file)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.counts.created").value(2))
+                .andExpect(jsonPath("$.counts.errors").value(1))
+                .andExpect(jsonPath("$.rows.items[?(@.studentCode == 'SS219063')].message",
+                        hasItem(containsString("SS is the start of the student code, not a major"))));
     }
 
     /** A one-sheet workbook with Vietnamese headers, a shared string, an inline string and a date as a day number. */

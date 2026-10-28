@@ -147,7 +147,7 @@ function Preview({ id }) {
               setPage(1)
             }}
           />
-          <Table fill>
+          <Table fill className="min-h-96">
             <THead>
               <tr>
                 <Th className="w-16">Line</Th>
@@ -158,7 +158,7 @@ function Preview({ id }) {
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={query} colSpan={5} emptyIcon={FileSpreadsheet} emptyTitle="No lines here" />
+              <TableStatus query={query} rows={data.rows.items} colSpan={5} emptyIcon={FileSpreadsheet} emptyTitle="No lines here" />
               {data.rows.items.map((r) => (
                 <Tr key={r.line}>
                   <Td>{r.line}</Td>
@@ -265,7 +265,7 @@ export default function StudentImport() {
         </Alert>
       )}
       <div className="flex min-h-0 flex-1 gap-4">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
           {id ? (
             <Preview key={id} id={id} />
           ) : (

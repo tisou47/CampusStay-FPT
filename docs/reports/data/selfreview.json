@@ -10,7 +10,7 @@
    "finding": "Round 2 run by a Manager has no implementation. Offers are created only automatically when a Block of the assignment is committed. There is no Manager endpoint or screen. Beds freed later (unpaid Balance, unpaid next-Term fee, ended stay, termination) are never offered, although FR-APP-07 says they are. The trigger milestone \"M8\" is defined nowhere.",
    "severity": "High",
    "evidence": "AssignmentService.java:345 is the only caller of Round2Offers.offer; Round2Controller has only GET /students/me/round2-offer and POST /round2-offers/{id}/respond; web router has only /student/round-2-offer; ForfeitService.java:28 \"Round 2 may offer it\"; \"M8\" appears only in r3-fr.md:295",
-   "response": "Planned – Lê Thành Minh Trung, 15/11/2026: a Manager runs Round 2 from the assignment screen; Beds freed by forfeit, unpaid next-Term fee, end of stay and termination join the pool; M8 defined in the Term timeline (Design Brief gap G7)"
+   "response": "Fixed – 28/10/2026: Manager › Assignment › Round 2 offers every free Bed (left by Round 1, or freed by forfeits, unpaid next-Term fees, ended stays and terminations) to the waitlisted students without an open offer, by the rules of the automatic offers (TC-APP-024); M8 is when the Manager runs it, after M7 and the Balance deadline (gap G7 closed)"
   },
   {
    "id": "SR-02",

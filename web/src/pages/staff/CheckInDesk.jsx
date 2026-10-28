@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarClock, Check, CircleCheck, CircleX, Clock, LogIn, ScanLine, Upload, UserX } from 'lucide-react'
+import { CalendarClock, Check, CircleCheck, CircleX, Clock, ScanLine, Upload, UserX } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -16,6 +16,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { DateInput } from '@/components/ui/DatePicker'
 
 // SCR-REQ-11 Check-in Desk (Figma 60:3026)
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
@@ -87,7 +88,7 @@ function LateCheckInModal({ person, termId, onClose }) {
     >
       {record.error && <p className="rounded-md bg-error-bg px-3 py-2 text-base text-error-fg">{record.error.message}</p>}
       <Field label="Arrives on" required>
-        {(id) => <Input id={id} type="date" min={today} value={requestedFor} onChange={(e) => setRequestedFor(e.target.value)} />}
+        {(id) => <DateInput id={id} min={today} value={requestedFor} onChange={(e) => setRequestedFor(e.target.value)} />}
       </Field>
       <Field label="Reason" required hint={`${reason.length}/500`}>
         {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why the student arrives after the check-in window" />}
@@ -251,12 +252,6 @@ export default function CheckInDesk() {
   const d0 = today.data
   const person = search ? lookup.data?.student : null
 
-  // QR scanners type the pass into the focused search box and press Enter.
-  const scan = () => {
-    input.current?.focus()
-    input.current?.select()
-  }
-
   return (
     <>
       <PageHeader
@@ -277,9 +272,7 @@ export default function CheckInDesk() {
           onKeyDown={(e) => e.key === 'Enter' && setSearch(q.trim())}
           autoFocus
         />
-        <Button icon={LogIn} onClick={scan}>
-          Scan QR pass
-        </Button>
+        {/* A QR scanner types the pass into this focused box and presses Enter: no separate scan button. */}
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,6 +47,8 @@ import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.Buildings;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.file.SheetFile;
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.config.TimeConfig;
@@ -500,6 +503,188 @@ public class DeskService {
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
                 Map.of("refund", refund, "damage", damage, "conditionGood", cmd.conditionGood()));
         return new CheckedOut(refund, settled.refundId().isPresent() ? "Pending" : "None");
+    }
+
+    // ---------------------------------------------------------------- final meter readings, Room by Room
+
+    /** A Room with leavers waiting: the reading saved on their drafts (null when none yet). */
+    public record RoomReading(String room, int students, BigDecimal electricity, BigDecimal water) {
+    }
+
+    public record RoomReadings(List<RoomReading> items) {
+    }
+
+    /** @param line the file's line (1 = the header), 0 when typed on the page */
+    public record ReadingLine(int line, String room, BigDecimal electricity, BigDecimal water) {
+    }
+
+    public record ReadingProblem(int line, String room, String message) {
+    }
+
+    public record ReadingsSaved(int rooms, int students, List<ReadingProblem> problems) {
+    }
+
+    /**
+     * The Rooms whose leavers have not checked out yet, with the reading already saved on their drafts: the desk
+     * enters the final meter readings Room by Room (or from a file) before the students come, and each check-out
+     * then opens with it (spec §6.16).
+     */
+    @Transactional(readOnly = true)
+    public RoomReadings roomReadings(Long termId, String block) {
+        currentUser.require(Permission.DESK);
+        Map<String, List<Placed>> rooms = waitingByRoom(term(termId).id(), blockScope.resolve(block).ids());
+        List<RoomReading> items = new ArrayList<>();
+        rooms.forEach((room, placed) -> {
+            OutRecord saved = placed.stream().map(p -> outRecord(p.alloc().id()).orElse(null))
+                    .filter(r -> r != null && r.electricity() != null).findFirst().orElse(null);
+            items.add(new RoomReading(room, placed.size(), saved == null ? null : saved.electricity(),
+                    saved == null ? null : saved.water()));
+        });
+        return new RoomReadings(items);
+    }
+
+    /** The template to fill in Excel: one line per Room with leavers waiting, the readings saved so far filled in. */
+    @Transactional(readOnly = true)
+    public byte[] roomReadingsTemplate(Long termId, String block) {
+        List<List<String>> rows = new ArrayList<>();
+        rows.add(List.of("room", "electricity", "water"));
+        for (RoomReading r : roomReadings(termId, block).items()) {
+            rows.add(List.of(r.room(), r.electricity() == null ? "" : r.electricity().toPlainString(),
+                    r.water() == null ? "" : r.water().toPlainString()));
+        }
+        return XlsxFile.of("Readings", rows);
+    }
+
+    /** Reads the template back (CSV or XLSX; headers room/phòng, electricity/điện, water/nước). */
+    @Transactional
+    public ReadingsSaved saveRoomReadingsFile(Long termId, String block, String fileName, byte[] bytes) {
+        currentUser.require(Permission.DESK);
+        List<List<String>> table = SheetFile.rows(fileName, bytes);
+        if (table.isEmpty()) {
+            throw FieldErrors.single("file", "The file is empty.");
+        }
+        List<String> header = table.getFirst().stream().map(SheetFile::key).toList();
+        int room = column(header, "room", "phong", "maphong");
+        int electricity = column(header, "electricity", "dien", "sodien", "chisodien");
+        int water = column(header, "water", "nuoc", "sonuoc", "chisonuoc");
+        if (room < 0 || electricity < 0 || water < 0) {
+            throw FieldErrors.single("file", "The file needs the columns room, electricity and water.");
+        }
+        List<ReadingLine> lines = new ArrayList<>();
+        List<ReadingProblem> problems = new ArrayList<>();
+        for (int i = 1; i < table.size(); i++) {
+            List<String> row = table.get(i);
+            String code = cell(row, room);
+            String e = cell(row, electricity);
+            String w = cell(row, water);
+            if (code.isEmpty() || e.isEmpty() && w.isEmpty()) {
+                continue; // a Room left blank is filled in later
+            }
+            BigDecimal ev = number(e);
+            BigDecimal wv = number(w);
+            if (ev == null || wv == null) {
+                problems.add(new ReadingProblem(i + 1, code, "Enter both readings as numbers."));
+                continue;
+            }
+            lines.add(new ReadingLine(i + 1, code, ev, wv));
+        }
+        ReadingsSaved saved = saveRoomReadings(termId, block, lines);
+        problems.addAll(saved.problems());
+        return new ReadingsSaved(saved.rooms(), saved.students(), problems);
+    }
+
+    /**
+     * Saves each Room's final reading on the check-out drafts of all its leavers (their condition, key and damages
+     * stay as they are). A Room without leavers or a reading below the Room's last one is reported, not saved.
+     */
+    @Transactional
+    public ReadingsSaved saveRoomReadings(Long termId, String block, List<ReadingLine> lines) {
+        AuthenticatedUser user = currentUser.require(Permission.DESK);
+        Map<String, List<Placed>> rooms = waitingByRoom(term(termId).id(), blockScope.resolve(block).ids());
+        Map<String, String> codes = new HashMap<>();
+        rooms.keySet().forEach(r -> codes.put(r.toUpperCase(Locale.ROOT), r));
+        List<ReadingProblem> problems = new ArrayList<>();
+        int savedRooms = 0;
+        int savedStudents = 0;
+        Instant now = Instant.now(clock);
+        for (ReadingLine l : lines == null ? List.<ReadingLine>of() : lines) {
+            String room = l.room() == null ? null : codes.get(l.room().trim().toUpperCase(Locale.ROOT));
+            if (room == null) {
+                problems.add(new ReadingProblem(l.line(), l.room(), "No student is waiting to check out of this Room."));
+                continue;
+            }
+            if (l.electricity() == null || l.water() == null || l.electricity().signum() < 0 || l.water().signum() < 0) {
+                problems.add(new ReadingProblem(l.line(), room, "Enter both readings as numbers of 0 or more."));
+                continue;
+            }
+            Reading reading = new Reading(l.electricity(), l.water());
+            List<Placed> leavers = rooms.get(room);
+            Optional<String> problem = billing.readingProblem(leavers.getFirst().bed().roomId(), reading.electricity(),
+                    reading.water());
+            if (problem.isPresent()) {
+                problems.add(new ReadingProblem(l.line(), room, problem.get()));
+                continue;
+            }
+            for (Placed p : leavers) {
+                jdbc.sql("""
+                        INSERT INTO asg_check_out (allocation_id, reason, status, electricity, water, draft_by, updated_at)
+                        VALUES (:allocation, :reason, 'DRAFT', :electricity, :water, :by, :now)
+                        ON CONFLICT (allocation_id) DO UPDATE SET
+                            status = 'DRAFT', electricity = EXCLUDED.electricity, water = EXCLUDED.water,
+                            draft_by = EXCLUDED.draft_by, updated_at = EXCLUDED.updated_at,
+                            version = asg_check_out.version + 1
+                        WHERE asg_check_out.status <> 'COMPLETED'
+                        """).param("allocation", p.alloc().id())
+                        .param("reason", p.reason() == null ? DEFAULT_REASON : p.reason())
+                        .param("electricity", l.electricity()).param("water", l.water()).param("by", user.userId())
+                        .param("now", Timestamp.from(now)).update();
+            }
+            savedRooms++;
+            savedStudents += leavers.size();
+        }
+        if (savedRooms > 0) {
+            audit.record("CHECK_OUT_READINGS", AuditLog.Tone.INFO, "Check-out", null, savedRooms + " Rooms",
+                    Map.of("rooms", savedRooms, "students", savedStudents));
+        }
+        return new ReadingsSaved(savedRooms, savedStudents, problems);
+    }
+
+    /** Leavers not checked out yet, by Room code (continuing residents stay unless their check-out started). */
+    private Map<String, List<Placed>> waitingByRoom(long termId, Set<Long> scope) {
+        Set<Long> continuing = Set.copyOf(jdbc.sql("""
+                SELECT student_id FROM asg_allocation
+                WHERE status = 'ACTIVE' AND renewal IS NOT NULL AND term_id <> :t
+                """).param("t", termId).query(Long.class).list());
+        // Room codes in reading order: A-110 before A-1003.
+        Map<String, List<Placed>> rooms = new TreeMap<>(Comparator.comparing((String r) -> r.replaceAll("\\d+", ""))
+                .thenComparingLong(r -> Long.parseLong("0" + r.replaceAll("\\D+", ""))).thenComparing(r -> r));
+        checkOutRows(termId, scope, null).stream()
+                .filter(p -> !"COMPLETED".equals(p.outStatus()))
+                .filter(p -> p.outStatus() != null || !continuing.contains(p.alloc().studentId()))
+                .forEach(p -> rooms.computeIfAbsent(p.bed().roomCode(), k -> new ArrayList<>()).add(p));
+        return rooms;
+    }
+
+    private static int column(List<String> header, String... names) {
+        for (String n : names) {
+            int i = header.indexOf(n);
+            if (i >= 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String cell(List<String> row, int i) {
+        return i < row.size() && row.get(i) != null ? row.get(i).trim() : "";
+    }
+
+    private static BigDecimal number(String s) {
+        try {
+            return new BigDecimal(s.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /** The damages sent, by furniture item of the Room; an item may be listed once. */
