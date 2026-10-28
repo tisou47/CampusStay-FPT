@@ -178,7 +178,7 @@ With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_
 1. console.firebase.google.com → create a project (free Spark plan) → Project settings → Service accounts → **Generate new private key**.
 2. Copy the JSON to the VPS: `scp key.json deploy@<API_DOMAIN>:/opt/campusstay/secrets/firebase.json`, then on the VPS `chmod 644 /opt/campusstay/secrets/firebase.json` (the API runs as an unprivileged user inside the container). Never commit it.
 3. In `.env`: `FIREBASE_CREDENTIALS_FILE=/app/secrets/firebase.json`. The log line "push notifications are skipped" disappears.
-4. The Android app registers its FCM token with the API; add the Android app to the same Firebase project (package name) and put its `google-services.json` in the Flutter project.
+4. The mobile app (Flutter, `mobile/`) registers its FCM token with the API; add the Android app `vn.fpt.campusstay.student` to the same Firebase project and put its `google-services.json` in `mobile/android/app/` (never committed).
 
 ### 3.4 Google sign-in (ADR-14)
 1. Google Cloud Console (the Firebase project can be reused) → OAuth consent screen: user type External, scopes `openid`, `email`, `profile` only, then **Publish app**. In "Testing" status only the test users you list can sign in.

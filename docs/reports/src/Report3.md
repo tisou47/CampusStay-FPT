@@ -208,7 +208,7 @@ The main entities and their relationships (the full logical ERD of 98 tables is 
 
 ### 4.1 External Interfaces
 
-**User interfaces.** A responsive web app (React) for the four roles: the student portal works on phones, tablets and desktops; the back office is designed for desktop (1280 px and wider). An Android app (Kotlin, Jetpack Compose, Android 8.0 / API 26 or later) for students. Both are in Vietnamese and English, chosen by the user (web) or the phone's language (Android); the API answers in the same language (`Accept-Language`). Screen layouts follow the Figma file *CampusStay-FPT*; the screen flows are in section 3.1.1 and the routes in section 3.1.2.
+**User interfaces.** A responsive web app (React) for the four roles: the student portal works on phones, tablets and desktops; the back office is designed for desktop (1280 px and wider). A mobile app (Flutter, built for Android 8.0 / API 26 or later) for students. Both are in Vietnamese and English, chosen by the user (web) or the phone's language (mobile app); the API answers in the same language (`Accept-Language`). Screen layouts follow the Figma file *CampusStay-FPT*; the screen flows are in section 3.1.1 and the routes in section 3.1.2.
 
 **Software interfaces.**
 

@@ -690,14 +690,14 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Details | Results stay inside the user's Blocks. |
 | Tests | TC-RPT-013 |
 
-### 3.12 Android app for students (MOB)
+### 3.12 Mobile app for students (MOB)
 
 #### 3.12.1 FR-MOB-01 Student app
 
 | Item | Description |
 |---|---|
-| Trigger | The student opens the CampusStay app (Android 8.0 or later). |
+| Trigger | The student opens the CampusStay app (Flutter, Android 8.0 or later). |
 | Actors | Student |
 | Description | Sign in with password or Google, Home (board, next step, Room card, Invoices due), My Room (Room, roommates, door code behind "show", check-in pass QR), Payments (VietQR and "I have transferred"), Activity (notifications with announcements, maintenance and next-Term requests, Report a problem with the furniture item); push notifications open the matching screen. Same API and rules as the web portal; Staff and Managers are sent to the web. |
-| Details | The device token is registered after sign-in and removed at sign-out; the language follows the phone. The Android app has no automated tests yet (known gap G5); it is checked by the manual cases of Report 5. |
+| Details | The device token is registered after sign-in and removed at sign-out; the language follows the phone. The mobile app (Flutter, `mobile/`) has format and sign-in widget tests (`flutter test`) but no UI tests of its key screens yet (known gap G5); it is checked by the manual cases of Report 5. |
 | Tests | Manual (Report 5), API cases of FR-AUTH, FR-BIL, FR-MNT, FR-NTF |

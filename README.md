@@ -8,6 +8,7 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 |---|---|
 | `backend/` | Spring Boot 4.1 REST API (Java 21, PostgreSQL 17, Flyway). See [backend/README.md](backend/README.md) and [backend/CLAUDE.md](backend/CLAUDE.md). |
 | `web/` | React 19 + Vite web app for Student, Staff, Manager and Admin. See [web/README.md](web/README.md). |
+| `mobile/` | Flutter app for students (built for Android): Home, My Room, Payments, Activity, push. See [mobile/README.md](mobile/README.md). |
 | `docs/` | Project Brief (source of truth), API contract, backend design, test catalog and web screen map; `docs/tools/` regenerates the catalogs. |
 | `infra/` | Docker Compose for Postgres, Mailpit and the API; `infra/prod/` is the production stack (Postgres, API, Caddy). |
 | `.github/workflows/` | CI/CD: backend verify, image build and deploy to the VM. |
