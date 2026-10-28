@@ -161,7 +161,10 @@ ${noId.length ? `\n### Tests without a test case id\n\n${noId.map((t) => `- [\`$
 
 function screenMap() {
   const routerSrc = readFileSync(join(root, 'web/src/app/router.jsx'), 'utf8')
-  const imports = Object.fromEntries([...routerSrc.matchAll(/^import (\w+) from '@\/pages\/([^']+)'/gm)].map((m) => [m[1], `web/src/pages/${m[2]}.jsx`]))
+  // Pages are imported (`import X from '@/pages/…'`) or loaded on their first visit (`const X = () => import('@/pages/…')`).
+  const imports = Object.fromEntries(
+    [...routerSrc.matchAll(/^(?:import (\w+) from |const (\w+) = \(\) => import\()'@\/pages\/([^']+)'/gm)].map((m) => [m[1] ?? m[2], `web/src/pages/${m[3]}.jsx`]),
+  )
 
   const screensSrc = readFileSync(join(root, 'web/src/app/screens.js'), 'utf8')
   const screens = [...screensSrc.matchAll(/\{ code: '([^']+)', title: '([^']+)', role: '(\w+)', path: '([^']+)' \}/g)].map((m) => ({ code: m[1], title: m[2], role: m[3], path: m[4].split('?')[0] }))
@@ -173,10 +176,13 @@ function screenMap() {
   for (const line of routerSrc.split(/\r?\n/)) {
     const portal = line.match(/portal\('(\w+)'/)
     if (portal) role = portal[1]
-    const m = line.match(/\{ (index: true|path: '([^']+)'), element: <(\w+)([^/>]*)\/?>/)
-    if (!m || m[3] === 'Navigate' || m[3] === 'RootLayout') continue
+    // `element: <Page a="b" />` or `...page(Page, { a: 'b' })`; props are shown as JSX attributes either way.
+    const m = line.match(/\{ (index: true|path: '([^']+)'), (?:element: <(\w+)([^/>]*)\/?>|\.\.\.page\((\w+)(?:, \{ ([^}]*) \})?\))/)
+    const comp = m && (m[3] ?? m[5])
+    if (!m || comp === 'Navigate' || comp === 'RootLayout') continue
+    const props = m[3] ? m[4].trim() : (m[6] ?? '').split(/,\s*/).filter(Boolean).map((p) => p.replace(/^(\w+): '([^']*)'$/, '$1="$2"')).join(' ')
     const path = m[1].startsWith('index') ? (role ? `/${role}` : '/') : m[2] === '*' ? '*' : role ? `/${role}/${m[2]}` : `/${m[2]}`
-    routes.push({ role: role ?? 'public', path, comp: m[3], props: m[4].trim(), file: imports[m[3]] })
+    routes.push({ role: role ?? 'public', path, comp, props, file: imports[comp] })
   }
 
   const header = (file) => {
