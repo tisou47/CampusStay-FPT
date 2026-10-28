@@ -211,6 +211,10 @@ export const api = {
     resolveConflict: (runId, applicationId, body) => http.post(`/assignment-runs/${runId}/conflicts/${applicationId}/resolve`, body),
     /** A Manager commits a Block: { block }. Allocations, Balance Invoices and notifications follow at once (ADR-19, C-38). */
     commit: (runId, body) => http.post(`/assignment-runs/${runId}/commit`, body),
+    /** Round 2 of a Term (FR-APP-07): { termId, waitlisted, openOffers, freeBeds }. */
+    round2: (termId, opts) => http.get('/round2', { termId }, opts),
+    /** A Manager offers the free Beds to the waitlisted students: { termId } → { offered, waitlisted, freeBeds }. */
+    runRound2: (body) => http.post('/round2/run', body),
   },
   inventory: {
     structure: g('/inventory/structure'),
@@ -266,6 +270,13 @@ export const api = {
     /** By Allocation id: the student code is personal data and never goes into a URL. */
     checkOutDetail: (allocationId, opts) => http.get(`/check-out/${allocationId}`, undefined, opts),
     checkOut: (allocationId, body) => http.post(`/check-out/${allocationId}`, body),
+    /** Final meter readings Room by Room (spec §6.16): { items: [{ room, students, electricity, water }] }. */
+    roomReadings: g('/check-out/readings'),
+    /** { readings: [{ room, electricity, water }] } → { rooms, students, problems: [{ line, room, message }] }. */
+    saveRoomReadings: (scope, body) => http.put(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, body),
+    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.xlsx' }),
+    /** multipart file (the template filled in, CSV or XLSX) → like saveRoomReadings. */
+    uploadRoomReadings: (scope, formData) => http.post(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, formData),
   },
   meters: {
     periods: g('/meter-periods'),

@@ -46,9 +46,11 @@ import vn.fpt.campusstay.config.TimeConfig;
 /**
  * Late check-ins (spec §6.9, D-20): a student who cannot arrive in the check-in window asks online with a reason,
  * the day and an evidence file, or tells the desk and Staff record it (A-12); a Manager approves a new deadline (at
- * most {@code late_check_in.max_days} after the check-in end) or rejects it with a reason. An approved, unexpired
- * late check-in extends the Balance deadline and the arrival deadline to that day: the desk checks the student in
- * until then (see {@link DeskService}) and the forfeit waits for it.
+ * most {@code late_check_in.max_days} after the check-in end) or rejects it with a reason. A student has one late
+ * check-in per Term, whoever files it and however it ends. An approved late check-in moves the arrival deadline: the
+ * desk checks the student in until then (see {@link DeskService}). The Balance is paid before check-in, so it never
+ * waits for the arrival: an unpaid student's Balance deadline moves only when the Manager chooses a later one, at most
+ * the arrival day.
  */
 @Service
 public class LateCheckInService {
@@ -64,8 +66,8 @@ public class LateCheckInService {
 
     /** @param source {@code Desk} (recorded by Staff) or {@code Online} (asked by the student) */
     public record Item(String id, String studentCode, String name, String allocation, String reason, String receivedBy,
-            boolean paid, String payment, LocalDate requestedFor, Evidence evidence, Instant windowClosedAt,
-            LocalDate suggestedDeadline, DecisionView decision, String source) {
+            boolean paid, String payment, Instant balanceDueAt, LocalDate requestedFor, Evidence evidence,
+            Instant windowClosedAt, LocalDate suggestedDeadline, DecisionView decision, String source) {
     }
 
     /** The student's late check-in on My Room. */
@@ -74,8 +76,8 @@ public class LateCheckInService {
     }
 
     /**
-     * @param canRequest the student may ask now (a Bed not checked in, no request waiting, before the arrival
-     *                   deadline when the Balance is paid)
+     * @param canRequest the student may ask now (a Bed not checked in, no late check-in yet this Term, before the
+     *                   arrival deadline when the Balance is paid)
      * @param latestDay  the latest day that may be asked for (the check-in end + the longest late check-in)
      */
     public record Mine(MyRequest request, boolean canRequest, LocalDate checkInEnd, LocalDate latestDay) {
@@ -168,6 +170,11 @@ public class LateCheckInService {
         TermSummary term = terms.findPublished(alloc.termId()).orElseThrow();
         Instant windowClosed = term.checkInEnd() == null ? Instant.now(clock)
                 : term.checkInEnd().plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
+        if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a").param("a", alloc.id())
+                .query(Long.class).single() > 0) {
+            throw ApiException.conflict("LATE_REQUEST_EXISTS",
+                    "This student already has a late check-in for this Term: one request per Term.");
+        }
         Long fileId = cmd.evidence() == null || cmd.evidence().length == 0 ? null
                 : files.store("asg", cmd.evidenceName(), cmd.evidence(), FileStore.IMAGES_AND_PDF, user.userId()).id();
         try {
@@ -205,8 +212,7 @@ public class LateCheckInService {
                         rs.getString("reason"), rs.getString("decision_reason"), instant(rs.getTimestamp("created_at")),
                         sourceLabel(rs.getString("source"))))
                 .optional().orElse(null);
-        boolean pending = request != null && request.status().equals("Pending");
-        return new Mine(request, w.checkedInAt() == null && !pending && open(w), w.term().checkInEnd(),
+        return new Mine(request, w.checkedInAt() == null && request == null && open(w), w.term().checkInEnd(),
                 latestDay(w.term()));
     }
 
@@ -242,9 +248,10 @@ public class LateCheckInService {
         long fileId = files.store("asg", cmd.evidenceName(), cmd.evidence(), FileStore.IMAGES_AND_PDF, user.userId()).id();
         Instant windowClosed = w.term().checkInEnd() == null ? Instant.now(clock)
                 : w.term().checkInEnd().plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
-        if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a AND status = 'PENDING'")
+        if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a")
                 .param("a", w.id()).query(Long.class).single() > 0) {
-            throw ApiException.conflict("LATE_REQUEST_EXISTS", "Your late check-in is already waiting for a decision.");
+            throw ApiException.conflict("LATE_REQUEST_EXISTS",
+                    "You already asked for a late check-in this Term: one request per Term.");
         }
         long id = jdbc.sql("""
                 INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, evidence_file_id, window_closed_at,
@@ -332,7 +339,7 @@ public class LateCheckInService {
             items.add(new Item(String.valueOf(r.id()), s == null ? null : s.studentCode(), s == null ? null : s.name(),
                     "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(), r.reason(), staff.get(r.receivedBy()),
                     due == null, due == null ? "Paid" : vnd.format(due.balance() + due.utilityDeposit()) + " VND unpaid",
-                    r.requestedFor(), evidence, r.windowClosedAt(), r.suggestedDeadline(),
+                    due == null ? null : due.dueAt(), r.requestedFor(), evidence, r.windowClosedAt(), r.suggestedDeadline(),
                     r.status().equals("PENDING") ? null
                             : new DecisionView(STATUSES.get(r.status()), r.deadline(), r.decisionReason()),
                     sourceLabel(r.source())));
@@ -342,11 +349,12 @@ public class LateCheckInService {
     }
 
     /**
-     * Approve with a deadline ({@code YYYY-MM-DD}, today or later, at most {@code late_check_in.max_days} after the
-     * check-in end), which also moves the Balance deadline to the end of that day; or reject with a reason.
+     * Approve with the arrival deadline ({@code YYYY-MM-DD}, today or later, at most {@code late_check_in.max_days}
+     * after the check-in end) and, for an unpaid student, optionally a later Balance deadline ({@code balanceDue}:
+     * today or later and at most the arrival day, as the Balance is paid before check-in); or reject with a reason.
      */
     @Transactional
-    public void decide(String id, String decision, String deadline, String reason) {
+    public void decide(String id, String decision, String deadline, String balanceDue, String reason) {
         AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
         record Target(long id, long allocationId, long termId, long studentId, long bedId, String status,
                 String allocationStatus) {
@@ -381,7 +389,20 @@ public class LateCheckInService {
             if (!t.allocationStatus().equals("ACTIVE")) {
                 throw ApiException.conflict("ALLOCATION_ENDED", "This student no longer holds the Bed.");
             }
-            billing.extendBalanceDeadline(t.allocationId(), ForfeitService.endOf(day));
+            LocalDate balanceDay = parseDay(balanceDue).orElse(null);
+            if (balanceDue != null && !balanceDue.isBlank() && balanceDay == null) {
+                throw FieldErrors.single("balanceDue", "Choose a valid day.");
+            }
+            if (balanceDay != null && billing.checkInDue(t.allocationId()).isPresent()) {
+                if (balanceDay.isBefore(LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)))) {
+                    throw FieldErrors.single("balanceDue", "Choose today or a later day.");
+                }
+                if (balanceDay.isAfter(day)) {
+                    throw FieldErrors.single("balanceDue", "The Balance is paid before check-in: choose a day up to "
+                            + DAY.format(day) + ".");
+                }
+                billing.extendBalanceDeadline(t.allocationId(), ForfeitService.endOf(balanceDay));
+            }
             jdbc.sql("""
                     UPDATE asg_late_check_in SET status = 'APPROVED', deadline = :day, decided_by = :by, decided_at = :now
                     WHERE id = :id

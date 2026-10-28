@@ -269,6 +269,13 @@ const vi = {
   'Occupied': 'Có người ở',
   'Final run': 'Lượt chính thức',
   'Dry run': 'Chạy thử',
+  // date picker (components/ui/DatePicker.jsx)
+  'Week': 'Tuần',
+  'Mo': 'T2', 'Tu': 'T3', 'We': 'T4', 'Th': 'T5', 'Fr': 'T6', 'Sa': 'T7', 'Su': 'CN',
+  'This week': 'Tuần này',
+  'Clear': 'Xóa',
+  'Previous month': 'Tháng trước',
+  'Next month': 'Tháng sau',
 
 }
 

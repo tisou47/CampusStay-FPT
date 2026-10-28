@@ -24,7 +24,8 @@ import vn.fpt.campusstay.service.assignment.LateCheckInService;
 @RestController
 class LateCheckInController {
 
-    record DecisionRequest(@Size(max = 20) String decision, @Size(max = 10) String deadline,
+    /** @param balanceDue a later Balance deadline for an unpaid student, at most the arrival day (optional) */
+    record DecisionRequest(@Size(max = 20) String decision, @Size(max = 10) String deadline, @Size(max = 10) String balanceDue,
             @Size(max = 500, message = "Keep the reason under 500 characters.") String reason) {
     }
 
@@ -65,7 +66,7 @@ class LateCheckInController {
     @PostMapping("/late-check-ins/{id}/decision")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void decide(@PathVariable String id, @Valid @RequestBody DecisionRequest body) {
-        lateCheckIns.decide(id, body.decision(), body.deadline(), body.reason());
+        lateCheckIns.decide(id, body.decision(), body.deadline(), body.balanceDue(), body.reason());
     }
 
     private static byte[] bytes(MultipartFile file) {

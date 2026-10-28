@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import vn.fpt.campusstay.common.i18n.Locales;
+import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.service.setting.EligibilityRules;
 import vn.fpt.campusstay.service.setting.Lookups;
 
@@ -40,10 +42,12 @@ class StudentFields {
 
     private final Lookups lookups;
     private final EligibilityRules rules;
+    private final Messages messages;
 
-    StudentFields(Lookups lookups, EligibilityRules rules) {
+    StudentFields(Lookups lookups, EligibilityRules rules, Messages messages) {
         this.lookups = lookups;
         this.rules = rules;
+        this.messages = messages;
     }
 
     /** {@code M} or {@code F} from M/F, Male/Female or Nam/Nữ. */
@@ -109,10 +113,15 @@ class StudentFields {
         return digits >= 8 && digits <= 15;
     }
 
-    /** The code of the {@code MAJOR} option list, from its code or label. */
+    /** The code of the {@code MAJOR} option list, from its code, its English label or its Vietnamese name. */
     Optional<String> major(String value) {
-        return value == null || value.isBlank() ? Optional.empty()
-                : lookups.find("MAJOR", value.strip()).map(Lookups.Lookup::code);
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        String v = value.strip();
+        return lookups.find("MAJOR", v)
+                .or(() -> majors().stream().filter(l -> v.equalsIgnoreCase(messages.translate(l.label(), Locales.VI))).findFirst())
+                .map(Lookups.Lookup::code);
     }
 
     List<Lookups.Lookup> majors() {

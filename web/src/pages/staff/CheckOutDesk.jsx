@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { LogOut } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Download, Gauge, LogOut, Save, Upload } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, Divider } from '@/components/ui/Display'
+import { Modal } from '@/components/ui/Overlay'
 import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
@@ -37,6 +38,128 @@ function Row({ label, children, strong, tone }) {
       <dt className="text-fg-secondary">{t(label)}</dt>
       <dd className={cx('tabular', strong ? 'font-medium' : '', tone ?? 'text-fg')}>{children}</dd>
     </div>
+  )
+}
+
+// Final meter readings Room by Room: the desk fills them in before the leavers come (typed here or from the XLSX
+// template); each Room's reading goes to its leavers' check-out drafts, so each check-out opens with it.
+function RoomReadingsModal({ open, onClose, scope }) {
+  const { notify, notifyError } = useToast()
+  const query = useQuery(['check-out', 'readings', scope], ({ signal }) => api.desk.roomReadings(scope, { signal }), { enabled: open })
+  const [values, setValues] = useState({})
+  const [problems, setProblems] = useState([])
+  const file = useRef(null)
+  useEffect(() => {
+    if (!query.data) return
+    setValues(Object.fromEntries(query.data.items.map((r) => [r.room, { electricity: r.electricity != null ? String(r.electricity) : '', water: r.water != null ? String(r.water) : '' }])))
+  }, [query.data])
+  const set = (room, patch) => setValues((all) => ({ ...all, [room]: { ...all[room], ...patch } }))
+  const changed = (query.data?.items ?? []).filter((r) => {
+    const v = values[r.room] ?? {}
+    return (v.electricity ?? '') !== (r.electricity != null ? String(r.electricity) : '') || (v.water ?? '') !== (r.water != null ? String(r.water) : '')
+  })
+  const done = (res) => {
+    setProblems(res.problems ?? [])
+    notify({
+      type: res.problems?.length ? 'warning' : 'success',
+      title: t('Readings saved for {n} Rooms', { n: formatNumber(res.rooms) }),
+      message: res.problems?.length ? t('{n} lines were not saved: see the list.', { n: formatNumber(res.problems.length) }) : t('{n} leavers will see them at check-out.', { n: formatNumber(res.students) }),
+    })
+  }
+  const save = useMutation(
+    () =>
+      api.desk.saveRoomReadings(scope, {
+        readings: changed
+          .map((r) => ({ room: r.room, electricity: values[r.room].electricity.trim(), water: values[r.room].water.trim() }))
+          .filter((r) => r.electricity !== '' || r.water !== '')
+          .map((r) => ({ room: r.room, electricity: r.electricity === '' ? null : Number(r.electricity.replace(',', '.')), water: r.water === '' ? null : Number(r.water.replace(',', '.')) })),
+      }),
+    { invalidates: ['check-out'], onSuccess: done, onError: (e) => notifyError(e, 'Could not save the readings') },
+  )
+  const upload = useMutation(
+    (picked) => {
+      const form = new FormData()
+      form.append('file', picked)
+      return api.desk.uploadRoomReadings(scope, form)
+    },
+    { invalidates: ['check-out'], onSuccess: done, onError: (e) => notifyError(e, 'Could not read the file') },
+  )
+  const template = useMutation(() => api.desk.roomReadingsTemplate(scope), { onError: (e) => notifyError(e, 'Download failed') })
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      width={720}
+      title="Final meter readings by Room"
+      description="Fill in each Room once: the reading goes to the check-out of every leaver in that Room. Rooms left empty are filled in later."
+      footer={
+        <>
+          <Button onClick={onClose}>Close</Button>
+          <Button variant="primary" icon={Save} disabled={!changed.length || save.pending} onClick={() => save.run()}>
+            {t('Save {n} Rooms', { n: formatNumber(changed.length) })}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Button icon={Download} disabled={template.pending} onClick={() => template.run()}>
+          Download template
+        </Button>
+        <Button icon={Upload} disabled={upload.pending} onClick={() => file.current?.click()}>
+          Upload filled template
+        </Button>
+        <input
+          ref={file}
+          type="file"
+          accept=".xlsx,.csv"
+          className="hidden"
+          onChange={(e) => {
+            const picked = e.target.files?.[0]
+            e.target.value = ''
+            if (picked) upload.run(picked)
+          }}
+        />
+      </div>
+      {problems.length > 0 && (
+        <Alert type="warning" title={t('{n} lines were not saved', { n: formatNumber(problems.length) })}>
+          <ul className="flex list-disc flex-col gap-0.5 pl-4">
+            {problems.map((p, i) => (
+              <li key={i}>
+                {p.line ? t('Line {n}', { n: p.line }) + ' · ' : ''}
+                {p.room} · {tr(p.message)}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
+      <div className="max-h-[55vh] overflow-y-auto">
+        <Table bare>
+          <THead>
+            <tr>
+              <Th>Room</Th>
+              <Th className="w-24">Leavers</Th>
+              <Th className="w-36">Electricity (kWh)</Th>
+              <Th className="w-36">Water (m³)</Th>
+            </tr>
+          </THead>
+          <TBody>
+            <TableStatus query={query} colSpan={4} emptyIcon={LogOut} emptyTitle="No Room has leavers waiting" />
+            {(query.data?.items ?? []).map((r) => (
+              <Tr key={r.room}>
+                <Td className="font-medium">{r.room}</Td>
+                <Td>{formatNumber(r.students)}</Td>
+                <Td>
+                  <Input aria-label={t('Electricity of {room}', { room: r.room })} value={values[r.room]?.electricity ?? ''} onChange={(e) => set(r.room, { electricity: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                </Td>
+                <Td>
+                  <Input aria-label={t('Water of {room}', { room: r.room })} value={values[r.room]?.water ?? ''} onChange={(e) => set(r.room, { water: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                </Td>
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
+      </div>
+    </Modal>
   )
 }
 
@@ -174,6 +297,7 @@ export default function CheckOutDesk() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [selectedId, setSelectedId] = useState(null)
+  const [readingsOpen, setReadingsOpen] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -205,8 +329,16 @@ export default function CheckOutDesk() {
                 .join(' · ')
             : 'Allocations in Pending check-out.'
         }
-        actions={<DeskModeSwitch mode="out" />}
+        actions={
+          <>
+            <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>
+              Readings by Room
+            </Button>
+            <DeskModeSwitch mode="out" />
+          </>
+        }
       />
+      <RoomReadingsModal open={readingsOpen} onClose={() => setReadingsOpen(false)} scope={scope} />
 
       <div className="flex shrink-0 items-center gap-3">
         <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search Student code or Room" value={q} onChange={(e) => setQ(e.target.value)} />

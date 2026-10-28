@@ -870,3 +870,35 @@ This demo file does not exist. ⟶ Không có tệp demo này.
 Load stage A, B or C first: this file lists the people of the next Term. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau.
 Load stage A, B or C first: Block A has no open meter period. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở.
 Load stage A, B or C first: no door code of Block A must change. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi.
+
+# ---------- majors (V10, V61): the student list import also accepts the Vietnamese names ----------
+Artificial Intelligence ⟶ Trí tuệ nhân tạo
+Business Administration ⟶ Quản trị kinh doanh
+English Language ⟶ Ngôn ngữ Anh
+Graphic Design ⟶ Thiết kế đồ họa
+Information Assurance ⟶ An toàn thông tin
+Japanese Language ⟶ Ngôn ngữ Nhật
+Multimedia Communications ⟶ Truyền thông đa phương tiện
+Software Engineering ⟶ Kỹ thuật phần mềm
+Information Systems ⟶ Hệ thống thông tin
+Internet of Things ⟶ Internet vạn vật
+Digital Marketing ⟶ Marketing số
+International Business ⟶ Kinh doanh quốc tế
+Hotel Management ⟶ Quản trị khách sạn
+Tourism and Travel Management ⟶ Quản trị dịch vụ du lịch và lữ hành
+Finance ⟶ Tài chính
+Public Relations ⟶ Quan hệ công chúng
+Korean Language ⟶ Ngôn ngữ Hàn Quốc
+Chinese Language ⟶ Ngôn ngữ Trung Quốc
+{0} is the start of the student code, not a major: write the major's code or name, for example BA or Business Administration. ⟶ {0} là phần đầu của mã sinh viên, không phải ngành: hãy ghi mã hoặc tên ngành, ví dụ BA hoặc Quản trị kinh doanh.
+# ---------- late check-in: one per Term, the Balance before check-in (28/10/2026) ----------
+This student already has a late check-in for this Term: one request per Term. ⟶ Sinh viên này đã có yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
+You already asked for a late check-in this Term: one request per Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
+The Balance is paid before check-in: choose a day up to {0}. ⟶ Tiền phòng còn lại phải trả trước khi nhận phòng: hãy chọn ngày đến hết {0}.
+Choose a valid day. ⟶ Hãy chọn một ngày hợp lệ.
+# ---------- check-out: final readings Room by Room (28/10/2026) ----------
+No student is waiting to check out of this Room. ⟶ Không có sinh viên nào đang chờ trả phòng ở phòng này.
+Enter both readings as numbers. ⟶ Hãy nhập cả hai chỉ số bằng số.
+Enter both readings as numbers of 0 or more. ⟶ Hãy nhập cả hai chỉ số bằng số từ 0 trở lên.
+The file needs the columns room, electricity and water. ⟶ Tệp cần có các cột phòng, điện và nước.
+A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2. ⟶ Đề xuất vòng 1 của kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2.

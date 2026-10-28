@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Breadcrumb, Card, Facts } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { DateInput, HourSelect } from '@/components/ui/DatePicker'
+import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
@@ -228,7 +229,7 @@ function RequestDetail({ r, staff, priorities }) {
                 />
               )}
             </Field>
-            <Field label="Visit window">{(id) => <Input id={id} value={visit} onChange={(e) => setVisit(e.target.value)} placeholder="dd/mm/yyyy hh:mm – hh:mm" />}</Field>
+            <VisitWindowField value={visit} onChange={setVisit} />
             <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
               {studentRequest ? 'Save and notify student' : 'Save'}
             </Button>
@@ -253,6 +254,38 @@ function RequestDetail({ r, staff, priorities }) {
         </div>
       </div>
     </>
+  )
+}
+
+// The visit window stays the text "dd/mm/yyyy hh:mm – hh:mm" the API stores; it is picked as a day and two whole
+// hours. A window written another way is kept until a new day is chosen.
+const WINDOW = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}) – (\d{2}:\d{2})$/
+function VisitWindowField({ value, onChange }) {
+  const m = WINDOW.exec(value ?? '')
+  const day = m ? `${m[3]}-${m[2]}-${m[1]}` : ''
+  const [from, to] = m ? [m[4], m[5]] : ['', '']
+  const write = (d, a, b) => {
+    if (!d) return onChange('')
+    const [y, mo, dd] = d.split('-')
+    const start = a || '08:00'
+    const end = b && b > start ? b : `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:00`
+    onChange(`${dd}/${mo}/${y} ${start} – ${end}`)
+  }
+  const today = new Date()
+  const min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  return (
+    <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
+      {(id) => (
+        <div className="flex flex-col gap-2">
+          <DateInput id={id} value={day} min={min} onChange={(e) => write(e.target.value, from, to)} />
+          <div className="flex items-center gap-2">
+            <HourSelect value={from} disabled={!day} onChange={(h) => write(day, h, to)} />
+            <span className="text-fg-tertiary">–</span>
+            <HourSelect value={to} disabled={!day} onChange={(h) => write(day, from, h)} />
+          </div>
+        </div>
+      )}
+    </Field>
   )
 }
 

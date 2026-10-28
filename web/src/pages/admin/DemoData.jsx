@@ -133,7 +133,7 @@ export default function DemoData() {
               {scenarios.map((s) => (
                 <Tr key={s.id}>
                   <Td className="font-medium">{s.id}</Td>
-                  <Td className="break-all">{s.account}</Td>
+                  <Td className="break-words">{s.account}</Td>
                   <Td>
                     <Tag tone={s.role === 'Student' ? 'info' : s.role === 'Admin' ? 'brand' : 'neutral'} dot={false}>
                       {s.role}

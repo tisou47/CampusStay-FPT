@@ -127,6 +127,10 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | ASG | GET | `/check-out` | Must | Verified | C-23; TC-ASG-021, 022 |
 | ASG | GET | `/check-out/{allocationId}` | Must | Verified | B-01 (was `{studentCode}`); TC-ASG-021, 022 |
 | ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022 (opens the door-code rotation, A-25), 023 |
+| ASG | GET | `/check-out/readings` | Must | Verified | A-55; TC-ASG-046 |
+| ASG | PUT | `/check-out/readings` | Must | Verified | A-55; TC-ASG-046 |
+| ASG | POST | `/check-out/readings` (multipart) | Must | Verified | A-55; TC-ASG-046 |
+| ASG | GET | `/check-out/readings/template` | Must | Verified | A-55; XLSX; TC-ASG-046 |
 | MNT | GET | `/maintenance-requests` | Must | Verified | C-24; TC-MNT-002, 003 |
 | MNT | POST | `/maintenance-requests` | Must | Verified | Photos (signed links, A-10); TC-MNT-001 |
 | MNT | GET | `/maintenance-requests/options` | Must | Verified | TC-MNT-001, 002 |
@@ -144,6 +148,8 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
 | APP | POST | `/round2-offers/{id}/respond` | Should | Verified | C-27; TC-APP-020, 021 |
+| ASG | GET | `/round2` | Must | Verified | A-57; TC-APP-024 |
+| ASG | POST | `/round2/run` | Must | Verified | A-57; TC-APP-024 |
 | APP | GET | `/students/me/round2-offer` | Should | Verified | Offers made when a Block is approved (C-27); TC-APP-020 |
 | ASG | GET | `/late-check-ins` | Should | Verified | C-28; `source` Online or Desk (A-36); TC-ASG-030, 031, 037 |
 | ASG | POST | `/late-check-ins` | Should | Verified | A-12 (recorded at the desk); TC-ASG-030 |

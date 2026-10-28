@@ -84,7 +84,7 @@ const BM01 = {
       ['G4', 'No concurrency test for one Allocation per Bed per Term (SR-06)', 'TC-NFR-03', 'Parallel-commit test', L, '15/11/2026'],
       ['G5', 'Mobile app has only a few automated tests and no manual test cases (SR-08)', 'mobile/, Report 5', 'UI tests of key screens', V, '30/11/2026'],
       ['G6', 'Statuses in the schema never stored (SR-12); Term never Closed (SR-13)', 'V4, V6, V7; SDD §3.1', 'Drop or use them; close Terms after the stay', T, '15/11/2026'],
-      ['G7', 'Round 2 run by a Manager not built; freed Beds not offered (SR-01, High)', 'FR-APP-07', 'Manager run, pool of freed Beds, M8', T, '15/11/2026'],
+      ['G7', 'Round 2 run by a Manager not built; freed Beds not offered (SR-01, High)', 'FR-APP-07', 'Closed 28/10/2026: Manager › Assignment › Round 2 (TC-APP-024)', T, '28/10/2026'],
     ] },
     { index: 7, fontSize: 9, widths: [1.0, 3.3, 2.0, 7.9, 1.9, 0.9], rows: features },
     { index: 8, fontSize: 9, widths: [1.4, 2.3, 5.0, 2.8, 5.5], rows: [

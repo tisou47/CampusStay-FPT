@@ -46,8 +46,11 @@ public interface Billing {
             long buildingId, String room, long termPrice, long depositAmount, Instant dueAt) {
     }
 
-    /** The unpaid Balance Invoice of an Allocation: the Term price part and the Utility Deposit it includes. */
-    record CheckInDue(String invoiceCode, long balance, long utilityDeposit) {
+    /**
+     * The unpaid Balance Invoice of an Allocation: the Term price part, the Utility Deposit it includes and its
+     * deadline.
+     */
+    record CheckInDue(String invoiceCode, long balance, long utilityDeposit, Instant dueAt) {
     }
 
     /**
@@ -86,6 +89,12 @@ public interface Billing {
      * or escape the forfeit of an unpaid Balance. Runs in the caller's transaction.
      */
     void followAllocation(long fromAllocationId, long toAllocationId);
+
+    /**
+     * Why a final reading of a Room cannot be used (lower than the Room's latest one), or empty when it can. Unlike
+     * the settlement it does not throw, so a caller can check many Rooms in one transaction.
+     */
+    Optional<String> readingProblem(long roomId, BigDecimal electricity, BigDecimal water);
 
     /** Room id → the day of its latest meter cut (check-in, check-out, move, turnover); Rooms without one left out. */
     Map<Long, LocalDate> lastMeterCuts(Collection<Long> roomIds);
@@ -192,8 +201,9 @@ public interface Billing {
     List<DueBalance> balancesPastDue();
 
     /**
-     * Moves the deadline of the Allocation's unpaid Balance to {@code dueAt} when that is later (an approved late
-     * check-in, spec §6.9); reminders start again. Never moves a deadline earlier. @return whether it moved
+     * Moves the deadline of the Allocation's unpaid Balance to {@code dueAt} when that is later (a Manager approving a
+     * late check-in chose a later Balance deadline, never past the arrival day, spec §6.9); reminders start again.
+     * Never moves a deadline earlier. @return whether it moved
      */
     boolean extendBalanceDeadline(long allocationId, Instant dueAt);
 

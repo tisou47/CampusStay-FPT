@@ -50,6 +50,27 @@ class JdbcApplications implements Applications {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Candidate> waitlistedWithoutOffer(long termId) {
+        List<Long> ids = jdbc.sql("""
+                SELECT a.id FROM app_application a
+                WHERE a.term_id = :term AND a.status = 'WAITLISTED'
+                  AND NOT EXISTS (SELECT 1 FROM app_round2_offer o WHERE o.application_id = a.id AND o.status = 'PENDING')
+                ORDER BY a.id
+                """).param("term", termId).query(Long.class).list();
+        return ids.stream().map(id -> applications.find(id, false).orElseThrow()).map(this::candidate).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int openRound2Offers(long termId) {
+        return jdbc.sql("""
+                SELECT count(*) FROM app_round2_offer o JOIN app_application a ON a.id = o.application_id
+                WHERE a.term_id = :term AND o.status = 'PENDING'
+                """).param("term", termId).query(Integer.class).single();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<Candidate> find(long applicationId) {
         return applications.find(applicationId, false).map(this::candidate);
     }

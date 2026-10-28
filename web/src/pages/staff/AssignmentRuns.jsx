@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Eye, Layers, Plus, SlidersHorizontal } from 'lucide-react'
+import { Check, Eye, Layers, Plus, Repeat2, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -35,12 +35,64 @@ function Stat({ label, value, note, tone }) {
   )
 }
 
+// Round 2 (FR-APP-07, M8): the Waitlisted students without an open offer get held options on the free Beds (left
+// by Round 1, or freed by forfeits, unpaid next-Term fees, ended stays and terminations); they accept or decline on
+// their offer page before it expires (Admin › System parameters, round2.offer_hours).
+function Round2Modal({ open, onClose, term }) {
+  const { notify, notifyError } = useToast()
+  const status = useQuery(['round2', term?.id], ({ signal }) => api.assignment.round2(term?.id, { signal }), { enabled: open && Boolean(term) })
+  const s = status.data
+  const run = useMutation(() => api.assignment.runRound2({ termId: term?.id }), {
+    invalidates: ['round2', 'assignment-runs', 'dashboard'],
+    onSuccess: (r) =>
+      notify({
+        title: t('Round 2 offers sent to {n} students', { n: formatNumber(r.offered) }),
+        message: r.waitlisted ? t('{n} students are still waiting: no free Bed fits them.', { n: formatNumber(r.waitlisted) }) : t('Every waitlisted student has an offer to answer.'),
+      }),
+    onError: (e) => notifyError(e, 'Could not run Round 2'),
+  })
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t('Round 2 · {term}', { term: term?.name ?? '' })}
+      description="Waitlisted students without an open offer get up to three held Beds of other kinds, nearest price first, in partly filled Rooms first."
+      footer={
+        <>
+          <Button onClick={onClose}>Close</Button>
+          <Button variant="primary" icon={Repeat2} disabled={!s?.waitlisted || !s?.freeBeds || run.pending} onClick={() => run.run()}>
+            Send Round 2 offers
+          </Button>
+        </>
+      }
+    >
+      <QueryState query={status} compact>
+        {(d) => (
+          <dl className="grid grid-cols-3 gap-3">
+            {[
+              ['Waitlisted without an offer', d.waitlisted],
+              ['Offers waiting for an answer', d.openOffers],
+              ['Free Beds', d.freeBeds],
+            ].map(([label, n]) => (
+              <div key={label} className="flex flex-col gap-1 rounded-lg border border-line p-3">
+                <dt className="text-sm text-fg-secondary">{t(label)}</dt>
+                <dd className="text-h2 font-semibold text-fg tabular">{formatNumber(n)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </QueryState>
+    </Modal>
+  )
+}
+
 export default function AssignmentRuns() {
   const base = useRoleBase()
   const scope = useScopeQuery()
   const { term } = useSession()
   const { notify, notifyError } = useToast()
   const [starting, setStarting] = useState(null) // 'dry' | 'final'
+  const [round2Open, setRound2Open] = useState(false)
   const query = useQuery(['assignment-runs', scope], ({ signal }) => api.assignment.runs(scope, { signal }))
   const run = query.data?.current
   const rules = query.data?.rules
@@ -66,9 +118,13 @@ export default function AssignmentRuns() {
             <Button icon={Plus} onClick={() => setStarting('final')} disabled={!term}>
               Start new run
             </Button>
+            <Button icon={Repeat2} onClick={() => setRound2Open(true)} disabled={!term}>
+              Round 2
+            </Button>
           </>
         }
       />
+      <Round2Modal open={round2Open} onClose={() => setRound2Open(false)} term={term} />
 
       <Card className="flex shrink-0 flex-col gap-4">
         <QueryState query={query} compact isEmpty={(d) => !d.current} empty={<EmptyBlock icon={Layers} title="No assignment run yet">Start a dry run to preview the proposal, or a final run when review is done.</EmptyBlock>}>

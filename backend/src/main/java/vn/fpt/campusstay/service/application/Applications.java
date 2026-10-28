@@ -55,6 +55,12 @@ public interface Applications {
     /** Approved → Waitlisted: no Bed of the chosen kind in this run (Round 2 may offer one). */
     void waitlisted(long applicationId, String reason);
 
+    /** Waitlisted Applications of the Term without an open Round-2 offer, the earliest Deposit first. */
+    List<Candidate> waitlistedWithoutOffer(long termId);
+
+    /** Open (pending, unexpired) Round-2 offers of the Term. */
+    int openRound2Offers(long termId);
+
     /** Beds of the Term held by open Round-2 options: nobody else may be placed there. */
     Set<Long> heldRound2Beds(long termId);
 

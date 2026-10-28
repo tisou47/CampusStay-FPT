@@ -9,6 +9,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd, toDateInput, toDateTimeInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { DateInput, DateTimeInput } from '@/components/ui/DatePicker'
 
 /*
  * Registration periods (Change Specification v2 §5, §6.3, §6.4): what a Manager's request proposes and what the
@@ -117,14 +118,20 @@ export function TimelineFields({ form, onChange, errors = {}, fixed = [], extend
           }
         >
           {(id) => (
-            <Input
-              id={id}
-              type={m.type === 'datetime' ? 'datetime-local' : m.type === 'date' ? 'date' : 'number'}
-              value={form[m.key] ?? ''}
-              disabled={locked}
-              invalid={Boolean(errors[m.key])}
-              onChange={(e) => onChange({ ...form, [m.key]: e.target.value })}
-            />
+            m.type === 'datetime' ? (
+              <DateTimeInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+            ) : m.type === 'date' ? (
+              <DateInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+            ) : (
+              <Input
+                id={id}
+                type="number"
+                value={form[m.key] ?? ''}
+                disabled={locked}
+                invalid={Boolean(errors[m.key])}
+                onChange={(e) => onChange({ ...form, [m.key]: e.target.value })}
+              />
+            )
           )}
         </Field>
         {changed && reasonFor?.(m.key)}
