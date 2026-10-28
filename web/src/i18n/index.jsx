@@ -1,5 +1,5 @@
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import vi from './vi'
+import shell from './vi'
 
 /*
  * Two languages (ADR-25): Vietnamese (default) and English. Texts in the code are English and are their own
@@ -10,6 +10,9 @@ import vi from './vi'
  *
  * The language is kept in the browser for the sign-in page and saved on the account once signed in
  * (PUT /auth/me/locale), so notifications, push and emails follow it. Changing it re-renders the app.
+ *
+ * The screens' Vietnamese texts (./vi-pages.js, the largest file of the app) are a chunk of their own, loaded by
+ * loadLanguage('vi') before the app renders in Vietnamese or switches to it; English never downloads them.
  */
 
 export const LANGUAGES = [
@@ -32,6 +35,25 @@ let current = stored() ?? 'vi'
 
 /** The language in use: 'vi' or 'en'. Also sent as Accept-Language with every API request. */
 export const getLang = () => current
+
+// Shell texts first, the screens' texts merged in later: the screens' entries win, as when they were one object.
+const vi = { ...shell }
+let pagesLoaded = null
+
+/** Loads what `lang` needs before it is shown. A failed load resolves too: the screens then show English. */
+export function loadLanguage(lang) {
+  if (lang !== 'vi') return Promise.resolve()
+  pagesLoaded ??= import('./vi-pages').then(
+    ({ default: pages }) => {
+      Object.assign(vi, pages)
+      patterns = null
+    },
+    () => {
+      pagesLoaded = null
+    },
+  )
+  return pagesLoaded
+}
 
 const fill = (text, vars) =>
   vars ? text.replace(/\{(\w+)\}/g, (whole, name) => (vars[name] == null ? whole : String(vars[name]))) : text
@@ -87,6 +109,7 @@ export function tr(text) {
 export const tx = (node) => (typeof node === 'string' ? tr(node) : node)
 
 const I18nContext = createContext({ lang: current, setLang: () => {} })
+let requested = current
 
 /**
  * Holds the language. `onChange(lang)` is told about every change the person makes (the session saves it on
@@ -97,13 +120,18 @@ export function I18nProvider({ children }) {
 
   const apply = useCallback((next) => {
     if (!isLang(next) || next === current) return
-    current = next
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      // Storage unavailable: the language lasts until the page is closed.
-    }
-    setLangState(next)
+    requested = next
+    loadLanguage(next).then(() => {
+      // A later choice made while this one loaded wins.
+      if (requested !== next || next === current) return
+      current = next
+      try {
+        localStorage.setItem(STORAGE_KEY, next)
+      } catch {
+        // Storage unavailable: the language lasts until the page is closed.
+      }
+      setLangState(next)
+    })
   }, [])
 
   useEffect(() => {

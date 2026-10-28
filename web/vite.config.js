@@ -28,15 +28,9 @@ export default defineConfig(({ mode }) => {
     build: {
       rolldownOptions: {
         output: {
-          // One chunk for libraries and one per role, so no single file passes the 500 kB warning.
+          // Libraries in one long-cached chunk; each page is its own chunk, loaded on its first visit (app/router.jsx).
           codeSplitting: {
-            groups: [
-              { name: 'vendor', test: /node_modules/ },
-              { name: 'student', test: /src[\\/]pages[\\/]student/ },
-              { name: 'staff', test: /src[\\/]pages[\\/]staff/ },
-              { name: 'manager', test: /src[\\/]pages[\\/]manager/ },
-              { name: 'admin', test: /src[\\/]pages[\\/]admin/ },
-            ],
+            groups: [{ name: 'vendor', test: /node_modules/ }],
           },
         },
       },

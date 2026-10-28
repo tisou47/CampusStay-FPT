@@ -5,8 +5,10 @@
  * Room Class = hạng phòng · Application = đơn đăng ký · Allocation = chỗ ở · Invoice = hóa đơn · Deposit = tiền cọc ·
  * Balance = tiền phòng còn lại · Utility = điện nước · Check-in = nhận phòng · Check-out = trả phòng ·
  * Room-Change Request = yêu cầu đổi phòng · swap = đổi chéo · Maintenance Request = yêu cầu sửa chữa.
+ *
+ * This file holds the shell (menus, common words, statuses) and is always loaded; the screens' texts are in
+ * ./vi-pages.js, loaded only when Vietnamese is in use (see loadLanguage in ./index.jsx).
  */
-import pages from './vi-pages'
 
 const vi = {
   // ---------------------------------------------------------------- shell, menus, common words
@@ -268,7 +270,6 @@ const vi = {
   'Final run': 'Lượt chính thức',
   'Dry run': 'Chạy thử',
 
-  ...pages,
 }
 
 export default vi
