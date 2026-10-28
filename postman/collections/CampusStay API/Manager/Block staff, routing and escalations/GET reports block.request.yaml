@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/reports/block'
+method: GET
+url: '{{baseUrl}}/reports/block?termId={{termId}}&block={{block}}'
+order: 12000
+description: |-
+  `GET /reports/block?termId&block` → `{ allocated, weekly: [{ label, value }], notCheckedIn, followUpBy }`; exports `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

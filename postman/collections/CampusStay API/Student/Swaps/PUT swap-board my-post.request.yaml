@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/swap-board/my-post'
+method: PUT
+url: '{{baseUrl}}/swap-board/my-post'
+order: 3000
+description: |-
+  `PUT /swap-board/my-post` `{ termId, block|null, roomTypeId, roomClassId }` → `204` (without `roomTypeId` the post comes down)
+
+  Contract: `docs/api-contract.md` › Student › Swaps
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "block": "{{block}}",
+      "roomTypeId": "",
+      "roomClassId": ""
+    }

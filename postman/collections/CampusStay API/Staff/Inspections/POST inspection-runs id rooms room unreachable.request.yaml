@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/inspection-runs/{id}/rooms/{room}/unreachable'
+method: POST
+url: '{{baseUrl}}/inspection-runs/:id/rooms/:room/unreachable'
+order: 5000
+description: |-
+  `POST /inspection-runs/{id}/rooms/{room}/unreachable`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'

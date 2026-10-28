@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/invoices/{id}/payment/refresh'
+method: POST
+url: '{{baseUrl}}/invoices/:id/payment/refresh'
+order: 5000
+description: |-
+  `POST /invoices/{id}/payment/refresh` → new `qr`
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

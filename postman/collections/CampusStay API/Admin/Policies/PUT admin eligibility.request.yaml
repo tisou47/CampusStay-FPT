@@ -1,0 +1,44 @@
+$kind: http-request
+name: '/admin/eligibility'
+method: PUT
+url: '{{baseUrl}}/admin/eligibility'
+order: 6000
+description: |-
+  `GET|PUT /admin/eligibility` → `{ criteria: [{ key, title, note, on, failing }], fixed: [{ key, title, note, failing }], groups: [{ id?, title, note, applied }], appliesFromTermName, students }` (`failing`: students who fail it now, A-33)
+
+  Contract: `docs/api-contract.md` › Admin › Policies
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "criteria": [
+        {
+          "key": "",
+          "title": "",
+          "note": "",
+          "on": false,
+          "failing": 0
+        }
+      ],
+      "groups": [
+        {
+          "id": "",
+          "title": "",
+          "note": "",
+          "applied": 0
+        }
+      ],
+      "appliesFromTermName": "",
+      "students": 0,
+      "fixed": [
+        {
+          "key": "",
+          "title": "",
+          "note": "",
+          "failing": 0
+        }
+      ]
+    }

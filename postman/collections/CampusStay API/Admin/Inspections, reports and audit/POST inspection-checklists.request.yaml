@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/inspection-checklists'
+method: POST
+url: '{{baseUrl}}/inspection-checklists'
+order: 4000
+description: |-
+  `POST /inspection-checklists` `{ name }`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": ""
+    }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/invoices/{id}/payment'
+method: GET
+url: '{{baseUrl}}/invoices/:id/payment'
+order: 3000
+description: |-
+  `GET /invoices/{id}/payment` → `{ invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference }, qr: { image, expiresAt } | null, bank: { name, accountName, accountNumber } | null, transferContent, claim: { status, claimedAt, reference, rejected, lastRejection: { reason, at } | null } | null, canClaim }`. `qr` and `bank` are null without a configured receiving account. While a claim waits the page asks again every 15 seconds.
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

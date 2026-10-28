@@ -1,0 +1,4 @@
+$kind: collection
+description: |-
+  The student account {{studentEmail}}: their own screens, and the back office closed to them.
+order: 2000

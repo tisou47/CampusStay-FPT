@@ -1,0 +1,34 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/sign-in'
+order: 1000
+headers:
+  - key: Content-Type
+    value: 'application/json'
+auth:
+  type: noauth
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{cs.email}}",
+      "password": "{{cs.password}}",
+      "remember": false
+    }
+scripts:
+  - type: beforeRequest
+    language: text/javascript
+    code: |-
+      // The folder's role (set by the collection script) and its credentials from the environment.
+      const role = pm.variables.get('cs.role');
+      pm.variables.set('cs.email', pm.variables.get(role + 'Email'));
+      pm.variables.set('cs.password', pm.variables.get(role + 'Password') || pm.variables.get('password'));
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with a token', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().token).to.be.a('string').and.not.empty;
+      });
+      // The rest of the folder uses this token.
+      if (pm.response.code === 200) pm.collectionVariables.set(pm.variables.get('cs.role') + 'Token', pm.response.json().token);

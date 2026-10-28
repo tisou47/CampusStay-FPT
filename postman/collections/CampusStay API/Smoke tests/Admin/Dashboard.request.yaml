@@ -1,0 +1,15 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/dashboards/admin?termId={{termId}}'
+order: 3000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with term, kpis', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json()).to.include.keys('term', 'kpis');
+      });

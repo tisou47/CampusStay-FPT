@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/meter-periods/{id}/close'
+method: POST
+url: '{{baseUrl}}/meter-periods/:id/close'
+order: 7000
+description: |-
+  `POST /meter-periods/{id}/close` → `{ invoicesIssued }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

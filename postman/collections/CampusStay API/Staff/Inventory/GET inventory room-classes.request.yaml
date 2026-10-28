@@ -1,0 +1,32 @@
+$kind: http-request
+name: '/inventory/room-classes'
+method: GET
+url: '{{baseUrl}}/inventory/room-classes?termId={{termId}}&block={{block}}'
+order: 8000
+description: |-
+  `GET /inventory/room-classes?termId&block&floor&roomClassId&match&q&page&pageSize` → `{ term: { id, name, stayStart, current, editable }, terms, items: [{ room, block, floor, roomType, roomClassId, roomClass, previousClass, setForTerm, locked, conformance: { status: 'Matches'|'Does not match', missing: [{ typeId, type, typeVi, quantity }], extra } }], total, summary: [{ roomClassId, roomClass, rooms }], roomClasses: [{ id, name }], blocks, note }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: floor
+    value: ''
+    disabled: true
+  - key: roomClassId
+    value: ''
+    disabled: true
+  - key: match
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

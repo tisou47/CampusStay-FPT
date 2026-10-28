@@ -1,0 +1,9 @@
+$kind: collection
+name: Smoke tests
+description: |-
+  Read-only checks of every role, safe against any environment: each role signs in, reads its main screens, meets the errors of the contract (401, 403, 400 `VALIDATION_FAILED` and `BAD_PAGE`, `BLOCK_OUT_OF_SCOPE`) and signs out. The Terms request picks the current Term and Staff's first Block for the rest of the run unless the environment sets `termId` or `block`.
+
+  ```
+  postman collection run "postman/collections/CampusStay API" -i "Smoke tests" -e postman/environments/Local.environment.yaml
+  ```
+order: 500

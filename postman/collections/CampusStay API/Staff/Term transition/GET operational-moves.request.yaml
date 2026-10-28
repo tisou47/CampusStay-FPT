@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/operational-moves'
+method: GET
+url: '{{baseUrl}}/operational-moves?termId={{termId}}&block={{block}}'
+order: 12000
+description: |-
+  `GET /operational-moves?termId&block&page&pageSize` → `{ items, total, reasons }` (A-45)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

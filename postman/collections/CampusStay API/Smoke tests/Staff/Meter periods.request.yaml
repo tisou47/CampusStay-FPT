@@ -1,0 +1,15 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/meter-periods?block={{block}}'
+order: 8000
+queryParams:
+  - key: block
+    value: '{{block}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with the periods', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+      });

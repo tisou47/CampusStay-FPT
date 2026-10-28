@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/maintenance-requests/{id}/confirm'
+method: POST
+url: '{{baseUrl}}/maintenance-requests/:id/confirm'
+order: 13000
+description: |-
+  `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fixed": false,
+      "comment": ""
+    }

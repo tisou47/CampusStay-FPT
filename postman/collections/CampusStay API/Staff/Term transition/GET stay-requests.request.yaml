@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/stay-requests'
+method: GET
+url: '{{baseUrl}}/stay-requests?termId={{termId}}&block={{block}}'
+order: 9000
+description: |-
+  `GET /stay-requests?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, studentName, studentCode, room, block, terms, committedTerms, termsUsed, reason, status, automatic, submittedAt, dueAt, decisionNote, decidedBy, decidedAt }], total, window }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: kind
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

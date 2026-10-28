@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/catalog'
+method: GET
+url: '{{baseUrl}}/catalog?termId={{termId}}'
+order: 4000
+description: |-
+  `GET /catalog?termId` (prices, `depositRate` and `utilityDeposit` of that Term; without it the Term open for registration, else the current Term, C-41) → `{ roomTypes: [{ id, name, beds, description? }], roomClasses: [{ id, name, surchargeRate, amenities: [string] }], prices: [{ roomTypeId, roomClassId, termPrice }], depositRate, utilityDeposit, preferenceOptions: { region: [string], semester: [string], major: [string] }, relationships: [string] }`
+
+  Contract: `docs/api-contract.md` › Student › Home, profile, catalog
+queryParams:
+  - key: termId
+    value: '{{termId}}'

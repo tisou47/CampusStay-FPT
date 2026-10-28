@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/finance/summary'
+method: GET
+url: '{{baseUrl}}/finance/summary?termId={{termId}}&block={{block}}'
+order: 2000
+description: |-
+  `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

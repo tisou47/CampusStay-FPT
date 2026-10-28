@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/notification-templates'
+method: GET
+url: '{{baseUrl}}/admin/notification-templates'
+order: 3000
+description: |-
+  `GET /admin/notification-templates` → `{ items: [{ key, event, push, inApp, titleEn, titleVi, body, variables }], sampleValues }`
+
+  Contract: `docs/api-contract.md` › Admin › Messages

@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/meter-periods/{id}/template'
+method: GET
+url: '{{baseUrl}}/meter-periods/:id/template'
+order: 8000
+description: |-
+  `GET /meter-periods/{id}/template` → XLSX (`room, electricity, water, previous electricity, previous water`, one line per Room of the period)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

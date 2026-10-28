@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/terminations'
+method: POST
+url: '{{baseUrl}}/terminations'
+order: 6000
+description: |-
+  `POST /terminations { studentCode, reason, note }` → `{ id, moveOutBy }`
+
+  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "studentCode": "",
+      "reason": "",
+      "note": ""
+    }

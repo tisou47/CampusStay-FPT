@@ -1,0 +1,33 @@
+$kind: http-request
+name: '/furniture'
+method: GET
+url: '{{baseUrl}}/furniture?block={{block}}'
+order: 1000
+description: |-
+  `GET /furniture?block&room&location=room|store&typeId&status&q&page&pageSize` → `{ items: [{ id, assetCode, typeId, type, typeVi, category, status, location: { kind: 'Room'|'Store', room, block }, note, plannedMove: { id, to, reason } | null, updatedAt }], total, counts: { [status]: n }, options: { types: [{ id, name, nameVi }], statuses, blocks } }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: room
+    value: ''
+    disabled: true
+  - key: location
+    value: ''
+    disabled: true
+  - key: typeId
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/notifications/read-all'
+method: POST
+url: '{{baseUrl}}/notifications/read-all'
+order: 12000
+description: |-
+  POST `/notifications/read-all`, `/notifications/{id}/read` — request: `id` may be `ann-<n>` (an announcement) — response: `204`
+
+  Contract: `docs/api-contract.md` › Session and shared

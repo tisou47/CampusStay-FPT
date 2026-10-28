@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/auth/sign-in'
+method: POST
+url: '{{baseUrl}}/auth/sign-in'
+order: 1000
+description: |-
+  POST `/auth/sign-in` — request: `{ email, password, remember }` — the account email and the CampusStay password (not the FPT Wi-Fi credentials); `remember` is optional (default `false`) — response: `{ token, user: { id, name, email, role: 'student'\|'staff'\|'manager'\|'admin', studentCode?, title?, blocks?: [string], locale: 'vi'\|'en', passwordSet, verification?: 'Verified'\|'Pending verification'\|'Profile needed' } }` (`verification` for students)
+
+  Contract: `docs/api-contract.md` › Session and shared › Public
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "",
+      "password": "",
+      "remember": false
+    }

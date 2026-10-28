@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/meter-periods/{id}/import'
+method: POST
+url: '{{baseUrl}}/meter-periods/:id/import'
+order: 6000
+description: |-
+  `POST /meter-periods/{id}/import` (multipart `file`, the template filled in: XLSX or CSV; headers room/phòng, electricity/điện, water/nước, or the first three columns) → `{ imported, skipped }` (lines with both readings blank are skipped) (A-59)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''

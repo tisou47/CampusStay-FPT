@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/door-code/reveal'
+method: POST
+url: '{{baseUrl}}/students/me/door-code/reveal'
+order: 16000
+description: |-
+  `POST /students/me/door-code/reveal` → `{ room, code, changedAt }` (every view audited; `409 DOOR_CODE_NOT_READY`)
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests

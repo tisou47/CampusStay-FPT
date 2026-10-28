@@ -1,0 +1,17 @@
+$kind: http-request
+name: '/next-term-requests'
+method: GET
+url: '{{baseUrl}}/next-term-requests?termId={{termId}}&block={{block}}'
+order: 4000
+description: |-
+  `GET /next-term-requests?termId&block&kind` → `{ items: [{ kind, id, student, studentCode, summary, status, submittedAt, dueAt, crossBlock }], total, window }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: kind
+    value: ''
+    disabled: true

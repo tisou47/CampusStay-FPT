@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/inventory/structure'
+method: GET
+url: '{{baseUrl}}/inventory/structure?block={{block}}'
+order: 1000
+description: |-
+  `GET /inventory/structure?block` → `{ blocks: [{ block, floors: [number] }], outOfServiceReasons: [string] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+queryParams:
+  - key: block
+    value: '{{block}}'

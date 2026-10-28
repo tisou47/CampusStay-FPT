@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/routing-rules'
+method: GET
+url: '{{baseUrl}}/routing-rules?block={{block}}'
+order: 6000
+description: |-
+  `GET /routing-rules?block` → `{ rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }], staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }], timers: { urgent, normal, roomChange }, timerOptions: { urgent, normal, roomChange } }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+queryParams:
+  - key: block
+    value: '{{block}}'

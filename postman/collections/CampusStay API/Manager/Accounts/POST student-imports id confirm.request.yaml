@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/student-imports/{id}/confirm'
+method: POST
+url: '{{baseUrl}}/student-imports/:id/confirm'
+order: 6000
+description: |-
+  `POST /student-imports/{id}/confirm { markMissingNotEnrolled? }` (A-20)
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "markMissingNotEnrolled": false
+    }

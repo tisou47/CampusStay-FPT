@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/check-out/readings'
+method: PUT
+url: '{{baseUrl}}/check-out/readings?termId={{termId}}&block={{block}}'
+order: 9000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `saveRoomReadings` of `desk-controller`). Add it to the contract or remove it from the backend.
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "readings": [
+        {
+          "room": "",
+          "electricity": 0,
+          "water": 0
+        }
+      ]
+    }

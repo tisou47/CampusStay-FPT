@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/inspection-schedules'
+method: GET
+url: '{{baseUrl}}/inspection-schedules?block={{block}}'
+order: 1000
+description: |-
+  `GET /inspection-schedules?block` → `{ items: [{ id, name, checklistId, scope, scopeLabel, repeat, repeatLabel, assignee, dueWithinDays, createRequests, notifyResidents, nextRunAt, status, createdAt }], runs: [{ id, assigneeName, inspected, rooms, failed, status }], options: { checklists, scopes, repeats, assignees } }` (options are `{ value, label }` lists)
+
+  Contract: `docs/api-contract.md` › Manager › Inspections
+queryParams:
+  - key: block
+    value: '{{block}}'

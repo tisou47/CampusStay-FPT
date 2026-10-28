@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/furniture/moves/{id}/done'
+method: POST
+url: '{{baseUrl}}/furniture/moves/:id/done'
+order: 5000
+description: |-
+  `POST /furniture/moves/{id}/done`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

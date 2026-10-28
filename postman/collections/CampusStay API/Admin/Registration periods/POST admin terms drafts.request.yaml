@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/admin/terms/drafts'
+method: POST
+url: '{{baseUrl}}/admin/terms/drafts'
+order: 2000
+description: |-
+  `POST /admin/terms/drafts { name, stayStart, stayEnd, requestId? }` → `{ id }`
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "stayStart": "2026-12-01",
+      "stayEnd": "2026-12-01",
+      "requestId": ""
+    }

@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/late-check-in'
+method: GET
+url: '{{baseUrl}}/students/me/late-check-in'
+order: 7000
+description: |-
+  `GET /students/me/late-check-in` → `{ request: { id, status, requestedFor, deadline, reason, decisionReason, createdAt, source } | null, canRequest, checkInEnd, latestDay }`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests

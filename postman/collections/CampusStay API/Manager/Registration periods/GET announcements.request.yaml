@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/announcements'
+method: GET
+url: '{{baseUrl}}/announcements'
+order: 7000
+description: |-
+  `GET /announcements?q&category&page&pageSize`
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods
+queryParams:
+  - key: q
+    value: ''
+    disabled: true
+  - key: category
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

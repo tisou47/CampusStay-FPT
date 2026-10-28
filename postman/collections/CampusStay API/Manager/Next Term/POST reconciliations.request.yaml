@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/reconciliations'
+method: POST
+url: '{{baseUrl}}/reconciliations'
+order: 9000
+description: |-
+  `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }`
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+body:
+  type: formdata
+  content:
+    - key: termId
+      type: text
+      value: '{{termId}}'
+    - key: kind
+      type: text
+      value: ''
+    - key: file
+      type: file
+      src: ''

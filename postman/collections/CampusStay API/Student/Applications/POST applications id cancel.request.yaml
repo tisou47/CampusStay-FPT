@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/applications/{id}/cancel'
+method: POST
+url: '{{baseUrl}}/applications/:id/cancel'
+order: 3000
+description: |-
+  `POST /applications/{id}/cancel` `{ reason? }`
+
+  Contract: `docs/api-contract.md` › Student › Applications
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": ""
+    }

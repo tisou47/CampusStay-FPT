@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/maintenance-requests/{id}'
+method: GET
+url: '{{baseUrl}}/maintenance-requests/:id'
+order: 2000
+description: |-
+  `GET /maintenance-requests/{id}` (back-office view) → `{ id, title, status, room, bed, category, location, reportedAt, reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }], assignee, suggestedAssigneeId, visitWindow, events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm } }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

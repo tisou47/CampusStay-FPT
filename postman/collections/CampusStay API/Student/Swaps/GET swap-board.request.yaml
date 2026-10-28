@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/swap-board'
+method: GET
+url: '{{baseUrl}}/swap-board?termId={{termId}}'
+order: 2000
+description: |-
+  `GET /swap-board?termId` → `{ blocks, myPost: { block, roomTypeId, roomClassId, expiresAt } | null, items: [{ id, offeredRoomTypeName, offeredRoomClassName, floor, block, wants, termPrice, requested, crossBlock }], window }` (next-Term Beds, B-09)
+
+  Contract: `docs/api-contract.md` › Student › Swaps
+queryParams:
+  - key: termId
+    value: '{{termId}}'

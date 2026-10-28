@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  Calls without a token: readiness, sign-in errors in both languages, validation and the missing token.
+order: 1000
+auth:
+  type: noauth

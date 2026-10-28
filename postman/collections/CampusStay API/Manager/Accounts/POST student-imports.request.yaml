@@ -1,0 +1,15 @@
+$kind: http-request
+name: '/student-imports'
+method: POST
+url: '{{baseUrl}}/student-imports'
+order: 9000
+description: |-
+  `POST /student-imports` (multipart `file`, CSV or XLSX) → the preview `{ id, fileName, status, fields, counts: { created, updated, unchanged, errors }, missing, rows: { items: [{ line, studentCode, name, email, outcome, message, changes }], total }, result }`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''

@@ -1,0 +1,12 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/admin/terms'
+order: 4000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with the Terms', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+      });

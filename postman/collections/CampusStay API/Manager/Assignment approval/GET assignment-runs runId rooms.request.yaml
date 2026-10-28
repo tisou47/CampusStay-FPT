@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/assignment-runs/{runId}/rooms'
+method: GET
+url: '{{baseUrl}}/assignment-runs/:runId/rooms?block={{block}}'
+order: 1000
+description: |-
+  `GET /assignment-runs/{runId}/rooms?block&page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, students, note, score, flag: { label, tone } | null }], total }`
+
+  Contract: `docs/api-contract.md` › Manager › Assignment approval
+pathVariables:
+  - key: runId
+    value: ''
+    description: 'Assignment run id, e.g. RUN-3'
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/student-imports/template'
+method: GET
+url: '{{baseUrl}}/student-imports/template'
+order: 8000
+description: |-
+  `GET /student-imports/template` (XLSX)
+
+  Contract: `docs/api-contract.md` › Manager › Accounts

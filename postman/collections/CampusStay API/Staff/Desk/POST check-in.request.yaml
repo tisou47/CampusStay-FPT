@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/check-in'
+method: POST
+url: '{{baseUrl}}/check-in'
+order: 3000
+description: |-
+  `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "studentCode": "",
+      "items": [],
+      "note": ""
+    }

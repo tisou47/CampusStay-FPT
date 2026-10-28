@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/maintenance-requests/{id}/updates'
+method: POST
+url: '{{baseUrl}}/maintenance-requests/:id/updates'
+order: 4000
+description: |-
+  `POST /maintenance-requests/{id}/updates` `{ message, internal }` → `204`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "message": "",
+      "internal": false
+    }

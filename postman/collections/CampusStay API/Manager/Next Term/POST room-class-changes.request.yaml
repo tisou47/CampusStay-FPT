@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/room-class-changes'
+method: POST
+url: '{{baseUrl}}/room-class-changes'
+order: 4000
+description: |-
+  `POST /room-class-changes` `{ termId, room, roomClassId, reason }` (for a Room) → `{ id, status }`
+
+  Contract: `docs/api-contract.md` › Manager › Next Term
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "termId": "{{termId}}",
+      "room": "",
+      "roomClassId": "",
+      "reason": ""
+    }
