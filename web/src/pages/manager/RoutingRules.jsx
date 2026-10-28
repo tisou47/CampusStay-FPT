@@ -177,7 +177,7 @@ export default function RoutingRules() {
             ['normal', 'A normal Maintenance Request must be finished within', 'after that, every Manager sees it in Overdue requests.'],
             ['roomChange', 'A Room-Change Request must be decided within', 'after that, it shows in Overdue requests.'],
           ].map(([key, before, after]) => (
-            <p key={key} className="flex flex-wrap items-center gap-2 text-base text-fg">
+            <div key={key} className="flex flex-wrap items-center gap-2 text-base text-fg">
               <span>{t(before)}</span>
               <Select
                 aria-label={t(before)}
@@ -188,7 +188,7 @@ export default function RoutingRules() {
                 onChange={(e) => saveTimer.run({ ...timers, [key]: e.target.value })}
               />
               <span>{t(after)}</span>
-            </p>
+            </div>
           ))}
         </Card>
         <Card className="flex w-110 shrink-0 flex-col gap-3">

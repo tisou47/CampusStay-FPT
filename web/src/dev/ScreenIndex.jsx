@@ -24,7 +24,8 @@ export function ScreenIndex() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return screens.filter((s) => !q || `${s.code} ${s.title} ${s.path}`.toLowerCase().includes(q))
+    // A path with a parameter (/staff/rooms/:code) is a detail page: it opens from its list, not from here.
+    return screens.filter((s) => !s.path.includes('/:') && (!q || `${s.code} ${s.title} ${s.path}`.toLowerCase().includes(q)))
   }, [query])
 
   if (!open) return null
