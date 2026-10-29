@@ -11,6 +11,7 @@ import { Popover } from '@/components/ui/Popover'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
+import { FlowTrail } from './FlowTrail'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -342,6 +343,7 @@ export function BackOfficeLayout({ role }) {
       <div className="flex min-h-0 flex-1">
         <Sidebar role={role} />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+          {role === 'admin' && <FlowTrail />}
           <Outlet />
         </main>
       </div>

@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
-import { Banknote, Bed, Calendar, CircleCheck, TriangleAlert, Users } from 'lucide-react'
+import { ArrowRight, Banknote, Bed, Calendar, Check, TriangleAlert, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
+import { stageStates } from '@/app/adminFlow'
 import { useSession } from '@/app/session'
+import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
@@ -17,6 +19,83 @@ import { t, tr } from '@/i18n'
 //   kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers },
 //   funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }],
 //   checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }
+
+const STATE_LABEL = { done: 'Done', now: 'Do this now', waiting: 'Waiting', later: 'Later' }
+
+/**
+ * "Set up a Term" (spec §6.3, §6.4): the five stages in the order they happen, each with its state in words,
+ * why it matters and one way in. Only the stage to do now gets the primary button.
+ */
+function TermSetupFlow({ checks }) {
+  const requests = useQuery(['term-requests', 'Open'], ({ signal }) => api.termRequests.list({ status: 'Open', pageSize: 1 }, { signal }))
+  const terms = useQuery(['admin-terms'], ({ signal }) => api.admin.terms.list(undefined, { signal }))
+  if (!checks || !terms.data) return null
+  const stages = stageStates({ checks, requestCounts: requests.data?.counts ?? {}, terms: terms.data.items ?? [] })
+  const lead = stages.findIndex((s) => s.state === 'now')
+  const say = (x) => (x ? t(x.text, x.date ? { ...x.vars, date: formatDate(x.vars.date) } : x.vars) : null)
+  return (
+    <section aria-labelledby="term-setup" className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a Term')}</h2>
+        <span className="text-sm text-fg-tertiary">{t('In the order it happens. Each stage opens its screen.')}</span>
+      </div>
+      <ol className="grid grid-cols-5 gap-3">
+        {stages.map((s, i) => {
+          const now = s.state === 'now'
+          return (
+            <li key={s.key} className={cx('flex min-w-0 flex-col gap-2 rounded-md p-3', now ? 'bg-primary-subtle ring-1 ring-primary' : 'bg-canvas')}>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className={cx(
+                    'flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular',
+                    s.state === 'done' ? 'bg-success text-white' : now ? 'bg-primary text-fg-on-brand' : 'bg-subtle text-fg-secondary ring-1 ring-line-strong',
+                  )}
+                >
+                  {s.state === 'done' ? <Check size={14} /> : i + 1}
+                </span>
+                <span className={cx('text-sm font-semibold', s.state === 'done' ? 'text-success-fg' : now ? 'text-fg-brand' : 'text-fg-tertiary')}>{t(STATE_LABEL[s.state])}</span>
+              </div>
+              <p className="text-base font-semibold text-fg">{t(s.label)}</p>
+              <p className="text-sm text-fg-secondary">{say(s.detail)}</p>
+              {s.key === 'ready' && s.items?.some((c) => !c.ok) && (
+                <ul className="flex flex-col gap-1">
+                  {s.items
+                    .filter((c) => !c.ok)
+                    .slice(0, 3)
+                    .map((c) => (
+                      <li key={c.text} className="flex items-start gap-1.5 text-sm">
+                        <TriangleAlert size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
+                        {c.link ? (
+                          <Link to={c.link} className="text-fg hover:text-fg-brand hover:underline">
+                            {tr(c.text)}
+                          </Link>
+                        ) : (
+                          <span className="text-fg">{tr(c.text)}</span>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              )}
+              <p className="text-sm text-fg-tertiary">{t(s.why)}</p>
+              <div className="mt-auto pt-1">
+                {i === lead ? (
+                  <Button variant="primary" size="sm" to={s.action.to} iconAfter={ArrowRight} iconSize={16}>
+                    {tr(s.action.label)}
+                  </Button>
+                ) : (
+                  <Link to={s.action.to} className="text-sm font-medium text-fg-link hover:underline">
+                    {tr(s.action.label)}
+                  </Link>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
 
 function Head({ title, note }) {
   return (
@@ -47,6 +126,7 @@ export default function AdminDashboard() {
           .join(' · ')}
       />
       <StaleNotice query={query} />
+      <TermSetupFlow checks={d?.checks} />
 
       <div className="flex shrink-0 gap-4">
         <KpiTile icon={Calendar} label="Current Term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
@@ -60,8 +140,8 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4">
-        <Card className="flex min-h-0 flex-col gap-2.5">
+      <div className="grid min-h-72 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1fr)_auto] gap-4">
+        <Card className="row-span-2 flex min-h-0 flex-col gap-2.5">
           <Head title={d?.term ? t('{term} application funnel', { term: d.term.name }) : 'Application funnel'} note="All Blocks" />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
@@ -107,30 +187,6 @@ export default function AdminDashboard() {
                   </div>
                 ))
               }
-            </QueryState>
-          </div>
-        </Card>
-
-        <Card className="flex min-h-0 flex-col gap-2">
-          <Head title={d?.nextTerm ? t('Configuration to check before {term}', { term: d.nextTerm.name }) : 'Configuration to check'} />
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <QueryState query={query} compact isEmpty={(x) => !x.checks?.length}>
-              {(data) => (
-                <ul className="flex flex-col gap-2">
-                  {data.checks.map((c) => (
-                    <li key={c.text} className="flex items-center gap-2 text-base">
-                      {c.ok ? <CircleCheck size={16} aria-hidden="true" className="shrink-0 text-success" /> : <TriangleAlert size={16} aria-hidden="true" className="shrink-0 text-warning" />}
-                      {c.link ? (
-                        <Link to={c.link} className="text-fg hover:text-fg-brand hover:underline">
-                          {tr(c.text)}
-                        </Link>
-                      ) : (
-                        <span className="text-fg">{tr(c.text)}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </QueryState>
           </div>
         </Card>
