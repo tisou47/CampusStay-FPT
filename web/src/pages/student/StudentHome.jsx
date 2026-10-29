@@ -131,7 +131,7 @@ function RoomTypesCard() {
   return (
     <Card padding="lg" className="flex min-w-0 flex-col gap-3">
       <div className="flex shrink-0 flex-col gap-0.5">
-        <h2 className="text-card-title text-text">{t('Room Types')}</h2>
+        <h2 className="text-card-title text-text">{t('Room types')}</h2>
         <p className="text-small text-text-muted">{t('Lowest Term price per Bed.')}</p>
       </div>
       <div className="flex flex-col">

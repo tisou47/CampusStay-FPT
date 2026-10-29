@@ -3900,6 +3900,20 @@ const workspace = {
 // Student UI refactor (UI_REFACTOR_PLAN): new labels of the student pages. Spread last, so it also sets
 // the agreed student wording where an earlier group said it differently.
 const studentUi = {
+  // Amenities of the seeded Room tiers (free text typed by the Admin; only display)
+  'Fan': 'Quạt',
+  'Shared bathroom per room': 'Phòng tắm chung trong phòng',
+  'Desk lamp': 'Đèn bàn',
+  'Balcony': 'Ban công',
+  // Student terminology (Room type = number of Beds, Room tier = Basic/Standard/Premium, Building = Block)
+  'Room type': 'Loại phòng',
+  'Room types': 'Loại phòng',
+  'Room tier': 'Hạng phòng',
+  'Compare room tiers': 'So sánh hạng phòng',
+  'Building I want': 'Tòa mong muốn',
+  'Any building': 'Tòa bất kỳ',
+  'Your Room and Bed are assigned after review; results come out on {date}.': 'Phòng và giường được xếp sau khi xét duyệt; có kết quả vào {date}.',
+  'Your Room and Bed are assigned after review.': 'Phòng và giường được xếp sau khi xét duyệt.',
   // Requests and header
   'Create request': 'Tạo yêu cầu',
   'You can send requests once you have moved into your Room.': 'Bạn gửi được yêu cầu sau khi nhận phòng.',

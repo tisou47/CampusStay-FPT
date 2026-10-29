@@ -80,8 +80,8 @@ function Invitation({ inv }) {
         rowClassName="py-2.5 border-b border-line"
         rows={[
           ['Term', `${inv.termName}${inv.stayStart ? ` · ${formatDate(inv.stayStart)} – ${formatDate(inv.stayEnd)}` : ''}`],
-          ['Room Type', t('{type} (shared with {name})', { type: tr(inv.roomTypeName), name: inv.fromName })],
-          ['Room Class', `${tr(inv.roomClassName)}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
+          ['Room type', t('{type} (shared with {name})', { type: tr(inv.roomTypeName), name: inv.fromName })],
+          ['Room tier', `${tr(inv.roomClassName)}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
           ['Your Term price per Bed', formatVnd(inv.termPrice)],
           [
             'Your deposit',

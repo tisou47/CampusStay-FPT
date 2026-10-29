@@ -31,10 +31,10 @@ export default function ApplyRoom() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-card-title text-fg">{t('Room Type')}</h2>
+          <h2 className="text-card-title text-fg">{t('Room type')}</h2>
           <p className="text-base text-fg-secondary">{t('Number of Beds in the Room. Prices are per Bed for the whole Term.')}</p>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Type')}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room type')}>
           {roomTypes.map((rt) => {
             const from = helpers.fromPrice(rt.id)
             return (
@@ -55,10 +55,10 @@ export default function ApplyRoom() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-card-title text-fg">{t('Room Class')}</h2>
+          <h2 className="text-card-title text-fg">{t('Room tier')}</h2>
           <p className="text-base text-fg-secondary">{t('Amenities level. The surcharge is added to the Room Type price.')}</p>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Class')}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room tier')}>
           {roomClasses.map((c) => {
             const price = draft.roomTypeId ? helpers.termPrice(draft.roomTypeId, c.id) : null
             return (
@@ -84,7 +84,7 @@ export default function ApplyRoom() {
         </div>
         <Select
           wrapperClassName="w-full lg:w-60"
-          aria-label={t('Stay length')}
+          aria-label={t('Contract length')}
           value={String(stayTerms)}
           onChange={(e) => setDraft({ stayTerms: Number(e.target.value) })}
           options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} Term' : '{n} Terms', { n: i + 1 }) }))}

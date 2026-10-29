@@ -146,8 +146,8 @@ export function SelectionSummary({ wizard }) {
     <Card padding="lg" className="flex flex-col gap-3">
       <h2 className="text-card-title text-fg">{t('Your selection')}</h2>
       <SummaryRow label="Term" value={term?.name} />
-      <SummaryRow label="Room Type" value={roomType?.name} />
-      <SummaryRow label="Room Class" value={classLabel(helpers.roomClass(draft.roomClassId))} />
+      <SummaryRow label="Room type" value={roomType?.name} />
+      <SummaryRow label="Room tier" value={classLabel(helpers.roomClass(draft.roomClassId))} />
       {isTwoBed(roomType) && <SummaryRow label="Roommate" value={roommateLabel(draft, roomType)} empty="Not set" />}
       <Divider />
       <SummaryRow label="Term price per Bed" value={price != null && formatVnd(price)} empty="—" />

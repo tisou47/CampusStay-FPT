@@ -41,8 +41,8 @@ function alertFor(app) {
       return ['info', 'Under review', 'The dormitory office is checking your Application. No action is needed from you.']
     case 'Approved':
       return ['info', 'Approved', app.resultsPublishedAt
-        ? t('Your Room and Bed are assigned in the assignment run; results are published on {date}.', { date: formatDate(app.resultsPublishedAt) })
-        : t('Your Room and Bed are assigned in the assignment run.')]
+        ? t('Your Room and Bed are assigned after review; results come out on {date}.', { date: formatDate(app.resultsPublishedAt) })
+        : t('Your Room and Bed are assigned after review.')]
     case 'Waitlisted': {
       const w = app.waitlist
       if (w?.offer)
@@ -141,10 +141,10 @@ function Detail({ app }) {
             <DetailRows
               className="mt-2"
               rows={[
-                ['Room Type', tr(app.roomTypeName) || '—'],
-                ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
+                ['Room type', tr(app.roomTypeName) || '—'],
+                ['Room tier', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommateText(app)],
-                ['Stay length', t(app.stayTerms === 1 ? '{n} Term' : '{n} Terms', { n: app.stayTerms ?? 1 })],
+                ['Contract length', t(app.stayTerms === 1 ? '{n} Term' : '{n} Terms', { n: app.stayTerms ?? 1 })],
                 ['Room and Bed', app.allocation ? t('{room} · Bed {bed} · {block}', { room: app.allocation.room, bed: app.allocation.bed, block: tr(app.allocation.block) }) : <span className="text-fg-tertiary">{t('Assigned after review')}</span>],
               ]}
             />

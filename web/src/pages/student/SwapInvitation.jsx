@@ -22,7 +22,7 @@ function RoomBox({ label, room }) {
       <p className="text-h3 font-semibold text-fg">
         {t('{room} · Bed {bed}', { room: room.room, bed: room.bed })}
       </p>
-      <p className="text-base text-fg-secondary">{[tr(room.roomTypeName), tr(room.roomClassName), room.block && t('Block {code}', { code: room.block })].filter(Boolean).join(' · ')}</p>
+      <p className="text-base text-fg-secondary">{[tr(room.roomTypeName), tr(room.roomClassName), room.block && t('Building {code}', { code: room.block })].filter(Boolean).join(' · ')}</p>
       {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} next Term', { price: formatVnd(room.termPrice) })}</p>}
     </div>
   )

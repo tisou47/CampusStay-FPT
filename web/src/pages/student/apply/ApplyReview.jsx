@@ -106,10 +106,10 @@ export default function ApplyReview() {
         <Facts
           items={[
             ['Term', term?.name ?? '—'],
-            ['Room Type', roomType?.name ?? '—'],
-            ['Room Class', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
+            ['Room type', roomType?.name ?? '—'],
+            ['Room tier', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
             ['Roommate', roommateLabel(draft, roomType) ?? '—'],
-            ['Stay length', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
+            ['Contract length', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
           ]}
         />
         {usePrefs && (

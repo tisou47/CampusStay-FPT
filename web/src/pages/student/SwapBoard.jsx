@@ -56,10 +56,10 @@ export default function SwapBoard() {
           <Card padding="lg" className="flex shrink-0 flex-col gap-4">
             <SwapModePicker value="board" />
             <div className="flex items-end gap-4">
-              <Field label="Block I want" className="flex-1">
-                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any Block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
+              <Field label="Building I want" className="flex-1">
+                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any building' }, ...blocks.map((b) => ({ value: b, label: t('Building {code}', { code: b }) }))]} />}
               </Field>
-              <Field label="Room Type" className="flex-1">
+              <Field label="Room type" className="flex-1">
                 {(id) => (
                   <Select
                     id={id}
@@ -70,7 +70,7 @@ export default function SwapBoard() {
                   />
                 )}
               </Field>
-              <Field label="Room Class" className="flex-1">
+              <Field label="Room tier" className="flex-1">
                 {(id) => (
                   <Select
                     id={id}

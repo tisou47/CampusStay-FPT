@@ -126,7 +126,7 @@ export function CompareClassesModal({ open, onClose }) {
   const { termPrice } = catalogHelpers(catalog.data)
   const roomTypes = catalog.data?.roomTypes ?? []
   return (
-    <Modal open={open} onClose={onClose} title="Compare Room Classes" description="Term price per Bed." width={760}>
+    <Modal open={open} onClose={onClose} title="Compare room tiers" description="Term price per Bed." width={760}>
       <QueryState query={catalog} compact isEmpty={(d) => !d?.roomClasses?.length}>
         {(data) => (
           <Table>

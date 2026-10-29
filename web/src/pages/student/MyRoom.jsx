@@ -462,8 +462,8 @@ function Room({ data }) {
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
             <Fact label="Building" value={a.blockLabel ?? a.block ?? '—'} />
             <Fact label="Floor" value={a.floor != null ? String(a.floor) : '—'} />
-            <Fact label="Room Type" value={a.roomTypeName ?? '—'} />
-            <Fact label="Room Class" value={a.roomClassName ?? '—'} />
+            <Fact label="Room type" value={a.roomTypeName ?? '—'} />
+            <Fact label="Room tier" value={a.roomClassName ?? '—'} />
             <Fact label="Allocated on" value={formatDate(a.allocatedAt) || '—'} />
             <Fact
               label="Move-in date"

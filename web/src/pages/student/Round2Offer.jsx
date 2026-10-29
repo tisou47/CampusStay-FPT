@@ -90,7 +90,7 @@ function Offer({ offer }) {
                         <span className="font-medium">
                           {tr(o.roomTypeName)} · {tr(o.roomClassName)}
                         </span>
-                        <span className="text-sm text-fg-tertiary">{[o.block && t('Block {code}', { code: o.block }), tr(o.note)].filter(Boolean).join(' · ')}</span>
+                        <span className="text-sm text-fg-tertiary">{[o.block && t('Building {code}', { code: o.block }), tr(o.note)].filter(Boolean).join(' · ')}</span>
                       </div>
                     </Td>
                     <Td>{tr(o.fill)}</Td>

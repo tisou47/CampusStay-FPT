@@ -85,7 +85,7 @@ function Form({ opts }) {
           </fieldset>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-            <Field label={kind === 'type' ? 'New Room Type' : 'Room Type'} className="flex-1">
+            <Field label={kind === 'type' ? 'New Room Type' : 'Room type'} className="flex-1">
               {(id) => (
                 <Select
                   id={id}
@@ -97,7 +97,7 @@ function Form({ opts }) {
                 />
               )}
             </Field>
-            <Field label={kind === 'class' ? 'New Room Class' : 'Room Class'} className="flex-1">
+            <Field label={kind === 'class' ? 'New Room Class' : 'Room tier'} className="flex-1">
               {(id) => (
                 <Select
                   id={id}
