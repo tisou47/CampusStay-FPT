@@ -95,7 +95,18 @@ public class StudentApplicationQueries {
             String roomClassName, BigDecimal surchargeRate, boolean twoBed, RoommateView roommate,
             HomeAllocation allocation, List<Event> events, List<InvoiceView> invoices, boolean canCancel,
             String cancelPolicy, Instant resultsPublishedAt, Instant registrationClosesAt, String decisionNote,
-            int stayTerms) {
+            int stayTerms, Waitlist waitlist) {
+    }
+
+    /** The open Round-2 offer: answer it before {@code expiresAt} on the offer page. */
+    public record OfferRef(String id, Instant expiresAt, int options) {
+    }
+
+    /**
+     * A waitlisted Application (A-61): the open offer, if any; {@code until} the day the waitlist ends (the Term's
+     * first check-in day); {@code refund} the Deposit paid, refunded in full when the student is not placed.
+     */
+    public record Waitlist(OfferRef offer, LocalDate until, long refund) {
     }
 
     public record Invitation(String id, String fromName, Instant expiresAt, String termName,
@@ -111,6 +122,7 @@ public class StudentApplicationQueries {
             .withZone(TimeConfig.CAMPUS_ZONE);
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
             .withZone(TimeConfig.CAMPUS_ZONE);
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final JdbcClient jdbc;
     private final ApplicationStore applications;
@@ -257,7 +269,26 @@ public class StudentApplicationQueries {
                         .orElse(null),
                 events(app, term), invoices, canCancel,
                 cancelPolicy(term), term.resultsPublishedAt(), term.registrationClosesAt(), app.decisionNote(),
-                app.stayTerms());
+                app.stayTerms(), app.status().equals("WAITLISTED") ? waitlist(app, term) : null);
+    }
+
+    private Waitlist waitlist(ApplicationStore.Application app, TermSummary term) {
+        OfferRef offer = openOffer(app.id()).orElse(null);
+        long refund = billing.invoicesOfApplication(app.id()).stream()
+                .filter(i -> i.type().equals("deposit") && i.status().equals("Paid"))
+                .mapToLong(Billing.InvoiceLine::amount).sum();
+        return new Waitlist(offer, term.checkInStart(), refund);
+    }
+
+    private Optional<OfferRef> openOffer(long applicationId) {
+        return jdbc.sql("""
+                SELECT f.id, f.expires_at, (SELECT count(*) FROM app_round2_option o WHERE o.offer_id = f.id) AS options
+                FROM app_round2_offer f WHERE f.application_id = :app AND f.status = 'PENDING' AND f.expires_at > :now
+                ORDER BY f.created_at DESC LIMIT 1
+                """).param("app", applicationId).param("now", Timestamp.from(Instant.now(clock)))
+                .query((rs, i) -> new OfferRef(String.valueOf(rs.getLong("id")), rs.getTimestamp("expires_at").toInstant(),
+                        rs.getInt("options")))
+                .optional();
     }
 
     private RoommateView roommate(ApplicationStore.Application app) {
@@ -320,8 +351,19 @@ public class StudentApplicationQueries {
             case "SUBMITTED", "UNDER_REVIEW" -> List.of(
                     new String[] { "Review by the dormitory office", null },
                     new String[] { "Assignment results", DAY.format(term.resultsPublishedAt()) });
-            case "APPROVED", "WAITLISTED" -> List.<String[]>of(
+            case "APPROVED" -> List.<String[]>of(
                     new String[] { "Assignment results", DAY.format(term.resultsPublishedAt()) });
+            // Waitlisted: choose a Round-2 option or wait; the waitlist ends when check-in starts (A-61).
+            case "WAITLISTED" -> {
+                Optional<OfferRef> offer = openOffer(app.id());
+                String until = term.checkInStart() == null ? null : term.checkInStart().format(DATE);
+                yield List.<String[]>of(
+                        offer.isPresent()
+                                ? new String[] { "Choose a Room from the Round 2 options",
+                                        "By " + WHEN.format(offer.get().expiresAt()) }
+                                : new String[] { "Wait for a free Bed", until == null ? null : "Until " + until },
+                        new String[] { "Waitlist ends: not placed, Deposit refunded in full", until });
+            }
             default -> List.of();
         };
         for (int i = 0; i < next.size(); i++) {

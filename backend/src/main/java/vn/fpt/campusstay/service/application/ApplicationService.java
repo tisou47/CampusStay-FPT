@@ -80,8 +80,9 @@ public class ApplicationService {
     public record Responded(String applicationId, String depositInvoiceId) {
     }
 
+    /** A waitlisted Application is withdrawn instead, with a full refund (Round2Service.withdraw). */
     private static final Set<String> CANCELLABLE = Set.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
-            "UNDER_REVIEW", "APPROVED", "WAITLISTED");
+            "UNDER_REVIEW", "APPROVED");
     private static final String UNUSABLE_CODE = "This student code cannot be used. Check it and try again, "
             + "or choose Match me automatically.";
 

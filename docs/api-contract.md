@@ -105,6 +105,8 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`
 - `GET /students/me/round2-offer` → `{ offer: { id, expiresAt, termName, application: { id, roomTypeName, roomClassName, termPrice, depositPaid }, options: [{ id, roomTypeName, roomClassName, block, note, fill, termPrice, difference }] } | null }`
 - `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
+- `POST /applications/{id}/withdraw` (a Waitlisted Application) → `{ applicationId, refund }`: an open offer closes as declined, the Application is cancelled and the whole Deposit refunded after a Manager approves; `GET /applications/{id}` of a Waitlisted one carries `waitlist: { offer: { id, expiresAt, options } | null, until, refund }` (A-61)
+- `GET /students/me/refund-account` → `{ holder, number, bank, updatedAt }` · `PUT /students/me/refund-account` `{ holder, number, bank }` → the same (A-62)
 - `GET /round2/offers?termId&status&q&page&pageSize` (Managers) → `{ items: [{ id, applicationId, studentName, studentCode, requested, status: Pending|Accepted|Declined|Expired|Withdrawn|No offer, offeredAt, expiresAt, respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }` (A-58)
 
 ### Invoices and payment

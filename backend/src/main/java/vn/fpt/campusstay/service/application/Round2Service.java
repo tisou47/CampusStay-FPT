@@ -5,12 +5,14 @@ import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,8 @@ import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
+import vn.fpt.campusstay.config.TimeConfig;
+import vn.fpt.campusstay.event.WaitlistEnded;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.repository.application.ApplicationStore;
@@ -55,6 +59,10 @@ public class Round2Service {
     public record Responded(String balanceInvoiceId) {
     }
 
+    /** @param refund the Deposit paid, refunded in full after a Manager approves (VND) */
+    public record Withdrawn(String applicationId, long refund) {
+    }
+
     private record OfferRow(long id, long applicationId, Instant expiresAt) {
     }
 
@@ -70,10 +78,12 @@ public class Round2Service {
     private final BlockDirectory blocks;
     private final Billing billing;
     private final Round2Placements placements;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public Round2Service(JdbcClient jdbc, ApplicationStore applications, CurrentUser currentUser, TermCatalog terms,
-            Catalog catalog, BlockDirectory blocks, Billing billing, Round2Placements placements, Clock clock) {
+            Catalog catalog, BlockDirectory blocks, Billing billing, Round2Placements placements,
+            ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.applications = applications;
         this.currentUser = currentUser;
@@ -82,6 +92,7 @@ public class Round2Service {
         this.blocks = blocks;
         this.billing = billing;
         this.placements = placements;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -173,16 +184,90 @@ public class Round2Service {
         jdbc.sql("UPDATE app_round2_option SET held = FALSE WHERE offer_id = :offer").param("offer", offer.id()).update();
         jdbc.sql("UPDATE app_round2_offer SET status = :status, responded_at = :now, version = version + 1 WHERE id = :id")
                 .param("status", status).param("now", Timestamp.from(now)).param("id", offer.id()).update();
-        ApplicationStore.Application app = applications.find(offer.applicationId(), true).orElseThrow();
-        if (applications.transition(app.id(), Set.of("WAITLISTED"), "CANCELLED")) {
-            applications.event(app.id(), "CANCELLED", text, "The Application is cancelled; the Deposit is refunded "
-                    + "after a Manager approves.", null);
-            long paid = depositPaid(app.id());
-            if (paid > 0) {
-                billing.requestCredit(app.termId(), app.studentId(), null, "APPLICATION_CANCEL", app.id(),
-                        text + " · Application " + app.code(), paid);
+        cancelWaitlisted(applications.find(offer.applicationId(), true).orElseThrow(), text);
+    }
+
+    /**
+     * A waitlisted student who is not placed gets the whole Deposit back, whatever the cancellation rules say: the
+     * dormitory had no Bed for them (user decision 29/10/2026). @return the refund, or -1 when the Application was
+     * no longer waitlisted
+     */
+    private long cancelWaitlisted(ApplicationStore.Application app, String text) {
+        if (!applications.transition(app.id(), Set.of("WAITLISTED"), "CANCELLED")) {
+            return -1;
+        }
+        applications.event(app.id(), "CANCELLED", text, "The Application is cancelled; the Deposit is refunded "
+                + "after a Manager approves.", null);
+        long paid = depositPaid(app.id());
+        if (paid > 0) {
+            billing.requestCredit(app.termId(), app.studentId(), null, "APPLICATION_CANCEL", app.id(),
+                    text + " · Application " + app.code(), paid);
+        }
+        return paid;
+    }
+
+    /**
+     * The student leaves the waitlist (A-61): an open offer closes as declined and its Beds are released, the
+     * Application is cancelled and the Deposit refunded in full after a Manager approves.
+     */
+    @Transactional
+    public Withdrawn withdraw(String applicationId) {
+        long me = currentUser.require(Role.STUDENT).userId();
+        ApplicationStore.Application app = applications.find(applicationId == null ? "" : applicationId.trim())
+                .filter(a -> a.studentId() == me)
+                .flatMap(a -> applications.find(a.id(), true))
+                .orElseThrow(() -> ApiException.notFound("This Application does not exist."));
+        if (!app.status().equals("WAITLISTED")) {
+            throw ApiException.conflict("NOT_WAITLISTED", "Only an Application on the waitlist can be withdrawn.");
+        }
+        String text = "Withdrawn from the waitlist";
+        Optional<OfferRow> offer = jdbc.sql("""
+                SELECT id, application_id, expires_at FROM app_round2_offer
+                WHERE application_id = :app AND status = 'PENDING' FOR UPDATE
+                """).param("app", app.id())
+                .query((rs, i) -> new OfferRow(rs.getLong("id"), rs.getLong("application_id"),
+                        rs.getTimestamp("expires_at").toInstant()))
+                .optional();
+        long paid = depositPaid(app.id());
+        if (offer.isPresent()) {
+            close(offer.get(), "DECLINED", text, Instant.now(clock));
+        } else {
+            cancelWaitlisted(app, text);
+        }
+        return new Withdrawn(app.code(), paid);
+    }
+
+    /**
+     * The waitlist of a Term ends when its check-in starts (user decision 29/10/2026): Waitlisted Applications
+     * without an open offer are cancelled with a full refund, and the students are told. An open offer still runs to
+     * its answer or expiry. Terms whose stay is over are left alone. Idempotent.
+     */
+    @Transactional
+    public int endWaitlists() {
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        int ended = 0;
+        for (TermSummary term : terms.publishedTerms()) {
+            if (term.checkInStart() == null || today.isBefore(term.checkInStart())
+                    || (term.stayEnd() != null && today.isAfter(term.stayEnd()))) {
+                continue;
+            }
+            List<Long> waiting = jdbc.sql("""
+                    SELECT a.id FROM app_application a
+                    WHERE a.term_id = :term AND a.status = 'WAITLISTED'
+                      AND NOT EXISTS (SELECT 1 FROM app_round2_offer f
+                                      WHERE f.application_id = a.id AND f.status = 'PENDING')
+                    ORDER BY a.id FOR UPDATE SKIP LOCKED
+                    """).param("term", term.id()).query(Long.class).list();
+            for (long id : waiting) {
+                ApplicationStore.Application app = applications.find(id, true).orElseThrow();
+                long refund = cancelWaitlisted(app, "No Bed was found before check-in");
+                if (refund >= 0) {
+                    ended++;
+                    events.publishEvent(new WaitlistEnded(app.id(), app.code(), app.studentId(), term.name(), refund));
+                }
             }
         }
+        return ended;
     }
 
     private long depositPaid(long applicationId) {

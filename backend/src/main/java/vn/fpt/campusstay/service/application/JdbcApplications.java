@@ -19,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 import vn.fpt.campusstay.service.application.Applications;
+import vn.fpt.campusstay.event.ApplicationWaitlisted;
 import vn.fpt.campusstay.event.Round2Offered;
+import vn.fpt.campusstay.service.setting.TermCatalog;
+import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.repository.application.ApplicationStore;
 
 /** Implements {@link Applications} for the assignment engine. */
@@ -30,13 +33,15 @@ class JdbcApplications implements Applications {
     private final ApplicationStore applications;
     private final JsonMapper json;
     private final ApplicationEventPublisher events;
+    private final TermCatalog terms;
 
     JdbcApplications(JdbcClient jdbc, ApplicationStore applications, JsonMapper json,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events, TermCatalog terms) {
         this.jdbc = jdbc;
         this.applications = applications;
         this.json = json;
         this.events = events;
+        this.terms = terms;
     }
 
     @Override
@@ -158,6 +163,10 @@ class JdbcApplications implements Applications {
     public void waitlisted(long applicationId, String reason) {
         if (applications.transition(applicationId, Set.of("APPROVED"), "WAITLISTED")) {
             applications.event(applicationId, "WAITLISTED", "Waitlisted", reason, null);
+            ApplicationStore.Application app = applications.find(applicationId, false).orElseThrow();
+            Optional<TermSummary> term = terms.findPublished(app.termId());
+            events.publishEvent(new ApplicationWaitlisted(app.id(), app.code(), app.studentId(),
+                    term.map(TermSummary::name).orElse(""), term.map(TermSummary::checkInStart).orElse(null)));
         }
     }
 
