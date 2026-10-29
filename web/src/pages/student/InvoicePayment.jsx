@@ -129,7 +129,7 @@ function Payment({ data, reload }) {
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <Card padding="lg" className="flex w-full shrink-0 flex-col items-center gap-2.5 lg:w-100 lg:gap-4 lg:overflow-y-auto">
-        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">
+        <h2 className="text-card-title text-fg max-lg:hidden">
           {paid ? t('Payment confirmed') : waiting ? t('Transfer reported') : qr ? t('Scan with any banking app') : t('Transfer to the dormitory')}
         </h2>
         <div className="relative flex size-52 shrink-0 items-center justify-center rounded-lg border border-line lg:size-66">
@@ -141,7 +141,7 @@ function Payment({ data, reload }) {
             </span>
           )}
           {(paid || waiting) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/90">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-surface/90">
               {paid ? <CircleCheck size={48} aria-hidden="true" className="text-success" /> : <Hourglass size={48} aria-hidden="true" className="text-info" />}
               <p className={paid ? 'text-base font-medium text-success-fg' : 'px-4 text-center text-base font-medium text-info-fg'}>
                 {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}
@@ -217,7 +217,7 @@ function Payment({ data, reload }) {
               </Alert>
             )}
             <Card className="flex shrink-0 flex-col gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Paid already? Tell the dormitory')}</h2>
+              <h2 className="text-card-title text-fg">{t('Paid already? Tell the dormitory')}</h2>
               <p className="text-sm text-fg-secondary">
                 {t('Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A Manager checks the bank account and confirms it.', { amount: formatVnd(invoice.amount), content: transferContent })}
               </p>
@@ -244,7 +244,7 @@ function Payment({ data, reload }) {
 
         {!paid && !waiting && bank && (
           <Card className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Or transfer manually')}</h2>
+            <h2 className="text-card-title text-fg">{t('Or transfer manually')}</h2>
             <DetailRows
               className="mt-1"
               rows={[
@@ -260,7 +260,7 @@ function Payment({ data, reload }) {
         )}
 
         <Card className="flex shrink-0 flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">{t('Invoice')}</h2>
+          <h2 className="text-card-title text-fg">{t('Invoice')}</h2>
           <DetailRows
             className="mt-1"
             rows={[

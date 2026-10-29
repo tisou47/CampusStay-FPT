@@ -19,7 +19,7 @@ function SectionHead({ title, editTo }) {
   const navigate = useNavigate()
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-h3 font-semibold text-fg">{t(title)}</h2>
+      <h2 className="text-card-title text-fg">{t(title)}</h2>
       {editTo && (
         <Button variant="text" icon={Pencil} onClick={() => navigate(editTo)}>
           Edit
@@ -136,7 +136,7 @@ export default function ApplyReview() {
         />
       </Card>
 
-      <section className="flex shrink-0 flex-col gap-3 rounded-lg border border-orange-200 bg-brand-subtle p-5">
+      <section className="flex shrink-0 flex-col gap-3 rounded-lg border border-primary/25 bg-brand-subtle p-5">
         <div className="flex items-center justify-between gap-6">
           <div className="flex flex-col gap-0.5">
             <p className="text-base font-medium text-fg-secondary">{t('Deposit to pay after submit')}</p>

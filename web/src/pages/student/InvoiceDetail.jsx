@@ -22,7 +22,7 @@ function Breakdown({ inv }) {
   return (
     <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
       <div className="flex shrink-0 flex-col gap-1">
-        <h2 className="text-h3 font-semibold text-fg">{t('How your share is calculated')}</h2>
+        <h2 className="text-card-title text-fg">{t('How your share is calculated')}</h2>
         <p className="text-base text-fg-secondary">{inv.room ? `${t('{room} has one shared meter.', { room: inv.room })} ` : ''}{t('Each segment is split equally among the residents in it.')}</p>
       </div>
       {/* Phone: MOB-BIL-03 Utility Invoice › Segments (Figma 104:14502) — a dated line and its usage per segment. */}
@@ -99,7 +99,7 @@ function Breakdown({ inv }) {
 function Lines({ inv }) {
   return (
     <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-1 self-start">
-      <h2 className="text-h3 font-semibold text-fg">{tr(inv.typeLabel) || t('Invoice')}</h2>
+      <h2 className="text-card-title text-fg">{tr(inv.typeLabel) || t('Invoice')}</h2>
       <DetailRows className="mt-2" rows={[...(inv.lines ?? []).map((l) => [l.label, formatVnd(l.amount)]), ['Total', <span className="font-medium">{formatVnd(inv.amount)}</span>]]} />
     </Card>
   )

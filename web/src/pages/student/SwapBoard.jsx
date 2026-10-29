@@ -94,7 +94,7 @@ export default function SwapBoard() {
 
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="flex shrink-0 flex-col gap-1">
-              <h2 className="text-h3 font-semibold text-fg">{t('Compatible posts')}{board.data ? ` (${items.length})` : ''}</h2>
+              <h2 className="text-card-title text-fg">{t('Compatible posts')}{board.data ? ` (${items.length})` : ''}</h2>
               <p className="text-base text-fg-secondary">{t('Posts that want your Room and offer what you want. No names or Student codes are shown.')}</p>
             </div>
             <Table fill>

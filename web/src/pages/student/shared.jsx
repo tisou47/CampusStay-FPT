@@ -33,7 +33,7 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
           <div className="flex min-w-0 flex-col gap-1">
             {breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
             <div className="flex items-center gap-3">
-              <h1 className="text-h1 font-semibold text-fg max-lg:sr-only">{tx(title)}</h1>
+              <h1 className="text-page-title text-fg max-lg:sr-only">{tx(title)}</h1>
               {badge}
             </div>
             {description && <p className="text-lg text-fg-secondary max-lg:hidden">{tx(description)}</p>}
@@ -52,7 +52,7 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
  */
 export function NextAction({ icon: Glyph, title, children, deadline, deadlineIcon: DeadlineGlyph = Clock, action }) {
   return (
-    <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-orange-200 bg-brand-subtle p-4 lg:min-h-25 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-3">
+    <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-primary/25 bg-brand-subtle p-4 lg:min-h-25 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-3">
       <span className="hidden size-12 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
         <Glyph size={24} aria-hidden="true" />
       </span>
@@ -63,7 +63,7 @@ export function NextAction({ icon: Glyph, title, children, deadline, deadlineIco
             {tx(deadline)}
           </p>
         )}
-        <h2 className="text-h2 font-semibold text-fg">{tx(title)}</h2>
+        <h2 className="text-section-title text-fg">{tx(title)}</h2>
         {children && <p className="text-base text-fg-secondary">{tx(children)}</p>}
         {deadline && (
           <p className="hidden items-center gap-1.5 text-sm font-medium text-warning-fg lg:flex">
@@ -179,7 +179,7 @@ export function TermTimeline({ term, milestones, className }) {
   return (
     <Card padding="lg" className={cx('flex flex-col gap-4', className)}>
       <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-h3 font-semibold text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
+        <h2 className="text-card-title text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
         {term?.stayStart && (
           <p className="text-sm text-fg-tertiary">
             {t('Term {start} – {end}', { start: formatDate(term.stayStart), end: formatDate(term.stayEnd) })}
@@ -196,7 +196,7 @@ export function TermTimeline({ term, milestones, className }) {
                   'size-2.5 shrink-0 rounded-full',
                   state === 'done' && 'bg-success',
                   state === 'current' && 'bg-primary ring-4 ring-primary-subtle',
-                  state === 'upcoming' && 'border-[1.5px] border-line-strong bg-white',
+                  state === 'upcoming' && 'border-[1.5px] border-line-strong bg-surface',
                 )}
               />
               {i < milestones.length - 1 && (

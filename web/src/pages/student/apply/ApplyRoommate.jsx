@@ -56,7 +56,7 @@ export default function ApplyRoommate() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Roommate')}</h2>
+          <h2 className="text-card-title text-fg">{t('Roommate')}</h2>
           <p className="text-base text-fg-secondary">{t('2-bed Rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6" role="radiogroup" aria-label={t('Roommate')}>
@@ -121,7 +121,7 @@ export default function ApplyRoommate() {
           <div className="flex items-start gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-h3 font-semibold text-fg">{t('Roommate preferences')}</h2>
+                <h2 className="text-card-title text-fg">{t('Roommate preferences')}</h2>
                 <Tag tone="success" dot={false}>
                   Free
                 </Tag>

@@ -76,7 +76,7 @@ function Form({ opts }) {
       </Card>
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4">
         <Card padding="lg" className="flex shrink-0 flex-col gap-2.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Next-Term fee')}</h2>
+          <h2 className="text-card-title text-fg">{t('Next-Term fee')}</h2>
           <div className="flex justify-between text-base">
             <span className="text-fg-secondary">{tr(opts.current?.name)}</span>
             <span className="text-fg">{formatVnd(opts.current?.termPrice)}</span>
@@ -98,7 +98,7 @@ function OpenChange({ open }) {
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Change to {cls} · {id}', { cls: tr(open.toClass), id: open.id })}</h2>
+        <h2 className="text-card-title text-fg">{t('Change to {cls} · {id}', { cls: tr(open.toClass), id: open.id })}</h2>
         <StatusTag status={open.status} />
       </div>
       <p className="text-base text-fg-secondary">{t('Asked by {name}', { name: open.requestedBy })}</p>

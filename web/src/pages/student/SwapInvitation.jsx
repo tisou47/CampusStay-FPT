@@ -56,7 +56,7 @@ function Invitation({ inv }) {
       )}
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">{t('A Student wants to swap next-Term Beds with you')}</h2>
+          <h2 className="text-card-title text-fg">{t('A Student wants to swap next-Term Beds with you')}</h2>
           <p className="text-base text-fg-secondary">{t('Their name and code stay private until the swap is approved.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">

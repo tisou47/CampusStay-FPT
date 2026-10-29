@@ -62,13 +62,13 @@ function Invitation({ inv }) {
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-sm font-medium text-fg-tertiary">{t('Roommate invitation')}</p>
-          <h1 className="text-h2 font-semibold text-fg">
+          <h1 className="text-page-title text-fg">
             {t('{name} invited you to share a {type} Room', { name: inv.fromName, type: tr(inv.roomTypeName) })}
           </h1>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-warning-bg p-4">
+      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning-bg p-4">
         <Clock size={20} aria-hidden="true" className="shrink-0 text-warning" />
         <div className="flex flex-col">
           <p className="text-base font-medium text-warning-fg">{left === 'Expired' ? t('This invitation has expired') : t('Answer within {time}', { time: left })}</p>

@@ -58,7 +58,7 @@ export function YourRoomNow() {
   const query = useMyAllocation()
   return (
     <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
-      <h2 className="text-h3 font-semibold text-fg">{t('Your Bed next Term')}</h2>
+      <h2 className="text-card-title text-fg">{t('Your Bed next Term')}</h2>
       <QueryState
         query={query}
         compact

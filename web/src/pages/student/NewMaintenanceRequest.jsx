@@ -152,7 +152,7 @@ export default function NewMaintenanceRequest() {
                     className="group relative size-20 overflow-hidden rounded-md border border-line bg-subtle"
                   >
                     <img src={p.url} alt={p.file.name} className="size-full object-cover" />
-                    <span className="absolute inset-0 hidden items-center justify-center bg-gray-900/45 text-white group-hover:flex">
+                    <span className="absolute inset-0 hidden items-center justify-center bg-text/45 text-fg-on-brand group-hover:flex">
                       <X size={20} aria-hidden="true" />
                     </span>
                   </button>
@@ -191,7 +191,7 @@ export default function NewMaintenanceRequest() {
               : t('For fire, flooding or electrical danger, go to the desk on Floor 1 right away. Do not wait for this form.')}
           </Alert>
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('What happens next')}</h2>
+            <h2 className="text-card-title text-fg">{t('What happens next')}</h2>
             <ol className="flex flex-col gap-3">
               {nextSteps.map((title, i) => (
                 <li key={title} className="flex items-center gap-2">

@@ -131,7 +131,7 @@ function Form({ opts }) {
 
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         <Card padding="lg" className="flex shrink-0 flex-col gap-2.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Next-Term fee')}</h2>
+          <h2 className="text-card-title text-fg">{t('Next-Term fee')}</h2>
           <div className="flex justify-between text-base">
             <span className="text-fg-secondary">{t('Your Bed now · {cls}', { cls: tr(cur.roomClassName) })}</span>
             <span className="text-fg">{formatVnd(current)}</span>

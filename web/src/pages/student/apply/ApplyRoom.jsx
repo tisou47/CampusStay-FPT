@@ -31,7 +31,7 @@ export default function ApplyRoom() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Room Type')}</h2>
+          <h2 className="text-card-title text-fg">{t('Room Type')}</h2>
           <p className="text-base text-fg-secondary">{t('Number of Beds in the Room. Prices are per Bed for the whole Term.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Type')}>
@@ -55,7 +55,7 @@ export default function ApplyRoom() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Room Class')}</h2>
+          <h2 className="text-card-title text-fg">{t('Room Class')}</h2>
           <p className="text-base text-fg-secondary">{t('Amenities level. The surcharge is added to the Room Type price.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Class')}>
@@ -79,7 +79,7 @@ export default function ApplyRoom() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('How long do you want to stay?')}</h2>
+          <h2 className="text-card-title text-fg">{t('How long do you want to stay?')}</h2>
           <p className="text-base text-fg-secondary">{t('The number of Terms you plan to stay. You keep your Bed from Term to Term and can extend or end your stay later.')}</p>
         </div>
         <Select

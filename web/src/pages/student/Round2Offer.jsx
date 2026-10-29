@@ -55,7 +55,7 @@ function Offer({ offer }) {
 
         <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Pick a free Bed in a partly filled Room')}</h2>
+            <h2 className="text-card-title text-fg">{t('Pick a free Bed in a partly filled Room')}</h2>
             <p className="text-base text-fg-secondary">{t('Offers are held until {date}. You choose a Room Type and Class; the system picks the Bed.', { date: formatDateTime(offer.expiresAt) })}</p>
           </div>
           <Table fill>
@@ -117,7 +117,7 @@ function Offer({ offer }) {
       </div>
 
       <Card padding="lg" className="flex w-full shrink-0 flex-col lg:w-90 gap-3 self-start">
-        <h2 className="text-h3 font-semibold text-fg">{app.id}</h2>
+        <h2 className="text-card-title text-fg">{app.id}</h2>
         {[
           ['Applied for', `${tr(app.roomTypeName)} · ${tr(app.roomClassName)}`],
           ['Deposit paid', formatVnd(app.depositPaid)],

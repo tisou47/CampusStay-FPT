@@ -118,7 +118,7 @@ function VerificationBanner() {
   const { pathname } = useLocation()
   if (user?.verification !== 'Pending verification' || pathname === '/student/verification') return null
   return (
-    <div className="shrink-0 border-b border-orange-200 bg-warning-bg">
+    <div className="shrink-0 border-b border-warning/30 bg-warning-bg">
       <StudentContainer className="flex items-center gap-2 py-2 text-sm text-warning-fg">
         <ShieldAlert size={16} aria-hidden="true" className="shrink-0" />
         <span className="min-w-0 flex-1">{t('Your account is waiting for a Manager to verify it. You can look around; you can apply once it is verified.')}</span>
@@ -132,14 +132,16 @@ function VerificationBanner() {
 
 // One-screen shell: the window never scrolls; each page fills the area under the top bar.
 // On a phone the App Bar and Bottom Nav stay in place and the page scrolls between them.
+// .student-ui switches the student tokens on (index.css); <main> keeps its scrollbar gutter so the
+// content does not shift between short and long pages.
 export function StudentLayout() {
   return (
     <MobileBarProvider>
-      <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+      <div className="student-ui flex h-dvh flex-col overflow-hidden bg-canvas">
         <StudentTopBar />
         <MobileAppBar />
         <VerificationBanner />
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
           <Outlet />
         </main>
         <MobileBottomNav />

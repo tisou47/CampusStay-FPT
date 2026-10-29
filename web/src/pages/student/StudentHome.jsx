@@ -55,7 +55,7 @@ function RoomTypesCard() {
   return (
     <Card padding="lg" className="flex w-full shrink-0 flex-col gap-3 lg:min-h-0 lg:w-96">
       <div className="flex shrink-0 flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{t('Room Types')}</h2>
+        <h2 className="text-card-title text-fg">{t('Room Types')}</h2>
         <p className="text-sm text-fg-tertiary">{t('Lowest Term price per Bed.')}</p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -217,7 +217,7 @@ function HomeContent({ home }) {
   return (
     <>
       <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
-        <h1 className="text-h1 font-semibold text-fg">{greeting(home.firstName)}</h1>
+        <h1 className="text-page-title text-fg">{greeting(home.firstName)}</h1>
         <p className="text-lg text-fg-secondary">{subtitle}</p>
       </div>
 

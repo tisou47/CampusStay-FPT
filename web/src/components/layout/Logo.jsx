@@ -6,15 +6,19 @@ export function Logo({ subtitle = 'FPT University · Tân Uyên', size = 'sm', c
   const lg = size === 'lg'
   return (
     <div className={cx('flex shrink-0 items-center gap-2.5', className)}>
-      <span
+      {/* A fixed-size SVG: the "CS" mark looks the same on every page and never shifts the layout. */}
+      <svg
         aria-hidden="true"
-        className={cx(
-          'flex shrink-0 items-center justify-center rounded-lg bg-primary text-fg-on-brand',
-          lg ? 'size-10 text-h3 font-semibold' : 'size-8 text-base font-medium',
-        )}
+        viewBox="0 0 40 40"
+        width={lg ? 40 : 32}
+        height={lg ? 40 : 32}
+        className="shrink-0 text-primary"
       >
-        CS
-      </span>
+        <rect width="40" height="40" rx="9" fill="currentColor" />
+        <text x="20" y="25.5" textAnchor="middle" className="fill-fg-on-brand" fontFamily="inherit" fontSize="16" fontWeight="600">
+          CS
+        </text>
+      </svg>
       <span className="flex flex-col whitespace-nowrap">
         <span className={cx('font-semibold text-fg', lg ? 'text-h2' : 'text-h3')}>CampusStay</span>
         <span className={cx('text-sm', lg ? 'text-fg-secondary' : 'text-fg-tertiary')}>{tx(subtitle)}</span>

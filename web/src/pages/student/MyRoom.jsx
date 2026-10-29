@@ -54,7 +54,7 @@ function DoorCodeCard() {
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Door code')}</h2>
+        <h2 className="text-card-title text-fg">{t('Door code')}</h2>
         <StatusTag status={d.status} />
       </div>
       {d.status === 'Ready' ? (
@@ -119,7 +119,7 @@ function LateCheckInCard() {
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Late check-in')}</h2>
+        <h2 className="text-card-title text-fg">{t('Late check-in')}</h2>
         {r && <StatusTag status={r.status} />}
       </div>
       {r && (
@@ -178,7 +178,7 @@ function FurnitureCard() {
   )
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-      <h2 className="text-h3 font-semibold text-fg">{t('Furniture')}</h2>
+      <h2 className="text-card-title text-fg">{t('Furniture')}</h2>
       {items.length ? (
         <ul className="flex flex-col gap-2">
           {groups.map((g) => (
@@ -269,7 +269,7 @@ function NextTermCard({ data }) {
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Next Term · {term}', { term: n.term?.name })}</h2>
+        <h2 className="text-card-title text-fg">{t('Next Term · {term}', { term: n.term?.name })}</h2>
         <StatusTag status={n.state} />
       </div>
       {n.state === 'Not continuing' ? (
@@ -403,7 +403,7 @@ function Room({ data }) {
             {t('Your Bed is held until {date}. Unpaid by then, it is released and the Deposit is kept.', { date: formatDateTime(balance?.dueAt) })}
           </Alert>
         )}
-        <section className="flex shrink-0 flex-col items-start gap-1.5 rounded-xl border border-orange-200 bg-brand-subtle p-4 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-5">
+        <section className="flex shrink-0 flex-col items-start gap-1.5 rounded-xl border border-primary/25 bg-brand-subtle p-4 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-5">
           <span className="hidden size-14 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
             <Bed size={28} aria-hidden="true" />
           </span>
@@ -418,7 +418,7 @@ function Room({ data }) {
         </section>
 
         <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-          <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{t('Details')}</h2>
+          <h2 className="text-card-title text-fg max-lg:hidden">{t('Details')}</h2>
           {tm && (
             <Facts
               className="lg:hidden"
@@ -455,7 +455,7 @@ function Room({ data }) {
 
         <Card padding="lg" className="flex shrink-0 flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-h3 font-semibold text-fg">{t('Roommates')}</h2>
+            <h2 className="text-card-title text-fg">{t('Roommates')}</h2>
             {data.roommateCapacity != null && (
               <span className="text-sm text-fg-tertiary">
                 {t('{n} of {total}', { n: roommates.length, total: data.roommateCapacity })}
@@ -488,7 +488,7 @@ function Room({ data }) {
         {!checkIn?.checkedInAt && !resident && <LateCheckInCard />}
         {checkIn && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('Check-in')}</h2>
+            <h2 className="text-card-title text-fg">{t('Check-in')}</h2>
             {checkIn.checkedInAt ? (
               <InfoRow icon={Calendar} label="Checked in" value={formatDate(checkIn.checkedInAt)} />
             ) : (
@@ -506,7 +506,7 @@ function Room({ data }) {
 
         {balance && (
           <Card padding="lg" className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('Balance')}</h2>
+            <h2 className="text-card-title text-fg">{t('Balance')}</h2>
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 <p className="text-h2 font-semibold text-fg">{formatVnd(balance.amount)}</p>

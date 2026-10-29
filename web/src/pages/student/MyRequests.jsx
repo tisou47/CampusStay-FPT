@@ -109,12 +109,12 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
               ]}
             />
             <div className="flex flex-col gap-3">
-              <h3 className="text-h3 font-semibold text-fg">{t('Progress')}</h3>
+              <h3 className="text-card-title text-fg">{t('Progress')}</h3>
               <ProgressTimeline events={progressOf(req)} />
             </div>
             {updates.length > 0 && (
               <div className="flex flex-col gap-3">
-                <h3 className="text-h3 font-semibold text-fg">{t('Updates from the dormitory office')}</h3>
+                <h3 className="text-card-title text-fg">{t('Updates from the dormitory office')}</h3>
                 {updates.map((e) => (
                   <div key={`${e.at}-${e.message}`} className="flex flex-col gap-0.5 rounded-lg bg-subtle px-3 py-2.5">
                     <p className="text-base text-fg">{e.message}</p>
@@ -251,7 +251,7 @@ export default function MyRequests() {
                     ))}
               </StatusList>
               {resolved && (
-                <section className="flex flex-col gap-2 rounded-xl border border-green-100 bg-success-bg p-4">
+                <section className="flex flex-col gap-2 rounded-xl border border-success/25 bg-success-bg p-4">
                   <h2 className="text-base font-medium text-fg">{t('Is “{title}” fixed?', { title: resolved.title })}</h2>
                   <p className="text-sm text-fg-secondary">{t('Confirm to close {id}, or reopen it.', { id: resolved.id })}</p>
                   <div className="flex gap-2 pt-1 *:flex-1">

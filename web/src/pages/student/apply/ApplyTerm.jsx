@@ -26,7 +26,7 @@ export default function ApplyTerm() {
       actions={<WizardActions backLabel="Cancel" backTo="/student" showBackIcon={false} onNext={() => navigate(wizard.next('term'))} nextDisabled={!eligibility.data?.eligible} />}
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-        <h2 className="text-h3 font-semibold text-fg">{t('Term')}</h2>
+        <h2 className="text-card-title text-fg">{t('Term')}</h2>
         <Facts
           items={[
             ['Term', info?.name ?? '—'],
@@ -40,7 +40,7 @@ export default function ApplyTerm() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-h3 font-semibold text-fg">{t('Eligibility check')}</h2>
+          <h2 className="text-card-title text-fg">{t('Eligibility check')}</h2>
           {eligibility.data && <Tag tone={eligibility.data.eligible ? 'success' : 'error'}>{eligibility.data.eligible ? t('Eligible') : t('Not eligible')}</Tag>}
         </div>
         <QueryState query={eligibility} compact isEmpty={(d) => !d?.checks?.length}>

@@ -67,7 +67,7 @@ export function RefundAccountCard() {
       <div className="flex items-start gap-3">
         <Landmark size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Refund account')}</h2>
+          <h2 className="text-card-title text-fg">{t('Refund account')}</h2>
           <p className="text-sm text-fg-secondary">
             {account.has
               ? `${account.saved.holder} · ${account.saved.number} · ${account.saved.bank}`

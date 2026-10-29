@@ -65,7 +65,7 @@ export default function RegistrationPeriod() {
                 <li key={m.key} className="flex items-center gap-3">
                   <span
                     aria-hidden="true"
-                    className={cx('size-2.5 shrink-0 rounded-full', m.done ? 'bg-success' : i === firstUpcoming ? 'bg-primary' : 'border-[1.5px] border-line-strong bg-white')}
+                    className={cx('size-2.5 shrink-0 rounded-full', m.done ? 'bg-success' : i === firstUpcoming ? 'bg-primary' : 'border-[1.5px] border-line-strong bg-surface')}
                   />
                   <span className={cx('flex-1 text-base', i === firstUpcoming ? 'font-medium text-fg' : m.done ? 'text-fg' : 'text-fg-secondary')}>{t(m.label)}</span>
                   <span className="text-base whitespace-nowrap text-fg-secondary">

@@ -60,7 +60,7 @@ function DetailsForm({ data, onSent }) {
   const ready = ['studentCode', 'name', 'gender', 'dateOfBirth', 'major', 'cohort', 'phone'].every((k) => String(form[k] ?? '').trim())
   return (
     <Card padding="lg" className="flex flex-col gap-4">
-      <h2 className="text-h3 font-semibold text-fg">{first ? t('Your student details') : t('Correct your details')}</h2>
+      <h2 className="text-card-title text-fg">{first ? t('Your student details') : t('Correct your details')}</h2>
       {send.error && !Object.keys(send.error.fields ?? {}).length && (
         <Alert type="error" title="Could not send your details">
           {send.error.message}
@@ -151,7 +151,7 @@ export default function Verification() {
               <Card padding="lg" className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <BadgeCheck size={20} aria-hidden="true" className="text-success" />
-                  <h2 className="text-h3 font-semibold text-fg">{t('Your account is verified')}</h2>
+                  <h2 className="text-card-title text-fg">{t('Your account is verified')}</h2>
                 </div>
                 <Facts
                   items={[

@@ -38,7 +38,7 @@ function PeriodCard({ card }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium text-fg-tertiary">{t('Registration period')}</span>
-          <h2 className="text-h3 font-semibold text-fg">{card.name}</h2>
+          <h2 className="text-card-title text-fg">{card.name}</h2>
         </div>
         <Tag tone={periodTone[card.status] ?? 'neutral'}>{card.status}</Tag>
       </div>
@@ -150,7 +150,7 @@ export function DormitoryBoard() {
       {card && <PeriodCard card={card} />}
       <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
+          <h2 className="flex items-center gap-2 text-card-title text-fg">
             <Megaphone size={18} aria-hidden="true" />
             {t('Dormitory board')}
           </h2>

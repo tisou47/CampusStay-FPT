@@ -126,7 +126,7 @@ function Detail({ app }) {
       <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Progress')}</h2>
+            <h2 className="shrink-0 text-card-title text-fg">{t('Progress')}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {app.events?.length ? (
                 <ProgressTimeline events={app.events.map((e) => ({ title: e.title, time: e.note ?? (e.at ? formatDateTime(e.at) : null), state: e.state }))} />
@@ -137,7 +137,7 @@ function Detail({ app }) {
           </Card>
 
           <Card padding="lg" className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Room preference')}</h2>
+            <h2 className="text-card-title text-fg">{t('Room preference')}</h2>
             <DetailRows
               className="mt-2"
               rows={[
@@ -153,7 +153,7 @@ function Detail({ app }) {
 
         <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
           <Card padding="lg" className="flex flex-col items-start gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('Payments')}</h2>
+            <h2 className="text-card-title text-fg">{t('Payments')}</h2>
             {(app.invoices ?? []).length === 0 && <p className="text-base text-fg-secondary">{t('No Invoices yet.')}</p>}
             {(app.invoices ?? []).map((inv) => (
               <div key={inv.id} className="flex w-full items-start gap-3">
@@ -177,7 +177,7 @@ function Detail({ app }) {
 
           {waitlist && (
             <Card padding="lg" className="flex flex-col gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('What would you like to do?')}</h2>
+              <h2 className="text-card-title text-fg">{t('What would you like to do?')}</h2>
               <div className="flex flex-col gap-1 rounded-lg border border-line p-3">
                 <p className="text-base font-medium text-fg">{t(waitlist.offer ? 'Take a Round 2 Bed' : 'Keep waiting')}</p>
                 <p className="text-sm text-fg-secondary">
@@ -203,13 +203,13 @@ function Detail({ app }) {
 
           {allocated ? (
             <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Need a different Room?')}</h2>
+              <h2 className="text-card-title text-fg">{t('Need a different Room?')}</h2>
               <p className="text-sm text-fg-secondary">{t('Room Type and Room Class are locked for this Term. After check-in you can ask for a room change or swap with another Student.')}</p>
               <Button to="/student/requests/room-change/new">New room-change request</Button>
             </Card>
           ) : app.canCancel ? (
             <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Need to change something?')}</h2>
+              <h2 className="text-card-title text-fg">{t('Need to change something?')}</h2>
               <p className="text-sm text-fg-secondary">
                 {app.registrationClosesAt
                   ? t('Room Type and Room Class are locked. Cancel to apply again before {date}; the deposit refund follows the dormitory refund rules.', { date: formatDateTime(app.registrationClosesAt) })

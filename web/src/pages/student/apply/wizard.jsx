@@ -144,7 +144,7 @@ export function SelectionSummary({ wizard }) {
   const depositRate = catalog.data?.depositRate
   return (
     <Card padding="lg" className="flex flex-col gap-3">
-      <h2 className="text-h3 font-semibold text-fg">{t('Your selection')}</h2>
+      <h2 className="text-card-title text-fg">{t('Your selection')}</h2>
       <SummaryRow label="Term" value={term?.name} />
       <SummaryRow label="Room Type" value={roomType?.name} />
       <SummaryRow label="Room Class" value={classLabel(helpers.roomClass(draft.roomClassId))} />
@@ -172,7 +172,7 @@ export function WizardLayout({ wizard, stepKey, actions, children }) {
     <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-4 lg:py-6">
       <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
         <Breadcrumb items={[{ label: 'Application', to: '/student/applications' }, { label: 'New application' }]} />
-        <h1 className="text-h1 font-semibold text-fg">{t('Dormitory application')}{term ? ` · ${term.name}` : ''}</h1>
+        <h1 className="text-page-title text-fg">{t('Dormitory application')}{term ? ` · ${term.name}` : ''}</h1>
       </div>
       <Card padding="none" className="hidden h-16 shrink-0 items-center px-5 lg:flex">
         <Steps steps={steps.map((s) => t(titles[s]))} current={current} />

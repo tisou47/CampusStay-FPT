@@ -35,7 +35,7 @@ export default function ApplyPersonal() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-h3 font-semibold text-fg">{t('From FPT student records')}</h2>
+          <h2 className="text-card-title text-fg">{t('From FPT student records')}</h2>
           <Tag>Read-only</Tag>
         </div>
         <QueryState query={profile} compact>
@@ -61,7 +61,7 @@ export default function ApplyPersonal() {
       </Card>
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-        <h2 className="text-h3 font-semibold text-fg">{t('Contact and emergency contact')}</h2>
+        <h2 className="text-card-title text-fg">{t('Contact and emergency contact')}</h2>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
           <Field label="Phone number" required className="flex-1">
             {(id) => <Input id={id} size="lg" type="tel" value={contact.phone ?? ''} onChange={setContact('phone')} />}
@@ -93,7 +93,7 @@ export default function ApplyPersonal() {
 
       <Card padding="lg" className="flex shrink-0 flex-col items-start gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Consent')}</h2>
+          <h2 className="text-card-title text-fg">{t('Consent')}</h2>
           <p className="text-sm text-fg-tertiary">{t('Required under the Personal Data Protection Law 91/2025/QH15.')}</p>
         </div>
         <Checkbox
