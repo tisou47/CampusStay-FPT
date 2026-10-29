@@ -1,4 +1,5 @@
 import { ArrowRightLeft, Banknote, Bed, CalendarClock, CreditCard, Download, FileText, Layers, Repeat2, Route, TriangleAlert, Users, Wrench } from 'lucide-react'
+import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -42,6 +43,7 @@ export default function ManagerDashboard() {
   const proposal = w?.proposal
   // One line for every missing routing rule (a Block and a request type each), not one line per rule.
   const routingGaps = (d?.waiting ?? []).filter((x) => x.kind === 'routing')
+  const gapBlocks = [...new Set(routingGaps.map((x) => x.values?.block ?? /Block (\w+)/.exec(x.title)?.[1]).filter(Boolean))]
 
   const items = [
     claim?.count > 0 && {
@@ -114,14 +116,6 @@ export default function ManagerDashboard() {
       meta: 'Cancelled Applications, ended stays and terminations',
       action: { label: 'Decide', to: '/manager/finance' },
     },
-    routingGaps.length > 0 && {
-      id: 'routing',
-      icon: Route,
-      tone: 'info',
-      title: t('{n} routing rules missing', { n: routingGaps.length }),
-      meta: t('Blocks {list}: new requests of these types wait unassigned until someone takes them', { list: [...new Set(routingGaps.map((x) => x.values?.block ?? /Block (\w+)/.exec(x.title)?.[1]).filter(Boolean))].join(', ') }),
-      action: { label: 'Add rules', to: '/manager/routing-rules' },
-    },
     ...(d?.waiting ?? [])
       .filter((x) => x.kind === 'check-out')
       .map((x) => ({
@@ -181,6 +175,17 @@ export default function ManagerDashboard() {
           <QueryState query={query} compact isEmpty={() => false}>
             {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, Applications, proposals and requests appear here.</EmptyBlock>} />}
           </QueryState>
+          {routingGaps.length > 0 && (
+            <p className="mt-2 flex items-center gap-2 border-t border-line pt-2 text-sm text-fg-secondary">
+              <Route size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+              <span className="min-w-0 flex-1">
+                {t('Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.', { n: routingGaps.length, list: gapBlocks.join(', ') })}
+              </span>
+              <Link to="/manager/routing-rules" className="shrink-0 font-medium text-fg-link hover:underline">
+                {t('Add rules')}
+              </Link>
+            </p>
+          )}
         </Panel>
 
         <div className="flex min-h-0 flex-col gap-4">
