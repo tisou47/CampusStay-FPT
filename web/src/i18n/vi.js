@@ -414,6 +414,8 @@ const vi = {
   "Registration for {term} is closed": "Đăng ký {term} đã đóng",
   "Registration is not open yet": "Chưa mở đăng ký",
   "The next registration period is announced on the dormitory board; you can apply as soon as it opens.": "Đợt đăng ký tiếp theo sẽ được thông báo trên bảng tin ký túc xá; bạn có thể nộp đơn ngay khi đợt mở.",
+  // Manager menu: screens joined under one entry.
+  "Moves": "Chuyển phòng",
 }
 
 export default vi

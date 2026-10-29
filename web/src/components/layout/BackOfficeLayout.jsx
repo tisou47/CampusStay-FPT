@@ -12,6 +12,7 @@ import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { FlowTrail } from './FlowTrail'
+import { SectionTabs } from './SectionTabs'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -195,7 +196,11 @@ function QuickSearch({ role }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const navigate = useNavigate()
-  const items = useMemo(() => backOffice[role].sections.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title }))), [role])
+  // Screens joined under one entry (tabs) stay findable by their own names.
+  const items = useMemo(
+    () => backOffice[role].sections.flatMap((s) => s.items.flatMap((i) => (i.tabs ? i.tabs.map((tab) => ({ ...tab, icon: i.icon, section: s.title })) : [{ ...i, section: s.title }]))),
+    [role],
+  )
   const q = query.trim().toLowerCase()
   useEffect(() => {
     const id = setTimeout(() => setDebounced(query.trim()), 250)
@@ -358,6 +363,7 @@ export function BackOfficeLayout({ role }) {
         <Sidebar role={role} />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
           <FlowTrail role={role} />
+          <SectionTabs role={role} />
           <Outlet />
         </main>
       </div>
