@@ -27,7 +27,7 @@ export function NextStepBanner({ step, className }) {
     <section aria-labelledby={`${reasonId}-title`} className={cx('flex flex-col gap-4 rounded-lg border p-5 md:flex-row md:items-center md:gap-6 lg:px-6', tone.box, className)}>
       {Glyph && (
         <span className={cx('hidden size-12 shrink-0 items-center justify-center rounded-full bg-surface md:flex', tone.icon)}>
-          <Glyph size={24} aria-hidden="true" />
+          <Glyph size={20} aria-hidden="true" />
         </span>
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">

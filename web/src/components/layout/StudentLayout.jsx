@@ -84,7 +84,7 @@ function StudentTopBar() {
           >
             {({ close }) => (
               // Esc closes the menu (Popover) and focus goes back to the avatar button.
-              <div role="menu" className="flex flex-col py-1" onKeyDown={(e) => e.key === 'Escape' && avatarRef.current?.focus()}>
+              <div role="menu" tabIndex={-1} className="flex flex-col py-1" onKeyDown={(e) => e.key === 'Escape' && avatarRef.current?.focus()}>
                 {user && (
                   <div className="border-b border-line px-3 pt-1.5 pb-2.5">
                     <p className="text-base font-medium text-fg">{user.name}</p>

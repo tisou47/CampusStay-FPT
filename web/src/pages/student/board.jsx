@@ -44,7 +44,7 @@ function PeriodCard({ card }) {
       </div>
       {left && (
         <p className="flex items-center gap-2 text-base font-medium text-fg-brand">
-          <CalendarClock size={18} aria-hidden="true" />
+          <CalendarClock size={20} aria-hidden="true" />
           {card.status === 'Open' ? t('Closes in {left}', { left }) : t('Opens in {left}', { left })}
         </p>
       )}
@@ -86,7 +86,7 @@ function AnnouncementItem({ item, onRead }) {
         <span aria-hidden="true" className={cx('mt-2 size-2 shrink-0 rounded-full', item.read ? 'bg-transparent' : 'bg-primary')} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2">
-            {item.pinned && <Pin size={14} aria-label={t('Pinned')} className="text-fg-brand" />}
+            {item.pinned && <Pin size={16} aria-label={t('Pinned')} className="text-fg-brand" />}
             <Tag tone={categoryTone[item.category] ?? 'neutral'} dot={false}>
               {item.category}
             </Tag>
@@ -131,7 +131,7 @@ function AnnouncementItem({ item, onRead }) {
           {item.link && item.link !== '/student' && (
             <Link to={item.link} className="flex items-center gap-1 self-start text-sm font-medium text-fg-link hover:underline">
               {t('Open')}
-              <ChevronRight size={14} aria-hidden="true" />
+              <ChevronRight size={16} aria-hidden="true" />
             </Link>
           )}
         </div>
@@ -159,7 +159,7 @@ export function DormitoryBoard() {
       <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-card-title text-fg">
-            <Megaphone size={18} aria-hidden="true" />
+            <Megaphone size={20} aria-hidden="true" />
             {t('Dormitory board')}
           </h2>
           {board.data?.unread > 0 && <span className="text-sm text-fg-secondary">{t('{n} unread', { n: board.data.unread })}</span>}

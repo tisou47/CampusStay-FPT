@@ -9,18 +9,19 @@ const KEYS = { ArrowRight: 1, ArrowLeft: -1 }
  * component keeps no state of its own. Items: { key, label, count?, controls? }.
  */
 export function Tabs({ items, value, onChange, label, className }) {
+  // On each tab (the focusable element): move to the neighbouring tab and select it.
   const onKeyDown = (e) => {
     const step = KEYS[e.key]
     if (step == null && e.key !== 'Home' && e.key !== 'End') return
     e.preventDefault()
-    const tabs = [...e.currentTarget.querySelectorAll('[role="tab"]')]
-    const here = tabs.indexOf(document.activeElement)
+    const tabs = [...e.currentTarget.parentElement.querySelectorAll('[role="tab"]')]
+    const here = tabs.indexOf(e.currentTarget)
     const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (here + step + tabs.length) % tabs.length
     tabs[next]?.focus()
     onChange?.(items[next].key)
   }
   return (
-    <div role="tablist" aria-label={label ? tx(label) : undefined} onKeyDown={onKeyDown} className={cx('flex items-start gap-6 border-b border-border', className)}>
+    <div role="tablist" aria-label={label ? tx(label) : undefined} className={cx('flex items-start gap-6 border-b border-border', className)}>
       {items.map((item) => {
         const active = item.key === value
         return (
@@ -32,6 +33,7 @@ export function Tabs({ items, value, onChange, label, className }) {
             aria-controls={item.controls}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange?.(item.key)}
+            onKeyDown={onKeyDown}
             className={cx(
               '-mb-px flex min-h-10 items-center border-b-2 text-body font-medium whitespace-nowrap',
               active ? 'border-primary text-fg-brand' : 'border-transparent text-text-secondary hover:text-text',

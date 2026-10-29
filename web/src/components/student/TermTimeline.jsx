@@ -36,7 +36,7 @@ export function TermTimeline({ title, subtitle, milestones, className }) {
               />
             )}
             <span aria-hidden="true" className={cx('relative flex size-5 shrink-0 items-center justify-center rounded-full border-2', MARKER[state])}>
-              {state === 'done' && <Check size={12} strokeWidth={3} />}
+              {state === 'done' && <Check size={16} strokeWidth={3} aria-hidden="true" />}
               {state === 'current' && <span className="size-2 rounded-full bg-primary" />}
             </span>
             <span className="flex min-w-0 flex-col gap-0.5 md:pr-3">

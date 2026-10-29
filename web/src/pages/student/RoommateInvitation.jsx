@@ -58,7 +58,7 @@ function Invitation({ inv }) {
     <Card padding="none" className="mx-auto flex w-full max-w-180 flex-col gap-4 p-4 lg:max-h-full lg:overflow-y-auto lg:p-8">
       <div className="flex items-center gap-4">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-fg-brand">
-          <Users size={24} aria-hidden="true" />
+          <Users size={20} aria-hidden="true" />
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-sm font-medium text-fg-tertiary">{t('Roommate invitation')}</p>

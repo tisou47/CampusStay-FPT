@@ -143,7 +143,7 @@ export default function RegistrationPeriod() {
                     <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-base font-medium text-fg-link hover:underline">
                       <FileText size={16} aria-hidden="true" />
                       {doc.title}
-                      <ExternalLink size={14} aria-hidden="true" />
+                      <ExternalLink size={16} aria-hidden="true" />
                     </a>
                   </li>
                 ))}

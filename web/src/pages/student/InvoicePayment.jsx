@@ -142,7 +142,9 @@ function Payment({ data, reload }) {
           )}
           {(paid || waiting) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-surface/90">
-              {paid ? <CircleCheck size={48} aria-hidden="true" className="text-success" /> : <Hourglass size={48} aria-hidden="true" className="text-info" />}
+              <span className={paid ? 'flex size-12 items-center justify-center rounded-full bg-success-bg text-success' : 'flex size-12 items-center justify-center rounded-full bg-info-bg text-info'}>
+                {paid ? <CircleCheck size={20} aria-hidden="true" /> : <Hourglass size={20} aria-hidden="true" />}
+              </span>
               <p className={paid ? 'text-base font-medium text-success-fg' : 'px-4 text-center text-base font-medium text-info-fg'}>
                 {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}
               </p>

@@ -154,6 +154,15 @@
   --text-caption--line-height: 16px;
   --text-caption--font-weight: 400;
 
+  /* ---------- Spacing: the 4/8 px grid (p-1 = 4px, p-2 = 8px … p-12 = 48px; also gap-*, m-*, space-*) ---------- */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
   /* ---------- Radius (radius/none · sm · md · lg · xl · full) ---------- */
   --radius-sm: 4px;
   --radius-md: 6px;  /* default control radius */
@@ -189,17 +198,6 @@
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-}
-
-/* Spacing on a 4/8 px grid; the numbers follow Tailwind's spacing classes (p-1 = 4px … p-12 = 48px). */
-:root {
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
 }
 
 /*

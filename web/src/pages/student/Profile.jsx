@@ -39,7 +39,7 @@ const GENDER = { M: 'Male', F: 'Female', Male: 'Male', Female: 'Female' }
 function Field({ icon: Glyph, label, value }) {
   return (
     <div className="flex min-w-0 items-start gap-3 rounded-lg bg-subtle px-4 py-3">
-      <Glyph size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-text-muted" />
+      <Glyph size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-text-muted" />
       <div className="flex min-w-0 flex-col">
         <span className="text-small text-text-muted">{tx(label)}</span>
         <span className="text-body font-medium break-words text-text">{value || '—'}</span>
@@ -170,7 +170,7 @@ export default function Profile() {
                       <h2 className="text-card-title text-text">{t('Settings & security')}</h2>
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-subtle px-4 py-3">
                         <span className="flex items-center gap-3">
-                          <KeyRound size={18} aria-hidden="true" className="text-text-muted" />
+                          <KeyRound size={20} aria-hidden="true" className="text-text-muted" />
                           <span className="flex flex-col">
                             <span className="text-body font-medium text-text">{t('Password')}</span>
                             <span className="text-small text-text-secondary">{t('Used to sign in with your email.')}</span>
@@ -180,7 +180,7 @@ export default function Profile() {
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-subtle px-4 py-3">
                         <span className="flex items-center gap-3">
-                          <Languages size={18} aria-hidden="true" className="text-text-muted" />
+                          <Languages size={20} aria-hidden="true" className="text-text-muted" />
                           <span className="flex flex-col">
                             <span className="text-body font-medium text-text">{t('Language')}</span>
                             <span className="text-small text-text-secondary">{t('Also used for your notifications and emails.')}</span>
@@ -190,7 +190,7 @@ export default function Profile() {
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-subtle px-4 py-3">
                         <span className="flex items-center gap-3">
-                          <ShieldCheck size={18} aria-hidden="true" className="text-text-muted" />
+                          <ShieldCheck size={20} aria-hidden="true" className="text-text-muted" />
                           <span className="flex flex-col">
                             <span className="text-body font-medium text-text">{t('Account verification')}</span>
                             <span className="text-small text-text-secondary">{v?.status ? tr(v.status) : '—'}</span>
@@ -252,7 +252,7 @@ export default function Profile() {
                 </Card>
                 <Card padding="lg" className="flex flex-col gap-3">
                   <h2 className="flex items-center gap-2 text-card-title text-text">
-                    <CalendarCheck size={18} aria-hidden="true" className="text-text-muted" />
+                    <CalendarCheck size={20} aria-hidden="true" className="text-text-muted" />
                     {t('My stay')}
                   </h2>
                   {a ? (
