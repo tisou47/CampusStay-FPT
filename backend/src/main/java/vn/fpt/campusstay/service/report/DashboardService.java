@@ -39,9 +39,13 @@ import vn.fpt.campusstay.config.TimeConfig;
 @Service
 public class DashboardService {
 
-    /** One line of a "needs your attention" list. {@code severity} info, warning, error or neutral. */
+    /**
+     * One line of a "needs your attention" list. {@code severity} info, warning, error or neutral. {@code title},
+     * {@code body} and {@code cta} are English; a client that writes its own words reads {@code kind} and
+     * {@code values} (the numbers, codes and dates of the line; keys per kind in contract change A-63).
+     */
     public record Attention(String id, String kind, String severity, String title, String body, String link,
-            String cta) {
+            String cta, Map<String, Object> values) {
     }
 
     // ---------------------------------------------------------------- Staff
@@ -75,16 +79,26 @@ public class DashboardService {
 
     // ---------------------------------------------------------------- Manager
 
-    /** Rates are fractions (0.85 = 85 %); {@code slaRate} is null when nothing was resolved in the window. */
+    /**
+     * Rates are fractions (0.85 = 85 %), rounded down so a rate below 1 never reads 100 %; {@code slaRate} is null when
+     * nothing was resolved in the window. {@code allocated} = Beds held in the Term, {@code residents} = those living
+     * in (door code released or checked in at the desk). Money as {@link #money}.
+     */
     public record ManagerKpis(long allocated, long beds, long collected, BigDecimal collectionRate, BigDecimal slaRate,
-            BigDecimal slaTarget, int slaHours, long refundsWaiting, long escalationsWaiting) {
+            BigDecimal slaTarget, int slaHours, long refundsWaiting, long escalationsWaiting, long residents,
+            long invoiced, long outstanding, long outstandingInvoices) {
+    }
+
+    /** The Staff work a Manager also decides on, so the Manager's home needs no Staff dashboard. */
+    public record ManagerWork(long toReview, long submitted, long underReview, long paymentsToConfirm,
+            Proposal proposal) {
     }
 
     public record FloorBeds(int floor, long allocated, long beds) {
     }
 
     public record ManagerDashboard(String block, ManagerKpis kpis, List<FloorBeds> floors, String floorNote,
-            List<Attention> waiting) {
+            List<Attention> waiting, ManagerWork work, List<BlockBeds> bedsByBlock) {
     }
 
     public record ApprovalCounts(long assignment, long lateCheckIn, long swaps, long refunds) {
@@ -98,8 +112,17 @@ public class DashboardService {
     public record NextTerm(String name, Instant registrationOpensAt) {
     }
 
+    /** {@code residents} and {@code allocated} as the Manager's; money as {@link #money}. */
     public record AdminKpis(long residents, long beds, long collected, BigDecimal collectionRate, long activeUsers,
-            long students, long staff, long managers) {
+            long students, long staff, long managers, long allocated, long invoiced, long outstanding,
+            long outstandingInvoices) {
+    }
+
+    /**
+     * Who the funnel leaves out: Applications that ended without a Bed, and the continuing residents, who hold a Bed
+     * of the Term without an Allocated Application of it (renewed from the previous Term).
+     */
+    public record FunnelOutside(long waitlisted, long rejected, long expired, long continuing) {
     }
 
     public record FunnelStep(String label, long value) {
@@ -116,7 +139,8 @@ public class DashboardService {
     }
 
     public record AdminDashboard(TermInfo term, NextTerm nextTerm, AdminKpis kpis, List<FunnelStep> funnel,
-            String funnelNote, List<BlockOccupancy> blocks, List<Check> checks, List<Integration> integrations) {
+            String funnelNote, List<BlockOccupancy> blocks, List<Check> checks, List<Integration> integrations,
+            FunnelOutside funnelOutside) {
     }
 
     /** SLA rate: requests resolved in this many days. */
@@ -128,6 +152,17 @@ public class DashboardService {
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(TimeConfig.CAMPUS_ZONE);
     private static final List<String> PIPELINE = List.of("AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED",
             "UNDER_REVIEW", "APPROVED", "WAITLISTED", "ALLOCATED", "FORFEITED", "REJECTED", "CANCELLED", "EXPIRED");
+    /** Invoices of the Blocks, and those without a Bed (Deposits) by gender, as on Collections and refunds. */
+    private static final String INVOICES_IN_SCOPE = "(building_id IN (:b) OR (building_id IS NULL AND gender IN (:genders)))";
+    /** Leavers still holding their Bed after the check-out date (no Allocation in a later Term). */
+    private static final String LATE_CHECK_OUTS = """
+            SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_term t ON t.id = a.term_id
+            JOIN rpt_v_bed b ON b.bed_id = a.bed_id
+            WHERE a.status = 'ACTIVE' AND t.check_out_by < :today AND b.building_id IN (:b)
+              AND NOT EXISTS (SELECT 1 FROM rpt_v_allocation n JOIN rpt_v_term nt ON nt.id = n.term_id
+                              WHERE n.student_id = a.student_id AND n.status = 'ACTIVE'
+                                AND nt.stay_start > t.stay_start)
+            """;
     /** Refunds to decide, as on the Manager's refund list: the Blocks', and those without a Bed by gender. */
     private static final String PENDING_REFUNDS = """
             SELECT count(*) FROM rpt_v_refund WHERE term_id = :term
@@ -160,18 +195,10 @@ public class DashboardService {
         TermSummary term = scope.termOrNone(termId);
         ReportScope.Blocks blocks = scope.blocks(block);
         Map<String, Object> p = ReportScope.params(term, blocks);
-        Map<String, Long> byStatus = new LinkedHashMap<>();
-        jdbc.sql("""
-                SELECT status, count(*) AS n FROM rpt_v_application
-                WHERE term_id = :term AND gender IN (:genders) AND status <> 'DRAFT' GROUP BY status
-                """).params(p).query((rs, i) -> Map.entry(rs.getString("status"), rs.getLong("n"))).list()
-                .forEach(e -> byStatus.put(e.getKey(), e.getValue()));
+        Map<String, Long> byStatus = applicationsByStatus(p);
         long submitted = byStatus.getOrDefault("SUBMITTED", 0L);
         long underReview = byStatus.getOrDefault("UNDER_REVIEW", 0L);
-        long toConfirm = count("""
-                SELECT count(*) FROM rpt_v_invoice WHERE term_id = :term AND status = 'AWAITING_CONFIRMATION'
-                  AND (building_id IN (:b) OR (building_id IS NULL AND gender IN (:genders)))
-                """, p);
+        long toConfirm = paymentsToConfirm(p);
         Proposal proposal = proposal(term, blocks);
         record Oos(String room, Instant since) {
         }
@@ -194,45 +221,42 @@ public class DashboardService {
         if (proposal != null && proposal.conflicts() > 0) {
             attention.add(new Attention("proposal", "proposal", "warning", plural(proposal.conflicts(), "conflict")
                     + " in the allocation proposal", "Resolve them before the Block goes to its Manager.",
-                    "/staff/assignment/" + proposal.runId(), "Resolve"));
+                    "/staff/assignment/" + proposal.runId(), "Resolve",
+                    Map.of("count", proposal.conflicts(), "runId", proposal.runId())));
         }
         // Only Managers confirm payment claims (ADR-19, ADR-22).
         if (toConfirm > 0 && Permission.CONFIRM_PAYMENTS.allows(currentUser.get().role())) {
             attention.add(new Attention("payments", "payments", "warning", plural(toConfirm, "transfer") + " to confirm",
                     "Students said they transferred and wait for a Manager to confirm.", "/manager/payment-claims",
-                    "Confirm"));
+                    "Confirm", Map.of("count", toConfirm)));
         }
         if (urgent > 0) {
             attention.add(new Attention("maintenance", "maintenance", "error",
                     plural(urgent, "urgent Maintenance Request") + " open", "High priority, not resolved yet.",
-                    "/staff/maintenance", "Open"));
+                    "/staff/maintenance", "Open", Map.of("count", urgent)));
         }
         if (submitted + underReview > 0) {
             attention.add(new Attention("queue", "queue", "info", plural(submitted + underReview, "Application")
                     + " to review", submitted + " Submitted · " + underReview + " Under Review", "/staff/applications",
-                    "Review"));
+                    "Review", Map.of("count", submitted + underReview, "submitted", submitted, "underReview", underReview)));
         }
         if (!outOfService.isEmpty()) {
             Oos first = outOfService.getFirst();
             attention.add(new Attention("room", "room", "info", plural(outOfService.size(), "Room") + " out of service",
-                    "Oldest: " + first.room() + " since " + DAY.format(first.since()), "/staff/inventory", "View"));
+                    "Oldest: " + first.room() + " since " + DAY.format(first.since()), "/staff/inventory", "View",
+                    Map.of("count", outOfService.size(), "room", first.room(), "since", first.since())));
         }
         p.put("today", LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)));
-        long lateCheckOuts = count("""
-                SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_term t ON t.id = a.term_id
-                JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.status = 'ACTIVE' AND t.check_out_by < :today AND b.building_id IN (:b)
-                  AND NOT EXISTS (SELECT 1 FROM rpt_v_allocation n JOIN rpt_v_term nt ON nt.id = n.term_id
-                                  WHERE n.student_id = a.student_id AND n.status = 'ACTIVE'
-                                    AND nt.stay_start > t.stay_start)
-                """, p);
+        long lateCheckOuts = count(LATE_CHECK_OUTS, p);
         if (lateCheckOuts > 0) {
             attention.add(new Attention("check-out", "check-out", "error", plural(lateCheckOuts, "leaver")
-                    + " past the check-out date", "They have not checked out at the desk.", "/staff/check-out", "Open"));
+                    + " past the check-out date", "They have not checked out at the desk.", "/staff/check-out", "Open",
+                    Map.of("count", lateCheckOuts)));
         }
         if (expired > 0) {
             attention.add(new Attention("expired", "expired", "neutral", plural(expired, "Deposit") + " expired this week",
-                    "Their Applications were cancelled; the students may apply again.", "/staff/applications", "View"));
+                    "Their Applications were cancelled; the students may apply again.", "/staff/applications", "View",
+                    Map.of("count", expired)));
         }
 
         List<StatusCount> statuses = PIPELINE.stream().filter(byStatus::containsKey)
@@ -243,6 +267,22 @@ public class DashboardService {
                                 : new OutOfService(outOfService.getFirst().room(), outOfService.getFirst().since())),
                 attention, statuses, statuses.stream().mapToLong(StatusCount::count).sum(), checkInPlan(term, p),
                 bedsByBlock(term, blocks, proposal));
+    }
+
+    /** Applications of the Term by status (no Drafts), for the genders of the Blocks. */
+    private Map<String, Long> applicationsByStatus(Map<String, Object> p) {
+        Map<String, Long> byStatus = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT status, count(*) AS n FROM rpt_v_application
+                WHERE term_id = :term AND gender IN (:genders) AND status <> 'DRAFT' GROUP BY status
+                """).params(p).query((rs, i) -> Map.entry(rs.getString("status"), rs.getLong("n"))).list()
+                .forEach(e -> byStatus.put(e.getKey(), e.getValue()));
+        return byStatus;
+    }
+
+    private long paymentsToConfirm(Map<String, Object> p) {
+        return count("SELECT count(*) FROM rpt_v_invoice WHERE term_id = :term AND status = 'AWAITING_CONFIRMATION' AND "
+                + INVOICES_IN_SCOPE, p);
     }
 
     /** The latest assignment run of the Term (not a dry run), counted over the Blocks. */
@@ -344,7 +384,12 @@ public class DashboardService {
                 WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
                 AND b.building_id IN (:b)
                 """, p);
-        long[] money = money(p, "building_id IN (:b)");
+        long residents = count("""
+                SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_bed b ON b.bed_id = a.bed_id
+                WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
+                AND a.resident_at IS NOT NULL AND b.building_id IN (:b)
+                """, p);
+        long[] money = money(p, INVOICES_IN_SCOPE);
         int slaHours = jdbc.sql("SELECT normal_hours FROM rpt_v_sla_policy WHERE building_id IN (:b) ORDER BY normal_hours")
                 .params(p).query(Integer.class).list().stream().findFirst()
                 .orElseGet(() -> parameters.intValue("sla.normal_max_hours"));
@@ -380,26 +425,22 @@ public class DashboardService {
                   AND status = 'PENDING' ORDER BY id LIMIT :limit
                 """).params(p).query((rs, i) -> new Attention("refund-" + rs.getLong("id"), "refund", "warning",
                         "Refund of " + vnd(rs.getLong("amount")), refundSource(rs.getString("source_type")),
-                        "/manager/finance", "Decide")).list().forEach(waiting::add);
+                        "/manager/finance", "Decide",
+                        Map.of("amount", rs.getLong("amount"), "source", rs.getString("source_type"))))
+                .list().forEach(waiting::add);
         jdbc.sql("""
                 SELECT source_code, title, why, tone FROM rpt_v_escalation
                 WHERE building_id IN (:b) AND status = 'OPEN' ORDER BY (tone = 'DANGER') DESC, opened_at LIMIT :limit
                 """).params(p).query((rs, i) -> new Attention(rs.getString("source_code"), "escalation",
                         rs.getString("tone").equals("DANGER") ? "error" : "warning", rs.getString("title"),
-                        rs.getString("why"), "/manager/escalations", "Handle")).list().forEach(waiting::add);
+                        rs.getString("why"), "/manager/escalations", "Handle",
+                        Map.of("code", rs.getString("source_code")))).list().forEach(waiting::add);
         p.put("today", LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)));
-        long lateCheckOuts = count("""
-                SELECT count(*) FROM rpt_v_allocation a JOIN rpt_v_term t ON t.id = a.term_id
-                JOIN rpt_v_bed b ON b.bed_id = a.bed_id
-                WHERE a.status = 'ACTIVE' AND t.check_out_by < :today AND b.building_id IN (:b)
-                  AND NOT EXISTS (SELECT 1 FROM rpt_v_allocation n JOIN rpt_v_term nt ON nt.id = n.term_id
-                                  WHERE n.student_id = a.student_id AND n.status = 'ACTIVE'
-                                    AND nt.stay_start > t.stay_start)
-                """, p);
+        long lateCheckOuts = count(LATE_CHECK_OUTS, p);
         if (lateCheckOuts > 0) {
             waiting.add(new Attention("check-out", "check-out", "error", plural(lateCheckOuts, "leaver")
                     + " past the check-out date", "Staff list them at the check-out desk; their Beds stay held.",
-                    "/manager/next-term/turnover", "View"));
+                    "/manager/next-term/turnover", "View", Map.of("count", lateCheckOuts)));
         }
         for (Map.Entry<Long, String> b : blocks.codes().entrySet()) {
             for (String[] type : new String[][] { { "MAINTENANCE", "Maintenance Requests" },
@@ -411,18 +452,24 @@ public class DashboardService {
                 if (rules == 0) {
                     waiting.add(new Attention("routing-" + b.getValue() + "-" + type[0].toLowerCase(Locale.ROOT), "routing",
                             "info", "No routing rule for " + type[1] + " in Block " + b.getValue(),
-                            "New requests wait unassigned until Staff pick them up.", "/manager/routing-rules", "Add rule"));
+                            "New requests wait unassigned until Staff pick them up.", "/manager/routing-rules", "Add rule",
+                            Map.of("block", b.getValue(), "requestType", type[0])));
                 }
             }
         }
+        Map<String, Long> byStatus = applicationsByStatus(p);
+        long submitted = byStatus.getOrDefault("SUBMITTED", 0L);
+        long underReview = byStatus.getOrDefault("UNDER_REVIEW", 0L);
+        Proposal proposal = proposal(term, blocks);
         return new ManagerDashboard(blocks.single() ? blocks.codes().values().stream().findFirst().orElse(null) : null,
                 new ManagerKpis(allocated, beds, money[1], rate(money[1], money[0]),
                         resolved == 0 ? null : rate(onTime, resolved),
                         BigDecimal.valueOf(parameters.intValue("maintenance.sla_target_percent")).movePointLeft(2),
-                        slaHours, refunds, escalations),
+                        slaHours, refunds, escalations, residents, money[0], money[2], money[3]),
                 floors, outOfService == 0 ? null : plural(outOfService, "Room") + " out of service "
                         + (outOfService == 1 ? "is" : "are") + " not counted.",
-                waiting);
+                waiting, new ManagerWork(submitted + underReview, submitted, underReview, paymentsToConfirm(p), proposal),
+                bedsByBlock(term, blocks, proposal));
     }
 
     @Transactional(readOnly = true)
@@ -456,10 +503,22 @@ public class DashboardService {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("term", term.id());
         p.put("since", Timestamp.from(Instant.now(clock).minus(Duration.ofDays(ACTIVE_DAYS))));
+        // Residence = door code released or checked in at the desk (ADR-23), as everywhere since phase 5.
+        long allocated = count("SELECT count(*) FROM rpt_v_allocation a WHERE a.term_id = :term AND"
+                + scope.held(term, "a"), p);
         long residents = count("""
                 SELECT count(*) FROM rpt_v_allocation a WHERE a.term_id = :term AND""" + scope.held(term, "a") + """
-                AND a.checked_in_at IS NOT NULL
+                AND a.resident_at IS NOT NULL
                 """, p);
+        // The funnel follows the Term's Applications; continuing residents hold a Bed without one.
+        String fromApplication = """
+                EXISTS (SELECT 1 FROM rpt_v_application ap
+                        WHERE ap.term_id = a.term_id AND ap.student_id = a.student_id AND ap.status = 'ALLOCATED')
+                """;
+        long applicantResidents = count("SELECT count(*) FROM rpt_v_allocation a WHERE a.term_id = :term AND"
+                + scope.held(term, "a") + "AND a.resident_at IS NOT NULL AND " + fromApplication, p);
+        long continuing = count("SELECT count(*) FROM rpt_v_allocation a WHERE a.term_id = :term AND"
+                + scope.held(term, "a") + "AND NOT " + fromApplication, p);
         long beds = count("SELECT count(*) FROM rpt_v_bed WHERE " + ReportScope.inService(null), p);
         long[] money = money(p, "TRUE");
         record Users(long active, long students, long staff, long managers) {
@@ -483,10 +542,12 @@ public class DashboardService {
         long approved = apps.getOrDefault("APPROVED", 0L) + allocatedApps;
         List<FunnelStep> funnel = applied == 0 ? List.of() : List.of(new FunnelStep("Applied", applied),
                 new FunnelStep("Deposit paid", paid), new FunnelStep("Approved", approved),
-                new FunnelStep("Allocated", allocatedApps), new FunnelStep("Checked in", residents));
-        String funnelNote = applied == 0 ? null : apps.getOrDefault("WAITLISTED", 0L) + " waitlisted · "
-                + apps.getOrDefault("REJECTED", 0L) + " rejected · " + apps.getOrDefault("EXPIRED", 0L)
-                + " Deposits expired";
+                new FunnelStep("Allocated", allocatedApps), new FunnelStep("Checked in", applicantResidents));
+        FunnelOutside outside = new FunnelOutside(apps.getOrDefault("WAITLISTED", 0L),
+                apps.getOrDefault("REJECTED", 0L), apps.getOrDefault("EXPIRED", 0L), continuing);
+        String funnelNote = applied == 0 ? null : outside.waitlisted() + " waitlisted · " + outside.rejected()
+                + " rejected · " + outside.expired() + " Deposits expired · " + continuing
+                + " continuing residents hold Beds without an Application";
 
         List<BlockOccupancy> blocks = jdbc.sql("""
                 SELECT b.block, b.gender, count(DISTINCT b.bed_id) FILTER (WHERE """ + ReportScope.inService("b") + """
@@ -504,8 +565,8 @@ public class DashboardService {
         return new AdminDashboard(ReportScope.none(term) ? null : new TermInfo(term.name(), statusLabel(term), term.stayEnd()),
                 next.map(t -> new NextTerm(t.name(), t.registrationOpensAt())).orElse(null),
                 new AdminKpis(residents, beds, money[1], rate(money[1], money[0]), users.active(), users.students(),
-                        users.staff(), users.managers()),
-                funnel, funnelNote, blocks, checks(next), integrations());
+                        users.staff(), users.managers(), allocated, money[0], money[2], money[3]),
+                funnel, funnelNote, blocks, checks(next), integrations(), outside);
     }
 
     /** What the Admin should have ready for the next Term. */
@@ -572,12 +633,22 @@ public class DashboardService {
 
     // ---------------------------------------------------------------- helpers
 
-    /** {@code [invoiced, collected]} of the Term: Void Invoices left out; collected = Paid and Refunded. */
+    /**
+     * {@code [invoiced, collected, outstanding, outstanding Invoices]} of the Term over every kind of Invoice
+     * (Deposit, Balance with its Utility Deposit, next-Term fee, Utility, charges): the same figures as
+     * {@code GET /finance/summary} and {@code GET /reports/financial} for the same Term and Blocks. Invoiced = not
+     * Void; collected = Paid and Refunded (the money came in; refunds are reported apart); outstanding = Unpaid,
+     * Overdue and Awaiting confirmation.
+     */
     private long[] money(Map<String, Object> p, String where) {
         return jdbc.sql("SELECT coalesce(sum(amount) FILTER (WHERE status <> 'VOID'), 0) AS invoiced,"
-                + " coalesce(sum(amount) FILTER (WHERE status IN ('PAID', 'REFUNDED')), 0) AS collected"
+                + " coalesce(sum(amount) FILTER (WHERE status IN ('PAID', 'REFUNDED')), 0) AS collected,"
+                + " coalesce(sum(amount) FILTER (WHERE status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')), 0)"
+                + " AS outstanding,"
+                + " count(*) FILTER (WHERE status IN ('UNPAID', 'OVERDUE', 'AWAITING_CONFIRMATION')) AS open"
                 + " FROM rpt_v_invoice WHERE term_id = :term AND " + where).params(p)
-                .query((rs, i) -> new long[] { rs.getLong("invoiced"), rs.getLong("collected") }).single();
+                .query((rs, i) -> new long[] { rs.getLong("invoiced"), rs.getLong("collected"),
+                        rs.getLong("outstanding"), rs.getLong("open") }).single();
     }
 
     private long count(String sql, Map<String, ?> params) {
@@ -591,8 +662,9 @@ public class DashboardService {
         return result;
     }
 
+    /** Rounded down: 99.996 % is 0.9999, never 1, while something is missing. */
     static BigDecimal rate(long part, long whole) {
-        return whole == 0 ? null : BigDecimal.valueOf(part).divide(BigDecimal.valueOf(whole), 4, RoundingMode.HALF_UP);
+        return whole == 0 ? null : BigDecimal.valueOf(part).divide(BigDecimal.valueOf(whole), 4, RoundingMode.DOWN);
     }
 
     static String vnd(long amount) {

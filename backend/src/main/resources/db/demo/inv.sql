@@ -15,7 +15,7 @@ INSERT INTO inv_door_code_task (room_id, reason, created_at)
 SELECT r.id, 'CHECK_OUT', t.now - interval '20 hours' FROM inv_room r CROSS JOIN demo_t t WHERE r.code = 'A-803';
 
 INSERT INTO inv_door_code_task (room_id, reason, created_at)
-SELECT DISTINCT ON (d.room_id) d.room_id, 'CHECK_OUT', t.now - interval '1 day' * (1 + d.h % 3)
+SELECT DISTINCT ON (d.room_id) d.room_id, 'CHECK_OUT', ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh'
 FROM demo_res d CROSS JOIN demo_t t
 WHERE d.leave = 'CHECKED_OUT' AND d.room_code <> 'A-803'
 ORDER BY d.room_id, d.h;
