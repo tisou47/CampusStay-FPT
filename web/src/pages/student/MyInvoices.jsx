@@ -12,6 +12,7 @@ import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { ReceiptModal, StatusList, StatusRow, StudentPage } from './shared'
+import { RefundAccountCard } from './refundAccount'
 import { t, tr } from '@/i18n'
 
 // SCR-BIL-01 My Invoices (Figma 19:1051)
@@ -75,6 +76,8 @@ export default function MyInvoices() {
           note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming Invoice this Term')}
         />
       </div>
+
+      <RefundAccountCard />
 
       {/* Phone: MOB-BIL-01 Invoices (Figma 56:203) — one row per Invoice instead of the table. */}
       <section className="flex flex-col gap-3 lg:hidden">
