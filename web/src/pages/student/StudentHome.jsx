@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Bed, CalendarCheck, ChevronRight, Clock, CreditCard, FileText, Wrench } from 'lucide-react'
+import { Bed, CalendarCheck, ChevronRight, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -13,7 +13,8 @@ import { ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
 import { DormitoryBoard, RegistrationPeriodCard } from './board'
-import { CompareClassesModal } from './shared'
+import { CompareClassesModal, StatusList, StatusRow } from './shared'
+import { StatusTag } from '@/components/ui/Tag'
 import { NextStepBanner } from '@/components/student/NextStepBanner'
 import { StatCard } from '@/components/student/StatCard'
 import { TermTimeline } from '@/components/student/TermTimeline'
@@ -207,12 +208,33 @@ function HomeContent({ home }) {
 
       <NextStepBanner step={step} />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="hidden gap-4 lg:grid lg:grid-cols-4">
         <StatCard icon={FileText} label="Application" {...cards.application} />
         <StatCard icon={Bed} label="My Room" {...cards.room} />
         <StatCard icon={CreditCard} label="Payments" {...cards.payments} />
         <StatCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} description="Maintenance and room changes" to="/student/requests" />
       </div>
+
+      {/* Phone (as before, Android Home › Status): the status list with the check-in row. */}
+      <StatusList className="lg:hidden">
+        <StatusRow icon={Bed} value={cards.room.value} note={cards.room.description} to={cards.room.to} />
+        {app ? (
+          <StatusRow
+            icon={FileText}
+            value={app.id}
+            note={[term?.name, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · ')}
+            tag={<StatusTag status={app.status} />}
+            to={cards.application.to}
+          />
+        ) : (
+          <StatusRow icon={FileText} value={cards.application.value} note={cards.application.description} to={cards.application.to} />
+        )}
+        {allocation && term?.checkInStart && !home.checkedIn && (
+          <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), tr(allocation.block)].filter(Boolean).join(' · ')} to="/student/room" />
+        )}
+        <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.description} to={cards.payments.to} />
+        <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and Room-Change Requests" to="/student/requests" />
+      </StatusList>
 
       <LatestNotification />
 

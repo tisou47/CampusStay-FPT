@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bed, Calendar, ChevronDown, Clock, CreditCard, ExternalLink, Eye, EyeOff, Layers, Repeat, Users } from 'lucide-react'
+import { Bed, Calendar, ChevronDown, ChevronRight, Clock, CreditCard, ExternalLink, Eye, EyeOff, Layers, MapPin, Repeat, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -207,6 +207,38 @@ function FurnitureCard() {
       )}
       <Note>Something broken? Report it from Requests so Staff can repair it.</Note>
     </Card>
+  )
+}
+
+function InfoRow({ icon: Glyph, label, value }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Glyph size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
+      <div className="flex flex-col">
+        <span className="text-sm text-fg-tertiary">{tx(label)}</span>
+        <span className="text-base font-medium text-fg">{tx(value)}</span>
+      </div>
+    </div>
+  )
+}
+
+function MoreLink({ icon: Glyph, to, href, children }) {
+  const classes = 'flex items-center gap-2.5 rounded-md py-2 text-base text-fg hover:text-fg-brand'
+  const body = (
+    <>
+      <Glyph size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
+      <span className="flex-1">{tx(children)}</span>
+      {href ? <ExternalLink size={16} aria-hidden="true" className="text-fg-secondary" /> : <ChevronRight size={16} aria-hidden="true" className="text-fg-secondary" />}
+    </>
+  )
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" className={classes}>
+      {body}
+    </a>
+  ) : (
+    <Link to={to} className={classes}>
+      {body}
+    </Link>
   )
 }
 
@@ -562,6 +594,37 @@ function Room({ data }) {
             <LateCheckInCard />
           </div>
         )}
+        {/* The cards kept from the earlier My Room sit above the sticky Next-Term card, so nothing scrolls under it. */}
+        {checkIn && (
+          <Card padding="lg" className="flex flex-col gap-3 max-lg:order-8">
+            <h2 className="text-card-title text-text">{t('Check-in')}</h2>
+            {checkIn.checkedInAt ? (
+              <InfoRow icon={Calendar} label="Checked in" value={formatDate(checkIn.checkedInAt)} />
+            ) : (
+              <>
+                <InfoRow icon={Calendar} label="Window" value={`${formatDate(checkIn.start)} – ${formatDate(checkIn.end)}`} />
+                {checkIn.deskHours && <InfoRow icon={Clock} label="Desk hours" value={checkIn.deskHours} />}
+                {checkIn.location && <InfoRow icon={MapPin} label="Where" value={checkIn.location} />}
+                <Alert type="info" title="Bring your QR pass">
+                  {t('Open the CampusStay Android app to show your check-in QR pass.')}
+                </Alert>
+              </>
+            )}
+          </Card>
+        )}
+        <Card padding="sm" className="flex flex-col gap-1 max-lg:order-9">
+          {data.rulesUrl && (
+            <MoreLink icon={Bed} href={data.rulesUrl}>
+              Dormitory rules
+            </MoreLink>
+          )}
+          <MoreLink icon={Repeat} to="/student/requests/room-change/new">
+            Request a room change for next Term
+          </MoreLink>
+          <MoreLink icon={Users} to="/student/requests/swap/new">
+            Swap next-Term Beds with another Student
+          </MoreLink>
+        </Card>
         <div className="max-lg:order-2 lg:sticky lg:top-4">
           <NextTermCard data={data} />
         </div>

@@ -31,6 +31,7 @@ const MyInvoices = () => import('@/pages/student/MyInvoices')
 const InvoicePayment = () => import('@/pages/student/InvoicePayment')
 const InvoiceDetail = () => import('@/pages/student/InvoiceDetail')
 const MyRoom = () => import('@/pages/student/MyRoom')
+const Profile = () => import('@/pages/student/Profile')
 const MyRequests = () => import('@/pages/student/MyRequests')
 const Notifications = () => import('@/pages/student/Notifications')
 const NewMaintenanceRequest = () => import('@/pages/student/NewMaintenanceRequest')
@@ -185,6 +186,7 @@ export const router = createBrowserRouter([
         { path: 'invoices/:id', ...page(InvoiceDetail) },
         { path: 'invoices/:id/pay', ...page(InvoicePayment) },
         { path: 'room', ...page(MyRoom) },
+        { path: 'profile', ...page(Profile) },
         { path: 'requests', ...page(MyRequests) },
         { path: 'requests/maintenance/new', ...page(NewMaintenanceRequest) },
         { path: 'requests/room-change/new', ...page(NewRoomChangeRequest) },

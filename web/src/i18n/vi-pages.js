@@ -3900,6 +3900,31 @@ const workspace = {
 // Student UI refactor (UI_REFACTOR_PLAN): new labels of the student pages. Spread last, so it also sets
 // the agreed student wording where an earlier group said it differently.
 const studentUi = {
+  // My profile
+  "My profile": "Hồ sơ cá nhân",
+  "Your details from the dormitory's student list, your Applications and your account.": "Thông tin của bạn từ danh sách sinh viên của ký túc xá, các đơn đăng ký và tài khoản.",
+  "Personal information": "Thông tin cá nhân",
+  "Settings & security": "Cài đặt & bảo mật",
+  "Recent activity": "Hoạt động gần đây",
+  "Basic information": "Thông tin cơ bản",
+  "Refund bank account": "Tài khoản ngân hàng hoàn cọc",
+  "Cohort {cohort}": "Khóa {cohort}",
+  "Terms in the dormitory": "Kỳ ở KTX",
+  "Academic information": "Thông tin học vụ",
+  "Read only: corrections go through the dormitory office.": "Chỉ đọc — chỉnh sửa qua văn phòng ký túc xá.",
+  "Contact information": "Thông tin liên hệ",
+  "From your latest Application; you update it when you apply.": "Lấy từ đơn đăng ký gần nhất; bạn cập nhật khi nộp đơn.",
+  "Student email": "Email sinh viên",
+  "Contact email": "Email liên hệ",
+  "Current address": "Địa chỉ hiện tại",
+  "Who the dormitory calls if something happens to you.": "Người ký túc xá liên hệ khi có chuyện xảy ra với bạn.",
+  "Used to sign in with your email.": "Dùng để đăng nhập bằng email.",
+  "Also used for your notifications and emails.": "Cũng dùng cho thông báo và email của bạn.",
+  "All notifications": "Tất cả thông báo",
+  "Profile completeness": "Mức độ hoàn thiện hồ sơ",
+  "{n} left": "Còn {n} mục",
+  "My stay": "Chỗ ở của tôi",
+  "Your student details come from the dormitory's student list. If something is wrong, contact the dormitory office.": "Thông tin sinh viên lấy từ danh sách sinh viên của ký túc xá. Nếu có sai sót, hãy liên hệ văn phòng ký túc xá.",
   // Amenities of the seeded Room tiers (free text typed by the Admin; only display)
   'Fan': 'Quạt',
   'Shared bathroom per room': 'Phòng tắm chung trong phòng',

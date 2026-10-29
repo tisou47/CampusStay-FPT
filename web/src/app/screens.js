@@ -30,6 +30,7 @@ export const screens = [
   { code: 'SCR-ASG-02', title: 'Round 2 Offer', role: 'student', path: '/student/round-2-offer' },
   { code: 'SCR-BIL-01', title: 'My Invoices', role: 'student', path: '/student/invoices' },
   { code: 'SCR-ASG-01', title: 'My Room', role: 'student', path: '/student/room' },
+  { code: 'SCR-AUTH-18', title: 'My profile', role: 'student', path: '/student/profile' },
   { code: 'SCR-MNT-01', title: 'My Requests', role: 'student', path: '/student/requests' },
   { code: 'MOB-NTF-01', title: 'Notifications (phone bell)', role: 'student', path: '/student/notifications' },
   { code: 'SCR-MNT-02', title: 'New Maintenance Request', role: 'student', path: '/student/requests/maintenance/new' },

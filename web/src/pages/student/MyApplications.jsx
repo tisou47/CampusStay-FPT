@@ -33,6 +33,16 @@ const COLUMNS = [
   { key: 'deposit', header: 'Deposit', money: true, render: (r) => (r.deposit == null ? '—' : formatVnd(r.deposit)) },
   { key: 'submittedAt', header: 'Submitted on', render: (r) => (r.submittedAt ? <span className="nowrap">{formatDate(r.submittedAt)}</span> : '—') },
   { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+  {
+    key: 'actions',
+    header: 'Actions',
+    actions: true,
+    render: (r) => (
+      <Button variant="text" to={`/student/applications/${r.id}`}>
+        View
+      </Button>
+    ),
+  },
 ]
 
 export default function MyApplications() {

@@ -212,7 +212,6 @@
   --radius-lg: 14px;
   --radius-xl: 18px;               /* kept above lg so the scale stays in order */
   --color-fg-link: var(--color-link);
-  --color-fg-brand: var(--color-link);   /* brand-coloured text: #c64f0e is only 4.40:1 on the page */
   --color-fg-tertiary: var(--color-text-muted);
   --color-warning: #b45309;        /* icons and dots: #f59e0b is 2.15:1, below the 3:1 for graphics */
 }
