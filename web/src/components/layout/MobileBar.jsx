@@ -38,21 +38,21 @@ export function MobileAppBar() {
   const { unread } = useNotifications()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
-    <header className="z-30 flex h-16 shrink-0 items-center gap-4 bg-surface px-4 lg:hidden">
+    <header data-band className="z-30 flex h-16 shrink-0 items-center gap-4 border-b border-band-line bg-band px-4 lg:hidden">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       {bar?.back && (
-        <Link to={bar.back} aria-label={t('Back')} className="-ml-1 rounded-md p-1 text-fg hover:bg-subtle">
+        <Link to={bar.back} aria-label={t('Back')} className="-ml-1 rounded-md p-1 text-band-fg hover:bg-band-hover">
           <ArrowLeft size={24} aria-hidden="true" />
         </Link>
       )}
-      <p className="min-w-0 flex-1 truncate text-h2 font-semibold text-fg">{tx(bar?.title) ?? 'CampusStay'}</p>
+      <p className="min-w-0 flex-1 truncate text-h2 font-bold tracking-tight text-band-fg">{tx(bar?.title) ?? 'CampusStay'}</p>
       <Link
         to="/student/notifications"
         aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')}
-        className="relative size-6 shrink-0 text-fg-secondary"
+        className="relative size-6 shrink-0 text-band-fg"
       >
         <Bell size={24} aria-hidden="true" />
-        {unread > 0 && <span aria-hidden="true" className="absolute top-0 left-4 size-2 rounded-full bg-error" />}
+        {unread > 0 && <span aria-hidden="true" className="absolute top-0 left-4 size-2.5 rounded-full border-[1.5px] border-surface bg-error" />}
       </Link>
       <Popover
         width={240}
@@ -120,7 +120,7 @@ export function MobileBottomNav() {
             <span className={cx('flex h-8 w-16 items-center justify-center rounded-full', active && 'bg-primary-subtle')}>
               <Glyph size={24} aria-hidden="true" className={active ? 'text-fg-brand' : 'text-fg-secondary'} />
             </span>
-            <span className={cx('text-sm whitespace-nowrap', active ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{t(tab.label)}</span>
+            <span className={cx('text-sm whitespace-nowrap', active ? 'font-semibold text-fg-brand' : 'text-fg-secondary')}>{t(tab.label)}</span>
           </Link>
         )
       })}

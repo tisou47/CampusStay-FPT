@@ -6,7 +6,7 @@ import { cx } from '@/lib/cx'
 // Type: Primary (one per view), Default, Text (link-style), Danger (destructive).
 // Size: md = Middle 32 px (back office), lg = Large 40 px (student web).
 const variants = {
-  primary: 'bg-primary text-fg-on-brand hover:bg-primary-hover',
+  primary: 'bg-primary font-semibold text-fg-on-brand shadow-card hover:bg-primary-hover',
   default: 'border border-line-strong bg-surface text-fg hover:border-primary hover:text-fg-brand',
   text: 'text-fg-brand hover:bg-primary-subtle',
   danger: 'bg-error text-fg-on-brand hover:bg-red-700',

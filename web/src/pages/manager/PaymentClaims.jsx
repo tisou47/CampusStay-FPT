@@ -238,7 +238,7 @@ export default function PaymentClaims() {
           <>
             <Button onClick={() => setDialog(null)}>Cancel</Button>
             <Button variant="primary" icon={Check} disabled={confirm.pending} onClick={() => confirm.run(chosen.map((c) => c.invoiceId))}>
-              {confirm.pending ? t('Confirming…') : t('Confirm {n} payments', { n: formatNumber(chosen.length) })}
+              {confirm.pending ? t('Confirming…') : t('Confirm {n} payments, {amount}', { n: formatNumber(chosen.length), amount: formatVnd(chosenTotal) })}
             </Button>
           </>
         }
