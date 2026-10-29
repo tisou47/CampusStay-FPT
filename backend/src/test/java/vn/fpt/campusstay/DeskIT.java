@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.TestAuth.ADMIN;
@@ -31,12 +33,15 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import vn.fpt.campusstay.common.file.SheetFile;
+import vn.fpt.campusstay.common.file.XlsxFile;
 import vn.fpt.campusstay.config.TimeConfig;
 
-/** The Check-in and Check-out desk (TC-ASG-020…023). Each test allocates its own students. */
+/** The Check-in and Check-out desk (TC-ASG-020…023, 045, 046). Each test allocates its own students. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -283,6 +288,64 @@ class DeskIT {
                 SELECT count(*) FROM inv_door_code_task t JOIN inv_room r ON r.id = t.room_id
                 WHERE r.code = :room AND t.reason = 'CHECK_OUT' AND t.done_at IS NULL
                 """).param("room", p.room()).query(Long.class).single()).isEqualTo(1);
+    }
+
+    /**
+     * TC-ASG-046: the desk enters the final meter readings Room by Room, typed or from the XLSX template, before the
+     * leavers come: each Room's reading goes to the check-out drafts of its leavers; a Room without leavers in the
+     * user's Blocks or a reading below the Room's last one is reported and not saved.
+     */
+    @Test
+    void finalReadingsRoomByRoom() throws Exception {
+        Placed p = allocate(17).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        // A resident (the door code was released): no desk check-in, so the desk's count of today stays as it is.
+        jdbc.sql("UPDATE asg_allocation SET resident_at = now() WHERE id = :id")
+                .param("id", Long.parseLong(p.allocationId())).update();
+        jdbc.sql("""
+                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason)
+                SELECT id, :cut, 50, 5, 'CHECK_IN' FROM inv_room WHERE code = :room
+                """).param("cut", LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(2)).param("room", p.room()).update();
+        String readings = "/check-out/readings?termId=" + termId;
+        getAs(readings, staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.room == '%s')].electricity".formatted(p.room()), hasItem((Object) null)));
+
+        mvc.perform(put(readings).header(HttpHeaders.AUTHORIZATION, staff).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"readings\":[{\"room\":\"%s\",\"electricity\":10,\"water\":1},{\"room\":\"Z-999\",\"electricity\":1,\"water\":1}]}"
+                                .formatted(p.room())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms").value(0))
+                .andExpect(jsonPath("$.problems.length()").value(2))
+                .andExpect(jsonPath("$.problems[1].message").value("No student is waiting to check out of this Room."));
+        mvc.perform(put(readings).header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.STAFF_B2))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"readings\":[{\"room\":\"%s\",\"electricity\":120,\"water\":12}]}".formatted(p.room())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms").value(0));
+        mvc.perform(put(readings).header(HttpHeaders.AUTHORIZATION, staff).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"readings\":[{\"room\":\"%s\",\"electricity\":120,\"water\":12}]}".formatted(p.room())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms").value(1))
+                .andExpect(jsonPath("$.problems.length()").value(0));
+        getAs("/check-out/" + p.allocationId(), staff)
+                .andExpect(jsonPath("$.status").value("Draft"))
+                .andExpect(jsonPath("$.reading.electricity").value(120))
+                .andExpect(jsonPath("$.reading.water").value(12));
+
+        byte[] template = getAs(readings.replace("readings?", "readings/template?"), staff).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+        List<List<String>> rows = SheetFile.rows("template.xlsx", template);
+        assertThat(rows.getFirst()).containsExactly("room", "electricity", "water");
+        assertThat(rows).contains(List.of(p.room(), "120.0", "12.0"));
+        byte[] filled = XlsxFile.of("Readings", List.of(List.of("Phòng", "Điện", "Nước"), List.of(p.room(), "130", "13")));
+        mvc.perform(multipart(readings).file(new MockMultipartFile("file", "readings.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filled))
+                        .header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rooms").value(1));
+        getAs("/check-out/" + p.allocationId(), staff).andExpect(jsonPath("$.reading.electricity").value(130));
     }
 
     /** TC-ASG-023: when the charges exceed the Utility Deposit, the rest is invoiced to the student. */

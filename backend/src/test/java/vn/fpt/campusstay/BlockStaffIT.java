@@ -137,6 +137,35 @@ class BlockStaffIT {
         update(bearer(mvc, STAFF_A), ab, "{\"onDuty\":false}").andExpect(status().isForbidden());
     }
 
+    /**
+     * TC-AUTH-057: a Staff member reads their own duty, request types and workload, and starts or ends their shift
+     * (A-60); the change is audited, and students may not use it.
+     */
+    @Test
+    void staffStartAndEndTheirShift() throws Exception {
+        String staff = bearer(mvc, STAFF_A2);
+        mvc.perform(get("/block-staff/me").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(String.valueOf(stay.userId(STAFF_A2))))
+                .andExpect(jsonPath("$.onDuty").value(true))
+                .andExpect(jsonPath("$.blocks[*]").value(contains("A")))
+                .andExpect(jsonPath("$.handles", hasItem("Maintenance")))
+                .andExpect(jsonPath("$.open").isNumber());
+        duty(staff, "{\"onDuty\":false}").andExpect(status().isOk()).andExpect(jsonPath("$.onDuty").value(false));
+        list(bearer(mvc, MANAGER_A)).andExpect(jsonPath(person("Vo Thanh Tung") + ".onDuty").value(hasItem(false)));
+        duty(staff, "{}").andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.onDuty").exists());
+        duty(staff, "{\"onDuty\":true}").andExpect(status().isOk()).andExpect(jsonPath("$.onDuty").value(true));
+        mvc.perform(get("/admin/audit-log").param("action", "Staff duty changed")
+                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
+                .andExpect(jsonPath("$.items", hasSize(2)));
+        duty(bearer(mvc, StayFlow.student(2)), "{\"onDuty\":true}").andExpect(status().isForbidden());
+    }
+
+    private ResultActions duty(String auth, String body) throws Exception {
+        return mvc.perform(put("/block-staff/me/duty").header(HttpHeaders.AUTHORIZATION, auth)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
     /** TC-AUTH-021: the Manager asks Admin for a new account in the Block; one waiting request per email. */
     @Test
     void requestsANewAccount() throws Exception {

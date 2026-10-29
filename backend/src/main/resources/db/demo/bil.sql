@@ -119,7 +119,7 @@ SELECT s.id, 'INV-' || t.x_code || '-' || lpad(s.id::text, greatest(6, length(s.
        CASE WHEN s.status <> 'AWAITING_DEPOSIT' THEN 'TRANSFER' END, s.student_name, s.student_code, s.gender
 FROM src s CROSS JOIN demo_t t;
 
--- Their Balances (B, C): paid, unpaid until the deadline (S17's moved by its late check-in), or void when forfeited.
+-- Their Balances (B, C): paid, unpaid until the deadline (S17's moved to its approved arrival day), or void when forfeited.
 INSERT INTO bil_invoice (id, code, term_id, student_id, application_id, allocation_id, building_id, type, title, amount,
                          utility_deposit, status, transfer_content, issued_at, due_at, paid_at, payment_method,
                          voided_reason, student_name, student_code, gender)

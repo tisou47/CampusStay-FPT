@@ -1,0 +1,23 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/applications?termId={{termId}}&block={{block}}&page=1&pageSize=20'
+order: 5000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: page
+    value: '1'
+  - key: pageSize
+    value: '20'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with { items, total }', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+        pm.expect(pm.response.json().total).to.be.a('number');
+      });
+      pm.test('Counts by status', () => pm.expect(pm.response.json().counts).to.be.an('object'));

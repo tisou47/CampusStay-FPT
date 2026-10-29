@@ -59,6 +59,18 @@ class AssignmentController {
         return assignments.start(body.termId(), Boolean.TRUE.equals(body.dryRun()));
     }
 
+    /** Round 2 of a Term (FR-APP-07): what a run would offer. */
+    @GetMapping("/round2")
+    AssignmentService.Round2Status round2(@RequestParam(required = false) Long termId) {
+        return assignments.round2(termId);
+    }
+
+    /** A Manager offers the free Beds to the waitlisted students (M8). */
+    @PostMapping("/round2/run")
+    AssignmentService.Round2Run runRound2(@RequestBody StartRequest body) {
+        return assignments.runRound2(body.termId());
+    }
+
     @GetMapping("/assignment-runs/{runId}/proposal")
     AssignmentQueries.Proposal proposal(@PathVariable String runId, @RequestParam(required = false) String block,
             @RequestParam(required = false) String view, @RequestParam(required = false) String q,

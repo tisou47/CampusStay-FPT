@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/check-out/readings'
+method: POST
+url: '{{baseUrl}}/check-out/readings'
+order: 10000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `uploadRoomReadings` of `desk-controller`). Add it to the contract or remove it from the backend.
+body:
+  type: formdata
+  content:
+    - key: termId
+      type: text
+      value: '{{termId}}'
+    - key: block
+      type: text
+      value: '{{block}}'
+    - key: file
+      type: file
+      src: ''

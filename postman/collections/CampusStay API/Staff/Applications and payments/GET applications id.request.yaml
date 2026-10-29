@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/applications/{id}'
+method: GET
+url: '{{baseUrl}}/applications/:id'
+order: 2000
+description: |-
+  `GET /applications/{id}` (back-office view) → `{ id, status, termName, student: { name, studentCode, gender, cohort, major, hometown, phone, emergencyContact, syncedAt }, roomTypeName, roomClassName, surchargeRate, termPrice, roommate, eligibility: [{ title, passed }], deposit: { invoiceId, amount, method, paidAt, status } | null, activity: [{ text, at }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

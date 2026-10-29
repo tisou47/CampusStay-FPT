@@ -62,7 +62,7 @@
 | TC-F07-01 | Main | Assigned and unpaid (yellow); paid but before the check-in start, then without a Room code, the student waits (no code); Staff confirm the Room's code and it is released: the student is a resident (orange), is told and sees the code; a student who pays later receives the current code at once. | TC-ASG-032 | Passed |
 | TC-F07-02 | Main | Staff draw a random code, read it to set the lock, confirm it, and it becomes the Room's code; the database holds it encrypted and every view is in the Audit Log. | TC-INV-019 | Passed |
 | TC-F07-03 | Main | A student whose Balance is paid and whose check-in start has come waits for the Room's code; once Staff confirm it, it is released to them (spec §6.8): they are told (never the code), see it and become a resident; without a Bed there is nothing to show. | TC-INV-023 | Passed |
-| TC-F07-04 | Rule | A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule "Balance not paid" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting or an approved late check-in still running keeps the Bed. | TC-ASG-033 | Passed |
+| TC-F07-04 | Rule | A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule "Balance not paid" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting keeps the Bed, and so does a later Balance deadline a Manager chose when approving a late check-in, which may not pass the arrival day (the Balance is paid before check-in). | TC-ASG-033 | Passed |
 | TC-F07-05 | Exception | Codes are 6 new digits; other Blocks and other roles are refused. | TC-INV-020 | Passed |
 
 **F-08 Check-in and check-out desk** (Staff; FR-ASG-04, 06)
@@ -78,9 +78,9 @@
 
 | ID | Type | Test case | Automated test | Result |
 |---|---|---|---|---|
-| TC-F09-01 | Main | The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request at a time; a Manager approves at most that day. | TC-ASG-037 | Passed |
+| TC-F09-01 | Main | The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request per Term, also after the decision; a Manager approves at most that day. | TC-ASG-037 | Passed |
 | TC-F09-02 | Main | Staff record the request with evidence; the Block Manager approves a deadline, after which the desk lets the student check in even though the Term's window is closed. | TC-ASG-030 | Passed |
-| TC-F09-03 | Rule | A rejection needs a reason; every Manager sees the request (ADR-19). | TC-ASG-031 | Passed |
+| TC-F09-03 | Rule | A rejection needs a reason; every Manager sees the request (ADR-19); a student has one late check-in per Term, so the desk cannot record another after the rejection. | TC-ASG-031 | Passed |
 
 **F-10 Next-Term requests** (Student, Staff; FR-REQ-01..05)
 

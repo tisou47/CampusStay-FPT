@@ -71,6 +71,9 @@ export const api = {
     lateCheckIn: g('/students/me/late-check-in'),
     /** multipart: reason, requestedFor (YYYY-MM-DD), evidence (JPEG, PNG or PDF) → { id } (spec §6.9). */
     requestLateCheckIn: (formData) => http.post('/students/me/late-check-in', formData),
+    /** The bank account refunds are paid to: { holder, number, bank, updatedAt } (null fields until entered; A-62). */
+    refundAccount: g('/students/me/refund-account'),
+    saveRefundAccount: (body) => http.put('/students/me/refund-account', body),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
     board: g('/students/me/board'),
   },
@@ -84,6 +87,8 @@ export const api = {
     create: (body) => http.post('/applications', body),
     get: (id, opts) => http.get(`/applications/${id}`, undefined, opts),
     cancel: (id, body) => http.post(`/applications/${id}/cancel`, body),
+    /** A waitlisted Application: leave the waitlist → { applicationId, refund }; the whole Deposit is refunded (A-61). */
+    withdraw: (id) => http.post(`/applications/${id}/withdraw`),
     // Back office
     list: g('/applications'),
     /** Staff decision on one Application: { decision: 'Approved'|'Rejected', note } (note required when rejecting). */
@@ -211,6 +216,16 @@ export const api = {
     resolveConflict: (runId, applicationId, body) => http.post(`/assignment-runs/${runId}/conflicts/${applicationId}/resolve`, body),
     /** A Manager commits a Block: { block }. Allocations, Balance Invoices and notifications follow at once (ADR-19, C-38). */
     commit: (runId, body) => http.post(`/assignment-runs/${runId}/commit`, body),
+    /** Round 2 of a Term (FR-APP-07): { termId, waitlisted, openOffers, freeBeds }. */
+    round2: (termId, opts) => http.get('/round2', { termId }, opts),
+    /** A Manager offers the free Beds to the waitlisted students: { termId } → { offered, waitlisted, freeBeds }. */
+    runRound2: (body) => http.post('/round2/run', body),
+    /**
+     * Who Round 2 reached (A-58): { termId, status (Pending, Accepted, Declined, Expired, Withdrawn, No offer), q, page,
+     * pageSize } → { items: [{ id, applicationId, studentName, studentCode, requested, status, offeredAt, expiresAt,
+     * respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts }.
+     */
+    round2Offers: g('/round2/offers'),
   },
   inventory: {
     structure: g('/inventory/structure'),
@@ -266,6 +281,13 @@ export const api = {
     /** By Allocation id: the student code is personal data and never goes into a URL. */
     checkOutDetail: (allocationId, opts) => http.get(`/check-out/${allocationId}`, undefined, opts),
     checkOut: (allocationId, body) => http.post(`/check-out/${allocationId}`, body),
+    /** Final meter readings Room by Room (spec §6.16): { items: [{ room, students, electricity, water }] }. */
+    roomReadings: g('/check-out/readings'),
+    /** { readings: [{ room, electricity, water }] } → { rooms, students, problems: [{ line, room, message }] }. */
+    saveRoomReadings: (scope, body) => http.put(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, body),
+    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.xlsx' }),
+    /** multipart file (the template filled in, CSV or XLSX) → like saveRoomReadings. */
+    uploadRoomReadings: (scope, formData) => http.post(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, formData),
   },
   meters: {
     periods: g('/meter-periods'),
@@ -274,6 +296,9 @@ export const api = {
     room: (periodId, room, opts) => http.get(`/meter-periods/${periodId}/readings/${room}`, undefined, opts),
     save: (periodId, room, body) => http.put(`/meter-periods/${periodId}/readings/${room}`, body),
     confirm: (periodId, room) => http.post(`/meter-periods/${periodId}/readings/${room}/confirm`),
+    /** The period's Rooms with their previous values, to fill in Excel (A-59). */
+    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.xlsx` }),
+    /** multipart file: the template filled in (XLSX or CSV) → { imported, skipped }; blank lines are Rooms read later. */
     import: (periodId, formData) => http.post(`/meter-periods/${periodId}/import`, formData),
     close: (periodId) => http.post(`/meter-periods/${periodId}/close`),
   },
@@ -341,6 +366,10 @@ export const api = {
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
   blockStaff: {
+    /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
+    me: g('/block-staff/me'),
+    /** { onDuty } → the same: starts or ends the signed-in person's shift. */
+    setDuty: (body) => http.put('/block-staff/me/duty', body),
     list: g('/block-staff'),
     update: (id, body) => http.put(`/block-staff/${id}`, body),
     requestAccount: (body) => http.post('/staff-account-requests', body),

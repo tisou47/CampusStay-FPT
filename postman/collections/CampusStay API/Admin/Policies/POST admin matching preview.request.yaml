@@ -1,0 +1,38 @@
+$kind: http-request
+name: '/admin/matching/preview'
+method: POST
+url: '{{baseUrl}}/admin/matching/preview'
+order: 9000
+description: |-
+  `POST /admin/matching/preview` `{ order, weights, boost }` → `{ averageFit, sameMajorRate, toRound2, source, students, moved, inUse: { placed, averageFit, priorityPlaced, priorityStudents }, draft, example: { room, students, fit, attributes } }` (the draft next to the rules in use, A-33)
+
+  Contract: `docs/api-contract.md` › Admin › Policies
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "snapshot": 0,
+      "hardConstraints": [],
+      "order": [
+        {
+          "key": "",
+          "title": "",
+          "note": ""
+        }
+      ],
+      "weights": [
+        {
+          "key": "",
+          "label": "",
+          "note": "",
+          "on": false,
+          "value": 0,
+          "level": ""
+        }
+      ],
+      "boost": "",
+      "preview": ""
+    }

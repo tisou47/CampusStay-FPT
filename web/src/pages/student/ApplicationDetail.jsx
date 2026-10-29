@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { RefundAccountFields, useRefundAccount } from './refundAccount'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -20,8 +21,9 @@ import { t, tr } from '@/i18n'
 //   roommate: { mode, studentCode, status, preferences } | null, allocation: { room, bed, block } | null,
 //   events: [{ title, at, state: 'done'|'current'|'upcoming', note }],
 //   invoices: [{ id, type, title, amount, status, dueAt, paidAt }],
-//   canCancel, cancelPolicy, resultsPublishedAt, balanceDueAt, registrationClosesAt }
-// POST /applications/:id/cancel { reason }
+//   canCancel, cancelPolicy, resultsPublishedAt, balanceDueAt, registrationClosesAt,
+//   waitlist: { offer: { id, expiresAt, options } | null, until, refund } | null }
+// POST /applications/:id/cancel { reason } · POST /applications/:id/withdraw → { applicationId, refund } (a waitlisted one, A-61)
 
 function alertFor(app) {
   const deposit = app.invoices?.find((i) => i.type === 'deposit')
@@ -41,8 +43,14 @@ function alertFor(app) {
       return ['info', 'Approved', app.resultsPublishedAt
         ? t('Your Room and Bed are assigned in the assignment run; results are published on {date}.', { date: formatDate(app.resultsPublishedAt) })
         : t('Your Room and Bed are assigned in the assignment run.')]
-    case 'Waitlisted':
-      return ['warning', 'Waitlisted', 'No matching Bed was free in Round 1. You may receive a Round 2 offer.']
+    case 'Waitlisted': {
+      const w = app.waitlist
+      if (w?.offer)
+        return ['warning', 'You have Round 2 options', t('No Bed of your kind was free in Round 1, so {n} Beds of other kinds are held for you until {date}. Choose one, or withdraw and get your Deposit back in full.', { n: w.offer.options, date: formatDateTime(w.offer.expiresAt) })]
+      return ['warning', 'Waitlisted', w?.until
+        ? t('No Bed of your kind is free yet. You get Round 2 options as soon as one frees up. If none is found by {date}, the Application is cancelled and your Deposit of {amount} is refunded in full.', { date: formatDate(w.until), amount: formatVnd(w.refund) })
+        : t('No Bed of your kind is free yet. You get Round 2 options as soon as one frees up.')]
+    }
     case 'Allocated':
       return ['success', 'Room and Bed assigned', `${t('{room} · Bed {bed}, {block}.', { room: app.allocation?.room, bed: app.allocation?.bed, block: tr(app.allocation?.block) })}${balance && balance.status !== 'Paid' && balance.dueAt ? ` ${t('Pay the balance by {date} to keep it.', { date: formatDateTime(balance.dueAt) })}` : ''}`]
     case 'Rejected':
@@ -77,6 +85,19 @@ function Detail({ app }) {
     onError: (e) => notifyError(e, 'Could not cancel the Application'),
   })
 
+  const [withdrawing, setWithdrawing] = useState(false)
+  const account = useRefundAccount()
+  const withdraw = useMutation(() => api.applications.withdraw(app.id), {
+    invalidates: ['applications', 'home', 'invoices', 'round2-offer'],
+    onSuccess: (r) => {
+      setWithdrawing(false)
+      notify({ type: 'info', title: 'You left the waitlist', message: t('{amount} is refunded to your bank account after a Manager approves.', { amount: formatVnd(r?.refund ?? 0) }) })
+      navigate('/student/applications')
+    },
+    onError: (e) => notifyError(e, 'Could not withdraw'),
+  })
+  const waitlist = app.status === 'Waitlisted' ? app.waitlist : null
+
   const [alertType, alertTitle, alertBody] = alertFor(app)
   const unpaid = app.invoices?.find((i) => i.status === 'Unpaid' || i.status === 'Overdue')
   const allocated = app.status === 'Allocated'
@@ -88,7 +109,11 @@ function Detail({ app }) {
         title={alertTitle}
         className="shrink-0"
         action={
-          unpaid ? (
+          waitlist?.offer ? (
+            <Button variant="primary" to="/student/round-2-offer">
+              See the options
+            </Button>
+          ) : unpaid ? (
             <Button variant="primary" to={`/student/invoices/${unpaid.id}/pay`}>
               {unpaid.type === 'deposit' ? t('Pay deposit') : t('Pay now')}
             </Button>
@@ -150,6 +175,32 @@ function Detail({ app }) {
             </Button>
           </Card>
 
+          {waitlist && (
+            <Card padding="lg" className="flex flex-col gap-3">
+              <h2 className="text-h3 font-semibold text-fg">{t('What would you like to do?')}</h2>
+              <div className="flex flex-col gap-1 rounded-lg border border-line p-3">
+                <p className="text-base font-medium text-fg">{t(waitlist.offer ? 'Take a Round 2 Bed' : 'Keep waiting')}</p>
+                <p className="text-sm text-fg-secondary">
+                  {waitlist.offer
+                    ? t('Choose one of the held Beds before {date}. The price difference is added to or taken from your Balance.', { date: formatDateTime(waitlist.offer.expiresAt) })
+                    : t('Nothing to do: we notify you when a Bed is held for you.')}
+                </p>
+                {waitlist.offer && (
+                  <Button variant="primary" className="mt-1 self-start" to="/student/round-2-offer">
+                    Choose a Room
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-col gap-1 rounded-lg border border-line p-3">
+                <p className="text-base font-medium text-fg">{t('Withdraw and get the Deposit back')}</p>
+                <p className="text-sm text-fg-secondary">{t('{amount} is refunded in full to your bank account after a Manager approves.', { amount: formatVnd(waitlist.refund) })}</p>
+                <Button variant="danger-text" className="mt-1 self-start" onClick={() => setWithdrawing(true)}>
+                  Withdraw
+                </Button>
+              </div>
+            </Card>
+          )}
+
           {allocated ? (
             <Card padding="lg" className="flex flex-col items-start gap-3">
               <h2 className="text-h3 font-semibold text-fg">{t('Need a different Room?')}</h2>
@@ -169,6 +220,39 @@ function Detail({ app }) {
           ) : null}
         </div>
       </div>
+
+      {waitlist && (
+        <Modal
+          open={withdrawing}
+          onClose={() => setWithdrawing(false)}
+          width={560}
+          title="Withdraw from the waitlist?"
+          description={[app.id, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · ')}
+          footer={
+            <>
+              <Button onClick={() => setWithdrawing(false)}>Keep waiting</Button>
+              <Button
+                variant="danger"
+                disabled={withdraw.pending || account.saving}
+                onClick={async () => {
+                  if (waitlist.refund > 0 && !(await account.save())) return
+                  withdraw.run()
+                }}
+              >
+                {withdraw.pending ? t('Withdrawing…') : t('Withdraw and request the refund')}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-base text-fg-secondary">
+            {t('The Application is cancelled{offer} and your Deposit of {amount} is refunded in full after a Manager approves. This cannot be undone.', {
+              offer: waitlist.offer ? t(', the held Beds are released') : '',
+              amount: formatVnd(waitlist.refund),
+            })}
+          </p>
+          {waitlist.refund > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} />}
+        </Modal>
+      )}
 
       <Modal
         open={confirmCancel}

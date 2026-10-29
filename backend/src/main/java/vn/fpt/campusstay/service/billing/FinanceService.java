@@ -24,6 +24,7 @@ import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.event.InvoiceOverdue;
 import vn.fpt.campusstay.event.RefundDecided;
 import vn.fpt.campusstay.service.setting.FeePolicy;
+import vn.fpt.campusstay.service.auth.RefundAccounts;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.common.audit.AuditLog;
@@ -64,8 +65,9 @@ public class FinanceService {
     public record Sent(int sent) {
     }
 
+    /** @param account where the student wants the money (A-62), null until they enter it */
     public record RefundItem(String id, String name, String studentCode, String reason, String rule, long paid,
-            long amount, String proposedLabel, boolean exception, String status) {
+            long amount, String proposedLabel, boolean exception, String status, RefundAccounts.Account account) {
     }
 
     public record RefundPage(List<RefundItem> items, long total) {
@@ -87,10 +89,11 @@ public class FinanceService {
     private final FeePolicy fees;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
+    private final RefundAccounts accounts;
     private final Clock clock;
 
     public FinanceService(JdbcClient jdbc, InvoiceScope scope, CurrentUser currentUser, TermCatalog terms,
-            FeePolicy fees, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            FeePolicy fees, ApplicationEventPublisher events, AuditLog audit, RefundAccounts accounts, Clock clock) {
         this.jdbc = jdbc;
         this.scope = scope;
         this.currentUser = currentUser;
@@ -98,6 +101,7 @@ public class FinanceService {
         this.fees = fees;
         this.events = events;
         this.audit = audit;
+        this.accounts = accounts;
         this.clock = clock;
     }
 
@@ -247,21 +251,29 @@ public class FinanceService {
         params.put("offset", page.offset());
         Map<Long, FeePolicy.RefundRule> rules = fees.refundRules();
         NumberFormat vnd = NumberFormat.getIntegerInstance(Locale.US);
-        List<RefundItem> items = jdbc.sql("SELECT r.*" + where
+        record Row(long studentId, RefundItem item) {
+        }
+        List<Row> rows = jdbc.sql("SELECT r.*" + where
                 + " ORDER BY (r.status = 'PENDING') DESC, r.created_at DESC, r.id DESC LIMIT :limit OFFSET :offset")
                 .params(params)
                 .query((rs, n) -> {
                     Long ruleId = rs.getObject("rule_id", Long.class);
                     FeePolicy.RefundRule rule = ruleId == null ? null : rules.get(ruleId);
                     long paid = rs.getLong("paid_amount");
-                    return new RefundItem(String.valueOf(rs.getLong("id")), rs.getString("student_name"),
-                            rs.getString("student_code"), rs.getString("reason"),
+                    return new Row(rs.getLong("student_id"), new RefundItem(String.valueOf(rs.getLong("id")),
+                            rs.getString("student_name"), rs.getString("student_code"), rs.getString("reason"),
                             rule != null ? rule.description() : SOURCES.get(rs.getString("source_type")), paid,
                             rs.getLong("amount"),
                             rule == null ? null : percent(rule.refundPercent()) + " of " + vnd.format(paid) + " VND",
-                            rs.getBoolean("exception"), REFUND_STATUSES.get(rs.getString("status")));
+                            rs.getBoolean("exception"), REFUND_STATUSES.get(rs.getString("status")), null));
                 })
                 .list();
+        Map<Long, RefundAccounts.Account> paidTo = accounts.of(rows.stream().map(Row::studentId).distinct().toList());
+        List<RefundItem> items = rows.stream().map(r -> {
+            RefundItem i = r.item();
+            return new RefundItem(i.id(), i.name(), i.studentCode(), i.reason(), i.rule(), i.paid(), i.amount(),
+                    i.proposedLabel(), i.exception(), i.status(), paidTo.get(r.studentId()));
+        }).toList();
         return new RefundPage(items, total);
     }
 

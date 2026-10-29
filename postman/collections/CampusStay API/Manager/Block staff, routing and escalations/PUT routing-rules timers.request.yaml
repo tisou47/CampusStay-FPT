@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/routing-rules/timers'
+method: PUT
+url: '{{baseUrl}}/routing-rules/timers'
+order: 8000
+description: |-
+  `PUT /routing-rules/timers` `{ block, urgent, normal, roomChange }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}",
+      "urgent": "",
+      "normal": "",
+      "roomChange": ""
+    }

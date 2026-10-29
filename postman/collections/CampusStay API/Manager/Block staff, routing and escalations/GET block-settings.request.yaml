@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/block-settings'
+method: GET
+url: '{{baseUrl}}/block-settings?block={{block}}'
+order: 13000
+description: |-
+  `GET /block-settings?block` → `{ deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy, limits: { visitWindow, quietStartsBy }, quietOptions }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+queryParams:
+  - key: block
+    value: '{{block}}'

@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/student-imports'
+method: GET
+url: '{{baseUrl}}/student-imports'
+order: 5000
+description: |-
+  `GET /student-imports`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+queryParams:
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

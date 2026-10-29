@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.ApplicationCreated;
 import vn.fpt.campusstay.event.ApplicationRejected;
+import vn.fpt.campusstay.event.ApplicationWaitlisted;
+import vn.fpt.campusstay.event.WaitlistEnded;
 import vn.fpt.campusstay.event.Round2Offered;
 import vn.fpt.campusstay.event.ApplicationSubmitted;
 import vn.fpt.campusstay.event.RoommateInvited;
@@ -32,11 +34,25 @@ class StudentNotificationListener {
             .withZone(TimeConfig.CAMPUS_ZONE);
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
             .withZone(TimeConfig.CAMPUS_ZONE);
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final InAppNotifier notifier;
 
     StudentNotificationListener(InAppNotifier notifier) {
         this.notifier = notifier;
+    }
+
+    @EventListener
+    void on(ApplicationWaitlisted e) {
+        notifier.notify(e.studentId(), "WAITLISTED",
+                Map.of("term", e.termName(), "until", e.until() == null ? "check-in" : e.until().format(DATE)),
+                "/student/applications/" + e.applicationCode());
+    }
+
+    @EventListener
+    void on(WaitlistEnded e) {
+        notifier.notify(e.studentId(), "WAITLIST_ENDED", Map.of("term", e.termName(), "amount", vnd(e.refund())),
+                "/student/applications/" + e.applicationCode());
     }
 
     @EventListener

@@ -137,8 +137,10 @@ class OperationsIT {
         long a2 = stay.userId(STAFF_A2);
         patchAs("/maintenance-requests/" + urgent, staff, "{\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isNoContent());
-        patchAs("/maintenance-requests/" + urgent, staff, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
-        patchAs("/maintenance-requests/" + urgent, staff, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        // The person in charge does the work (TC-MNT-009).
+        String assignee = bearer(mvc, STAFF_A2);
+        patchAs("/maintenance-requests/" + urgent, assignee, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
+        patchAs("/maintenance-requests/" + urgent, assignee, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         getAs("/furniture/" + ac, staff).andExpect(status().isOk())
                 .andExpect(jsonPath("$.history[?(@.kind == 'Repair')].from", hasItem(urgent)))
                 .andExpect(jsonPath("$.history[?(@.kind == 'Repair')].to", hasItem("Resolved")))

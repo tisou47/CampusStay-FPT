@@ -292,11 +292,11 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 
 | Item | Description |
 |---|---|
-| Trigger | Manager › Registration › Round 2 (M8); the student's offer page (SCR-ASG-02). |
+| Trigger | Automatically when a Block's proposal is committed; a Manager's *Round 2* on Manager › Assignment (SCR-ASG-10) at M8, after M7 and the Balance deadline; the student's offer page (SCR-ASG-02). |
 | Actors | Manager, Student |
 | Description | Beds freed by unpaid Balances, unpaid next-Term fees, ended stays and terminations are offered to Waitlisted students; each student receives held options and accepts one (Allocated with a Balance Invoice) or declines. |
 | Details | Offers expire after the configured time; an expired or declined offer returns the Bed to the pool. |
-| Tests | TC-APP-020, 021 |
+| Tests | TC-APP-020, 021, TC-APP-024 |
 
 ### 3.6 Assignment, residence and Term transition (ASG)
 
@@ -347,7 +347,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Trigger | Student › Requests › Late check-in (SCR-MNT-01); Staff at the desk; Manager › Decisions (SCR-REQ-20). |
 | Actors | Student, Staff, Manager |
 | Description | The student (online) or Staff (desk) record the request with a reason, the requested day and an evidence file; a Manager approves with a new deadline or rejects with a reason. |
-| Details | Allowed up to the check-in end plus `late_check_in.max_days`. An approved, unexpired late check-in extends the Balance deadline and the arrival deadline. |
+| Details | Allowed up to the check-in end plus `late_check_in.max_days`. One late check-in per student per Term (online or at the desk, whatever its outcome). Approving moves the arrival deadline; the Balance is paid before check-in, so an unpaid student's Balance deadline stays unless the Manager chooses a later one, at most the arrival day (user decision 28/10/2026). |
 | Tests | TC-ASG-030, 031, 037 |
 
 #### 3.6.6 FR-ASG-06 Check-out and settlement
@@ -357,8 +357,8 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Trigger | Staff › Desk › Check-out (SCR-REQ-12). |
 | Actors | Staff, Manager (refund) |
 | Description | Staff record the final meter reading, the key or card returned, the Room's condition and the damage of each furniture item. The Utility Deposit is settled (BR-24): the refund goes to a Manager, a shortfall becomes an Invoice. The Allocation ends and the Room's door code must change. |
-| Details | The damage charge is the sum of the items' damage; the meter is cut and the leaver's Utility share is marked settled. Leavers not checked out by the date appear on the overdue check-out list. |
-| Tests | TC-ASG-022, 023, 045, TC-BIL-029 |
+| Details | The damage charge is the sum of the items' damage; the meter is cut and the leaver's Utility share is marked settled. Leavers not checked out by the date appear on the overdue check-out list. Before the leavers come, the desk can enter the final readings Room by Room (*Readings by Room*: typed, or the XLSX template filled in and uploaded); each Room's reading goes to the check-out drafts of its leavers, and a reading below the Room's last one is refused. |
+| Tests | TC-ASG-022, 023, 045, 046, TC-BIL-029 |
 
 #### 3.6.7 FR-ASG-07 Requests window (M2, M3)
 
@@ -406,7 +406,7 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 |---|---|
 | Trigger | The forfeit job every 5 minutes. |
 | Actors | System |
-| Description | A Balance past its deadline with no claim waiting and no approved late check-in is forfeited: the Allocation is cancelled, the Balance voided, the Application Forfeited, the Deposit kept by the refund rule *Balance not paid*, the Bed goes to Round 2 and the student is told. |
+| Description | A Balance past its deadline with no claim waiting is forfeited (an approved late check-in does not hold it back): the Allocation is cancelled, the Balance voided, the Application Forfeited, the Deposit kept by the refund rule *Balance not paid*, the Bed goes to Round 2 and the student is told. |
 | Details | A Balance whose claims are rejected twice is cancelled the same way. |
 | Tests | TC-ASG-033, 034 |
 
@@ -690,14 +690,14 @@ Sections 3.2 to 3.12 describe each function group. Every function has an ID (FR-
 | Details | Results stay inside the user's Blocks. |
 | Tests | TC-RPT-013 |
 
-### 3.12 Android app for students (MOB)
+### 3.12 Mobile app for students (MOB)
 
 #### 3.12.1 FR-MOB-01 Student app
 
 | Item | Description |
 |---|---|
-| Trigger | The student opens the CampusStay app (Android 8.0 or later). |
+| Trigger | The student opens the CampusStay app (Flutter, Android 8.0 or later). |
 | Actors | Student |
 | Description | Sign in with password or Google, Home (board, next step, Room card, Invoices due), My Room (Room, roommates, door code behind "show", check-in pass QR), Payments (VietQR and "I have transferred"), Activity (notifications with announcements, maintenance and next-Term requests, Report a problem with the furniture item); push notifications open the matching screen. Same API and rules as the web portal; Staff and Managers are sent to the web. |
-| Details | The device token is registered after sign-in and removed at sign-out; the language follows the phone. The Android app has no automated tests yet (known gap G5); it is checked by the manual cases of Report 5. |
+| Details | The device token is registered after sign-in and removed at sign-out; the language follows the phone. The mobile app (Flutter, `mobile/`) has format and sign-in widget tests (`flutter test`) but no UI tests of its key screens yet (known gap G5); it is checked by the manual cases of Report 5. |
 | Tests | Manual (Report 5), API cases of FR-AUTH, FR-BIL, FR-MNT, FR-NTF |

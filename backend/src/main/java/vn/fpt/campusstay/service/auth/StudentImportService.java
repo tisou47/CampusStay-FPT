@@ -352,7 +352,12 @@ public class StudentImportService {
             problems.add("The gender must be Male or Female.");
         }
         String major = fields.major(v.get("major")).orElse(null);
-        if (major == null) {
+        String given = v.get("major") == null ? "" : v.get("major").strip();
+        if (major == null && given.length() == 2 && code != null && code.strip().toUpperCase().startsWith(given.toUpperCase())) {
+            // SS, SA … begin the student codes of a programme group; they are not majors (SE is both).
+            problems.add(given.toUpperCase() + " is the start of the student code, not a major: write the major's code or name, "
+                    + "for example BA or Business Administration.");
+        } else if (major == null) {
             problems.add("The major is not in the list of majors.");
         }
         String cohort = StudentFields.cohort(v.get("cohort")).orElse(null);

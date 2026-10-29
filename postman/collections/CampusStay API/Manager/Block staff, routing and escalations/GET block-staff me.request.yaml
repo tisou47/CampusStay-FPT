@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/block-staff/me'
+method: GET
+url: '{{baseUrl}}/block-staff/me'
+order: 3000
+description: |-
+  `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations

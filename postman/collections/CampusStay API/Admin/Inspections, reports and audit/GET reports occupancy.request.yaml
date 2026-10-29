@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/reports/occupancy'
+method: GET
+url: '{{baseUrl}}/reports/occupancy?termId={{termId}}&block={{block}}'
+order: 5000
+description: |-
+  `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

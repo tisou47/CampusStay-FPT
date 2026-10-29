@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/dashboards/staff'
+method: GET
+url: '{{baseUrl}}/dashboards/staff?termId={{termId}}&block={{block}}'
+order: 1000
+description: |-
+  `GET /dashboards/staff?termId&block` → `{ kpis: { toReview, submitted, underReview, paymentsToConfirm, proposal: { runId, proposed, requested, conflicts, waitlisted, committedBlocks, totalBlocks } | null, roomsOutOfService, firstOutOfService: { room, since } | null }, attention: [{ id, kind: 'proposal'|'payments'|'room'|'queue'|'expired'|'maintenance', severity, title, body, link, cta }], applicationsByStatus: [{ status, count }], applicationsTotal, checkInPlan: { start, end, days: [{ date, morning, afternoon }] } | null, bedsByBlock: [{ block, proposed, capacity }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Dashboard
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

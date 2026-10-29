@@ -98,7 +98,7 @@ SELECT t.x_id, ap.id, a.student_id, a.x_bed_id, CASE WHEN a.status = 'FORFEITED'
 FROM demo_app a CROSS JOIN demo_t t JOIN app_application ap ON ap.term_id = t.x_id AND ap.student_id = a.student_id
 WHERE a.x_bed_id IS NOT NULL;
 
--- Late check-ins asked online (B: S16 waiting for a Manager; S17 approved, which moved its Balance deadline).
+-- Late check-ins asked online (B: S16 waiting for a Manager; S17 approved, its Balance deadline moved up to the arrival day).
 INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, window_closed_at, suggested_deadline, status,
                                deadline, decided_by, decided_at, created_at, source)
 SELECT al.id,

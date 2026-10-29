@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/admin/furniture-types'
+method: GET
+url: '{{baseUrl}}/admin/furniture-types'
+order: 8000
+description: |-
+  `GET /admin/furniture-types` → `{ items: [{ id, code, name, nameVi, category, definesClass, status, items }], categories }`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog

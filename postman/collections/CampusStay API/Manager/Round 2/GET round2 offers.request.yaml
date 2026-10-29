@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/round2/offers'
+method: GET
+url: '{{baseUrl}}/round2/offers?termId={{termId}}'
+order: 1000
+description: |-
+  `GET /round2/offers?termId&status&q&page&pageSize` (Managers) → `{ items: [{ id, applicationId, studentName, studentCode, requested, status: Pending|Accepted|Declined|Expired|Withdrawn|No offer, offeredAt, expiresAt, respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }` (A-58)
+
+  Contract: `docs/api-contract.md` › Manager › Round 2
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

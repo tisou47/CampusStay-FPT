@@ -86,7 +86,7 @@ Glossary used in every report: **Term**, **Block** (Building), **Floor**, **Room
 | UC-32 | Review Applications | Manager | Approves or rejects Applications, one by one or in bulk; a rejection needs a reason. (FR-APP-05) |
 | UC-33 | Run the assignment and approve it | Manager | Runs a dry or real assignment, resolves conflicts and approves each Block. (FR-ASG-01, FR-ASG-02, FR-ASG-03) |
 | UC-34 | Confirm or reject payment claims | Manager | Confirms claims (one or in bulk with count and total) or rejects with a reason. (FR-BIL-03) |
-| UC-35 | Decide late check-ins | Manager | Approves with a new deadline or rejects with a reason. (FR-ASG-05) |
+| UC-35 | Decide late check-ins | Manager | Approves with a new arrival deadline (and, for an unpaid student, optionally a later Balance deadline up to that day) or rejects with a reason. (FR-ASG-05) |
 | UC-36 | Manage terminations | Manager | Starts a termination with a reason and move-out date, follows overdue ones, cancels. (FR-ASG-09) |
 | UC-37 | Reconcile the enrolled list | Manager | Uploads the enrolled (or leavers) list of a Term and resolves groups 1–2 with a note. (FR-AUTH-08) |
 | UC-38 | Issue next-Term fees | Manager | Issues the next-Term fees once requests are decided and the list is reconciled. (FR-ASG-08) |
@@ -208,7 +208,7 @@ The main entities and their relationships (the full logical ERD of 98 tables is 
 
 ### 4.1 External Interfaces
 
-**User interfaces.** A responsive web app (React) for the four roles: the student portal works on phones, tablets and desktops; the back office is designed for desktop (1280 px and wider). An Android app (Kotlin, Jetpack Compose, Android 8.0 / API 26 or later) for students. Both are in Vietnamese and English, chosen by the user (web) or the phone's language (Android); the API answers in the same language (`Accept-Language`). Screen layouts follow the Figma file *CampusStay-FPT*; the screen flows are in section 3.1.1 and the routes in section 3.1.2.
+**User interfaces.** A responsive web app (React) for the four roles: the student portal works on phones, tablets and desktops; the back office is designed for desktop (1280 px and wider). A mobile app (Flutter, built for Android 8.0 / API 26 or later) for students. Both are in Vietnamese and English, chosen by the user (web) or the phone's language (mobile app); the API answers in the same language (`Accept-Language`). Screen layouts follow the Figma file *CampusStay-FPT*; the screen flows are in section 3.1.1 and the routes in section 3.1.2.
 
 **Software interfaces.**
 
@@ -277,7 +277,7 @@ Each attribute has a metric, a threshold and a measurement method; NFR-01…NFR-
 | BR-13 | A real assignment run of a Term cannot start before M3 or while next-Term requests are open, because continuing residents' Beds are not settled yet. |
 | BR-14 | The door code is released only when the Balance is paid, the check-in start has come and the Room's code is confirmed on the lock; the student is then a resident. |
 | BR-15 | The door code of a Room must change whenever a resident leaves it (check-out, move, termination); codes are 6 digits, stored encrypted, never sent in push texts; every view is audited. |
-| BR-16 | A late check-in must be asked before the check-in end plus `late_check_in.max_days`; an approved one moves the Balance deadline to the new date. |
+| BR-16 | A late check-in must be asked before the check-in end plus `late_check_in.max_days`; a student has one per Term. An approved one moves the arrival deadline; the Balance is still paid before check-in: its deadline moves only if the Manager chooses a later day, at most the arrival day. |
 | BR-17 | Requests window: at M2 every resident not leaving gets a next-Term Allocation on the same Bed (Continuing, or Awaiting extension in the last Term of the Stay); requests are filed until M3 and decided by M4; a Bed Awaiting extension at M3 is released. |
 | BR-18 | Next-Term requests (room change, swap, Room Class change, extension, end of stay) act on the next-Term Allocation, never on the current Term, and carry no price difference within the current Term. |
 | BR-19 | A Room Class change needs the consent of every continuing resident of the Room (a resident in the last Term of the Stay is not asked) and the furniture of the new class. |

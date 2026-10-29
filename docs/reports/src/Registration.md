@@ -79,7 +79,7 @@ Assignment engine and automation. The system shall automatically:
 
 Documents: Reports 1–7. Technologies:
 
-- React (web app for all roles), Kotlin with Jetpack Compose (Android app for students)
+- React (web app for all roles), Flutter (mobile app for students, built for Android)
 - Spring Boot (Java 21) REST API, PostgreSQL with Flyway migrations
 - A rule-based batch room-assignment engine
 - Firebase Cloud Messaging, SMTP email, in-app notifications

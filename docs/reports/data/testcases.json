@@ -11,10 +11,10 @@
   "passed": 138,
   "failed": 0,
   "notRun": 20,
-  "runDate": "2026-10-28T09:21:59.539Z",
+  "runDate": "2026-10-28T15:45:24.241Z",
   "suite": {
-   "tests": 235,
-   "passed": 235,
+   "tests": 238,
+   "passed": 238,
    "failed": 0
   }
  },
@@ -592,10 +592,10 @@
    "auto": "TC-ASG-033",
    "test": "ResidenceIT.unpaidBalanceIsForfeited",
    "role": "System (job)",
-   "description": "A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule \"Balance not paid\" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting or an approved late check-in still running keeps the Bed.",
+   "description": "A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule \"Balance not paid\" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting keeps the Bed, and so does a later Balance deadline a Manager chose when approving a late check-in, which may not pass the arrival day (the Balance is paid before check-in).",
    "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); System (job) signed in",
    "steps": "Automated (ResidenceIT.unpaidBalanceIsForfeited): GET /api/inventory/rooms; POST /api/late-check-ins/{id}/decision; POST /api/students/me/late-check-in; check the answer and the database",
-   "expected": "A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule \"Balance not paid\" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting or an approved late check-in still running keeps the Bed.",
+   "expected": "A Balance past its deadline without a claim is forfeited: the Allocation is cancelled, the Balance void, the Application Forfeited, the Deposit kept by the rule \"Balance not paid\" (a 0 % rule records no refund; a 10 % rule one refund, never two) and the student told; a claim waiting keeps the Bed, and so does a later Balance deadline a Manager chose when approving a late check-in, which may not pass the arrival day (the Balance is paid before check-in).",
    "result": "Passed"
   },
   {
@@ -682,10 +682,10 @@
    "auto": "TC-ASG-037",
    "test": "LateCheckInIT.studentAsksOnline",
    "role": "Student",
-   "description": "The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request at a time; a Manager approves at most that day.",
+   "description": "The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request per Term, also after the decision; a Manager approves at most that day.",
    "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Student signed in",
    "steps": "Automated (LateCheckInIT.studentAsksOnline): GET /api/late-check-ins; POST /api/late-check-ins/{id}/decision; GET /api/students/me/late-check-in; POST /api/students/me/late-check-in; check the answer and the database",
-   "expected": "The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request at a time; a Manager approves at most that day.",
+   "expected": "The student asks online with a reason, the day and an evidence file, up to the check-in end plus late_check_in.max_days; the Managers are told; one request per Term, also after the decision; a Manager approves at most that day.",
    "result": "Passed"
   },
   {
@@ -712,10 +712,10 @@
    "auto": "TC-ASG-031",
    "test": "LateCheckInIT.rejectedLateCheckIn",
    "role": "Manager",
-   "description": "A rejection needs a reason; every Manager sees the request (ADR-19).",
+   "description": "A rejection needs a reason; every Manager sees the request (ADR-19); a student has one late check-in per Term, so the desk cannot record another after the rejection.",
    "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Manager signed in",
    "steps": "Automated (LateCheckInIT.rejectedLateCheckIn): GET /api/late-check-ins; POST /api/late-check-ins/{id}/decision; check the answer and the database",
-   "expected": "A rejection needs a reason; every Manager sees the request (ADR-19).",
+   "expected": "A rejection needs a reason; every Manager sees the request (ADR-19); a student has one late check-in per Term, so the desk cannot record another after the rejection.",
    "result": "Passed"
   },
   {

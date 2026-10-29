@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/turnover'
+method: GET
+url: '{{baseUrl}}/turnover?termId={{termId}}&block={{block}}'
+order: 11000
+description: |-
+  `GET /turnover?termId&block` → `{ term, previousTerm, checkOutBy, checkInStart, counts, leavers, movers, rooms }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

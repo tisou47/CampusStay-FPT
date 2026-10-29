@@ -1,0 +1,36 @@
+$kind: http-request
+name: '/maintenance-requests'
+method: POST
+url: '{{baseUrl}}/maintenance-requests'
+order: 11000
+description: |-
+  `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
+
+  Contract: `docs/api-contract.md` › Student › My Room and requests
+body:
+  type: formdata
+  content:
+    - key: title
+      type: text
+      value: ''
+    - key: description
+      type: text
+      value: ''
+    - key: category
+      type: text
+      value: ''
+    - key: location
+      type: text
+      value: ''
+    - key: urgency
+      type: text
+      value: ''
+    - key: staffMayEnter
+      type: text
+      value: ''
+    - key: furnitureItemId
+      type: text
+      value: ''
+    - key: photos
+      type: file
+      src: ''

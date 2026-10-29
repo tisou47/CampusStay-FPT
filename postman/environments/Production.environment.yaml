@@ -1,0 +1,49 @@
+name: Production
+values:
+  - key: baseUrl
+    value: 'https://campusstay-api.eastasia.cloudapp.azure.com/api'
+    enabled: true
+    type: default
+    description: Production API (Azure VM)
+  - key: lang
+    value: en
+    enabled: true
+    type: default
+    description: Accept-Language of every request, en or vi
+  - key: sessionRole
+    value: manager
+    enabled: true
+    type: default
+    description: Role of the folders that name none (Session, Exports), student, staff, manager or admin
+  - key: studentEmail
+    value: se190001@fpt.edu.vn
+    enabled: true
+    type: default
+    description: Demo accounts of the production base data
+  - key: staffEmail
+    value: staff.a1@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: managerEmail
+    value: manager.a@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: adminEmail
+    value: admin@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: password
+    value: ''
+    enabled: true
+    type: secret
+    description: Fill in the current value in Postman or pass --env-var "password=…"; never commit it
+  - key: termId
+    value: ''
+    enabled: true
+    type: default
+    description: Empty = the server chooses (the current Term); the smoke tests fill it during a run
+  - key: block
+    value: ''
+    enabled: true
+    type: default
+    description: Empty = every Block of the user; the smoke tests fill it during a run

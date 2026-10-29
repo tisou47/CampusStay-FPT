@@ -1,0 +1,10 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/sign-out'
+order: 13000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('204: signed out', () => pm.response.to.have.status(204));
+      pm.collectionVariables.unset(pm.variables.get('cs.role') + 'Token');

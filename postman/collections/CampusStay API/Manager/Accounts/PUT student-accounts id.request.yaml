@@ -1,0 +1,33 @@
+$kind: http-request
+name: '/student-accounts/{id}'
+method: PUT
+url: '{{baseUrl}}/student-accounts/:id'
+order: 4000
+description: |-
+  `PUT /student-accounts/{id}` (directory fields) → the hub
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "studentCode": "",
+      "gender": "",
+      "dateOfBirth": "2026-12-01",
+      "major": "",
+      "cohort": "",
+      "semester": 0,
+      "hometown": "",
+      "region": "",
+      "enrollment": "",
+      "priorityGroups": [],
+      "phone": ""
+    }

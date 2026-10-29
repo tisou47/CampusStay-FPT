@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/terminations/{id}/cancel'
+method: POST
+url: '{{baseUrl}}/terminations/:id/cancel'
+order: 5000
+description: |-
+  `POST /terminations/{id}/cancel { reason }` → `204` (A-37)
+
+  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": ""
+    }

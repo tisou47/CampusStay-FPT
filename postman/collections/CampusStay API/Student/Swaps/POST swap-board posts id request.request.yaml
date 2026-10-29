@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/swap-board/posts/{id}/request'
+method: POST
+url: '{{baseUrl}}/swap-board/posts/:id/request'
+order: 4000
+description: |-
+  `POST /swap-board/posts/{id}/request` → `{ id }`
+
+  Contract: `docs/api-contract.md` › Student › Swaps
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

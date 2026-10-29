@@ -500,6 +500,12 @@ class JdbcBilling implements Billing {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<String> readingProblem(long roomId, BigDecimal electricity, BigDecimal water) {
+        return settlements.readingProblem(roomId, electricity, water);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Settlement estimateCheckOut(SettlementRequest request) {
         return settlements.compute(request).settlement();
     }

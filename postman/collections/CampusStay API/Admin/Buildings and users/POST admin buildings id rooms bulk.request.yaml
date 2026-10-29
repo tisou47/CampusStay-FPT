@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/admin/buildings/{id}/rooms/bulk'
+method: POST
+url: '{{baseUrl}}/admin/buildings/:id/rooms/bulk'
+order: 3000
+description: |-
+  `POST /admin/buildings/{id}/rooms/bulk` `{ fromFloor, toFloor, roomClassId? }` → `{ created, skipped }`
+
+  Contract: `docs/api-contract.md` › Admin › Buildings and users
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fromFloor": 0,
+      "toFloor": 0,
+      "roomClassId": ""
+    }

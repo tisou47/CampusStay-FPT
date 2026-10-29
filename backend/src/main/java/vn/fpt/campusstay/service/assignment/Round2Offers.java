@@ -25,11 +25,11 @@ import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.inventory.Inventory;
 
 /**
- * Round 2: when a Block is approved, each Waitlisted student who was not
- * flagged ineligible is offered up to three free Beds of other kinds (one per
- * Room Type and Room Class, nearest Term price first), in partly filled Rooms
- * first. The Beds are held until the offer is answered or expires
- * (Admin › System parameters, {@code round2.offer_hours}).
+ * Round 2: when a Block is approved, and again when a Manager runs Round 2 (M8, after Beds were freed by forfeits,
+ * unpaid next-Term fees, ended stays and terminations), each Waitlisted student who was not flagged ineligible is
+ * offered up to three free Beds of other kinds (one per Room Type and Room Class, nearest Term price first), in
+ * partly filled Rooms first. The Beds are held until the offer is answered or expires (Admin › System parameters,
+ * {@code round2.offer_hours}).
  */
 @Component
 class Round2Offers {
@@ -55,10 +55,21 @@ class Round2Offers {
         this.clock = clock;
     }
 
-    void offer(long termId, List<Applications.Candidate> waitlisted) {
+    /** Free Beds of the Term nobody holds: not allocated and not in an open Round-2 option. */
+    int freeBeds(long termId) {
+        Set<Long> occupied = Set.copyOf(jdbc.sql("SELECT bed_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
+                .param("t", termId).query(Long.class).list());
+        Set<Long> held = applications.heldRound2Beds(termId);
+        return (int) inventory.assignableBeds(termId).stream()
+                .filter(b -> !occupied.contains(b.bedId()) && !held.contains(b.bedId())).count();
+    }
+
+    /** @return the students who received an offer */
+    int offer(long termId, List<Applications.Candidate> waitlisted) {
         if (waitlisted.isEmpty()) {
-            return;
+            return 0;
         }
+        int offered = 0;
         Set<Long> occupied = Set.copyOf(jdbc.sql("SELECT bed_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
                 .param("t", termId).query(Long.class).list());
         Set<Long> taken = new HashSet<>(applications.heldRound2Beds(termId));
@@ -105,6 +116,8 @@ class Round2Offers {
             }
             chosen.forEach(o -> taken.add(o.bedId()));
             applications.offerRound2(c.applicationId(), chosen, expires);
+            offered++;
         }
+        return offered;
     }
 }

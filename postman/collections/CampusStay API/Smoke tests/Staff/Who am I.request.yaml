@@ -1,0 +1,16 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/auth/me'
+order: 2000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200: signed in as staff', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().role).to.eql('staff');
+      });
+      const blocks = pm.response.json().blocks || [];
+      pm.test('Works for at least one Block', () => pm.expect(blocks).to.not.be.empty);
+      pm.variables.set('cs.staffBlocks', JSON.stringify(blocks));
+      if (!pm.variables.get('block') && blocks.length) pm.variables.set('block', blocks[0]);

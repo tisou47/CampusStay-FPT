@@ -13,6 +13,7 @@ import { Tag } from '@/components/ui/Tag'
 import { formatDate } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t } from '@/i18n'
+import { DateInput } from '@/components/ui/DatePicker'
 
 // SCR-AUTH-06 Student sign-up form and verification (ADR-26, spec §6.1)
 // A student whose Google account is not in the imported student list sends these details once; a Manager then
@@ -83,7 +84,7 @@ function DetailsForm({ data, onSent }) {
           )}
         </Field>
         <Field label="Date of birth" required error={fields.dateOfBirth}>
-          {(id) => <Input id={id} type="date" value={form.dateOfBirth ?? ''} onChange={set('dateOfBirth')} />}
+          {(id) => <DateInput id={id} value={form.dateOfBirth ?? ''} onChange={set('dateOfBirth')} />}
         </Field>
         <Field label="Major" required error={fields.major}>
           {(id) => (

@@ -127,7 +127,10 @@ class LateCheckInIT {
                 .andExpect(jsonPath("$.items[0].title").value("Late check-in decision"));
     }
 
-    /** TC-ASG-031: a rejection needs a reason; every Manager sees the request (ADR-19). */
+    /**
+     * TC-ASG-031: a rejection needs a reason; every Manager sees the request (ADR-19); a student has one late check-in
+     * per Term, so the desk cannot record another after the rejection.
+     */
     @Test
     void rejectedLateCheckIn() throws Exception {
         stay.livesIn(19, "A-304", "B", false);
@@ -143,11 +146,15 @@ class LateCheckInIT {
         list(manager)
                 .andExpect(jsonPath("$.items[?(@.id == '%s')].decision.status".formatted(id),
                         hasItem("Rejected")));
+        record(bearer(mvc, STAFF_A), "SE190019", day(2), false)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LATE_REQUEST_EXISTS"));
     }
 
     /**
      * TC-ASG-037: the student asks online with a reason, the day and an evidence file, up to the check-in end plus
-     * late_check_in.max_days; the Managers are told; one request at a time; a Manager approves at most that day.
+     * late_check_in.max_days; the Managers are told; one request per Term, also after the decision; a Manager approves
+     * at most that day.
      */
     @Test
     void studentAsksOnline() throws Exception {
@@ -197,6 +204,12 @@ class LateCheckInIT {
                 "{\"decision\":\"Approved\",\"deadline\":\"2031-01-12\"}").andExpect(status().isNoContent());
         mvc.perform(get("/students/me/late-check-in").header(HttpHeaders.AUTHORIZATION, auth))
                 .andExpect(jsonPath("$.request.status").value("Approved"))
-                .andExpect(jsonPath("$.request.deadline").value("2031-01-12"));
+                .andExpect(jsonPath("$.request.deadline").value("2031-01-12"))
+                .andExpect(jsonPath("$.canRequest").value(false));
+        mvc.perform(multipart("/students/me/late-check-in").file(new MockMultipartFile("evidence", "letter.png",
+                "image/png", PNG)).param("reason", "Later still").param("requestedFor", "2031-01-14")
+                .header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LATE_REQUEST_EXISTS"));
     }
 }

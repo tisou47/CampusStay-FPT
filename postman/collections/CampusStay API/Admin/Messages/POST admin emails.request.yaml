@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/admin/emails'
+method: POST
+url: '{{baseUrl}}/admin/emails'
+order: 5000
+description: |-
+  `POST /admin/emails` (same + `channel, sendAt`) → `{ queued }`
+
+  Contract: `docs/api-contract.md` › Admin › Messages
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "mode": "",
+      "studentCode": "",
+      "termId": "{{termId}}",
+      "group": "",
+      "block": "{{block}}",
+      "gender": "",
+      "templateKey": "",
+      "subject": "",
+      "channel": "",
+      "sendAt": ""
+    }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/admin/terms/{id}/wizard'
+method: GET
+url: '{{baseUrl}}/admin/terms/:id/wizard'
+order: 3000
+description: |-
+  `GET /admin/terms/{id}/wizard` → the wizard document
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

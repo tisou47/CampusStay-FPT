@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/furniture'
+method: POST
+url: '{{baseUrl}}/furniture'
+order: 2000
+description: |-
+  `POST /furniture` `{ typeId, block, room?, quantity, note? }` → `{ assetCodes }` (Managers)
+
+  Contract: `docs/api-contract.md` › Manager › Inventory and furniture
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "typeId": "",
+      "block": "{{block}}",
+      "room": "",
+      "quantity": 0,
+      "note": ""
+    }

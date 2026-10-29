@@ -24,6 +24,9 @@ class BlockStaffController {
     record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles, Boolean onDuty) {
     }
 
+    record DutyRequest(Boolean onDuty) {
+    }
+
     /** {@code block} may be left out when the Manager has one Block. */
     record AccountRequest(@Size(max = 150, message = "Use at most 150 characters.") String name,
             @Size(max = 254) String email, @Size(max = 20) String role, @Size(max = 20) String block) {
@@ -38,6 +41,18 @@ class BlockStaffController {
     @GetMapping("/block-staff")
     BlockStaffService.Page list(@RequestParam(required = false) String block) {
         return staff.list(block);
+    }
+
+    /** The signed-in person's own duty, request types and workload (A-60). */
+    @GetMapping("/block-staff/me")
+    BlockStaffService.Me me() {
+        return staff.me();
+    }
+
+    /** Starts or ends the signed-in person's shift: { onDuty } (A-60). */
+    @PutMapping("/block-staff/me/duty")
+    BlockStaffService.Me setDuty(@RequestBody DutyRequest body) {
+        return staff.setDuty(body.onDuty());
     }
 
     @PutMapping("/block-staff/{id}")

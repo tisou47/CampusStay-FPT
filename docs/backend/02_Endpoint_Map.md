@@ -2,7 +2,7 @@
 
 Every endpoint of `docs/api-contract.md` (which includes every change logged in `03_API_Contract_Changes.md`), the module that owns it, its MoSCoW priority and the build slice. **Status:** Planned → Coded (written) → Verified (integration test passes in `mvn verify`). Claude Code updates the column in the same commit as the code. Notes name the change IDs of `03_API_Contract_Changes.md` and the test cases that verify a row; every test case is described in `04_Test_Catalog.md`. Every endpoint returns IDs as strings (ADR-15, B-03).
 
-Total: 261 endpoints (268 when the seven `GET, PUT` rows count twice); all 261 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026), phase 6 the 27 rows of section V2-6 (built on `feat/v2-phase6`, in `main` and production since 27/10/2026), phase 7 the 2 rows of section V2-7 and new fields on existing endpoints (built on `feat/v2-phase7-8`, in `main` and production since 27/10/2026).
+Total: 268 endpoints (275 when the seven `GET, PUT` rows count twice); all 268 coded and verified (`POST /auth/google` by integration tests with Google's token check stubbed and by hand with a real account, 25/10/2026). Change Specification v2 adds endpoints phase by phase (`docs/01_Change_Spec_v2.md` §16); phase 1 added `PUT /auth/me/locale`, phase 2 the 18 rows of section V2-2 (in `main` and production since 25/10/2026), phase 3 the 25 rows of section V2-3 (in `main` and production since 25/10/2026), phase 4 the 18 rows of section V2-4 (in `main` and production since 26/10/2026), phase 5 the 9 rows of section V2-5 and removed `POST /webhooks/sepay` (built on `feat/v2-phase5`, in `main` and production since 26/10/2026), phase 6 the 27 rows of section V2-6 (built on `feat/v2-phase6`, in `main` and production since 27/10/2026), phase 7 the 2 rows of section V2-7 and new fields on existing endpoints (built on `feat/v2-phase7-8`, in `main` and production since 27/10/2026).
 
 | Slice | Focus |
 |---|---|
@@ -127,11 +127,15 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | ASG | GET | `/check-out` | Must | Verified | C-23; TC-ASG-021, 022 |
 | ASG | GET | `/check-out/{allocationId}` | Must | Verified | B-01 (was `{studentCode}`); TC-ASG-021, 022 |
 | ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022 (opens the door-code rotation, A-25), 023 |
+| ASG | GET | `/check-out/readings` | Must | Verified | A-55; TC-ASG-046 |
+| ASG | PUT | `/check-out/readings` | Must | Verified | A-55; TC-ASG-046 |
+| ASG | POST | `/check-out/readings` (multipart) | Must | Verified | A-55; TC-ASG-046 |
+| ASG | GET | `/check-out/readings/template` | Must | Verified | A-55; XLSX; TC-ASG-046 |
 | MNT | GET | `/maintenance-requests` | Must | Verified | C-24; TC-MNT-002, 003 |
 | MNT | POST | `/maintenance-requests` | Must | Verified | Photos (signed links, A-10); TC-MNT-001 |
 | MNT | GET | `/maintenance-requests/options` | Must | Verified | TC-MNT-001, 002 |
 | MNT | GET | `/maintenance-requests/{id}` | Must | Verified | Student and back-office views; TC-MNT-001, 002 |
-| MNT | PATCH | `/maintenance-requests/{id}` | Must | Verified | Partial update (C-24); TC-MNT-002 |
+| MNT | PATCH | `/maintenance-requests/{id}` | Must | Verified | Partial update (C-24); only the person in charge changes the status (B-12); TC-MNT-002, 009 |
 | MNT | POST | `/maintenance-requests/{id}/confirm` | Must | Verified | TC-MNT-002 |
 | MNT | POST | `/maintenance-requests/{id}/updates` | Must | Verified | TC-MNT-002 |
 | NTF | POST | `/devices` | Must | Verified | A-05; push after commit (C-25); TC-NTF-010…012, 020, 021 |
@@ -144,6 +148,10 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
 | APP | POST | `/round2-offers/{id}/respond` | Should | Verified | C-27; TC-APP-020, 021 |
+| ASG | GET | `/round2` | Must | Verified | A-57; TC-APP-024 |
+| ASG | POST | `/round2/run` | Must | Verified | A-57; TC-APP-024 |
+| APP | GET | `/round2/offers` | Must | Verified | A-58; TC-APP-024 |
+| APP | POST | `/applications/{id}/withdraw` | Must | Verified | A-61, B-13; TC-APP-025 |
 | APP | GET | `/students/me/round2-offer` | Should | Verified | Offers made when a Block is approved (C-27); TC-APP-020 |
 | ASG | GET | `/late-check-ins` | Should | Verified | C-28; `source` Online or Desk (A-36); TC-ASG-030, 031, 037 |
 | ASG | POST | `/late-check-ins` | Should | Verified | A-12 (recorded at the desk); TC-ASG-030 |
@@ -174,10 +182,15 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 |---|---|---|---|---|---|
 | AUTH | GET | `/block-staff` | Should | Verified | C-32; TC-AUTH-019 |
 | AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32; TC-AUTH-020 |
+| AUTH | GET | `/block-staff/me` | Should | Verified | A-60; TC-AUTH-057 |
+| AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
+| AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
+| AUTH | PUT | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058, TC-APP-025 |
 | AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
 | BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |
 | BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022, 029…031); TC-BIL-024, 026 |
-| BIL | POST | `/meter-periods/{id}/import` | Should | Verified | C-29; TC-BIL-025 |
+| BIL | POST | `/meter-periods/{id}/import` | Should | Verified | C-29, A-59 (XLSX, blank lines skipped); TC-BIL-025, 039 |
+| BIL | GET | `/meter-periods/{id}/template` | Should | Verified | A-59; TC-BIL-039 |
 | BIL | GET | `/meter-periods/{id}/readings` | Should | Verified | C-29; TC-BIL-023, 024 |
 | BIL | GET | `/meter-periods/{id}/readings/{room}` | Should | Verified | C-29; TC-BIL-024 |
 | BIL | PUT | `/meter-periods/{id}/readings/{room}` | Should | Verified | C-29; TC-BIL-024, 026 |

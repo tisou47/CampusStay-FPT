@@ -1,0 +1,17 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/students/me/invoices?termId={{termId}}'
+order: 7000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with { items, total }', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+        pm.expect(pm.response.json().total).to.be.a('number');
+      });
+      pm.test('The summary is there', () => pm.expect(pm.response.json().summary).to.be.an('object'));

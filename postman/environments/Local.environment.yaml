@@ -1,0 +1,49 @@
+name: Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8080/api'
+    enabled: true
+    type: default
+    description: The backend started with mvn spring-boot:run (dev profile)
+  - key: lang
+    value: en
+    enabled: true
+    type: default
+    description: Accept-Language of every request, en or vi
+  - key: sessionRole
+    value: manager
+    enabled: true
+    type: default
+    description: Role of the folders that name none (Session, Exports), student, staff, manager or admin
+  - key: studentEmail
+    value: se190001@fpt.edu.vn
+    enabled: true
+    type: default
+    description: Dev base data (backend/README.md, "Base data")
+  - key: staffEmail
+    value: staff.a1@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: managerEmail
+    value: manager.a@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: adminEmail
+    value: admin@fpt.edu.vn
+    enabled: true
+    type: default
+  - key: password
+    value: '12321321'
+    enabled: true
+    type: secret
+    description: Password of every dev base data account (not a real secret)
+  - key: termId
+    value: ''
+    enabled: true
+    type: default
+    description: Empty = the server chooses (the current Term); the smoke tests fill it during a run
+  - key: block
+    value: ''
+    enabled: true
+    type: default
+    description: Empty = every Block of the user; the smoke tests fill it during a run

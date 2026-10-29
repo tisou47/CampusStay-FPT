@@ -17,6 +17,7 @@ import { Segmented } from '@/components/ui/Tabs'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { DifferencesTable, ExcludedRoomsField, MILESTONES, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
 import { t, tr } from '@/i18n'
+import { DateInput } from '@/components/ui/DatePicker'
 
 // SCR-CFG-22 Registration-period requests (spec §6.3, D-10, D-11): Managers ask the Admin to open a Term; Managers
 // and the Admin read and comment; the Admin answers and builds the Term from a request in the wizard.
@@ -110,10 +111,10 @@ function RequestForm({ request, onClose, onSaved }) {
           {(id) => <Input id={id} value={form.termName} onChange={(e) => set('termName', e.target.value)} />}
         </Field>
         <Field label="Stay starts" required error={fields.stayStart}>
-          {(id) => <Input id={id} type="date" value={form.stayStart} onChange={(e) => set('stayStart', e.target.value)} />}
+          {(id) => <DateInput id={id} value={form.stayStart} onChange={(e) => set('stayStart', e.target.value)} />}
         </Field>
         <Field label="Stay ends" required error={fields.stayEnd}>
-          {(id) => <Input id={id} type="date" value={form.stayEnd} onChange={(e) => set('stayEnd', e.target.value)} />}
+          {(id) => <DateInput id={id} value={form.stayEnd} onChange={(e) => set('stayEnd', e.target.value)} />}
         </Field>
       </div>
       <TimelineFields

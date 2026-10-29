@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/announcements/options'
+method: GET
+url: '{{baseUrl}}/announcements/options'
+order: 8000
+description: |-
+  `GET /announcements/options`
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods

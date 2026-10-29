@@ -322,6 +322,10 @@ Choose Pending, Approved, Rejected or Paid. ⟶ Hãy chọn Đang chờ, Đã du
 This period does not exist. ⟶ Kỳ chỉ số này không tồn tại.
 This period is closed: its Invoices are issued. ⟶ Kỳ chỉ số đã đóng: hóa đơn đã được phát hành.
 Choose a CSV file. ⟶ Hãy chọn tệp CSV.
+Choose the filled template (XLSX or CSV). ⟶ Hãy chọn tệp mẫu đã điền (XLSX hoặc CSV).
+The file has no readings. ⟶ Tệp không có chỉ số nào.
+Line {0}: the Room is not in this period. ⟶ Dòng {0}: phòng không có trong kỳ chỉ số này.
+Line {0}: enter two readings. ⟶ Dòng {0}: hãy nhập đủ chỉ số điện và nước.
 Room {0} is not in this Block. ⟶ Phòng {0} không thuộc Block này.
 Room {0} has no reading in this period. ⟶ Phòng {0} chưa có chỉ số trong kỳ này.
 Enter the reading before you confirm it. ⟶ Hãy nhập chỉ số trước khi xác nhận.
@@ -396,6 +400,7 @@ Each photo must be {0} MB or smaller. ⟶ Mỗi ảnh tối đa {0} MB.
 Say whether the problem is fixed. ⟶ Hãy cho biết sự cố đã được sửa chưa.
 Assign the request before you mark it resolved. ⟶ Hãy giao việc trước khi đánh dấu đã xử lý.
 Assign someone first. ⟶ Hãy giao cho một người trước.
+This request is assigned to {0}. Take it over before you change its status. ⟶ Yêu cầu này đang giao cho {0}. Hãy nhận phụ trách trước khi đổi trạng thái.
 Choose a staff member of this Block. ⟶ Hãy chọn một nhân viên của Block này.
 Choose a staff member or none. ⟶ Hãy chọn một nhân viên hoặc để trống.
 Keep someone assigned while the work is in progress. ⟶ Phải có người được giao khi công việc đang xử lý.
@@ -870,3 +875,44 @@ This demo file does not exist. ⟶ Không có tệp demo này.
 Load stage A, B or C first: this file lists the people of the next Term. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau.
 Load stage A, B or C first: Block A has no open meter period. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở.
 Load stage A, B or C first: no door code of Block A must change. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi.
+
+# ---------- majors (V10, V61): the student list import also accepts the Vietnamese names ----------
+Artificial Intelligence ⟶ Trí tuệ nhân tạo
+Business Administration ⟶ Quản trị kinh doanh
+English Language ⟶ Ngôn ngữ Anh
+Graphic Design ⟶ Thiết kế đồ họa
+Information Assurance ⟶ An toàn thông tin
+Japanese Language ⟶ Ngôn ngữ Nhật
+Multimedia Communications ⟶ Truyền thông đa phương tiện
+Software Engineering ⟶ Kỹ thuật phần mềm
+Information Systems ⟶ Hệ thống thông tin
+Internet of Things ⟶ Internet vạn vật
+Digital Marketing ⟶ Marketing số
+International Business ⟶ Kinh doanh quốc tế
+Hotel Management ⟶ Quản trị khách sạn
+Tourism and Travel Management ⟶ Quản trị dịch vụ du lịch và lữ hành
+Finance ⟶ Tài chính
+Public Relations ⟶ Quan hệ công chúng
+Korean Language ⟶ Ngôn ngữ Hàn Quốc
+Chinese Language ⟶ Ngôn ngữ Trung Quốc
+{0} is the start of the student code, not a major: write the major's code or name, for example BA or Business Administration. ⟶ {0} là phần đầu của mã sinh viên, không phải ngành: hãy ghi mã hoặc tên ngành, ví dụ BA hoặc Quản trị kinh doanh.
+# ---------- late check-in: one per Term, the Balance before check-in (28/10/2026) ----------
+This student already has a late check-in for this Term: one request per Term. ⟶ Sinh viên này đã có yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
+You already asked for a late check-in this Term: one request per Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
+The Balance is paid before check-in: choose a day up to {0}. ⟶ Tiền phòng còn lại phải trả trước khi nhận phòng: hãy chọn ngày đến hết {0}.
+Choose a valid day. ⟶ Hãy chọn một ngày hợp lệ.
+# ---------- check-out: final readings Room by Room (28/10/2026) ----------
+No student is waiting to check out of this Room. ⟶ Không có sinh viên nào đang chờ trả phòng ở phòng này.
+Enter both readings as numbers. ⟶ Hãy nhập cả hai chỉ số bằng số.
+Enter both readings as numbers of 0 or more. ⟶ Hãy nhập cả hai chỉ số bằng số từ 0 trở lên.
+The file needs the columns room, electricity and water. ⟶ Tệp cần có các cột phòng, điện và nước.
+A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2. ⟶ Đề xuất vòng 1 của kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2.
+
+# ---------- staff duty, Round 2 list (A-58, A-60) ----------
+Say whether you are on duty. ⟶ Hãy cho biết bạn có đang trong ca trực không.
+Choose Pending, Accepted, Declined, Expired, Withdrawn or No offer. ⟶ Hãy chọn Đang chờ, Đã nhận, Đã từ chối, Hết hạn, Đã rút hoặc Chưa có đề nghị.
+Enter the account holder's name. ⟶ Hãy nhập tên chủ tài khoản.
+Enter the account number: 6 to 20 digits. ⟶ Hãy nhập số tài khoản: từ 6 đến 20 chữ số.
+Enter the bank's name. ⟶ Hãy nhập tên ngân hàng.
+Only an Application on the waitlist can be withdrawn. ⟶ Chỉ rút được đơn đang trong danh sách chờ.
+Send the sign-up form first. ⟶ Hãy gửi biểu mẫu đăng ký trước.

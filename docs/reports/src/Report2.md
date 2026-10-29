@@ -108,7 +108,7 @@ The team works in two-week sprints (Scrum-like, 8 sprints from 07/09/2026), with
 1. **Backlog.** Items come from the registration form, the Brief and the Change Specification v2, the mentor's weekly feedback and the reviews (Review 1 added the Manager role and the requirement basis). Each item has an owner (section 4).
 2. **Sprint planning** at the start of each sprint (offline): items, owners, acceptance criteria and test cases.
 3. **Development** on a branch per change (`feat/…`, `fix/…`, `docs/…`); until Review 2 each phase of the Change Specification v2 had its own branch `feat/v2-phase<n>`. Code, tests and documentation change together.
-4. **Checks**: `mvn -o verify` for any backend change, `npm run build` for any web change, Gradle build for Android. A failing check stops the change.
+4. **Checks**: `mvn -o verify` for any backend change, `npm run build` for any web change, `flutter analyze` and `flutter build apk` for the mobile app. A failing check stops the change.
 5. **Review and merge**: the owner and the leader review; `main` is fast-forwarded; GitHub Actions deploys the API and Vercel the web automatically; the result is verified (deploy job, Vercel Ready, health UP).
 6. **Mentor meeting** every week on Google Meet: demo of the increment, questions (Q&A sheet), feedback into the backlog.
 7. **Team meetings** twice a week (offline): progress, blockers, pairing on parts a member is learning. Sprint review and retrospective at the end of each sprint.
@@ -128,7 +128,7 @@ The team works in two-week sprints (Scrum-like, 8 sprints from 07/09/2026), with
 | Domain: dormitory operations, the Change Specification v2, the five workflows | All (mandatory) | 29/10 – 05/11/2026, 2 sessions of 2 h, led by the leader | None |
 | Java 21, Spring Boot 4, JdbcClient, Flyway, the layered packages | Nguyễn Xuân Lộc, Võ Minh Luân (mandatory) | 02/11 – 15/11/2026, 4 sessions of 2 h + one change in their part | Has merged a reviewed backend change with tests |
 | React 19, Tailwind 4, the web design system and i18n | Trần Võ Quang Duy (mandatory), others optional | 02/11 – 15/11/2026, 3 sessions of 2 h | Has merged a reviewed web change |
-| Kotlin, Jetpack Compose, FCM | Võ Minh Luân (mandatory) | 02/11 – 15/11/2026, 3 sessions of 2 h | Has built and run the Android app with push |
+| Flutter (Dart), FCM | Võ Minh Luân (mandatory) | 02/11 – 15/11/2026, 3 sessions of 2 h | Has built and run the Flutter app with push |
 | Testing: JUnit 5, Testcontainers, writing a test case from an acceptance criterion | All (mandatory) | 09/11 – 20/11/2026, 2 sessions of 2 h | Owns ≥ 3 passing automated tests |
 | Git and GitHub flow, commit format, CI/CD and deployment checks | All (mandatory) | 29/10/2026, 1 session of 2 h | Has pushed a branch that passed CI |
 | AI tools (Claude Code): rules of use, review of AI output, no personal data or secrets | All (mandatory) | 29/10/2026, 1 h | None |
@@ -191,7 +191,7 @@ D = Do; R = Review; S = Support; I = Informed; blank = omitted.
 
 ### 6.2 Source Code Management
 
-- One GitHub monorepo `tisou47/CampusStay-FPT` (`backend/`, `web/`, `android/`, `docs/`, `infra/`, `.github/workflows/`).
+- One GitHub monorepo `tisou47/CampusStay-FPT` (`backend/`, `web/`, `mobile/`, `docs/`, `infra/`, `.github/workflows/`).
 - `main` is production; work is done on branches (`feat/…`, `fix/…`, `docs/…`); `main` is fast-forwarded only after the checks pass; commits follow `type(feature): …` (`feat(web): …`, `fix(bil): …`).
 - Database changes only through new Flyway migrations; secrets never in Git (`.env.example` lists the settings); tags mark review versions.
 
@@ -199,8 +199,8 @@ D = Do; R = Review; S = Support; I = Informed; blank = omitted.
 
 | Category | Tools / Infrastructure |
 |---|---|
-| Technology | Java 21, Spring Boot 4.1, PostgreSQL 17, React 19, Vite 8, Tailwind CSS 4, Kotlin 2.1, Jetpack Compose |
-| IDEs and editors | IntelliJ IDEA, VS Code, Android Studio |
+| Technology | Java 21, Spring Boot 4.1, PostgreSQL 17, React 19, Vite 8, Tailwind CSS 4, Flutter 3.47 (Dart 3.13) |
+| IDEs and editors | IntelliJ IDEA, VS Code (Flutter extension), Android SDK emulator |
 | AI tools | Claude Code (Anthropic) — specification, design, code, tests, review (Report 4 section 1.3.5) |
 | Design | Figma (file *CampusStay-FPT*), draw.io (UML diagrams, ERDs in Chen's notation) |
 | Source control and CI/CD | Git, GitHub, GitHub Actions, GitHub Container Registry |

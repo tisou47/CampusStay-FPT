@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/student-accounts/{id}/reject'
+method: POST
+url: '{{baseUrl}}/student-accounts/:id/reject'
+order: 15000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `reject` of `student-account-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": ""
+    }

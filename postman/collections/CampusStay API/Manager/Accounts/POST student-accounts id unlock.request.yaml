@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/student-accounts/{id}/unlock'
+method: POST
+url: '{{baseUrl}}/student-accounts/:id/unlock'
+order: 14000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `unlock` of `student-account-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

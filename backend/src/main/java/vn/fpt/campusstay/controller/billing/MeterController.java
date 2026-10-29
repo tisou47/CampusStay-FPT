@@ -7,8 +7,11 @@ import java.math.BigDecimal;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,10 +68,22 @@ class MeterController {
         meters.confirm(id, room);
     }
 
+    /** The readings file to fill in: the period's Rooms with their previous values (A-59). */
+    @GetMapping("/meter-periods/{id}/template")
+    ResponseEntity<byte[]> template(@PathVariable String id) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("meter-readings.xlsx").build().toString())
+                .body(meters.template(id));
+    }
+
+    /** The template filled in, XLSX or CSV; blank lines are Rooms read later. */
     @PostMapping(path = "/meter-periods/{id}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     MeterService.Imported importCsv(@PathVariable String id, @RequestPart(name = "file", required = false) MultipartFile file) {
         try {
-            return meters.importCsv(id, file == null ? null : file.getBytes());
+            return meters.importCsv(id, file == null ? null : file.getOriginalFilename(),
+                    file == null ? null : file.getBytes());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

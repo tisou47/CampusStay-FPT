@@ -1,0 +1,4 @@
+$kind: collection
+description: |-
+  The Admin account {{adminEmail}}: configuration screens, users, permissions and the Audit Log.
+order: 5000

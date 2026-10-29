@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/student-imports/{id}'
+method: GET
+url: '{{baseUrl}}/student-imports/:id'
+order: 7000
+description: |-
+  `GET /student-imports/{id}?outcome&page&pageSize`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+queryParams:
+  - key: outcome
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

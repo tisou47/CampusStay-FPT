@@ -1,0 +1,12 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/auth/me'
+order: 5000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('401 UNAUTHENTICATED', () => {
+        pm.response.to.have.status(401);
+        pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED');
+      });
