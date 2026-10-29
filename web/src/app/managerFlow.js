@@ -12,7 +12,7 @@ export const MANAGER_STAGES = [
     screens: [
       { to: '/manager/term-requests', label: 'Period requests', why: 'Ask the Admin to open the Term with its dates, Rooms, places and prices.' },
       { to: '/manager/student-import', label: 'Import student list', why: 'The enrolled list verifies students’ accounts, so they can apply.' },
-      { to: '/manager/students', label: 'Students', why: 'Verify the accounts still waiting and look up any student.' },
+      { to: '/manager/students', daily: true, label: 'Students', why: 'Verify the accounts still waiting and look up any student.' },
       { to: '/manager/applications', label: 'Applications', why: 'Review Applications as they come in; only reviewed ones go into the assignment.' },
     ],
   },
@@ -32,8 +32,8 @@ export const MANAGER_STAGES = [
     why: 'Placed students pay their Balance; unpaid Balances past the deadline lose their Bed.',
     screens: [
       { to: '/manager/payment-claims', label: 'Payment confirmations', why: 'Students’ deadlines stop while their transfer waits for you: confirm or reject each one.' },
-      { to: '/manager/payments', label: 'Payments', why: 'Every Invoice of the Term and what is still unpaid.' },
-      { to: '/manager/finance', label: 'Collections and refunds', why: 'Send reminders and decide refunds.' },
+      { to: '/manager/payments', daily: true, label: 'Payments', why: 'Every Invoice of the Term and what is still unpaid.' },
+      { to: '/manager/finance', daily: true, label: 'Collections and refunds', why: 'Send reminders and decide refunds.' },
     ],
   },
   {
@@ -41,8 +41,8 @@ export const MANAGER_STAGES = [
     label: 'Check-in',
     why: 'Paid residents receive their door code and move in; late arrivals need a decision.',
     screens: [
-      { to: '/manager/door-codes', label: 'Door codes', why: 'Codes are released to paid residents once the lock is confirmed.' },
-      { to: '/manager/approvals', label: 'Decisions', why: 'Late check-ins and other requests that need a Manager.' },
+      { to: '/manager/door-codes', daily: true, label: 'Door codes', why: 'Codes are released to paid residents once the lock is confirmed.' },
+      { to: '/manager/approvals', daily: true, label: 'Decisions', why: 'Late check-ins and other requests that need a Manager.' },
     ],
   },
   {
@@ -54,7 +54,7 @@ export const MANAGER_STAGES = [
       { to: '/manager/room-changes', label: 'Room changes and swaps', why: 'Decide moves across Blocks; Staff decide those inside one Block.' },
       { to: '/manager/reconciliation', label: 'Reconciliation', why: 'Residents not enrolled next Term lose their next-Term Bed before fees are issued.' },
       { to: '/manager/next-term/fees', label: 'Next-Term fees', why: 'One fee per continuing resident; unpaid by the deadline, the Bed is released.' },
-      { to: '/manager/terminations', label: 'Terminations', why: 'End a stay early for debt, enrollment or a Manager decision.' },
+      { to: '/manager/terminations', daily: true, label: 'Terminations', why: 'End a stay early for debt, enrollment or a Manager decision.' },
     ],
   },
 ]
@@ -67,7 +67,10 @@ export function managerPosition(pathname, liveStage = -1) {
   return stagePosition(MANAGER_STAGES, pathname, liveStage)
 }
 
-/** Where a path sits in a role's stages ({ stage, screen }), or null. */
+/**
+ * Where a path sits in a role's stages ({ stage, screen }), or null. Screens marked daily are used whatever the
+ * stage (payments, maintenance, readings…): the trail shows their stage but no warning when the Term is elsewhere.
+ */
 export function stagePosition(stages, pathname, liveStage = -1) {
   let best = null
   stages.forEach((stage, si) =>
@@ -90,8 +93,8 @@ export const STAFF_STAGES = [
     label: 'Registration',
     why: 'Students are applying: get the Block’s Rooms, Beds and furniture right before Beds are given out.',
     screens: [
-      { to: '/staff/inventory', label: 'Rooms and Beds', why: 'Take broken Beds and Rooms out of service so nobody is placed in them.' },
-      { to: '/staff/furniture', label: 'Furniture', why: 'A Room’s class depends on its furniture; record what each Room really has.' },
+      { to: '/staff/inventory', daily: true, label: 'Rooms and Beds', why: 'Take broken Beds and Rooms out of service so nobody is placed in them.' },
+      { to: '/staff/furniture', daily: true, label: 'Furniture', why: 'A Room’s class depends on its furniture; record what each Room really has.' },
     ],
   },
   {
@@ -99,15 +102,15 @@ export const STAFF_STAGES = [
     label: 'Review and assignment',
     why: 'Students are being placed: every Room that will be used needs a door code ready.',
     screens: [
-      { to: '/staff/inventory', label: 'Rooms and Beds', why: 'Rooms out of service are left out of the assignment.' },
-      { to: '/staff/door-codes', label: 'Door codes', why: 'Set each Room’s code and confirm it on the lock; codes are only released once confirmed.' },
+      { to: '/staff/inventory', daily: true, label: 'Rooms and Beds', why: 'Rooms out of service are left out of the assignment.' },
+      { to: '/staff/door-codes', daily: true, label: 'Door codes', why: 'Set each Room’s code and confirm it on the lock; codes are only released once confirmed.' },
     ],
   },
   {
     key: 'payment',
     label: 'Balance payment',
     why: 'Residents pay their Balance; their door code is released when they have paid and the code is confirmed.',
-    screens: [{ to: '/staff/door-codes', label: 'Door codes', why: 'A code waiting to be confirmed on the lock holds back paid residents.' }],
+    screens: [{ to: '/staff/door-codes', daily: true, label: 'Door codes', why: 'A code waiting to be confirmed on the lock holds back paid residents.' }],
   },
   {
     key: 'checkin',
@@ -115,7 +118,7 @@ export const STAFF_STAGES = [
     why: 'Residents move in at the desk; hand over the items and note anything missing.',
     screens: [
       { to: '/staff/check-in', label: 'Check-in', why: 'Look up the resident by code, name or QR pass and hand over the items.' },
-      { to: '/staff/door-codes', label: 'Door codes', why: 'Residents without a code yet are waiting on a confirmation here.' },
+      { to: '/staff/door-codes', daily: true, label: 'Door codes', why: 'Residents without a code yet are waiting on a confirmation here.' },
     ],
   },
   {
@@ -123,9 +126,9 @@ export const STAFF_STAGES = [
     label: 'Living in',
     why: 'Daily work for residents, then the move to the next Term: requests, meter readings and check-outs.',
     screens: [
-      { to: '/staff/maintenance', label: 'Maintenance', why: 'Requests have a time limit; overdue ones go to a Manager.' },
-      { to: '/staff/inspections', label: 'Inspections', why: 'Scheduled Room checks set by the Manager.' },
-      { to: '/staff/meter-readings', label: 'Meter readings', why: 'Monthly readings become the residents’ Utility Invoices.' },
+      { to: '/staff/maintenance', daily: true, label: 'Maintenance', why: 'Requests have a time limit; overdue ones go to a Manager.' },
+      { to: '/staff/inspections', daily: true, label: 'Inspections', why: 'Scheduled Room checks set by the Manager.' },
+      { to: '/staff/meter-readings', daily: true, label: 'Meter readings', why: 'Monthly readings become the residents’ Utility Invoices.' },
       { to: '/staff/next-term', label: 'Term transition', why: 'Next-Term requests of your Block: room changes, swaps, Room Classes and extensions.' },
       { to: '/staff/room-changes', label: 'Room changes and swaps', why: 'Decide moves inside your Block.' },
       { to: '/staff/check-out', label: 'Check-out', why: 'Final meter reading, condition and damage per item, keys back; the door code is rotated after.' },
