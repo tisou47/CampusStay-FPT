@@ -44,6 +44,3 @@ export const StatCard = memo(function StatCard({ to, onClick, className, ...body
     </button>
   )
 })
-
-/** Same card used for a call to action (the label reads as the action). */
-export const ActionCard = StatCard
