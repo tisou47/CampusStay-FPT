@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/refund-account'
+method: GET
+url: '{{baseUrl}}/students/me/refund-account'
+order: 9000
+description: |-
+  `GET /students/me/refund-account` → `{ holder, number, bank, updatedAt }`
+
+  Contract: `docs/api-contract.md` › Student › Applications
