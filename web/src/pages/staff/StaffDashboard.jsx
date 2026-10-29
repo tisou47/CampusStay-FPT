@@ -3,6 +3,7 @@ import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
+import { StageNow } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
@@ -169,6 +170,7 @@ export default function StaffDashboard() {
       {term && (
         <Panel title={t('Term {name}', { name: term.name })} subtitle="Where the Term stands. The highlighted stage is now." className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
+          <StageNow role="staff" term={term} />
         </Panel>
       )}
 

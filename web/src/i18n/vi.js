@@ -365,6 +365,25 @@ const vi = {
   "The Term is in {stage} now.": "Kỳ đang ở giai đoạn {stage}.",
   "Now: {stage}.": "Hiện tại: {stage}.",
   "Screens of this stage, in order": "Các màn hình của giai đoạn này, theo thứ tự",
+  // Staff flow guide: the Term stages and their screens.
+  "Students are applying: get the Block’s Rooms, Beds and furniture right before Beds are given out.": "Sinh viên đang nộp đơn: chuẩn bị đúng phòng, giường và nội thất của Block trước khi chia giường.",
+  "Take broken Beds and Rooms out of service so nobody is placed in them.": "Ngừng sử dụng giường và phòng hỏng để không ai bị xếp vào.",
+  "A Room’s class depends on its furniture; record what each Room really has.": "Hạng phòng phụ thuộc nội thất; ghi đúng những gì mỗi phòng thực sự có.",
+  "Students are being placed: every Room that will be used needs a door code ready.": "Sinh viên đang được xếp: mọi phòng sẽ dùng cần có sẵn mã cửa.",
+  "Rooms out of service are left out of the assignment.": "Phòng ngừng sử dụng không được đưa vào xếp phòng.",
+  "Set each Room’s code and confirm it on the lock; codes are only released once confirmed.": "Đặt mã cho từng phòng và xác nhận trên khóa; mã chỉ được cấp khi đã xác nhận.",
+  "Residents pay their Balance; their door code is released when they have paid and the code is confirmed.": "Cư dân đóng tiền phòng; mã cửa được cấp khi đã đóng tiền và mã đã được xác nhận.",
+  "A code waiting to be confirmed on the lock holds back paid residents.": "Mã chưa được xác nhận trên khóa sẽ làm cư dân đã đóng tiền phải chờ.",
+  "Residents move in at the desk; hand over the items and note anything missing.": "Cư dân nhận phòng tại quầy; bàn giao đồ và ghi lại những gì còn thiếu.",
+  "Look up the resident by code, name or QR pass and hand over the items.": "Tra cứu cư dân theo mã, tên hoặc thẻ QR và bàn giao đồ.",
+  "Residents without a code yet are waiting on a confirmation here.": "Cư dân chưa có mã đang chờ xác nhận ở đây.",
+  "Daily work for residents, then the move to the next Term: requests, meter readings and check-outs.": "Công việc hằng ngày cho cư dân, rồi chuyển sang kỳ sau: yêu cầu, chỉ số đồng hồ và trả phòng.",
+  "Requests have a time limit; overdue ones go to a Manager.": "Yêu cầu có thời hạn; quá hạn sẽ chuyển cho Quản lý.",
+  "Scheduled Room checks set by the Manager.": "Các đợt kiểm tra phòng theo lịch của Quản lý.",
+  "Monthly readings become the residents’ Utility Invoices.": "Chỉ số hằng tháng thành hóa đơn điện nước của cư dân.",
+  "Next-Term requests of your Block: room changes, swaps, Room Classes and extensions.": "Yêu cầu kỳ sau của Block bạn: đổi phòng, đổi chéo, hạng phòng và gia hạn.",
+  "Decide moves inside your Block.": "Quyết định chuyển phòng trong Block của bạn.",
+  "Final meter reading, condition and damage per item, keys back; the door code is rotated after.": "Chỉ số cuối, tình trạng và hư hỏng từng món, thu lại chìa khóa; sau đó mã cửa được đổi.",
 }
 
 export default vi

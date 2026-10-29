@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { ADMIN_STAGES, READY_SCREENS, flowPosition } from '@/app/adminFlow'
-import { MANAGER_STAGES, managerPosition } from '@/app/managerFlow'
+import { MANAGER_STAGES, STAFF_STAGES, stagePosition } from '@/app/managerFlow'
 import { useSession } from '@/app/session'
 import { termJourney } from '@/lib/termJourney'
 import { t } from '@/i18n'
@@ -15,7 +15,7 @@ import { cx } from '@/lib/cx'
 export function FlowTrail({ role }) {
   const { pathname } = useLocation()
   const { term } = useSession()
-  const flow = role === 'admin' ? adminTrail(pathname) : role === 'manager' ? managerTrail(pathname, term) : null
+  const flow = role === 'admin' ? adminTrail(pathname) : STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
   if (!flow) return null
   return (
     <nav aria-label={flow.title} className="flex shrink-0 flex-col gap-1.5 rounded-lg border border-line bg-surface px-4 py-2.5">
@@ -73,24 +73,60 @@ function adminTrail(pathname) {
   }
 }
 
-function managerTrail(pathname, term) {
-  const live = termJourney(term).findIndex((s) => s.state === 'current')
-  const at = managerPosition(pathname, live)
+const STAGES = { manager: MANAGER_STAGES, staff: STAFF_STAGES }
+
+/** The stage the Term is in now, as an index of the role's stages (-1 when there is no Term). */
+const liveIndex = (term) => termJourney(term).findIndex((s) => s.state === 'current')
+
+/**
+ * The current stage's work on a role's home: why the stage matters and its screens as numbered links, in order.
+ * Manager overview and Staff Today show it under the Term's stages.
+ */
+export function StageNow({ role, term }) {
+  const stage = STAGES[role]?.[liveIndex(term)]
+  if (!stage) return null
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+      <p className="text-base text-fg-secondary">
+        <span className="font-semibold text-fg">{t('Now: {stage}.', { stage: t(stage.label) })} </span>
+        {t(stage.why)}
+      </p>
+      <ol className="flex flex-wrap gap-2" aria-label={t('Screens of this stage, in order')}>
+        {stage.screens.map((sc, i) => (
+          <li key={sc.to}>
+            <Link
+              to={sc.to}
+              title={t(sc.why)}
+              className="flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-1.5 text-base text-fg hover:border-primary hover:text-fg-brand"
+            >
+              <span className="flex size-5 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-fg-brand tabular">{i + 1}</span>
+              {t(sc.label)}
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+function termTrail(STAGES_OF_ROLE, home, pathname, term) {
+  const live = liveIndex(term)
+  const at = stagePosition(STAGES_OF_ROLE, pathname, live)
   if (!at) return null
-  const stage = MANAGER_STAGES[at.stage]
+  const stage = STAGES_OF_ROLE[at.stage]
   const screen = stage.screens[at.screen]
   // The next screen in time order, skipping one that is this screen again in the next stage (Applications).
-  const after = [...stage.screens.slice(at.screen + 1), ...MANAGER_STAGES.slice(at.stage + 1).flatMap((x) => x.screens)]
+  const after = [...stage.screens.slice(at.screen + 1), ...STAGES_OF_ROLE.slice(at.stage + 1).flatMap((x) => x.screens)]
   const next = after.find((x) => x.to !== screen.to) ?? null
   return {
     title: term ? t('Term {name}', { name: term.name }) : t('Term'),
-    home: '/manager',
-    stages: MANAGER_STAGES,
+    home,
+    stages: STAGES_OF_ROLE,
     at: at.stage,
     live,
     screen: t('{label} · {n} of {total}', { label: t(screen.label), n: at.screen + 1, total: stage.screens.length }),
     why: screen.why,
-    notice: live >= 0 && live !== at.stage ? t('The Term is in {stage} now.', { stage: t(MANAGER_STAGES[live].label) }) : null,
+    notice: live >= 0 && live !== at.stage ? t('The Term is in {stage} now.', { stage: t(STAGES_OF_ROLE[live].label) }) : null,
     next,
   }
 }
