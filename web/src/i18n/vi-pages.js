@@ -3900,6 +3900,22 @@ const workspace = {
 // Student UI refactor (UI_REFACTOR_PLAN): new labels of the student pages. Spread last, so it also sets
 // the agreed student wording where an earlier group said it differently.
 const studentUi = {
+  // Home
+  'Closes today ({date})': 'Đóng hôm nay ({date})',
+  'Closes in {n} day ({date})': 'Đóng sau {n} ngày ({date})',
+  'Closes in {n} days ({date})': 'Đóng sau {n} ngày ({date})',
+  'Pay {amount} by {date}': 'Thanh toán {amount} trước {date}',
+  'Pay {amount}': 'Thanh toán {amount}',
+  'Apply for a place for {term}': 'Đăng ký chỗ ở {term}',
+  'Apply now': 'Đăng ký ngay',
+  'Room results on {date}': 'Kết quả xếp phòng vào {date}',
+  'You live in Room {room} · Bed {bed}': 'Bạn ở phòng {room} · Giường {bed}',
+  'Room results': 'Kết quả xếp phòng',
+  'Rent due': 'Hạn đóng tiền phòng',
+  'Results on {date}': 'Có kết quả vào {date}',
+  'Assigned after your Application is reviewed': 'Được xếp sau khi đơn được duyệt',
+  'Maintenance and room changes': 'Sửa chữa và đổi phòng',
+  'Happening now': 'Đang diễn ra',
   // My Room
   'Door code: {status}': 'Mã cửa: {status}',
   'Building {code}': 'Tòa {code}',

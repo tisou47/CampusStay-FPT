@@ -6,7 +6,7 @@ import { useMutation, useQuery } from '@/api/hooks'
 import { Card } from '@/components/ui/Display'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatNumber, formatRelative, formatVnd } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatRelative, formatVnd } from '@/lib/format'
 import { categoryTone } from '@/pages/common/Announcements'
 import { showValue } from '@/pages/registration/shared'
 import { t, tr } from '@/i18n'
@@ -34,7 +34,7 @@ export function timeLeft(iso) {
 function PeriodCard({ card }) {
   const left = timeLeft(card.countdownTo)
   return (
-    <Card padding="lg" className="flex min-w-0 flex-col gap-3 lg:w-96 lg:shrink-0">
+    <Card padding="lg" className="flex min-w-0 flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium text-fg-tertiary">{t('Registration period')}</span>
@@ -51,11 +51,11 @@ function PeriodCard({ card }) {
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
         <div className="flex flex-col">
           <dt className="text-sm text-fg-tertiary">{t('Registration')}</dt>
-          <dd className="text-fg">{`${formatDate(card.opensAt)} – ${formatDate(card.closesAt)}`}</dd>
+          <dd className="text-fg"><span className="nowrap">{formatDate(card.opensAt)}</span> – <span className="nowrap">{formatDate(card.closesAt)}</span></dd>
         </div>
         <div className="flex flex-col">
           <dt className="text-sm text-fg-tertiary">{t('Stay')}</dt>
-          <dd className="text-fg">{`${formatDate(card.stayStart)} – ${formatDate(card.stayEnd)}`}</dd>
+          <dd className="text-fg"><span className="nowrap">{formatDate(card.stayStart)}</span> – <span className="nowrap">{formatDate(card.stayEnd)}</span></dd>
         </div>
         <div className="flex flex-col">
           <dt className="text-sm text-fg-tertiary">{t('Places')}</dt>
@@ -66,7 +66,7 @@ function PeriodCard({ card }) {
           <dd className="text-fg">{card.fromPrice != null ? t('{price} per Bed', { price: formatVnd(card.fromPrice) }) : '—'}</dd>
         </div>
       </dl>
-      <Link to={`/student/registration-periods/${card.termId}`} className="flex items-center gap-1 self-start text-base font-medium text-fg-link hover:underline">
+      <Link to={`/student/registration-periods/${card.termId}`} className="flex items-center gap-1 self-start text-base font-medium text-link hover:underline">
         {t('Registration period details')}
         <ChevronRight size={16} aria-hidden="true" />
       </Link>
@@ -90,9 +90,14 @@ function AnnouncementItem({ item, onRead }) {
             <Tag tone={categoryTone[item.category] ?? 'neutral'} dot={false}>
               {item.category}
             </Tag>
-            <span className={cx('text-base text-fg', !item.read && 'font-medium')}>{item.title}</span>
+            <span className={cx('text-base text-fg', !item.read && 'font-semibold')}>
+              {!item.read && <span className="sr-only">{t('Unread')}: </span>}
+              {item.title}
+            </span>
           </span>
-          <span className="text-sm text-fg-tertiary">{formatRelative(item.shownFrom ?? item.createdAt)}</span>
+          <time dateTime={item.shownFrom ?? item.createdAt} title={formatDateTime(item.shownFrom ?? item.createdAt)} className="self-start text-sm text-fg-tertiary">
+            {formatRelative(item.shownFrom ?? item.createdAt)}
+          </time>
         </span>
         <ChevronDown size={16} aria-hidden="true" className={cx('mt-1 shrink-0 text-fg-secondary transition-transform', open && 'rotate-180')} />
       </button>
@@ -135,19 +140,22 @@ function AnnouncementItem({ item, onRead }) {
   )
 }
 
-/** Card + announcements; nothing when the dormitory has no period and no news. */
-export function DormitoryBoard() {
+/** The current registration period card (same query as before); nothing when no period is set. */
+export function RegistrationPeriodCard() {
   const period = useQuery(['registration-period'], ({ signal }) => api.registrationPeriods.current(undefined, { signal }))
+  const card = period.data?.card
+  return card ? <PeriodCard card={card} /> : null
+}
+
+/** Pinned and recent announcements (same query and mark-read as before). */
+export function DormitoryBoard() {
   const board = useQuery(['board'], ({ signal }) => api.me.board(undefined, { signal }))
   const read = useMutation((id) => api.notifications.markRead(id), { invalidates: ['board', 'notifications'], onError: () => {} })
   const [all, setAll] = useState(false)
-  const card = period.data?.card
   const items = board.data?.items ?? []
-  if (!card && items.length === 0) return null
   const shown = all ? items : items.slice(0, 3)
   return (
-    <section aria-label={t('Dormitory board')} className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
-      {card && <PeriodCard card={card} />}
+    <section aria-label={t('Dormitory board')} className="flex min-w-0 flex-col">
       <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-card-title text-fg">
@@ -159,9 +167,9 @@ export function DormitoryBoard() {
         {items.length === 0 ? (
           <p className="text-base text-fg-tertiary">{t('No announcements right now.')}</p>
         ) : (
-          <ul className="flex flex-col lg:max-h-64 lg:overflow-y-auto">
+          <ul className="flex flex-col">
             {shown.map((item) => (
-              <AnnouncementItem key={item.id} item={item} onRead={(id) => read.run(id)} />
+              <AnnouncementItem key={item.id} item={item} onRead={read.run} />
             ))}
           </ul>
         )}

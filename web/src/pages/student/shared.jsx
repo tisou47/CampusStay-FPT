@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Clock } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
@@ -6,7 +6,7 @@ import { useToast } from '@/app/toast'
 import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
-import { Breadcrumb, Card, DetailRows } from '@/components/ui/Display'
+import { Breadcrumb, DetailRows } from '@/components/ui/Display'
 import { Modal } from '@/components/ui/Overlay'
 import { QueryState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
@@ -44,37 +44,6 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
         {children}
       </div>
     </StudentContainer>
-  )
-}
-
-/**
- * "Next action" banner on Student Home: brand-subtle panel, 48 px icon disc, H2 title, CTA.
- * Phone (Android Home › Next action): icon and deadline on top, full-width CTA below.
- */
-export function NextAction({ icon: Glyph, title, children, deadline, deadlineIcon: DeadlineGlyph = Clock, action }) {
-  return (
-    <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-primary/25 bg-brand-subtle p-4 lg:min-h-25 lg:flex-row lg:items-center lg:gap-6 lg:rounded-lg lg:px-6 lg:py-3">
-      <span className="hidden size-12 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand lg:flex">
-        <Glyph size={24} aria-hidden="true" />
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {deadline && (
-          <p className="flex items-center gap-2 pb-2 text-sm font-medium text-fg-brand lg:hidden">
-            <Glyph size={20} aria-hidden="true" />
-            {tx(deadline)}
-          </p>
-        )}
-        <h2 className="text-section-title text-fg">{tx(title)}</h2>
-        {children && <p className="text-base text-fg-secondary">{tx(children)}</p>}
-        {deadline && (
-          <p className="hidden items-center gap-1.5 text-sm font-medium text-warning-fg lg:flex">
-            <DeadlineGlyph size={16} aria-hidden="true" className="text-warning" />
-            {tx(deadline)}
-          </p>
-        )}
-      </div>
-      <div className="flex *:w-full lg:shrink-0 lg:*:w-auto">{action}</div>
-    </section>
   )
 }
 
@@ -146,72 +115,6 @@ export function ActivitySwitch({ current }) {
         )
       })}
     </nav>
-  )
-}
-
-/** Small status card (Application, My Room, Payments, Requests). */
-export function StatusCard({ icon: Glyph, label, value, note, to }) {
-  const body = (
-    <>
-      <span className="flex items-center gap-2 text-fg-tertiary">
-        <Glyph size={16} aria-hidden="true" />
-        <span className="text-sm font-medium">{tx(label)}</span>
-      </span>
-      <span className="truncate text-h3 font-semibold text-fg">{tx(value)}</span>
-      <span className="truncate text-sm text-fg-secondary">{tx(note)}</span>
-    </>
-  )
-  const classes = 'flex min-w-0 flex-1 flex-col gap-2 self-stretch rounded-lg border border-line bg-surface p-5'
-  return to ? (
-    <Link to={to} className={cx(classes, 'transition-colors hover:border-line-strong hover:shadow-card')}>
-      {body}
-    </Link>
-  ) : (
-    <div className={classes}>{body}</div>
-  )
-}
-
-/**
- * Term milestones: done = success dot, current = action/primary dot, upcoming = hollow 1.5 px ring. A list on
- * phones; on wide screens one row of steps joined by a line (green up to the current step), so the whole home page
- * fits on one screen.
- */
-export function TermTimeline({ term, milestones, className }) {
-  return (
-    <Card padding="lg" className={cx('flex flex-col gap-4', className)}>
-      <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-card-title text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
-        {term?.stayStart && (
-          <p className="text-sm text-fg-tertiary">
-            {t('Term {start} – {end}', { start: formatDate(term.stayStart), end: formatDate(term.stayEnd) })}
-          </p>
-        )}
-      </div>
-      <ol className="flex flex-col gap-3 lg:flex-row lg:gap-0">
-        {milestones.map(({ label, date, state }, i) => (
-          <li key={label} className="flex items-center gap-3 lg:min-w-0 lg:flex-1 lg:flex-col lg:items-start lg:gap-2">
-            <span className="flex items-center lg:w-full">
-              <span
-                aria-hidden="true"
-                className={cx(
-                  'size-2.5 shrink-0 rounded-full',
-                  state === 'done' && 'bg-success',
-                  state === 'current' && 'bg-primary ring-4 ring-primary-subtle',
-                  state === 'upcoming' && 'border-[1.5px] border-line-strong bg-surface',
-                )}
-              />
-              {i < milestones.length - 1 && (
-                <span aria-hidden="true" className={cx('mx-2 hidden h-0.5 flex-1 rounded-full lg:block', state === 'done' ? 'bg-success' : 'bg-line')} />
-              )}
-            </span>
-            <span className={cx('flex-1 text-base lg:flex-none lg:pr-3 lg:text-sm', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
-              {tx(label)}
-            </span>
-            <span className={cx('text-base whitespace-nowrap lg:text-sm lg:whitespace-normal', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{date}</span>
-          </li>
-        ))}
-      </ol>
-    </Card>
   )
 }
 
