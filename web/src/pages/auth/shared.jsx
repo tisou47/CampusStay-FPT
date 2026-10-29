@@ -1,7 +1,7 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import campusAerial from '@/assets/signin/campus-aerial.png'
-import fieldIcon from '@/assets/signin/field-icon.svg'
 import fptLogo from '@/assets/signin/fpt-logo.png'
 import { LanguageSwitch } from '@/components/layout/LanguageSwitch'
 import { t, tx } from '@/i18n'
@@ -53,6 +53,9 @@ export function CardTitle({ title, children }) {
 
 export function LoginField({ label, error, helper, ...props }) {
   const id = useId()
+  const password = props.type === 'password'
+  const [shown, setShown] = useState(false)
+  const Glyph = password ? Lock : Mail
   return (
     <div className="flex w-full flex-col gap-0.75">
       <label htmlFor={id} className="text-sm leading-4 font-semibold text-fg">
@@ -64,13 +67,25 @@ export function LoginField({ label, error, helper, ...props }) {
           error ? 'border-error focus-within:border-error' : 'border-line focus-within:border-focus',
         )}
       >
-        <img src={fieldIcon} alt="" width={16} height={16} className="block size-4 shrink-0" />
+        <Glyph size={16} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
         <input
           id={id}
           aria-invalid={error ? true : undefined}
-          className="h-full min-w-0 flex-1 bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-disabled"
+          className="h-full min-w-0 flex-1 bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-tertiary"
           {...props}
+          type={password && shown ? 'text' : props.type}
         />
+        {password && (
+          <button
+            type="button"
+            onClick={() => setShown((x) => !x)}
+            aria-label={shown ? t('Hide password') : t('Show password')}
+            aria-pressed={shown}
+            className="-mr-1 shrink-0 rounded-md p-1 text-fg-tertiary hover:text-fg"
+          >
+            {shown ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        )}
       </div>
       {error ? <p className="text-sm text-error-fg">{tx(error)}</p> : helper ? <p className="text-sm text-fg-tertiary">{tx(helper)}</p> : null}
     </div>

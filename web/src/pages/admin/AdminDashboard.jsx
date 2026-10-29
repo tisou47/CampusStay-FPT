@@ -12,6 +12,7 @@ import { QueryState, StaleNotice } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
+import { COLLECTED_RULE, collectedNote } from '@/lib/money'
 import { t, tr } from '@/i18n'
 
 // SCR-HOME-04 Admin Dashboard (Figma 63:1768)
@@ -130,8 +131,8 @@ export default function AdminDashboard() {
 
       <div className="flex shrink-0 gap-4">
         <KpiTile icon={Calendar} label="Current Term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
-        <KpiTile icon={Bed} label="Residents" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('of {n} Beds · {p}', { n: formatNumber(k.beds), p: formatPercent(k.beds ? k.residents / k.beds : null, 0) }) : null} />
-        <KpiTile icon={Banknote} label="Collected" value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? t('{p} of invoiced', { p: formatPercent(k.collectionRate, 0) }) : null} />
+        <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} Beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
+        <KpiTile icon={Banknote} label="Collected this Term" value={<span className="text-h1" title={t(COLLECTED_RULE)}>{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
         <KpiTile
           icon={Users}
           label="Active users"
@@ -164,7 +165,18 @@ export default function AdminDashboard() {
               )}
             </QueryState>
           </div>
-          {d?.funnelNote && <p className="shrink-0 text-sm text-fg-tertiary">{tr(d.funnelNote)}</p>}
+          {d?.funnelOutside && Object.values(d.funnelOutside).some((n) => n > 0) ? (
+            <p className="shrink-0 text-sm text-fg-tertiary">
+              {t('Not in the funnel: {c} continuing residents (no Application this Term) · {w} waitlisted · {r} rejected · {e} expired', {
+                c: formatNumber(d.funnelOutside.continuing),
+                w: formatNumber(d.funnelOutside.waitlisted),
+                r: formatNumber(d.funnelOutside.rejected),
+                e: formatNumber(d.funnelOutside.expired),
+              })}
+            </p>
+          ) : (
+            d?.funnelNote && <p className="shrink-0 text-sm text-fg-tertiary">{tr(d.funnelNote)}</p>
+          )}
         </Card>
 
         <Card className="flex min-h-0 flex-col gap-3">

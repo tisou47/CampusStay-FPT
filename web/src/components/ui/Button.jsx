@@ -49,6 +49,14 @@ export function Button({
     </>
   )
 
+  if ((to || href) && props.disabled) {
+    const { disabled: _disabled, ...rest } = props
+    return (
+      <span role="link" aria-disabled="true" className={classes} {...rest}>
+        {content}
+      </span>
+    )
+  }
   if (to) {
     return (
       <Link to={to} className={classes} {...props}>

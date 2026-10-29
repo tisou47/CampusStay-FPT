@@ -14,7 +14,7 @@ export function Avatar({ name, initials, size = 32, className }) {
       aria-hidden="true"
       style={{ width: size, height: size }}
       className={cx(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-orange-100 font-medium text-fg-brand',
+        'inline-flex shrink-0 items-center justify-center rounded-full bg-orange-100 font-medium text-orange-700',
         size >= 40 ? 'text-base' : 'text-sm',
         className,
       )}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock, HandCoins, X } from 'lucide-react'
+import { Check, Clock, HandCoins, ReceiptText, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -17,6 +17,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/
 import { Tag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { ConfirmPaymentModal } from '../staff/Payments'
 
 // SCR-BIL-13 Payment confirmations — Manager › Finance (ADR-22, spec §6.7). Students report "I have transferred";
 // a Manager checks the bank statement and confirms the claims, one by one or in bulk, or rejects them with a reason.
@@ -47,6 +48,7 @@ export default function PaymentClaims() {
   const [pageSize, setPageSize] = useState(50)
   const [selected, setSelected] = useState(() => new Set())
   const [dialog, setDialog] = useState(null)
+  const [receipting, setReceipting] = useState(null)
   const [reason, setReason] = useState('')
 
   useEffect(() => {
@@ -186,10 +188,13 @@ export default function PaymentClaims() {
             <Th className="w-40">Claimed</Th>
             <Th className="w-30">Time left</Th>
             <Th>Note</Th>
+            <Th className="w-44">
+              <span className="sr-only">{t('Actions')}</span>
+            </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
+          <TableStatus query={query} colSpan={10} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
           {items.map((c) => (
             <Tr key={c.invoiceId} selected={selected.has(c.invoiceId)} onClick={() => toggle(c.invoiceId)} className="[&>td]:h-12">
               <Td onClick={stop}>
@@ -211,6 +216,11 @@ export default function PaymentClaims() {
                   {c.reference && <span className="text-sm text-fg-secondary">{t('Ref. {ref}', { ref: c.reference })}</span>}
                   {c.rejected > 0 && <Tag tone="warning">{t('Rejected {n}×', { n: c.rejected })}</Tag>}
                 </span>
+              </Td>
+              <Td onClick={stop}>
+                <Button size="sm" variant="text" icon={ReceiptText} iconSize={16} onClick={() => setReceipting(c)}>
+                  Confirm with receipt
+                </Button>
               </Td>
             </Tr>
           ))}
@@ -269,6 +279,7 @@ export default function PaymentClaims() {
           {t('The students are told and their deadline continues with the time that was left (at least 12 hours). A second rejection cancels a Deposit or a Balance and what depends on it.')}
         </Alert>
       </Modal>
+      <ConfirmPaymentModal payment={receipting} onClose={() => setReceipting(null)} />
     </>
   )
 }
