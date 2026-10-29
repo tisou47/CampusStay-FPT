@@ -15,7 +15,8 @@
 | TC-F02-02 | Main | A Manager verifies a pending account (the student is told) or rejects it (locked); locking signs the student out until a Manager unlocks the account; a rejected account comes back as pending. | TC-AUTH-045 | Passed |
 | TC-F02-03 | Rule | The template names the columns; an upload is previewed line by line (New, Update, Unchanged, Error with the reason) and counts the students the file leaves out; nothing changes before the confirmation. | TC-AUTH-046 | Passed |
 | TC-F02-04 | Main | Confirming creates and updates the accounts, verifies the waiting one that matches, gives a fictional student's code to the real student, marks real students missing from the file Not enrolled (never fictional ones), is written to the Audit Log and cannot run twice. | TC-AUTH-047 | Passed |
-| TC-F02-05 | Exception | Only a verified account may apply: a pending one sees why and is refused (ADR-26). | TC-APP-022 | Passed |
+| TC-F02-05 | Rule | A major is read from its code, its English label or its Vietnamese name, the other FPT majors are in the list (V61), and a student-code prefix such as SS put in the major column gets an error that says so; the file is the XLSX the template writer makes. | TC-AUTH-056 | Passed |
+| TC-F02-06 | Exception | Only a verified account may apply: a pending one sees why and is refused (ADR-26). | TC-APP-022 | Passed |
 
 **F-03 Registration-period request and Term publication** (Manager, Admin; FR-CFG-04, 05)
 
@@ -42,18 +43,22 @@
 | ID | Type | Test case | Automated test | Result |
 |---|---|---|---|---|
 | TC-F05-01 | Main | The claim waits for a Manager and stops the Deposit window (the Application does not expire); the queue lists it with the count and total; a bulk confirmation pays each Invoice at the time of its claim, one audit entry each, and the Applications are submitted; unknown Invoices are skipped. | TC-BIL-032 | Passed |
-| TC-F05-02 | Rule | A rejection needs a reason; the Invoice is Unpaid again and the deadline continues with the time that was left (at least payment.rejected_claim_min_hours); the student is told; a second rejection cancels the Deposit and the Application expires. | TC-BIL-033 | Passed |
-| TC-F05-03 | Exception | One claim at a time; a paid or void Invoice and a Deposit past its deadline cannot be claimed; a student cannot cancel while a claim waits; only Managers see the queue and decide; an empty selection is refused; Invoices without a claim are skipped. | TC-BIL-034 | Passed |
+| TC-F05-02 | Main | A student reads and saves their refund account; the number keeps its digits only, each field is checked, and only students have one. | TC-AUTH-058 | Passed |
+| TC-F05-03 | Rule | A rejection needs a reason; the Invoice is Unpaid again and the deadline continues with the time that was left (at least payment.rejected_claim_min_hours); the student is told; a second rejection cancels the Deposit and the Application expires. | TC-BIL-033 | Passed |
+| TC-F05-04 | Exception | One claim at a time; a paid or void Invoice and a Deposit past its deadline cannot be claimed; a student cannot cancel while a claim waits; only Managers see the queue and decide; an empty selection is refused; Invoices without a claim are skipped. | TC-BIL-034 | Passed |
 
-**F-06 Review and assignment** (Manager; FR-APP-05, FR-ASG-01..03)
+**F-06 Review, assignment and Round 2** (Manager, Student, System; FR-APP-05, 07, FR-ASG-01..03)
 
 | ID | Type | Test case | Automated test | Result |
 |---|---|---|---|---|
 | TC-F06-01 | Main | The Manager approves in bulk, runs, resolves the conflict to the waitlist and commits the Block, which approves it at once (ADR-19): Allocations, Balance Invoices, notifications and My Room. Staff cannot commit. | TC-ASG-010 | Passed |
-| TC-F06-02 | Rule | The queue, the review view (opening it starts the review), rejection needs a note, once only. | TC-APP-010 | Passed |
-| TC-F06-03 | Rule | The priority group goes first; the same input gives the same proposal. | TC-ASG-005 | Passed |
-| TC-F06-04 | Exception | A dry run is a preview; students and Staff cannot use runs (ADR-19). | TC-ASG-011 | Passed |
-| TC-F06-05 | Exception | Every Manager sees every Block's Applications (ADR-19); Staff and students cannot review. | TC-APP-011 | Passed |
+| TC-F06-02 | Main | A Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it. The Manager's list shows who is waiting without an offer, then who got one with its options (A-58). | TC-APP-024 | Passed |
+| TC-F06-03 | Main | A waitlisted student sees the open offer, the day the waitlist ends and the refund; withdrawing closes the offer, releases its Beds, cancels the Application and asks a Manager to refund the whole Deposit, whose list shows the student's bank account (A-61, A-62). A plain cancel is refused, and only one's own waitlisted Application can be withdrawn. | TC-APP-025 | Passed |
+| TC-F06-04 | Rule | The queue, the review view (opening it starts the review), rejection needs a note, once only. | TC-APP-010 | Passed |
+| TC-F06-05 | Rule | The priority group goes first; the same input gives the same proposal. | TC-ASG-005 | Passed |
+| TC-F06-06 | Rule | When the Term's check-in starts, a waitlisted Application without an open offer is cancelled with the whole Deposit to refund and the student is told; one with an open offer keeps it until it is answered. | TC-APP-026 | Passed |
+| TC-F06-07 | Exception | A dry run is a preview; students and Staff cannot use runs (ADR-19). | TC-ASG-011 | Passed |
+| TC-F06-08 | Exception | Every Manager sees every Block's Applications (ADR-19); Staff and students cannot review. | TC-APP-011 | Passed |
 
 **F-07 Balance, forfeit and door code release** (Student, Staff, System; FR-ASG-04, 11, FR-INV-04)
 
@@ -71,8 +76,9 @@
 |---|---|---|---|---|
 | TC-F08-01 | Main | The Balance includes the Utility Deposit; until it is paid the desk blocks check-in; then the student checks in with the hand-over items, once only. | TC-ASG-020 | Passed |
 | TC-F08-02 | Main | Check-out settles the Utility Deposit: the share since the Room's last reading, the damage charge, the refund to the Manager; the Bed is free again, the figures stay as settled and the Room's door code must change. | TC-ASG-022 | Passed |
-| TC-F08-03 | Rule | Check-out records the damage of each furniture item of the Room (spec §6.16): the damage charge is their sum, a damaged item becomes Broken with the reason in its history, an item of another Room is refused; the list shows the Term's check-out date and whether a leaver is past it. | TC-ASG-045 | Passed |
-| TC-F08-04 | Exception | Another Block's Staff do not find the student, every Manager does (ADR-19); students and the Admin have no desk. | TC-ASG-021 | Passed |
+| TC-F08-03 | Main | The desk enters the final meter readings Room by Room, typed or from the XLSX template, before the leavers come: each Room's reading goes to the check-out drafts of its leavers; a Room without leavers in the user's Blocks or a reading below the Room's last one is reported and not saved. | TC-ASG-046 | Passed |
+| TC-F08-04 | Rule | Check-out records the damage of each furniture item of the Room (spec §6.16): the damage charge is their sum, a damaged item becomes Broken with the reason in its history, an item of another Room is refused; the list shows the Term's check-out date and whether a leaver is past it. | TC-ASG-045 | Passed |
+| TC-F08-05 | Exception | Another Block's Staff do not find the student, every Manager does (ADR-19); students and the Admin have no desk. | TC-ASG-021 | Passed |
 
 **F-09 Late check-in** (Student, Staff, Manager; FR-ASG-05)
 
@@ -118,9 +124,11 @@
 |---|---|---|---|---|
 | TC-F13-01 | Main | A checked-in student reports with photos and follows the request; the form is validated. | TC-MNT-001 | Passed |
 | TC-F13-02 | Main | Staff of the Block assign, plan the visit, post updates and resolve; the student is notified, reopens once and confirms the fix. Photos open through signed links. | TC-MNT-002 | Passed |
-| TC-F13-03 | Rule | A new Maintenance Request gets its SLA deadline from the Block's timer (urgent sooner than normal) and may name a furniture item of the Room, which the queue and the detail show; the item's history keeps the repair, reported and resolved; an item of another Room is refused. | TC-MNT-008 | Passed |
-| TC-F13-04 | Rule | An unassigned request escalates, then passes its timer; the Manager reassigns it once. | TC-REQ-016 | Passed |
-| TC-F13-05 | Exception | The queue is scoped: another Block's Staff neither see nor count the request; Managers do (ADR-19). | TC-MNT-003 | Passed |
+| TC-F13-03 | Main | A Staff member reads their own duty, request types and workload, and starts or ends their shift (A-60); the change is audited, and students may not use it. | TC-AUTH-057 | Passed |
+| TC-F13-04 | Rule | A new Maintenance Request gets its SLA deadline from the Block's timer (urgent sooner than normal) and may name a furniture item of the Room, which the queue and the detail show; the item's history keeps the repair, reported and resolved; an item of another Room is refused. | TC-MNT-008 | Passed |
+| TC-F13-05 | Rule | Only the person in charge changes the status; another Staff member of the Block takes the request over first (recorded in its history), and a Manager may act on any request. | TC-MNT-009 | Passed |
+| TC-F13-06 | Rule | An unassigned request escalates, then passes its timer; the Manager reassigns it once. | TC-REQ-016 | Passed |
+| TC-F13-07 | Exception | The queue is scoped: another Block's Staff neither see nor count the request; Managers do (ADR-19). | TC-MNT-003 | Passed |
 
 **F-14 Meter readings and Utility Invoices** (Staff; FR-BIL-04)
 

@@ -19,7 +19,7 @@
 | 5 | SCR-APP-01 Application Wizard – 3 Personal info | /student/apply/personal | GET /students/me/profile |
 | 6 | SCR-APP-01 Application Wizard – 4 Review and submit | /student/apply/review | POST /applications |
 | 7 | SCR-APP-02 My Applications | /student/applications | GET /students/me/applications |
-| 8 | SCR-APP-03 Application Detail | /student/applications/:id | GET /applications/:id<br>POST /applications/:id/cancel |
+| 8 | SCR-APP-03 Application Detail | /student/applications/:id | GET /applications/:id<br>POST /applications/:id/cancel<br>POST /applications/:id/withdraw |
 | 9 | SCR-APP-04 Roommate Invitation | /student/roommate-invitation | GET /students/me/roommate-invitation<br>POST /roommate-invitations/:id/respond |
 | 10 | SCR-ASG-02 Round 2 Offer | /student/round-2-offer | GET /students/me/round2-offer<br>POST /round2-offers/:id/respond |
 | 11 | SCR-BIL-01 My Invoices | /student/invoices | GET /students/me/invoices |
@@ -45,7 +45,7 @@
 | 3 | SCR-INV-14 Room hub | /staff/rooms/:code | GET /inventory/rooms/:code/hub |
 | 4 | SCR-INV-12 Door codes | /staff/door-codes | GET /door-codes<br>POST /door-codes/:room<br>POST /door-codes/:room/confirm<br>POST /door-codes/:room/cancel<br>(+2 more) |
 | 5 | SCR-INV-13 Furniture | /staff/furniture | GET /furniture<br>GET /furniture/:id<br>PUT /furniture/:id<br>POST /furniture<br>(+4 more) |
-| 6 | SCR-UTL-10 Meter Readings | /staff/meter-readings | GET /meter-periods<br>GET /meter-periods/:id/readings<br>GET /meter-periods/:id/readings/:room<br>POST /meter-periods/:id/import<br>(+1 more) |
+| 6 | SCR-UTL-10 Meter Readings | /staff/meter-readings | GET /meter-periods<br>GET /meter-periods/:id/readings<br>GET /meter-periods/:id/readings/:room<br>POST /meter-periods/:id/close<br>(+2 more) |
 | 7 | SCR-MNT-10 Maintenance Queue | /staff/maintenance | GET /maintenance-requests<br>GET /maintenance-requests/options |
 | 8 | SCR-MNT-11 Maintenance Detail | /staff/maintenance/:id | GET /maintenance-requests/:id<br>PATCH /maintenance-requests/:id<br>POST /maintenance-requests/:id/updates |
 | 9 | SCR-MNT-12 Inspection Checklist | /staff/inspections | GET /inspection-runs/current<br>GET /inspection-runs/:id/rooms<br>PUT /inspection-runs/:id/rooms/:room<br>POST /inspection-runs/:id/submit<br>(+1 more) |
@@ -69,7 +69,7 @@
 | 3 | SCR-REQ-20 Decisions | /manager/approvals/late-check-in | GET /approvals/summary<br>GET /late-check-ins<br>POST /late-check-ins/:id/decision<br>GET /swaps<br>(+2 more) |
 | 4 | SCR-APP-10 Application Queue | /manager/applications | GET /applications<br>POST /applications/bulk-review |
 | 5 | SCR-APP-11 Application Review | /manager/applications/:id | GET /applications/:id<br>POST /applications/:id/review |
-| 6 | SCR-ASG-10 Assignment Runs | /manager/assignment | GET /assignment-runs<br>POST /assignment-runs |
+| 6 | SCR-ASG-10 Assignment Runs | /manager/assignment | GET /assignment-runs<br>POST /assignment-runs<br>GET /round2<br>POST /round2/run<br>(+1 more) |
 | 7 | SCR-ASG-11 Assignment Proposal Review | /manager/assignment/:runId | GET /assignment-runs/:runId/proposal<br>GET /assignment-runs/:runId/conflicts/:applicationId<br>POST /assignment-runs/:runId/commit |
 | 8 | SCR-BIL-10 Payments | /manager/payments | GET /payments<br>POST /payments/:invoiceId/confirm |
 | 9 | SCR-BIL-13 Payment confirmations | /manager/payment-claims | GET /payment-claims<br>POST /payment-claims/confirm<br>POST /payment-claims/reject |

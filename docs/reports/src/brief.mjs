@@ -12,6 +12,7 @@ const forms = 'D:/Workspace/SWP490_R2_BM04_Review2-Document';
 const tc = JSON.parse(fs.readFileSync(path.join(root, 'docs/reports/data/testcases.json'), 'utf8'));
 const c = tc.counts;
 const DATE = '28/10/2026';
+const BRIEF_DATE = '30/10/2026', BRIEF_VERSION = '1.1'; // 1.1: waitlist choices, Round 2 list, shifts, person in charge (29/10/2026)
 const PROJECT = "CampusStay FPT – Dormitory Registration and Room-Scheduling Management System for FPT University's Tân Uyên Campus, Binh Duong";
 const T = 'Lê Thành Minh Trung', L = 'Nguyễn Xuân Lộc', D = 'Trần Võ Quang Duy', V = 'Võ Minh Luân';
 
@@ -20,15 +21,15 @@ const ACCEPT = {
  "F-02": "A pending account cannot apply; verify/reject notifies the student; an import previews each line and saves only valid lines",
  "F-03": "A 2nd open request for a Term is refused; milestones out of order are named per field; publishing fixes the prices",
  "F-04": "Submit creates an Awaiting Deposit Application and a Deposit = Deposit % × Term price; a 2nd Application or stay length above the maximum is refused",
- "F-05": "A claim stops the deadline; a rejection needs a reason and returns the time left (≥ 12 h); a Paid or Void Invoice cannot be claimed",
- "F-06": "A rejection needs a note; the same input gives the same proposal; commit creates Allocations and Balances; Staff cannot run",
+ "F-05": "A claim stops the deadline; a rejection needs a reason and returns the time left (≥ 12 h); a Paid or Void Invoice cannot be claimed; refunds go to the student's saved bank account",
+ "F-06": "A rejection needs a note; the same input gives the same proposal; commit creates Allocations and Balances; Staff cannot run; Round 2 offers free Beds only to waitlisted students without an open offer; withdrawing, or no Bed by check-in, cancels with the whole Deposit refunded",
  "F-07": "A Balance unpaid at its deadline is forfeited; the code is released only when paid, after check-in start and with a confirmed code",
- "F-08": "Check-in is refused until the Balance is paid; check-out deducts Utility share and damage per item from the Utility Deposit",
+ "F-08": "Check-in is refused until the Balance is paid; check-out deducts Utility share and damage per item from the Utility Deposit; final readings entered per Room reach every leaver's draft",
  "F-09": "A request after check-in end + max days is refused; approval moves the Balance deadline; rejection needs a reason",
  "F-10": "An approved change moves the next-Term Bed; a Room Class change needs all continuing roommates; extension without debt is automatic",
  "F-11": "M2 creates next-Term Allocations once; M3 releases un-extended Beds; fees wait for decisions and reconciliation; M7 releases unpaid Beds",
  "F-12": "A move reads both meters, charges nothing and asks a new code for the old Room; after fees Staff cannot move next-Term Beds",
- "F-13": "A request gets the routed assignee and the Block deadline (urgent < normal); other Blocks' Staff do not see it; unassigned ones escalate",
+ "F-13": "A request gets the routed assignee and the Block deadline (urgent < normal); other Blocks' Staff do not see it; unassigned ones escalate; only the person in charge changes its status, others take it over first",
  "F-14": "A reading below the previous is refused; a CSV with a bad line saves nothing; closing issues Invoices split by days, rounded up",
  "F-15": "One overdue Utility Invoice gives warning 1 once; two overdue months after the final warning terminate the stay; past move-out it is Overdue",
  "F-16": "A Room whose Beds are given keeps its class; only Managers set classes; moving an item updates conformance",
@@ -47,11 +48,11 @@ const BM01 = {
   out: 'docs/reports/out/SWP490_FA26SE260_R2_DesignBrief',
   deleteColor: 6710886,
   paragraphs: [
-    { after: '2. System at a Glance', text: 'FPT University\'s Tân Uyên campus will open dormitories for thousands of students and has no system to run them. CampusStay FPT takes a student from sign-in to a Bed and through every Term of the stay: Applications by Room Type and Room Class, a fair batch assignment, VietQR payments confirmed by Managers, door codes, the check-in and check-out desk, Term transitions for continuing residents, maintenance with time limits, monthly Utility billing and reports. Users: students (web and the Flutter mobile app), Staff of each Block, dormitory Managers and the Administrator. Core value: every Bed, payment and deadline follows one set of configurable rules, with an audit trail, instead of spreadsheets and messages. Architecture: one Spring Boot API with PostgreSQL, a React web app and an Android app (Report 4 §1.1, Figure 1).' },
+    { after: '2. System at a Glance', text: 'FPT University\'s Tân Uyên campus will open dormitories for thousands of students and has no system to run them. CampusStay FPT takes a student from sign-in to a Bed and through every Term of the stay: Applications by Room Type and Room Class, a fair batch assignment, VietQR payments confirmed by Managers, door codes, the check-in and check-out desk, Term transitions for continuing residents, maintenance with time limits, monthly Utility billing and reports. Users: students (web and the Flutter mobile app), Staff of each Block, dormitory Managers and the Administrator. Core value: every Bed, payment and deadline follows one set of configurable rules, with an audit trail, instead of spreadsheets and messages. Architecture: one Spring Boot API with PostgreSQL, a React web app and a Flutter mobile app built for Android (Report 4 §1.1, Figure 1).' },
   ],
   replaceText: [['Automated in CI: at least 50% of the committed total.', `Automated in CI: ${c.automated} of ${c.total} committed test cases (${pct(c.automated, c.total)}); the rest are the end-to-end workflow cases, the manual state transitions and the measured NFRs (Report 5 §4).`]],
   tables: [
-    { index: 1, column: 2, values: ['FA26SE260', PROJECT, `CampusStay FPT — ${T} (Leader, SE183752), ${L} (SE183782), ${D} (SE182146), ${V} (SE182794)`, 'Thân Thị Ngọc Vân', 'https://github.com/tisou47/CampusStay-FPT/tree/review-2', '1.0', DATE] },
+    { index: 1, column: 2, values: ['FA26SE260', PROJECT, `CampusStay FPT — ${T} (Leader, SE183752), ${L} (SE183782), ${D} (SE182146), ${V} (SE182794)`, 'Thân Thị Ngọc Vân', 'https://github.com/tisou47/CampusStay-FPT/tree/review-2', BRIEF_VERSION, BRIEF_DATE] },
     { index: 2, fontSize: 9, widths: [2.8, 3.6, 6.6, 4], rows: [
       ['Team, context, actors', 'No members; Bình Dương; Student, Staff, Admin', '4 members; Tân Uyên ward, HCMC; basis of requirements stated; + Manager (all Blocks), Staff per Block', 'Review 1 feedback; 2025 merger'],
       ['Room choice, contract, check-in/out', 'Select room/bed; digital contract; self check-in/out', 'Choose Room Type and Class, engine assigns; consent to rules; desk check-in (QR pass) and check-out (damage per item); door codes', 'Fairness; no e-signature; keys need Staff'],

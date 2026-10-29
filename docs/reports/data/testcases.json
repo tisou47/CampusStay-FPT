@@ -1,20 +1,20 @@
 {
  "counts": {
   "features": 18,
-  "featureCases": 79,
+  "featureCases": 87,
   "workflows": 5,
-  "states": 68,
-  "statesAutomated": 57,
+  "states": 70,
+  "statesAutomated": 59,
   "nfrs": 6,
-  "total": 158,
-  "automated": 138,
-  "passed": 138,
+  "total": 168,
+  "automated": 148,
+  "passed": 148,
   "failed": 0,
   "notRun": 20,
-  "runDate": "2026-10-28T15:45:24.241Z",
+  "runDate": "2026-10-29T19:16:29.049Z",
   "suite": {
-   "tests": 238,
-   "passed": 238,
+   "tests": 244,
+   "passed": 244,
    "failed": 0
   }
  },
@@ -55,9 +55,9 @@
   },
   {
    "id": "F-06",
-   "name": "Review and assignment",
-   "actors": "Manager",
-   "frs": "FR-APP-05, FR-ASG-01..03"
+   "name": "Review, assignment and Round 2",
+   "actors": "Manager, Student, System",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03"
   },
   {
    "id": "F-07",
@@ -258,6 +258,21 @@
    "group": "F-02",
    "groupName": "Student accounts: verification and list import",
    "frs": "FR-AUTH-04, 05",
+   "type": "Rule",
+   "auto": "TC-AUTH-056",
+   "test": "StudentImportIT.readsMajorsByCodeOrNameAndExplainsCodePrefixes",
+   "role": "Manager",
+   "description": "A major is read from its code, its English label or its Vietnamese name, the other FPT majors are in the list (V61), and a student-code prefix such as SS put in the major column gets an error that says so; the file is the XLSX the template writer makes.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Manager signed in",
+   "steps": "Automated (StudentImportIT.readsMajorsByCodeOrNameAndExplainsCodePrefixes): run the scenario and check the result",
+   "expected": "A major is read from its code, its English label or its Vietnamese name, the other FPT majors are in the list (V61), and a student-code prefix such as SS put in the major column gets an error that says so; the file is the XLSX the template writer makes.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F02-06",
+   "group": "F-02",
+   "groupName": "Student accounts: verification and list import",
+   "frs": "FR-AUTH-04, 05",
    "type": "Exception",
    "auto": "TC-APP-022",
    "test": "StudentAccountsIT.pendingAccountCannotApply",
@@ -438,6 +453,21 @@
    "group": "F-05",
    "groupName": "VietQR payment claim and confirmation",
    "frs": "FR-BIL-01..03",
+   "type": "Main",
+   "auto": "TC-AUTH-058",
+   "test": "RefundAccountIT.studentKeepsTheirRefundAccount",
+   "role": "Student",
+   "description": "A student reads and saves their refund account; the number keeps its digits only, each field is checked, and only students have one.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Student signed in",
+   "steps": "Automated (RefundAccountIT.studentKeepsTheirRefundAccount): GET /api/students/me/refund-account; PUT /api/students/me/refund-account; check the answer and the database",
+   "expected": "A student reads and saves their refund account; the number keeps its digits only, each field is checked, and only students have one.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F05-03",
+   "group": "F-05",
+   "groupName": "VietQR payment claim and confirmation",
+   "frs": "FR-BIL-01..03",
    "type": "Rule",
    "auto": "TC-BIL-033",
    "test": "PaymentClaimIT.rejectionsGiveTimeBackThenCancel",
@@ -449,7 +479,7 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F05-03",
+   "id": "TC-F05-04",
    "group": "F-05",
    "groupName": "VietQR payment claim and confirmation",
    "frs": "FR-BIL-01..03",
@@ -466,8 +496,8 @@
   {
    "id": "TC-F06-01",
    "group": "F-06",
-   "groupName": "Review and assignment",
-   "frs": "FR-APP-05, FR-ASG-01..03",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
    "type": "Main",
    "auto": "TC-ASG-010",
    "test": "AssignmentIT.assignmentRunToAllocation",
@@ -481,8 +511,38 @@
   {
    "id": "TC-F06-02",
    "group": "F-06",
-   "groupName": "Review and assignment",
-   "frs": "FR-APP-05, FR-ASG-01..03",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
+   "type": "Main",
+   "auto": "TC-APP-024",
+   "test": "Round2IT.managerRunsRound2",
+   "role": "Manager",
+   "description": "A Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it. The Manager's list shows who is waiting without an offer, then who got one with its options (A-58).",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Manager signed in",
+   "steps": "Automated (Round2IT.managerRunsRound2): GET /api/round2; POST /api/round2/run; GET /api/round2/offers; check the answer and the database",
+   "expected": "A Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it. The Manager's list shows who is waiting without an offer, then who got one with its options (A-58).",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F06-03",
+   "group": "F-06",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
+   "type": "Main",
+   "auto": "TC-APP-025",
+   "test": "Round2IT.waitlistedStudentWithdraws",
+   "role": "Student",
+   "description": "A waitlisted student sees the open offer, the day the waitlist ends and the refund; withdrawing closes the offer, releases its Beds, cancels the Application and asks a Manager to refund the whole Deposit, whose list shows the student's bank account (A-61, A-62). A plain cancel is refused, and only one's own waitlisted Application can be withdrawn.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Student signed in",
+   "steps": "Automated (Round2IT.waitlistedStudentWithdraws): POST /api/applications/{id}/withdraw; PUT /api/students/me/refund-account; check the answer and the database",
+   "expected": "A waitlisted student sees the open offer, the day the waitlist ends and the refund; withdrawing closes the offer, releases its Beds, cancels the Application and asks a Manager to refund the whole Deposit, whose list shows the student's bank account (A-61, A-62). A plain cancel is refused, and only one's own waitlisted Application can be withdrawn.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F06-04",
+   "group": "F-06",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
    "type": "Rule",
    "auto": "TC-APP-010",
    "test": "AssignmentIT.reviewQueueAndRejection",
@@ -494,10 +554,10 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F06-03",
+   "id": "TC-F06-05",
    "group": "F-06",
-   "groupName": "Review and assignment",
-   "frs": "FR-APP-05, FR-ASG-01..03",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
    "type": "Rule",
    "auto": "TC-ASG-005",
    "test": "AssignmentEngineTest.priorityOrderAndDeterminism",
@@ -509,10 +569,25 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F06-04",
+   "id": "TC-F06-06",
    "group": "F-06",
-   "groupName": "Review and assignment",
-   "frs": "FR-APP-05, FR-ASG-01..03",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
+   "type": "Rule",
+   "auto": "TC-APP-026",
+   "test": "Round2IT.waitlistEndsWhenCheckInStarts",
+   "role": "System (job)",
+   "description": "When the Term's check-in starts, a waitlisted Application without an open offer is cancelled with the whole Deposit to refund and the student is told; one with an open offer keeps it until it is answered.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); System (job) signed in",
+   "steps": "Automated (Round2IT.waitlistEndsWhenCheckInStarts): run the scenario and check the result",
+   "expected": "When the Term's check-in starts, a waitlisted Application without an open offer is cancelled with the whole Deposit to refund and the student is told; one with an open offer keeps it until it is answered.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F06-07",
+   "group": "F-06",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
    "type": "Exception",
    "auto": "TC-ASG-011",
    "test": "AssignmentIT.dryRunAndPermissions",
@@ -524,10 +599,10 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F06-05",
+   "id": "TC-F06-08",
    "group": "F-06",
-   "groupName": "Review and assignment",
-   "frs": "FR-APP-05, FR-ASG-01..03",
+   "groupName": "Review, assignment and Round 2",
+   "frs": "FR-APP-05, 07, FR-ASG-01..03",
    "type": "Exception",
    "auto": "TC-APP-011",
    "test": "AssignmentIT.reviewIsScopedByBlock",
@@ -648,6 +723,21 @@
    "group": "F-08",
    "groupName": "Check-in and check-out desk",
    "frs": "FR-ASG-04, 06",
+   "type": "Main",
+   "auto": "TC-ASG-046",
+   "test": "DeskIT.finalReadingsRoomByRoom",
+   "role": "Staff",
+   "description": "The desk enters the final meter readings Room by Room, typed or from the XLSX template, before the leavers come: each Room's reading goes to the check-out drafts of its leavers; a Room without leavers in the user's Blocks or a reading below the Room's last one is reported and not saved.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Staff signed in",
+   "steps": "Automated (DeskIT.finalReadingsRoomByRoom): GET /api/check-out/readings; PUT /api/check-out/readings; GET /api/check-out/readings/template; check the answer and the database",
+   "expected": "The desk enters the final meter readings Room by Room, typed or from the XLSX template, before the leavers come: each Room's reading goes to the check-out drafts of its leavers; a Room without leavers in the user's Blocks or a reading below the Room's last one is reported and not saved.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F08-04",
+   "group": "F-08",
+   "groupName": "Check-in and check-out desk",
+   "frs": "FR-ASG-04, 06",
    "type": "Rule",
    "auto": "TC-ASG-045",
    "test": "DeskIT.checkOutRecordsDamagePerItem",
@@ -659,7 +749,7 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F08-04",
+   "id": "TC-F08-05",
    "group": "F-08",
    "groupName": "Check-in and check-out desk",
    "frs": "FR-ASG-04, 06",
@@ -978,6 +1068,21 @@
    "group": "F-13",
    "groupName": "Maintenance with routing, time limits and escalation",
    "frs": "FR-MNT-01, 02, FR-REQ-06, 07",
+   "type": "Main",
+   "auto": "TC-AUTH-057",
+   "test": "BlockStaffIT.staffStartAndEndTheirShift",
+   "role": "Staff",
+   "description": "A Staff member reads their own duty, request types and workload, and starts or ends their shift (A-60); the change is audited, and students may not use it.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Staff signed in",
+   "steps": "Automated (BlockStaffIT.staffStartAndEndTheirShift): GET /api/block-staff/me; PUT /api/block-staff/me/duty; check the answer and the database",
+   "expected": "A Staff member reads their own duty, request types and workload, and starts or ends their shift (A-60); the change is audited, and students may not use it.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F13-04",
+   "group": "F-13",
+   "groupName": "Maintenance with routing, time limits and escalation",
+   "frs": "FR-MNT-01, 02, FR-REQ-06, 07",
    "type": "Rule",
    "auto": "TC-MNT-008",
    "test": "OperationsIT.slaDeadlineAndFurnitureItem",
@@ -989,7 +1094,22 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F13-04",
+   "id": "TC-F13-05",
+   "group": "F-13",
+   "groupName": "Maintenance with routing, time limits and escalation",
+   "frs": "FR-MNT-01, 02, FR-REQ-06, 07",
+   "type": "Rule",
+   "auto": "TC-MNT-009",
+   "test": "MaintenanceIT.personInChargeChangesTheStatus",
+   "role": "Staff",
+   "description": "Only the person in charge changes the status; another Staff member of the Block takes the request over first (recorded in its history), and a Manager may act on any request.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Staff signed in",
+   "steps": "Automated (MaintenanceIT.personInChargeChangesTheStatus): PATCH /api/maintenance-requests/{id}; check the answer and the database",
+   "expected": "Only the person in charge changes the status; another Staff member of the Block takes the request over first (recorded in its history), and a Manager may act on any request.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F13-06",
    "group": "F-13",
    "groupName": "Maintenance with routing, time limits and escalation",
    "frs": "FR-MNT-01, 02, FR-REQ-06, 07",
@@ -1004,7 +1124,7 @@
    "result": "Passed"
   },
   {
-   "id": "TC-F13-05",
+   "id": "TC-F13-07",
    "group": "F-13",
    "groupName": "Maintenance with routing, time limits and escalation",
    "frs": "FR-MNT-01, 02, FR-REQ-06, 07",
@@ -1544,6 +1664,32 @@
   {
    "id": "TC-ST-18",
    "entity": "Application",
+   "from": "Waitlisted",
+   "to": "Cancelled",
+   "trigger": "Student withdraws from the waitlist (whole Deposit refunded)",
+   "fr": "FR-APP-07",
+   "auto": "TC-APP-025",
+   "test": "Round2IT.waitlistedStudentWithdraws",
+   "expected": "Status becomes Cancelled",
+   "result": "Passed",
+   "run": "Automated"
+  },
+  {
+   "id": "TC-ST-19",
+   "entity": "Application",
+   "from": "Waitlisted",
+   "to": "Cancelled",
+   "trigger": "Check-in starts with no open offer (waitlist ends, Deposit refunded)",
+   "fr": "FR-APP-07",
+   "auto": "TC-APP-026",
+   "test": "Round2IT.waitlistEndsWhenCheckInStarts",
+   "expected": "Status becomes Cancelled",
+   "result": "Passed",
+   "run": "Automated"
+  },
+  {
+   "id": "TC-ST-20",
+   "entity": "Application",
    "from": "Allocated",
    "to": "Forfeited",
    "trigger": "Balance not paid by its deadline",
@@ -1555,7 +1701,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-19",
+   "id": "TC-ST-21",
    "entity": "Application",
    "from": "Allocated",
    "to": "Rejected",
@@ -1568,7 +1714,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-20",
+   "id": "TC-ST-22",
    "entity": "Allocation",
    "from": "(new)",
    "to": "Assigned – unpaid",
@@ -1581,7 +1727,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-21",
+   "id": "TC-ST-23",
    "entity": "Allocation",
    "from": "Assigned – unpaid",
    "to": "Paid – waiting for the code",
@@ -1594,7 +1740,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-22",
+   "id": "TC-ST-24",
    "entity": "Allocation",
    "from": "Assigned – unpaid",
    "to": "Cancelled",
@@ -1607,7 +1753,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-23",
+   "id": "TC-ST-25",
    "entity": "Allocation",
    "from": "Assigned – unpaid",
    "to": "Cancelled",
@@ -1620,7 +1766,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-24",
+   "id": "TC-ST-26",
    "entity": "Allocation",
    "from": "Paid – waiting for the code",
    "to": "Cancelled",
@@ -1633,7 +1779,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-25",
+   "id": "TC-ST-27",
    "entity": "Allocation",
    "from": "Paid – waiting for the code",
    "to": "Resident",
@@ -1646,7 +1792,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-26",
+   "id": "TC-ST-28",
    "entity": "Allocation",
    "from": "Paid – waiting for the code",
    "to": "Resident",
@@ -1659,7 +1805,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-27",
+   "id": "TC-ST-29",
    "entity": "Allocation",
    "from": "Resident",
    "to": "Ended",
@@ -1672,7 +1818,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-28",
+   "id": "TC-ST-30",
    "entity": "Allocation",
    "from": "Resident",
    "to": "Ended",
@@ -1685,7 +1831,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-29",
+   "id": "TC-ST-31",
    "entity": "Allocation",
    "from": "Resident",
    "to": "Ended",
@@ -1698,7 +1844,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-30",
+   "id": "TC-ST-32",
    "entity": "Next-Term Allocation",
    "from": "(new)",
    "to": "Continuing",
@@ -1711,7 +1857,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-31",
+   "id": "TC-ST-33",
    "entity": "Next-Term Allocation",
    "from": "(new)",
    "to": "Awaiting extension",
@@ -1724,7 +1870,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-32",
+   "id": "TC-ST-34",
    "entity": "Next-Term Allocation",
    "from": "Awaiting extension",
    "to": "Continuing",
@@ -1737,7 +1883,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-33",
+   "id": "TC-ST-35",
    "entity": "Next-Term Allocation",
    "from": "Awaiting extension",
    "to": "Cancelled",
@@ -1750,7 +1896,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-34",
+   "id": "TC-ST-36",
    "entity": "Next-Term Allocation",
    "from": "Continuing",
    "to": "Continuing (other Bed)",
@@ -1763,7 +1909,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-35",
+   "id": "TC-ST-37",
    "entity": "Next-Term Allocation",
    "from": "Continuing",
    "to": "Cancelled",
@@ -1776,7 +1922,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-36",
+   "id": "TC-ST-38",
    "entity": "Next-Term Allocation",
    "from": "Continuing",
    "to": "Cancelled",
@@ -1789,7 +1935,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-37",
+   "id": "TC-ST-39",
    "entity": "Next-Term Allocation",
    "from": "Continuing",
    "to": "Resident",
@@ -1802,7 +1948,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-38",
+   "id": "TC-ST-40",
    "entity": "Invoice",
    "from": "(new)",
    "to": "Unpaid",
@@ -1815,7 +1961,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-39",
+   "id": "TC-ST-41",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Awaiting confirmation",
@@ -1828,7 +1974,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-40",
+   "id": "TC-ST-42",
    "entity": "Invoice",
    "from": "Overdue",
    "to": "Awaiting confirmation",
@@ -1841,7 +1987,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-41",
+   "id": "TC-ST-43",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Paid",
@@ -1854,7 +2000,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-42",
+   "id": "TC-ST-44",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Paid",
@@ -1867,7 +2013,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-43",
+   "id": "TC-ST-45",
    "entity": "Invoice",
    "from": "Overdue",
    "to": "Paid",
@@ -1880,7 +2026,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-44",
+   "id": "TC-ST-46",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Unpaid",
@@ -1893,7 +2039,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-45",
+   "id": "TC-ST-47",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Overdue",
@@ -1906,7 +2052,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-46",
+   "id": "TC-ST-48",
    "entity": "Invoice",
    "from": "Awaiting confirmation",
    "to": "Void",
@@ -1919,7 +2065,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-47",
+   "id": "TC-ST-49",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Overdue",
@@ -1932,7 +2078,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-48",
+   "id": "TC-ST-50",
    "entity": "Invoice",
    "from": "Unpaid",
    "to": "Void",
@@ -1945,7 +2091,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-49",
+   "id": "TC-ST-51",
    "entity": "Invoice",
    "from": "Overdue",
    "to": "Void",
@@ -1958,7 +2104,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-50",
+   "id": "TC-ST-52",
    "entity": "Payment claim",
    "from": "(new)",
    "to": "Claimed",
@@ -1971,7 +2117,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-51",
+   "id": "TC-ST-53",
    "entity": "Payment claim",
    "from": "Claimed",
    "to": "Confirmed",
@@ -1984,7 +2130,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-52",
+   "id": "TC-ST-54",
    "entity": "Payment claim",
    "from": "(new)",
    "to": "Confirmed",
@@ -1997,7 +2143,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-53",
+   "id": "TC-ST-55",
    "entity": "Payment claim",
    "from": "Claimed",
    "to": "Rejected",
@@ -2010,7 +2156,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-54",
+   "id": "TC-ST-56",
    "entity": "Maintenance Request",
    "from": "(new)",
    "to": "Submitted",
@@ -2023,7 +2169,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-55",
+   "id": "TC-ST-57",
    "entity": "Maintenance Request",
    "from": "Submitted",
    "to": "Assigned",
@@ -2036,7 +2182,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-56",
+   "id": "TC-ST-58",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Submitted",
@@ -2049,7 +2195,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-57",
+   "id": "TC-ST-59",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "In Progress",
@@ -2062,7 +2208,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-58",
+   "id": "TC-ST-60",
    "entity": "Maintenance Request",
    "from": "In Progress",
    "to": "Resolved",
@@ -2075,7 +2221,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-59",
+   "id": "TC-ST-61",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Resolved",
@@ -2088,7 +2234,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-60",
+   "id": "TC-ST-62",
    "entity": "Maintenance Request",
    "from": "Resolved",
    "to": "Closed",
@@ -2101,7 +2247,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-61",
+   "id": "TC-ST-63",
    "entity": "Maintenance Request",
    "from": "Resolved",
    "to": "Assigned",
@@ -2114,7 +2260,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-62",
+   "id": "TC-ST-64",
    "entity": "Maintenance Request",
    "from": "Submitted",
    "to": "Closed",
@@ -2127,7 +2273,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-63",
+   "id": "TC-ST-65",
    "entity": "Maintenance Request",
    "from": "Assigned",
    "to": "Closed",
@@ -2140,7 +2286,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-64",
+   "id": "TC-ST-66",
    "entity": "Maintenance Request",
    "from": "In Progress",
    "to": "Closed",
@@ -2153,7 +2299,7 @@
    "run": "Manual"
   },
   {
-   "id": "TC-ST-65",
+   "id": "TC-ST-67",
    "entity": "Invoice",
    "from": "Paid / Void",
    "to": "(refused)",
@@ -2166,7 +2312,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-66",
+   "id": "TC-ST-68",
    "entity": "Invoice",
    "from": "Void",
    "to": "(refused)",
@@ -2179,7 +2325,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-67",
+   "id": "TC-ST-69",
    "entity": "Invoice",
    "from": "Paid",
    "to": "(refused)",
@@ -2192,7 +2338,7 @@
    "run": "Automated"
   },
   {
-   "id": "TC-ST-68",
+   "id": "TC-ST-70",
    "entity": "Next-Term Allocation",
    "from": "Continuing (fees issued)",
    "to": "(refused)",
@@ -2655,7 +2801,7 @@
    "testClass": "SecurityConfigCorsTest",
    "owner": "Lê Thành Minh Trung",
    "requirement": "Admits only the configured web origins (CORS)",
-   "loc": 87,
+   "loc": 88,
    "cases": [
     {
      "tc": "TC-AUTH-034",

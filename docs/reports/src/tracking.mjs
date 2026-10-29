@@ -20,11 +20,12 @@ for (const line of fs.readFileSync(path.join(here, 'r3-fr.md'), 'utf8').split('\
   wbs.push([String(wbs.length + 1), m[3], FEATURE[m[2]], COMPLEX.has(m[1]) ? 'Complex' : SIMPLE.has(m[1]) ? 'Simple' : 'Medium', `${m[1]} (Report 3 §${line.split(' ')[1]})`, 'Iteration 1', 'Done']);
 }
 for (const [name, feature, level, details, planned, status] of [
+  ['API documentation: Swagger UI and the OpenAPI document; Postman collection by role with smoke tests', 'Testing', 'Medium', 'springdoc-openapi; postman/ (288 requests, 49 smoke tests); docs/tools/generate-postman.mjs', 'Iteration 1', 'Done'],
   ['End-to-end workflow tests WF-01..05 on staging', 'Testing', 'Complex', 'TC-WF-01..05, demo scenarios DS-01..10', 'Iteration 2', 'Pending'],
   ['Automation of the workflow tests in CI', 'Testing', 'Complex', 'API scenario tests (gap G2)', 'Iteration 2', 'Pending'],
   ['Load test NFR-01, uptime monitor NFR-04, deployment times NFR-06', 'Testing', 'Medium', 'TC-NFR-01, 04, 06 (gap G3)', 'Iteration 2', 'Pending'],
   ['Concurrency test one Allocation per Bed per Term', 'Testing', 'Medium', 'TC-NFR-03 (gap G4)', 'Iteration 2', 'Pending'],
-  ['Android UI tests (sign-in, payment claim, door code)', 'Android app', 'Medium', 'Gap G5', 'Iteration 2', 'Pending'],
+  ['Mobile app UI tests (sign-in, payment claim, door code)', 'Mobile app (Flutter)', 'Medium', 'Gap G5', 'Iteration 2', 'Pending'],
   ['Fixes from Review 2 and the self-review (BM02 Planned items)', 'All', 'Medium', 'Review 2 Commitment (BM04)', 'Iteration 2', 'Pending'],
   ['Report 6 User Guides, updated Reports 1–5, Full Software Package', 'Documents', 'Medium', 'Before Defense 1.1', 'Iteration 3', 'Pending'],
   ['Report 7, defense slides, final package', 'Documents', 'Medium', 'Final defense', 'Iteration 3', 'Pending'],
@@ -57,6 +58,12 @@ const defects = [
   ['Billing', 'Utility debt job', T, 'The final warning could be issued again for the same debt', T, 'Closed', 'Fixed with the demo tool 27/10/2026'],
   ['Documents', 'SDD state machines', T, 'Application, Allocation and Invoice state machines missed transitions used in code', T, 'Closed', 'Report 4 §3.1 redrawn from the code 28/10/2026'],
   ['Documents', 'Backend architecture note', T, 'Architecture note still named Flutter for the Android app', V, 'Closed', 'docs 28/10/2026'],
+  ['Web', 'Student Home', T, 'Student Home crashed after a Deposit claim while nothing was due and no Bed was given', T, 'Closed', 'fix 28/10/2026 (commit 4138397)'],
+  ['Web', 'Manager › Student hub', T, 'The Student hub crashed for a student with a Room (unknown table size)', T, 'Closed', 'fix 28/10/2026 (commit 4138397)'],
+  ['Inventory', 'Room map', T, 'The room map showed thin lines instead of bed squares', D, 'Closed', 'fix 28/10/2026 (commit 4138397)'],
+  ['Accounts', 'Student list and reconciliation templates', T, 'Excel set to Vietnamese opened the comma CSV template as one column', T, 'Closed', 'fix 28/10/2026: XLSX templates (commit 4138397)'],
+  ['Documents', 'Web screen map', T, 'The screen map generator found only the public pages after the router loaded pages on first visit', T, 'Closed', 'docs 30/10/2026: generator reads lazy page imports'],
+  ['Documents', 'Report 2', T, 'Report 2 PDF still named Kotlin and Jetpack Compose after the mobile app moved to Flutter', V, 'Open', 'Rebuild Report 2 from its source (Flutter since 28/10/2026)'],
 ];
 
 const qa = [

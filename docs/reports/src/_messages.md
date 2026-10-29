@@ -281,399 +281,421 @@
 | 279 | MSG279 | Dialog | This period does not exist. | Kỳ chỉ số này không tồn tại. |
 | 280 | MSG280 | Dialog | This period is closed: its Invoices are issued. | Kỳ chỉ số đã đóng: hóa đơn đã được phát hành. |
 | 281 | MSG281 | Field | Choose a CSV file. | Hãy chọn tệp CSV. |
-| 282 | MSG282 | Dialog | Room {0} is not in this Block. | Phòng {0} không thuộc Block này. |
-| 283 | MSG283 | Dialog | Room {0} has no reading in this period. | Phòng {0} chưa có chỉ số trong kỳ này. |
-| 284 | MSG284 | Field | Enter the reading before you confirm it. | Hãy nhập chỉ số trước khi xác nhận. |
-| 285 | MSG285 | Field | Choose Missing, Entered, Check value or Confirmed. | Hãy chọn Chưa có, Đã nhập, Cần kiểm tra hoặc Đã xác nhận. |
-| 286 | MSG286 | Dialog | {0} Room has no reading yet. | Còn {0} phòng chưa có chỉ số. |
-| 287 | MSG287 | Dialog | {0} Rooms have no reading yet. | Còn {0} phòng chưa có chỉ số. |
-| 288 | MSG288 | Dialog | Confirm the {0} reading marked Check value first. | Hãy xác nhận {0} chỉ số đang cần kiểm tra trước. |
-| 289 | MSG289 | Dialog | Confirm the {0} readings marked Check value first. | Hãy xác nhận {0} chỉ số đang cần kiểm tra trước. |
-| 290 | MSG290 | Dialog | This Room-Change Request does not exist. | Yêu cầu đổi phòng này không tồn tại. |
-| 291 | MSG291 | Dialog | This request was already decided. | Yêu cầu này đã được quyết định. |
-| 292 | MSG292 | Dialog | This request is no longer open. | Yêu cầu này không còn mở. |
-| 293 | MSG293 | Refused | This request is closed and cannot change. | Yêu cầu đã đóng và không thể thay đổi. |
-| 294 | MSG294 | Dialog | You already have an open Room-Change Request for this Term. | Bạn đã có một yêu cầu đổi phòng đang mở trong kỳ này. |
-| 295 | MSG295 | Dialog | You can ask for a room change once you have checked in. | Bạn có thể yêu cầu đổi phòng sau khi đã nhận phòng. |
-| 296 | MSG296 | Dialog | Pay your overdue Invoice before you ask for a room change. | Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi phòng. |
-| 297 | MSG297 | Field | Choose the kind of change. | Hãy chọn kiểu thay đổi. |
-| 298 | MSG298 | Field | Choose same, class or type. | Hãy chọn cùng loại, đổi hạng hoặc đổi loại. |
-| 299 | MSG299 | Field | Choose a Room Type other than your current one. | Hãy chọn loại phòng khác loại hiện tại. |
-| 300 | MSG300 | Field | Choose a Room Class other than your current one. | Hãy chọn hạng phòng khác hạng hiện tại. |
-| 301 | MSG301 | Field | Choose why the request is rejected. | Hãy chọn lý do từ chối yêu cầu. |
-| 302 | MSG302 | Field | Choose Pending, Approved, Rejected or Cancelled. | Hãy chọn Đang chờ, Đã duyệt, Từ chối hoặc Đã hủy. |
-| 303 | MSG303 | Dialog | This Bed is not free for this request any more. Choose another one. | Giường này không còn trống cho yêu cầu này. Hãy chọn giường khác. |
-| 304 | MSG304 | Dialog | This Bed was just taken. Choose another one. | Giường này vừa có người nhận. Hãy chọn giường khác. |
-| 305 | MSG305 | Dialog | A move to another Block is decided by a Manager. | Việc chuyển sang Block khác do Quản lý quyết định. |
-| 306 | MSG306 | Dialog | {0} no longer holds the Bed this request was made from. | {0} không còn giữ giường mà yêu cầu này được gửi từ đó. |
-| 307 | MSG307 | Dialog | This student no longer holds the Bed. | Sinh viên này không còn giữ giường. |
-| 308 | MSG308 | Dialog | This swap does not exist. | Yêu cầu đổi chéo này không tồn tại. |
-| 309 | MSG309 | Dialog | This swap invitation is no longer open. | Lời mời đổi chéo này không còn hiệu lực. |
-| 310 | MSG310 | Dialog | This swap is not waiting for a decision. | Yêu cầu đổi chéo này không chờ quyết định. |
-| 311 | MSG311 | Dialog | This post is no longer on the board. | Bài đăng này không còn trên bảng đổi chéo. |
-| 312 | MSG312 | Dialog | You already have a swap waiting. Wait for it or let it expire. | Bạn đã có một yêu cầu đổi chéo đang chờ. Hãy chờ kết quả hoặc để nó hết hạn. |
-| 313 | MSG313 | Dialog | You can swap Beds once you have checked in. | Bạn có thể đổi chéo giường sau khi đã nhận phòng. |
-| 314 | MSG314 | Dialog | Pay your overdue Invoice before you ask for a swap. | Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi chéo. |
-| 315 | MSG315 | Dialog | Your Bed is not what this student is looking for. | Giường của bạn không đúng với điều sinh viên này cần. |
-| 316 | MSG316 | Dialog | One of you no longer holds the Bed. | Một trong hai bạn không còn giữ giường. |
-| 317 | MSG317 | Dialog | The swap does not pass the rule check any more. | Yêu cầu đổi chéo không còn đáp ứng điều kiện. |
-| 318 | MSG318 | Dialog | A swap between Blocks is decided by a Manager. | Việc đổi chéo giữa các Block do Quản lý quyết định. |
-| 319 | MSG319 | Dialog | Accept or decline the swap. | Hãy chấp nhận hoặc từ chối đổi chéo. |
-| 320 | MSG320 | Field | Choose the Room Type and Room Class you want. | Hãy chọn loại phòng và hạng phòng bạn muốn. |
-| 321 | MSG321 | Field | Choose maintenance or room-changes. | Hãy chọn sửa chữa hoặc đổi phòng. |
-| 322 | MSG322 | Dialog | This routing rule does not exist. | Quy tắc phân công này không tồn tại. |
-| 323 | MSG323 | Field | Choose a request type. | Hãy chọn loại yêu cầu. |
-| 324 | MSG324 | Field | Choose a category from the list. | Hãy chọn một danh mục trong danh sách. |
-| 325 | MSG325 | Refused | Only maintenance rules can be limited to a category. | Chỉ quy tắc sửa chữa mới giới hạn được theo danh mục. |
-| 326 | MSG326 | Field | Choose an assignee from this Block's staff. | Hãy chọn người nhận việc trong nhân viên của Block này. |
-| 327 | MSG327 | Field | Choose a fallback from this Block's staff. | Hãy chọn người dự phòng trong nhân viên của Block này. |
-| 328 | MSG328 | Field | Choose a fallback other than the assignee. | Người dự phòng phải khác người nhận việc. |
-| 329 | MSG329 | Field | Keep the condition under 100 characters. | Điều kiện tối đa 100 ký tự. |
-| 330 | MSG330 | Field | Choose one of the listed times (at most {0} hours). | Hãy chọn một trong các mốc thời gian được liệt kê (tối đa {0} giờ). |
-| 331 | MSG331 | Dialog | This escalation does not exist. | Yêu cầu quá hạn này không tồn tại. |
-| 332 | MSG332 | Dialog | This escalation was already handled. | Yêu cầu quá hạn này đã được xử lý. |
-| 333 | MSG333 | Field | Choose reassign or temporary-bed. | Hãy chọn giao lại hoặc cấp giường tạm. |
-| 334 | MSG334 | Refused | A temporary Bed can only be offered for a Room-Change Request. | Chỉ cấp giường tạm cho yêu cầu đổi phòng. |
-| 335 | MSG335 | Field | Choose someone from this Block's staff. | Hãy chọn một người trong nhân viên của Block này. |
-| 336 | MSG336 | Dialog | This Maintenance Request does not exist. | Yêu cầu sửa chữa này không tồn tại. |
-| 337 | MSG337 | Dialog | You can report a problem once you have checked in to your Room. | Bạn có thể báo sự cố sau khi đã nhận phòng. |
-| 338 | MSG338 | Dialog | You can confirm the fix once the request is resolved. | Bạn có thể xác nhận đã sửa xong khi yêu cầu được xử lý. |
-| 339 | MSG339 | Field | Give the problem a short title. | Hãy đặt tiêu đề ngắn cho sự cố. |
-| 340 | MSG340 | Field | Keep the title under 150 characters. | Tiêu đề tối đa 150 ký tự. |
-| 341 | MSG341 | Field | Keep the description under 2,000 characters. | Mô tả tối đa 2.000 ký tự. |
-| 342 | MSG342 | Field | Choose where the problem is. | Hãy chọn vị trí sự cố. |
-| 343 | MSG343 | Field | Choose Normal or Urgent. | Hãy chọn Bình thường hoặc Khẩn cấp. |
-| 344 | MSG344 | Field | Attach at most {0} photos. | Đính kèm tối đa {0} ảnh. |
-| 345 | MSG345 | Dialog | Each photo must be {0} MB or smaller. | Mỗi ảnh tối đa {0} MB. |
-| 346 | MSG346 | Field | Say whether the problem is fixed. | Hãy cho biết sự cố đã được sửa chưa. |
-| 347 | MSG347 | Dialog | Assign the request before you mark it resolved. | Hãy giao việc trước khi đánh dấu đã xử lý. |
-| 348 | MSG348 | Field | Choose a staff member of this Block. | Hãy chọn một nhân viên của Block này. |
-| 349 | MSG349 | Field | Choose a staff member or none. | Hãy chọn một nhân viên hoặc để trống. |
-| 350 | MSG350 | Field | Keep someone assigned while the work is in progress. | Phải có người được giao khi công việc đang xử lý. |
-| 351 | MSG351 | Dialog | To send it back to the queue, remove the assignee. | Để đưa yêu cầu về hàng chờ, hãy bỏ người được giao. |
-| 352 | MSG352 | Field | Choose High, Medium or Low. | Hãy chọn Cao, Trung bình hoặc Thấp. |
-| 353 | MSG353 | Dialog | Use dd/mm/yyyy hh:mm – hh:mm, with the end after the start. | Dùng dạng dd/mm/yyyy hh:mm – hh:mm, giờ kết thúc sau giờ bắt đầu. |
-| 354 | MSG354 | Dialog | This checklist does not exist. | Danh mục kiểm tra này không tồn tại. |
-| 355 | MSG355 | Dialog | This checklist is archived. | Danh mục kiểm tra này đã lưu trữ. |
-| 356 | MSG356 | Dialog | This checklist is already archived. | Danh mục kiểm tra này đã được lưu trữ. |
-| 357 | MSG357 | Dialog | A checklist with this name already exists. | Đã có danh mục kiểm tra mang tên này. |
-| 358 | MSG358 | Field | Add at least one item. | Hãy thêm ít nhất một mục. |
-| 359 | MSG359 | Dialog | Use at most {0} items. | Dùng tối đa {0} mục. |
-| 360 | MSG360 | Dialog | Item {0}: choose a maintenance category. | Mục {0}: hãy chọn danh mục sửa chữa. |
-| 361 | MSG361 | Dialog | Item {0}: choose a severity. | Mục {0}: hãy chọn mức độ. |
-| 362 | MSG362 | Dialog | Item {0}: enter a label of at most 200 characters. | Mục {0}: nhập nhãn tối đa 200 ký tự. |
-| 363 | MSG363 | Dialog | This inspection schedule does not exist. | Lịch kiểm tra này không tồn tại. |
-| 364 | MSG364 | Dialog | The checklist of this schedule is not published. | Danh mục kiểm tra của lịch này chưa được công bố. |
-| 365 | MSG365 | Field | Choose a published checklist. | Hãy chọn một danh mục kiểm tra đã công bố. |
-| 366 | MSG366 | Field | Choose how often it repeats. | Hãy chọn tần suất lặp lại. |
-| 367 | MSG367 | Field | Choose a scope from the list. | Hãy chọn phạm vi trong danh sách. |
-| 368 | MSG368 | Field | Choose Active or Paused. | Hãy chọn Đang chạy hoặc Tạm dừng. |
-| 369 | MSG369 | Field | Enter 1 to {0} days. | Nhập từ 1 đến {0} ngày. |
-| 370 | MSG370 | Dialog | This inspection run does not exist. | Lượt kiểm tra này không tồn tại. |
-| 371 | MSG371 | Dialog | This inspection run is already submitted. | Lượt kiểm tra này đã được nộp. |
-| 372 | MSG372 | Dialog | Room {0} is not in this run. | Phòng {0} không có trong lượt kiểm tra này. |
-| 373 | MSG373 | Dialog | This Room is already inspected. | Phòng này đã được kiểm tra. |
-| 374 | MSG374 | Dialog | This Room is already marked not reachable. | Phòng này đã được đánh dấu không vào được. |
-| 375 | MSG375 | Dialog | Send Pass, Fail or Not checked for items of this checklist. | Hãy gửi Đạt, Không đạt hoặc Chưa kiểm tra cho các mục của danh mục này. |
-| 376 | MSG376 | Field | Keep each note under {0} characters. | Mỗi ghi chú tối đa {0} ký tự. |
-| 377 | MSG377 | Dialog | The desk must close after it opens. | Giờ đóng quầy phải sau giờ mở quầy. |
-| 378 | MSG378 | Dialog | Visitor hours must end after they start. | Giờ kết thúc thăm phải sau giờ bắt đầu. |
-| 379 | MSG379 | Dialog | Visitors may come from {0} at the earliest (Admin limit). | Khách được đến sớm nhất từ {0} (giới hạn của Quản trị viên). |
-| 380 | MSG380 | Dialog | Visitors must leave by {0} at the latest (Admin limit). | Khách phải rời đi muộn nhất lúc {0} (giới hạn của Quản trị viên). |
-| 381 | MSG381 | Dialog | Quiet hours must start by {0} (Admin limit). | Giờ yên tĩnh phải bắt đầu muộn nhất lúc {0} (giới hạn của Quản trị viên). |
-| 382 | MSG382 | Dialog | This notification does not exist. | Thông báo này không tồn tại. |
-| 383 | MSG383 | Dialog | This notification template does not exist. | Mẫu thông báo này không tồn tại. |
-| 384 | MSG384 | Field | Enter a title of at most {0} characters. | Nhập tiêu đề tối đa {0} ký tự. |
-| 385 | MSG385 | Field | Enter a message of at most {0} characters. | Nhập nội dung tối đa {0} ký tự. |
-| 386 | MSG386 | Dialog | Too long for push: {0}/{1} characters. | Quá dài cho thông báo đẩy: {0}/{1} ký tự. |
-| 387 | MSG387 | Field | Choose a template from the list. | Hãy chọn một mẫu trong danh sách. |
-| 388 | MSG388 | Field | Choose a group from the list. | Hãy chọn một nhóm trong danh sách. |
-| 389 | MSG389 | Field | Choose one student or bulk. | Hãy chọn một sinh viên hoặc gửi hàng loạt. |
-| 390 | MSG390 | Field | Choose Email or Email and push. | Hãy chọn Email hoặc Email và thông báo đẩy. |
-| 391 | MSG391 | Field | Choose when to send. | Hãy chọn thời điểm gửi. |
-| 392 | MSG392 | Refused | Push goes out at once: send now, or choose Email only. | Thông báo đẩy được gửi ngay: hãy gửi bây giờ hoặc chỉ chọn Email. |
-| 393 | MSG393 | Dialog | It is already past {0}:00. Choose another time. | Đã quá {0}:00. Hãy chọn thời điểm khác. |
-| 394 | MSG394 | Field | Enter a subject of at most 200 characters. | Nhập tiêu đề email tối đa 200 ký tự. |
-| 395 | MSG395 | Dialog | No Student matches these filters. | Không có sinh viên nào khớp bộ lọc. |
-| 396 | MSG396 | Dialog | The device token is missing. | Thiếu mã thiết bị. |
-| 397 | MSG397 | Dialog | The device token is too long. | Mã thiết bị quá dài. |
-| 398 | MSG398 | Dialog | Set a CampusStay password before you continue. | Hãy đặt mật khẩu CampusStay trước khi tiếp tục. |
-| 399 | MSG399 | Dialog | Send your student details before you continue. | Hãy gửi thông tin sinh viên của bạn trước khi tiếp tục. |
-| 400 | MSG400 | Dialog | This account already has a password. Use Change password instead. | Tài khoản này đã có mật khẩu. Hãy dùng Đổi mật khẩu. |
-| 401 | MSG401 | Dialog | Your student account was not verified: {0}. Contact the dormitory office. | Tài khoản sinh viên của bạn không được xác minh: {0}. Hãy liên hệ văn phòng ký túc xá. |
-| 402 | MSG402 | Dialog | Your account is already verified. Ask a Manager to correct your details. | Tài khoản của bạn đã được xác minh. Hãy nhờ Quản lý sửa thông tin của bạn. |
-| 403 | MSG403 | Field | Enter your student code: two letters and six digits, e.g. SE190421. | Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421. |
-| 404 | MSG404 | Field | Enter a student code: two letters and six digits, e.g. SE190421. | Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421. |
-| 405 | MSG405 | Field | Enter your full name (at most 150 characters). | Hãy nhập họ và tên (tối đa 150 ký tự). |
-| 406 | MSG406 | Field | Enter your date of birth. | Hãy nhập ngày sinh. |
-| 407 | MSG407 | Field | Enter a valid date of birth. | Hãy nhập ngày sinh hợp lệ. |
-| 408 | MSG408 | Field | Choose your major from the list. | Hãy chọn ngành học trong danh sách. |
-| 409 | MSG409 | Field | Choose a major from the list. | Hãy chọn ngành học trong danh sách. |
-| 410 | MSG410 | Field | Enter your cohort, e.g. K19. | Hãy nhập khóa, ví dụ K19. |
-| 411 | MSG411 | Field | Enter the cohort, e.g. K19. | Hãy nhập khóa, ví dụ K19. |
-| 412 | MSG412 | Dialog | This student code belongs to another account. Contact the dormitory office. | Mã sinh viên này thuộc về một tài khoản khác. Hãy liên hệ văn phòng ký túc xá. |
-| 413 | MSG413 | Dialog | This student code belongs to another account. | Mã sinh viên này thuộc về một tài khoản khác. |
-| 414 | MSG414 | Refused | The student code cannot change once the account is verified. | Không thể đổi mã sinh viên sau khi tài khoản đã được xác minh. |
-| 415 | MSG415 | Field | Enter a semester from 0 to 12. | Hãy nhập học kỳ từ 0 đến 12. |
-| 416 | MSG416 | Field | Choose a region from the list. | Hãy chọn vùng trong danh sách. |
-| 417 | MSG417 | Field | Choose priority groups from the list. | Hãy chọn nhóm ưu tiên trong danh sách. |
-| 418 | MSG418 | Field | Choose yes or no. | Hãy chọn có hoặc không. |
-| 419 | MSG419 | Field | Choose a verification status from the list. | Hãy chọn trạng thái xác minh trong danh sách. |
-| 420 | MSG420 | Field | Choose an enrollment status from the list. | Hãy chọn tình trạng học tập trong danh sách. |
-| 421 | MSG421 | Field | Choose a cohort from the list. | Hãy chọn khóa trong danh sách. |
-| 422 | MSG422 | Field | Choose a status from the list. | Hãy chọn trạng thái trong danh sách. |
-| 423 | MSG423 | Dialog | This student does not exist. | Sinh viên này không tồn tại. |
-| 424 | MSG424 | Dialog | This student has not sent their details yet. | Sinh viên này chưa gửi thông tin. |
-| 425 | MSG425 | Field | Enter the reason (at most 500 characters). | Hãy nhập lý do (tối đa 500 ký tự). |
-| 426 | MSG426 | Dialog | Use at most 500 characters. | Dùng tối đa 500 ký tự. |
-| 427 | MSG427 | Dialog | This account is already locked. | Tài khoản này đã bị khóa. |
-| 428 | MSG428 | Dialog | This account is not locked. | Tài khoản này không bị khóa. |
-| 429 | MSG429 | Dialog | This account is not waiting for verification. | Tài khoản này không chờ xác minh. |
-| 430 | MSG430 | Field | Choose a CSV or XLSX file. | Hãy chọn một tệp CSV hoặc XLSX. |
-| 431 | MSG431 | Dialog | This import does not exist. | Lần nhập này không tồn tại. |
-| 432 | MSG432 | Field | Choose New, Update, Unchanged or Error. | Hãy chọn Mới, Cập nhật, Không đổi hoặc Lỗi. |
-| 433 | MSG433 | Dialog | This file was already imported. | Tệp này đã được nhập. |
-| 434 | MSG434 | Dialog | Save the file as XLSX or CSV UTF-8 and upload it again. | Hãy lưu tệp dạng XLSX hoặc CSV UTF-8 rồi tải lên lại. |
-| 435 | MSG435 | Dialog | The file is empty. | Tệp trống. |
-| 436 | MSG436 | Dialog | The file has no column {0}. Download the template to see the columns. | Tệp không có cột {0}. Hãy tải tệp mẫu để xem các cột. |
-| 437 | MSG437 | Dialog | The file has more than 10,000 students. Split it into smaller files. | Tệp có hơn 10.000 sinh viên. Hãy chia thành các tệp nhỏ hơn. |
-| 438 | MSG438 | Dialog | The file has no students below its header line. | Tệp không có sinh viên nào bên dưới dòng tiêu đề. |
-| 439 | MSG439 | Dialog | The file could not be read. Save it as XLSX or CSV UTF-8 and try again. | Không đọc được tệp. Hãy lưu dạng XLSX hoặc CSV UTF-8 rồi thử lại. |
-| 440 | MSG440 | Dialog | The workbook has no sheet. | Bảng tính không có trang nào. |
-| 441 | MSG441 | Dialog | This account is disabled. Restore it first. | Tài khoản này đang bị vô hiệu hóa. Hãy khôi phục trước. |
-| 442 | MSG442 | Dialog | This person has already set a password. | Người này đã đặt mật khẩu. |
-| 443 | MSG443 | Field | Choose the Blocks this person works in. | Hãy chọn các Block người này làm việc. |
-| 444 | MSG444 | Field | Choose an active Room Class. | Hãy chọn một hạng phòng đang hoạt động. |
-| 445 | MSG445 | Field | Choose at least one Room. | Hãy chọn ít nhất một phòng. |
-| 446 | MSG446 | Field | Choose at most {0} Rooms at a time. | Mỗi lần chỉ chọn tối đa {0} phòng. |
-| 447 | MSG447 | Dialog | The stay of {0} has started, so its Room Classes are fixed. | Kỳ {0} đã bắt đầu, nên hạng phòng của kỳ này không thể thay đổi. |
-| 448 | MSG448 | Refused | Beds of Room {0} are already given for {1} or later, so its Room Class can change only from a later Term. | Giường của phòng {0} đã được xếp cho kỳ {1} hoặc kỳ sau, nên chỉ có thể đổi hạng phòng từ một kỳ sau nữa. |
-| 449 | MSG449 | Dialog | Door codes are not set up on this server yet. | Máy chủ này chưa được thiết lập mã cửa. |
-| 450 | MSG450 | Field | Choose a code different from the current one. | Hãy chọn mã khác với mã hiện tại. |
-| 451 | MSG451 | Dialog | Room {0} has no new door code to confirm. | Phòng {0} không có mã cửa mới nào cần xác nhận. |
-| 452 | MSG452 | Dialog | Line {0}: Room {1} is not one of your Rooms. | Dòng {0}: phòng {1} không thuộc các phòng bạn quản lý. |
-| 453 | MSG453 | Dialog | Line {0}: the code must be 6 digits. | Dòng {0}: mã phải gồm 6 chữ số. |
-| 454 | MSG454 | Dialog | Line {0}: Room {1} is in the file twice. | Dòng {0}: phòng {1} xuất hiện hai lần trong tệp. |
-| 455 | MSG455 | Dialog | Line {0}: this is the current code of Room {1}. | Dòng {0}: đây là mã hiện tại của phòng {1}. |
-| 456 | MSG456 | Dialog | The file has no Room and code lines. | Tệp không có dòng phòng và mã nào. |
-| 457 | MSG457 | Dialog | Import at most {0} Rooms at a time. | Mỗi lần chỉ nhập tối đa {0} phòng. |
-| 458 | MSG458 | Dialog | You do not hold a Bed this Term. | Bạn chưa có giường trong kỳ này. |
-| 459 | MSG459 | Dialog | Your door code is not ready yet. | Mã cửa của bạn chưa sẵn sàng. |
-| 460 | MSG460 | Dialog | This furniture type does not exist. | Loại nội thất này không tồn tại. |
-| 461 | MSG461 | Dialog | A Room Class requires {0}. Remove it from the Room Class requirements first. | Một hạng phòng đang yêu cầu {0}. Hãy bỏ nó khỏi yêu cầu của hạng phòng trước. |
-| 462 | MSG462 | Refused | Only active furniture types that define a Room Class can be required. | Chỉ loại nội thất đang dùng và quyết định hạng phòng mới có thể được yêu cầu. |
-| 463 | MSG463 | Dialog | List each furniture type once. | Mỗi loại nội thất chỉ ghi một lần. |
-| 464 | MSG464 | Field | Enter a quantity from 1 to {0}. | Hãy nhập số lượng từ 1 đến {0}. |
-| 465 | MSG465 | Dialog | Use 1 to 10 letters or digits, starting with a letter. | Dùng 1 đến 10 chữ cái hoặc chữ số, bắt đầu bằng chữ cái. |
-| 466 | MSG466 | Dialog | A furniture type with this code already exists. | Đã có loại nội thất với mã này. |
-| 467 | MSG467 | Refused | The code cannot be changed. | Không thể đổi mã. |
-| 468 | MSG468 | Field | Enter a name of at most 80 characters. | Hãy nhập tên tối đa 80 ký tự. |
-| 469 | MSG469 | Dialog | A furniture type with this name already exists. | Đã có loại nội thất với tên này. |
-| 470 | MSG470 | Dialog | This furniture item does not exist. | Món nội thất này không tồn tại. |
-| 471 | MSG471 | Field | Choose an active furniture type. | Hãy chọn một loại nội thất đang dùng. |
-| 472 | MSG472 | Refused | Item {0} is disposed and cannot change. | Món {0} đã thanh lý nên không thể thay đổi. |
-| 473 | MSG473 | Dialog | Move the item to a store to mark it In store. | Hãy chuyển món này vào kho trước khi đánh dấu Trong kho. |
-| 474 | MSG474 | Dialog | Move the item to a Room to mark it In use. | Hãy chuyển món này vào một phòng trước khi đánh dấu Đang dùng. |
-| 475 | MSG475 | Field | Choose at least one item. | Hãy chọn ít nhất một món. |
-| 476 | MSG476 | Dialog | Move at most {0} items at a time. | Mỗi lần chỉ chuyển tối đa {0} món. |
-| 477 | MSG477 | Field | Choose a Room or a Block store. | Hãy chọn một phòng hoặc kho của một Block. |
-| 478 | MSG478 | Field | Write why the items move. | Hãy ghi lý do chuyển. |
-| 479 | MSG479 | Field | Keep the reason under 300 characters. | Lý do không quá 300 ký tự. |
-| 480 | MSG480 | Refused | Only a Manager moves furniture to another Block. | Chỉ Quản lý mới được chuyển nội thất sang Block khác. |
-| 481 | MSG481 | Dialog | Item {0} is already in Room {1}. | Món {0} đã ở phòng {1}. |
-| 482 | MSG482 | Dialog | Item {0} is already in Block {1} store. | Món {0} đã ở kho Block {1}. |
-| 483 | MSG483 | Dialog | Item {0} already has a planned move. Finish or cancel it first. | Món {0} đã có một lần chuyển theo kế hoạch. Hãy hoàn tất hoặc hủy nó trước. |
-| 484 | MSG484 | Dialog | This move does not exist. | Lần chuyển này không tồn tại. |
-| 485 | MSG485 | Dialog | This move is already done. | Lần chuyển này đã hoàn tất. |
-| 486 | MSG486 | Dialog | This move is already cancelled. | Lần chuyển này đã bị hủy. |
-| 487 | MSG487 | Dialog | Room {0} is not in Block {1}. | Phòng {0} không thuộc Block {1}. |
-| 488 | MSG488 | Dialog | This registration-period request does not exist. | Đề nghị mở đợt đăng ký này không tồn tại. |
-| 489 | MSG489 | Field | Enter the Term name in at most 100 characters. | Hãy nhập tên kỳ, tối đa 100 ký tự. |
-| 490 | MSG490 | Refused | Only the Manager who sent this request can change it. | Chỉ Quản lý đã gửi đề nghị này mới sửa được. |
-| 491 | MSG491 | Dialog | The Admin is building this Term; comment on the request instead. | Quản trị viên đang dựng kỳ này; hãy bình luận trên đề nghị. |
-| 492 | MSG492 | Dialog | This request is closed. | Đề nghị này đã đóng. |
-| 493 | MSG493 | Field | Write a comment of at most 1,000 characters. | Hãy viết bình luận, tối đa 1.000 ký tự. |
-| 494 | MSG494 | Field | Choose In progress, Needs changes or Rejected. | Hãy chọn Đang xử lý, Cần chỉnh sửa hoặc Từ chối. |
-| 495 | MSG495 | Field | Say what the Manager should change. | Hãy nêu điều Quản lý cần chỉnh sửa. |
-| 496 | MSG496 | Field | Give the reason for rejecting the request. | Hãy nêu lý do từ chối đề nghị. |
-| 497 | MSG497 | Refused | Only a submitted request can be taken in progress. | Chỉ đề nghị đã gửi mới có thể chuyển sang đang xử lý. |
-| 498 | MSG498 | Dialog | This request waits for the Manager's changes. | Đề nghị này đang chờ Quản lý chỉnh sửa. |
-| 499 | MSG499 | Field | Choose an active Room Type and Room Class for each line of places. | Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng dòng số chỗ. |
-| 500 | MSG500 | Field | Choose male or female for each line of places. | Hãy chọn nam hoặc nữ cho từng dòng số chỗ. |
-| 501 | MSG501 | Field | Enter 0 to 100,000 places on each line. | Nhập từ 0 đến 100.000 chỗ cho mỗi dòng. |
-| 502 | MSG502 | Dialog | List each Room Type, Room Class and gender once. | Mỗi loại phòng, hạng phòng và giới tính chỉ ghi một lần. |
-| 503 | MSG503 | Field | Choose an active Room Type and Room Class for each price. | Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng mức giá. |
-| 504 | MSG504 | Field | Enter each price per Bed as a whole amount above 0 VND. | Nhập giá mỗi giường là số nguyên lớn hơn 0 ₫. |
-| 505 | MSG505 | Dialog | List each Room Type and Room Class once. | Mỗi loại phòng và hạng phòng chỉ ghi một lần. |
-| 506 | MSG506 | Field | Keep the notes under 2,000 characters. | Ghi chú tối đa 2.000 ký tự. |
-| 507 | MSG507 | Dialog | {0} already has an open request ({1}). Comment on it instead. | {0} đã có một đề nghị đang mở ({1}). Hãy bình luận trên đề nghị đó. |
-| 508 | MSG508 | Dialog | A Term named {0} is already published. | Kỳ tên {0} đã được công bố. |
-| 509 | MSG509 | Field | Enter the Deposit payment window in hours. | Hãy nhập thời hạn thanh toán tiền cọc theo giờ. |
-| 510 | MSG510 | Dialog | Check-in starts on or after {0}, the day the residents of {1} must have checked out. | Nhận phòng bắt đầu từ {0}, ngày sinh viên của {1} phải trả phòng xong. |
-| 511 | MSG511 | Dialog | No Term runs before this one, so leave the renewal milestones empty. | Không có kỳ nào trước kỳ này, nên hãy để trống các mốc ở tiếp. |
-| 512 | MSG512 | Dialog | Fill in every renewal milestone, or leave them all empty. | Hãy điền đủ mọi mốc ở tiếp, hoặc để trống tất cả. |
-| 513 | MSG513 | Dialog | The requests window opens on or after the Term is published. | Đợt nhận yêu cầu mở vào hoặc sau khi công bố kỳ. |
-| 514 | MSG514 | Dialog | The requests window must close after it opens. | Đợt nhận yêu cầu phải đóng sau khi mở. |
-| 515 | MSG515 | Dialog | Decisions are due after the requests window closes. | Hạn quyết định phải sau khi đóng đợt nhận yêu cầu. |
-| 516 | MSG516 | Dialog | The reconciliation is due on or after the decision deadline. | Hạn đối soát phải vào hoặc sau hạn quyết định. |
-| 517 | MSG517 | Dialog | Next-Term fees are issued on or after the reconciliation. | Phí kỳ sau được phát hành vào hoặc sau hạn đối soát. |
-| 518 | MSG518 | Dialog | The next-Term fee deadline comes after the fees are issued. | Hạn nộp phí kỳ sau phải sau ngày phát hành phí. |
-| 519 | MSG519 | Dialog | The next-Term fees are due before {0} ends ({1}). | Phí kỳ sau phải đến hạn trước khi {0} kết thúc ({1}). |
-| 520 | MSG520 | Dialog | Assignment results come out on or after the decision deadline. | Kết quả xếp phòng được công bố vào hoặc sau hạn quyết định. |
-| 521 | MSG521 | Dialog | This wizard step does not exist. | Bước này không tồn tại. |
-| 522 | MSG522 | Refused | The stay has started, so its dates cannot change. | Kỳ ở đã bắt đầu nên không thể đổi ngày. |
-| 523 | MSG523 | Field | Choose active Blocks only. | Chỉ chọn các Block đang hoạt động. |
-| 524 | MSG524 | Field | Enter a share from 0 to 100%. | Nhập tỷ lệ từ 0 đến 100%. |
-| 525 | MSG525 | Dialog | Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change. | Kỳ này đã có hóa đơn nên không thể đổi giá, tiền cọc và tiền cọc điện nước nữa. |
-| 526 | MSG526 | Field | Enter a price for every Room Type and Room Class. | Hãy nhập giá cho mọi loại phòng và hạng phòng. |
-| 527 | MSG527 | Field | Enter the Utility Deposit as a whole amount of 0 VND or more. | Nhập tiền cọc điện nước là số nguyên từ 0 ₫ trở lên. |
-| 528 | MSG528 | Dialog | A published Term keeps the rules it opened with. | Kỳ đã công bố giữ nguyên các quy định lúc mở. |
-| 529 | MSG529 | Field | Keep the house rules under 10,000 characters. | Nội quy tối đa 10.000 ký tự. |
-| 530 | MSG530 | Field | Write each question (up to 300 characters) with its answer (up to 2,000). | Hãy viết mỗi câu hỏi (tối đa 300 ký tự) kèm câu trả lời (tối đa 2.000 ký tự). |
-| 531 | MSG531 | Field | Keep at most 30 questions. | Tối đa 30 câu hỏi. |
-| 532 | MSG532 | Field | Give each document a title and a link that starts with https://. | Hãy đặt tên cho từng tài liệu và một liên kết bắt đầu bằng https://. |
-| 533 | MSG533 | Field | Keep at most 20 documents. | Tối đa 20 tài liệu. |
-| 534 | MSG534 | Dialog | This Term is not ready to publish. The Review step lists what to fix. | Kỳ này chưa sẵn sàng để công bố. Bước Xem lại liệt kê những việc cần sửa. |
-| 535 | MSG535 | Field | Give a reason for changing the Manager's value. | Hãy nêu lý do thay đổi giá trị Quản lý đề nghị. |
-| 536 | MSG536 | Refused | This date has passed, so it cannot change. | Ngày này đã qua nên không thể đổi. |
-| 537 | MSG537 | Dialog | This deadline is open: it can be extended but never shortened. | Hạn này đang mở: chỉ có thể gia hạn, không được rút ngắn. |
-| 538 | MSG538 | Field | Say in up to 500 characters why you change a published Term; students read it in the announcement. | Hãy nêu lý do (tối đa 500 ký tự) khi thay đổi kỳ đã công bố; sinh viên sẽ đọc lý do trong thông báo. |
-| 539 | MSG539 | Dialog | The requests window would open before students see the Term: move it after today. | Đợt nhận yêu cầu sẽ mở trước khi sinh viên thấy kỳ: hãy dời sang sau hôm nay. |
-| 540 | MSG540 | Dialog | Save every step of the wizard before publishing. | Hãy lưu mọi bước trước khi công bố. |
-| 541 | MSG541 | Dialog | This settings group does not exist. | Nhóm thiết lập này không tồn tại. |
-| 542 | MSG542 | Field | Enter a whole number from {0} to {1}. | Nhập số nguyên từ {0} đến {1}. |
-| 543 | MSG543 | Dialog | Use at least one matching criterion. | Hãy dùng ít nhất một tiêu chí ghép phòng. |
-| 544 | MSG544 | Dialog | This announcement does not exist. | Thông báo này không tồn tại. |
-| 545 | MSG545 | Field | Choose who reads it. | Hãy chọn người đọc. |
-| 546 | MSG546 | Field | Write a title of at most 200 characters. | Hãy viết tiêu đề, tối đa 200 ký tự. |
-| 547 | MSG547 | Field | Write the announcement in at most 4,000 characters. | Hãy viết nội dung thông báo, tối đa 4.000 ký tự. |
-| 548 | MSG548 | Dialog | End it after it starts and after now. | Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại. |
-| 549 | MSG549 | Field | Choose at least one Block. | Hãy chọn ít nhất một Block. |
-| 550 | MSG550 | Field | Choose a published Term. | Hãy chọn một kỳ đã công bố. |
-| 551 | MSG551 | Refused | Staff write to the residents of their Blocks only. | Nhân viên chỉ gửi thông báo cho sinh viên đang ở các Block của mình. |
-| 552 | MSG552 | Dialog | You already said you transferred this Invoice. A Manager is checking it. | Bạn đã báo chuyển khoản cho hóa đơn này. Quản lý đang kiểm tra. |
-| 553 | MSG553 | Dialog | The deadline of this Invoice has passed. | Hóa đơn này đã quá hạn thanh toán. |
-| 554 | MSG554 | Dialog | No payment claim is waiting for this Invoice. | Hóa đơn này không có báo chuyển khoản nào đang chờ. |
-| 555 | MSG555 | Field | Write why the transfer cannot be confirmed. | Hãy ghi lý do không xác nhận được khoản chuyển. |
-| 556 | MSG556 | Field | Select at most {0} Invoices at a time. | Mỗi lần chọn tối đa {0} hóa đơn. |
-| 557 | MSG557 | Field | Choose today, 24h or 7d. | Hãy chọn hôm nay, 24 giờ hoặc 7 ngày. |
-| 558 | MSG558 | Dialog | No bank account is configured for transfers yet. | Chưa cấu hình tài khoản ngân hàng nhận chuyển khoản. |
-| 559 | MSG559 | Field | Choose Bank transfer, VietQR or Manual transfer. | Hãy chọn Chuyển khoản ngân hàng, VietQR hoặc Chuyển khoản thủ công. |
-| 560 | MSG560 | Dialog | This refund is decided by {0}. | Khoản hoàn tiền này do {0} quyết định. |
-| 561 | MSG561 | Dialog | A Manager is checking your transfer. Cancel once it is confirmed or rejected. | Quản lý đang kiểm tra khoản chuyển của bạn. Hãy hủy sau khi khoản chuyển được xác nhận hoặc từ chối. |
-| 562 | MSG562 | Field | Choose from 1 to {0} Terms. | Hãy chọn từ 1 đến {0} kỳ. |
-| 563 | MSG563 | Dialog | You do not hold a Bed waiting for check-in. | Bạn không có chỗ ở nào đang chờ nhận phòng. |
-| 564 | MSG564 | Dialog | You have already checked in. | Bạn đã nhận phòng rồi. |
-| 565 | MSG565 | Dialog | The check-in period has ended. Ask the dormitory desk about a late check-in. | Thời gian nhận phòng đã kết thúc. Hãy hỏi quầy ký túc xá về việc nhận phòng muộn. |
-| 566 | MSG566 | Field | Write why you arrive late. | Hãy ghi lý do bạn đến muộn. |
-| 567 | MSG567 | Field | Choose the day you will arrive. | Hãy chọn ngày bạn sẽ đến. |
-| 568 | MSG568 | Field | Choose a day up to {0}. | Hãy chọn một ngày đến hết {0}. |
-| 569 | MSG569 | Field | Attach a document that explains the delay (JPEG, PNG or PDF). | Hãy đính kèm giấy tờ giải thích lý do đến muộn (JPEG, PNG hoặc PDF). |
-| 570 | MSG570 | Dialog | Your late check-in is already waiting for a decision. | Yêu cầu nhận phòng muộn của bạn đang chờ quyết định. |
-| 571 | MSG571 | Dialog | This student does not live in the Room. | Sinh viên này không ở trong phòng. |
-| 572 | MSG572 | Field | Choose Notice sent, Overdue, Checked out or Cancelled. | Hãy chọn Đã gửi thông báo, Quá hạn, Đã trả phòng hoặc Đã hủy. |
-| 573 | MSG573 | Field | Choose Manager decision or Not enrolled. | Hãy chọn Quyết định của Quản lý hoặc Không còn theo học. |
-| 574 | MSG574 | Field | Write why the stay is terminated. | Hãy ghi lý do chấm dứt hợp đồng ở. |
-| 575 | MSG575 | Dialog | This student does not live in the dormitory. | Sinh viên này không ở ký túc xá. |
-| 576 | MSG576 | Field | Write why the termination is cancelled. | Hãy ghi lý do hủy việc chấm dứt hợp đồng ở. |
-| 577 | MSG577 | Dialog | This termination does not exist. | Việc chấm dứt hợp đồng ở này không tồn tại. |
-| 578 | MSG578 | Dialog | This termination is already closed. | Việc chấm dứt hợp đồng ở này đã kết thúc. |
-| 579 | MSG579 | Dialog | This stay is already terminated. | Hợp đồng ở này đã bị chấm dứt. |
-| 580 | MSG580 | Dialog | Agree or decline the change. | Hãy đồng ý hoặc từ chối việc đổi hạng phòng. |
-| 581 | MSG581 | Field | Choose 1 to 9 Terms. | Hãy chọn từ 1 đến 9 kỳ. |
-| 582 | MSG582 | Field | Choose Direct or Board match. | Hãy chọn Trực tiếp hoặc Ghép từ bảng tin. |
-| 583 | MSG583 | Field | Choose Extension or End of stay. | Hãy chọn Gia hạn hoặc Kết thúc ở. |
-| 584 | MSG584 | Field | Choose Not enrolled or Enrolled. | Hãy chọn Không còn theo học hoặc Đang theo học. |
-| 585 | MSG585 | Field | Choose a Bed in another Room. | Hãy chọn giường ở phòng khác. |
-| 586 | MSG586 | Field | Choose a Room Class other than the Room's. | Hãy chọn hạng phòng khác với hạng hiện tại của phòng. |
-| 587 | MSG587 | Field | Choose a Room of your Blocks. | Hãy chọn một phòng thuộc Block của bạn. |
-| 588 | MSG588 | Field | Choose a Room the Term uses. | Hãy chọn một phòng được dùng trong kỳ. |
-| 589 | MSG589 | Field | Choose at least one request. | Hãy chọn ít nhất một yêu cầu. |
-| 590 | MSG590 | Field | Choose follow or keep. | Hãy chọn đi theo hoặc giữ nguyên. |
-| 591 | MSG591 | Field | Choose room-change, swap, room-class-change or extension. | Hãy chọn đổi phòng, đổi chéo, đổi hạng phòng hoặc gia hạn. |
-| 592 | MSG592 | Field | Choose the Term the list is for. | Hãy chọn kỳ của danh sách. |
-| 593 | MSG593 | Field | Choose the enrolled list or a leavers list. | Hãy chọn danh sách đang học hoặc danh sách thôi học. |
-| 594 | MSG594 | Field | Choose the next Term. | Hãy chọn kỳ tiếp theo. |
-| 595 | MSG595 | Field | Choose why the student moves. | Hãy chọn lý do chuyển phòng. |
-| 596 | MSG596 | Dialog | Decide at most 200 requests at once. | Mỗi lần chỉ quyết định tối đa 200 yêu cầu. |
-| 597 | MSG597 | Field | Keep the reason under 1,000 characters. | Lý do không quá 1.000 ký tự. |
-| 598 | MSG598 | Dialog | Next-Term requests open when your Bed is kept for the next Term (the requests window). | Yêu cầu cho kỳ sau mở khi giường của bạn được giữ cho kỳ sau (thời gian gửi yêu cầu). |
-| 599 | MSG599 | Dialog | No Term has a requests window yet. | Chưa có kỳ nào có thời gian gửi yêu cầu. |
-| 600 | MSG600 | Dialog | No matching Bed is free for this request. | Không còn giường phù hợp còn trống cho yêu cầu này. |
-| 601 | MSG601 | Dialog | No requests window is open. | Không có thời gian gửi yêu cầu nào đang mở. |
-| 602 | MSG602 | Dialog | No student has this code. | Không có sinh viên nào có mã này. |
-| 603 | MSG603 | Refused | Only an approved change can be set back. | Chỉ việc đổi hạng đã duyệt mới có thể đặt lại. |
-| 604 | MSG604 | Dialog | Pay your overdue Utility Invoice first, then the next-Term fee. | Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng kỳ sau. |
-| 605 | MSG605 | Dialog | The free Beds of this kind are kept for new students. | Các giường trống loại này được giữ cho sinh viên mới. |
-| 606 | MSG606 | Dialog | The next-Term fees are issued, so next-Term Beds are fixed. A Manager can still move a student. | Tiền phòng kỳ sau đã được phát hành nên giường kỳ sau đã cố định. Quản lý vẫn có thể chuyển sinh viên. |
-| 607 | MSG607 | Refused | The next-Term fees are issued: only a Manager moves a student for the next Term now. | Tiền phòng kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho kỳ sau. |
-| 608 | MSG608 | Dialog | The resident who asked for it does not continue next Term. | Cư dân đề nghị không ở tiếp kỳ sau. |
-| 609 | MSG609 | Dialog | This Bed is not free any more. Choose another one. | Giường này không còn trống. Hãy chọn giường khác. |
-| 610 | MSG610 | Dialog | This Room Class change does not exist. | Yêu cầu đổi hạng phòng này không tồn tại. |
-| 611 | MSG611 | Dialog | This Room does not exist. | Phòng này không tồn tại. |
-| 612 | MSG612 | Dialog | This Term has no requests window: it has no renewal milestones. | Kỳ này không có thời gian gửi yêu cầu: kỳ không có các mốc gia hạn. |
-| 613 | MSG613 | Dialog | This change is no longer waiting for your answer. | Việc đổi hạng này không còn chờ câu trả lời của bạn. |
-| 614 | MSG614 | Dialog | This is the last Term of your stay: ask for an extension first. | Đây là kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước. |
-| 615 | MSG615 | Dialog | This item is already resolved. | Mục này đã được xử lý. |
-| 616 | MSG616 | Dialog | This reconciliation does not exist. | Lần đối soát này không tồn tại. |
-| 617 | MSG617 | Dialog | This request does not exist. | Yêu cầu này không tồn tại. |
-| 618 | MSG618 | Dialog | This request is not part of a requests window. | Yêu cầu này không thuộc thời gian gửi yêu cầu nào. |
-| 619 | MSG619 | Refused | This student cannot swap with you. | Sinh viên này không thể đổi chéo với bạn. |
-| 620 | MSG620 | Dialog | This student has no Bed for the next Term. | Sinh viên này không có giường cho kỳ sau. |
-| 621 | MSG621 | Dialog | This student holds no Bed. | Sinh viên này không giữ giường nào. |
-| 622 | MSG622 | Field | Type the student code. | Hãy nhập mã sinh viên. |
-| 623 | MSG623 | Field | Write a note (up to 500 characters): it is audited. | Hãy ghi chú (tối đa 500 ký tự): ghi chú được lưu vào nhật ký. |
-| 624 | MSG624 | Field | Write why the Room changes class. | Hãy ghi lý do phòng đổi hạng. |
-| 625 | MSG625 | Field | Write why the change is rejected. The residents see it. | Hãy ghi lý do từ chối. Các cư dân sẽ thấy lý do này. |
-| 626 | MSG626 | Field | Write why the class is set back (up to 1,000 characters). | Hãy ghi lý do đặt lại hạng cũ (tối đa 1.000 ký tự). |
-| 627 | MSG627 | Field | Write why the extension is rejected. The student sees it. | Hãy ghi lý do từ chối gia hạn. Sinh viên sẽ thấy lý do này. |
-| 628 | MSG628 | Field | Write why the requests are rejected. The students see it. | Hãy ghi lý do từ chối các yêu cầu. Sinh viên sẽ thấy lý do này. |
-| 629 | MSG629 | Field | Write why the student moves. | Hãy ghi lý do chuyển phòng. |
-| 630 | MSG630 | Dialog | You already have an extension waiting for Staff. | Bạn đã có một yêu cầu gia hạn đang chờ Nhân viên. |
-| 631 | MSG631 | Dialog | You already have an open room change request. | Bạn đã có một yêu cầu đổi phòng đang chờ. |
-| 632 | MSG632 | Dialog | Your Room already has a Room Class change waiting. | Phòng của bạn đã có một yêu cầu đổi hạng đang chờ. |
-| 633 | MSG633 | Dialog | Every continuing resident of Room {0} must agree first. | Mọi cư dân ở tiếp của phòng {0} phải đồng ý trước. |
-| 634 | MSG634 | Dialog | Beds of Room {0} are already given to new students at the current price. | Giường của phòng {0} đã được xếp cho sinh viên mới theo giá hiện tại. |
-| 635 | MSG635 | Dialog | Room {0} already has a Room Class change waiting. | Phòng {0} đã có một yêu cầu đổi hạng đang chờ. |
-| 636 | MSG636 | Dialog | This Room Class is not offered in {0}. | Hạng phòng này không có trong {0}. |
-| 637 | MSG637 | Dialog | Next-Term requests for {0} closed on {1}. | Yêu cầu cho {0} đã đóng lúc {1}. |
-| 638 | MSG638 | Dialog | Room changes are asked for {0}. | Yêu cầu đổi phòng được gửi cho {0}. |
-| 639 | MSG639 | Dialog | Room {0} has no price in {1}. Ask the Admin to add it. | Phòng {0} chưa có giá trong {1}. Hãy nhờ Quản trị viên bổ sung. |
-| 640 | MSG640 | Dialog | Room {0} has no price in {1}. | Phòng {0} chưa có giá trong {1}. |
-| 641 | MSG641 | Dialog | The store of Block {0} does not have the furniture this Room Class needs: {1}. | Kho của Block {0} không đủ nội thất mà hạng phòng này cần: {1}. |
-| 642 | MSG642 | Dialog | A stay can be at most {0} Terms. | Hợp đồng ở tối đa {0} kỳ. |
-| 643 | MSG643 | Dialog | You can add at most {0} Terms (a stay has at most {1}). | Bạn chỉ có thể thêm tối đa {0} kỳ (hợp đồng ở tối đa {1} kỳ). |
-| 644 | MSG644 | Dialog | Your stay already has the most Terms allowed ({0}). | Hợp đồng ở của bạn đã đạt số kỳ tối đa ({0}). |
-| 645 | MSG645 | Dialog | Students can still file next-Term requests until {0}. | Sinh viên vẫn có thể gửi yêu cầu cho kỳ sau đến {0}. |
-| 646 | MSG646 | Dialog | {0} next-Term requests are still open. Decide them first. | Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước. |
-| 647 | MSG647 | Dialog | Reconcile the enrolled list for {0} first. | Hãy đối soát danh sách đang học của {0} trước. |
-| 648 | MSG648 | Dialog | {0} reconciliation items are still open. Resolve them first. | Còn {0} mục đối soát chưa xử lý. Hãy xử lý trước. |
-| 649 | MSG649 | Dialog | Continuing residents can still file next-Term requests until the request deadline. Run the assignment after it. | Cư dân ở tiếp vẫn có thể gửi yêu cầu kỳ sau đến hạn gửi yêu cầu. Hãy chạy xếp phòng sau hạn đó. |
-| 650 | MSG650 | Dialog | {0} next-Term requests are still open. Decide them before the assignment. | Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước khi xếp phòng. |
-| 651 | MSG651 | Refused | The next-Term fee is paid: move this student only to a Bed of the same price. | Tiền phòng kỳ sau đã thanh toán: chỉ chuyển sinh viên này sang giường cùng giá. |
-| 652 | MSG652 | Dialog | The student said they paid the next-Term fee. Confirm or reject the payment first. | Sinh viên đã báo chuyển khoản tiền phòng kỳ sau. Hãy xác nhận hoặc từ chối khoản thanh toán trước. |
-| 653 | MSG653 | Dialog | The requests window of {0} has not opened yet. | Thời gian gửi yêu cầu của {0} chưa mở. |
-| 654 | MSG654 | Dialog | Unknown enrollment status "{0}". Use Enrolled, Suspended, Graduated, Withdrawn or Not enrolled. | Tình trạng học "{0}" không hợp lệ. Hãy dùng Enrolled, Suspended, Graduated, Withdrawn hoặc Not enrolled. |
-| 655 | MSG655 | Field | Enter the electricity reading of Room {0}. | Hãy nhập chỉ số điện của phòng {0}. |
-| 656 | MSG656 | Field | Enter the water reading of Room {0}. | Hãy nhập chỉ số nước của phòng {0}. |
-| 657 | MSG657 | Dialog | Your stay is extended by {0} Term. Your Bed is kept for {1}. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}. |
-| 658 | MSG658 | Dialog | Your stay is extended by {0} Terms. Your Bed is kept for {1}. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}. |
-| 659 | MSG659 | Dialog | Your stay is extended by {0} Term. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. |
-| 660 | MSG660 | Dialog | Your stay is extended by {0} Terms. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. |
-| 661 | MSG661 | Dialog | Room {0} is {1} from {2}. Your next-Term room fee uses it. | Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng kỳ sau của bạn tính theo hạng này. |
-| 662 | MSG662 | Dialog | A resident of Room {0} did not agree. | Một cư dân phòng {0} không đồng ý. |
-| 663 | MSG663 | Dialog | Your Bed for {0} is now Room {1} · Bed {2}. | Giường của bạn cho {0} nay là phòng {1} · giường {2}. |
-| 664 | MSG664 | Field | Choose an item of this Room. | Hãy chọn một đồ nội thất của phòng này. |
-| 665 | MSG665 | Dialog | List each damaged item of this Room once. | Mỗi đồ bị hư của phòng này chỉ ghi một lần. |
-| 666 | MSG666 | Field | Enter a damage amount of 0 or more. | Hãy nhập tiền hư hỏng từ 0 trở lên. |
-| 667 | MSG667 | Field | Keep each damage note under 300 characters. | Mỗi ghi chú hư hỏng không quá 300 ký tự. |
-| 668 | MSG668 | Dialog | The file has more than 5,000 Room codes. | Tệp có hơn 5.000 mã phòng. |
-| 669 | MSG669 | Dialog | The file has no Room codes below its header line. | Tệp không có mã phòng nào dưới dòng tiêu đề. |
-| 670 | MSG670 | Field | Choose stage 0, A, B or C. | Hãy chọn giai đoạn 0, A, B hoặc C. |
-| 671 | MSG671 | Field | Type RESET to confirm. | Hãy gõ RESET để xác nhận. |
-| 672 | MSG672 | Dialog | The demo tools are off on this server. | Công cụ demo đang tắt trên máy chủ này. |
-| 673 | MSG673 | Dialog | The demo accounts of the base data are missing. Load the base data (db/seed) first. | Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước. |
-| 674 | MSG674 | Dialog | This demo file does not exist. | Không có tệp demo này. |
-| 675 | MSG675 | Dialog | Load stage A, B or C first: this file lists the people of the next Term. | Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau. |
-| 676 | MSG676 | Dialog | Load stage A, B or C first: Block A has no open meter period. | Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở. |
-| 677 | MSG677 | Dialog | Load stage A, B or C first: no door code of Block A must change. | Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi. |
+| 282 | MSG282 | Field | Choose the filled template (XLSX or CSV). | Hãy chọn tệp mẫu đã điền (XLSX hoặc CSV). |
+| 283 | MSG283 | Dialog | The file has no readings. | Tệp không có chỉ số nào. |
+| 284 | MSG284 | Dialog | Line {0}: the Room is not in this period. | Dòng {0}: phòng không có trong kỳ chỉ số này. |
+| 285 | MSG285 | Dialog | Line {0}: enter two readings. | Dòng {0}: hãy nhập đủ chỉ số điện và nước. |
+| 286 | MSG286 | Dialog | Room {0} is not in this Block. | Phòng {0} không thuộc Block này. |
+| 287 | MSG287 | Dialog | Room {0} has no reading in this period. | Phòng {0} chưa có chỉ số trong kỳ này. |
+| 288 | MSG288 | Field | Enter the reading before you confirm it. | Hãy nhập chỉ số trước khi xác nhận. |
+| 289 | MSG289 | Field | Choose Missing, Entered, Check value or Confirmed. | Hãy chọn Chưa có, Đã nhập, Cần kiểm tra hoặc Đã xác nhận. |
+| 290 | MSG290 | Dialog | {0} Room has no reading yet. | Còn {0} phòng chưa có chỉ số. |
+| 291 | MSG291 | Dialog | {0} Rooms have no reading yet. | Còn {0} phòng chưa có chỉ số. |
+| 292 | MSG292 | Dialog | Confirm the {0} reading marked Check value first. | Hãy xác nhận {0} chỉ số đang cần kiểm tra trước. |
+| 293 | MSG293 | Dialog | Confirm the {0} readings marked Check value first. | Hãy xác nhận {0} chỉ số đang cần kiểm tra trước. |
+| 294 | MSG294 | Dialog | This Room-Change Request does not exist. | Yêu cầu đổi phòng này không tồn tại. |
+| 295 | MSG295 | Dialog | This request was already decided. | Yêu cầu này đã được quyết định. |
+| 296 | MSG296 | Dialog | This request is no longer open. | Yêu cầu này không còn mở. |
+| 297 | MSG297 | Refused | This request is closed and cannot change. | Yêu cầu đã đóng và không thể thay đổi. |
+| 298 | MSG298 | Dialog | You already have an open Room-Change Request for this Term. | Bạn đã có một yêu cầu đổi phòng đang mở trong kỳ này. |
+| 299 | MSG299 | Dialog | You can ask for a room change once you have checked in. | Bạn có thể yêu cầu đổi phòng sau khi đã nhận phòng. |
+| 300 | MSG300 | Dialog | Pay your overdue Invoice before you ask for a room change. | Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi phòng. |
+| 301 | MSG301 | Field | Choose the kind of change. | Hãy chọn kiểu thay đổi. |
+| 302 | MSG302 | Field | Choose same, class or type. | Hãy chọn cùng loại, đổi hạng hoặc đổi loại. |
+| 303 | MSG303 | Field | Choose a Room Type other than your current one. | Hãy chọn loại phòng khác loại hiện tại. |
+| 304 | MSG304 | Field | Choose a Room Class other than your current one. | Hãy chọn hạng phòng khác hạng hiện tại. |
+| 305 | MSG305 | Field | Choose why the request is rejected. | Hãy chọn lý do từ chối yêu cầu. |
+| 306 | MSG306 | Field | Choose Pending, Approved, Rejected or Cancelled. | Hãy chọn Đang chờ, Đã duyệt, Từ chối hoặc Đã hủy. |
+| 307 | MSG307 | Dialog | This Bed is not free for this request any more. Choose another one. | Giường này không còn trống cho yêu cầu này. Hãy chọn giường khác. |
+| 308 | MSG308 | Dialog | This Bed was just taken. Choose another one. | Giường này vừa có người nhận. Hãy chọn giường khác. |
+| 309 | MSG309 | Dialog | A move to another Block is decided by a Manager. | Việc chuyển sang Block khác do Quản lý quyết định. |
+| 310 | MSG310 | Dialog | {0} no longer holds the Bed this request was made from. | {0} không còn giữ giường mà yêu cầu này được gửi từ đó. |
+| 311 | MSG311 | Dialog | This student no longer holds the Bed. | Sinh viên này không còn giữ giường. |
+| 312 | MSG312 | Dialog | This swap does not exist. | Yêu cầu đổi chéo này không tồn tại. |
+| 313 | MSG313 | Dialog | This swap invitation is no longer open. | Lời mời đổi chéo này không còn hiệu lực. |
+| 314 | MSG314 | Dialog | This swap is not waiting for a decision. | Yêu cầu đổi chéo này không chờ quyết định. |
+| 315 | MSG315 | Dialog | This post is no longer on the board. | Bài đăng này không còn trên bảng đổi chéo. |
+| 316 | MSG316 | Dialog | You already have a swap waiting. Wait for it or let it expire. | Bạn đã có một yêu cầu đổi chéo đang chờ. Hãy chờ kết quả hoặc để nó hết hạn. |
+| 317 | MSG317 | Dialog | You can swap Beds once you have checked in. | Bạn có thể đổi chéo giường sau khi đã nhận phòng. |
+| 318 | MSG318 | Dialog | Pay your overdue Invoice before you ask for a swap. | Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi chéo. |
+| 319 | MSG319 | Dialog | Your Bed is not what this student is looking for. | Giường của bạn không đúng với điều sinh viên này cần. |
+| 320 | MSG320 | Dialog | One of you no longer holds the Bed. | Một trong hai bạn không còn giữ giường. |
+| 321 | MSG321 | Dialog | The swap does not pass the rule check any more. | Yêu cầu đổi chéo không còn đáp ứng điều kiện. |
+| 322 | MSG322 | Dialog | A swap between Blocks is decided by a Manager. | Việc đổi chéo giữa các Block do Quản lý quyết định. |
+| 323 | MSG323 | Dialog | Accept or decline the swap. | Hãy chấp nhận hoặc từ chối đổi chéo. |
+| 324 | MSG324 | Field | Choose the Room Type and Room Class you want. | Hãy chọn loại phòng và hạng phòng bạn muốn. |
+| 325 | MSG325 | Field | Choose maintenance or room-changes. | Hãy chọn sửa chữa hoặc đổi phòng. |
+| 326 | MSG326 | Dialog | This routing rule does not exist. | Quy tắc phân công này không tồn tại. |
+| 327 | MSG327 | Field | Choose a request type. | Hãy chọn loại yêu cầu. |
+| 328 | MSG328 | Field | Choose a category from the list. | Hãy chọn một danh mục trong danh sách. |
+| 329 | MSG329 | Refused | Only maintenance rules can be limited to a category. | Chỉ quy tắc sửa chữa mới giới hạn được theo danh mục. |
+| 330 | MSG330 | Field | Choose an assignee from this Block's staff. | Hãy chọn người nhận việc trong nhân viên của Block này. |
+| 331 | MSG331 | Field | Choose a fallback from this Block's staff. | Hãy chọn người dự phòng trong nhân viên của Block này. |
+| 332 | MSG332 | Field | Choose a fallback other than the assignee. | Người dự phòng phải khác người nhận việc. |
+| 333 | MSG333 | Field | Keep the condition under 100 characters. | Điều kiện tối đa 100 ký tự. |
+| 334 | MSG334 | Field | Choose one of the listed times (at most {0} hours). | Hãy chọn một trong các mốc thời gian được liệt kê (tối đa {0} giờ). |
+| 335 | MSG335 | Dialog | This escalation does not exist. | Yêu cầu quá hạn này không tồn tại. |
+| 336 | MSG336 | Dialog | This escalation was already handled. | Yêu cầu quá hạn này đã được xử lý. |
+| 337 | MSG337 | Field | Choose reassign or temporary-bed. | Hãy chọn giao lại hoặc cấp giường tạm. |
+| 338 | MSG338 | Refused | A temporary Bed can only be offered for a Room-Change Request. | Chỉ cấp giường tạm cho yêu cầu đổi phòng. |
+| 339 | MSG339 | Field | Choose someone from this Block's staff. | Hãy chọn một người trong nhân viên của Block này. |
+| 340 | MSG340 | Dialog | This Maintenance Request does not exist. | Yêu cầu sửa chữa này không tồn tại. |
+| 341 | MSG341 | Dialog | You can report a problem once you have checked in to your Room. | Bạn có thể báo sự cố sau khi đã nhận phòng. |
+| 342 | MSG342 | Dialog | You can confirm the fix once the request is resolved. | Bạn có thể xác nhận đã sửa xong khi yêu cầu được xử lý. |
+| 343 | MSG343 | Field | Give the problem a short title. | Hãy đặt tiêu đề ngắn cho sự cố. |
+| 344 | MSG344 | Field | Keep the title under 150 characters. | Tiêu đề tối đa 150 ký tự. |
+| 345 | MSG345 | Field | Keep the description under 2,000 characters. | Mô tả tối đa 2.000 ký tự. |
+| 346 | MSG346 | Field | Choose where the problem is. | Hãy chọn vị trí sự cố. |
+| 347 | MSG347 | Field | Choose Normal or Urgent. | Hãy chọn Bình thường hoặc Khẩn cấp. |
+| 348 | MSG348 | Field | Attach at most {0} photos. | Đính kèm tối đa {0} ảnh. |
+| 349 | MSG349 | Dialog | Each photo must be {0} MB or smaller. | Mỗi ảnh tối đa {0} MB. |
+| 350 | MSG350 | Field | Say whether the problem is fixed. | Hãy cho biết sự cố đã được sửa chưa. |
+| 351 | MSG351 | Dialog | Assign the request before you mark it resolved. | Hãy giao việc trước khi đánh dấu đã xử lý. |
+| 352 | MSG352 | Dialog | This request is assigned to {0}. Take it over before you change its status. | Yêu cầu này đang giao cho {0}. Hãy nhận phụ trách trước khi đổi trạng thái. |
+| 353 | MSG353 | Field | Choose a staff member of this Block. | Hãy chọn một nhân viên của Block này. |
+| 354 | MSG354 | Field | Choose a staff member or none. | Hãy chọn một nhân viên hoặc để trống. |
+| 355 | MSG355 | Field | Keep someone assigned while the work is in progress. | Phải có người được giao khi công việc đang xử lý. |
+| 356 | MSG356 | Dialog | To send it back to the queue, remove the assignee. | Để đưa yêu cầu về hàng chờ, hãy bỏ người được giao. |
+| 357 | MSG357 | Field | Choose High, Medium or Low. | Hãy chọn Cao, Trung bình hoặc Thấp. |
+| 358 | MSG358 | Dialog | Use dd/mm/yyyy hh:mm – hh:mm, with the end after the start. | Dùng dạng dd/mm/yyyy hh:mm – hh:mm, giờ kết thúc sau giờ bắt đầu. |
+| 359 | MSG359 | Dialog | This checklist does not exist. | Danh mục kiểm tra này không tồn tại. |
+| 360 | MSG360 | Dialog | This checklist is archived. | Danh mục kiểm tra này đã lưu trữ. |
+| 361 | MSG361 | Dialog | This checklist is already archived. | Danh mục kiểm tra này đã được lưu trữ. |
+| 362 | MSG362 | Dialog | A checklist with this name already exists. | Đã có danh mục kiểm tra mang tên này. |
+| 363 | MSG363 | Field | Add at least one item. | Hãy thêm ít nhất một mục. |
+| 364 | MSG364 | Dialog | Use at most {0} items. | Dùng tối đa {0} mục. |
+| 365 | MSG365 | Dialog | Item {0}: choose a maintenance category. | Mục {0}: hãy chọn danh mục sửa chữa. |
+| 366 | MSG366 | Dialog | Item {0}: choose a severity. | Mục {0}: hãy chọn mức độ. |
+| 367 | MSG367 | Dialog | Item {0}: enter a label of at most 200 characters. | Mục {0}: nhập nhãn tối đa 200 ký tự. |
+| 368 | MSG368 | Dialog | This inspection schedule does not exist. | Lịch kiểm tra này không tồn tại. |
+| 369 | MSG369 | Dialog | The checklist of this schedule is not published. | Danh mục kiểm tra của lịch này chưa được công bố. |
+| 370 | MSG370 | Field | Choose a published checklist. | Hãy chọn một danh mục kiểm tra đã công bố. |
+| 371 | MSG371 | Field | Choose how often it repeats. | Hãy chọn tần suất lặp lại. |
+| 372 | MSG372 | Field | Choose a scope from the list. | Hãy chọn phạm vi trong danh sách. |
+| 373 | MSG373 | Field | Choose Active or Paused. | Hãy chọn Đang chạy hoặc Tạm dừng. |
+| 374 | MSG374 | Field | Enter 1 to {0} days. | Nhập từ 1 đến {0} ngày. |
+| 375 | MSG375 | Dialog | This inspection run does not exist. | Lượt kiểm tra này không tồn tại. |
+| 376 | MSG376 | Dialog | This inspection run is already submitted. | Lượt kiểm tra này đã được nộp. |
+| 377 | MSG377 | Dialog | Room {0} is not in this run. | Phòng {0} không có trong lượt kiểm tra này. |
+| 378 | MSG378 | Dialog | This Room is already inspected. | Phòng này đã được kiểm tra. |
+| 379 | MSG379 | Dialog | This Room is already marked not reachable. | Phòng này đã được đánh dấu không vào được. |
+| 380 | MSG380 | Dialog | Send Pass, Fail or Not checked for items of this checklist. | Hãy gửi Đạt, Không đạt hoặc Chưa kiểm tra cho các mục của danh mục này. |
+| 381 | MSG381 | Field | Keep each note under {0} characters. | Mỗi ghi chú tối đa {0} ký tự. |
+| 382 | MSG382 | Dialog | The desk must close after it opens. | Giờ đóng quầy phải sau giờ mở quầy. |
+| 383 | MSG383 | Dialog | Visitor hours must end after they start. | Giờ kết thúc thăm phải sau giờ bắt đầu. |
+| 384 | MSG384 | Dialog | Visitors may come from {0} at the earliest (Admin limit). | Khách được đến sớm nhất từ {0} (giới hạn của Quản trị viên). |
+| 385 | MSG385 | Dialog | Visitors must leave by {0} at the latest (Admin limit). | Khách phải rời đi muộn nhất lúc {0} (giới hạn của Quản trị viên). |
+| 386 | MSG386 | Dialog | Quiet hours must start by {0} (Admin limit). | Giờ yên tĩnh phải bắt đầu muộn nhất lúc {0} (giới hạn của Quản trị viên). |
+| 387 | MSG387 | Dialog | This notification does not exist. | Thông báo này không tồn tại. |
+| 388 | MSG388 | Dialog | This notification template does not exist. | Mẫu thông báo này không tồn tại. |
+| 389 | MSG389 | Field | Enter a title of at most {0} characters. | Nhập tiêu đề tối đa {0} ký tự. |
+| 390 | MSG390 | Field | Enter a message of at most {0} characters. | Nhập nội dung tối đa {0} ký tự. |
+| 391 | MSG391 | Dialog | Too long for push: {0}/{1} characters. | Quá dài cho thông báo đẩy: {0}/{1} ký tự. |
+| 392 | MSG392 | Field | Choose a template from the list. | Hãy chọn một mẫu trong danh sách. |
+| 393 | MSG393 | Field | Choose a group from the list. | Hãy chọn một nhóm trong danh sách. |
+| 394 | MSG394 | Field | Choose one student or bulk. | Hãy chọn một sinh viên hoặc gửi hàng loạt. |
+| 395 | MSG395 | Field | Choose Email or Email and push. | Hãy chọn Email hoặc Email và thông báo đẩy. |
+| 396 | MSG396 | Field | Choose when to send. | Hãy chọn thời điểm gửi. |
+| 397 | MSG397 | Refused | Push goes out at once: send now, or choose Email only. | Thông báo đẩy được gửi ngay: hãy gửi bây giờ hoặc chỉ chọn Email. |
+| 398 | MSG398 | Dialog | It is already past {0}:00. Choose another time. | Đã quá {0}:00. Hãy chọn thời điểm khác. |
+| 399 | MSG399 | Field | Enter a subject of at most 200 characters. | Nhập tiêu đề email tối đa 200 ký tự. |
+| 400 | MSG400 | Dialog | No Student matches these filters. | Không có sinh viên nào khớp bộ lọc. |
+| 401 | MSG401 | Dialog | The device token is missing. | Thiếu mã thiết bị. |
+| 402 | MSG402 | Dialog | The device token is too long. | Mã thiết bị quá dài. |
+| 403 | MSG403 | Dialog | Set a CampusStay password before you continue. | Hãy đặt mật khẩu CampusStay trước khi tiếp tục. |
+| 404 | MSG404 | Dialog | Send your student details before you continue. | Hãy gửi thông tin sinh viên của bạn trước khi tiếp tục. |
+| 405 | MSG405 | Dialog | This account already has a password. Use Change password instead. | Tài khoản này đã có mật khẩu. Hãy dùng Đổi mật khẩu. |
+| 406 | MSG406 | Dialog | Your student account was not verified: {0}. Contact the dormitory office. | Tài khoản sinh viên của bạn không được xác minh: {0}. Hãy liên hệ văn phòng ký túc xá. |
+| 407 | MSG407 | Dialog | Your account is already verified. Ask a Manager to correct your details. | Tài khoản của bạn đã được xác minh. Hãy nhờ Quản lý sửa thông tin của bạn. |
+| 408 | MSG408 | Field | Enter your student code: two letters and six digits, e.g. SE190421. | Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421. |
+| 409 | MSG409 | Field | Enter a student code: two letters and six digits, e.g. SE190421. | Hãy nhập mã sinh viên: hai chữ cái và sáu chữ số, ví dụ SE190421. |
+| 410 | MSG410 | Field | Enter your full name (at most 150 characters). | Hãy nhập họ và tên (tối đa 150 ký tự). |
+| 411 | MSG411 | Field | Enter your date of birth. | Hãy nhập ngày sinh. |
+| 412 | MSG412 | Field | Enter a valid date of birth. | Hãy nhập ngày sinh hợp lệ. |
+| 413 | MSG413 | Field | Choose your major from the list. | Hãy chọn ngành học trong danh sách. |
+| 414 | MSG414 | Field | Choose a major from the list. | Hãy chọn ngành học trong danh sách. |
+| 415 | MSG415 | Field | Enter your cohort, e.g. K19. | Hãy nhập khóa, ví dụ K19. |
+| 416 | MSG416 | Field | Enter the cohort, e.g. K19. | Hãy nhập khóa, ví dụ K19. |
+| 417 | MSG417 | Dialog | This student code belongs to another account. Contact the dormitory office. | Mã sinh viên này thuộc về một tài khoản khác. Hãy liên hệ văn phòng ký túc xá. |
+| 418 | MSG418 | Dialog | This student code belongs to another account. | Mã sinh viên này thuộc về một tài khoản khác. |
+| 419 | MSG419 | Refused | The student code cannot change once the account is verified. | Không thể đổi mã sinh viên sau khi tài khoản đã được xác minh. |
+| 420 | MSG420 | Field | Enter a semester from 0 to 12. | Hãy nhập học kỳ từ 0 đến 12. |
+| 421 | MSG421 | Field | Choose a region from the list. | Hãy chọn vùng trong danh sách. |
+| 422 | MSG422 | Field | Choose priority groups from the list. | Hãy chọn nhóm ưu tiên trong danh sách. |
+| 423 | MSG423 | Field | Choose yes or no. | Hãy chọn có hoặc không. |
+| 424 | MSG424 | Field | Choose a verification status from the list. | Hãy chọn trạng thái xác minh trong danh sách. |
+| 425 | MSG425 | Field | Choose an enrollment status from the list. | Hãy chọn tình trạng học tập trong danh sách. |
+| 426 | MSG426 | Field | Choose a cohort from the list. | Hãy chọn khóa trong danh sách. |
+| 427 | MSG427 | Field | Choose a status from the list. | Hãy chọn trạng thái trong danh sách. |
+| 428 | MSG428 | Dialog | This student does not exist. | Sinh viên này không tồn tại. |
+| 429 | MSG429 | Dialog | This student has not sent their details yet. | Sinh viên này chưa gửi thông tin. |
+| 430 | MSG430 | Field | Enter the reason (at most 500 characters). | Hãy nhập lý do (tối đa 500 ký tự). |
+| 431 | MSG431 | Dialog | Use at most 500 characters. | Dùng tối đa 500 ký tự. |
+| 432 | MSG432 | Dialog | This account is already locked. | Tài khoản này đã bị khóa. |
+| 433 | MSG433 | Dialog | This account is not locked. | Tài khoản này không bị khóa. |
+| 434 | MSG434 | Dialog | This account is not waiting for verification. | Tài khoản này không chờ xác minh. |
+| 435 | MSG435 | Field | Choose a CSV or XLSX file. | Hãy chọn một tệp CSV hoặc XLSX. |
+| 436 | MSG436 | Dialog | This import does not exist. | Lần nhập này không tồn tại. |
+| 437 | MSG437 | Field | Choose New, Update, Unchanged or Error. | Hãy chọn Mới, Cập nhật, Không đổi hoặc Lỗi. |
+| 438 | MSG438 | Dialog | This file was already imported. | Tệp này đã được nhập. |
+| 439 | MSG439 | Dialog | Save the file as XLSX or CSV UTF-8 and upload it again. | Hãy lưu tệp dạng XLSX hoặc CSV UTF-8 rồi tải lên lại. |
+| 440 | MSG440 | Dialog | The file is empty. | Tệp trống. |
+| 441 | MSG441 | Dialog | The file has no column {0}. Download the template to see the columns. | Tệp không có cột {0}. Hãy tải tệp mẫu để xem các cột. |
+| 442 | MSG442 | Dialog | The file has more than 10,000 students. Split it into smaller files. | Tệp có hơn 10.000 sinh viên. Hãy chia thành các tệp nhỏ hơn. |
+| 443 | MSG443 | Dialog | The file has no students below its header line. | Tệp không có sinh viên nào bên dưới dòng tiêu đề. |
+| 444 | MSG444 | Dialog | The file could not be read. Save it as XLSX or CSV UTF-8 and try again. | Không đọc được tệp. Hãy lưu dạng XLSX hoặc CSV UTF-8 rồi thử lại. |
+| 445 | MSG445 | Dialog | The workbook has no sheet. | Bảng tính không có trang nào. |
+| 446 | MSG446 | Dialog | This account is disabled. Restore it first. | Tài khoản này đang bị vô hiệu hóa. Hãy khôi phục trước. |
+| 447 | MSG447 | Dialog | This person has already set a password. | Người này đã đặt mật khẩu. |
+| 448 | MSG448 | Field | Choose the Blocks this person works in. | Hãy chọn các Block người này làm việc. |
+| 449 | MSG449 | Field | Choose an active Room Class. | Hãy chọn một hạng phòng đang hoạt động. |
+| 450 | MSG450 | Field | Choose at least one Room. | Hãy chọn ít nhất một phòng. |
+| 451 | MSG451 | Field | Choose at most {0} Rooms at a time. | Mỗi lần chỉ chọn tối đa {0} phòng. |
+| 452 | MSG452 | Dialog | The stay of {0} has started, so its Room Classes are fixed. | Kỳ {0} đã bắt đầu, nên hạng phòng của kỳ này không thể thay đổi. |
+| 453 | MSG453 | Refused | Beds of Room {0} are already given for {1} or later, so its Room Class can change only from a later Term. | Giường của phòng {0} đã được xếp cho kỳ {1} hoặc kỳ sau, nên chỉ có thể đổi hạng phòng từ một kỳ sau nữa. |
+| 454 | MSG454 | Dialog | Door codes are not set up on this server yet. | Máy chủ này chưa được thiết lập mã cửa. |
+| 455 | MSG455 | Field | Choose a code different from the current one. | Hãy chọn mã khác với mã hiện tại. |
+| 456 | MSG456 | Dialog | Room {0} has no new door code to confirm. | Phòng {0} không có mã cửa mới nào cần xác nhận. |
+| 457 | MSG457 | Dialog | Line {0}: Room {1} is not one of your Rooms. | Dòng {0}: phòng {1} không thuộc các phòng bạn quản lý. |
+| 458 | MSG458 | Dialog | Line {0}: the code must be 6 digits. | Dòng {0}: mã phải gồm 6 chữ số. |
+| 459 | MSG459 | Dialog | Line {0}: Room {1} is in the file twice. | Dòng {0}: phòng {1} xuất hiện hai lần trong tệp. |
+| 460 | MSG460 | Dialog | Line {0}: this is the current code of Room {1}. | Dòng {0}: đây là mã hiện tại của phòng {1}. |
+| 461 | MSG461 | Dialog | The file has no Room and code lines. | Tệp không có dòng phòng và mã nào. |
+| 462 | MSG462 | Dialog | Import at most {0} Rooms at a time. | Mỗi lần chỉ nhập tối đa {0} phòng. |
+| 463 | MSG463 | Dialog | You do not hold a Bed this Term. | Bạn chưa có giường trong kỳ này. |
+| 464 | MSG464 | Dialog | Your door code is not ready yet. | Mã cửa của bạn chưa sẵn sàng. |
+| 465 | MSG465 | Dialog | This furniture type does not exist. | Loại nội thất này không tồn tại. |
+| 466 | MSG466 | Dialog | A Room Class requires {0}. Remove it from the Room Class requirements first. | Một hạng phòng đang yêu cầu {0}. Hãy bỏ nó khỏi yêu cầu của hạng phòng trước. |
+| 467 | MSG467 | Refused | Only active furniture types that define a Room Class can be required. | Chỉ loại nội thất đang dùng và quyết định hạng phòng mới có thể được yêu cầu. |
+| 468 | MSG468 | Dialog | List each furniture type once. | Mỗi loại nội thất chỉ ghi một lần. |
+| 469 | MSG469 | Field | Enter a quantity from 1 to {0}. | Hãy nhập số lượng từ 1 đến {0}. |
+| 470 | MSG470 | Dialog | Use 1 to 10 letters or digits, starting with a letter. | Dùng 1 đến 10 chữ cái hoặc chữ số, bắt đầu bằng chữ cái. |
+| 471 | MSG471 | Dialog | A furniture type with this code already exists. | Đã có loại nội thất với mã này. |
+| 472 | MSG472 | Refused | The code cannot be changed. | Không thể đổi mã. |
+| 473 | MSG473 | Field | Enter a name of at most 80 characters. | Hãy nhập tên tối đa 80 ký tự. |
+| 474 | MSG474 | Dialog | A furniture type with this name already exists. | Đã có loại nội thất với tên này. |
+| 475 | MSG475 | Dialog | This furniture item does not exist. | Món nội thất này không tồn tại. |
+| 476 | MSG476 | Field | Choose an active furniture type. | Hãy chọn một loại nội thất đang dùng. |
+| 477 | MSG477 | Refused | Item {0} is disposed and cannot change. | Món {0} đã thanh lý nên không thể thay đổi. |
+| 478 | MSG478 | Dialog | Move the item to a store to mark it In store. | Hãy chuyển món này vào kho trước khi đánh dấu Trong kho. |
+| 479 | MSG479 | Dialog | Move the item to a Room to mark it In use. | Hãy chuyển món này vào một phòng trước khi đánh dấu Đang dùng. |
+| 480 | MSG480 | Field | Choose at least one item. | Hãy chọn ít nhất một món. |
+| 481 | MSG481 | Dialog | Move at most {0} items at a time. | Mỗi lần chỉ chuyển tối đa {0} món. |
+| 482 | MSG482 | Field | Choose a Room or a Block store. | Hãy chọn một phòng hoặc kho của một Block. |
+| 483 | MSG483 | Field | Write why the items move. | Hãy ghi lý do chuyển. |
+| 484 | MSG484 | Field | Keep the reason under 300 characters. | Lý do không quá 300 ký tự. |
+| 485 | MSG485 | Refused | Only a Manager moves furniture to another Block. | Chỉ Quản lý mới được chuyển nội thất sang Block khác. |
+| 486 | MSG486 | Dialog | Item {0} is already in Room {1}. | Món {0} đã ở phòng {1}. |
+| 487 | MSG487 | Dialog | Item {0} is already in Block {1} store. | Món {0} đã ở kho Block {1}. |
+| 488 | MSG488 | Dialog | Item {0} already has a planned move. Finish or cancel it first. | Món {0} đã có một lần chuyển theo kế hoạch. Hãy hoàn tất hoặc hủy nó trước. |
+| 489 | MSG489 | Dialog | This move does not exist. | Lần chuyển này không tồn tại. |
+| 490 | MSG490 | Dialog | This move is already done. | Lần chuyển này đã hoàn tất. |
+| 491 | MSG491 | Dialog | This move is already cancelled. | Lần chuyển này đã bị hủy. |
+| 492 | MSG492 | Dialog | Room {0} is not in Block {1}. | Phòng {0} không thuộc Block {1}. |
+| 493 | MSG493 | Dialog | This registration-period request does not exist. | Đề nghị mở đợt đăng ký này không tồn tại. |
+| 494 | MSG494 | Field | Enter the Term name in at most 100 characters. | Hãy nhập tên kỳ, tối đa 100 ký tự. |
+| 495 | MSG495 | Refused | Only the Manager who sent this request can change it. | Chỉ Quản lý đã gửi đề nghị này mới sửa được. |
+| 496 | MSG496 | Dialog | The Admin is building this Term; comment on the request instead. | Quản trị viên đang dựng kỳ này; hãy bình luận trên đề nghị. |
+| 497 | MSG497 | Dialog | This request is closed. | Đề nghị này đã đóng. |
+| 498 | MSG498 | Field | Write a comment of at most 1,000 characters. | Hãy viết bình luận, tối đa 1.000 ký tự. |
+| 499 | MSG499 | Field | Choose In progress, Needs changes or Rejected. | Hãy chọn Đang xử lý, Cần chỉnh sửa hoặc Từ chối. |
+| 500 | MSG500 | Field | Say what the Manager should change. | Hãy nêu điều Quản lý cần chỉnh sửa. |
+| 501 | MSG501 | Field | Give the reason for rejecting the request. | Hãy nêu lý do từ chối đề nghị. |
+| 502 | MSG502 | Refused | Only a submitted request can be taken in progress. | Chỉ đề nghị đã gửi mới có thể chuyển sang đang xử lý. |
+| 503 | MSG503 | Dialog | This request waits for the Manager's changes. | Đề nghị này đang chờ Quản lý chỉnh sửa. |
+| 504 | MSG504 | Field | Choose an active Room Type and Room Class for each line of places. | Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng dòng số chỗ. |
+| 505 | MSG505 | Field | Choose male or female for each line of places. | Hãy chọn nam hoặc nữ cho từng dòng số chỗ. |
+| 506 | MSG506 | Field | Enter 0 to 100,000 places on each line. | Nhập từ 0 đến 100.000 chỗ cho mỗi dòng. |
+| 507 | MSG507 | Dialog | List each Room Type, Room Class and gender once. | Mỗi loại phòng, hạng phòng và giới tính chỉ ghi một lần. |
+| 508 | MSG508 | Field | Choose an active Room Type and Room Class for each price. | Hãy chọn loại phòng và hạng phòng đang hoạt động cho từng mức giá. |
+| 509 | MSG509 | Field | Enter each price per Bed as a whole amount above 0 VND. | Nhập giá mỗi giường là số nguyên lớn hơn 0 ₫. |
+| 510 | MSG510 | Dialog | List each Room Type and Room Class once. | Mỗi loại phòng và hạng phòng chỉ ghi một lần. |
+| 511 | MSG511 | Field | Keep the notes under 2,000 characters. | Ghi chú tối đa 2.000 ký tự. |
+| 512 | MSG512 | Dialog | {0} already has an open request ({1}). Comment on it instead. | {0} đã có một đề nghị đang mở ({1}). Hãy bình luận trên đề nghị đó. |
+| 513 | MSG513 | Dialog | A Term named {0} is already published. | Kỳ tên {0} đã được công bố. |
+| 514 | MSG514 | Field | Enter the Deposit payment window in hours. | Hãy nhập thời hạn thanh toán tiền cọc theo giờ. |
+| 515 | MSG515 | Dialog | Check-in starts on or after {0}, the day the residents of {1} must have checked out. | Nhận phòng bắt đầu từ {0}, ngày sinh viên của {1} phải trả phòng xong. |
+| 516 | MSG516 | Dialog | No Term runs before this one, so leave the renewal milestones empty. | Không có kỳ nào trước kỳ này, nên hãy để trống các mốc ở tiếp. |
+| 517 | MSG517 | Dialog | Fill in every renewal milestone, or leave them all empty. | Hãy điền đủ mọi mốc ở tiếp, hoặc để trống tất cả. |
+| 518 | MSG518 | Dialog | The requests window opens on or after the Term is published. | Đợt nhận yêu cầu mở vào hoặc sau khi công bố kỳ. |
+| 519 | MSG519 | Dialog | The requests window must close after it opens. | Đợt nhận yêu cầu phải đóng sau khi mở. |
+| 520 | MSG520 | Dialog | Decisions are due after the requests window closes. | Hạn quyết định phải sau khi đóng đợt nhận yêu cầu. |
+| 521 | MSG521 | Dialog | The reconciliation is due on or after the decision deadline. | Hạn đối soát phải vào hoặc sau hạn quyết định. |
+| 522 | MSG522 | Dialog | Next-Term fees are issued on or after the reconciliation. | Phí kỳ sau được phát hành vào hoặc sau hạn đối soát. |
+| 523 | MSG523 | Dialog | The next-Term fee deadline comes after the fees are issued. | Hạn nộp phí kỳ sau phải sau ngày phát hành phí. |
+| 524 | MSG524 | Dialog | The next-Term fees are due before {0} ends ({1}). | Phí kỳ sau phải đến hạn trước khi {0} kết thúc ({1}). |
+| 525 | MSG525 | Dialog | Assignment results come out on or after the decision deadline. | Kết quả xếp phòng được công bố vào hoặc sau hạn quyết định. |
+| 526 | MSG526 | Dialog | This wizard step does not exist. | Bước này không tồn tại. |
+| 527 | MSG527 | Refused | The stay has started, so its dates cannot change. | Kỳ ở đã bắt đầu nên không thể đổi ngày. |
+| 528 | MSG528 | Field | Choose active Blocks only. | Chỉ chọn các Block đang hoạt động. |
+| 529 | MSG529 | Field | Enter a share from 0 to 100%. | Nhập tỷ lệ từ 0 đến 100%. |
+| 530 | MSG530 | Dialog | Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change. | Kỳ này đã có hóa đơn nên không thể đổi giá, tiền cọc và tiền cọc điện nước nữa. |
+| 531 | MSG531 | Field | Enter a price for every Room Type and Room Class. | Hãy nhập giá cho mọi loại phòng và hạng phòng. |
+| 532 | MSG532 | Field | Enter the Utility Deposit as a whole amount of 0 VND or more. | Nhập tiền cọc điện nước là số nguyên từ 0 ₫ trở lên. |
+| 533 | MSG533 | Dialog | A published Term keeps the rules it opened with. | Kỳ đã công bố giữ nguyên các quy định lúc mở. |
+| 534 | MSG534 | Field | Keep the house rules under 10,000 characters. | Nội quy tối đa 10.000 ký tự. |
+| 535 | MSG535 | Field | Write each question (up to 300 characters) with its answer (up to 2,000). | Hãy viết mỗi câu hỏi (tối đa 300 ký tự) kèm câu trả lời (tối đa 2.000 ký tự). |
+| 536 | MSG536 | Field | Keep at most 30 questions. | Tối đa 30 câu hỏi. |
+| 537 | MSG537 | Field | Give each document a title and a link that starts with https://. | Hãy đặt tên cho từng tài liệu và một liên kết bắt đầu bằng https://. |
+| 538 | MSG538 | Field | Keep at most 20 documents. | Tối đa 20 tài liệu. |
+| 539 | MSG539 | Dialog | This Term is not ready to publish. The Review step lists what to fix. | Kỳ này chưa sẵn sàng để công bố. Bước Xem lại liệt kê những việc cần sửa. |
+| 540 | MSG540 | Field | Give a reason for changing the Manager's value. | Hãy nêu lý do thay đổi giá trị Quản lý đề nghị. |
+| 541 | MSG541 | Refused | This date has passed, so it cannot change. | Ngày này đã qua nên không thể đổi. |
+| 542 | MSG542 | Dialog | This deadline is open: it can be extended but never shortened. | Hạn này đang mở: chỉ có thể gia hạn, không được rút ngắn. |
+| 543 | MSG543 | Field | Say in up to 500 characters why you change a published Term; students read it in the announcement. | Hãy nêu lý do (tối đa 500 ký tự) khi thay đổi kỳ đã công bố; sinh viên sẽ đọc lý do trong thông báo. |
+| 544 | MSG544 | Dialog | The requests window would open before students see the Term: move it after today. | Đợt nhận yêu cầu sẽ mở trước khi sinh viên thấy kỳ: hãy dời sang sau hôm nay. |
+| 545 | MSG545 | Dialog | Save every step of the wizard before publishing. | Hãy lưu mọi bước trước khi công bố. |
+| 546 | MSG546 | Dialog | This settings group does not exist. | Nhóm thiết lập này không tồn tại. |
+| 547 | MSG547 | Field | Enter a whole number from {0} to {1}. | Nhập số nguyên từ {0} đến {1}. |
+| 548 | MSG548 | Dialog | Use at least one matching criterion. | Hãy dùng ít nhất một tiêu chí ghép phòng. |
+| 549 | MSG549 | Dialog | This announcement does not exist. | Thông báo này không tồn tại. |
+| 550 | MSG550 | Field | Choose who reads it. | Hãy chọn người đọc. |
+| 551 | MSG551 | Field | Write a title of at most 200 characters. | Hãy viết tiêu đề, tối đa 200 ký tự. |
+| 552 | MSG552 | Field | Write the announcement in at most 4,000 characters. | Hãy viết nội dung thông báo, tối đa 4.000 ký tự. |
+| 553 | MSG553 | Dialog | End it after it starts and after now. | Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại. |
+| 554 | MSG554 | Field | Choose at least one Block. | Hãy chọn ít nhất một Block. |
+| 555 | MSG555 | Field | Choose a published Term. | Hãy chọn một kỳ đã công bố. |
+| 556 | MSG556 | Refused | Staff write to the residents of their Blocks only. | Nhân viên chỉ gửi thông báo cho sinh viên đang ở các Block của mình. |
+| 557 | MSG557 | Dialog | You already said you transferred this Invoice. A Manager is checking it. | Bạn đã báo chuyển khoản cho hóa đơn này. Quản lý đang kiểm tra. |
+| 558 | MSG558 | Dialog | The deadline of this Invoice has passed. | Hóa đơn này đã quá hạn thanh toán. |
+| 559 | MSG559 | Dialog | No payment claim is waiting for this Invoice. | Hóa đơn này không có báo chuyển khoản nào đang chờ. |
+| 560 | MSG560 | Field | Write why the transfer cannot be confirmed. | Hãy ghi lý do không xác nhận được khoản chuyển. |
+| 561 | MSG561 | Field | Select at most {0} Invoices at a time. | Mỗi lần chọn tối đa {0} hóa đơn. |
+| 562 | MSG562 | Field | Choose today, 24h or 7d. | Hãy chọn hôm nay, 24 giờ hoặc 7 ngày. |
+| 563 | MSG563 | Dialog | No bank account is configured for transfers yet. | Chưa cấu hình tài khoản ngân hàng nhận chuyển khoản. |
+| 564 | MSG564 | Field | Choose Bank transfer, VietQR or Manual transfer. | Hãy chọn Chuyển khoản ngân hàng, VietQR hoặc Chuyển khoản thủ công. |
+| 565 | MSG565 | Dialog | This refund is decided by {0}. | Khoản hoàn tiền này do {0} quyết định. |
+| 566 | MSG566 | Dialog | A Manager is checking your transfer. Cancel once it is confirmed or rejected. | Quản lý đang kiểm tra khoản chuyển của bạn. Hãy hủy sau khi khoản chuyển được xác nhận hoặc từ chối. |
+| 567 | MSG567 | Field | Choose from 1 to {0} Terms. | Hãy chọn từ 1 đến {0} kỳ. |
+| 568 | MSG568 | Dialog | You do not hold a Bed waiting for check-in. | Bạn không có chỗ ở nào đang chờ nhận phòng. |
+| 569 | MSG569 | Dialog | You have already checked in. | Bạn đã nhận phòng rồi. |
+| 570 | MSG570 | Dialog | The check-in period has ended. Ask the dormitory desk about a late check-in. | Thời gian nhận phòng đã kết thúc. Hãy hỏi quầy ký túc xá về việc nhận phòng muộn. |
+| 571 | MSG571 | Field | Write why you arrive late. | Hãy ghi lý do bạn đến muộn. |
+| 572 | MSG572 | Field | Choose the day you will arrive. | Hãy chọn ngày bạn sẽ đến. |
+| 573 | MSG573 | Field | Choose a day up to {0}. | Hãy chọn một ngày đến hết {0}. |
+| 574 | MSG574 | Field | Attach a document that explains the delay (JPEG, PNG or PDF). | Hãy đính kèm giấy tờ giải thích lý do đến muộn (JPEG, PNG hoặc PDF). |
+| 575 | MSG575 | Dialog | Your late check-in is already waiting for a decision. | Yêu cầu nhận phòng muộn của bạn đang chờ quyết định. |
+| 576 | MSG576 | Dialog | This student does not live in the Room. | Sinh viên này không ở trong phòng. |
+| 577 | MSG577 | Field | Choose Notice sent, Overdue, Checked out or Cancelled. | Hãy chọn Đã gửi thông báo, Quá hạn, Đã trả phòng hoặc Đã hủy. |
+| 578 | MSG578 | Field | Choose Manager decision or Not enrolled. | Hãy chọn Quyết định của Quản lý hoặc Không còn theo học. |
+| 579 | MSG579 | Field | Write why the stay is terminated. | Hãy ghi lý do chấm dứt hợp đồng ở. |
+| 580 | MSG580 | Dialog | This student does not live in the dormitory. | Sinh viên này không ở ký túc xá. |
+| 581 | MSG581 | Field | Write why the termination is cancelled. | Hãy ghi lý do hủy việc chấm dứt hợp đồng ở. |
+| 582 | MSG582 | Dialog | This termination does not exist. | Việc chấm dứt hợp đồng ở này không tồn tại. |
+| 583 | MSG583 | Dialog | This termination is already closed. | Việc chấm dứt hợp đồng ở này đã kết thúc. |
+| 584 | MSG584 | Dialog | This stay is already terminated. | Hợp đồng ở này đã bị chấm dứt. |
+| 585 | MSG585 | Dialog | Agree or decline the change. | Hãy đồng ý hoặc từ chối việc đổi hạng phòng. |
+| 586 | MSG586 | Field | Choose 1 to 9 Terms. | Hãy chọn từ 1 đến 9 kỳ. |
+| 587 | MSG587 | Field | Choose Direct or Board match. | Hãy chọn Trực tiếp hoặc Ghép từ bảng tin. |
+| 588 | MSG588 | Field | Choose Extension or End of stay. | Hãy chọn Gia hạn hoặc Kết thúc ở. |
+| 589 | MSG589 | Field | Choose Not enrolled or Enrolled. | Hãy chọn Không còn theo học hoặc Đang theo học. |
+| 590 | MSG590 | Field | Choose a Bed in another Room. | Hãy chọn giường ở phòng khác. |
+| 591 | MSG591 | Field | Choose a Room Class other than the Room's. | Hãy chọn hạng phòng khác với hạng hiện tại của phòng. |
+| 592 | MSG592 | Field | Choose a Room of your Blocks. | Hãy chọn một phòng thuộc Block của bạn. |
+| 593 | MSG593 | Field | Choose a Room the Term uses. | Hãy chọn một phòng được dùng trong kỳ. |
+| 594 | MSG594 | Field | Choose at least one request. | Hãy chọn ít nhất một yêu cầu. |
+| 595 | MSG595 | Field | Choose follow or keep. | Hãy chọn đi theo hoặc giữ nguyên. |
+| 596 | MSG596 | Field | Choose room-change, swap, room-class-change or extension. | Hãy chọn đổi phòng, đổi chéo, đổi hạng phòng hoặc gia hạn. |
+| 597 | MSG597 | Field | Choose the Term the list is for. | Hãy chọn kỳ của danh sách. |
+| 598 | MSG598 | Field | Choose the enrolled list or a leavers list. | Hãy chọn danh sách đang học hoặc danh sách thôi học. |
+| 599 | MSG599 | Field | Choose the next Term. | Hãy chọn kỳ tiếp theo. |
+| 600 | MSG600 | Field | Choose why the student moves. | Hãy chọn lý do chuyển phòng. |
+| 601 | MSG601 | Dialog | Decide at most 200 requests at once. | Mỗi lần chỉ quyết định tối đa 200 yêu cầu. |
+| 602 | MSG602 | Field | Keep the reason under 1,000 characters. | Lý do không quá 1.000 ký tự. |
+| 603 | MSG603 | Dialog | Next-Term requests open when your Bed is kept for the next Term (the requests window). | Yêu cầu cho kỳ sau mở khi giường của bạn được giữ cho kỳ sau (thời gian gửi yêu cầu). |
+| 604 | MSG604 | Dialog | No Term has a requests window yet. | Chưa có kỳ nào có thời gian gửi yêu cầu. |
+| 605 | MSG605 | Dialog | No matching Bed is free for this request. | Không còn giường phù hợp còn trống cho yêu cầu này. |
+| 606 | MSG606 | Dialog | No requests window is open. | Không có thời gian gửi yêu cầu nào đang mở. |
+| 607 | MSG607 | Dialog | No student has this code. | Không có sinh viên nào có mã này. |
+| 608 | MSG608 | Refused | Only an approved change can be set back. | Chỉ việc đổi hạng đã duyệt mới có thể đặt lại. |
+| 609 | MSG609 | Dialog | Pay your overdue Utility Invoice first, then the next-Term fee. | Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng kỳ sau. |
+| 610 | MSG610 | Dialog | The free Beds of this kind are kept for new students. | Các giường trống loại này được giữ cho sinh viên mới. |
+| 611 | MSG611 | Dialog | The next-Term fees are issued, so next-Term Beds are fixed. A Manager can still move a student. | Tiền phòng kỳ sau đã được phát hành nên giường kỳ sau đã cố định. Quản lý vẫn có thể chuyển sinh viên. |
+| 612 | MSG612 | Refused | The next-Term fees are issued: only a Manager moves a student for the next Term now. | Tiền phòng kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho kỳ sau. |
+| 613 | MSG613 | Dialog | The resident who asked for it does not continue next Term. | Cư dân đề nghị không ở tiếp kỳ sau. |
+| 614 | MSG614 | Dialog | This Bed is not free any more. Choose another one. | Giường này không còn trống. Hãy chọn giường khác. |
+| 615 | MSG615 | Dialog | This Room Class change does not exist. | Yêu cầu đổi hạng phòng này không tồn tại. |
+| 616 | MSG616 | Dialog | This Room does not exist. | Phòng này không tồn tại. |
+| 617 | MSG617 | Dialog | This Term has no requests window: it has no renewal milestones. | Kỳ này không có thời gian gửi yêu cầu: kỳ không có các mốc gia hạn. |
+| 618 | MSG618 | Dialog | This change is no longer waiting for your answer. | Việc đổi hạng này không còn chờ câu trả lời của bạn. |
+| 619 | MSG619 | Dialog | This is the last Term of your stay: ask for an extension first. | Đây là kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước. |
+| 620 | MSG620 | Dialog | This item is already resolved. | Mục này đã được xử lý. |
+| 621 | MSG621 | Dialog | This reconciliation does not exist. | Lần đối soát này không tồn tại. |
+| 622 | MSG622 | Dialog | This request does not exist. | Yêu cầu này không tồn tại. |
+| 623 | MSG623 | Dialog | This request is not part of a requests window. | Yêu cầu này không thuộc thời gian gửi yêu cầu nào. |
+| 624 | MSG624 | Refused | This student cannot swap with you. | Sinh viên này không thể đổi chéo với bạn. |
+| 625 | MSG625 | Dialog | This student has no Bed for the next Term. | Sinh viên này không có giường cho kỳ sau. |
+| 626 | MSG626 | Dialog | This student holds no Bed. | Sinh viên này không giữ giường nào. |
+| 627 | MSG627 | Field | Type the student code. | Hãy nhập mã sinh viên. |
+| 628 | MSG628 | Field | Write a note (up to 500 characters): it is audited. | Hãy ghi chú (tối đa 500 ký tự): ghi chú được lưu vào nhật ký. |
+| 629 | MSG629 | Field | Write why the Room changes class. | Hãy ghi lý do phòng đổi hạng. |
+| 630 | MSG630 | Field | Write why the change is rejected. The residents see it. | Hãy ghi lý do từ chối. Các cư dân sẽ thấy lý do này. |
+| 631 | MSG631 | Field | Write why the class is set back (up to 1,000 characters). | Hãy ghi lý do đặt lại hạng cũ (tối đa 1.000 ký tự). |
+| 632 | MSG632 | Field | Write why the extension is rejected. The student sees it. | Hãy ghi lý do từ chối gia hạn. Sinh viên sẽ thấy lý do này. |
+| 633 | MSG633 | Field | Write why the requests are rejected. The students see it. | Hãy ghi lý do từ chối các yêu cầu. Sinh viên sẽ thấy lý do này. |
+| 634 | MSG634 | Field | Write why the student moves. | Hãy ghi lý do chuyển phòng. |
+| 635 | MSG635 | Dialog | You already have an extension waiting for Staff. | Bạn đã có một yêu cầu gia hạn đang chờ Nhân viên. |
+| 636 | MSG636 | Dialog | You already have an open room change request. | Bạn đã có một yêu cầu đổi phòng đang chờ. |
+| 637 | MSG637 | Dialog | Your Room already has a Room Class change waiting. | Phòng của bạn đã có một yêu cầu đổi hạng đang chờ. |
+| 638 | MSG638 | Dialog | Every continuing resident of Room {0} must agree first. | Mọi cư dân ở tiếp của phòng {0} phải đồng ý trước. |
+| 639 | MSG639 | Dialog | Beds of Room {0} are already given to new students at the current price. | Giường của phòng {0} đã được xếp cho sinh viên mới theo giá hiện tại. |
+| 640 | MSG640 | Dialog | Room {0} already has a Room Class change waiting. | Phòng {0} đã có một yêu cầu đổi hạng đang chờ. |
+| 641 | MSG641 | Dialog | This Room Class is not offered in {0}. | Hạng phòng này không có trong {0}. |
+| 642 | MSG642 | Dialog | Next-Term requests for {0} closed on {1}. | Yêu cầu cho {0} đã đóng lúc {1}. |
+| 643 | MSG643 | Dialog | Room changes are asked for {0}. | Yêu cầu đổi phòng được gửi cho {0}. |
+| 644 | MSG644 | Dialog | Room {0} has no price in {1}. Ask the Admin to add it. | Phòng {0} chưa có giá trong {1}. Hãy nhờ Quản trị viên bổ sung. |
+| 645 | MSG645 | Dialog | Room {0} has no price in {1}. | Phòng {0} chưa có giá trong {1}. |
+| 646 | MSG646 | Dialog | The store of Block {0} does not have the furniture this Room Class needs: {1}. | Kho của Block {0} không đủ nội thất mà hạng phòng này cần: {1}. |
+| 647 | MSG647 | Dialog | A stay can be at most {0} Terms. | Hợp đồng ở tối đa {0} kỳ. |
+| 648 | MSG648 | Dialog | You can add at most {0} Terms (a stay has at most {1}). | Bạn chỉ có thể thêm tối đa {0} kỳ (hợp đồng ở tối đa {1} kỳ). |
+| 649 | MSG649 | Dialog | Your stay already has the most Terms allowed ({0}). | Hợp đồng ở của bạn đã đạt số kỳ tối đa ({0}). |
+| 650 | MSG650 | Dialog | Students can still file next-Term requests until {0}. | Sinh viên vẫn có thể gửi yêu cầu cho kỳ sau đến {0}. |
+| 651 | MSG651 | Dialog | {0} next-Term requests are still open. Decide them first. | Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước. |
+| 652 | MSG652 | Dialog | Reconcile the enrolled list for {0} first. | Hãy đối soát danh sách đang học của {0} trước. |
+| 653 | MSG653 | Dialog | {0} reconciliation items are still open. Resolve them first. | Còn {0} mục đối soát chưa xử lý. Hãy xử lý trước. |
+| 654 | MSG654 | Dialog | Continuing residents can still file next-Term requests until the request deadline. Run the assignment after it. | Cư dân ở tiếp vẫn có thể gửi yêu cầu kỳ sau đến hạn gửi yêu cầu. Hãy chạy xếp phòng sau hạn đó. |
+| 655 | MSG655 | Dialog | {0} next-Term requests are still open. Decide them before the assignment. | Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước khi xếp phòng. |
+| 656 | MSG656 | Refused | The next-Term fee is paid: move this student only to a Bed of the same price. | Tiền phòng kỳ sau đã thanh toán: chỉ chuyển sinh viên này sang giường cùng giá. |
+| 657 | MSG657 | Dialog | The student said they paid the next-Term fee. Confirm or reject the payment first. | Sinh viên đã báo chuyển khoản tiền phòng kỳ sau. Hãy xác nhận hoặc từ chối khoản thanh toán trước. |
+| 658 | MSG658 | Dialog | The requests window of {0} has not opened yet. | Thời gian gửi yêu cầu của {0} chưa mở. |
+| 659 | MSG659 | Dialog | Unknown enrollment status "{0}". Use Enrolled, Suspended, Graduated, Withdrawn or Not enrolled. | Tình trạng học "{0}" không hợp lệ. Hãy dùng Enrolled, Suspended, Graduated, Withdrawn hoặc Not enrolled. |
+| 660 | MSG660 | Field | Enter the electricity reading of Room {0}. | Hãy nhập chỉ số điện của phòng {0}. |
+| 661 | MSG661 | Field | Enter the water reading of Room {0}. | Hãy nhập chỉ số nước của phòng {0}. |
+| 662 | MSG662 | Dialog | Your stay is extended by {0} Term. Your Bed is kept for {1}. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}. |
+| 663 | MSG663 | Dialog | Your stay is extended by {0} Terms. Your Bed is kept for {1}. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}. |
+| 664 | MSG664 | Dialog | Your stay is extended by {0} Term. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. |
+| 665 | MSG665 | Dialog | Your stay is extended by {0} Terms. | Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. |
+| 666 | MSG666 | Dialog | Room {0} is {1} from {2}. Your next-Term room fee uses it. | Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng kỳ sau của bạn tính theo hạng này. |
+| 667 | MSG667 | Dialog | A resident of Room {0} did not agree. | Một cư dân phòng {0} không đồng ý. |
+| 668 | MSG668 | Dialog | Your Bed for {0} is now Room {1} · Bed {2}. | Giường của bạn cho {0} nay là phòng {1} · giường {2}. |
+| 669 | MSG669 | Field | Choose an item of this Room. | Hãy chọn một đồ nội thất của phòng này. |
+| 670 | MSG670 | Dialog | List each damaged item of this Room once. | Mỗi đồ bị hư của phòng này chỉ ghi một lần. |
+| 671 | MSG671 | Field | Enter a damage amount of 0 or more. | Hãy nhập tiền hư hỏng từ 0 trở lên. |
+| 672 | MSG672 | Field | Keep each damage note under 300 characters. | Mỗi ghi chú hư hỏng không quá 300 ký tự. |
+| 673 | MSG673 | Dialog | The file has more than 5,000 Room codes. | Tệp có hơn 5.000 mã phòng. |
+| 674 | MSG674 | Dialog | The file has no Room codes below its header line. | Tệp không có mã phòng nào dưới dòng tiêu đề. |
+| 675 | MSG675 | Field | Choose stage 0, A, B or C. | Hãy chọn giai đoạn 0, A, B hoặc C. |
+| 676 | MSG676 | Field | Type RESET to confirm. | Hãy gõ RESET để xác nhận. |
+| 677 | MSG677 | Dialog | The demo tools are off on this server. | Công cụ demo đang tắt trên máy chủ này. |
+| 678 | MSG678 | Dialog | The demo accounts of the base data are missing. Load the base data (db/seed) first. | Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước. |
+| 679 | MSG679 | Dialog | This demo file does not exist. | Không có tệp demo này. |
+| 680 | MSG680 | Dialog | Load stage A, B or C first: this file lists the people of the next Term. | Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau. |
+| 681 | MSG681 | Dialog | Load stage A, B or C first: Block A has no open meter period. | Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở. |
+| 682 | MSG682 | Dialog | Load stage A, B or C first: no door code of Block A must change. | Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi. |
+| 683 | MSG683 | Dialog | {0} is the start of the student code, not a major: write the major's code or name, for example BA or Business Administration. | {0} là phần đầu của mã sinh viên, không phải ngành: hãy ghi mã hoặc tên ngành, ví dụ BA hoặc Quản trị kinh doanh. |
+| 684 | MSG684 | Dialog | This student already has a late check-in for this Term: one request per Term. | Sinh viên này đã có yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu. |
+| 685 | MSG685 | Dialog | You already asked for a late check-in this Term: one request per Term. | Bạn đã gửi yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu. |
+| 686 | MSG686 | Dialog | The Balance is paid before check-in: choose a day up to {0}. | Tiền phòng còn lại phải trả trước khi nhận phòng: hãy chọn ngày đến hết {0}. |
+| 687 | MSG687 | Field | Choose a valid day. | Hãy chọn một ngày hợp lệ. |
+| 688 | MSG688 | Dialog | No student is waiting to check out of this Room. | Không có sinh viên nào đang chờ trả phòng ở phòng này. |
+| 689 | MSG689 | Field | Enter both readings as numbers. | Hãy nhập cả hai chỉ số bằng số. |
+| 690 | MSG690 | Field | Enter both readings as numbers of 0 or more. | Hãy nhập cả hai chỉ số bằng số từ 0 trở lên. |
+| 691 | MSG691 | Dialog | The file needs the columns room, electricity and water. | Tệp cần có các cột phòng, điện và nước. |
+| 692 | MSG692 | Dialog | A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2. | Đề xuất vòng 1 của kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2. |
+| 693 | MSG693 | Field | Say whether you are on duty. | Hãy cho biết bạn có đang trong ca trực không. |
+| 694 | MSG694 | Field | Choose Pending, Accepted, Declined, Expired, Withdrawn or No offer. | Hãy chọn Đang chờ, Đã nhận, Đã từ chối, Hết hạn, Đã rút hoặc Chưa có đề nghị. |
+| 695 | MSG695 | Field | Enter the account holder's name. | Hãy nhập tên chủ tài khoản. |
+| 696 | MSG696 | Field | Enter the account number: 6 to 20 digits. | Hãy nhập số tài khoản: từ 6 đến 20 chữ số. |
+| 697 | MSG697 | Field | Enter the bank's name. | Hãy nhập tên ngân hàng. |
+| 698 | MSG698 | Refused | Only an Application on the waitlist can be withdrawn. | Chỉ rút được đơn đang trong danh sách chờ. |
+| 699 | MSG699 | Dialog | Send the sign-up form first. | Hãy gửi biểu mẫu đăng ký trước. |

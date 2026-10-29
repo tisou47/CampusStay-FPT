@@ -2,7 +2,7 @@
 
 ## 1. Scope of Testing
 
-**Target of test.** The CampusStay API (every endpoint of `docs/api-contract.md`), the business rules behind it, the scheduled jobs, the web app and the Android app, against the functional requirements of Report 3 (FR-AUTH … FR-MOB) and the non-functional requirements NFR-01 … NFR-06.
+**Target of test.** The CampusStay API (every endpoint of `docs/api-contract.md`), the business rules behind it, the scheduled jobs, the web app and the students' mobile app (Flutter, built for Android), against the functional requirements of Report 3 (FR-AUTH … FR-MOB) and the non-functional requirements NFR-01 … NFR-06.
 
 | In scope | Out of scope (reason) |
 |---|---|
@@ -67,7 +67,9 @@
 | Test catalog and test documents | `docs/tools/generate-catalogs.mjs`, `docs/tools/gen-test-docs.mjs` | In-house | — |
 | Demo data for system tests | Admin › System › Demo data (stages 0, A, B, C), `backend/src/main/resources/db/demo/` | In-house | — |
 | Load test | Node.js script with 200 virtual users | In-house (planned) | Node 22 |
-| Manual API checks | Postman collection `postman/` | Postman | — |
+| API documentation and manual API checks | Swagger UI and the OpenAPI document (`/api/swagger-ui.html`, `/api/v3/api-docs`) | springdoc-openapi (open source) | 3.2.0 |
+| API checks by role and smoke tests | Postman collection `postman/collections/CampusStay API`: every endpoint filed by role (288 requests, generated from the OpenAPI document by `docs/tools/generate-postman.mjs`) and the hand-written *Smoke tests* folder (each role signs in, reads its main screens, meets 400/401/403 errors and signs out: 49 requests, 100 assertions); Local and Production environments | Postman, Postman CLI | — |
+| Mobile app checks | `flutter analyze`, `flutter build apk` | Google (open source) | Flutter 3.47 |
 | Browsers and devices | Chrome, Edge; Android emulator (API 35) and an Android phone | Google, Microsoft | Current |
 
 ## 3. Test Plan
@@ -106,7 +108,7 @@
 
 ## 4. Test Cases
 
-The test cases are kept in the workbook `SWP490_FA26SE260_R2_Report5_TestReport.xlsx` (one sheet per mandatory feature, plus Workflows, State transitions and NFRs) with the fields ID, feature or workflow, pre-conditions, steps, data, expected result, how it runs and the actual result. The unit tests are in `SWP490_FA26SE260_R2_Report5_UnitTest.xls`. Every automated case names the test method that runs it; the full list of the 235 automated tests is `docs/backend/04_Test_Catalog.md`, generated from the tests' Javadoc.
+The test cases are kept in the workbook `SWP490_FA26SE260_R2_Report5_TestReport.xlsx` (one sheet per mandatory feature, plus Workflows, State transitions and NFRs) with the fields ID, feature or workflow, pre-conditions, steps, data, expected result, how it runs and the actual result. The unit tests are in `SWP490_FA26SE260_R2_Report5_UnitTest.xls`. Every automated case names the test method that runs it; the full list of the automated tests is `docs/backend/04_Test_Catalog.md`, generated from the tests' Javadoc.
 
 @include _tc-count.md
 

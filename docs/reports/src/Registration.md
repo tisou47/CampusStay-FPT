@@ -34,7 +34,7 @@ Student. The Student shall be able to:
 - Apply for a Term, with eligibility checked, choosing Room Type, Room Class, roommate (2-bed) and stay length (number of Terms), and accept the house rules
 - Pay the Deposit, Balance, next-Term fee and Utility Invoices by VietQR transfer and claim the transfer
 - See the assigned Room and Bed, roommates, furniture, the door code (once paid and from the check-in start) and the check-in pass
-- Ask for a late check-in; answer a Round-2 offer
+- Ask for a late check-in; while waitlisted, answer a Round-2 offer or withdraw with the whole Deposit refunded to their bank account
 - Report Maintenance Requests and follow them; extend or end the stay; ask for a next-Term room change, swap or Room Class change
 - Receive notifications in the app, by push (Android) and by email
 
@@ -43,7 +43,7 @@ Dormitory Staff. The Staff shall be able to:
 - Check students in and out (hand-over, meter reading, damage per furniture item, Utility Deposit settlement)
 - Set and confirm door codes, manage furniture and the Block store, run inspections
 - Enter or import meter readings and close the month (Utility Invoices split by days lived)
-- Handle Maintenance Requests within their time limits; decide next-Term requests; move residents for operational reasons
+- Start and end their duty shift; handle the Maintenance Requests they are in charge of within their time limits; decide next-Term requests; move residents for operational reasons
 - Post announcements to the residents of their Blocks
 
 Manager. The Manager shall be able to:
