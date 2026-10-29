@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/assignment-runs/{runId}/conflicts/{applicationId}'
+method: GET
+url: '{{baseUrl}}/assignment-runs/:runId/conflicts/:applicationId'
+order: 4000
+description: |-
+  `GET /assignment-runs/{runId}/conflicts/{applicationId}` → `{ applicationId, studentName, preference, bed, issue: { label, title, detail, tone }, options: [{ key, label, detail, recommended }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+pathVariables:
+  - key: runId
+    value: ''
+    description: 'Assignment run id, e.g. RUN-3'
+  - key: applicationId
+    value: ''
+    description: 'Application code, e.g. APP-SP27-000123'

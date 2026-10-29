@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/approvals/summary'
+method: GET
+url: '{{baseUrl}}/approvals/summary?termId={{termId}}&block={{block}}'
+order: 2000
+description: |-
+  `GET /approvals/summary?termId&block` → `{ assignment, lateCheckIn, swaps, refunds }`
+
+  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

@@ -1,0 +1,13 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/term-requests'
+order: 10000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with { items, total }', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+        pm.expect(pm.response.json().total).to.be.a('number');
+      });

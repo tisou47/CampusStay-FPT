@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/round2-offers/{id}/respond'
+method: POST
+url: '{{baseUrl}}/round2-offers/:id/respond'
+order: 7000
+description: |-
+  `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
+
+  Contract: `docs/api-contract.md` › Student › Applications
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "accept": false,
+      "optionId": ""
+    }

@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/applications/bulk-review'
+method: POST
+url: '{{baseUrl}}/applications/bulk-review'
+order: 4000
+description: |-
+  `POST /applications/bulk-review` `{ ids, decision }` → `{ approved, skipped }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ids": [],
+      "decision": ""
+    }

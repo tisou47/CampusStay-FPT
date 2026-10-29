@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/invoices/{id}/claim'
+method: POST
+url: '{{baseUrl}}/invoices/:id/claim'
+order: 4000
+description: |-
+  `POST /invoices/{id}/claim` `{ reference? }` → the claim: the student's "I have transferred"; the Invoice waits for a Manager and its deadline stops (A-34, C-42).
+
+  Contract: `docs/api-contract.md` › Student › Invoices and payment
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reference": ""
+    }

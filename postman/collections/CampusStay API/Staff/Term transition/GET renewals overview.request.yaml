@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/renewals/overview'
+method: GET
+url: '{{baseUrl}}/renewals/overview?termId={{termId}}'
+order: 2000
+description: |-
+  `GET /renewals/overview?termId` → `{ term, previousTerm, opened, filing, feesIssued, milestones, counts, requests, reconciliation, newStudentBeds }` (A-40)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+queryParams:
+  - key: termId
+    value: '{{termId}}'

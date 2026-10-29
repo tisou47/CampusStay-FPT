@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/staff-accounts'
+method: POST
+url: '{{baseUrl}}/staff-accounts'
+order: 13000
+description: |-
+  `POST /staff-accounts { name, email, title?, blocks }` → `{ id }`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "email": "",
+      "title": "",
+      "blocks": []
+    }

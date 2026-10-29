@@ -12,7 +12,7 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | `docs/` | Project Brief (source of truth), API contract, backend design, test catalog and web screen map; `docs/tools/` regenerates the catalogs. |
 | `infra/` | Docker Compose for Postgres, Mailpit and the API; `infra/prod/` is the production stack (Postgres, API, Caddy). |
 | `.github/workflows/` | CI/CD: backend verify, image build and deploy to the VM. |
-| `postman/` | Postman workspace files. |
+| `postman/` | Postman collection `CampusStay API` (every endpoint by role, plus read-only smoke tests) and the Local and Production environments; see the collection's description. |
 
 ## Documents
 
@@ -28,7 +28,15 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | [infra/prod/README.md](infra/prod/README.md) | Production runbook: setup, settings, operations, monitoring, Azure appendix |
 | [CLAUDE.md](CLAUDE.md), [backend/CLAUDE.md](backend/CLAUDE.md) | Working rules: delivery, layers, conventions |
 
-The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change.
+The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change. Likewise, after adding or changing an endpoint, run `node docs/tools/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
+
+## API from Postman
+
+With the backend running, Swagger UI is at http://localhost:8080/api/swagger-ui.html. In Postman, open this repository's `postman/` folder, choose the **Local** or **Production** environment and send any request: the collection signs in as the role of the request's folder. The smoke tests run from the command line:
+
+```bash
+postman collection run "postman/collections/CampusStay API" -i "Smoke tests" -e postman/environments/Local.environment.yaml
+```
 
 ## Run locally
 

@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/refunds/{id}/decision'
+method: POST
+url: '{{baseUrl}}/refunds/:id/decision'
+order: 4000
+description: |-
+  `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception) → `204`
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "note": ""
+    }

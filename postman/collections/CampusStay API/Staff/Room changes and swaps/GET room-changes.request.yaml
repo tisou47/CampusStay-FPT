@@ -1,0 +1,26 @@
+$kind: http-request
+name: '/room-changes'
+method: GET
+url: '{{baseUrl}}/room-changes?termId={{termId}}&block={{block}}'
+order: 1000
+description: |-
+  `GET /room-changes?termId&block&status&kind&page&pageSize` → `{ items: [{ id, studentName, studentCode, kind, from: { room, bed, roomTypeName, roomClassName }, to: { roomTypeName, roomClassName }, reason, submittedAt, dueAt, status, decision: { by, at, bed, reason, note } | null }], total, rejectReasons, window }` (without `termId`: the latest open window; B-08)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: kind
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

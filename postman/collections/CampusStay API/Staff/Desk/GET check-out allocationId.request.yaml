@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/check-out/{allocationId}'
+method: GET
+url: '{{baseUrl}}/check-out/:allocationId'
+order: 5000
+description: |-
+  `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+pathVariables:
+  - key: allocationId
+    value: ''
+    description: 'Allocation id'

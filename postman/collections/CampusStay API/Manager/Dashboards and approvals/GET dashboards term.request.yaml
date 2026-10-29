@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/dashboards/term'
+method: GET
+url: '{{baseUrl}}/dashboards/term?termId={{termId}}'
+order: 4000
+description: |-
+  `GET /dashboards/term?termId` → `{ term, terms, requestCode, stayStart, stayEnd, milestones, applications, applicationsTotal, places: [{ roomType, roomClass, gender, beds, allocated, price }], money, checkedIn, residents }` (A-32, A-39)
+
+  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+queryParams:
+  - key: termId
+    value: '{{termId}}'

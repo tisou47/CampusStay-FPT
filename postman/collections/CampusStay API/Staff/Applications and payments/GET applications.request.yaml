@@ -1,0 +1,35 @@
+$kind: http-request
+name: '/applications'
+method: GET
+url: '{{baseUrl}}/applications?termId={{termId}}&block={{block}}'
+order: 1000
+description: |-
+  `GET /applications?termId&block&q&status&roomTypeId&roomClassId&submittedWithin&page&pageSize` → `{ items: [{ id, studentName, studentCode, pair, roomTypeName, roomClassName, depositStatus, depositPaidAt, status }], total, counts: { [status]: number } }`. `status` may be a comma-separated list.
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: q
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: roomTypeId
+    value: ''
+    disabled: true
+  - key: roomClassId
+    value: ''
+    disabled: true
+  - key: submittedWithin
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

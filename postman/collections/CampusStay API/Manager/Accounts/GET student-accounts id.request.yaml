@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/student-accounts/{id}'
+method: GET
+url: '{{baseUrl}}/student-accounts/:id'
+order: 1000
+description: |-
+  `GET /student-accounts/{id}` → the student hub `{ id, name, email, demo, account, profile, verification, residence, sections: { applications, allocations, invoices, requests }, history, actions }`
+
+  Contract: `docs/api-contract.md` › Manager › Accounts
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

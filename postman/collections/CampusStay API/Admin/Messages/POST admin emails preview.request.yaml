@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/admin/emails/preview'
+method: POST
+url: '{{baseUrl}}/admin/emails/preview'
+order: 6000
+description: |-
+  `POST /admin/emails/preview` `{ mode, studentCode?, termId, group, block?, gender?, templateKey, subject }` → `{ count, preview: { recipientName, subject, lines } | null }`
+
+  Contract: `docs/api-contract.md` › Admin › Messages
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "mode": "",
+      "studentCode": "",
+      "termId": "{{termId}}",
+      "group": "",
+      "block": "{{block}}",
+      "gender": "",
+      "templateKey": "",
+      "subject": "",
+      "channel": "",
+      "sendAt": ""
+    }

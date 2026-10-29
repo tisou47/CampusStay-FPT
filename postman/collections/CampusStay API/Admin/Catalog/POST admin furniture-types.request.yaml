@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/admin/furniture-types'
+method: POST
+url: '{{baseUrl}}/admin/furniture-types'
+order: 9000
+description: |-
+  `POST`
+
+  Contract: `docs/api-contract.md` › Admin › Catalog
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": "",
+      "name": "",
+      "nameVi": "",
+      "category": "",
+      "definesClass": false,
+      "status": ""
+    }

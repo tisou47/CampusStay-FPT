@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/search'
+method: GET
+url: '{{baseUrl}}/search'
+order: 1000
+description: |-
+  `GET /search?q` (back office) → `{ q, items: [{ kind, id, title, detail }] }`: students, Rooms, Invoices, Applications, Maintenance Requests and next-Term request codes inside the user's Blocks (A-47)
+
+  Contract: `docs/api-contract.md` › Session and shared
+queryParams:
+  - key: q
+    value: ''
+    disabled: true

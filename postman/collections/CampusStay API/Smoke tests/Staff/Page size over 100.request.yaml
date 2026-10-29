@@ -1,0 +1,19 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/maintenance-requests?termId={{termId}}&block={{block}}&pageSize=101'
+order: 10000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+  - key: pageSize
+    value: '101'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('400 BAD_PAGE', () => {
+        pm.response.to.have.status(400);
+        pm.expect(pm.response.json().code).to.eql('BAD_PAGE');
+      });

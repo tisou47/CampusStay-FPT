@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/dashboards/manager'
+method: GET
+url: '{{baseUrl}}/dashboards/manager?termId={{termId}}&block={{block}}'
+order: 1000
+description: |-
+  `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, beds, collected, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing', severity, title, body, link, cta }] }`
+
+  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'

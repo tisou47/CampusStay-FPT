@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/inventory/rooms/{code}/back-in-service'
+method: POST
+url: '{{baseUrl}}/inventory/rooms/:code/back-in-service'
+order: 5000
+description: |-
+  `POST /inventory/rooms/{code}/back-in-service`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+pathVariables:
+  - key: code
+    value: ''
+    description: 'Room code, e.g. A-305'

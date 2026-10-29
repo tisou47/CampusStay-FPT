@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/routing-rules/{id}'
+method: PUT
+url: '{{baseUrl}}/routing-rules/:id'
+order: 7000
+description: |-
+  `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "type": "",
+      "scope": "",
+      "condition": "",
+      "assigneeId": "",
+      "fallbackId": "",
+      "active": ""
+    }

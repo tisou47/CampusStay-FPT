@@ -1,0 +1,17 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/approvals/summary?termId={{termId}}&block={{block}}'
+order: 4000
+queryParams:
+  - key: termId
+    value: '{{termId}}'
+  - key: block
+    value: '{{block}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with assignment, lateCheckIn, swaps, refunds', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json()).to.include.keys('assignment', 'lateCheckIn', 'swaps', 'refunds');
+      });

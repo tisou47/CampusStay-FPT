@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/applications/eligibility'
+method: GET
+url: '{{baseUrl}}/applications/eligibility?termId={{termId}}'
+order: 1000
+description: |-
+  `GET /applications/eligibility?termId` → `{ term, eligible, checks: [{ title, detail, passed }] }`
+
+  Contract: `docs/api-contract.md` › Student › Application wizard
+queryParams:
+  - key: termId
+    value: '{{termId}}'

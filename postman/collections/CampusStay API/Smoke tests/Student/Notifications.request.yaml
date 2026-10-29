@@ -1,0 +1,16 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/notifications?limit=5'
+order: 8000
+queryParams:
+  - key: limit
+    value: '5'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 with { items, unread }', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().items).to.be.an('array');
+        pm.expect(pm.response.json().unread).to.be.a('number');
+      });

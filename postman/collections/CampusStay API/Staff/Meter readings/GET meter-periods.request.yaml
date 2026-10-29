@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/meter-periods'
+method: GET
+url: '{{baseUrl}}/meter-periods?block={{block}}'
+order: 1000
+description: |-
+  `GET /meter-periods?block` → `{ items: [{ id, label, closed }] }`
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+queryParams:
+  - key: block
+    value: '{{block}}'

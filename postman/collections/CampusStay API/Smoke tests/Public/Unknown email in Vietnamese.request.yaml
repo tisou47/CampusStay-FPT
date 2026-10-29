@@ -1,0 +1,28 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/sign-in'
+order: 3000
+headers:
+  - key: Accept-Language
+    value: 'vi'
+  - key: Content-Type
+    value: 'application/json'
+body:
+  type: json
+  content: |-
+    {
+      "email": "smoke.nobody@fpt.edu.vn",
+      "password": "NotThePassword1",
+      "remember": false
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('401 INVALID_CREDENTIALS', () => {
+        pm.response.to.have.status(401);
+        pm.expect(pm.response.json().code).to.eql('INVALID_CREDENTIALS');
+      });
+      pm.test('The message is translated (A-16)', () => {
+        pm.expect(pm.response.json().message).to.not.eql(pm.variables.get('cs.invalidEn'));
+      });

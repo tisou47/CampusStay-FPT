@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/block-settings'
+method: PUT
+url: '{{baseUrl}}/block-settings'
+order: 14000
+description: |-
+  `PUT /block-settings` `{ block, deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules }` → the `GET` shape
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}",
+      "deskOpens": "",
+      "deskCloses": "",
+      "visitFrom": "",
+      "visitUntil": "",
+      "quiet": "",
+      "houseRules": ""
+    }

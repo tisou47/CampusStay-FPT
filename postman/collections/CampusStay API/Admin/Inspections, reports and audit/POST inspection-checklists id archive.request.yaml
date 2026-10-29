@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/inspection-checklists/{id}/archive'
+method: POST
+url: '{{baseUrl}}/inspection-checklists/:id/archive'
+order: 3000
+description: |-
+  `POST /inspection-checklists/{id}/archive`
+
+  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

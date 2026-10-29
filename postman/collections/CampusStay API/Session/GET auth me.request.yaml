@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/auth/me'
+method: GET
+url: '{{baseUrl}}/auth/me'
+order: 3000
+description: |-
+  GET `/auth/me` — request: — — response: `user`
+
+  Contract: `docs/api-contract.md` › Session and shared

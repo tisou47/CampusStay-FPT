@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/terms'
+method: GET
+url: '{{baseUrl}}/terms'
+order: 9000
+description: |-
+  GET `/terms` — request: — — response: `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }`
+
+  Contract: `docs/api-contract.md` › Session and shared

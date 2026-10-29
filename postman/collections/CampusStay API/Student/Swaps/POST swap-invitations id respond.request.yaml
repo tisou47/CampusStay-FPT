@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/swap-invitations/{id}/respond'
+method: POST
+url: '{{baseUrl}}/swap-invitations/:id/respond'
+order: 6000
+description: |-
+  `POST /swap-invitations/{id}/respond` `{ accept }` → `204`
+
+  Contract: `docs/api-contract.md` › Student › Swaps
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "accept": false
+    }

@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/term-requests/{id}/comments'
+method: POST
+url: '{{baseUrl}}/term-requests/:id/comments'
+order: 3000
+description: |-
+  `POST /term-requests/{id}/comments { text }` → `204` (A-28; Managers request, Managers and the Admin comment)
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "text": ""
+    }

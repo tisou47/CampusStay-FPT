@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/assignment-runs/{runId}/commit'
+method: POST
+url: '{{baseUrl}}/assignment-runs/:runId/commit'
+order: 6000
+description: |-
+  `POST /assignment-runs/{runId}/commit` `{ block }` → `204` (sends the Block to its Manager)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+pathVariables:
+  - key: runId
+    value: ''
+    description: 'Assignment run id, e.g. RUN-3'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}"
+    }

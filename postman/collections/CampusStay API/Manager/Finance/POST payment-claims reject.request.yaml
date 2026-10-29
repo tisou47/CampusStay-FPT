@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/payment-claims/reject'
+method: POST
+url: '{{baseUrl}}/payment-claims/reject'
+order: 1000
+description: |-
+  `POST /payment-claims/reject { invoiceIds, reason }` → `{ rejected, cancelled, skipped }` (Managers, A-35)
+
+  Contract: `docs/api-contract.md` › Manager › Finance
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "invoiceIds": [],
+      "reason": ""
+    }

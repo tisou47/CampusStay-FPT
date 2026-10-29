@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/routing-rules'
+method: POST
+url: '{{baseUrl}}/routing-rules'
+order: 9000
+description: |-
+  `POST /routing-rules`
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {}

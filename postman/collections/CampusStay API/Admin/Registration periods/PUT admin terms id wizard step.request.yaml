@@ -1,0 +1,71 @@
+$kind: http-request
+name: '/admin/terms/{id}/wizard/{step}'
+method: PUT
+url: '{{baseUrl}}/admin/terms/:id/wizard/:step'
+order: 1000
+description: |-
+  `PUT /admin/terms/{id}/wizard/{general|timeline|rooms|prices|rules|information}` (that step's values, `reasons`, `changeReason`) → `{ id }`; publishing fixes the Term's prices, Deposit, Utility Deposit and rules; `409 TERM_NOT_READY`, `PRICES_LOCKED`, `RULES_FIXED` (A-27, C-41)
+
+  Contract: `docs/api-contract.md` › Admin › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: step
+    value: ''
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "stayStart": "2026-12-01",
+      "stayEnd": "2026-12-01",
+      "timeline": {
+        "publishAt": "2026-12-01T00:00:00Z",
+        "requestsOpenAt": "2026-12-01T00:00:00Z",
+        "requestsCloseAt": "2026-12-01T00:00:00Z",
+        "decisionsDueAt": "2026-12-01T00:00:00Z",
+        "reconciliationDueAt": "2026-12-01T00:00:00Z",
+        "feesIssueAt": "2026-12-01T00:00:00Z",
+        "feesDueAt": "2026-12-01T00:00:00Z",
+        "registrationOpensAt": "2026-12-01T00:00:00Z",
+        "registrationClosesAt": "2026-12-01T00:00:00Z",
+        "resultsPublishedAt": "2026-12-01T00:00:00Z",
+        "roommateHours": 0,
+        "depositHours": 0,
+        "balanceDueAt": "2026-12-01T00:00:00Z",
+        "checkInStart": "2026-12-01",
+        "checkInEnd": "2026-12-01",
+        "checkOutBy": "2026-12-01"
+      },
+      "blockIds": [],
+      "excludedRooms": [],
+      "reservedNewPercent": 0,
+      "prices": [
+        {
+          "roomTypeId": "",
+          "roomClassId": "",
+          "price": 0
+        }
+      ],
+      "depositPercent": 0,
+      "utilityDeposit": 0,
+      "houseRules": "",
+      "faq": [
+        {
+          "question": "",
+          "answer": ""
+        }
+      ],
+      "documents": [
+        {
+          "title": "",
+          "url": ""
+        }
+      ],
+      "reasons": {},
+      "changeReason": ""
+    }

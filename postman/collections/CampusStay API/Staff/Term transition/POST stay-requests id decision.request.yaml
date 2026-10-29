@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/stay-requests/{id}/decision'
+method: POST
+url: '{{baseUrl}}/stay-requests/:id/decision'
+order: 8000
+description: |-
+  `POST /stay-requests/{id}/decision` `{ decision, note? }` (A-43)
+
+  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "",
+      "note": ""
+    }

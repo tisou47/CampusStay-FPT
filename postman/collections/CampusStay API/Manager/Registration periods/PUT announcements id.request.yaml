@@ -1,0 +1,24 @@
+$kind: http-request
+name: '/announcements/{id}'
+method: PUT
+url: '{{baseUrl}}/announcements/:id'
+order: 6000
+description: |-
+  `PUT /announcements/{id} { pinned?, shownUntil?, end? }` → `204`; Staff write only to the residents of their Blocks (A-30) Since v2 phase 1 Managers work for every Block and review Applications, run and commit the assignment and confirm payments (C-38).
+
+  Contract: `docs/api-contract.md` › Manager › Registration periods
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "pinned": false,
+      "shownUntil": "2026-12-01T00:00:00Z",
+      "end": false
+    }

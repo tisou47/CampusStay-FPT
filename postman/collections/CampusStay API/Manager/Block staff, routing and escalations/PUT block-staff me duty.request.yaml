@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/block-staff/me/duty'
+method: PUT
+url: '{{baseUrl}}/block-staff/me/duty'
+order: 2000
+description: |-
+  `PUT /block-staff/me/duty` `{ onDuty }` → the same (Staff and Managers start and end their own shift; A-60)
+
+  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "onDuty": false
+    }

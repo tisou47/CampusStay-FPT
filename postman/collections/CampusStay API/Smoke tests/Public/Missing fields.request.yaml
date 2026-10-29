@@ -1,0 +1,22 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/auth/sign-in'
+order: 4000
+headers:
+  - key: Content-Type
+    value: 'application/json'
+body:
+  type: json
+  content: |-
+    {}
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('400 VALIDATION_FAILED', () => {
+        pm.response.to.have.status(400);
+        pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED');
+      });
+      pm.test('Each missing field has its message', () => {
+        pm.expect(pm.response.json().details.fields).to.include.keys('email', 'password');
+      });
