@@ -3900,6 +3900,11 @@ const workspace = {
 // Student UI refactor (UI_REFACTOR_PLAN): new labels of the student pages. Spread last, so it also sets
 // the agreed student wording where an earlier group said it differently.
 const studentUi = {
+  // Requests and header
+  'Create request': 'Tạo yêu cầu',
+  'You can send requests once you have moved into your Room.': 'Bạn gửi được yêu cầu sau khi nhận phòng.',
+  'request': 'yêu cầu',
+  'requests': 'yêu cầu',
   // Applications and Payments
   'Submitted on': 'Ngày nộp',
   'Paid on: {date}': 'Đã trả: {date}',

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Calendar, ChevronDown, KeyRound, LogOut, ShieldAlert, User } from 'lucide-react'
+import { Calendar, ChevronDown, KeyRound, LogOut, ShieldAlert } from 'lucide-react'
 import { isNavActive, studentNav } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
@@ -27,6 +27,7 @@ function StudentTopBar() {
   const navigate = useNavigate()
   const { user, term, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
+  const avatarRef = useRef(null)
   return (
     <header className="z-30 hidden shrink-0 border-b border-line bg-surface lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
@@ -54,47 +55,44 @@ function StudentTopBar() {
             })}
           </nav>
         </div>
-        {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
+        {/* The Term is shown, not chosen here: plain text with an icon. The avatar menu names the user. */}
         <div className="flex items-center gap-4">
           {term && (
-            <span className="hidden items-center gap-1.5 rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary xl:flex">
+            <span className="flex items-center gap-1.5 text-small font-medium whitespace-nowrap text-text-secondary">
               <Calendar size={16} aria-hidden="true" />
               {term.name}
             </span>
           )}
-          <LanguageSwitch size="sm" />
+          {/* Each VI/EN button at least 32 × 32 px (the shared switch is sized from here). */}
+          <span className="flex [&_button]:min-h-8 [&_button]:min-w-8">
+            <LanguageSwitch size="sm" />
+          </span>
           <NotificationsButton />
           <span aria-hidden="true" className="h-6 w-px bg-line" />
           <Popover
             width={220}
             trigger={({ toggle, props }) => (
-              <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
+              <button ref={avatarRef} type="button" onClick={toggle} aria-label={user?.name ?? t('Account')} className="flex items-center gap-2 rounded-md text-left" {...props}>
                 <Avatar name={user?.name} />
-                <span className="hidden flex-col whitespace-nowrap xl:flex">
-                  <span className="text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
-                  {user?.studentCode && <span className="text-sm text-fg-tertiary">{user.studentCode}</span>}
-                </span>
                 <ChevronDown size={16} aria-hidden="true" className="text-fg-secondary" />
               </button>
             )}
           >
             {({ close }) => (
-              <div className="flex flex-col py-1">
+              // Esc closes the menu (Popover) and focus goes back to the avatar button.
+              <div role="menu" className="flex flex-col py-1" onKeyDown={(e) => e.key === 'Escape' && avatarRef.current?.focus()}>
                 {user && (
                   <div className="border-b border-line px-3 pt-1.5 pb-2.5">
                     <p className="text-base font-medium text-fg">{user.name}</p>
-                    <p className="text-sm text-fg-tertiary">{user.email}</p>
+                    <p className="text-sm text-fg-tertiary">{user.studentCode ? `${user.studentCode} · ${user.email}` : user.email}</p>
                   </div>
                 )}
-                <MenuItem icon={User} onClick={() => { close(); navigate('/student/room') }}>
-                  {t('My Room')}
-                </MenuItem>
                 <MenuItem icon={KeyRound} onClick={() => { close(); setChangingPassword(true) }}>
                   {t('Change password')}
                 </MenuItem>
+                <div role="separator" className="my-1 border-t border-line" />
                 <MenuItem
                   icon={LogOut}
-                  danger
                   onClick={async () => {
                     close()
                     await signOut()
