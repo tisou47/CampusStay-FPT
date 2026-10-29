@@ -1,5 +1,5 @@
 /*
- * The Manager's flow through a Term, in the order it happens (spec §5, §6.6–§6.12): the stages are those of
+ * The Manager's and the Staff's flows through a Term, in the order it happens (spec §5, §6.6–§6.12): the stages are those of
  * termJourney (same keys and dates), and each stage lists its screens in the order to use them. The Overview
  * shows what the current stage asks for; every screen of the flow shows where it sits (FlowTrail).
  */
@@ -64,8 +64,13 @@ export const MANAGER_STAGES = [
  * two stages (Applications) is placed in the Term's current stage when it belongs there.
  */
 export function managerPosition(pathname, liveStage = -1) {
+  return stagePosition(MANAGER_STAGES, pathname, liveStage)
+}
+
+/** Where a path sits in a role's stages ({ stage, screen }), or null. */
+export function stagePosition(stages, pathname, liveStage = -1) {
   let best = null
-  MANAGER_STAGES.forEach((stage, si) =>
+  stages.forEach((stage, si) =>
     stage.screens.forEach((s, i) => {
       const hit = pathname === s.to || pathname.startsWith(`${s.to}/`)
       // The longest match wins (/manager/next-term/fees over /manager/next-term).
@@ -74,3 +79,56 @@ export function managerPosition(pathname, liveStage = -1) {
   )
   return best && { stage: best.stage, screen: best.screen }
 }
+
+/**
+ * The Staff's work through a Term, with the same stages as the Manager's (termJourney keys). Staff prepare the
+ * Rooms and codes before check-in, run the desk, then the daily work of the stay and the turnover to the next Term.
+ */
+export const STAFF_STAGES = [
+  {
+    key: 'registration',
+    label: 'Registration',
+    why: 'Students are applying: get the Block’s Rooms, Beds and furniture right before Beds are given out.',
+    screens: [
+      { to: '/staff/inventory', label: 'Rooms and Beds', why: 'Take broken Beds and Rooms out of service so nobody is placed in them.' },
+      { to: '/staff/furniture', label: 'Furniture', why: 'A Room’s class depends on its furniture; record what each Room really has.' },
+    ],
+  },
+  {
+    key: 'assignment',
+    label: 'Review and assignment',
+    why: 'Students are being placed: every Room that will be used needs a door code ready.',
+    screens: [
+      { to: '/staff/inventory', label: 'Rooms and Beds', why: 'Rooms out of service are left out of the assignment.' },
+      { to: '/staff/door-codes', label: 'Door codes', why: 'Set each Room’s code and confirm it on the lock; codes are only released once confirmed.' },
+    ],
+  },
+  {
+    key: 'payment',
+    label: 'Balance payment',
+    why: 'Residents pay their Balance; their door code is released when they have paid and the code is confirmed.',
+    screens: [{ to: '/staff/door-codes', label: 'Door codes', why: 'A code waiting to be confirmed on the lock holds back paid residents.' }],
+  },
+  {
+    key: 'checkin',
+    label: 'Check-in',
+    why: 'Residents move in at the desk; hand over the items and note anything missing.',
+    screens: [
+      { to: '/staff/check-in', label: 'Check-in', why: 'Look up the resident by code, name or QR pass and hand over the items.' },
+      { to: '/staff/door-codes', label: 'Door codes', why: 'Residents without a code yet are waiting on a confirmation here.' },
+    ],
+  },
+  {
+    key: 'stay',
+    label: 'Living in',
+    why: 'Daily work for residents, then the move to the next Term: requests, meter readings and check-outs.',
+    screens: [
+      { to: '/staff/maintenance', label: 'Maintenance', why: 'Requests have a time limit; overdue ones go to a Manager.' },
+      { to: '/staff/inspections', label: 'Inspections', why: 'Scheduled Room checks set by the Manager.' },
+      { to: '/staff/meter-readings', label: 'Meter readings', why: 'Monthly readings become the residents’ Utility Invoices.' },
+      { to: '/staff/next-term', label: 'Term transition', why: 'Next-Term requests of your Block: room changes, swaps, Room Classes and extensions.' },
+      { to: '/staff/room-changes', label: 'Room changes and swaps', why: 'Decide moves inside your Block.' },
+      { to: '/staff/check-out', label: 'Check-out', why: 'Final meter reading, condition and damage per item, keys back; the door code is rotated after.' },
+    ],
+  },
+]
