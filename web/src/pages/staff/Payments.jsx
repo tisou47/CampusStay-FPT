@@ -119,7 +119,7 @@ export default function Payments() {
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
   const [method, setMethod] = useState('')
-  const [date, setDate] = useState('today')
+  const [date, setDate] = useState('term')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [view, setView] = useState(null)

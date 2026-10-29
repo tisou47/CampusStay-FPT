@@ -13,7 +13,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   CreditCard,
-  DoorOpen,
   FileSearch,
   FileText,
   Gauge,
@@ -40,7 +39,6 @@ import {
   TriangleAlert,
   Upload,
   User,
-  UserCog,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -52,9 +50,22 @@ import {
  */
 
 /** A nav item is active on its own path, any sub-path, and any extra `match` prefixes. */
+/**
+ * A menu item is active on its own path, the paths in `match`, and the screens of its `tabs` (screens joined under
+ * one entry and switched with the tab strip above the page, SectionTabs); `exclude` keeps a deeper path that has
+ * its own entry (Next-Term fees under Term transition).
+ */
 export function isNavActive(item, pathname) {
   if (item.end) return pathname === item.to
-  return [item.to, ...(item.match ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const under = (p) => pathname === p || pathname.startsWith(`${p}/`)
+  if ((item.exclude ?? []).some(under)) return false
+  return [item.to, ...(item.match ?? []), ...(item.tabs ?? []).map((tab) => tab.to)].some(under)
+}
+
+/** The menu item whose tabs hold this path, for the tab strip above the page; null when the page stands alone. */
+export function tabGroupFor(role, pathname) {
+  const items = backOffice[role]?.sections.flatMap((s) => s.items) ?? []
+  return items.find((item) => item.tabs && item.tabs.some((tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`))) ?? null
 }
 
 // Student top bar: Home, Registration, My Room, Payments, Requests.
@@ -137,23 +148,51 @@ export const backOffice = {
       {
         title: 'Residents',
         items: [
-          { label: 'Students', icon: GraduationCap, to: '/manager/students' },
-          { label: 'Import student list', icon: Upload, to: '/manager/student-import' },
+          {
+            label: 'Students',
+            icon: GraduationCap,
+            to: '/manager/students',
+            tabs: [
+              { label: 'Students', to: '/manager/students' },
+              { label: 'Import student list', to: '/manager/student-import' },
+            ],
+          },
           { label: 'Reconciliation', icon: FileSearch, to: '/manager/reconciliation' },
-          { label: 'Term transition', icon: CalendarClock, to: '/manager/next-term' },
-          { label: 'Decisions', icon: Check, to: '/manager/approvals' },
-          { label: 'Terminations', icon: DoorOpen, to: '/manager/terminations' },
-          { label: 'Room changes and swaps', icon: Repeat, to: '/manager/room-changes' },
-          { label: 'Operational moves', icon: ArrowRightLeft, to: '/manager/moves' },
+          { label: 'Term transition', icon: CalendarClock, to: '/manager/next-term', exclude: ['/manager/next-term/fees'] },
+          {
+            label: 'Decisions',
+            icon: Check,
+            to: '/manager/approvals',
+            tabs: [
+              { label: 'Decisions', to: '/manager/approvals' },
+              { label: 'Terminations', to: '/manager/terminations' },
+            ],
+          },
+          {
+            label: 'Moves',
+            icon: Repeat,
+            to: '/manager/room-changes',
+            tabs: [
+              { label: 'Room changes and swaps', to: '/manager/room-changes' },
+              { label: 'Operational moves', to: '/manager/moves' },
+            ],
+          },
         ],
       },
       {
         title: 'Finance',
         items: [
-          { label: 'Payment confirmations', icon: HandCoins, to: '/manager/payment-claims' },
+          {
+            label: 'Payments',
+            icon: HandCoins,
+            to: '/manager/payment-claims',
+            tabs: [
+              { label: 'Payment confirmations', to: '/manager/payment-claims' },
+              { label: 'Payments', to: '/manager/payments' },
+              { label: 'Collections and refunds', to: '/manager/finance' },
+            ],
+          },
           { label: 'Next-Term fees', icon: Banknote, to: '/manager/next-term/fees' },
-          { label: 'Payments', icon: CreditCard, to: '/manager/payments' },
-          { label: 'Collections and refunds', icon: Banknote, to: '/manager/finance' },
         ],
       },
       {
@@ -162,8 +201,15 @@ export const backOffice = {
           { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
-          { label: 'Routing and timers', icon: SlidersHorizontal, to: '/manager/routing-rules' },
-          { label: 'Block settings', icon: Settings, to: '/manager/block-settings' },
+          {
+            label: 'Block settings',
+            icon: Settings,
+            to: '/manager/block-settings',
+            tabs: [
+              { label: 'Block settings', to: '/manager/block-settings' },
+              { label: 'Routing and timers', to: '/manager/routing-rules' },
+            ],
+          },
         ],
       },
       {
@@ -178,8 +224,15 @@ export const backOffice = {
       {
         title: 'People',
         items: [
-          { label: 'Staff accounts', icon: UserCog, to: '/manager/staff-accounts' },
-          { label: 'Staff and workload', icon: Users, to: '/manager/staff' },
+          {
+            label: 'Staff',
+            icon: Users,
+            to: '/manager/staff',
+            tabs: [
+              { label: 'Staff and workload', to: '/manager/staff' },
+              { label: 'Staff accounts', to: '/manager/staff-accounts' },
+            ],
+          },
         ],
       },
       { items: [{ label: 'Announcements', icon: Megaphone, to: '/manager/announcements' }] },
