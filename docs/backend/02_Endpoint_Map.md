@@ -123,7 +123,7 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 |---|---|---|---|---|---|
 | ASG | POST | `/check-in` | Must | Verified | C-23; TC-ASG-020 |
 | ASG | GET | `/check-in/lookup` | Must | Verified | Code, name or pass (A-11); C-23; TC-ASG-020, 021 |
-| ASG | GET | `/check-in/today` | Must | Verified | TC-ASG-020, 021 |
+| ASG | GET | `/check-in/today` | Must | Verified | A-63; TC-ASG-020, 021 |
 | ASG | GET | `/check-out` | Must | Verified | C-23; TC-ASG-021, 022 |
 | ASG | GET | `/check-out/{allocationId}` | Must | Verified | B-01 (was `{studentCode}`); TC-ASG-021, 022 |
 | ASG | POST | `/check-out/{allocationId}` | Must | Verified | B-01; Utility Deposit settlement (C-23); TC-ASG-022 (opens the door-code rotation, A-25), 023 |
@@ -229,9 +229,9 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | NTF | PUT | `/admin/notification-templates/{key}` | Could | Verified | C-35; TC-NTF-030 |
 | NTF | POST | `/admin/notification-templates/{key}/test` | Could | Verified | C-35; TC-NTF-031 |
 | RPT | GET | `/approvals/summary` | Should | Verified | C-36; TC-RPT-003 |
-| RPT | GET | `/dashboards/admin` | Should | Verified | C-36; TC-RPT-004 |
-| RPT | GET | `/dashboards/manager` | Should | Verified | C-36; TC-RPT-002 |
-| RPT | GET | `/dashboards/staff` | Should | Verified | C-36; TC-RPT-001 |
+| RPT | GET | `/dashboards/admin` | Should | Verified | C-36, A-63; TC-RPT-004, 015 |
+| RPT | GET | `/dashboards/manager` | Should | Verified | C-36, A-63; TC-RPT-002, 015 |
+| RPT | GET | `/dashboards/staff` | Should | Verified | C-36, A-63; TC-RPT-001, 015 |
 | RPT | GET | `/exports/{report}` | Must | Verified | C-37; CSV; each screen export is implemented by its module: TC-RPT-008, 009 |
 | RPT | GET | `/reports/block` | Must | Verified | C-37; TC-RPT-007 |
 | RPT | GET | `/reports/financial` | Must | Verified | C-37; TC-RPT-006 |
