@@ -51,6 +51,7 @@ Built for one campus's real dormitory rules rather than a generic housing platfo
 ## Brand Commitments
 
 - Name: **CampusStay FPT**. CampusStay has its own identity; FPT University appears in the name and context only (user decision, 30/10/2026). It is not presented as an official FPT University product.
+- Colours: FPT Vietnam's palette is binding (user decision, 30/10/2026, during the redesign): FPT orange carries the frame, FPT blue and green appear as small marks (links, done states).
 - Google sign-in is limited to `@fpt.edu.vn` accounts.
 
 ## Evidence on Hand

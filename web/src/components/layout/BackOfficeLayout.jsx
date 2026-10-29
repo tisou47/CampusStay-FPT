@@ -15,8 +15,9 @@ import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 
-// Back-office shell (Change Specification v2 §11): a 248 px sidebar with the menu grouped by the work it
-// belongs to, and a top bar with the Term and Block scope, search (pages and records), language and notifications.
+// Back-office shell (Change Specification v2 §11): the FPT-orange band across the top carries the logo, the Term
+// and Block scope, search (pages and records), language and notifications; below it a 248 px menu grouped by the
+// work it belongs to.
 function Sidebar({ role }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -27,16 +28,11 @@ function Sidebar({ role }) {
     <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <div className="flex min-h-0 flex-col">
-        <div className="px-4 pt-4 pb-2">
-          <Link to={`/${role}`} aria-label={t('Home')}>
-            <Logo subtitle={t(config.portal)} />
-          </Link>
-        </div>
-        <nav aria-label={t('Main')} className="flex min-h-0 flex-col gap-3 overflow-y-auto px-3 pt-2 pb-4">
+        <nav aria-label={t('Main')} className="flex min-h-0 flex-col gap-4 overflow-y-auto px-3 pt-4 pb-4">
           {config.sections.map((section, si) => (
             <div key={section.title ?? si} className="flex flex-col gap-px">
               {section.title && (
-                <p className="px-3 pb-1 text-xs font-semibold tracking-wide text-fg-tertiary uppercase">{t(section.title)}</p>
+                <p className="px-3 pb-1 text-sm font-semibold text-fg-tertiary">{t(section.title)}</p>
               )}
               {section.items.map((item) => {
                 const active = isNavActive(item, pathname)
@@ -48,10 +44,10 @@ function Sidebar({ role }) {
                     aria-current={active ? 'page' : undefined}
                     className={cx(
                       'flex min-h-8 shrink-0 items-center gap-2.5 rounded-md px-3 py-1 text-base leading-snug transition-colors',
-                      active ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
+                      active ? 'bg-primary-subtle font-semibold text-fg-brand' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
                     )}
                   >
-                    <Glyph size={18} aria-hidden="true" className="shrink-0" />
+                    <Glyph size={18} aria-hidden="true" className={cx('shrink-0', active ? 'text-primary' : 'text-fg-tertiary')} />
                     <span className="min-w-0">{t(item.label)}</span>
                   </Link>
                 )
@@ -104,7 +100,7 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
           onClick={toggle}
           aria-label={label}
           disabled={disabled}
-          className="flex items-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-base font-medium whitespace-nowrap text-fg hover:border-primary disabled:pointer-events-none disabled:opacity-60"
+          className="flex h-8 items-center gap-2 rounded-md bg-surface px-3 text-base font-medium whitespace-nowrap text-fg shadow-card hover:bg-primary-subtle disabled:pointer-events-none disabled:opacity-60"
           {...props}
         >
           <Glyph size={16} aria-hidden="true" className="text-fg-secondary" />
@@ -206,7 +202,7 @@ function QuickSearch({ role }) {
           type="button"
           onClick={toggle}
           title={t('Search pages, students, Rooms, codes…')}
-          className="flex h-8 w-64 items-center gap-2 rounded-md border border-line bg-canvas px-3 text-base whitespace-nowrap text-fg-tertiary hover:border-line-strong"
+          className="flex h-8 w-72 items-center gap-2 rounded-md bg-surface px-3 text-base whitespace-nowrap text-fg-tertiary shadow-card hover:text-fg-secondary"
           {...props}
         >
           <Search size={16} aria-hidden="true" className="shrink-0" />
@@ -287,7 +283,7 @@ function DutyToggle() {
       title={onDuty ? t('On duty: new requests can be routed to you. Click to end your shift.') : t('Off duty: new requests are not routed to you. Click to start your shift.')}
       className={cx(
         'flex h-8 items-center gap-2 rounded-full border px-3 text-base font-medium whitespace-nowrap transition-colors disabled:opacity-60',
-        onDuty ? 'border-success bg-success-bg text-success-fg hover:bg-green-100' : 'border-line-strong bg-subtle text-fg-secondary hover:border-primary hover:text-fg',
+        onDuty ? 'border-transparent bg-success-bg text-success-fg shadow-card hover:bg-green-100' : 'border-transparent bg-surface text-fg-secondary shadow-card hover:text-fg',
       )}
     >
       <span aria-hidden="true" className={cx('size-2 rounded-full', onDuty ? 'bg-success' : 'bg-gray-400')} />
@@ -308,13 +304,16 @@ function BackOfficeTopBar({ role }) {
   ]
   const fixedBlock = role === 'staff' && blocks.length === 1
   return (
-    <header className="z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-line bg-surface px-6">
-      <div className="flex items-center gap-3">
+    <header data-band className="z-30 flex h-14 shrink-0 items-center gap-4 border-b border-band-line bg-band pr-6">
+      <Link to={`/${role}`} aria-label={t('Home')} className="flex h-full w-62 shrink-0 items-center px-4">
+        <Logo tone="band" subtitle={t(backOffice[role].portal)} />
+      </Link>
+      <div className="flex min-w-0 flex-1 items-center gap-3 pl-6">
         <SelectorButton icon={Calendar} label={t('Term')} value={term?.id} options={termOptions} onChange={setTermId} disabled={!termOptions.length} />
         {fixedBlock ? (
           <span
             title={t('Your Block. A Manager sets the Blocks of your account.')}
-            className="flex items-center gap-2 rounded-md bg-subtle px-3 py-1.5 text-base font-medium whitespace-nowrap text-fg"
+            className="flex h-8 items-center gap-2 rounded-md bg-surface px-3 text-base font-medium whitespace-nowrap text-fg shadow-card"
           >
             <Building size={16} aria-hidden="true" className="text-fg-secondary" />
             {t('Block {code}', { code: blocks[0] })}
@@ -328,7 +327,7 @@ function BackOfficeTopBar({ role }) {
       <div className="flex items-center gap-3">
         <QuickSearch role={role} />
         <LanguageSwitch />
-        <NotificationsButton />
+        <NotificationsButton onBand />
       </div>
     </header>
   )
@@ -338,10 +337,10 @@ function BackOfficeTopBar({ role }) {
 // <main> only scrolls as a fallback when the window is smaller than the layout needs.
 export function BackOfficeLayout({ role }) {
   return (
-    <div className="flex h-dvh overflow-hidden bg-canvas">
-      <Sidebar role={role} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <BackOfficeTopBar role={role} />
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+      <BackOfficeTopBar role={role} />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar role={role} />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
           <Outlet />
         </main>
@@ -360,7 +359,7 @@ export function PageHeader({ title, description, actions, badge, breadcrumb, cla
       <div className="flex min-w-0 flex-col gap-0.5">
         {breadcrumb}
         <div className="flex items-center gap-3">
-          <h1 className="text-h1 font-semibold text-fg">{tx(title)}</h1>
+          <h1 className="text-h1 font-bold tracking-tight text-fg">{tx(title)}</h1>
           {badge}
         </div>
         {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}

@@ -19,16 +19,16 @@ export function useNotifications() {
   return { query, items, unread, markAll, markOne }
 }
 
-export function NotificationsButton() {
+export function NotificationsButton({ onBand = false }) {
   const { query, unread, markAll, markOne } = useNotifications()
 
   return (
     <Popover
       width={360}
       trigger={({ toggle, props }) => (
-        <button type="button" onClick={toggle} aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')} className="relative size-8 shrink-0 rounded-md text-fg-secondary hover:bg-subtle" {...props}>
+        <button type="button" onClick={toggle} aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')} className={cx('relative size-8 shrink-0 rounded-md', onBand ? 'text-band-fg hover:bg-band-hover' : 'text-fg-secondary hover:bg-subtle')} {...props}>
           <Bell size={20} aria-hidden="true" className="absolute top-1.5 left-1.5" />
-          {unread > 0 && <span aria-hidden="true" className="absolute top-1 left-5 size-2 rounded-full border-[1.5px] border-white bg-error" />}
+          {unread > 0 && <span aria-hidden="true" className={cx('absolute top-1 left-5 size-2.5 rounded-full border-[1.5px] bg-error', onBand ? 'border-surface' : 'border-white')} />}
         </button>
       )}
     >

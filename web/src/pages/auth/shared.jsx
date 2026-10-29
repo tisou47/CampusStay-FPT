@@ -14,9 +14,9 @@ export const cardClasses =
   'flex w-full flex-col gap-4 rounded-[20px] border border-white/18 bg-white/96 p-5 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.12),0px_20px_60px_0px_rgba(0,0,0,0.3)]'
 
 export const primaryButtonClasses =
-  'flex h-10 w-full items-center justify-center rounded-lg bg-accent px-2 text-base leading-5 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60'
+  'flex h-10 w-full items-center justify-center rounded-lg bg-primary px-2 text-base leading-5 font-semibold text-fg-on-brand shadow-card transition-colors hover:bg-primary-hover disabled:opacity-60'
 
-export const textLinkClasses = 'text-base leading-5 font-semibold text-accent hover:underline'
+export const textLinkClasses = 'text-base leading-5 font-semibold text-fg-link hover:underline'
 
 /** Campus photo, FPT badge and the CampusStay title above the page's card. */
 export function AuthShell({ children }) {
