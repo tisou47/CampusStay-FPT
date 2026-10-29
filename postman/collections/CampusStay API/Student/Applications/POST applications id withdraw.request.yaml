@@ -1,0 +1,13 @@
+$kind: http-request
+name: '/applications/{id}/withdraw'
+method: POST
+url: '{{baseUrl}}/applications/:id/withdraw'
+order: 8000
+description: |-
+  `POST /applications/{id}/withdraw` (a Waitlisted Application) → `{ applicationId, refund }`: an open offer closes as declined, the Application is cancelled and the whole Deposit refunded after a Manager approves; `GET /applications/{id}` of a Waitlisted one carries `waitlist: { offer: { id, expiresAt, options } | null, until, refund }` (A-61)
+
+  Contract: `docs/api-contract.md` › Student › Applications
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

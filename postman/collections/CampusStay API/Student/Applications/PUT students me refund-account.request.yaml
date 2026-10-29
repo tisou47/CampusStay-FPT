@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/students/me/refund-account'
+method: PUT
+url: '{{baseUrl}}/students/me/refund-account'
+order: 10000
+description: |-
+  `PUT /students/me/refund-account` `{ holder, number, bank }` → the same (A-62)
+
+  Contract: `docs/api-contract.md` › Student › Applications
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "holder": "",
+      "number": "",
+      "bank": ""
+    }
