@@ -203,6 +203,17 @@ function QuickSearch({ role }) {
   )
   const q = query.trim().toLowerCase()
   useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+      const el = e.target
+      if (el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return
+      e.preventDefault()
+      document.getElementById('quick-search')?.click()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+  useEffect(() => {
     const id = setTimeout(() => setDebounced(query.trim()), 250)
     return () => clearTimeout(id)
   }, [query])
@@ -219,14 +230,17 @@ function QuickSearch({ role }) {
       width={380}
       trigger={({ toggle, props }) => (
         <button
+          id="quick-search"
           type="button"
           onClick={toggle}
+          aria-keyshortcuts="/"
           title={t('Search pages, students, Rooms, codes…')}
           className="flex h-8 w-72 items-center gap-2 rounded-md bg-surface px-3 text-base whitespace-nowrap text-fg-tertiary shadow-card hover:text-fg-secondary"
           {...props}
         >
           <Search size={16} aria-hidden="true" className="shrink-0" />
-          <span className="truncate">{t('Search…')}</span>
+          <span className="min-w-0 flex-1 truncate text-left">{t('Search…')}</span>
+          <kbd aria-hidden="true" className="shrink-0 rounded border border-line px-1.5 font-sans text-sm text-fg-tertiary">/</kbd>
         </button>
       )}
     >

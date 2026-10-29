@@ -21,7 +21,7 @@ import { t, tr } from '@/i18n'
 //   funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }],
 //   checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }
 
-const STATE_LABEL = { done: 'Done', now: 'Do this now', waiting: 'Waiting', later: 'Later' }
+const STATE_LABEL = { done: 'Done', now: 'Do this now', next: 'Up next', waiting: 'Waiting', later: 'Later' }
 
 /**
  * "Set up a Term" (spec §6.3, §6.4): the five stages in the order they happen, each with its state in words,
@@ -42,7 +42,9 @@ function TermSetupFlow({ checks }) {
       </div>
       <ol className="grid grid-cols-5 gap-3">
         {stages.map((s, i) => {
-          const now = s.state === 'now'
+          // One focus: the first stage to do is "now"; another that is also open reads "Next" and stays quiet.
+          const now = i === lead
+          const label = s.state === 'now' && !now ? 'next' : s.state
           return (
             <li key={s.key} className={cx('flex min-w-0 flex-col gap-2 rounded-md p-3', now ? 'bg-primary-subtle ring-1 ring-primary' : 'bg-canvas')}>
               <div className="flex items-center gap-2">
@@ -55,7 +57,7 @@ function TermSetupFlow({ checks }) {
                 >
                   {s.state === 'done' ? <Check size={14} /> : i + 1}
                 </span>
-                <span className={cx('text-sm font-semibold', s.state === 'done' ? 'text-success-fg' : now ? 'text-fg-brand' : 'text-fg-tertiary')}>{t(STATE_LABEL[s.state])}</span>
+                <span className={cx('text-sm font-semibold', s.state === 'done' ? 'text-success-fg' : now ? 'text-fg-brand' : 'text-fg-tertiary')}>{t(STATE_LABEL[label])}</span>
               </div>
               <p className="text-base font-semibold text-fg">{t(s.label)}</p>
               <p className="text-sm text-fg-secondary">{say(s.detail)}</p>

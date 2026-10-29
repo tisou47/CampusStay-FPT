@@ -416,6 +416,9 @@ const vi = {
   "The next registration period is announced on the dormitory board; you can apply as soon as it opens.": "Đợt đăng ký tiếp theo sẽ được thông báo trên bảng tin ký túc xá; bạn có thể nộp đơn ngay khi đợt mở.",
   // Manager menu: screens joined under one entry.
   "Moves": "Chuyển phòng",
+  // Overview focus: one stage to do now; routing gaps as a set-up note.
+  "Up next": "Làm tiếp theo",
+  "Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.": "Thiết lập: thiếu {n} quy tắc phân công (Block {list}); các yêu cầu đó sẽ chờ đến khi có người nhận.",
 }
 
 export default vi
