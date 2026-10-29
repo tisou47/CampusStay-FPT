@@ -161,10 +161,8 @@ ${noId.length ? `\n### Tests without a test case id\n\n${noId.map((t) => `- [\`$
 
 function screenMap() {
   const routerSrc = readFileSync(join(root, 'web/src/app/router.jsx'), 'utf8')
-  // Pages are imported directly (first chunk) or loaded on their first visit: const X = () => import('@/pages/…').
-  const imports = Object.fromEntries(
-    [...routerSrc.matchAll(/^(?:import (\w+) from|const (\w+) = \(\) => import\() ?'@\/pages\/([^']+)'/gm)].map((m) => [m[1] ?? m[2], `web/src/pages/${m[3]}.jsx`]),
-  )
+  // Pages imported directly (public ones) or loaded on first visit: const X = () => import('@/pages/…').
+  const imports = Object.fromEntries([...routerSrc.matchAll(/^(?:import (\w+) from |const (\w+) = \(\) => import\()'@\/pages\/([^']+)'/gm)].map((m) => [m[1] ?? m[2], `web/src/pages/${m[3]}.jsx`]))
 
   const screensSrc = readFileSync(join(root, 'web/src/app/screens.js'), 'utf8')
   const screens = [...screensSrc.matchAll(/\{ code: '([^']+)', title: '([^']+)', role: '(\w+)', path: '([^']+)' \}/g)].map((m) => ({ code: m[1], title: m[2], role: m[3], path: m[4].split('?')[0] }))
@@ -176,11 +174,11 @@ function screenMap() {
   for (const line of routerSrc.split(/\r?\n/)) {
     const portal = line.match(/portal\('(\w+)'/)
     if (portal) role = portal[1]
-    // { path: 'x', element: <Page a="b" /> } or { path: 'x', ...page(Page, { a: 'b' }) }; props are shown as JSX attributes.
+    // { path: 'x', element: <Page a="b" /> } or the lazy { path: 'x', ...page(Page, { a: 'b' }) }
     const lazy = line.match(/\{ (index: true|path: '([^']+)'), \.\.\.page\((\w+)(?:, \{ ([^}]*) \})?\)/)
-    const jsxProps = (props) =>
-      (props ?? '').split(', ').filter(Boolean).map((p) => p.replace(/^(\w+): '([^']*)'$/, '$1="$2"').replace(/^(\w+): true$/, '$1').replace(/^(\w+): ([^"=]+)$/, '$1={$2}')).join(' ')
-    const m = line.match(/\{ (index: true|path: '([^']+)'), element: <(\w+)([^/>]*)\/?>/) ?? (lazy && lazy.with(4, jsxProps(lazy[4])))
+    const m = lazy
+      ? [lazy[0], lazy[1], lazy[2], lazy[3], (lazy[4] ?? '').replace(/(\w+): '([^']*)'/g, '$1="$2"').replace(/,\s*/g, ' ')]
+      : line.match(/\{ (index: true|path: '([^']+)'), element: <(\w+)([^/>]*)\/?>/)
     if (!m || m[3] === 'Navigate' || m[3] === 'RootLayout') continue
     const path = m[1].startsWith('index') ? (role ? `/${role}` : '/') : m[2] === '*' ? '*' : role ? `/${role}/${m[2]}` : `/${m[2]}`
     routes.push({ role: role ?? 'public', path, comp: m[3], props: m[4].trim(), file: imports[m[3]] })

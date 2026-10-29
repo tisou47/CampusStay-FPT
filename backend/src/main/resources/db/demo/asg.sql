@@ -30,7 +30,7 @@ SELECT d.student_id, t.n_id, t.n_id,
                           THEN CASE WHEN d.scenario = 'S10' THEN 2 ELSE 1 END ELSE 0 END,
        1, CASE WHEN d.leave = 'CHECKED_OUT' THEN 'ENDED' ELSE 'ACTIVE' END,
        CASE WHEN d.leave = 'CHECKED_OUT' THEN 'COMPLETED' END, (t.n_start - 2 + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
-       CASE WHEN d.leave = 'CHECKED_OUT' THEN t.now - interval '1 day' * (1 + d.h % 3) END
+       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END
 FROM demo_res d CROSS JOIN demo_t t;
 
 INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, started_at)
@@ -47,7 +47,7 @@ SELECT t.n_id, ap.id, d.student_id, d.bed_id, CASE WHEN d.leave = 'CHECKED_OUT' 
        (SELECT id FROM demo_staff WHERE account = 'manager.a'),
        CASE WHEN d.h % 2 = 0 THEN ((t.n_start - 3 + d.h % 5) + TIME '14:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE WHEN d.h % 2 = 0 THEN (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(d.block) || '1') END,
-       CASE WHEN d.leave = 'CHECKED_OUT' THEN t.now - interval '1 day' * (1 + d.h % 3) END,
+       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE WHEN d.leave = 'CHECKED_OUT' THEN 'CHECK_OUT' END,
        ((t.n_start - 3 + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
        ((t.n_start - 3 + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',

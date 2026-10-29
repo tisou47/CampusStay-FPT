@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
-import { ArrowLeft, ArrowRight, Check, CircleCheck, ExternalLink, Plus, Rocket, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleCheck, ExternalLink, Plus, Rocket, Trash2, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -27,13 +27,13 @@ import { t, tr } from '@/i18n'
 // PUT /admin/terms/:id/wizard/:step { …values of the step, reasons, changeReason } · POST /admin/terms/:id/publish
 
 export const STEPS = [
-  { key: 'general', label: 'General' },
-  { key: 'timeline', label: 'Timeline' },
-  { key: 'rooms', label: 'Rooms and places' },
-  { key: 'prices', label: 'Prices' },
-  { key: 'rules', label: 'Rules' },
-  { key: 'information', label: 'Information' },
-  { key: 'review', label: 'Review and publish' },
+  { key: 'general', label: 'General', why: 'The Term’s name and stay dates; everything else hangs on them.' },
+  { key: 'timeline', label: 'Timeline', why: 'When registration opens and closes and when each later milestone falls; deadlines and reminders follow these dates.' },
+  { key: 'rooms', label: 'Rooms and places', why: 'Which Blocks and Rooms this Term offers; the assignment can only use these Beds.' },
+  { key: 'prices', label: 'Prices', why: 'The price of each Room Type and Room Class for this Term; fixed once published.' },
+  { key: 'rules', label: 'Rules', why: 'Who may apply, who goes first and how roommates are matched for this Term.' },
+  { key: 'information', label: 'Information', why: 'What students read about the Term on their board before they apply.' },
+  { key: 'review', label: 'Review and publish', why: 'Check what is still missing, then publish: students see the Term and Managers are told.' },
 ]
 
 const GENDER = { M: 'Male', F: 'Female' }
@@ -675,6 +675,7 @@ export default function TermWizard() {
         <ol className="flex flex-wrap gap-2">
           {STEPS.map((s, i) => {
             const saved = w.published || i < (w.step ?? 1)
+            const open = s.key === 'review' ? 0 : (w.checks ?? []).filter((c) => c.step === s.key).length
             return (
               <li key={s.key}>
                 <button
@@ -690,6 +691,13 @@ export default function TermWizard() {
                     {saved ? <Check size={12} aria-hidden="true" /> : i + 1}
                   </span>
                   {t(s.label)}
+                  {open > 0 && (
+                    <span className="flex items-center gap-1 rounded-full bg-warning-bg px-1.5 text-sm font-medium text-warning-fg" title={t('{n} to fix in this step', { n: open })}>
+                      <TriangleAlert size={12} aria-hidden="true" />
+                      <span className="tabular">{open}</span>
+                      <span className="sr-only">{t('{n} to fix in this step', { n: open })}</span>
+                    </span>
+                  )}
                 </button>
               </li>
             )
@@ -697,7 +705,19 @@ export default function TermWizard() {
         </ol>
       </nav>
       <Card padding="lg" className="flex flex-col gap-4">
-        <h2 className="text-h2 font-semibold text-fg">{t(STEPS[index]?.label ?? '')}</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-h2 font-semibold text-fg">{t(STEPS[index]?.label ?? '')}</h2>
+          {STEPS[index]?.why && <p className="text-base text-fg-secondary">{t(STEPS[index].why)}</p>}
+        </div>
+        {step !== 'review' && !w.published && (w.checks ?? []).some((c) => c.step === step) && (
+          <Alert type="warning" title={t('Still to fix in this step')}>
+            <ul className="list-disc pl-4">
+              {w.checks.filter((c) => c.step === step).map((c, i) => (
+                <li key={i}>{c.message}</li>
+              ))}
+            </ul>
+          </Alert>
+        )}
         {step === 'general' && <GeneralStep key={`g${w.id}`} {...props} />}
         {step === 'timeline' && <TimelineStep key={`t${w.id}`} {...props} />}
         {step === 'rooms' && <RoomsStep key={`r${w.id}`} {...props} />}

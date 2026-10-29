@@ -29,7 +29,11 @@ import { t, tr } from '@/i18n'
 
 const AWAITING = 'Awaiting confirmation'
 
-function ConfirmPaymentModal({ payment, onClose }) {
+/**
+ * One Invoice confirmed with a reference or a receipt (POST /payments/:invoiceId/confirm), also when the student never
+ * claimed it. Payments and Payment confirmations both open it: there is one confirmation path (backend answer Q8).
+ */
+export function ConfirmPaymentModal({ payment, onClose }) {
   const { notify } = useToast()
   const fileInput = useRef(null)
   const [reference, setReference] = useState('')
@@ -50,7 +54,7 @@ function ConfirmPaymentModal({ payment, onClose }) {
       return api.payments.confirm(payment.invoiceId, data)
     },
     {
-      invalidates: ['payments', 'applications', 'dashboard'],
+      invalidates: ['payments', 'payment-claims', 'applications', 'dashboard'],
       onSuccess: () => {
         notify({ title: 'Payment confirmed', message: t('{id} · {amount} from {name}.', { id: payment.invoiceId, amount: formatVnd(payment.amount), name: payment.studentName }) })
         onClose()
@@ -115,7 +119,7 @@ export default function Payments() {
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
   const [method, setMethod] = useState('')
-  const [date, setDate] = useState('today')
+  const [date, setDate] = useState('term')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [view, setView] = useState(null)

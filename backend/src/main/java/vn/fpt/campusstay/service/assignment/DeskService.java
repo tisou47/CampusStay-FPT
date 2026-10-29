@@ -70,8 +70,14 @@ public class DeskService {
     public record Recent(String name, String bed, Instant at) {
     }
 
+    /**
+     * {@code expected} = every Allocation of the Term in the Blocks (not only today's arrivals). {@code window} is
+     * {@code UPCOMING} before {@code checkInStart}, {@code OPEN} through {@code checkInEnd}, then {@code CLOSED}
+     * (late check-ins are still recorded); null when the Term has no check-in days.
+     */
     public record Today(LocalDate date, String block, long expected, long checkedIn, long waiting, long blocked,
-            List<Recent> recent) {
+            List<Recent> recent, String termId, String termName, LocalDate checkInStart, LocalDate checkInEnd,
+            String window) {
     }
 
     public record Check(String label, boolean passed) {
@@ -211,9 +217,13 @@ public class DeskService {
                 .limit(8).toList();
         Map<Long, String> names = users.displayNames(recent.stream().map(p -> p.alloc().studentId()).toList());
         String code = scope.single() ? blocks.codesByIds(scope.ids()).get(scope.singleId()) : null;
+        String window = term.checkInStart() == null || term.checkInEnd() == null ? null
+                : today.isBefore(term.checkInStart()) ? "UPCOMING"
+                : today.isAfter(term.checkInEnd()) ? "CLOSED" : "OPEN";
         return new Today(today, code, placed.size(), checkedIn, placed.size() - checkedIn - blocked, blocked,
                 recent.stream().map(p -> new Recent(names.get(p.alloc().studentId()), p.bed().code(),
-                        p.alloc().checkedInAt())).toList());
+                        p.alloc().checkedInAt())).toList(),
+                String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window);
     }
 
     /** @param q a student code, a name or the pass payload {@code CSTAY-PASS:<allocationId>} */

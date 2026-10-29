@@ -152,7 +152,7 @@ Room changes, swaps and their errors: C-26; since v2 phase 6 they act on next-Te
 
 ### Dashboard
 
-`GET /dashboards/staff?termId&block` → `{ kpis: { toReview, submitted, underReview, paymentsToConfirm, proposal: { runId, proposed, requested, conflicts, waitlisted, committedBlocks, totalBlocks } | null, roomsOutOfService, firstOutOfService: { room, since } | null }, attention: [{ id, kind: 'proposal'|'payments'|'room'|'queue'|'expired'|'maintenance', severity, title, body, link, cta }], applicationsByStatus: [{ status, count }], applicationsTotal, checkInPlan: { start, end, days: [{ date, morning, afternoon }] } | null, bedsByBlock: [{ block, proposed, capacity }] }`
+`GET /dashboards/staff?termId&block` → `{ kpis: { toReview, submitted, underReview, paymentsToConfirm, proposal: { runId, proposed, requested, conflicts, waitlisted, committedBlocks, totalBlocks } | null, roomsOutOfService, firstOutOfService: { room, since } | null }, attention: [{ id, kind: 'proposal'|'payments'|'room'|'queue'|'expired'|'maintenance', severity, title, body, link, cta, values }], applicationsByStatus: [{ status, count }], applicationsTotal, checkInPlan: { start, end, days: [{ date, morning, afternoon }] } | null, bedsByBlock: [{ block, proposed, capacity }] }`
 
 ### Applications and payments
 
@@ -232,7 +232,7 @@ Staff see their Blocks, Managers every Block (C-43).
 
 ### Desk
 
-- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }`
+- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null }` (`expected` = every Allocation of the Term in the Blocks; A-63)
 - `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
 - `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
 - `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
@@ -267,7 +267,7 @@ Inspections (checklists, schedules, runs): C-34.
 
 ## Manager
 
-- `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, beds, collected, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing', severity, title, body, link, cta }] }`
+- `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, residents, beds, invoiced, collected, outstanding, outstandingInvoices, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing'|'check-out', severity, title, body, link, cta, values }], work: { toReview, submitted, underReview, paymentsToConfirm, proposal }, bedsByBlock: [{ block, proposed, capacity }] }` (A-63)
 - `GET /approvals/summary?termId&block` → `{ assignment, lateCheckIn, swaps, refunds }`
 
 Dashboards and approval counts: C-36.
@@ -314,7 +314,7 @@ Student accounts, the student list and Staff accounts: A-19…A-21, C-39.
 
 ## Admin
 
-- `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }`
+- `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, allocated, beds, invoiced, collected, outstanding, outstandingInvoices, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, funnelOutside: { waitlisted, rejected, expired, continuing }, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }` (A-63)
 - `POST /admin/terms/drafts { name, stayStart, stayEnd, requestId? }` → `{ id }` · `GET /admin/terms/{id}/wizard` → the wizard document · `PUT /admin/terms/{id}/wizard/{general|timeline|rooms|prices|rules|information}` (that step's values, `reasons`, `changeReason`) → `{ id }`; publishing fixes the Term's prices, Deposit, Utility Deposit and rules; `409 TERM_NOT_READY`, `PRICES_LOCKED`, `RULES_FIXED` (A-27, C-41)
 - `POST /term-requests/{id}/decision { status: 'In progress'|'Needs changes'|'Rejected', note }` → `204` (A-28)
 - `GET|PUT /admin/settings/{deadlines|refunds|stay}` → `{ group, title, appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] }`; `PUT { values }` (A-31)

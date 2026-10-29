@@ -122,6 +122,45 @@ class ReportIT {
         getAs("/dashboards/manager", bearer(mvc, STAFF_A)).andExpect(status().isForbidden());
     }
 
+    /**
+     * TC-RPT-015: the Manager's and the Admin's dashboards report the money of Collections and refunds (a paid Deposit
+     * without a Bed included) with what is still owed, residents apart from held Beds, the continuing residents the
+     * funnel leaves out, the Staff work a Manager decides, and the values of each attention line.
+     */
+    @Test
+    void dashboardsAgreeWithFinance() throws Exception {
+        applyAndPay(15);
+        stay.livesIn(16, "A-401", "A", true);
+        stay.livesIn(17, "A-401", "B", false);
+        String manager = bearer(mvc, MANAGER_A);
+        String admin = bearer(mvc, ADMIN);
+        String summary = getAs("/finance/summary", manager).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        long collected = ((Number) JsonPath.read(summary, "$.collected")).longValue();
+        long invoiced = ((Number) JsonPath.read(summary, "$.invoiced")).longValue();
+        assertThat(collected).isPositive();
+
+        String body = getAs("/dashboards/manager", manager).andExpect(status().isOk())
+                .andExpect(jsonPath("$.kpis.collected").value(collected))
+                .andExpect(jsonPath("$.kpis.invoiced").value(invoiced))
+                .andExpect(jsonPath("$.kpis.outstanding").value(greaterThanOrEqualTo(0)))
+                .andExpect(jsonPath("$.work.toReview").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.bedsByBlock[*].block").value(hasItem("A")))
+                .andExpect(jsonPath("$.waiting[?(@.kind == 'routing')].values.requestType").value(hasItem("MAINTENANCE")))
+                .andReturn().getResponse().getContentAsString();
+        int allocated = JsonPath.read(body, "$.kpis.allocated");
+        int residents = JsonPath.read(body, "$.kpis.residents");
+        assertThat(allocated - residents).isGreaterThanOrEqualTo(1);
+
+        getAs("/dashboards/admin", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.kpis.collected").value(collected))
+                .andExpect(jsonPath("$.kpis.allocated").value(greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.kpis.residents").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.funnelOutside.continuing").value(greaterThanOrEqualTo(2)));
+        getAs("/dashboards/staff", bearer(mvc, STAFF_A))
+                .andExpect(jsonPath("$.attention[?(@.kind == 'room')].values.room").value(hasItem("A-305")));
+    }
+
     /** TC-RPT-003: the Manager's approval counts; Staff may not see them. */
     @Test
     void approvalCounts() throws Exception {

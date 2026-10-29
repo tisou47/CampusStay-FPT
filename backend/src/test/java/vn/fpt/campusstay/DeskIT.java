@@ -178,7 +178,13 @@ class DeskIT {
                 .andExpect(jsonPath("$.block").value("A"))
                 .andExpect(jsonPath("$.checkedIn").value(1))
                 .andExpect(jsonPath("$.recent[0].name").value(p.name()))
-                .andExpect(jsonPath("$.recent[0].bed", startsWith(p.room() + "-")));
+                .andExpect(jsonPath("$.recent[0].bed", startsWith(p.room() + "-")))
+                .andExpect(jsonPath("$.termId").value(String.valueOf(termId)))
+                .andExpect(jsonPath("$.checkInStart").value(LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(1).toString()))
+                .andExpect(jsonPath("$.window").value("OPEN"));
+        jdbc.sql("UPDATE cfg_term SET check_in_start = check_in_start + 3 WHERE id = :t").param("t", termId).update();
+        getAs("/check-in/today?termId=" + termId + "&block=A", staff)
+                .andExpect(jsonPath("$.window").value("UPCOMING"));
         getAs("/students/me/allocation", p.auth())
                 .andExpect(jsonPath("$.allocation.status").value("Resident"))
                 .andExpect(jsonPath("$.checkIn.checkedInAt").isString());

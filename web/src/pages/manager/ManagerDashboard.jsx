@@ -1,8 +1,10 @@
 import { ArrowRightLeft, Banknote, Bed, CalendarClock, CreditCard, Download, FileText, Layers, Repeat2, Route, TriangleAlert, Users, Wrench } from 'lucide-react'
+import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { StageNow } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Avatar } from '@/components/ui/Display'
@@ -10,6 +12,8 @@ import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { CapacityRows, Journey, Panel, WorkList } from '@/components/ui/Work'
 import { cx } from '@/lib/cx'
 import { formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
+import { attentionText } from '@/lib/attention'
+import { COLLECTED_RULE, collectedNote } from '@/lib/money'
 import { termJourney } from '@/lib/termJourney'
 import { t, tr } from '@/i18n'
 
@@ -25,7 +29,6 @@ export default function ManagerDashboard() {
   const { term, user, block } = useSession()
   const scope = useScopeQuery()
   const query = useQuery(['dashboard', 'manager', scope], ({ signal }) => api.dashboards.manager(scope, { signal }))
-  const work = useQuery(['dashboard', 'staff', scope], ({ signal }) => api.dashboards.staff(scope, { signal }))
   const approvals = useQuery(['dashboard', 'approvals', scope], ({ signal }) => api.approvals.summary(scope, { signal }))
   const round2 = useQuery(['round2', term?.id], ({ signal }) => api.assignment.round2(term?.id, { signal }), { enabled: Boolean(term) })
   const claims = useQuery(['dashboard', 'claims', scope], ({ signal }) => api.paymentClaims.list({ ...scope, pageSize: 1 }, { signal }))
@@ -33,13 +36,14 @@ export default function ManagerDashboard() {
 
   const d = query.data
   const k = d?.kpis
-  const w = work.data?.kpis
+  const w = d?.work
   const a = approvals.data
   const r2 = round2.data
   const claim = claims.data?.summary
   const proposal = w?.proposal
   // One line for every missing routing rule (a Block and a request type each), not one line per rule.
   const routingGaps = (d?.waiting ?? []).filter((x) => x.kind === 'routing')
+  const gapBlocks = [...new Set(routingGaps.map((x) => x.values?.block ?? /Block (\w+)/.exec(x.title)?.[1]).filter(Boolean))]
 
   const items = [
     claim?.count > 0 && {
@@ -112,22 +116,14 @@ export default function ManagerDashboard() {
       meta: 'Cancelled Applications, ended stays and terminations',
       action: { label: 'Decide', to: '/manager/finance' },
     },
-    routingGaps.length > 0 && {
-      id: 'routing',
-      icon: Route,
-      tone: 'info',
-      title: t('{n} routing rules missing', { n: routingGaps.length }),
-      meta: t('Blocks {list}: new requests of these types wait unassigned until someone takes them', { list: [...new Set(routingGaps.map((x) => /Block (\w+)/.exec(x.title)?.[1]).filter(Boolean))].join(', ') }),
-      action: { label: 'Add rules', to: '/manager/routing-rules' },
-    },
     ...(d?.waiting ?? [])
       .filter((x) => x.kind === 'check-out')
       .map((x) => ({
         id: x.id,
         icon: waitingIcon[x.kind] ?? TriangleAlert,
         tone: x.severity === 'error' ? 'error' : x.severity === 'warning' ? 'warning' : 'info',
-        title: tr(x.title),
-        meta: tr(x.body),
+        title: attentionText(x).title,
+        meta: attentionText(x).body,
         action: x.link ? { label: x.cta ?? 'Open', to: x.link } : null,
       })),
   ].filter(Boolean)
@@ -157,12 +153,13 @@ export default function ManagerDashboard() {
       {term && (
         <Panel title={t('Term {name}', { name: term.name })} subtitle="The highlighted stage is now; under it, what waits for a Manager" className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
+          <StageNow role="manager" term={term} />
         </Panel>
       )}
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Bed} label="Occupancy" value={k ? formatPercent(k.beds ? k.allocated / k.beds : null, 0) : '—'} note={k ? t('{n} of {total} Beds', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
-        <KpiTile icon={Banknote} label={`${t('Collected')}${term ? ` · ${term.name}` : ''}`} value={formatCompactVnd(k?.collected)} note={k ? t('{p} of invoiced', { p: formatPercent(k.collectionRate, 0) }) : null} />
+        <KpiTile icon={Bed} label="Occupancy" value={k ? formatPercent(k.beds ? Math.floor((k.allocated / k.beds) * 100) / 100 : null, 0) : '—'} note={k ? t('{n} Beds held of {total} · {r} living in', { n: formatNumber(k.allocated), total: formatNumber(k.beds), r: formatNumber(k.residents) }) : null} />
+        <KpiTile icon={Banknote} label="Collected this Term" value={<span title={t(COLLECTED_RULE)}>{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
         <KpiTile
           icon={Wrench}
           label="Maintenance SLA"
@@ -178,11 +175,22 @@ export default function ManagerDashboard() {
           <QueryState query={query} compact isEmpty={() => false}>
             {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, Applications, proposals and requests appear here.</EmptyBlock>} />}
           </QueryState>
+          {routingGaps.length > 0 && (
+            <p className="mt-2 flex items-center gap-2 border-t border-line pt-2 text-sm text-fg-secondary">
+              <Route size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+              <span className="min-w-0 flex-1">
+                {t('Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.', { n: routingGaps.length, list: gapBlocks.join(', ') })}
+              </span>
+              <Link to="/manager/routing-rules" className="shrink-0 font-medium text-fg-link hover:underline">
+                {t('Add rules')}
+              </Link>
+            </p>
+          )}
         </Panel>
 
         <div className="flex min-h-0 flex-col gap-4">
           <Panel title="Beds by Block" subtitle="Allocated and proposed Beds against capacity" className="min-h-0 flex-1">
-            <QueryState query={work} compact isEmpty={(x) => !x.bedsByBlock?.length}>
+            <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
               {(data) => <CapacityRows rows={data.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />}
             </QueryState>
             {d?.floorNote && <p className="pt-2 text-sm text-fg-tertiary">{tr(d.floorNote)}</p>}
