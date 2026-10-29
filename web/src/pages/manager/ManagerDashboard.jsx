@@ -1,6 +1,8 @@
 import { ArrowRightLeft, Banknote, Bed, CalendarClock, CreditCard, Download, FileText, Layers, Repeat2, Route, TriangleAlert, Users, Wrench } from 'lucide-react'
+import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
+import { MANAGER_STAGES } from '@/app/managerFlow'
 import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
@@ -136,6 +138,7 @@ export default function ManagerDashboard() {
     assignment: w?.toReview ? t('{n} Applications to review', { n: w.toReview }) : proposal && proposal.committedBlocks < proposal.totalBlocks ? t('{run} in review', { run: proposal.runId }) : undefined,
     payment: claim?.count ? t('{n} transfers to confirm', { n: claim.count }) : undefined,
   })
+  const live = MANAGER_STAGES.find((st) => st.key === journey.find((j) => j.state === 'current')?.key)
   const people = staff.data?.items ?? []
   const s = staff.data?.summary
   const loading = query.loading && !d
@@ -157,6 +160,28 @@ export default function ManagerDashboard() {
       {term && (
         <Panel title={t('Term {name}', { name: term.name })} subtitle="The highlighted stage is now; under it, what waits for a Manager" className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
+          {live && (
+            <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+              <p className="text-base text-fg-secondary">
+                <span className="font-semibold text-fg">{t('Now: {stage}.', { stage: t(live.label) })} </span>
+                {t(live.why)}
+              </p>
+              <ol className="flex flex-wrap gap-2" aria-label={t('Screens of this stage, in order')}>
+                {live.screens.map((sc, i) => (
+                  <li key={sc.to}>
+                    <Link
+                      to={sc.to}
+                      title={t(sc.why)}
+                      className="flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-1.5 text-base text-fg hover:border-primary hover:text-fg-brand"
+                    >
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-fg-brand tabular">{i + 1}</span>
+                      {t(sc.label)}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </Panel>
       )}
 
