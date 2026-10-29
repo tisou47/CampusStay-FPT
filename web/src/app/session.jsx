@@ -53,20 +53,32 @@ export function SessionProvider({ children }) {
     }
   }, [])
 
+  /** A new sign-in starts on the current Term (backend answer Q10); the picker still keeps a choice within it. */
+  const resetTerm = useCallback(() => {
+    setTermIdState(null)
+    try {
+      localStorage.removeItem(TERM_KEY)
+    } catch {
+      // ignore
+    }
+  }, [])
+
   const signIn = useCallback(async (email, password, remember) => {
     const result = await api.auth.signIn({ email, password, remember })
+    resetTerm()
     writeSession({ token: result.token, user: result.user })
     setLang(result.user.locale)
     return result.user
-  }, [setLang])
+  }, [setLang, resetTerm])
 
   /** `redirectUri` only after Google's redirect flow (the popup was blocked): the page it returned to. */
   const signInWithGoogle = useCallback(async (code, remember, redirectUri) => {
     const result = await api.auth.google({ code, remember, redirectUri })
+    resetTerm()
     writeSession({ token: result.token, user: result.user })
     setLang(result.user.locale)
     return result.user
-  }, [setLang])
+  }, [setLang, resetTerm])
 
   /** Reads the signed-in user again (after setting the first password or sending the sign-up form). */
   const refreshUser = useCallback(async () => {

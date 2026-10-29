@@ -89,6 +89,16 @@ function Sidebar({ role }) {
   )
 }
 
+/** Where a Term stands today, next to its name in the picker (GET /terms: current, registrationOpen, stay dates). */
+function termWhen(term) {
+  const now = new Date()
+  if (term.current) return 'Current'
+  if (term.registrationOpen) return 'Registration open'
+  if (term.stayStart && new Date(term.stayStart) > now) return 'Next'
+  if (term.stayEnd && new Date(term.stayEnd) < now) return 'Ended'
+  return null
+}
+
 function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled }) {
   const current = options.find((o) => o.value === value)
   return (
@@ -106,6 +116,7 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
         >
           <Glyph size={16} aria-hidden="true" className="text-fg-secondary" />
           {current?.label ?? label}
+          {current?.note && <span className="text-sm font-normal text-fg-secondary">· {t(current.note)}</span>}
           <ChevronDown size={16} aria-hidden="true" className="text-fg-secondary" />
         </button>
       )}
@@ -124,7 +135,10 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
                 }}
                 className={cx('flex w-full items-center justify-between px-3 py-2 text-left text-base hover:bg-subtle', opt.value === value ? 'font-medium text-fg-brand' : 'text-fg')}
               >
-                {opt.label}
+                <span className="flex items-center gap-2">
+                  {opt.label}
+                  {opt.note && <span className="text-sm text-fg-tertiary">{t(opt.note)}</span>}
+                </span>
                 {opt.value === value && <Check size={16} aria-hidden="true" />}
               </button>
             </li>
@@ -298,7 +312,7 @@ function DutyToggle() {
 // choose among theirs; Staff with one Block see it as a fixed label, since a Manager sets their Blocks.
 function BackOfficeTopBar({ role }) {
   const { terms, term, setTermId, blocks, block, setBlock } = useSession()
-  const termOptions = terms.map((x) => ({ value: x.id, label: t('Term: {name}', { name: x.name }) }))
+  const termOptions = terms.map((x) => ({ value: x.id, label: t('Term: {name}', { name: x.name }), note: termWhen(x) }))
   const blockOptions = [
     ...(blocks.length > 1 ? [{ value: null, label: role === 'manager' ? t('All Blocks') : t('Blocks: {list}', { list: blocks.join(', ') }) }] : []),
     ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) })),

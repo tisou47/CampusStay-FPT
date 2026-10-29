@@ -31,7 +31,7 @@ export const MANAGER_STAGES = [
     label: 'Balance payment',
     why: 'Placed students pay their Balance; unpaid Balances past the deadline lose their Bed.',
     screens: [
-      { to: '/manager/payment-claims', label: 'Payment confirmations', why: 'Students’ deadlines stop while their transfer waits for you: confirm or reject each one.' },
+      { to: '/manager/payment-claims', daily: true, label: 'Payment confirmations', why: 'Students’ deadlines stop while their transfer waits for you: confirm or reject each one.' },
       { to: '/manager/payments', daily: true, label: 'Payments', why: 'Every Invoice of the Term and what is still unpaid.' },
       { to: '/manager/finance', daily: true, label: 'Collections and refunds', why: 'Send reminders and decide refunds.' },
     ],
