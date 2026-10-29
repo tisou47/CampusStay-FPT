@@ -186,6 +186,8 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
 | AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
 | AUTH | PUT | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058, TC-APP-025 |
+| AST | GET | `/students/me/assistant` | Could | Coded | A-63; TC-AST-001, 005 |
+| AST | POST | `/students/me/assistant/chat` | Could | Coded | A-63; TC-AST-001…007 |
 | AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
 | BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |
 | BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022, 029…031); TC-BIL-024, 026 |

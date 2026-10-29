@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Display'
 import { MenuItem, Popover } from '@/components/ui/Popover'
 import { t } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { AssistantChat } from './AssistantChat'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
@@ -143,6 +144,7 @@ export function StudentLayout() {
           <Outlet />
         </main>
         <MobileBottomNav />
+        <AssistantChat />
       </div>
     </MobileBarProvider>
   )

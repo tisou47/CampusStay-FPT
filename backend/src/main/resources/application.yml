@@ -105,6 +105,14 @@ campusstay:
     dir: ${FILES_DIR:data/files}        # uploaded receipts and photos (shared_file keeps the metadata)
     link-secret: ${FILES_LINK_SECRET:}  # signs the short-lived file links; blank = random per start
     link-ttl: 30m
+  assistant:                          # students' AI assistant (ADR-28) on a self-hosted Ollama server
+    base-url: ${ASSISTANT_BASE_URL:}  # blank = assistant off (the chat button says it is offline)
+    api-key: ${ASSISTANT_API_KEY:}    # bearer token of the proxy in front of a remote Ollama; blank = none
+    model: ${ASSISTANT_MODEL:qwen2.5:3b}
+    timeout: 90s
+    requests-per-hour: 30
+    context-tokens: 8192
+    max-tool-rounds: 3
   push:
     fcm-credentials-file: ${FIREBASE_CREDENTIALS_FILE:}   # Firebase service account key; blank = push off
   mail:

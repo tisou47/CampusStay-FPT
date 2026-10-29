@@ -277,6 +277,17 @@ const vi = {
   'Previous month': 'Tháng trước',
   'Next month': 'Tháng sau',
 
+  // AI assistant (ADR-28)
+  'Ask the CampusStay Assistant': 'Hỏi Trợ lý CampusStay',
+  'CampusStay Assistant': 'Trợ lý CampusStay',
+  'Answers from the user guide and your own records. It can make mistakes.': 'Trả lời từ hướng dẫn sử dụng và dữ liệu của bạn. Trợ lý có thể nhầm lẫn.',
+  'New conversation': 'Cuộc trò chuyện mới',
+  'Hello! Ask me how to use CampusStay or about your Application, Room, Invoices and requests.': 'Xin chào! Hãy hỏi mình cách dùng CampusStay hoặc về đơn đăng ký, phòng, hóa đơn và yêu cầu của bạn.',
+  'When is the registration deadline?': 'Khi nào hết hạn đăng ký?',
+  'Which Invoices do I still have to pay?': 'Mình còn hóa đơn nào chưa thanh toán?',
+  'How do I report a broken item in my Room?': 'Làm sao báo hỏng đồ trong phòng?',
+  'The assistant is writing…': 'Trợ lý đang trả lời…',
+  'Type your question': 'Nhập câu hỏi của bạn',
 }
 
 export default vi

@@ -76,6 +76,10 @@ export const api = {
     saveRefundAccount: (body) => http.put('/students/me/refund-account', body),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
     board: g('/students/me/board'),
+    /** The AI assistant (ADR-28, A-63): { enabled } — false when no model server is configured. */
+    assistant: g('/students/me/assistant'),
+    /** { messages: [{ role: 'user' | 'assistant', content }] } ending with the question → { reply }. */
+    askAssistant: (body) => http.post('/students/me/assistant/chat', body),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */

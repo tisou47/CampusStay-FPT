@@ -9,6 +9,8 @@ campusstay:
     google:             # pinned off, so a developer's GOOGLE_* variables cannot change test results
       client-id: ""
       client-secret: ""
+  assistant:            # pinned off, so a developer's ASSISTANT_BASE_URL cannot reach a real model
+    base-url: ""
   payment:
     bank-name: MB Bank
     bank-code: MBBank

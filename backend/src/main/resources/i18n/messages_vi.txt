@@ -916,3 +916,13 @@ Enter the account number: 6 to 20 digits. ⟶ Hãy nhập số tài khoản: t�
 Enter the bank's name. ⟶ Hãy nhập tên ngân hàng.
 Only an Application on the waitlist can be withdrawn. ⟶ Chỉ rút được đơn đang trong danh sách chờ.
 Send the sign-up form first. ⟶ Hãy gửi biểu mẫu đăng ký trước.
+
+# ---------- assistant (ADR-28) ----------
+The assistant is offline right now. Try again later. ⟶ Trợ lý đang offline. Hãy thử lại sau.
+End the conversation with your question. ⟶ Hãy kết thúc cuộc trò chuyện bằng câu hỏi của bạn.
+You have asked many questions in the last hour. Try again later. ⟶ Bạn đã hỏi nhiều câu trong một giờ qua. Hãy thử lại sau.
+The assistant could not answer. Ask in other words. ⟶ Trợ lý chưa trả lời được. Hãy hỏi bằng cách khác.
+Choose who wrote this message. ⟶ Hãy chọn người viết tin nhắn này.
+Write your question. ⟶ Hãy viết câu hỏi của bạn.
+Use at most 2000 characters. ⟶ Dùng tối đa 2000 ký tự.
+The conversation is too long. Start a new one. ⟶ Cuộc trò chuyện quá dài. Hãy bắt đầu cuộc mới.

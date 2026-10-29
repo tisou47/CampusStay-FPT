@@ -38,6 +38,7 @@ const FEATURES = [
   ['MNT', 'Maintenance Requests and inspections', 'maintenance'],
   ['NTF', 'Notifications, push, templates, email', 'notification'],
   ['RPT', 'Dashboards, reports, exports', 'report'],
+  ['AST', "Students' AI assistant", 'assistant'],
   ['ARCH', 'Architecture rules', null],
 ]
 
