@@ -21,13 +21,14 @@ import { t, tx } from '@/i18n'
  * On a phone the title moves to the App Bar (the h1 stays for screen readers), the page
  * scrolls as a whole, and a breadcrumb's parent becomes the App Bar's back target.
  */
-export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, badgeOnPhone = true, description, actions, width, className, children }) {
+// `flow`: the page grows with its content and the whole page scrolls (one scrollbar) instead of filling the window.
+export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, badgeOnPhone = true, description, actions, width, flow = false, className, children }) {
   const back = breadcrumb?.length > 1 ? breadcrumb[breadcrumb.length - 2].to : undefined
   useMobileBar(mobileTitle ?? title, back)
   const phoneHeader = (badge && badgeOnPhone) || actions
   return (
-    <StudentContainer className="flex flex-col pt-2 pb-4 lg:h-full lg:min-h-0 lg:py-6">
-      <div className={cx('mx-auto flex w-full flex-col gap-3 lg:min-h-0 lg:flex-1 lg:gap-4', width, className)}>
+    <StudentContainer className={cx('flex flex-col pt-2 pb-4 lg:py-6', !flow && 'lg:h-full lg:min-h-0')}>
+      <div className={cx('mx-auto flex w-full flex-col gap-3 lg:gap-4', !flow && 'lg:min-h-0 lg:flex-1', width, className)}>
         {phoneTop}
         <header className={cx('flex flex-col gap-3 lg:shrink-0 lg:flex-row lg:items-end lg:justify-between lg:gap-6', !phoneHeader && 'max-lg:sr-only')}>
           <div className="flex min-w-0 flex-col gap-1">

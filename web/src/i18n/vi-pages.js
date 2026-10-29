@@ -3897,4 +3897,26 @@ const workspace = {
   "Deposit paid; the Application is submitted": "Đã đóng tiền cọc; đơn đã được nộp",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace }
+// Student UI refactor (UI_REFACTOR_PLAN): new labels of the student pages. Spread last, so it also sets
+// the agreed student wording where an earlier group said it differently.
+const studentUi = {
+  // My Room
+  'Door code: {status}': 'Mã cửa: {status}',
+  'Building {code}': 'Tòa {code}',
+  'Class {name}': 'Hạng {name}',
+  'Building': 'Tòa',
+  'Move-in date': 'Ngày nhận phòng',
+  'Contract length': 'Thời hạn hợp đồng',
+  'Desk hours: {hours}': 'Giờ làm việc của quầy: {hours}',
+  'Where: {place}': 'Địa điểm: {place}',
+  '{n} roommates · {free} free Beds': '{n} bạn cùng phòng · còn {free} giường trống',
+  '{n} roommates': '{n} bạn cùng phòng',
+  'Rent (after deposit)': 'Tiền phòng (sau cọc)',
+  'View invoice': 'Xem hóa đơn',
+  'More options': 'Thêm tùy chọn',
+  'Terms left after this one': 'Số kỳ còn lại sau kỳ này',
+  'Swap Beds for next Term': 'Đổi chéo giường',
+  'End my stay after this Term': 'Kết thúc hợp đồng sau kỳ này',
+}
+
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...studentUi }

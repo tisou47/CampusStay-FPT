@@ -14,7 +14,7 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * Asks before an irreversible action. Focus starts on Cancel, Tab stays inside the dialog, Esc cancels,
  * and focus returns to the control that opened it. The effects only move focus; they hold no display state.
  */
-export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel = 'Cancel', tone = 'danger', pending = false, onConfirm, onCancel }) {
+export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel = 'Cancel', tone = 'danger', pending = false, onConfirm, onCancel, children }) {
   const titleId = useId()
   const descId = useId()
   const boxRef = useRef(null)
@@ -75,6 +75,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel, cancelLa
             </p>
           )}
         </div>
+        {children}
         <div className="flex flex-wrap justify-end gap-2">
           <button
             ref={cancelRef}
