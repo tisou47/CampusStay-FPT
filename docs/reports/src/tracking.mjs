@@ -62,6 +62,8 @@ const defects = [
   ['Web', 'Manager › Student hub', T, 'The Student hub crashed for a student with a Room (unknown table size)', T, 'Closed', 'fix 28/10/2026 (commit 4138397)'],
   ['Inventory', 'Room map', T, 'The room map showed thin lines instead of bed squares', D, 'Closed', 'fix 28/10/2026 (commit 4138397)'],
   ['Accounts', 'Student list and reconciliation templates', T, 'Excel set to Vietnamese opened the comma CSV template as one column', T, 'Closed', 'fix 28/10/2026: XLSX templates (commit 4138397)'],
+  ['Reports', 'Manager and Admin dashboards', T, 'Money collected differed between the dashboards and Collections and refunds (Deposits without a Bed left out); a rate with debt left could read 100 %', T, 'Closed', 'fix 30/10/2026 (A-63); TC-RPT-015'],
+  ['Reports', 'Admin dashboard', T, 'Residents counted only desk check-ins, not released door codes (ADR-23)', T, 'Closed', 'fix 30/10/2026 (A-63); TC-RPT-015'],
   ['Documents', 'Web screen map', T, 'The screen map generator found only the public pages after the router loaded pages on first visit', T, 'Closed', 'docs 30/10/2026: generator reads lazy page imports'],
   ['Documents', 'Report 2', T, 'Report 2 PDF still named Kotlin and Jetpack Compose after the mobile app moved to Flutter', V, 'Open', 'Rebuild Report 2 from its source (Flutter since 28/10/2026)'],
 ];

@@ -12,7 +12,7 @@ const forms = 'D:/Workspace/SWP490_R2_BM04_Review2-Document';
 const tc = JSON.parse(fs.readFileSync(path.join(root, 'docs/reports/data/testcases.json'), 'utf8'));
 const c = tc.counts;
 const DATE = '28/10/2026';
-const BRIEF_DATE = '30/10/2026', BRIEF_VERSION = '1.1'; // 1.1: waitlist choices, Round 2 list, shifts, person in charge (29/10/2026)
+const BRIEF_DATE = '30/10/2026', BRIEF_VERSION = '1.1'; // 1.1: waitlist choices, Round 2 list, shifts, person in charge (29/10/2026); dashboards (30/10/2026)
 const PROJECT = "CampusStay FPT – Dormitory Registration and Room-Scheduling Management System for FPT University's Tân Uyên Campus, Binh Duong";
 const T = 'Lê Thành Minh Trung', L = 'Nguyễn Xuân Lộc', D = 'Trần Võ Quang Duy', V = 'Võ Minh Luân';
 
@@ -34,7 +34,7 @@ const ACCEPT = {
  "F-15": "One overdue Utility Invoice gives warning 1 once; two overdue months after the final warning terminate the stay; past move-out it is Overdue",
  "F-16": "A Room whose Beds are given keeps its class; only Managers set classes; moving an item updates conformance",
  "F-17": "Staff announce only to their Blocks; pinned announcements top the board; push after commit, dead tokens disabled",
- "F-18": "Exports are CSV with the screen's columns and audited; search stays in the user's Blocks; Term dashboard shows milestones"
+ "F-18": "Exports are CSV with the screen's columns and audited; search stays in the user's Blocks; Term dashboard shows milestones; money collected is the same on every dashboard and a rate below 100 % never reads 100 %"
 };
 const features = tc.features.map((f) => {
   const cases = tc.featureCases.filter((x) => x.group === f.id);

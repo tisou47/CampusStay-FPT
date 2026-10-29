@@ -1,20 +1,20 @@
 {
  "counts": {
   "features": 18,
-  "featureCases": 87,
+  "featureCases": 88,
   "workflows": 5,
   "states": 70,
   "statesAutomated": 59,
   "nfrs": 6,
-  "total": 168,
-  "automated": 148,
-  "passed": 148,
+  "total": 169,
+  "automated": 149,
+  "passed": 149,
   "failed": 0,
   "notRun": 20,
-  "runDate": "2026-10-29T19:16:29.049Z",
+  "runDate": "2026-10-29T23:31:29.301Z",
   "suite": {
-   "tests": 244,
-   "passed": 244,
+   "tests": 245,
+   "passed": 245,
    "failed": 0
   }
  },
@@ -1425,6 +1425,21 @@
   },
   {
    "id": "TC-F18-04",
+   "group": "F-18",
+   "groupName": "Dashboards, reports, exports and search",
+   "frs": "FR-RPT-01..04",
+   "type": "Rule",
+   "auto": "TC-RPT-015",
+   "test": "ReportIT.dashboardsAgreeWithFinance",
+   "role": "Manager",
+   "description": "The Manager's and the Admin's dashboards report the money of Collections and refunds (a paid Deposit without a Bed included) with what is still owed, residents apart from held Beds, the continuing residents the funnel leaves out, the Staff work a Manager decides, and the values of each attention line.",
+   "pre": "Test seed (2 Blocks, 48 students, 7 back-office users); Manager signed in",
+   "steps": "Automated (ReportIT.dashboardsAgreeWithFinance): GET /api/dashboards/admin; GET /api/dashboards/manager; GET /api/dashboards/staff; check the answer and the database",
+   "expected": "The Manager's and the Admin's dashboards report the money of Collections and refunds (a paid Deposit without a Bed included) with what is still owed, residents apart from held Beds, the continuing residents the funnel leaves out, the Staff work a Manager decides, and the values of each attention line.",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-F18-05",
    "group": "F-18",
    "groupName": "Dashboards, reports, exports and search",
    "frs": "FR-RPT-01..04",

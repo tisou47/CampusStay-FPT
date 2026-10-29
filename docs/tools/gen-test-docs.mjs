@@ -92,7 +92,7 @@ const FEATURES = [
   ['F-15', 'Utility debt and termination', 'System, Manager', 'FR-BIL-05, FR-ASG-09', [['TC-BIL-037', 'Main', 'Y'], ['TC-ASG-035', 'Main', 'M'], ['TC-BIL-038', 'Rule', 'Y'], ['TC-ASG-036', 'Exception', 'Y']]],
   ['F-16', 'Inventory, Room Class by Term, furniture', 'Manager, Staff', 'FR-INV-01..03', [['TC-INV-009', 'Main', 'M'], ['TC-INV-017', 'Main', 'T'], ['TC-INV-010', 'Rule', 'M'], ['TC-INV-011', 'Exception', 'S']]],
   ['F-17', 'Notifications, announcements and push', 'All', 'FR-NTF-01..03', [['TC-NTF-041', 'Main', 'A'], ['TC-NTF-021', 'Main', 'Y'], ['TC-NTF-042', 'Exception', 'T'], ['TC-NTF-003', 'Exception', 'S']]],
-  ['F-18', 'Dashboards, reports, exports and search', 'Staff, Manager, Admin', 'FR-RPT-01..04', [['TC-RPT-002', 'Main', 'M'], ['TC-RPT-012', 'Main', 'M'], ['TC-RPT-008', 'Rule', 'M'], ['TC-RPT-013', 'Exception', 'T']]],
+  ['F-18', 'Dashboards, reports, exports and search', 'Staff, Manager, Admin', 'FR-RPT-01..04', [['TC-RPT-002', 'Main', 'M'], ['TC-RPT-012', 'Main', 'M'], ['TC-RPT-008', 'Rule', 'M'], ['TC-RPT-015', 'Rule', 'M'], ['TC-RPT-013', 'Exception', 'T']]],
 ];
 
 // State transitions of the main entities: [entity, from, to, trigger, FR, automated test or null].

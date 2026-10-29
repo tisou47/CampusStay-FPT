@@ -173,5 +173,6 @@
 | TC-F18-01 | Main | Block Manager dashboard: occupancy by floor, the SLA rate and target, what is waiting. | TC-RPT-002 | Passed |
 | TC-F18-02 | Main | The dashboard of a Term shows its milestones in order with their progress, its Applications by status, the places per Room Type × Room Class × gender with the Term's prices, and the Deposits issued; Staff cannot read it and an unknown Term is 404. | TC-RPT-012 | Passed |
 | TC-F18-03 | Rule | Exports are CSV files with the screen's columns, written to the Audit Log; scope and permissions. | TC-RPT-008 | Passed |
-| TC-F18-04 | Exception | The back-office search finds students by code or name, Rooms with or without the dash and request codes inside the user's Blocks; Staff of another Block find neither the Room nor its resident; short queries find nothing and students may not search. | TC-RPT-013 | Passed |
+| TC-F18-04 | Rule | The Manager's and the Admin's dashboards report the money of Collections and refunds (a paid Deposit without a Bed included) with what is still owed, residents apart from held Beds, the continuing residents the funnel leaves out, the Staff work a Manager decides, and the values of each attention line. | TC-RPT-015 | Passed |
+| TC-F18-05 | Exception | The back-office search finds students by code or name, Rooms with or without the dash and request codes inside the user's Blocks; Staff of another Block find neither the Room nor its resident; short queries find nothing and students may not search. | TC-RPT-013 | Passed |
 
