@@ -126,7 +126,7 @@ function termTrail(STAGES_OF_ROLE, home, pathname, term) {
     live,
     screen: t('{label} · {n} of {total}', { label: t(screen.label), n: at.screen + 1, total: stage.screens.length }),
     why: screen.why,
-    notice: live >= 0 && live !== at.stage ? t('The Term is in {stage} now.', { stage: t(STAGES_OF_ROLE[live].label) }) : null,
+    notice: live >= 0 && live !== at.stage && !screen.daily ? t('The Term is in {stage} now.', { stage: t(STAGES_OF_ROLE[live].label) }) : null,
     next,
   }
 }
