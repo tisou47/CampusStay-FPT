@@ -911,3 +911,8 @@ A Round-1 proposal of this Term is still in review. Commit or discard it before 
 # ---------- staff duty, Round 2 list (A-58, A-60) ----------
 Say whether you are on duty. ⟶ Hãy cho biết bạn có đang trong ca trực không.
 Choose Pending, Accepted, Declined, Expired, Withdrawn or No offer. ⟶ Hãy chọn Đang chờ, Đã nhận, Đã từ chối, Hết hạn, Đã rút hoặc Chưa có đề nghị.
+Enter the account holder's name. ⟶ Hãy nhập tên chủ tài khoản.
+Enter the account number: 6 to 20 digits. ⟶ Hãy nhập số tài khoản: từ 6 đến 20 chữ số.
+Enter the bank's name. ⟶ Hãy nhập tên ngân hàng.
+Only an Application on the waitlist can be withdrawn. ⟶ Chỉ rút được đơn đang trong danh sách chờ.
+Send the sign-up form first. ⟶ Hãy gửi biểu mẫu đăng ký trước.

@@ -11,6 +11,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatVnd } from '@/lib/format'
+import { RefundAccountFields, useRefundAccount } from './refundAccount'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -27,6 +28,7 @@ function Offer({ offer }) {
   const { notify, notifyError } = useToast()
   const [selected, setSelected] = useState(offer.options[0]?.id)
   const [declining, setDeclining] = useState(false)
+  const account = useRefundAccount()
   const app = offer.application
   const respond = useMutation((accept) => api.round2Offers.respond(offer.id, { accept, optionId: accept ? selected : undefined }), {
     invalidates: ['home', 'applications', 'invoices', 'allocation'],
@@ -131,20 +133,29 @@ function Offer({ offer }) {
       <Modal
         open={declining}
         onClose={() => setDeclining(false)}
+        width={560}
         title="Decline the Round 2 offer?"
         description={t('{id} will be cancelled.', { id: app.id })}
         footer={
           <>
             <Button onClick={() => setDeclining(false)}>Keep offer</Button>
-            <Button variant="danger" onClick={() => respond.run(false)} disabled={respond.pending}>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (app.depositPaid > 0 && !(await account.save())) return
+                respond.run(false)
+              }}
+              disabled={respond.pending || account.saving}
+            >
               Decline and request refund
             </Button>
           </>
         }
       >
         <p className="text-base text-fg-secondary">
-          {t('Your deposit of {amount} is refunded after a Manager approves the refund. You cannot apply again for {term}.', { amount: formatVnd(app.depositPaid), term: offer.termName ?? t('this Term') })}
+          {t('Your deposit of {amount} is refunded in full to the account below after a Manager approves. You cannot apply again for {term}.', { amount: formatVnd(app.depositPaid), term: offer.termName ?? t('this Term') })}
         </p>
+        {app.depositPaid > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} />}
       </Modal>
     </div>
   )

@@ -71,6 +71,9 @@ export const api = {
     lateCheckIn: g('/students/me/late-check-in'),
     /** multipart: reason, requestedFor (YYYY-MM-DD), evidence (JPEG, PNG or PDF) → { id } (spec §6.9). */
     requestLateCheckIn: (formData) => http.post('/students/me/late-check-in', formData),
+    /** The bank account refunds are paid to: { holder, number, bank, updatedAt } (null fields until entered; A-62). */
+    refundAccount: g('/students/me/refund-account'),
+    saveRefundAccount: (body) => http.put('/students/me/refund-account', body),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
     board: g('/students/me/board'),
   },
@@ -84,6 +87,8 @@ export const api = {
     create: (body) => http.post('/applications', body),
     get: (id, opts) => http.get(`/applications/${id}`, undefined, opts),
     cancel: (id, body) => http.post(`/applications/${id}/cancel`, body),
+    /** A waitlisted Application: leave the waitlist → { applicationId, refund }; the whole Deposit is refunded (A-61). */
+    withdraw: (id) => http.post(`/applications/${id}/withdraw`),
     // Back office
     list: g('/applications'),
     /** Staff decision on one Application: { decision: 'Approved'|'Rejected', note } (note required when rejecting). */

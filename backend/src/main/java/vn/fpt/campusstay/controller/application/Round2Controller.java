@@ -34,6 +34,12 @@ class Round2Controller {
         return offers.list(termId, status, q, PageQuery.of(page, pageSize));
     }
 
+    /** The student leaves the waitlist; the Deposit is refunded in full after a Manager approves (A-61). */
+    @PostMapping("/applications/{id}/withdraw")
+    Round2Service.Withdrawn withdraw(@PathVariable String id) {
+        return round2.withdraw(id);
+    }
+
     @GetMapping("/students/me/round2-offer")
     Round2Service.MyOffer mine() {
         return round2.mine();

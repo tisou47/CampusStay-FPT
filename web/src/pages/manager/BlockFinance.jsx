@@ -21,7 +21,8 @@ import { t, tr } from '@/i18n'
 
 // SCR-BIL-20 Block Finance (Figma 61:707)
 // GET /finance/summary?termId&block → { invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }
-// GET /refunds?termId&block&page → { items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }
+// GET /refunds?termId&block&page → { items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status,
+//   account: { holder, number, bank } | null }], total } — the account the student gave for refunds (A-62)
 // POST /refunds/:id/decision { decision, note }
 // GET /finance/overdue?termId&block&page → { items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }
 // POST /finance/reminders { invoiceIds } · GET /invoices?termId&block&page → { items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }
@@ -107,13 +108,14 @@ function RefundsTab({ scope }) {
             <Th className="w-40">Rule</Th>
             <Th className="w-28">Paid</Th>
             <Th className="w-32">Refund</Th>
+            <Th className="w-52">Pay to</Th>
             <Th className="w-48">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyTitle="No refund requests" />
+          <TableStatus query={query} colSpan={8} emptyTitle="No refund requests" />
           {(query.data?.items ?? []).map((r) => (
             <Tr key={r.id} selected={r.id === highlight} className="[&>td]:h-15">
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
@@ -124,6 +126,13 @@ function RefundsTab({ scope }) {
               <Td className="text-sm text-fg-secondary">{tr(r.rule)}</Td>
               <Td className="tabular">{r.paid != null ? formatNumber(r.paid) : '—'}</Td>
               <Td className="font-medium whitespace-nowrap tabular">{r.proposedLabel ? tr(r.proposedLabel) : formatNumber(r.amount)}</Td>
+              <Td>
+                {r.account ? (
+                  <TwoLine primary={<span className="tabular">{r.account.number}</span>} secondary={`${r.account.holder} · ${r.account.bank}`} />
+                ) : (
+                  <span className="text-sm text-warning-fg">{t('No bank account yet')}</span>
+                )}
+              </Td>
               <Td>
                 {r.status === 'Pending' ? (
                   <div className="flex items-center gap-1">

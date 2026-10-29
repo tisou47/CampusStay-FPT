@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Every few minutes: unpaid Applications past their Deposit window, unanswered roommate invitations and
- * unanswered Round-2 offers expire.
+ * unanswered Round-2 offers expire, and the waitlists of Terms whose check-in started end.
  */
 @Component
 class ApplicationExpiryJob {
@@ -32,6 +32,10 @@ class ApplicationExpiryJob {
         int offers = round2.expire();
         if (offers > 0) {
             log.info("{} Round-2 offers expired", offers);
+        }
+        int ended = round2.endWaitlists();
+        if (ended > 0) {
+            log.info("{} waitlisted Applications cancelled: check-in started", ended);
         }
     }
 }
