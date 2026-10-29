@@ -5,6 +5,7 @@ import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
+import { PageHeader } from '@/components/student/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Breadcrumb, DetailRows } from '@/components/ui/Display'
 import { Modal } from '@/components/ui/Overlay'
@@ -30,17 +31,18 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
     <StudentContainer className={cx('flex flex-col pt-2 pb-4 lg:py-6', !flow && 'lg:h-full lg:min-h-0')}>
       <div className={cx('mx-auto flex w-full flex-col gap-3 lg:gap-4', !flow && 'lg:min-h-0 lg:flex-1', width, className)}>
         {phoneTop}
-        <header className={cx('flex flex-col gap-3 lg:shrink-0 lg:flex-row lg:items-end lg:justify-between lg:gap-6', !phoneHeader && 'max-lg:sr-only')}>
-          <div className="flex min-w-0 flex-col gap-1">
-            {breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
-            <div className="flex items-center gap-3">
-              <h1 className="text-page-title text-fg max-lg:sr-only">{tx(title)}</h1>
-              {badge}
-            </div>
-            {description && <p className="text-lg text-fg-secondary max-lg:hidden">{tx(description)}</p>}
-          </div>
-          {actions && <div className="flex flex-col gap-2 *:w-full lg:shrink-0 lg:flex-row lg:items-center lg:gap-3 lg:*:w-auto">{actions}</div>}
-        </header>
+        {/* On a phone the title lives in the App Bar: the h1 stays for screen readers. */}
+        <PageHeader
+          as="header"
+          title={title}
+          subtitle={description}
+          badge={badge}
+          actions={actions}
+          breadcrumb={breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
+          titleClassName="max-lg:sr-only"
+          subtitleClassName="max-lg:hidden"
+          className={cx(!phoneHeader && 'max-lg:sr-only')}
+        />
         {children}
       </div>
     </StudentContainer>

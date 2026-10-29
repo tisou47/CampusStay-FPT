@@ -1,123 +1,81 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useId, useState } from 'react'
+import { Link } from 'react-router'
 import { FileText, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
-import { Note } from '@/components/ui/Display'
-import { Pagination } from '@/components/ui/Pagination'
-import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
-import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
-import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatVnd } from '@/lib/format'
-import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
+import { QueryState } from '@/components/ui/States'
+import { DataTable } from '@/components/student/DataTable'
+import { EmptyState } from '@/components/student/EmptyState'
+import { ReasonLine } from '@/components/student/ReasonLine'
+import { StatusBadge } from '@/components/student/StatusBadge'
+import { formatDate, formatVnd } from '@/lib/format'
+import { ActivitySwitch, StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-APP-02 My Applications (Figma 19:868)
 // GET /students/me/applications?page&pageSize → { items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }
+
+// Static column set: the Application code opens its page (the route the row opened before).
+const COLUMNS = [
+  {
+    key: 'id',
+    header: 'Application',
+    render: (r) => (
+      <Link to={`/student/applications/${r.id}`} className="font-medium text-link hover:underline">
+        {r.id}
+      </Link>
+    ),
+  },
+  { key: 'termName', header: 'Term' },
+  { key: 'roomTypeName', header: 'Room Type', render: (r) => tr(r.roomTypeName) || '—' },
+  { key: 'roomClassName', header: 'Room Class', render: (r) => tr(r.roomClassName) || '—' },
+  { key: 'deposit', header: 'Deposit', money: true, render: (r) => (r.deposit == null ? '—' : formatVnd(r.deposit)) },
+  { key: 'submittedAt', header: 'Submitted on', render: (r) => (r.submittedAt ? <span className="nowrap">{formatDate(r.submittedAt)}</span> : '—') },
+  { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+]
+
 export default function MyApplications() {
-  const navigate = useNavigate()
+  const reasonId = useId()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const query = useQuery(['applications', 'mine', page, pageSize], ({ signal }) => api.me.applications({ page, pageSize }, { signal }))
-  const items = query.data?.items ?? []
   const activeTerm = query.data?.activeTermName
+  const locked = Boolean(activeTerm) || !query.data
 
   return (
     <StudentPage
+      flow
       title="My applications"
       mobileTitle="Activity"
       phoneTop={<ActivitySwitch current="applications" />}
       description="One Application per Term. Open an Application to see its progress."
       actions={
-        <Button variant="primary" size="lg" icon={Plus} to={activeTerm ? undefined : '/student/apply/term'} disabled={Boolean(activeTerm) || !query.data}>
+        <Button variant="primary" size="lg" icon={Plus} to={locked ? undefined : '/student/apply/term'} disabled={locked} aria-describedby={activeTerm ? reasonId : undefined}>
           New application
         </Button>
       }
     >
-      {activeTerm && <Note className="shrink-0 items-center">{t('New application is disabled while you have an active Application for {term}.', { term: activeTerm })}</Note>}
+      {activeTerm && <ReasonLine id={reasonId}>{t('New application is disabled while you have an active Application for {term}.', { term: activeTerm })}</ReasonLine>}
 
-      {/* Phone: MOB-APP-01 Activity › Applications — one row per Application instead of the table. */}
-      <QueryState
-        query={query}
-        compact
-        className="lg:hidden"
-        empty={
-          <EmptyBlock icon={FileText} title="No applications yet" className="lg:hidden">
-            Start an application when registration is open.
-          </EmptyBlock>
-        }
-      >
+      <QueryState query={query} empty={<EmptyState icon={FileText} title="No applications yet" description="Start an application when registration is open." />}>
         {(data) => (
-          <StatusList className="lg:hidden">
-            {data.items.map((r) => (
-              <StatusRow
-                key={r.id}
-                icon={FileText}
-                value={r.id}
-                note={[r.termName, tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' · ')}
-                below={<StatusTag status={r.status} />}
-                to={`/student/applications/${r.id}`}
-              />
-            ))}
-          </StatusList>
+          <DataTable
+            caption="My applications"
+            columns={COLUMNS}
+            rows={data.items}
+            total={data.total}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+            noun={['application', 'applications']}
+          />
         )}
       </QueryState>
-
-      <Table size="lg" fill className="max-lg:hidden">
-        <THead>
-          <tr>
-            <Th className="w-42">Application</Th>
-            <Th className="w-35">Term</Th>
-            <Th className="w-28">Room Type</Th>
-            <Th className="w-32">Room Class</Th>
-            <Th className="w-38" align="right">
-              Deposit
-            </Th>
-            <Th className="w-44">Submitted</Th>
-            <Th>Status</Th>
-            <Th className="w-20">
-              <span className="sr-only">{t('Actions')}</span>
-            </Th>
-          </tr>
-        </THead>
-        <TBody>
-          <TableStatus query={query} colSpan={8} emptyIcon={FileText} emptyTitle="No applications yet" emptyText="Start an application when registration is open." />
-          {items.map((r) => (
-            <Tr key={r.id} onClick={() => navigate(`/student/applications/${r.id}`)}>
-              <Td className="font-medium text-fg-brand">{r.id}</Td>
-              <Td>{r.termName}</Td>
-              <Td>{tr(r.roomTypeName) || '—'}</Td>
-              <Td>{tr(r.roomClassName) || '—'}</Td>
-              <Td align="right" className={r.deposit == null ? 'text-fg-tertiary' : undefined}>
-                {r.deposit == null ? '—' : formatVnd(r.deposit)}
-              </Td>
-              <Td className={r.submittedAt ? undefined : 'text-fg-tertiary'}>{r.submittedAt ? formatDateTime(r.submittedAt) : '—'}</Td>
-              <Td>
-                <StatusTag status={r.status} />
-              </Td>
-              <Td onClick={stop}>
-                <Button variant="text" to={`/student/applications/${r.id}`}>
-                  View
-                </Button>
-              </Td>
-            </Tr>
-          ))}
-        </TBody>
-      </Table>
-
-      <div className="flex shrink-0 justify-end">
-        <Pagination
-          total={query.data?.total ?? 0}
-          page={page}
-          pageSize={pageSize}
-          onChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n)
-            setPage(1)
-          }}
-        />
-      </div>
     </StudentPage>
   )
 }

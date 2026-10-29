@@ -15,9 +15,9 @@ const cell =
   'px-4 py-3 align-middle text-body text-text max-md:flex max-md:items-baseline max-md:justify-between max-md:gap-4 max-md:p-0 max-md:text-right ' +
   'max-md:before:shrink-0 max-md:before:text-left max-md:before:text-small max-md:before:text-text-muted max-md:before:content-[attr(data-label)]'
 
-const DataRow = memo(function DataRow({ item, columns }) {
+const DataRow = memo(function DataRow({ item, columns, id }) {
   return (
-    <tr className={row}>
+    <tr id={id} className={cx(row, id && 'scroll-mt-4')}>
       {columns.map((c) => (
         <td
           key={c.key}
@@ -31,7 +31,8 @@ const DataRow = memo(function DataRow({ item, columns }) {
   )
 })
 
-export function DataTable({ columns, rows, rowKey = 'id', caption, page, pageSize, total, onPageChange, noun, className }) {
+// rowId(row) gives a row an element id (an anchor such as #invoice-INV-1); onPageSizeChange keeps the size changer.
+export function DataTable({ columns, rows, rowKey = 'id', rowId, caption, page, pageSize, total, onPageChange, onPageSizeChange, noun, className }) {
   const keyOf = typeof rowKey === 'function' ? rowKey : (r) => r[rowKey]
   const pages = pageSize ? Math.ceil((total ?? rows.length) / pageSize) : 1
   return (
@@ -54,12 +55,23 @@ export function DataTable({ columns, rows, rowKey = 'id', caption, page, pageSiz
           </thead>
           <tbody className="max-md:flex max-md:flex-col max-md:gap-2">
             {rows.map((r) => (
-              <DataRow key={keyOf(r)} item={r} columns={columns} />
+              <DataRow key={keyOf(r)} item={r} columns={columns} id={rowId?.(r)} />
             ))}
           </tbody>
         </table>
       </div>
-      {pages > 1 && onPageChange && <Pagination total={total} page={page} pageSize={pageSize} onChange={onPageChange} showSizeChanger={false} noun={noun} />}
+      {pages > 1 && onPageChange && (
+        <Pagination
+          className="self-end"
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          showSizeChanger={Boolean(onPageSizeChange)}
+          noun={noun}
+        />
+      )}
     </div>
   )
 }

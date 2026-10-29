@@ -1,17 +1,18 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import { Banknote, Calendar, CreditCard, ReceiptText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { Alert, StatTile } from '@/components/ui/Display'
-import { Pagination } from '@/components/ui/Pagination'
-import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
-import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
-import { StatusTag, Tag } from '@/components/ui/Tag'
+import { QueryState } from '@/components/ui/States'
+import { DataTable } from '@/components/student/DataTable'
+import { EmptyState } from '@/components/student/EmptyState'
+import { StatusBadge } from '@/components/student/StatusBadge'
+import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
-import { ReceiptModal, StatusList, StatusRow, StudentPage } from './shared'
+import { ReceiptModal, StudentPage } from './shared'
 import { RefundAccountCard } from './refundAccount'
 import { t, tr } from '@/i18n'
 
@@ -26,18 +27,77 @@ import { t, tr } from '@/i18n'
 /** Utility Invoices open their breakdown; others open the payment page ("I have transferred"). */
 export const invoicePath = (inv) => (inv.type === 'utility' ? `/student/invoices/${inv.id}` : `/student/invoices/${inv.id}/pay`)
 
+const UNPAID = new Set(['Unpaid', 'Overdue'])
+const unpaidFirst = (a, b) => Number(UNPAID.has(b.status)) - Number(UNPAID.has(a.status))
+const anchorOf = (inv) => `invoice-${inv.id}`
+
+/** "Due: …" (red once overdue) for an unpaid Invoice, "Paid on: …" when the response has the payment date. */
+function DateCell({ inv }) {
+  if (inv.status === 'Paid' && inv.paidAt) return <span className="nowrap">{t('Paid on: {date}', { date: formatDate(inv.paidAt) })}</span>
+  return <span className={cx('nowrap', inv.status === 'Overdue' && 'font-medium text-danger')}>{t('Due: {date}', { date: formatDateTime(inv.dueAt) })}</span>
+}
+
+// Columns are static; only the receipt action needs the page's setter, so they are built once per page.
+function invoiceColumns(openReceipt) {
+  return [
+    {
+      key: 'id',
+      header: 'Invoice',
+      render: (inv) => (
+        <Link to={invoicePath(inv)} className="font-medium text-link hover:underline">
+          {inv.id}
+        </Link>
+      ),
+    },
+    { key: 'typeLabel', header: 'Type', render: (inv) => tr(inv.typeLabel) },
+    { key: 'termName', header: 'Term' },
+    { key: 'amount', header: 'Amount', money: true, render: (inv) => formatVnd(inv.amount) },
+    { key: 'dueAt', header: 'Due / paid', render: (inv) => <DateCell inv={inv} /> },
+    { key: 'status', header: 'Status', render: (inv) => <StatusBadge status={inv.status} /> },
+    {
+      key: 'actions',
+      header: 'Actions',
+      actions: true,
+      render: (inv) =>
+        inv.status === 'Paid' ? (
+          <Button variant="text" onClick={() => openReceipt(inv)}>
+            Receipt
+          </Button>
+        ) : UNPAID.has(inv.status) ? (
+          <Button variant="text" to={`/student/invoices/${inv.id}/pay`}>
+            Pay
+          </Button>
+        ) : null,
+    },
+  ]
+}
+
 export default function MyInvoices() {
-  const navigate = useNavigate()
   const { term } = useSession()
   const [receipt, setReceipt] = useState(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const query = useQuery(['invoices', 'mine', term?.id, page, pageSize], ({ signal }) => api.me.invoices({ termId: term?.id, page, pageSize }, { signal }))
   const summary = query.data?.summary
-  const items = query.data?.items ?? []
+  const columns = useMemo(() => invoiceColumns(setReceipt), [])
+  const rows = useMemo(() => [...(query.data?.items ?? [])].sort(unpaidFirst), [query.data])
+  const firstDue = rows.find((inv) => UNPAID.has(inv.status))
+  const owing = summary?.outstanding > 0
+  // "… then press I have transferred.": the button name is set in bold.
+  const [before, after] = t('Invoices for your dormitory stay. Transfer each one before its due date, then press {button}.').split('{button}')
 
   return (
-    <StudentPage title="Payments" description="Invoices for your dormitory stay. Transfer each one before its due date, then press I have transferred.">
+    <StudentPage
+      flow
+      title="Payments"
+      description={
+        <>
+          {before}
+          <strong className="font-semibold text-text">{t('I have transferred')}</strong>
+          {after}
+        </>
+      }
+    >
       {summary?.warning && (
         <Alert
           type={summary.warning.level === 'Final warning' ? 'error' : 'warning'}
@@ -55,12 +115,23 @@ export default function MyInvoices() {
         </Alert>
       )}
       <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
-        <StatTile
-          icon={Banknote}
-          label="Outstanding"
-          value={summary ? formatVnd(summary.outstanding) : '—'}
-          note={summary?.dueCount ? t(summary.dueCount === 1 ? '{n} Invoice due · next {date}' : '{n} Invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) }) : t('Nothing to pay right now')}
-        />
+        <section className={cx('flex min-w-0 flex-1 flex-col gap-2 rounded-lg border p-5', owing ? 'border-warning/30 bg-warning-bg' : 'border-border bg-surface')}>
+          <span className={cx('flex items-center gap-2 text-small font-medium', owing ? 'text-warning-fg' : 'text-text-secondary')}>
+            <Banknote size={16} aria-hidden="true" />
+            {t('Outstanding')}
+          </span>
+          <p className="text-h2 font-semibold text-text num">{summary ? formatVnd(summary.outstanding) : '—'}</p>
+          <p className="text-small text-text-secondary">
+            {summary?.dueCount
+              ? t(summary.dueCount === 1 ? '{n} Invoice due · next {date}' : '{n} Invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) })
+              : t('Nothing to pay right now')}
+          </p>
+          {owing && firstDue && (
+            <a href={`#${anchorOf(firstDue)}`} className="inline-flex h-10 items-center self-start rounded-md bg-primary px-5 text-base font-medium text-fg-on-brand hover:bg-primary-hover">
+              {t('Pay')}
+            </a>
+          )}
+        </section>
         <StatTile
           icon={CreditCard}
           className="max-lg:hidden"
@@ -79,86 +150,30 @@ export default function MyInvoices() {
 
       <RefundAccountCard />
 
-      {/* Phone: MOB-BIL-01 Invoices (Figma 56:203) — one row per Invoice instead of the table. */}
-      <section className="flex flex-col gap-3 lg:hidden">
-        <h2 className="text-sm font-medium text-fg-tertiary">{t('Invoices')}</h2>
-        <QueryState query={query} compact empty={<EmptyBlock icon={ReceiptText} title="No invoices">The deposit Invoice is issued when you submit an Application.</EmptyBlock>}>
+      <section aria-labelledby="invoices-heading" className="flex flex-col gap-3">
+        <h2 id="invoices-heading" className="text-section-title text-text">
+          {t('Invoices')}
+        </h2>
+        <QueryState query={query} empty={<EmptyState icon={ReceiptText} title="No invoices" description="The deposit Invoice is issued when you submit an Application." />}>
           {(data) => (
-            <StatusList>
-              {data.items.map((inv) => (
-                <StatusRow
-                  key={inv.id}
-                  icon={CreditCard}
-                  value={`${tr(inv.typeLabel)} · ${formatVnd(inv.amount)}`}
-                  note={`${inv.id} · ${inv.status === 'Paid' ? t('paid {date}', { date: formatDate(inv.paidAt) }) : t('due {date}', { date: formatDate(inv.dueAt) })}`}
-                  tag={inv.status === 'Upcoming' ? <Tag>Upcoming</Tag> : <StatusTag status={inv.status} />}
-                  to={invoicePath(inv)}
-                />
-              ))}
-            </StatusList>
+            <DataTable
+              caption="Invoices"
+              columns={columns}
+              rows={rows}
+              rowId={anchorOf}
+              total={data.total}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n)
+                setPage(1)
+              }}
+              noun={['invoice', 'invoices']}
+            />
           )}
         </QueryState>
       </section>
-
-      <Table size="lg" fill className="max-lg:hidden">
-        <THead>
-          <tr>
-            <Th className="w-44">Invoice</Th>
-            <Th className="w-48">Type</Th>
-            <Th className="w-35">Term</Th>
-            <Th className="w-38" align="right">
-              Amount
-            </Th>
-            <Th className="w-44">Due</Th>
-            <Th>Status</Th>
-            <Th className="w-26">
-              <span className="sr-only">{t('Actions')}</span>
-            </Th>
-          </tr>
-        </THead>
-        <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={ReceiptText} emptyTitle="No invoices" emptyText="The deposit Invoice is issued when you submit an Application." />
-          {items.map((inv) => (
-            <Tr key={inv.id} onClick={() => navigate(invoicePath(inv))}>
-              <Td className="font-medium text-fg-brand">{inv.id}</Td>
-              <Td className="max-w-48 truncate" title={tr(inv.typeLabel)}>
-                {tr(inv.typeLabel)}
-              </Td>
-              <Td>{inv.termName}</Td>
-              <Td align="right" className="whitespace-nowrap">
-                {formatVnd(inv.amount)}
-              </Td>
-              <Td className="whitespace-nowrap">{formatDateTime(inv.dueAt)}</Td>
-              <Td>{inv.status === 'Upcoming' ? <Tag>Upcoming</Tag> : <StatusTag status={inv.status} />}</Td>
-              <Td onClick={stop}>
-                {inv.status === 'Paid' && (
-                  <Button variant="text" onClick={() => setReceipt(inv)}>
-                    Receipt
-                  </Button>
-                )}
-                {(inv.status === 'Unpaid' || inv.status === 'Overdue') && (
-                  <Button variant="text" to={`/student/invoices/${inv.id}/pay`}>
-                    Pay
-                  </Button>
-                )}
-              </Td>
-            </Tr>
-          ))}
-        </TBody>
-      </Table>
-
-      <div className="flex shrink-0 justify-end">
-        <Pagination
-          total={query.data?.total ?? 0}
-          page={page}
-          pageSize={pageSize}
-          onChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n)
-            setPage(1)
-          }}
-        />
-      </div>
 
       <ReceiptModal invoice={receipt} onClose={() => setReceipt(null)} />
     </StudentPage>

@@ -217,6 +217,16 @@
   --color-warning: #b45309;        /* icons and dots: #f59e0b is 2.15:1, below the 3:1 for graphics */
 }
 
+/* In-page links (Payments › Pay → #invoice-…) glide to their row; instant for reduced motion. */
+.student-ui main {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-ui main {
+    scroll-behavior: auto;
+  }
+}
+
 /* Never removed: an `outline-none` utility cannot hide it, because unlayered rules win over Tailwind's layers. */
 :focus-visible {
   outline: 2px solid var(--color-primary);
