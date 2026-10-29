@@ -343,7 +343,7 @@ export function BackOfficeLayout({ role }) {
       <div className="flex min-h-0 flex-1">
         <Sidebar role={role} />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          {role === 'admin' && <FlowTrail />}
+          {(role === 'admin' || role === 'manager') && <FlowTrail role={role} />}
           <Outlet />
         </main>
       </div>
