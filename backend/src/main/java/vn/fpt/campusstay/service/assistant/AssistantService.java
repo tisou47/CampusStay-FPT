@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,8 +13,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -28,9 +31,10 @@ import vn.fpt.campusstay.security.Role;
 
 /**
  * The students' AI assistant (ADR-28): answers questions about using CampusStay from the user guide in
- * {@code assistant/guide_<locale>.md} and the student's own data, which the model reads through
- * {@link StudentDataTools}. The conversation lives in the client (each request sends the recent turns); nothing is
- * stored and questions are never logged. Not transactional: the model's answer can take tens of seconds.
+ * {@code assistant/guide_<locale>.md} and the student's own data ({@link StudentData}, read again for every question).
+ * Questions about the door code get a fixed answer without the model, which could make one up. The conversation lives
+ * in the client (each request sends the recent turns); nothing is stored and questions are never logged. Not
+ * transactional: the model's answer can take tens of seconds.
  */
 @Service
 public class AssistantService {
@@ -47,25 +51,45 @@ public class AssistantService {
 
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final int MAX_TURNS = 12;
-    /** Put just before the student's latest question when the conversation has earlier turns. */
+    /**
+     * Put just before the student's latest question: the language and the rules sit thousands of tokens of English data
+     * earlier, and Qwen models drift into Chinese in long answers.
+     */
     private static final Map<String, String> REMINDERS = Map.of(
-            Locales.VI, "Câu hỏi tiếp theo là câu hỏi mới. Nếu nó hỏi về dữ liệu của sinh viên, hãy gọi công cụ phù hợp "
-                    + "trước và chỉ trả lời theo kết quả của công cụ, không dựa vào các câu trả lời trước.",
-            Locales.EN, "The next question is a new one. If it asks about the student's data, call the matching tool "
-                    + "first and answer only from its result, not from earlier answers.");
+            Locales.VI, "Trả lời câu hỏi tiếp theo hoàn toàn bằng tiếng Việt (không dùng tiếng Trung hay tiếng Anh, trừ "
+                    + "tên riêng và trạng thái trong dữ liệu). Trả lời theo phần Dữ liệu của sinh viên trong hướng dẫn, "
+                    + "không dựa vào các câu trả lời trước.",
+            Locales.EN, "Answer the next question entirely in English (no Chinese). Answer from the student's data in your "
+                    + "instructions, not from earlier answers.");
+    /** Asked once more when an answer still holds Chinese, Japanese or Korean script. */
+    private static final Map<String, String> RETRIES = Map.of(
+            Locales.VI, "Câu trả lời trước có chữ tiếng Trung. Viết lại toàn bộ câu trả lời chỉ bằng tiếng Việt.",
+            Locales.EN, "Your previous answer had Chinese characters. Write the whole answer again in English only.");
+    private static final Pattern CJK = Pattern.compile("[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}]");
+    /** "door code" in Vietnamese (with or without accents) and English. */
+    private static final Pattern DOOR_CODE = Pattern.compile(
+            "(m[aã]|m[aậ]t\\s*kh[aẩ]u|pass)\\s*(m[oở]\\s*)?(kh[oó]a\\s*)?c[uử]a|door\\s*-?\\s*(code|pin|password)|passcode");
+    private static final Map<String, String> DOOR_CODE_ANSWERS = Map.of(
+            Locales.VI, "Mình không xem được mã cửa phòng nên không thể cho bạn mã. Mã cửa chỉ hiện ở trang **Phòng của "
+                    + "tôi** (nút \"Xem mã cửa\"). Bạn nhận mã khi đã trả tiền phòng, đã đến ngày nhận phòng và mã của "
+                    + "phòng đã được nhân viên xác nhận trên khóa. Mã đổi mỗi khi có người rời phòng; đừng chia sẻ mã.",
+            Locales.EN, "I cannot see door codes, so I cannot give you one. Your door code is shown only on **My Room** "
+                    + "(the \"Show door code\" button). You receive it once your Balance is paid, check-in has started "
+                    + "and Staff have confirmed the code on the lock. It changes whenever someone leaves the Room; do not "
+                    + "share it.");
 
     private final AssistantModel model;
-    private final StudentDataTools tools;
+    private final StudentData data;
     private final AssistantProperties config;
     private final CurrentUser currentUser;
     private final Clock clock;
     private final Map<String, String> guides = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Instant>> asked = new ConcurrentHashMap<>();
 
-    AssistantService(AssistantModel model, StudentDataTools tools, AssistantProperties config,
+    AssistantService(AssistantModel model, StudentData data, AssistantProperties config,
             CurrentUser currentUser, Clock clock) {
         this.model = model;
-        this.tools = tools;
+        this.data = data;
         this.config = config;
         this.currentUser = currentUser;
         this.clock = clock;
@@ -88,31 +112,28 @@ public class AssistantService {
         take(user.userId());
 
         String locale = locale(user);
-        List<AssistantModel.Message> messages = new ArrayList<>();
-        messages.add(AssistantModel.Message.of("system", systemPrompt(user, locale)));
-        turns.subList(Math.max(0, turns.size() - MAX_TURNS), turns.size())
-                .forEach(t -> messages.add(AssistantModel.Message.of(t.role(), t.content().strip())));
-        if (messages.size() > 2) {
-            // Earlier answers hold no tool results, and a small model follows them instead of the guide's rules.
-            messages.add(messages.size() - 1, AssistantModel.Message.of("system", REMINDERS.get(locale)));
+        String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
+        if (DOOR_CODE.matcher(question).find()) {
+            return new Reply(DOOR_CODE_ANSWERS.get(locale));
         }
 
-        for (int round = 0; ; round++) {
-            boolean last = round >= config.maxToolRounds();
-            AssistantModel.Message answer = model.chat(messages, last ? List.of() : tools.definitions());
-            if (answer.toolCalls().isEmpty() || last) {
-                String text = answer.content().strip();
-                if (text.isEmpty()) {
-                    throw ApiException.unavailable("ASSISTANT_NO_ANSWER",
-                            "The assistant could not answer. Ask in other words.");
-                }
-                return new Reply(text);
-            }
-            messages.add(answer);
-            for (AssistantModel.ToolCall call : answer.toolCalls()) {
-                messages.add(AssistantModel.Message.toolResult(call.name(), tools.call(call.name())));
-            }
+        List<AssistantModel.Message> messages = new ArrayList<>();
+        messages.add(new AssistantModel.Message("system", systemPrompt(user, locale)));
+        turns.subList(Math.max(0, turns.size() - MAX_TURNS), turns.size())
+                .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
+        messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
+
+        String text = model.chat(messages).strip();
+        if (CJK.matcher(text).find()) {
+            messages.add(new AssistantModel.Message("assistant", text));
+            messages.add(new AssistantModel.Message("system", RETRIES.get(locale)));
+            text = model.chat(messages).strip();
         }
+        // Never shown to the student: a blank answer, or one still in the wrong script.
+        if (text.isEmpty() || CJK.matcher(text).find()) {
+            throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
+        }
+        return new Reply(text);
     }
 
     /** Counts a question against the student's hourly limit. */
@@ -139,7 +160,8 @@ public class AssistantService {
 
     private String systemPrompt(AuthenticatedUser user, String locale) {
         LocalDate today = LocalDate.ofInstant(Instant.now(clock), TimeConfig.CAMPUS_ZONE);
-        return guide(locale).replace("{name}", user.name()).replace("{today}", today.toString());
+        return guide(locale).replace("{name}", user.name()).replace("{today}", today.toString())
+                .replace("{data}", data.read(locale));
     }
 
     private String guide(String locale) {

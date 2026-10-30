@@ -2,12 +2,8 @@ package vn.fpt.campusstay.service.assistant;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,26 +28,13 @@ class OllamaAssistantModel implements AssistantModel {
 
     private static final Logger log = LoggerFactory.getLogger(OllamaAssistantModel.class);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    /** Longest answer: a request for an essay ran past the timeout instead of being declined. */
+    private static final int MAX_ANSWER_TOKENS = 400;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    record OllamaMessage(String role, String content, @JsonProperty("tool_calls") List<OllamaToolCall> toolCalls,
-            @JsonProperty("tool_name") String toolName) {
+    record ChatRequest(String model, List<Message> messages, boolean stream, Map<String, Object> options) {
     }
 
-    record OllamaToolCall(OllamaFunctionCall function) {
-    }
-
-    record OllamaFunctionCall(String name, Map<String, Object> arguments) {
-    }
-
-    record OllamaTool(String type, Map<String, Object> function) {
-    }
-
-    record ChatRequest(String model, List<OllamaMessage> messages, List<OllamaTool> tools, boolean stream,
-            Map<String, Object> options) {
-    }
-
-    record ChatResponse(OllamaMessage message) {
+    record ChatResponse(Message message) {
     }
 
     private final AssistantProperties config;
@@ -69,13 +52,12 @@ class OllamaAssistantModel implements AssistantModel {
     }
 
     @Override
-    public Message chat(List<Message> messages, List<Tool> tools) {
+    public String chat(List<Message> messages) {
         if (!config.enabled()) {
             throw offline();
         }
-        ChatRequest request = new ChatRequest(config.model(), messages.stream().map(OllamaAssistantModel::toOllama)
-                .toList(), tools.stream().map(OllamaAssistantModel::toOllama).toList(), false,
-                Map.of("num_ctx", config.contextTokens(), "temperature", 0.2));
+        ChatRequest request = new ChatRequest(config.model(), messages, false,
+                Map.of("num_ctx", config.contextTokens(), "num_predict", MAX_ANSWER_TOKENS, "temperature", 0));
         ChatResponse response;
         try {
             response = http.post().uri(config.baseUrl().replaceAll("/+$", "") + "/api/chat")
@@ -101,31 +83,11 @@ class OllamaAssistantModel implements AssistantModel {
             log.error("Assistant model server answered without a message");
             throw offline();
         }
-        OllamaMessage m = response.message();
-        List<ToolCall> calls = m.toolCalls() == null ? List.of() : m.toolCalls().stream()
-                .filter(c -> c.function() != null && c.function().name() != null)
-                .map(c -> new ToolCall(c.function().name(),
-                        c.function().arguments() == null ? Map.of() : c.function().arguments()))
-                .toList();
-        return new Message("assistant", m.content() == null ? "" : m.content(), calls, null);
+        return response.message().content() == null ? "" : response.message().content();
     }
 
     static ApiException offline() {
         return ApiException.unavailable("ASSISTANT_OFFLINE", "The assistant is offline right now. Try again later.");
-    }
-
-    private static OllamaMessage toOllama(Message m) {
-        List<OllamaToolCall> calls = m.toolCalls().stream()
-                .map(c -> new OllamaToolCall(new OllamaFunctionCall(c.name(), c.arguments()))).toList();
-        return new OllamaMessage(m.role(), m.content(), calls, m.toolName());
-    }
-
-    private static OllamaTool toOllama(Tool t) {
-        Map<String, Object> function = new LinkedHashMap<>();
-        function.put("name", t.name());
-        function.put("description", t.description());
-        function.put("parameters", t.parameters());
-        return new OllamaTool("function", function);
     }
 
     private static JdkClientHttpRequestFactory requestFactory(Duration readTimeout) {

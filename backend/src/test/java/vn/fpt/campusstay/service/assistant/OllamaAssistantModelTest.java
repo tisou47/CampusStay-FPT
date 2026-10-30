@@ -13,7 +13,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -30,8 +29,6 @@ import vn.fpt.campusstay.exception.ApiException;
 class OllamaAssistantModelTest {
 
     private static final String CHAT = "http://ollama.test/api/chat";
-    private static final List<AssistantModel.Tool> TOOLS = List.of(new AssistantModel.Tool("my_room", "The Room",
-            Map.of("type", "object", "properties", Map.of())));
 
     private MockRestServiceServer server;
 
@@ -39,15 +36,12 @@ class OllamaAssistantModelTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         return new OllamaAssistantModel(new AssistantProperties("http://ollama.test/", apiKey, "qwen2.5:3b",
-                Duration.ofSeconds(5), 30, 8192, 3), builder);
+                Duration.ofSeconds(5), 30, 8192), builder);
     }
 
-    /**
-     * TC-AST-006: the chat is posted unstreamed with the model, the tools and the proxy key; the tool calls of the
-     * answer are read.
-     */
+    /** TC-AST-006: the chat is posted unstreamed with the model, the context size and the proxy key; the answer is read. */
     @Test
-    void postsTheChatAndReadsToolCalls() {
+    void postsTheChatAndReadsTheAnswer() {
         OllamaAssistantModel model = model("key-1");
         server.expect(requestTo(CHAT))
                 .andExpect(method(HttpMethod.POST))
@@ -55,17 +49,17 @@ class OllamaAssistantModelTest {
                 .andExpect(jsonPath("$.model").value("qwen2.5:3b"))
                 .andExpect(jsonPath("$.stream").value(false))
                 .andExpect(jsonPath("$.options.num_ctx").value(8192))
+                .andExpect(jsonPath("$.options.num_predict").value(400))
                 .andExpect(jsonPath("$.messages[0].role").value("user"))
-                .andExpect(jsonPath("$.tools[0].type").value("function"))
-                .andExpect(jsonPath("$.tools[0].function.name").value("my_room"))
+                .andExpect(jsonPath("$.messages[0].content").value("Phòng mình?"))
+                .andExpect(jsonPath("$.tools").doesNotExist())
                 .andRespond(withSuccess("""
-                        {"model":"qwen2.5:3b","message":{"role":"assistant","content":"",
-                         "tool_calls":[{"function":{"name":"my_room","arguments":{}}}]},"done":true}""",
-                        MediaType.APPLICATION_JSON));
+                        {"model":"qwen2.5:3b","message":{"role":"assistant","content":"Bạn ở phòng B-509."},
+                         "done":true}""", MediaType.APPLICATION_JSON));
 
-        AssistantModel.Message answer = model.chat(List.of(AssistantModel.Message.of("user", "Phòng mình?")), TOOLS);
+        String answer = model.chat(List.of(new AssistantModel.Message("user", "Phòng mình?")));
 
-        assertThat(answer.toolCalls()).extracting(AssistantModel.ToolCall::name).containsExactly("my_room");
+        assertThat(answer).isEqualTo("Bạn ở phòng B-509.");
         server.verify();
     }
 
@@ -74,12 +68,12 @@ class OllamaAssistantModelTest {
     void offlineWhenTheServerFails() {
         OllamaAssistantModel model = model("");
         server.expect(requestTo(CHAT)).andRespond(withStatus(HttpStatus.NOT_FOUND));
-        assertThatThrownBy(() -> model.chat(List.of(AssistantModel.Message.of("user", "Hi")), List.of()))
+        assertThatThrownBy(() -> model.chat(List.of(new AssistantModel.Message("user", "Hi"))))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_OFFLINE"));
 
         server.reset();
         server.expect(requestTo(CHAT)).andRespond(withException(new IOException("refused")));
-        assertThatThrownBy(() -> model.chat(List.of(AssistantModel.Message.of("user", "Hi")), List.of()))
+        assertThatThrownBy(() -> model.chat(List.of(new AssistantModel.Message("user", "Hi"))))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_OFFLINE"));
     }
 }

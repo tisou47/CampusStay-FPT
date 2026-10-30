@@ -108,11 +108,10 @@ campusstay:
   assistant:                          # students' AI assistant (ADR-28) on a self-hosted Ollama server
     base-url: ${ASSISTANT_BASE_URL:}  # blank = assistant off (the chat button says it is offline)
     api-key: ${ASSISTANT_API_KEY:}    # bearer token of the proxy in front of a remote Ollama; blank = none
-    model: ${ASSISTANT_MODEL:qwen2.5:3b}
+    model: ${ASSISTANT_MODEL:qwen2.5:7b}
     timeout: 90s
     requests-per-hour: 30
-    context-tokens: 8192
-    max-tool-rounds: 3
+    context-tokens: 12288             # the guide, the student's data and the recent turns
   push:
     fcm-credentials-file: ${FIREBASE_CREDENTIALS_FILE:}   # Firebase service account key; blank = push off
   mail:

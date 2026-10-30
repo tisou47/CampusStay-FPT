@@ -14,7 +14,7 @@ campusstay:
     account-name: CAMPUSSTAY FPT DEMO
   demo:
     tools: ${DEMO_TOOLS:true}           # local development: Admin › System › Reset demo data
-  assistant:          # Ollama on the developer's machine (ollama pull qwen2.5:3b)
+  assistant:          # Ollama on the developer's machine (ollama pull qwen2.5:7b)
     base-url: ${ASSISTANT_BASE_URL:http://localhost:11434}
   door-codes:
     key: ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=   # development only; servers set DOOR_CODE_KEY

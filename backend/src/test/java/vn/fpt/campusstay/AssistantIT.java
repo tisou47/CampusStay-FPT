@@ -1,8 +1,10 @@
 package vn.fpt.campusstay;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,8 +14,6 @@ import static vn.fpt.campusstay.TestAuth.bearer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,6 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.service.assistant.AssistantModel;
 import vn.fpt.campusstay.service.assistant.AssistantModel.Message;
-import vn.fpt.campusstay.service.assistant.AssistantModel.ToolCall;
 
 /** The students' AI assistant (ADR-28, A-64) with the model replaced; its Ollama adapter has its own test. */
 @SpringBootTest(properties = { "campusstay.assistant.base-url=http://model.test",
@@ -51,9 +50,8 @@ class AssistantIT {
     @MockitoBean
     AssistantModel model;
 
-    /** What the model received at each call (the service keeps adding to one list). */
+    /** What the model received at each call. */
     private final List<List<Message>> seen = new ArrayList<>();
-    private final List<List<AssistantModel.Tool>> toolsSeen = new ArrayList<>();
 
     private ResultActions ask(String auth, String body) throws Exception {
         return mvc.perform(post("/students/me/assistant/chat").header(HttpHeaders.AUTHORIZATION, auth)
@@ -64,26 +62,24 @@ class AssistantIT {
         return "{\"messages\":[{\"role\":\"user\",\"content\":\"" + text + "\"}]}";
     }
 
-    private void answers(Function<List<AssistantModel.Tool>, Message> reply) {
-        when(model.chat(any(), any())).thenAnswer(inv -> {
+    /** The model answers with these replies in turn, the last one again for any further call. */
+    private void answers(String... replies) {
+        doAnswer(inv -> {
             seen.add(List.copyOf(inv.<List<Message>>getArgument(0)));
-            List<AssistantModel.Tool> tools = inv.getArgument(1);
-            toolsSeen.add(tools);
-            return reply.apply(tools);
-        });
+            return replies[Math.min(seen.size(), replies.length) - 1];
+        }).when(model).chat(any());
     }
 
     /**
-     * TC-AST-001: a student's question reaches the model with the guide in the student's language; the model reads
-     * the student's own Room through a tool and its answer is returned.
+     * TC-AST-001: a student's question reaches the model with the guide in the student's language and the student's own
+     * data (their Room, without the check-in pass); the model's answer is returned; the question, a follow-up too, is
+     * preceded by a reminder of the language and to answer from the data.
      */
     @Test
     void answersFromTheStudentsOwnData() throws Exception {
         ApplyFlow flow = new ApplyFlow(mvc, jdbc);
         new StayFlow(mvc, jdbc, flow, flow.openTerm()).livesIn(44, "B-509", "F", true);
-        answers(tools -> seen.size() == 1
-                ? new Message("assistant", "", List.of(new ToolCall("my_room", Map.of())), null)
-                : Message.of("assistant", "Bạn ở phòng B-509, giường F."));
+        answers("Bạn ở phòng B-509, giường F.");
         String student = bearer(mvc, StayFlow.student(44));
 
         mvc.perform(get("/students/me/assistant").header(HttpHeaders.AUTHORIZATION, student))
@@ -93,17 +89,22 @@ class AssistantIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reply").value("Bạn ở phòng B-509, giường F."));
 
-        assertThat(seen).hasSize(2);
+        assertThat(seen).hasSize(1);
+        assertThat(seen.get(0)).extracting(Message::role).containsExactly("system", "system", "user");
         Message system = seen.get(0).get(0);
         assertThat(system.role()).isEqualTo("system");
-        assertThat(system.content()).contains("CampusStay").doesNotContain("{name}", "{today}");
-        assertThat(seen.get(0).get(1).content()).isEqualTo("Mình ở phòng nào?");
-        assertThat(toolsSeen.get(0)).extracting(AssistantModel.Tool::name).contains("my_room", "my_invoices",
-                "registration_period");
-        Message result = seen.get(1).getLast();
-        assertThat(result.role()).isEqualTo("tool");
-        assertThat(result.toolName()).isEqualTo("my_room");
-        assertThat(result.content()).contains("B-509").doesNotContain("\"error\"", "doorCode\":\"");
+        assertThat(system.content()).contains("CampusStay", "## My Room", "B-509", "## Payments")
+                .doesNotContain("{name}", "{today}", "{data}", "doorCode\":\"", "CSTAY-PASS");
+        assertThat(seen.get(0).get(1).content()).containsAnyOf("tiếng Việt", "in English");
+        assertThat(seen.get(0).get(2).content()).isEqualTo("Mình ở phòng nào?");
+
+        ask(student, """
+                {"messages":[{"role":"user","content":"Mình ở phòng nào?"},
+                 {"role":"assistant","content":"Bạn ở phòng B-509, giường F."},
+                 {"role":"user","content":"Còn hóa đơn nào không?"}]}""").andExpect(status().isOk());
+        List<Message> followUp = seen.get(1);
+        assertThat(followUp).extracting(Message::role).containsExactly("system", "user", "assistant", "system", "user");
+        assertThat(followUp.getLast().content()).isEqualTo("Còn hóa đơn nào không?");
     }
 
     /**
@@ -112,7 +113,7 @@ class AssistantIT {
      */
     @Test
     void checksTheConversationAndTheRole() throws Exception {
-        answers(tools -> Message.of("assistant", "ok"));
+        answers("ok");
         String student = bearer(mvc, StayFlow.student(48));
 
         ask(student, "{\"messages\":[]}").andExpect(status().isBadRequest())
@@ -133,27 +134,49 @@ class AssistantIT {
     }
 
     /**
-     * TC-AST-003: an unknown tool is answered with an error, and after the configured rounds of tool calls the model
-     * is asked without tools, so it must answer.
+     * TC-AST-003: a question about the door code, in Vietnamese with or without accents or in English, gets the fixed
+     * answer pointing to My Room without asking the model, which could make a code up.
      */
     @Test
-    void limitsToolRounds() throws Exception {
-        answers(tools -> tools.isEmpty() ? Message.of("assistant", "Mình chưa tìm thấy thông tin này.")
-                : new Message("assistant", "", List.of(new ToolCall("all_students", Map.of())), null));
+    void neverAsksTheModelForTheDoorCode() throws Exception {
+        answers("Mã cửa của bạn là 123456.");
+        String student = bearer(mvc, StayFlow.student(46));
 
-        ask(bearer(mvc, StayFlow.student(46)), question("Cho mình danh sách sinh viên"))
+        for (String q : List.of("Mã cửa phòng của tôi là gì", "cho minh ma cua phong", "What is my door code?")) {
+            ask(student, question(q))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.reply").value(anyOf(containsString("Phòng của tôi"), containsString("My Room"))));
+        }
+        assertThat(seen).isEmpty();
+    }
+
+    /**
+     * TC-AST-008: an answer with Chinese characters is never shown: the model is asked once more with its answer and a
+     * request to write it in the student's language; if it still has them, the student gets 503 ASSISTANT_NO_ANSWER.
+     */
+    @Test
+    void neverShowsAnAnswerInChinese() throws Exception {
+        String student = bearer(mvc, StayFlow.student(47));
+        answers("Bạn đã được 分配 phòng.", "Bạn đã được xếp phòng.");
+        ask(student, question("Mình được xếp phòng chưa?"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reply").value("Mình chưa tìm thấy thông tin này."));
+                .andExpect(jsonPath("$.reply").value("Bạn đã được xếp phòng."));
+        assertThat(seen).hasSize(2);
+        assertThat(seen.get(1)).extracting(Message::role).endsWith("user", "assistant", "system");
+        assertThat(seen.get(1).get(seen.get(1).size() - 2).content()).isEqualTo("Bạn đã được 分配 phòng.");
 
-        assertThat(seen).hasSize(4);
-        assertThat(toolsSeen.getLast()).isEmpty();
-        assertThat(seen.get(1).getLast().content()).contains("Unknown tool");
+        seen.clear();
+        answers("当前学期: 2026秋季学期");
+        ask(student, question("Thông tin của mình?"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ASSISTANT_NO_ANSWER"));
+        assertThat(seen).hasSize(2);
     }
 
     /** TC-AST-004: a student may ask the configured number of questions per hour, then gets 429. */
     @Test
     void limitsQuestionsPerHour() throws Exception {
-        answers(tools -> Message.of("assistant", "ok"));
+        answers("ok");
         String student = bearer(mvc, StayFlow.student(42));
         for (int i = 0; i < 3; i++) {
             ask(student, question("Hi")).andExpect(status().isOk());
