@@ -47,6 +47,12 @@ public class AssistantService {
 
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final int MAX_TURNS = 12;
+    /** Put just before the student's latest question when the conversation has earlier turns. */
+    private static final Map<String, String> REMINDERS = Map.of(
+            Locales.VI, "Câu hỏi tiếp theo là câu hỏi mới. Nếu nó hỏi về dữ liệu của sinh viên, hãy gọi công cụ phù hợp "
+                    + "trước và chỉ trả lời theo kết quả của công cụ, không dựa vào các câu trả lời trước.",
+            Locales.EN, "The next question is a new one. If it asks about the student's data, call the matching tool "
+                    + "first and answer only from its result, not from earlier answers.");
 
     private final AssistantModel model;
     private final StudentDataTools tools;
@@ -81,10 +87,15 @@ public class AssistantService {
         }
         take(user.userId());
 
+        String locale = locale(user);
         List<AssistantModel.Message> messages = new ArrayList<>();
-        messages.add(AssistantModel.Message.of("system", systemPrompt(user)));
+        messages.add(AssistantModel.Message.of("system", systemPrompt(user, locale)));
         turns.subList(Math.max(0, turns.size() - MAX_TURNS), turns.size())
                 .forEach(t -> messages.add(AssistantModel.Message.of(t.role(), t.content().strip())));
+        if (messages.size() > 2) {
+            // Earlier answers hold no tool results, and a small model follows them instead of the guide's rules.
+            messages.add(messages.size() - 1, AssistantModel.Message.of("system", REMINDERS.get(locale)));
+        }
 
         for (int round = 0; ; round++) {
             boolean last = round >= config.maxToolRounds();
@@ -120,10 +131,13 @@ public class AssistantService {
         }
     }
 
-    private String systemPrompt(AuthenticatedUser user) {
-        // The language on screen first (the web sends it with every request), else the account's.
+    /** The language on screen first (the web sends it with every request), else the account's. */
+    private static String locale(AuthenticatedUser user) {
         String asked = Locales.requested();
-        String locale = Locales.VI.equals(asked != null ? asked : user.locale()) ? Locales.VI : Locales.EN;
+        return Locales.VI.equals(asked != null ? asked : user.locale()) ? Locales.VI : Locales.EN;
+    }
+
+    private String systemPrompt(AuthenticatedUser user, String locale) {
         LocalDate today = LocalDate.ofInstant(Instant.now(clock), TimeConfig.CAMPUS_ZONE);
         return guide(locale).replace("{name}", user.name()).replace("{today}", today.toString());
     }

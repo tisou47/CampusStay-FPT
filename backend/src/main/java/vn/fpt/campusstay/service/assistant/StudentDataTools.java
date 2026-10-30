@@ -56,8 +56,12 @@ class StudentDataTools {
                 () -> allocations.mine(null));
         add("my_invoices", "The student's Invoices: Deposit, Balance, room fees and Utility, with amounts in VND, "
                 + "due dates and status.", () -> invoices.mine(null, PageQuery.of(1, 20)));
-        add("my_requests", "The student's Maintenance Requests, Room-Change Requests and swaps with their status.",
-                () -> requests.mine(null, null, PageQuery.of(1, 20)));
+        // The two tabs of the student's Requests screen.
+        add("my_maintenance_requests", "The student's Maintenance Requests (repairs) with their status.",
+                () -> requests.mine("maintenance", null, PageQuery.of(1, 20)));
+        add("my_room_requests", "The student's next-Term requests with their status: room changes, swaps, Room Class "
+                + "changes (with roommates' consent), stay extensions and end of stay.",
+                () -> requests.mine("room-changes", null, PageQuery.of(1, 20)));
         add("dormitory_board", "Announcements of the dormitory shown to the student now (registration, money, rules, "
                 + "operations).", announcements::board);
         add("registration_period", "The current registration period: status, timeline, prices per Room Type and "
