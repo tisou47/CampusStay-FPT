@@ -86,8 +86,8 @@ function StudentTopBar() {
                     <p className="text-sm text-fg-tertiary">{user.email}</p>
                   </div>
                 )}
-                <MenuItem icon={User} onClick={() => { close(); navigate('/student/room') }}>
-                  {t('My Room')}
+                <MenuItem icon={User} onClick={() => { close(); navigate('/student/profile') }}>
+                  {t('My profile')}
                 </MenuItem>
                 <MenuItem icon={KeyRound} onClick={() => { close(); setChangingPassword(true) }}>
                   {t('Change password')}
