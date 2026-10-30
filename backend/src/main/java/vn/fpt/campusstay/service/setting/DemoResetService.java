@@ -265,13 +265,17 @@ public class DemoResetService {
         return csv.toString();
     }
 
-    /** This month's readings of Block A (the open period), a little above last month's. */
+    /** This month's readings of Block A (the open period): about last month's use again, so none needs a check. */
     private String meterReadings() {
         List<String> lines = jdbc.sql("""
-                SELECT r.code || ',' || (m.electricity_prev + 60 + r.id % 80)::bigint || ','
-                       || (m.water_prev + 3 + r.id % 7)::bigint
+                SELECT r.code || ',' || (m.electricity_prev + coalesce(l.kwh, 60) + r.id % 7)::bigint || ','
+                       || (m.water_prev + coalesce(l.m3, 3) + r.id % 2)::bigint
                 FROM bil_meter_reading m JOIN bil_meter_period p ON p.id = m.period_id
                 JOIN inv_room r ON r.id = m.room_id JOIN inv_building b ON b.id = p.building_id
+                LEFT JOIN LATERAL (SELECT x.electricity_curr - x.electricity_prev AS kwh, x.water_curr - x.water_prev AS m3
+                                   FROM bil_meter_reading x JOIN bil_meter_period xp ON xp.id = x.period_id
+                                   WHERE x.room_id = m.room_id AND xp.closed_at IS NOT NULL
+                                   ORDER BY xp.period_start DESC LIMIT 1) l ON TRUE
                 WHERE b.code = 'A' AND p.closed_at IS NULL AND m.status = 'MISSING'
                 ORDER BY r.code
                 """).query(String.class).list();

@@ -253,6 +253,7 @@ public class DashboardService {
                     + " past the check-out date", "They have not checked out at the desk.", "/staff/check-out", "Open",
                     Map.of("count", lateCheckOuts)));
         }
+        attention.addAll(lateMeterPeriods(blocks, "/staff/meter-readings"));
         if (expired > 0) {
             attention.add(new Attention("expired", "expired", "neutral", plural(expired, "Deposit") + " expired this week",
                     "Their Applications were cancelled; the students may apply again.", "/staff/applications", "View",
@@ -442,6 +443,7 @@ public class DashboardService {
                     + " past the check-out date", "Staff list them at the check-out desk; their Beds stay held.",
                     "/manager/next-term/turnover", "View", Map.of("count", lateCheckOuts)));
         }
+        waiting.addAll(lateMeterPeriods(blocks, null));
         for (Map.Entry<Long, String> b : blocks.codes().entrySet()) {
             for (String[] type : new String[][] { { "MAINTENANCE", "Maintenance Requests" },
                     { "ROOM_CHANGE", "Room-Change Requests" } }) {
@@ -649,6 +651,38 @@ public class DashboardService {
                 + " FROM rpt_v_invoice WHERE term_id = :term AND " + where).params(p)
                 .query((rs, i) -> new long[] { rs.getLong("invoiced"), rs.getLong("collected"),
                         rs.getLong("outstanding"), rs.getLong("open") }).single();
+    }
+
+    /**
+     * Months whose meter period a Block has not closed {@code utility.close_days} after the month ended: its residents
+     * have no Utility Invoice for it until Staff close it (D-16). Oldest first.
+     */
+    private List<Attention> lateMeterPeriods(ReportScope.Blocks blocks, String link) {
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("b", List.copyOf(blocks.codes().keySet()));
+        p.put("days", Math.max(0, parameters.intValue("utility.close_days")));
+        p.put("today", today);
+        p.put("limit", WAITING_ITEMS);
+        if (blocks.codes().isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                SELECT building_id, label, period_end FROM rpt_v_meter_period
+                WHERE building_id IN (:b) AND closed_at IS NULL AND period_end + :days < :today
+                ORDER BY period_start, building_id LIMIT :limit
+                """).params(p).query((rs, i) -> {
+                    String block = blocks.codes().get(rs.getLong("building_id"));
+                    String period = rs.getString("label");
+                    long days = java.time.temporal.ChronoUnit.DAYS.between(rs.getObject("period_end", LocalDate.class),
+                            today);
+                    return new Attention("meter-period-" + block + "-" + period, "meter-period", "warning",
+                            "Meter period " + period + " of Block " + block + " not closed",
+                            "The month ended " + plural(days, "day") + " ago; its residents get no Utility Invoice"
+                                    + " until it is closed.",
+                            link, link == null ? null : "Close period",
+                            Map.of("block", block, "period", period, "days", days));
+                }).list();
     }
 
     private long count(String sql, Map<String, ?> params) {

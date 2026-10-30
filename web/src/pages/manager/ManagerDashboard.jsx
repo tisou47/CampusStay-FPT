@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Banknote, Bed, CalendarClock, CreditCard, Download, FileText, Layers, Repeat2, Route, TriangleAlert, Users, Wrench } from 'lucide-react'
+import { ArrowRightLeft, Banknote, Bed, CalendarClock, CreditCard, Download, FileText, Gauge, Layers, Repeat2, Route, TriangleAlert, Users, Wrench } from 'lucide-react'
 import { Link } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
@@ -23,7 +23,7 @@ import { t, tr } from '@/i18n'
 // review, transfers to confirm, the proposal, Beds by Block), /approvals/summary, /round2, /payment-claims (summary),
 // /block-staff (duty).
 
-const waitingIcon = { refund: CreditCard, escalation: TriangleAlert, routing: Route, 'check-out': CalendarClock }
+const waitingIcon = { refund: CreditCard, escalation: TriangleAlert, routing: Route, 'check-out': CalendarClock, 'meter-period': Gauge }
 
 export default function ManagerDashboard() {
   const { term, user, block } = useSession()
@@ -117,7 +117,7 @@ export default function ManagerDashboard() {
       action: { label: 'Decide', to: '/manager/finance' },
     },
     ...(d?.waiting ?? [])
-      .filter((x) => x.kind === 'check-out')
+      .filter((x) => x.kind === 'check-out' || x.kind === 'meter-period')
       .map((x) => ({
         id: x.id,
         icon: waitingIcon[x.kind] ?? TriangleAlert,

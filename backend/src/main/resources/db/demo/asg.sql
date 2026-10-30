@@ -115,7 +115,8 @@ WHERE a.late IS NOT NULL;
 -- A termination for Utility debt (S21): notice sent, move out within days.
 INSERT INTO asg_termination (allocation_id, term_id, student_id, reason, note, debt, status, started_at, started_by,
                              move_out_by)
-SELECT al.id, t.n_id, d.student_id, 'UTILITY_DEBT', 'Two Utility Invoices overdue after the final warning.', 612000,
+SELECT al.id, t.n_id, d.student_id, 'UTILITY_DEBT', 'Two Utility Invoices overdue after the final warning.',
+       (SELECT sum(u.amount) FROM demo_util_share u WHERE u.student_id = d.student_id AND u.overdue),
        'NOTICE_SENT', t.now - interval '2 days', (SELECT id FROM demo_staff WHERE account = 'manager.a'),
        least(t.today + 5, t.n_end)
 FROM demo_res d CROSS JOIN demo_t t JOIN asg_allocation al ON al.term_id = t.n_id AND al.student_id = d.student_id
