@@ -16,7 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Without a model server ({@code ASSISTANT_BASE_URL} blank) the assistant says it is off (ADR-28, A-63). */
+/** Without a model server ({@code ASSISTANT_BASE_URL} blank) the assistant says it is off (ADR-28, A-64). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

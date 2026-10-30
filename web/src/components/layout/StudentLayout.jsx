@@ -29,12 +29,12 @@ function StudentTopBar() {
   const { user, term, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
-    <header className="z-30 hidden shrink-0 border-b border-line bg-surface lg:block">
+    <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <StudentContainer className="flex h-16 items-center justify-between gap-6">
         <div className="flex items-center gap-10">
           <Link to="/student" aria-label={t('Home')}>
-            <Logo />
+            <Logo tone="band" />
           </Link>
           <nav aria-label={t('Main')} className="flex items-center gap-1">
             {studentNav.map((item) => {
@@ -45,8 +45,8 @@ function StudentTopBar() {
                   to={item.to}
                   aria-current={active ? 'page' : undefined}
                   className={cx(
-                    'flex h-16 items-center border-b-2 px-3 pt-0.5 text-base font-medium whitespace-nowrap transition-colors',
-                    active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:text-fg',
+                    'flex h-9 items-center rounded-md px-3 text-base font-semibold whitespace-nowrap transition-colors',
+                    active ? 'bg-surface text-fg-brand shadow-card' : 'text-band-fg hover:bg-band-hover',
                   )}
                 >
                   {t(item.label)}
@@ -58,24 +58,24 @@ function StudentTopBar() {
         {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
         <div className="flex items-center gap-4">
           {term && (
-            <span className="hidden items-center gap-1.5 rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary xl:flex">
+            <span className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-sm font-medium whitespace-nowrap text-fg shadow-card xl:flex">
               <Calendar size={16} aria-hidden="true" />
               {term.name}
             </span>
           )}
           <LanguageSwitch size="sm" />
-          <NotificationsButton />
-          <span aria-hidden="true" className="h-6 w-px bg-line" />
+          <NotificationsButton onBand />
+          <span aria-hidden="true" className="h-6 w-px bg-band-line" />
           <Popover
             width={220}
             trigger={({ toggle, props }) => (
               <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
                 <Avatar name={user?.name} />
                 <span className="hidden flex-col whitespace-nowrap xl:flex">
-                  <span className="text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
-                  {user?.studentCode && <span className="text-sm text-fg-tertiary">{user.studentCode}</span>}
+                  <span className="text-base font-semibold text-band-fg">{user?.name ?? t('Not signed in')}</span>
+                  {user?.studentCode && <span className="text-sm text-band-fg">{user.studentCode}</span>}
                 </span>
-                <ChevronDown size={16} aria-hidden="true" className="text-fg-secondary" />
+                <ChevronDown size={16} aria-hidden="true" className="text-band-fg" />
               </button>
             )}
           >

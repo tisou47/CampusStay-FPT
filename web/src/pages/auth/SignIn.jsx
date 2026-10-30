@@ -170,7 +170,7 @@ export default function SignIn() {
 
         <div className="flex w-full items-center gap-2 pt-1">
           <DividerLine />
-          <span className="text-sm leading-4 font-semibold whitespace-nowrap text-fg-disabled">{t('Or sign in with')}</span>
+          <span className="text-sm leading-4 font-semibold whitespace-nowrap text-fg-tertiary">{t('Or sign in with')}</span>
           <DividerLine />
         </div>
 

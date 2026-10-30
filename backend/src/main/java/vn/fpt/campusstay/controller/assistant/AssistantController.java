@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.assistant.AssistantService;
 
-/** The students' AI assistant (ADR-28, A-63): whether it is on, and one answer to the conversation sent. */
+/** The students' AI assistant (ADR-28, A-64): whether it is on, and one answer to the conversation sent. */
 @RestController
 @RequestMapping("/students/me/assistant")
 class AssistantController {

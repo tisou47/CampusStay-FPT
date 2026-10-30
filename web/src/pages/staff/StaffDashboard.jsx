@@ -3,11 +3,13 @@ import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
+import { StageNow } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { CapacityRows, Journey, Panel, WorkList } from '@/components/ui/Work'
 import { formatDate, formatNumber, formatRelative } from '@/lib/format'
+import { attentionText } from '@/lib/attention'
 import { termJourney } from '@/lib/termJourney'
 import { t, tr } from '@/i18n'
 
@@ -88,11 +90,23 @@ export default function StaffDashboard() {
   }))
 
   const ci = checkIns.data
+  // Before the first check-in day the desk only knows how many will come (contract A-63, window UPCOMING).
+  const ciUpcoming = ci?.window === 'UPCOMING'
+  // After the last check-in day there is no desk rush: residents live in through their door codes (ADR-23).
+  const ciClosed = ci?.window === 'CLOSED'
   const dc = doorCodes.data?.counts
   const ms = meters.data?.summary
   const run = inspection.data?.run
   const blockItems = [
-    ci && ci.expected > 0 && {
+    ci && ci.expected > 0 && ciUpcoming && {
+      id: 'check-in',
+      icon: LogIn,
+      tone: 'info',
+      title: t('Check-in opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: formatNumber(ci.expected) }),
+      meta: t('{blocked} not paid yet', { blocked: ci.blocked }),
+      action: { label: 'Open desk', to: '/staff/check-in' },
+    },
+    ci && ci.expected > 0 && !ciUpcoming && !ciClosed && {
       id: 'check-in',
       icon: LogIn,
       tone: ci.waiting ? 'info' : 'success',
@@ -131,14 +145,14 @@ export default function StaffDashboard() {
         id: `att-${a.id}`,
         icon: attentionIcon[a.kind] ?? TriangleAlert,
         tone: severityTone[a.severity],
-        title: tr(a.title),
-        meta: tr(a.body),
+        title: attentionText(a).title,
+        meta: attentionText(a).body,
         action: a.link ? { label: a.cta ?? 'Open', to: a.link } : null,
       })),
   ].filter(Boolean)
 
   const journey = termJourney(term, {
-    checkin: ci && ci.expected ? t('{done} of {n} checked in today', { done: ci.checkedIn, n: ci.expected }) : undefined,
+    checkin: ci && ci.expected && !ciClosed ? (ciUpcoming ? t('Opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: ci.expected }) : t('{done} of {n} checked in today', { done: ci.checkedIn, n: ci.expected })) : undefined,
   })
   const myOpen = me.data?.open
   const late = myItems.filter((i) => i.tone === 'error').length
@@ -169,13 +183,19 @@ export default function StaffDashboard() {
       {term && (
         <Panel title={t('Term {name}', { name: term.name })} subtitle="Where the Term stands. The highlighted stage is now." className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
+          <StageNow role="staff" term={term} />
         </Panel>
       )}
 
       <div className="flex shrink-0 gap-4">
         <KpiTile icon={Wrench} label="In your charge" value={formatNumber(myOpen)} note={late ? t('{n} past the time limit', { n: late }) : me.data ? t('{n} resolved in 7 days', { n: me.data.resolved7d }) : null} noteTone={late ? 'error' : 'secondary'} />
         <KpiTile icon={Hand} label="Nobody in charge" value={formatNumber(unassigned.data?.total)} note={unassigned.data?.summary?.urgentUnassigned ? t('{n} urgent', { n: unassigned.data.summary.urgentUnassigned }) : 'Requests waiting for someone'} noteTone={unassigned.data?.summary?.urgentUnassigned ? 'error' : 'secondary'} />
-        <KpiTile icon={LogIn} label="Check-ins today" value={ci ? `${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}` : '—'} note={ci ? t('{n} waiting at the desk', { n: ci.waiting }) : 'No check-in window today'} />
+        <KpiTile
+          icon={LogIn}
+          label="Check-ins today"
+          value={ci && !ciUpcoming && !ciClosed ? `${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}` : '—'}
+          note={ciUpcoming ? t('Opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: formatNumber(ci.expected) }) : ciClosed ? t('Check-in closed on {date}', { date: formatDate(ci.checkInEnd) }) : ci ? t('{n} waiting at the desk', { n: ci.waiting }) : 'No check-in window today'}
+        />
         <KpiTile icon={Gauge} label="Meter readings" value={ms ? `${formatNumber(ms.entered)} / ${formatNumber(ms.roomsDue)}` : '—'} note={period ? t('Period {label}', { label: tr(period.label) }) : null} />
       </div>
 

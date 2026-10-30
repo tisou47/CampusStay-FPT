@@ -89,10 +89,16 @@ function HomeContent({ home }) {
   const { term, application: app, allocation, dueInvoice } = home
   const payLink = dueInvoice ? `/student/invoices/${dueInvoice.id}/pay` : '/student/invoices'
 
+  // A new student whose Term's registration has closed has nothing to apply for: say so, never a live button.
+  const closed = stage === 'new' && !term?.registrationOpen
   const subtitle = {
-    new: term?.registrationClosesAt
-      ? t('{term} registration is open until {date}.', { term: term.name, date: formatDateTime(term.registrationClosesAt) })
-      : t('Registration is not open yet.'),
+    new: closed
+      ? term?.registrationClosesAt && new Date(term.registrationClosesAt) < new Date()
+        ? t('{term} registration closed on {date}.', { term: term.name, date: formatDateTime(term.registrationClosesAt) })
+        : t('Registration is not open yet.')
+      : term?.registrationClosesAt
+        ? t('{term} registration is open until {date}.', { term: term.name, date: formatDateTime(term.registrationClosesAt) })
+        : t('Registration is not open yet.'),
     'awaiting-deposit': t('Pay the deposit to send {id} to the dormitory office.', { id: app?.id }),
     applied: t('Your Application is with the dormitory office.'),
     allocated: dueInvoice
@@ -101,7 +107,13 @@ function HomeContent({ home }) {
   }[stage]
 
   let next
-  if (stage === 'new') {
+  if (closed) {
+    next = (
+      <NextAction icon={FileText} title={term ? t('Registration for {term} is closed', { term: term.name }) : t('Registration is not open yet')}>
+        The next registration period is announced on the dormitory board; you can apply as soon as it opens.
+      </NextAction>
+    )
+  } else if (stage === 'new') {
     const left = daysUntil(term?.registrationClosesAt)
     next = (
       <NextAction
@@ -217,7 +229,7 @@ function HomeContent({ home }) {
   return (
     <>
       <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
-        <h1 className="text-h1 font-semibold text-fg">{greeting(home.firstName)}</h1>
+        <h1 className="sr-only text-h1 font-semibold text-fg lg:not-sr-only">{greeting(home.firstName)}</h1>
         <p className="text-lg text-fg-secondary">{subtitle}</p>
       </div>
 

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 /*
- * CampusStay FPT — design tokens.
- * Source: Figma "CampusStay-FPT" › 01 Foundations v0.1 (Figma Variables).
- * The default Tailwind palette, type scale and shadows are reset so screens can
- * only use the design system. Comments give the Figma variable each token maps to.
+ * CampusStay FPT — design tokens ("FPT orange campus", redesign 30/10/2026).
+ * FPT orange frames every screen (the band); deep orange is the only action colour; FPT blue marks links
+ * and Room codes; FPT green marks done and paid. Neutrals are warm-tinted from the orange.
+ * The default Tailwind palette, type scale and shadows are reset so screens can only use the design system.
  */
 @theme {
-  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
 
   /* ---------- Colour ---------- */
   --color-*: initial;
@@ -20,21 +20,21 @@
   --color-orange-200: #fecdaa;
   --color-orange-300: #fdaa74;
   --color-orange-400: #f98a45;
-  --color-orange-500: #f37021;
+  --color-orange-500: #f37021; /* FPT orange */
   --color-orange-600: #c64f0e;
   --color-orange-700: #9e3f0f;
   --color-orange-800: #7e3412;
   --color-orange-900: #662d12;
-  --color-blue-50: #eef5ff;
-  --color-blue-100: #d9e8ff;
-  --color-blue-500: #2f6fde;
-  --color-blue-600: #1f57be;
-  --color-blue-700: #1a4699;
-  --color-green-50: #edfaf2;
-  --color-green-100: #d3f3e0;
-  --color-green-500: #1f9a5b;
-  --color-green-600: #157d49;
-  --color-green-700: #13633c;
+  --color-blue-50: #eef5fc;
+  --color-blue-100: #d6e8f8;
+  --color-blue-500: #1a73c8;
+  --color-blue-600: #0a5da8; /* FPT blue */
+  --color-blue-700: #084a86;
+  --color-green-50: #eef8ef;
+  --color-green-100: #d5efd8;
+  --color-green-500: #3fa34d; /* FPT green */
+  --color-green-600: #2e8a3c;
+  --color-green-700: #226b2d;
   --color-amber-50: #fffbeb;
   --color-amber-100: #fef0c7;
   --color-amber-500: #f59e0b;
@@ -46,64 +46,71 @@
   --color-red-600: #c81e1e;
   --color-red-700: #a61b1b;
   --color-gray-0: #ffffff;
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f8f9fb;
-  --color-gray-100: #f1f3f6;
-  --color-gray-200: #e4e7ec;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
+  --color-gray-25: #fffcfa;
+  --color-gray-50: #fbf8f5;
+  --color-gray-100: #f5f0eb;
+  --color-gray-200: #ebe3db;
+  --color-gray-300: #d9cec4;
+  --color-gray-400: #a8998d;
+  --color-gray-500: #75665b;
+  --color-gray-600: #5c4f46;
+  --color-gray-700: #3f352e;
+  --color-gray-800: #2a221d;
+  --color-gray-900: #1d1714;
+
+  /* The band: FPT orange across the top of every shell. Everything on it is ink or a white control
+     (white text on FPT orange fails contrast). */
+  --color-band: #f37021;
+  --color-band-fg: #1d1714;
+  --color-band-line: #d9600f;
+  --color-band-hover: #fb9a5c;
 
   /* Brand and action */
-  --color-primary: #c64f0e;        /* action/primary — buttons, links, selected states */
-  --color-primary-hover: #9e3f0f;  /* action/primary-hover */
-  --color-primary-subtle: #fff5ed; /* action/primary-subtle */
-  --color-accent: #f37021;         /* brand/accent — decorative only, never as text */
-  --color-secondary: #1f57be;      /* action/secondary */
-  --color-focus: #2f6fde;          /* border/focus */
+  --color-primary: #c64f0e;        /* the only action colour: buttons, selection */
+  --color-primary-hover: #9e3f0f;
+  --color-primary-subtle: #fff1e6;
+  --color-accent: #f37021;         /* FPT orange: fields and marks, never as text */
+  --color-secondary: #0a5da8;      /* FPT blue */
+  --color-focus: #0a5da8;
 
   /* Surfaces */
-  --color-canvas: #f8f9fb;       /* bg/canvas */
-  --color-surface: #ffffff;      /* bg/surface */
-  --color-subtle: #f1f3f6;       /* bg/subtle */
-  --color-brand-subtle: #fff5ed; /* bg/brand-subtle */
+  --color-canvas: #fbf8f5;
+  --color-surface: #ffffff;
+  --color-subtle: #f5f0eb;
+  --color-brand-subtle: #fff1e6;
 
   /* Text */
-  --color-fg: #101828;           /* text/primary */
-  --color-fg-secondary: #475467; /* text/secondary */
-  --color-fg-tertiary: #667085;  /* text/tertiary */
-  --color-fg-disabled: #98a2b3;  /* text/disabled */
-  --color-fg-brand: #c64f0e;     /* text/brand */
-  --color-fg-link: #1f57be;      /* text/link */
-  --color-fg-on-brand: #ffffff;  /* text/on-brand */
+  --color-fg: #1d1714;
+  --color-fg-secondary: #5c4f46;
+  --color-fg-tertiary: #75665b;
+  --color-fg-disabled: #a8998d;
+  --color-fg-brand: #b8490d;
+  --color-fg-link: #0a5da8;
+  --color-fg-on-brand: #ffffff;
 
   /* Borders */
-  --color-line: #e4e7ec;         /* border/default */
-  --color-line-strong: #d0d5dd;  /* border/strong */
-  --color-line-brand: #c64f0e;   /* border/brand */
+  --color-line: #ebe3db;
+  --color-line-strong: #d9cec4;
+  --color-line-brand: #c64f0e;
 
   /* Status: solid (icons, chart marks, dots) · bg (tag and banner fill) · fg (text on bg) */
-  --color-success: #157d49;
-  --color-success-bg: #edfaf2;
-  --color-success-fg: #13633c;
+  --color-success: #2e8a3c;
+  --color-success-bg: #eef8ef;
+  --color-success-fg: #226b2d;
   --color-warning: #f59e0b;
   --color-warning-bg: #fffbeb;
   --color-warning-fg: #92400e;
   --color-error: #c81e1e;
   --color-error-bg: #fef2f2;
   --color-error-fg: #a61b1b;
-  --color-info: #1f57be;
-  --color-info-bg: #eef5ff;
-  --color-info-fg: #1a4699;
-  --color-neutral: #667085;
-  --color-neutral-bg: #f1f3f6;
-  --color-neutral-fg: #344054;
+  --color-info: #0a5da8;
+  --color-info-bg: #eef5fc;
+  --color-info-fg: #084a86;
+  --color-neutral: #75665b;
+  --color-neutral-bg: #f5f0eb;
+  --color-neutral-fg: #3f352e;
 
-  /* ---------- Typography (Inter) ---------- */
+  /* ---------- Typography (Be Vietnam Pro) ---------- */
   --text-*: initial;
   --text-xs: 11px;               /* chart axis labels only */
   --text-xs--line-height: 16px;
@@ -130,10 +137,10 @@
 
   /* ---------- Elevation ---------- */
   --shadow-*: initial;
-  --shadow-card: 0 1px 2px 0 #1018280d;                                  /* Elevation/1 Card */
-  --shadow-dropdown: 0 4px 12px -2px #10182814, 0 2px 4px -2px #1018280a; /* Elevation/2 Dropdown */
-  --shadow-modal: 0 12px 24px -4px #1018281f, 0 4px 8px -2px #1018280a;  /* Elevation/3 Modal */
-  --shadow-focus: 0 0 0 2px #2f6fde33;                                   /* focus ring on inputs */
+  --shadow-card: 0 1px 2px 0 #3f1d0a0d;                                  /* Elevation/1 Card */
+  --shadow-dropdown: 0 6px 16px -4px #3f1d0a1f, 0 2px 4px -2px #3f1d0a0f; /* Elevation/2 Dropdown */
+  --shadow-modal: 0 16px 32px -8px #3f1d0a29, 0 4px 8px -2px #3f1d0a0f;  /* Elevation/3 Modal */
+  --shadow-focus: 0 0 0 3px #0a5da833;                                   /* focus ring on inputs */
 
   /* ---------- Motion ---------- */
   --animate-fade-in: fade-in 150ms ease-out;
@@ -186,7 +193,19 @@
   }
 
   ::selection {
-    background-color: var(--color-orange-100);
+    background-color: var(--color-orange-200);
+    color: var(--color-fg);
+  }
+
+  html {
+    scrollbar-color: var(--color-gray-300) transparent;
+    accent-color: var(--color-primary);
+    caret-color: var(--color-primary);
+  }
+
+  /* Controls on the orange band take an ink focus ring: blue on orange is too faint. */
+  [data-band] :focus-visible {
+    outline-color: var(--color-band-fg);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T00:00:00Z",
+  "title": "Design System: CampusStay FPT",
+  "extensions": {
+    "colorMeta": {
+      "band": { "role": "primary", "displayName": "FPT Orange", "canonical": "#f37021", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f37021", "#fdaa74", "#fecdaa", "#fff5ed"] },
+      "primary": { "role": "primary", "displayName": "Deep Orange", "canonical": "#c64f0e", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f98a45", "#fdaa74", "#ffe8d5", "#fff5ed"] },
+      "primary-hover": { "role": "primary", "displayName": "Deep Orange Hover", "canonical": "#9e3f0f" },
+      "primary-subtle": { "role": "primary", "displayName": "Orange Wash", "canonical": "#fff1e6" },
+      "fg-brand": { "role": "primary", "displayName": "Brand Ink", "canonical": "#b8490d" },
+      "band-fg": { "role": "neutral", "displayName": "Band Ink", "canonical": "#1d1714" },
+      "band-line": { "role": "primary", "displayName": "Band Edge", "canonical": "#d9600f" },
+      "band-hover": { "role": "primary", "displayName": "Band Hover", "canonical": "#fb9a5c" },
+      "secondary": { "role": "secondary", "displayName": "FPT Blue", "canonical": "#0a5da8", "tonalRamp": ["#05305a", "#084a86", "#0a5da8", "#1a73c8", "#5b9ad8", "#a3c6ea", "#d6e8f8", "#eef5fc"] },
+      "fpt-green": { "role": "tertiary", "displayName": "FPT Green", "canonical": "#3fa34d", "tonalRamp": ["#14421b", "#226b2d", "#2e8a3c", "#3fa34d", "#76c07f", "#aedcb4", "#d5efd8", "#eef8ef"] },
+      "success": { "role": "tertiary", "displayName": "Done Green", "canonical": "#2e8a3c" },
+      "fg": { "role": "neutral", "displayName": "Ink", "canonical": "#1d1714", "tonalRamp": ["#1d1714", "#2a221d", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f5f0eb"] },
+      "fg-secondary": { "role": "neutral", "displayName": "Walnut", "canonical": "#5c4f46" },
+      "fg-tertiary": { "role": "neutral", "displayName": "Taupe", "canonical": "#75665b" },
+      "fg-disabled": { "role": "neutral", "displayName": "Stone", "canonical": "#a8998d" },
+      "canvas": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#fbf8f5" },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff" },
+      "subtle": { "role": "neutral", "displayName": "Sand", "canonical": "#f5f0eb" },
+      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "#ebe3db" },
+      "line-strong": { "role": "neutral", "displayName": "Strong Hairline", "canonical": "#d9cec4" }
+    },
+    "typographyMeta": {
+      "kpi": { "displayName": "Display/KPI", "purpose": "Stat tile values only, tabular figures." },
+      "h1": { "displayName": "Heading/H1", "purpose": "Page titles." },
+      "h2": { "displayName": "Heading/H2", "purpose": "Modal titles, phone bar title." },
+      "h3": { "displayName": "Heading/H3", "purpose": "Card and empty-state titles." },
+      "body-lg": { "displayName": "Body/Large", "purpose": "Student web default, lg controls." },
+      "body": { "displayName": "Body/Base", "purpose": "Back-office default." },
+      "label": { "displayName": "Label/Base", "purpose": "Buttons, field labels, menu items." },
+      "small": { "displayName": "Body/Small, Label/Small", "purpose": "Helpers, errors, table headers, Tags." },
+      "axis": { "displayName": "Chart axis", "purpose": "Chart axis labels only." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 1px 2px 0 #3f1d0a0d", "purpose": "Primary button, white pills on the band, band logo tile. Never on cards." },
+      { "name": "dropdown", "value": "0 6px 16px -4px #3f1d0a1f, 0 2px 4px -2px #3f1d0a0f", "purpose": "Popovers, menus, search results." },
+      { "name": "modal", "value": "0 16px 32px -8px #3f1d0a29, 0 4px 8px -2px #3f1d0a0f", "purpose": "Dialogs and drawers over a gray-900 scrim at 45%." },
+      { "name": "focus", "value": "0 0 0 3px #0a5da833", "purpose": "Input focus halo with a blue border." }
+    ],
+    "motion": [
+      { "name": "fade-in", "value": "150ms ease-out", "purpose": "Scrims." },
+      { "name": "pop-in", "value": "160ms ease-out, translateY(8px) scale(0.98) to rest", "purpose": "Modals and popovers." },
+      { "name": "slide-in-right", "value": "200ms ease-out", "purpose": "Side drawers." },
+      { "name": "toast-in", "value": "200ms ease-out, translateY(-8px) to rest", "purpose": "Toasts." },
+      { "name": "reduced-motion", "value": "1ms", "purpose": "All animation and transition durations under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action of a view; deep orange, label states count and amount.",
+      "html": "<button class=\"ds-btn-primary\">Confirm 3 payments · 4.500.000 ₫</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:none; border-radius:6px; background:#c64f0e; color:#fff; font:600 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow:0 1px 2px 0 #3f1d0a0d; transition:background-color .15s; } .ds-btn-primary:hover { background:#9e3f0f; } .ds-btn-primary:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Secondary actions; white with a strong hairline, orange on hover.",
+      "html": "<button class=\"ds-btn-default\">Export</button>",
+      "css": ".ds-btn-default { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:1px solid #d9cec4; border-radius:6px; background:#fff; color:#1d1714; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; transition:color .15s, border-color .15s; } .ds-btn-default:hover { border-color:#c64f0e; color:#b8490d; } .ds-btn-default:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+    },
+    {
+      "name": "Text Button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Low-emphasis actions in brand ink.",
+      "html": "<button class=\"ds-btn-text\">View details</button>",
+      "css": ".ds-btn-text { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:none; border-radius:6px; background:transparent; color:#b8490d; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-btn-text:hover { background:#fff1e6; } .ds-btn-text:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field with label above; blue border and halo on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Student code</span><input class=\"ds-input\" placeholder=\"SE180001\"></label>",
+      "css": ".ds-field { display:flex; flex-direction:column; gap:4px; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-field-label { font-size:14px; line-height:22px; font-weight:500; color:#1d1714; } .ds-input { height:32px; padding:0 12px; border:1px solid #d9cec4; border-radius:6px; background:#fff; color:#1d1714; font:400 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; outline:none; transition:border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#75665b; } .ds-input:focus { border-color:#0a5da8; box-shadow:0 0 0 3px #0a5da833; }"
+    },
+    {
+      "name": "Status Tag",
+      "kind": "chip",
+      "refersTo": "tag-success",
+      "description": "Status as pill, dot and word; never colour alone.",
+      "html": "<span class=\"ds-tag ds-tag-success\"><i></i>Paid</span> <span class=\"ds-tag ds-tag-warning\"><i></i>Awaiting Deposit</span> <span class=\"ds-tag ds-tag-error\"><i></i>Overdue</span>",
+      "css": ".ds-tag { display:inline-flex; align-items:center; gap:6px; padding:2px 10px 2px 8px; border-radius:9999px; font:500 12px/20px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-tag i { width:6px; height:6px; border-radius:9999px; } .ds-tag-success { background:#eef8ef; color:#226b2d; } .ds-tag-success i { background:#2e8a3c; } .ds-tag-warning { background:#fffbeb; color:#92400e; } .ds-tag-warning i { background:#f59e0b; } .ds-tag-error { background:#fef2f2; color:#a61b1b; } .ds-tag-error i { background:#c81e1e; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat white card with a hairline; stat tile shown.",
+      "html": "<section class=\"ds-card\"><p class=\"ds-card-label\">Unpaid invoices</p><p class=\"ds-card-kpi\">128</p><p class=\"ds-card-note\">12 overdue</p></section>",
+      "css": ".ds-card { display:flex; flex-direction:column; gap:8px; padding:20px; border:1px solid #ebe3db; border-radius:8px; background:#fff; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-card-label { margin:0; font-size:12px; line-height:20px; font-weight:500; color:#75665b; } .ds-card-kpi { margin:0; font-size:28px; line-height:36px; font-weight:600; color:#1d1714; font-variant-numeric:tabular-nums; } .ds-card-note { margin:0; font-size:12px; line-height:20px; color:#5c4f46; }"
+    },
+    {
+      "name": "Band",
+      "kind": "nav",
+      "refersTo": "band",
+      "description": "Signature: full-width FPT-orange header; only ink or white controls on it.",
+      "html": "<header class=\"ds-band\"><span class=\"ds-band-logo\"><b>CS</b><span>CampusStay</span></span><button class=\"ds-band-pill\">Fall 2026</button><button class=\"ds-band-pill\">Block A</button><span class=\"ds-band-spacer\"></span><button class=\"ds-band-pill ds-band-search\">Search…</button></header>",
+      "css": ".ds-band { display:flex; align-items:center; gap:16px; height:56px; padding:0 24px 0 16px; background:#f37021; border-bottom:1px solid #d9600f; color:#1d1714; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-band-logo { display:flex; align-items:center; gap:10px; font-size:16px; line-height:24px; font-weight:700; } .ds-band-logo b { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:#fff; color:#b8490d; box-shadow:0 1px 2px 0 #3f1d0a0d; font-size:14px; } .ds-band-pill { height:32px; padding:0 12px; border:none; border-radius:6px; background:#fff; color:#1d1714; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow:0 1px 2px 0 #3f1d0a0d; } .ds-band-pill:hover { background:#fff1e6; } .ds-band-pill:focus-visible { outline:2px solid #1d1714; outline-offset:2px; } .ds-band-spacer { flex:1; } .ds-band-search { width:220px; text-align:left; color:#75665b; font-weight:400; }"
+    },
+    {
+      "name": "Menu Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Back-office side menu; active item in orange wash.",
+      "html": "<nav class=\"ds-menu\"><a class=\"ds-menu-item is-active\" href=\"#\">Payments</a><a class=\"ds-menu-item\" href=\"#\">Rooms</a></nav>",
+      "css": ".ds-menu { display:flex; flex-direction:column; gap:1px; width:224px; padding:12px; background:#fff; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-menu-item { display:flex; align-items:center; min-height:32px; padding:4px 12px; border-radius:6px; color:#5c4f46; font-size:14px; line-height:1.375; text-decoration:none; } .ds-menu-item:hover { background:#f5f0eb; color:#1d1714; } .ds-menu-item.is-active { background:#fff1e6; color:#b8490d; font-weight:600; } .ds-menu-item:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "FPT Orange Campus",
+    "overview": "The app signs itself the way an FPT University building does: a solid FPT-orange band runs the full width of every shell, and the work happens below it on warm white. Back office (Staff, Manager, Admin) is dense and desktop-first at 1366 px and up; the student portal is phone-first and shows the same orange frame.\n\nEverything else is quiet so the band and one action can speak: white side menu, warm-white canvas, warm hairlines, flat cards. Colour carries a single job each.",
+    "keyCharacteristics": [
+      "Full-width FPT-orange band (56 px back office, 64 px phone bar) on every shell.",
+      "One action colour, deep orange; blue and green have narrow, fixed jobs.",
+      "Warm neutrals tinted from the orange, never cool grey.",
+      "Be Vietnam Pro throughout (Vietnamese and Latin subsets, 400 to 700), tabular figures for numbers.",
+      "Flat surfaces with hairline borders; shadows only for floating layers and band controls."
+    ],
+    "rules": [
+      { "name": "The Band Rule", "body": "Everything on the orange band is ink (#1d1714) or a white control (Term, Block, search, language, user as white pills with the card shadow). White text on FPT orange fails contrast, and so does a blue focus ring: band controls take an ink focus ring (`[data-band]`). Band hover is the lighter orange (band-hover); the band's bottom edge is band-line.", "section": "colors" },
+      { "name": "The One Action Rule", "body": "Deep orange (#C64F0E) is the only action colour. No blue, green or FPT-orange buttons. Destructive actions use the error red, never orange.", "section": "colors" },
+      { "name": "The Narrow Blue, Narrow Green Rule", "body": "FPT blue means \"go somewhere\" (links) or focus; FPT green means done or paid. Neither decorates.", "section": "colors" },
+      { "name": "The Not-By-Colour-Alone Rule", "body": "Status always carries its word: Tag is a pill with a 6 px dot plus the status label from one shared vocabulary (`toneForStatus`). A coloured dot or fill never stands alone.", "section": "colors" },
+      { "name": "The Tabular Numbers Rule", "body": "Amounts, counts, codes and dates in tables and tiles use `tabular` (tabular-nums).", "section": "typography" },
+      { "name": "The Flat Card Rule", "body": "Cards never take a shadow; a hairline does the work.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** use only the semantic tokens from `web/src/index.css`; prefer `primary`, `fg-brand`, `line` over raw `orange-600` or `gray-200`.",
+      "**Do** put only ink or white controls on the band, and mark the band with `data-band` so its focus ring turns ink.",
+      "**Do** keep deep orange (#C64F0E) as the one action colour and give each view one primary button.",
+      "**Do** show every status as a Tag with its word; colour reinforces, never replaces.",
+      "**Do** use tabular figures for amounts, counts and codes."
+    ],
+    "donts": [
+      "**Don't** set white text on FPT orange (#F37021), or use FPT orange as a text colour anywhere.",
+      "**Don't** use FPT blue for buttons or decoration; it is links, focus and Info only.",
+      "**Don't** use FPT green for anything except done and paid.",
+      "**Don't** give cards a shadow; hairlines and the canvas carry depth.",
+      "**Don't** introduce cool greys, a second font family, or Tailwind default colours (they are reset).",
+      "**Don't** add small uppercase tracked labels above headings; menu section titles are sentence case."
+    ]
+  }
+}
