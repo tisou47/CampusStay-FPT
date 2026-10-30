@@ -48,7 +48,7 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read, kind: 'notification'\|'announcement' }], unread }`; a student's list also holds the board's announcements (`id: 'ann-<n>'`) and `unread` counts them (C-41) |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | `id` may be `ann-<n>` (an announcement) | `204` |
 | GET | `/registration-periods/current` | — | `{ card: { termId, name, status: 'Opens soon'\|'Open'\|'Closed', opensAt, closesAt, countdownTo, stayStart, stayEnd, places, fromPrice } \| null }` (A-29) |
-| GET | `/registration-periods/{termId}` | — | A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit }], depositPercent, utilityDeposit, rooms: [{ roomType, roomClass, gender, rooms, beds }], houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `404` for a Draft (A-29) |
+| GET | `/registration-periods/{termId}` | — | A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit, places, furniture: [{ name, nameVi, quantity }] }], depositPercent, utilityDeposit, houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `places`: Beds of the reader's gender for a student; `404` for a Draft (A-29, B-14) |
 
 - **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
 - **Password rule:** 8–64 characters, at least one letter and one number, not containing the email name; otherwise `400 WEAK_PASSWORD` with a message to show as is.
@@ -88,6 +88,8 @@ Applications have no `period` field: the length of a stay is the stay length (`s
   "stayTerms": 2
 }
 ```
+
+`contact` is optional, and so is each of its fields (a field given must be valid): without it the Application keeps the contact on the student's profile (C-46).
 
 `stayTerms` is the stay length, the number of Terms the student wants to stay: 1 to `maxStayTerms` of `GET /applications/eligibility` (default 1, A-38).
 

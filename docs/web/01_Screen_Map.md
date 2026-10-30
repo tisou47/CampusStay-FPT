@@ -23,7 +23,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | Code | Screen | Route | Figma | API calls | Page |
 |---|---|---|---|---|---|
 | SCR-HOME-01 | Student Home | `/student` | 13:96 | `GET /students/me/home` | [student/StudentHome.jsx](../../web/src/pages/student/StudentHome.jsx) |
-| SCR-APP-01 | Application Wizard – 1 Term and eligibility | `/student/apply/term` | 14:156 | `GET /applications/eligibility` | [student/apply/ApplyTerm.jsx](../../web/src/pages/student/apply/ApplyTerm.jsx) |
+| SCR-APP-01 | Application Wizard – 1 Term and eligibility | `/student/apply/term` | 14:156 | `GET /applications/eligibility`<br>`GET /registration-periods/:termId` | [student/apply/ApplyTerm.jsx](../../web/src/pages/student/apply/ApplyTerm.jsx) |
 | SCR-APP-01 | Application Wizard – 2 Room preference | `/student/apply/room` | 14:355 | `GET /applications/eligibility:` | [student/apply/ApplyRoom.jsx](../../web/src/pages/student/apply/ApplyRoom.jsx) |
 | SCR-APP-01 | Application Wizard – Roommate (2-bed) | `/student/apply/roommate` | 15:811 | `POST /applications/roommate-check` | [student/apply/ApplyRoommate.jsx](../../web/src/pages/student/apply/ApplyRoommate.jsx) |
 | SCR-APP-01 | Application Wizard – 3 Personal info | `/student/apply/personal` | 15:352 | `GET /students/me/profile` | [student/apply/ApplyPersonal.jsx](../../web/src/pages/student/apply/ApplyPersonal.jsx) |

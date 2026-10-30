@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
@@ -37,7 +37,6 @@ export const emptyDraft = {
   roomTypeId: null,
   roomClassId: null,
   roommate: { mode: 'invite', code: '', verifiedCode: null, rejected: false, checksLeft: null, preferencesOn: false, preferences: {} },
-  contact: null, // filled from the student profile on the Personal info step
   consent: { matching: false, rules: false },
   stayTerms: 1, // stay length: the Terms the student wants to stay (1 to the maximum the eligibility answer gives)
 }
@@ -249,14 +248,4 @@ export function OptionCard({ name, value, selected, onSelect, title, price, line
       ))}
     </label>
   )
-}
-
-/** Fills the contact section from the student profile the first time the step opens. */
-export function useProfileDefaults(wizard) {
-  const profile = useQuery(['profile'], ({ signal }) => api.me.profile(undefined, { signal }))
-  const { draft, setDraft } = wizard
-  useEffect(() => {
-    if (!draft.contact && profile.data) setDraft({ contact: { phone: '', email: '', emergencyName: '', relationship: '', emergencyPhone: '', ...profile.data.contact } })
-  }, [profile.data, draft.contact, setDraft])
-  return profile
 }
