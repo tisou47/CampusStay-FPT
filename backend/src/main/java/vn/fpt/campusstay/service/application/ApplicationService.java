@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -194,7 +195,7 @@ public class ApplicationService {
             preferences.put("semester", code("SEMESTER", roommate.preferences().semester(), "semester", errors));
             preferences.put("major", code("MAJOR", roommate.preferences().major(), "major", errors));
         }
-        Map<String, String> contact = contact(cmd.contact(), errors);
+        Map<String, String> given = contact(cmd.contact(), errors);
         int stayTerms = stayTerms(cmd.stayTerms(), me.userId(), errors);
         Consent consent = cmd.consent();
         errors.check(consent != null && Boolean.TRUE.equals(consent.matching()) && Boolean.TRUE.equals(consent.rules()),
@@ -213,14 +214,19 @@ public class ApplicationService {
         Instant depositDueAt = now.plus(Duration.ofHours(term.depositWindowHours()));
 
         UserDirectory.StudentProfile student = users.studentProfile(me.userId()).orElseThrow();
+        Map<String, String> contact = given != null ? given : profileContact(student);
         NewApplication created = insert(term, student, type.id(), roomClass.id(), termPrice, roomClass.surchargeRate(),
                 deposit, invite ? "INVITE" : "AUTO", preferences, contact, depositDueAt, null, stayTerms);
         Billing.IssuedInvoice invoice = billing.issueDeposit(new Billing.DepositRequest(term.id(), me.userId(),
                 created.id(), created.code(), termPrice, deposit, depositDueAt));
         applications.event(created.id(), "AWAITING_DEPOSIT", "Application created", null, me.userId());
-        users.saveStudentContact(me.userId(), contact.get("phone"), contact.get("emergencyName"),
-                lookups.find("RELATIONSHIP", contact.get("relationship")).map(Lookups.Lookup::code).orElse(null),
-                contact.get("emergencyPhone"));
+        if (given != null) {
+            users.saveStudentContact(me.userId(), or(contact.get("phone"), student.phone()),
+                    or(contact.get("emergencyName"), student.emergencyName()),
+                    lookups.find("RELATIONSHIP", contact.get("relationship")).map(Lookups.Lookup::code)
+                            .orElse(student.emergencyRelationship()),
+                    or(contact.get("emergencyPhone"), student.emergencyPhone()));
+        }
         if (invite) {
             Instant expires = now.plus(Duration.ofHours(term.roommateHours()));
             long invitationId = jdbc.sql("""
@@ -323,13 +329,7 @@ public class ApplicationService {
         FieldErrors errors = new FieldErrors();
         int terms = stayTerms(stayTerms, me.userId(), errors);
         errors.throwIfAny();
-        Map<String, String> contact = new LinkedHashMap<>();
-        contact.put("phone", profile.phone());
-        contact.put("email", null);
-        contact.put("emergencyName", profile.emergencyName());
-        contact.put("relationship", lookups.find("RELATIONSHIP", profile.emergencyRelationship())
-                .map(Lookups.Lookup::label).orElse(profile.emergencyRelationship()));
-        contact.put("emergencyPhone", profile.emergencyPhone());
+        Map<String, String> contact = profileContact(profile);
         Instant depositDueAt = now.plus(Duration.ofHours(term.depositWindowHours()));
         // Accepting the invitation on its screen is the consent to matching and the rules (it states both).
         NewApplication created = insert(term, profile, inviter.roomTypeId(), inviter.roomClassId(),
@@ -596,24 +596,48 @@ public class ApplicationService {
         return found.map(Lookups.Lookup::code).orElse(null);
     }
 
-    /** Snapshot for this Application; phone and emergency contact are required. */
+    /**
+     * Snapshot of the contact the request gives, or null when it gives none (the wizard no longer asks: R-16). Every
+     * field is optional; a filled one must be valid.
+     */
     private Map<String, String> contact(Contact c, FieldErrors errors) {
-        Contact contact = c == null ? new Contact(null, null, null, null, null) : c;
-        errors.check(phone(contact.phone()), "phone", "Enter a phone number of 8 to 15 digits.");
-        errors.check(hasText(contact.emergencyName()) && contact.emergencyName().trim().length() <= 150,
-                "emergencyName", "Enter the emergency contact's name.");
-        Optional<Lookups.Lookup> relationship = lookups.find("RELATIONSHIP", contact.relationship());
-        errors.check(relationship.isPresent(), "relationship", "Choose the relationship.");
-        errors.check(phone(contact.emergencyPhone()), "emergencyPhone", "Enter a phone number of 8 to 15 digits.");
-        errors.check(!hasText(contact.email()) || contact.email().trim().matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")
-                && contact.email().trim().length() <= 254, "email", "Enter a valid email.");
+        if (c == null || Stream.of(c.phone(), c.email(), c.emergencyName(), c.relationship(), c.emergencyPhone())
+                .noneMatch(ApplicationService::hasText)) {
+            return null;
+        }
+        errors.check(!hasText(c.phone()) || phone(c.phone()), "phone", "Enter a phone number of 8 to 15 digits.");
+        errors.check(!hasText(c.emergencyName()) || c.emergencyName().trim().length() <= 150, "emergencyName",
+                "Use at most 150 characters.");
+        Optional<Lookups.Lookup> relationship = hasText(c.relationship())
+                ? lookups.find("RELATIONSHIP", c.relationship()) : Optional.empty();
+        errors.check(!hasText(c.relationship()) || relationship.isPresent(), "relationship", "Choose the relationship.");
+        errors.check(!hasText(c.emergencyPhone()) || phone(c.emergencyPhone()), "emergencyPhone",
+                "Enter a phone number of 8 to 15 digits.");
+        errors.check(!hasText(c.email()) || c.email().trim().matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")
+                && c.email().trim().length() <= 254, "email", "Enter a valid email.");
         Map<String, String> snapshot = new LinkedHashMap<>();
-        snapshot.put("phone", trim(contact.phone()));
-        snapshot.put("email", hasText(contact.email()) ? contact.email().trim() : null);
-        snapshot.put("emergencyName", trim(contact.emergencyName()));
+        snapshot.put("phone", hasText(c.phone()) ? c.phone().trim() : null);
+        snapshot.put("email", hasText(c.email()) ? c.email().trim() : null);
+        snapshot.put("emergencyName", hasText(c.emergencyName()) ? c.emergencyName().trim() : null);
         snapshot.put("relationship", relationship.map(Lookups.Lookup::label).orElse(null));
-        snapshot.put("emergencyPhone", trim(contact.emergencyPhone()));
+        snapshot.put("emergencyPhone", hasText(c.emergencyPhone()) ? c.emergencyPhone().trim() : null);
         return snapshot;
+    }
+
+    /** Snapshot from the student's profile: what the dormitory office has on file, possibly nothing. */
+    private Map<String, String> profileContact(UserDirectory.StudentProfile profile) {
+        Map<String, String> contact = new LinkedHashMap<>();
+        contact.put("phone", profile.phone());
+        contact.put("email", null);
+        contact.put("emergencyName", profile.emergencyName());
+        contact.put("relationship", lookups.find("RELATIONSHIP", profile.emergencyRelationship())
+                .map(Lookups.Lookup::label).orElse(profile.emergencyRelationship()));
+        contact.put("emergencyPhone", profile.emergencyPhone());
+        return contact;
+    }
+
+    private static String or(String value, String fallback) {
+        return hasText(value) ? value : fallback;
     }
 
     private static boolean phone(String value) {
@@ -626,9 +650,5 @@ public class ApplicationService {
 
     private static boolean hasText(String s) {
         return s != null && !s.isBlank();
-    }
-
-    private static String trim(String s) {
-        return s == null ? null : s.trim();
     }
 }

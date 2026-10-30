@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, Facts } from '@/components/ui/Display'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { WizardActions, WizardLayout, classLabel, clearDraft, isTwoBed, roommateLabel, stepPaths, useWizard } from './wizard'
-import { t, tr } from '@/i18n'
+import { t } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 4 Review and submit (Figma 15:580)
 // POST /applications → { id, depositInvoiceId, depositDueAt }
@@ -37,7 +37,6 @@ export default function ApplyReview() {
   const { draft, helpers, roomType } = wizard
   const [confirmed, setConfirmed] = useState(false)
   const { deposit } = helpers.breakdown(draft.roomTypeId, draft.roomClassId)
-  const contact = draft.contact ?? {}
   const prefs = draft.roommate.preferences ?? {}
   const twoBed = isTwoBed(roomType)
   const usePrefs = twoBed && draft.roommate.mode === 'auto' && draft.roommate.preferencesOn
@@ -55,7 +54,6 @@ export default function ApplyReview() {
               preferences: usePrefs ? prefs : undefined,
             }
           : undefined,
-        contact,
         consent: draft.consent,
         stayTerms: draft.stayTerms ?? 1,
       }),
@@ -75,7 +73,7 @@ export default function ApplyReview() {
     },
   )
 
-  const missing = !draft.roomTypeId || !draft.roomClassId || !contact.phone || !draft.consent.matching || !draft.consent.rules || (twoBed && !roommateLabel(draft, roomType))
+  const missing = !draft.roomTypeId || !draft.roomClassId || !draft.consent.matching || !draft.consent.rules || (twoBed && !roommateLabel(draft, roomType))
 
   return (
     <WizardLayout
@@ -128,9 +126,6 @@ export default function ApplyReview() {
         <SectionHead title="Personal info" editTo={stepPaths.personal} />
         <Facts
           items={[
-            ['Phone number', contact.phone || '—'],
-            ['Personal email', contact.email || '—'],
-            ['Emergency contact', contact.emergencyName ? `${contact.emergencyName}${contact.relationship ? ` (${tr(contact.relationship)})` : ''}` : '—'],
             ['Consent', draft.consent.matching && draft.consent.rules ? 'Given' : 'Not given'],
           ]}
         />

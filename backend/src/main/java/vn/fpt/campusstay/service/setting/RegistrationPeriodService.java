@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,11 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.exception.ApiException;
+import vn.fpt.campusstay.security.AuthenticatedUser;
+import vn.fpt.campusstay.security.CurrentUser;
+import vn.fpt.campusstay.security.Role;
+import vn.fpt.campusstay.service.auth.UserDirectory;
 
 /**
  * What students read about a registration period (spec §6.5): the card at the top of the dormitory board and the
- * Registration period details (Timeline, Prices, Rooms, House rules, FAQ). Every signed-in role may read them; only
- * published Terms exist here.
+ * Registration period details (Timeline, Prices with the places and furniture of each line, House rules, FAQ). Every
+ * signed-in role may read them; only published Terms exist here. Students never see the Rooms: a line's places are
+ * the Beds of their gender (R-09).
  */
 @Service
 public class RegistrationPeriodService {
@@ -51,13 +56,19 @@ public class RegistrationPeriodService {
             long price, long deposit) {
     }
 
-    /** Beds of one Room Type × Room Class for one gender. */
-    public record RoomLine(String roomType, String roomClass, String gender, int rooms, int beds) {
+    /**
+     * One price line of the details.
+     *
+     * @param places    Beds the Term offers on this line: of the reader's gender for a student, every Bed otherwise
+     * @param furniture what a Room of the class must have (Admin › Room Classes)
+     */
+    public record PriceLine(String roomTypeId, String roomType, int beds, String roomClassId, String roomClass,
+            long price, long deposit, int places, List<TermSupply.Furniture> furniture) {
     }
 
     public record Details(String id, String name, String status, LocalDate stayStart, LocalDate stayEnd,
-            List<Milestone> timeline, List<Price> prices, BigDecimal depositPercent, long utilityDeposit,
-            List<RoomLine> rooms, String houseRules, List<TermPlan.Faq> faq, List<TermPlan.Document> documents) {
+            List<Milestone> timeline, List<PriceLine> prices, BigDecimal depositPercent, long utilityDeposit,
+            String houseRules, List<TermPlan.Faq> faq, List<TermPlan.Document> documents) {
     }
 
     private final TermCatalog terms;
@@ -65,15 +76,19 @@ public class RegistrationPeriodService {
     private final TermSupply supply;
     private final FeePolicy fees;
     private final Catalog catalog;
+    private final CurrentUser currentUser;
+    private final UserDirectory users;
     private final Clock clock;
 
     public RegistrationPeriodService(TermCatalog terms, TermDrafts drafts, TermSupply supply, FeePolicy fees,
-            Catalog catalog, Clock clock) {
+            Catalog catalog, CurrentUser currentUser, UserDirectory users, Clock clock) {
         this.terms = terms;
         this.drafts = drafts;
         this.supply = supply;
         this.fees = fees;
         this.catalog = catalog;
+        this.currentUser = currentUser;
+        this.users = users;
         this.clock = clock;
     }
 
@@ -126,35 +141,26 @@ public class RegistrationPeriodService {
             timeline.add(new Milestone("checkOutBy", TermDrafts.LABELS.get("checkOutBy"), null, v.checkOutBy(), null,
                     today.isAfter(v.checkOutBy())));
         }
-        Map<String, int[]> lines = new LinkedHashMap<>();
+        AuthenticatedUser me = currentUser.get();
+        String gender = me.role() == Role.STUDENT
+                ? users.studentProfile(me.userId()).map(UserDirectory.StudentProfile::gender).orElse("") : null;
+        Map<String, Integer> places = new HashMap<>();
         for (TermSupply.Row r : supply.supply(termId, terms.rooms(termId))) {
-            int[] sum = lines.computeIfAbsent(r.roomTypeId() + ":" + r.roomClassId() + ":" + r.gender(), k -> new int[2]);
-            sum[0] += r.rooms();
-            sum[1] += r.beds();
+            if (gender == null || gender.equals(r.gender())) {
+                places.merge(r.roomTypeId() + ":" + r.roomClassId(), r.beds(), Integer::sum);
+            }
         }
-        Map<Long, String> types = new LinkedHashMap<>();
-        catalog.roomTypes().forEach(x -> types.put(x.id(), x.name()));
-        Map<Long, String> classes = new LinkedHashMap<>();
-        catalog.roomClasses().forEach(x -> classes.put(x.id(), x.name()));
-        List<Long> typeOrder = List.copyOf(types.keySet());
-        List<Long> classOrder = List.copyOf(classes.keySet());
-        // Gender first, then Room Type and Room Class in catalog order, like the price table.
-        List<RoomLine> rooms = lines.entrySet().stream()
-                .map(e -> e.getKey().split(":"))
-                .sorted(Comparator.<String[], String>comparing(k -> k[2])
-                        .thenComparingInt(k -> typeOrder.indexOf(Long.valueOf(k[0])))
-                        .thenComparingInt(k -> classOrder.indexOf(Long.valueOf(k[1]))))
-                .map(k -> {
-                    int[] sum = lines.get(String.join(":", k));
-                    return new RoomLine(types.get(Long.valueOf(k[0])), classes.get(Long.valueOf(k[1])), k[2],
-                            sum[0], sum[1]);
-                })
+        Map<Long, List<TermSupply.Furniture>> furniture = supply.classFurniture();
+        List<PriceLine> lines = prices(termId).stream()
+                .map(p -> new PriceLine(p.roomTypeId(), p.roomType(), p.beds(), p.roomClassId(), p.roomClass(),
+                        p.price(), p.deposit(), places.getOrDefault(p.roomTypeId() + ":" + p.roomClassId(), 0),
+                        furniture.getOrDefault(Long.valueOf(p.roomClassId()), List.of())))
                 .toList();
         String status = summary.registrationOpen() ? "Open"
                 : summary.registrationOpensAt().isAfter(now) ? "Opens soon" : "Closed";
         return new Details(String.valueOf(termId), t.name(), status, t.stayStart(), t.stayEnd(), timeline,
-                prices(termId), Decimals.plain(fees.depositRate(termId).movePointRight(2)), fees.utilityDeposit(termId),
-                rooms, t.houseRules(), t.faq(), t.documents());
+                lines, Decimals.plain(fees.depositRate(termId).movePointRight(2)), fees.utilityDeposit(termId),
+                t.houseRules(), t.faq(), t.documents());
     }
 
     private List<Price> prices(long termId) {

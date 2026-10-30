@@ -28,6 +28,10 @@ public interface TermSupply {
             int roomsNotMatching) {
     }
 
+    /** One furniture type a Room Class requires; {@code nameVi} its Vietnamese name. */
+    record Furniture(String name, String nameVi, int quantity) {
+    }
+
     /** Active Blocks by code. */
     List<Block> blocks();
 
@@ -39,4 +43,7 @@ public interface TermSupply {
 
     /** What the Term offers, by Block code, Room Type and Room Class. */
     List<Row> supply(long termId, TermCatalog.TermRooms rooms);
+
+    /** The furniture each Room Class requires (spec §6.19), by Room Class id, in the furniture types' order. */
+    Map<Long, List<Furniture>> classFurniture();
 }

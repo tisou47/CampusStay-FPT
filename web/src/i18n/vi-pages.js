@@ -719,6 +719,16 @@ const student = {
   "Swap invitation": "Lời mời đổi chéo",
   "Invitation not found": "Không tìm thấy lời mời",
   "Back to Requests": "Quay lại Yêu cầu",
+  // Term schedule graph, registration period prices, wizard without contact (R-09…R-16)
+  "The dates of this Term are not published yet.": "Lịch của kỳ này chưa được công bố.",
+  "Today, {date}": "Hôm nay, {date}",
+  "From {price} per Bed": "Từ {price} mỗi giường",
+  "Deposit {amount}": "Cọc {amount}",
+  "{n} place": "{n} chỗ",
+  "{n} places": "{n} chỗ",
+  "No places for you": "Không có chỗ cho bạn",
+  "Places are the Beds this Term offers to students of your gender. These prices stay the same for the whole Term.": "Số chỗ là số giường kỳ này dành cho sinh viên cùng giới tính với bạn. Giá giữ nguyên trong suốt kỳ.",
+  "After you submit, pay the Deposit within {n} hours.": "Sau khi nộp đơn, hãy đóng tiền cọc trong vòng {n} giờ.",
 }
 const staff = {
   "Check-in desk": "Quầy nhận phòng",

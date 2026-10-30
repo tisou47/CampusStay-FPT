@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.service.inventory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -102,5 +103,19 @@ class JdbcTermSupply implements TermSupply {
                     row.rooms() + 1, row.beds() + r.beds(), row.roomsNotMatching() + (off ? 1 : 0)));
         }
         return List.copyOf(rows.values());
+    }
+
+    @Override
+    public Map<Long, List<Furniture>> classFurniture() {
+        Map<Long, List<Furniture>> result = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT q.room_class_id, t.name, t.name_vi, q.quantity FROM inv_room_class_requirement q
+                JOIN inv_furniture_type t ON t.id = q.furniture_type_id ORDER BY t.sort_order, t.name
+                """)
+                .query(rs -> {
+                    result.computeIfAbsent(rs.getLong(1), k -> new ArrayList<>())
+                            .add(new Furniture(rs.getString(2), rs.getString(3), rs.getInt(4)));
+                });
+        return result;
     }
 }
