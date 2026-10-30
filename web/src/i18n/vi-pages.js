@@ -48,6 +48,16 @@ const auth = {
   "Google sign-in was closed before it finished.": "Cửa sổ đăng nhập Google đã bị đóng trước khi hoàn tất.",
   "Google sign-in could not open. Allow pop-ups for this site and try again.": "Không mở được đăng nhập Google. Hãy cho phép cửa sổ bật lên cho trang này và thử lại.",
   "Google sign-in is not set up for this site yet. Use your email and password.": "Trang này chưa cài đặt đăng nhập Google. Hãy dùng email và mật khẩu.",
+  // My profile (R-20)
+  "My profile": "Hồ sơ cá nhân",
+  "Your account, student details and sign-in settings.": "Tài khoản, thông tin sinh viên và cài đặt đăng nhập của bạn.",
+  "Your account and sign-in settings.": "Tài khoản và cài đặt đăng nhập của bạn.",
+  "Student details": "Thông tin sinh viên",
+  "Sign-in and language": "Đăng nhập và ngôn ngữ",
+  "Screens, notifications, push and emails follow it.": "Màn hình, thông báo, thông báo đẩy và email dùng ngôn ngữ này.",
+  "Changing it signs out your other devices.": "Đổi mật khẩu sẽ đăng xuất các thiết bị khác của bạn.",
+  "This device": "Thiết bị này",
+  "Sign out when you use a shared computer.": "Hãy đăng xuất khi dùng máy tính chung.",
 }
 const student = {
   "{name} timeline": "Mốc thời gian {name}",
