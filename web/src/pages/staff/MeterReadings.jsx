@@ -50,13 +50,14 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
   const { notify, notifyError } = useToast()
   const query = useQuery(['meters', 'room', periodId, room], ({ signal }) => api.meters.room(periodId, room, { signal }), { keepPrevious: false })
   const r = query.data
-  const needsInput = r && (r.status === 'Missing' || r.status === 'Check value')
+  const needsInput = r?.status === 'Missing'
   const [editing, setEditing] = useState(false)
   const [e, setE] = useState('')
   const [w, setW] = useState('')
   useEffect(() => {
     if (!r) return
-    setEditing(r.status === 'Missing' || r.status === 'Check value')
+    // A Check value reading opens on its preview, so it can be confirmed as it is or edited.
+    setEditing(r.status === 'Missing')
     setE(r.electricity?.current == null ? '' : String(r.electricity.current))
     setW(r.water?.current == null ? '' : String(r.water.current))
   }, [r])
@@ -93,6 +94,11 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
                 {t('Price {kwh} VND/kWh · {m3} VND/m³ (Admin › Utility).', { kwh: formatNumber(d.priceKwh), m3: formatNumber(d.priceM3) })} {tr(d.roundingNote)}
               </p>
             )}
+            {d.status === 'Check value' && (
+              <Alert type="error" title="Use is far above last month">
+                This month’s electricity use is more than 3 times last month’s. Re-read the meter: edit the reading if it was wrong, or confirm the room if it is right.
+              </Alert>
+            )}
             {editing ? (
               <>
                 <div className="flex gap-3">
@@ -103,11 +109,6 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
                     {(id) => <Input id={id} value={w} onChange={(ev) => setW(ev.target.value)} inputMode="numeric" disabled={closed} />}
                   </Field>
                 </div>
-                {d.status === 'Check value' && (
-                  <Alert type="error" title="Reading is lower than last month">
-                    Re-read the meter. If it was replaced, ask Admin to reset the baseline.
-                  </Alert>
-                )}
                 <div className="flex justify-end gap-2">
                   {!needsInput && <Button onClick={() => setEditing(false)}>Cancel</Button>}
                   <Button variant="primary" disabled={invalid || closed || save.pending} onClick={() => save.run()}>
