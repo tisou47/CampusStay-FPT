@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.StayFlow.student;
@@ -29,7 +30,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.service.billing.FinanceService;
 
-/** Block Finance: overdue Invoices and reminders, figures, refunds (TC-BIL-020, 021). */
+/** Block Finance: overdue Invoices and reminders, figures, refunds (TC-BIL-020, 021, 040). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -156,5 +157,74 @@ class FinanceIT {
         getAs("/refunds?status=Approved", manager).andExpect(jsonPath("$.items[*].id", hasItem(id)));
         mvc.perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, bearer(mvc, student(21))))
                 .andExpect(jsonPath("$.items[0].title").value("Refund decision"));
+    }
+
+    /**
+     * TC-BIL-040: a refund lists its rule's percentage apart from its amount (R-21); a Manager reminds a student
+     * without a refund account to enter it, once a day, not once it is entered (R-19); the student sees their refunds
+     * on Payments (R-24).
+     */
+    @Test
+    void refundAccountReminderAndStudentRefunds() throws Exception {
+        String email = student(48);
+        long refund = jdbc.sql("""
+                INSERT INTO bil_refund (term_id, student_id, building_id, source_type, source_id, reason, rule_id,
+                                        paid_amount, amount, status, student_name, student_code, gender)
+                SELECT :term, u.id, NULL, 'APPLICATION_CANCEL', 0, 'Application cancelled by the student', r.id,
+                       1000000, round(1000000 * r.refund_percent / 100), 'PENDING', u.display_name, s.student_code,
+                       s.gender
+                FROM auth_user u JOIN auth_student s ON s.user_id = u.id,
+                     (SELECT * FROM cfg_refund_rule WHERE trigger_code = 'CANCEL_BEFORE_RESULTS' LIMIT 1) r
+                WHERE u.email = :email
+                RETURNING id
+                """).param("term", termId).param("email", email).query(Long.class).single();
+        double percent = jdbc.sql("""
+                SELECT refund_percent FROM cfg_refund_rule WHERE trigger_code = 'CANCEL_BEFORE_RESULTS' LIMIT 1
+                """).query(Double.class).single();
+        String id = String.valueOf(refund);
+        String manager = bearer(mvc, MANAGER_A);
+        String row = "$.items[?(@.id == '" + id + "')]";
+        getAs("/refunds", manager)
+                .andExpect(jsonPath(row + ".percent", hasItem(percent)))
+                .andExpect(jsonPath(row + ".paid", hasItem(1_000_000)))
+                .andExpect(jsonPath(row + ".createdAt").isNotEmpty())
+                .andExpect(jsonPath(row + ".account", hasItem((Object) null)))
+                .andExpect(jsonPath(row + ".accountRemindedAt", hasItem((Object) null)));
+
+        String reminder = "/refunds/" + id + "/account-reminder";
+        stay.postJson(reminder, bearer(mvc, STAFF_A), "{}").andExpect(status().isForbidden());
+        stay.postJson("/refunds/999999999/account-reminder", manager, "{}").andExpect(status().isNotFound());
+        stay.postJson(reminder, manager, "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.remindedAt").isString());
+        stay.postJson(reminder, manager, "{}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_REMINDED"));
+        String auth = bearer(mvc, email);
+        mvc.perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.items[0].title").value("Enter your bank account for the refund"));
+
+        mvc.perform(get("/students/me/refunds").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(id))
+                .andExpect(jsonPath("$.items[0].reason").value("Application cancelled by the student"))
+                .andExpect(jsonPath("$.items[0].percent").value(percent))
+                .andExpect(jsonPath("$.items[0].paid").value(1_000_000))
+                .andExpect(jsonPath("$.items[0].status").value("Pending"))
+                .andExpect(jsonPath("$.items[0].createdAt").isString())
+                .andExpect(jsonPath("$.pendingAmount").value((int) Math.round(10_000 * percent)));
+        mvc.perform(get("/students/me/refunds").header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(put("/students/me/refund-account").header(HttpHeaders.AUTHORIZATION, auth)
+                        .contentType("application/json")
+                        .content("{\"holder\":\"Le Van Nam\",\"number\":\"0123456789\",\"bankCode\":\"970436\","
+                                + "\"accepted\":true}"))
+                .andExpect(status().isOk());
+        jdbc.sql("UPDATE bil_refund SET account_reminded_at = NULL WHERE id = :id").param("id", refund).update();
+        stay.postJson(reminder, manager, "{}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_ENTERED"));
+        getAs("/refunds", manager).andExpect(jsonPath(row + ".account.bank", hasItem("Vietcombank")));
+        // The other tests of the class count the Term's pending refunds.
+        jdbc.sql("DELETE FROM bil_refund WHERE id = :id").param("id", refund).update();
     }
 }

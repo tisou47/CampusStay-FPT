@@ -145,7 +145,7 @@ function Offer({ offer }) {
                 if (app.depositPaid > 0 && !(await account.save())) return
                 respond.run(false)
               }}
-              disabled={respond.pending || account.saving}
+              disabled={respond.pending || account.saving || (app.depositPaid > 0 && !account.unchanged && !account.draft.accepted)}
             >
               Decline and request refund
             </Button>
@@ -155,7 +155,7 @@ function Offer({ offer }) {
         <p className="text-base text-fg-secondary">
           {t('Your deposit of {amount} is refunded in full to the account below after a Manager approves. You cannot apply again for {term}.', { amount: formatVnd(app.depositPaid), term: offer.termName ?? t('this Term') })}
         </p>
-        {app.depositPaid > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} />}
+        {app.depositPaid > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} unchanged={account.unchanged} />}
       </Modal>
     </div>
   )
