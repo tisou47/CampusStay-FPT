@@ -29,9 +29,11 @@ public class AuditLogQuery {
      * @param q      matched against the object and the actor (case-insensitive, contains)
      * @param actor  exact actor label
      * @param action exact action code, e.g. {@code TERM_PUBLISHED}
+     * @param role   the actor's role: {@code STUDENT}, {@code STAFF}, {@code MANAGER}, {@code ADMIN}, or
+     *               {@code SYSTEM} for jobs; null = any
      * @param since  null = all time
      */
-    public record Filter(String q, String actor, String action, Instant since) {
+    public record Filter(String q, String actor, String action, String role, Instant since) {
     }
 
     public record Page(List<Entry> items, long total) {
@@ -111,6 +113,14 @@ public class AuditLogQuery {
         if (filter.action() != null && !filter.action().isBlank()) {
             append(sql, "action = :action");
             params.put("action", filter.action().trim());
+        }
+        if (filter.role() != null) {
+            if (filter.role().equals("SYSTEM")) {
+                append(sql, "actor_id IS NULL");
+            } else {
+                append(sql, "actor_id IN (SELECT id FROM auth_user WHERE role = :role)");
+                params.put("role", filter.role());
+            }
         }
         if (filter.q() != null && !filter.q().isBlank()) {
             append(sql, """
