@@ -38,6 +38,38 @@ export const STEPS = [
 
 const GENDER = { M: 'Male', F: 'Female' }
 
+/** Fields of the request that other steps than the Timeline answer for. */
+const NOT_TIMELINE = ['name', 'stayStart', 'stayEnd', 'blocks', 'excludedRooms', 'roomTypes', 'roomClasses', 'reservedNewPercent', 'depositPercent', 'utilityDeposit', 'houseRules', 'faq']
+
+/** Ids of the ticked options, sorted; '' when every option is ticked (the Term offers every one). */
+const offerKey = (options, ticked) => (ticked.size === options.length ? '' : [...ticked].sort().join(','))
+
+/** Room Types or Room Classes the Term offers (review R-03). */
+function OfferField({ title, options, ticked, onChange, disabled, error }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-base font-medium text-fg-secondary">{t(title)}</h3>
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
+        {options.map((o) => (
+          <Checkbox
+            key={o.id}
+            disabled={disabled}
+            label={tr(o.name)}
+            checked={ticked.has(o.id)}
+            onChange={() => {
+              const next = new Set(ticked)
+              if (next.has(o.id)) next.delete(o.id)
+              else next.add(o.id)
+              onChange(next)
+            }}
+          />
+        ))}
+      </div>
+      {error && <p className="text-sm text-error-fg">{tr(error)}</p>}
+    </section>
+  )
+}
+
 /** Saves one step; field errors stay with the form. */
 function useStep(w, step, onSaved) {
   const { notify } = useToast()
@@ -161,7 +193,7 @@ function TimelineStep({ w, onSaved }) {
         save={save}
         next
         disabled={!w.editable.timeline}
-        onSave={() => save.run({ timeline: timelineBody(form), reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => !k.startsWith('price:') && !['name', 'stayStart', 'stayEnd', 'blocks', 'excludedRooms'].includes(k))), changeReason })}
+        onSave={() => save.run({ timeline: timelineBody(form), reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => !k.startsWith('price:') && !NOT_TIMELINE.includes(k))), changeReason })}
       />
     </>
   )
@@ -174,9 +206,17 @@ function RoomsStep({ w, onSaved }) {
   const [used, setUsed] = useState(() => new Set(w.rooms.blocks.filter((b) => b.used).map((b) => b.id)))
   const [excluded, setExcluded] = useState(w.rooms.excludedRooms)
   const [reserved, setReserved] = useState(String(w.rooms.reservedNewPercent ?? 0))
+  const [types, setTypes] = useState(() => new Set(w.rooms.roomTypes.filter((x) => x.used).map((x) => x.id)))
+  const [classes, setClasses] = useState(() => new Set(w.rooms.roomClasses.filter((x) => x.used).map((x) => x.id)))
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
   const proposal = w.request?.proposal
+  const offerDiffers = (asked, options, ticked) => asked?.length > 0 && [...asked].sort().join(',') !== offerKey(options, ticked)
+  const typesDiffer = offerDiffers(proposal?.roomTypes, w.rooms.roomTypes, types)
+  const classesDiffer = offerDiffers(proposal?.roomClasses, w.rooms.roomClasses, classes)
+  const reservedDiffers = proposal?.reservedNewPercent != null && Number(proposal.reservedNewPercent) !== Number(reserved || 0)
+  const offerFixed = w.rooms.offerFixed || !w.editable.rooms
+  const names = (ids, options) => options.filter((o) => ids.includes(o.id)).map((o) => tr(o.name)).join(', ')
   const codes = (list) => [...list].map((c) => c.trim().toUpperCase()).filter(Boolean).sort().join(', ')
   const chosenCodes = w.rooms.blocks.filter((b) => used.has(b.id)).map((b) => b.code)
   const blocksDiffer = proposal?.blocks?.length > 0 && codes(proposal.blocks) !== (used.size === w.rooms.blocks.length ? codes(w.rooms.blocks.map((b) => b.code)) : codes(chosenCodes))
@@ -224,9 +264,37 @@ function RoomsStep({ w, onSaved }) {
         )}
       </section>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Beds kept for new students (%)" helper={t('{n} of {beds} Beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })} error={fields.reservedNewPercent}>
-          {(id) => <Input id={id} inputMode="decimal" value={reserved} disabled={!w.editable.rooms} onChange={(e) => setReserved(e.target.value)} />}
-        </Field>
+        <div className="flex flex-col gap-2">
+          <OfferField title="Room Types offered" options={w.rooms.roomTypes} ticked={types} onChange={setTypes} disabled={offerFixed} error={fields.roomTypeIds} />
+          {typesDiffer && (
+            <>
+              <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomTypes, w.rooms.roomTypes) })}</p>
+              <ReasonInput value={reasons.roomTypes} onChange={(v) => setReasons((r) => ({ ...r, roomTypes: v }))} error={fields.roomTypes} />
+            </>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <OfferField title="Room Classes offered" options={w.rooms.roomClasses} ticked={classes} onChange={setClasses} disabled={offerFixed} error={fields.roomClassIds} />
+          {classesDiffer && (
+            <>
+              <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomClasses, w.rooms.roomClasses) })}</p>
+              <ReasonInput value={reasons.roomClasses} onChange={(v) => setReasons((r) => ({ ...r, roomClasses: v }))} error={fields.roomClasses} />
+            </>
+          )}
+        </div>
+      </div>
+      {w.rooms.offerFixed && <p className="text-sm text-fg-tertiary">{t('A published Term keeps the Room Types and Room Classes it offers.')}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1">
+          <Field
+            label="Beds kept for new students (%)"
+            helper={reservedDiffers ? t('The request asked for {value}%.', { value: proposal.reservedNewPercent }) : t('{n} of {beds} Beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })}
+            error={fields.reservedNewPercent}
+          >
+            {(id) => <Input id={id} inputMode="decimal" value={reserved} disabled={!w.editable.rooms} onChange={(e) => setReserved(e.target.value)} />}
+          </Field>
+          {reservedDiffers && <ReasonInput value={reasons.reservedNewPercent} onChange={(v) => setReasons((r) => ({ ...r, reservedNewPercent: v }))} />}
+        </div>
       </div>
       <section className="flex flex-col gap-2">
         <div className="flex items-end justify-between gap-3">
@@ -276,7 +344,9 @@ function RoomsStep({ w, onSaved }) {
             blockIds: [...used],
             excludedRooms: excluded,
             reservedNewPercent: reserved === '' ? 0 : Number(reserved),
-            reasons: pick(reasons, ['blocks', 'excludedRooms']),
+            roomTypeIds: [...types],
+            roomClassIds: [...classes],
+            reasons: pick(reasons, ['blocks', 'excludedRooms', 'roomTypes', 'roomClasses', 'reservedNewPercent']),
             changeReason,
           })
         }
@@ -296,6 +366,9 @@ function PricesStep({ w, onSaved }) {
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
   const editable = w.editable.prices
+  const asked = w.request?.proposal
+  const depositDiffers = asked?.depositPercent != null && Number(asked.depositPercent) !== Number(deposit || 0)
+  const utilityDiffers = asked?.utilityDeposit != null && Number(asked.utilityDeposit) !== Number(utility || 0)
   const fill = (source) => setRows((list) => list.map((r) => (r[source] != null ? { ...r, value: String(r[source]) } : r)))
   return (
     <>
@@ -361,12 +434,26 @@ function PricesStep({ w, onSaved }) {
       </Table>
       {fields.prices && <p className="text-sm text-error-fg">{tr(fields.prices)}</p>}
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Deposit (% of the price)" helper={t('Default {n}%.', { n: p.defaultDepositPercent })} error={fields.depositPercent}>
-          {(id) => <Input id={id} inputMode="decimal" value={deposit} disabled={!editable} onChange={(e) => setDeposit(e.target.value)} />}
-        </Field>
-        <Field label="Utility Deposit (VND)" helper={t('Default {amount}, collected with the Balance.', { amount: formatVnd(p.defaultUtilityDeposit) })} error={fields.utilityDeposit}>
-          {(id) => <Input id={id} inputMode="numeric" value={utility} disabled={!editable} onChange={(e) => setUtility(e.target.value.replace(/\D/g, ''))} />}
-        </Field>
+        <div className="flex flex-col gap-1">
+          <Field
+            label="Deposit (% of the price)"
+            helper={depositDiffers ? t('The request asked for {value}%.', { value: asked.depositPercent }) : t('Default {n}%.', { n: p.defaultDepositPercent })}
+            error={fields.depositPercent}
+          >
+            {(id) => <Input id={id} inputMode="decimal" value={deposit} disabled={!editable} onChange={(e) => setDeposit(e.target.value)} />}
+          </Field>
+          {depositDiffers && <ReasonInput value={reasons.depositPercent} onChange={(v) => setReasons((x) => ({ ...x, depositPercent: v }))} />}
+        </div>
+        <div className="flex flex-col gap-1">
+          <Field
+            label="Utility Deposit (VND)"
+            helper={utilityDiffers ? t('The request asked for {value}.', { value: formatVnd(asked.utilityDeposit) }) : t('Default {amount}, collected with the Balance.', { amount: formatVnd(p.defaultUtilityDeposit) })}
+            error={fields.utilityDeposit}
+          >
+            {(id) => <Input id={id} inputMode="numeric" value={utility} disabled={!editable} onChange={(e) => setUtility(e.target.value.replace(/\D/g, ''))} />}
+          </Field>
+          {utilityDiffers && <ReasonInput value={reasons.utilityDeposit} onChange={(v) => setReasons((x) => ({ ...x, utilityDeposit: v }))} />}
+        </div>
       </div>
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
       <StepActions
@@ -378,7 +465,7 @@ function PricesStep({ w, onSaved }) {
             prices: rows.map((r) => ({ roomTypeId: r.roomTypeId, roomClassId: r.roomClassId, price: r.value === '' ? null : Number(r.value) })),
             depositPercent: deposit === '' ? null : Number(deposit),
             utilityDeposit: utility === '' ? null : Number(utility),
-            reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => k.startsWith('price:'))),
+            reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => k.startsWith('price:') || k === 'depositPercent' || k === 'utilityDeposit')),
             changeReason,
           })
         }
@@ -476,13 +563,24 @@ function InformationStep({ w, onSaved }) {
   const [faq, setFaq] = useState(w.information.faq ?? [])
   const [docs, setDocs] = useState(w.information.documents ?? [])
   const [changeReason, setChangeReason] = useState('')
+  const [reasons, setReasons] = useState(reasonsOf(w))
   const editable = w.editable.information
+  const asked = w.request?.proposal
+  const rulesDiffer = asked?.houseRules != null && asked.houseRules !== rules.trim()
+  const lines = (list) => JSON.stringify(list.map((f) => ({ question: f.question.trim(), answer: f.answer.trim() })).filter((f) => f.question || f.answer))
+  const faqDiffers = asked?.faq != null && lines(asked.faq) !== lines(faq)
   return (
     <>
       <SaveError save={save} />
       <Field label="House rules" helper="Students read them on Registration period details." error={fields.houseRules}>
         {(id) => <Textarea id={id} rows={8} value={rules} disabled={!editable} onChange={(e) => setRules(e.target.value)} />}
       </Field>
+      {rulesDiffer && (
+        <>
+          <p className="text-sm text-fg-tertiary">{t('The request proposed other house rules.')}</p>
+          <ReasonInput value={reasons.houseRules} onChange={(v) => setReasons((x) => ({ ...x, houseRules: v }))} error={fields.houseRules} />
+        </>
+      )}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium text-fg-secondary">{t('Questions and answers')}</h3>
@@ -498,6 +596,12 @@ function InformationStep({ w, onSaved }) {
           </div>
         ))}
         {fields.faq && <p className="text-sm text-error-fg">{tr(fields.faq)}</p>}
+        {faqDiffers && (
+          <>
+            <p className="text-sm text-fg-tertiary">{t('The request proposed other questions and answers.')}</p>
+            <ReasonInput value={reasons.faq} onChange={(v) => setReasons((x) => ({ ...x, faq: v }))} />
+          </>
+        )}
       </section>
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -516,7 +620,7 @@ function InformationStep({ w, onSaved }) {
         {fields.documents && <p className="text-sm text-error-fg">{tr(fields.documents)}</p>}
       </section>
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
-      <StepActions save={save} next disabled={!editable} onSave={() => save.run({ houseRules: rules, faq, documents: docs, changeReason })} />
+      <StepActions save={save} next disabled={!editable} onSave={() => save.run({ houseRules: rules, faq, documents: docs, reasons: pick(reasons, ['houseRules', 'faq']), changeReason })} />
     </>
   )
 }

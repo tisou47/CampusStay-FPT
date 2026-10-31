@@ -6,7 +6,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select } from '@/components/ui/Field'
 import { Drawer } from '@/components/ui/Overlay'
 import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
@@ -16,7 +16,7 @@ import { formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-03 Room Classes (Figma 25:837)
-// GET /admin/room-classes → { items: [{ id, name, surchargeRate, amenities: [string], usedIn, rooms, status }],
+// GET /admin/room-classes → { items: [{ id, name, surchargeRate, usedIn, rooms, status }],
 //   roomTypes: [{ id, name, basePrice }], depositRate }   (usedIn, rooms: Rooms of the class in the current Term, B-04)
 // POST /admin/room-classes · PUT /admin/room-classes/:id
 // GET /admin/room-class-requirements → { items: [{ roomClassId, roomClass, status, requirements: [{ typeId, type, typeVi,
@@ -28,13 +28,12 @@ function EditDrawer({ item, onClose }) {
   const [form, setForm] = useState({
     name: item.name ?? '',
     surcharge: item.surchargeRate != null ? String(Math.round(item.surchargeRate * 100)) : '',
-    amenities: (item.amenities ?? []).join('\n'),
     status: item.status ?? 'Active',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const save = useMutation(
     () => {
-      const body = { name: form.name.trim(), surchargeRate: (Number(form.surcharge) || 0) / 100, amenities: form.amenities.split('\n').map((a) => a.trim()).filter(Boolean), status: form.status }
+      const body = { name: form.name.trim(), surchargeRate: (Number(form.surcharge) || 0) / 100, status: form.status }
       return isNew ? api.admin.roomClasses.create(body) : api.admin.roomClasses.update(item.id, body)
     },
     {
@@ -65,9 +64,7 @@ function EditDrawer({ item, onClose }) {
       <Field label="Surcharge (%)" helper="Added to every Room Type base price for this class.">
         {(id) => <Input id={id} value={form.surcharge} onChange={set('surcharge')} inputMode="numeric" />}
       </Field>
-      <Field label="Amenities" helper="One per line. Students see this list when they choose a Room Class.">
-        {(id) => <Textarea id={id} rows={4} value={form.amenities} onChange={set('amenities')} />}
-      </Field>
+      <p className="text-sm text-fg-tertiary">{t('Students see the furniture the class requires (Furniture in the list).')}</p>
       <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}</Field>
     </Drawer>
   )
@@ -150,11 +147,9 @@ export default function RoomClasses() {
             <Th className="w-28" align="right">
               Surcharge
             </Th>
-            <Th>Amenities</Th>
             <Th>Required furniture</Th>
-            <Th className="w-40">Rooms this Term</Th>
-            <Th className="w-22" align="right">
-              Rooms
+            <Th className="w-44" align="right">
+              Rooms this Term
             </Th>
             <Th className="w-24">Status</Th>
             <Th className="w-48">
@@ -163,16 +158,17 @@ export default function RoomClasses() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} emptyIcon={Layers} emptyTitle="No Room Classes yet" />
+          <TableStatus query={query} colSpan={6} emptyIcon={Layers} emptyTitle="No Room Classes yet" />
           {items.map((c) => (
             <Tr key={c.id}>
               <Td className="font-medium">{tr(c.name)}</Td>
               <Td align="right">+{Math.round(c.surchargeRate * 100)}%</Td>
-              <Td>{(c.amenities ?? []).join(' · ')}</Td>
               <Td className={required[c.id]?.length ? undefined : 'text-fg-tertiary'}>{required[c.id]?.length ? countLines(required[c.id]) : t('None')}</Td>
-              <Td>{c.usedIn || '—'}</Td>
               <Td align="right" className="tabular">
-                {formatNumber(c.rooms)}
+                <div className="flex flex-col items-end gap-0.5 py-1">
+                  <span className="font-medium text-fg">{formatNumber(c.rooms)}</span>
+                  {c.usedIn && <span className="text-sm text-fg-tertiary">{c.usedIn}</span>}
+                </div>
               </Td>
               <Td>
                 <StatusTag status={c.status} />

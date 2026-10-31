@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.setting;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 
@@ -26,7 +27,8 @@ public class StudentCatalogService {
     public record RoomType(String id, String name, int beds, String description) {
     }
 
-    public record RoomClass(String id, String name, BigDecimal surchargeRate, List<String> amenities) {
+    /** {@code furniture}: what every Room of the class has (review R-05). */
+    public record RoomClass(String id, String name, BigDecimal surchargeRate, List<RoomClassFurniture.Line> furniture) {
     }
 
     public record Price(String roomTypeId, String roomClassId, long termPrice) {
@@ -45,8 +47,11 @@ public class StudentCatalogService {
     private final FeePolicy fees;
     private final Lookups lookups;
     private final TermCatalog terms;
+    private final RoomClassFurniture furniture;
 
-    public StudentCatalogService(Catalog catalog, FeePolicy fees, Lookups lookups, TermCatalog terms) {
+    public StudentCatalogService(Catalog catalog, FeePolicy fees, Lookups lookups, TermCatalog terms,
+            RoomClassFurniture furniture) {
+        this.furniture = furniture;
         this.catalog = catalog;
         this.fees = fees;
         this.lookups = lookups;
@@ -59,8 +64,12 @@ public class StudentCatalogService {
                 .or(terms::openForRegistration)
                 .or(() -> terms.publishedTerms().stream().filter(TermSummary::current).findFirst())
                 .map(TermSummary::id).orElse(null);
-        List<Catalog.RoomTypeInfo> types = catalog.roomTypes().stream().filter(Catalog.RoomTypeInfo::active).toList();
+        TermCatalog.TermRooms offer = term == null ? null : terms.rooms(term);
+        List<Catalog.RoomTypeInfo> types = catalog.roomTypes().stream().filter(Catalog.RoomTypeInfo::active)
+                .filter(t -> offer == null || offer.roomTypeIds().isEmpty() || offer.roomTypeIds().contains(t.id()))
+                .toList();
         List<Catalog.RoomClassInfo> classes = catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active)
+                .filter(c -> offer == null || offer.roomClassIds().isEmpty() || offer.roomClassIds().contains(c.id()))
                 .toList();
         List<Price> prices = new ArrayList<>();
         for (Catalog.RoomTypeInfo t : types) {
@@ -70,11 +79,12 @@ public class StudentCatalogService {
                 price.ifPresent(p -> prices.add(new Price(String.valueOf(t.id()), String.valueOf(c.id()), p)));
             }
         }
+        Map<Long, List<RoomClassFurniture.Line>> required = furniture.required();
         return new StudentCatalog(
                 types.stream().map(t -> new RoomType(String.valueOf(t.id()), t.name(), t.beds(), t.description()))
                         .toList(),
                 classes.stream().map(c -> new RoomClass(String.valueOf(c.id()), c.name(),
-                        Decimals.plain(c.surchargeRate()), c.amenities())).toList(),
+                        Decimals.plain(c.surchargeRate()), required.getOrDefault(c.id(), List.of()))).toList(),
                 prices, term == null ? fees.depositRate() : fees.depositRate(term),
                 term == null ? fees.utilityDeposit() : fees.utilityDeposit(term),
                 new PreferenceOptions(labels("REGION"), labels("SEMESTER"), labels("MAJOR")), labels("RELATIONSHIP"));

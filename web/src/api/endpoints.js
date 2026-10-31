@@ -434,6 +434,7 @@ export const api = {
   /** Registration-period requests (A-28): Managers send them; Managers and the Admin read and comment; the Admin answers. */
   termRequests: {
     list: g('/term-requests'),
+    defaults: g('/term-requests/defaults'),
     get: (id, opts) => http.get(`/term-requests/${id}`, undefined, opts),
     create: (body) => http.post('/term-requests', body),
     update: (id, body) => http.put(`/term-requests/${id}`, body),

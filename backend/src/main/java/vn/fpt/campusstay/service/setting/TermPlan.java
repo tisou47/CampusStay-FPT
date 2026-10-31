@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.service.setting;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -43,6 +44,14 @@ public final class TermPlan {
     public record Price(String roomTypeId, String roomClassId, Long price) {
     }
 
+    /** A Manager's base price per Bed of one Room Type (review R-02: prices are proposed as base × surcharge). */
+    public record BasePrice(String roomTypeId, Long price) {
+    }
+
+    /** A Manager's surcharge of one Room Class, in percent ({@code 15} = +15%). */
+    public record Surcharge(String roomClassId, BigDecimal percent) {
+    }
+
     /** A question students ask, with its answer (Registration period details › FAQ). */
     public record Faq(String question, String answer) {
     }
@@ -65,10 +74,18 @@ public final class TermPlan {
     /**
      * A Manager's proposal.
      *
-     * @param blocks        codes of the Blocks to use; empty = every active Block
-     * @param excludedRooms Room codes to leave out
+     * @param blocks             codes of the Blocks to use; empty = every active Block
+     * @param excludedRooms      Room codes to leave out
+     * @param prices             price per Bed of each Room Type × Room Class; with {@code basePrices} and
+     *                           {@code surcharges} the server computes them (BR-10), so a request reads like any other
+     * @param roomTypes          ids of the Room Types to offer; null or empty = every active one (same for roomClasses)
+     * @param reservedNewPercent share of the Beds kept for new students, in percent; null = the default
+     * @param depositPercent     Deposit in percent of the Term price; null = the default (same for utilityDeposit)
+     * @param houseRules         house rules students read for this Term; null = the Term before's (same for faq)
      */
     public record Proposal(Timeline timeline, List<String> blocks, List<String> excludedRooms, List<Places> places,
-            List<Price> prices) {
+            List<Price> prices, List<BasePrice> basePrices, List<Surcharge> surcharges, List<String> roomTypes,
+            List<String> roomClasses, BigDecimal reservedNewPercent, BigDecimal depositPercent, Long utilityDeposit,
+            String houseRules, List<Faq> faq) {
     }
 }
