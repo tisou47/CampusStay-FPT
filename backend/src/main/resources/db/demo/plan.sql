@@ -293,5 +293,6 @@ x AS (
            (r.kwh * p.price_kwh + r.m3 * p.price_m3)::numeric * s.hours / r.hours AS exact
     FROM demo_util_stay s CROSS JOIN p JOIN demo_util_room r ON r.room_id = s.room_id AND r.label = s.label)
 SELECT x.*, round(x.exact)::bigint AS share, (ceil(ceil(x.exact) / x.step) * x.step)::bigint AS amount,
-       (x.scenario IN ('S19', 'S20', 'S21') AND x.age = 1) OR (x.scenario IN ('S20', 'S21') AND x.age = 2) AS overdue
+       coalesce((x.scenario IN ('S19', 'S20', 'S21') AND x.age = 1) OR (x.scenario IN ('S20', 'S21') AND x.age = 2),
+                FALSE) AS overdue
 FROM x;
