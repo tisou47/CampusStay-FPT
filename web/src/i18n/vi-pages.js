@@ -3921,6 +3921,24 @@ const workspace = {
   "Cancelled by you": "Bạn đã hủy",
   "Application created; the Deposit is due within {n} hours": "Đã tạo đơn; hạn đóng tiền cọc trong {n} giờ",
   "Deposit paid; the Application is submitted": "Đã đóng tiền cọc; đơn đã được nộp",
+  // Payments and refunds review (R-19, R-21…R-24, R-26)
+  "Choose a bank": "Chọn ngân hàng",
+  "I checked the holder, number and bank. A refund sent to a wrong account is my responsibility and cannot be taken back.": "Tôi đã kiểm tra chủ tài khoản, số tài khoản và ngân hàng. Tiền hoàn chuyển vào tài khoản sai là trách nhiệm của tôi và không lấy lại được.",
+  "Choose your bank from the list again and confirm the account.": "Hãy chọn lại ngân hàng trong danh sách và xác nhận tài khoản.",
+  "Percent": "Tỷ lệ",
+  "Remind to enter it": "Nhắc nhập tài khoản",
+  "{name} is asked to enter the bank account for the refund.": "Đã nhắc {name} nhập tài khoản ngân hàng nhận tiền hoàn.",
+  "Uploading…": "Đang tải lên…",
+  "Replace": "Thay",
+  "Attach receipt": "Đính kèm biên lai",
+  "Could not attach the receipt": "Không đính kèm được biên lai",
+  "{n} skipped: decided by someone else or without a receipt.": "{n} khoản bị bỏ qua: đã được người khác xử lý hoặc chưa có biên lai.",
+  "{n} selected claims have no receipt": "{n} báo chuyển khoản đã chọn chưa có biên lai",
+  "A payment is confirmed only with its transfer receipt. Attach one in the Receipt column; these stay waiting: {ids}.": "Chỉ xác nhận được khoản thanh toán có biên lai chuyển khoản. Hãy đính kèm ở cột Biên lai; các khoản sau vẫn chờ: {ids}.",
+  "Attach transfer receipt (required)": "Đính kèm biên lai chuyển khoản (bắt buộc)",
+  "{amount} on its way to you": "{amount} đang được hoàn cho bạn",
+  "{label} · month {month} of {months} of {term} ({from} – {to})": "{label} · tháng {month}/{months} của {term} ({from} – {to})",
+  "View payment": "Xem thanh toán",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace }

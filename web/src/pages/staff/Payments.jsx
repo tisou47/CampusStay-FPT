@@ -24,13 +24,14 @@ import { t, tr } from '@/i18n'
 // GET /payments?termId&block&q&type&status&method&date&page&pageSize → {
 //   items: [{ invoiceId, studentName, studentCode, type, typeLabel, amount, method, paidAt, dueAt, status, reference, transferContent, receipt: { name, size, url } }],
 //   total, summary: { collectedToday, collectedTodayCount, awaitingConfirmation, unpaidDeposits, depositsPaid, depositsSubmitted } }
-// POST /payments/:invoiceId/confirm (multipart) reference?, receipt? — the Invoice's claim, or a transfer the
-// student did not report yet (ADR-22); the amount is always the Invoice's.
+// POST /payments/:invoiceId/confirm (multipart) reference?, receipt — the Invoice's claim, or a transfer the
+// student did not report yet (ADR-22); the amount is always the Invoice's. The receipt is required (R-23) unless one is
+// already attached to the claim.
 
 const AWAITING = 'Awaiting confirmation'
 
 /**
- * One Invoice confirmed with a reference or a receipt (POST /payments/:invoiceId/confirm), also when the student never
+ * One Invoice confirmed with its transfer receipt and a reference (POST /payments/:invoiceId/confirm), also when the student never
  * claimed it. Payments and Payment confirmations both open it: there is one confirmation path (backend answer Q8).
  */
 export function ConfirmPaymentModal({ payment, onClose }) {
@@ -72,7 +73,7 @@ export function ConfirmPaymentModal({ payment, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!matched || confirm.pending} onClick={() => confirm.run()}>
+          <Button variant="primary" icon={Check} disabled={!matched || !(file || payment.receipt) || confirm.pending} onClick={() => confirm.run()}>
             {confirm.pending ? t('Confirming…') : t('Confirm payment')}
           </Button>
         </>
@@ -101,7 +102,7 @@ export function ConfirmPaymentModal({ payment, onClose }) {
       ) : (
         <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
           <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-          <span className="text-base text-fg">{file ? file.name : t('Attach transfer receipt')}</span>
+          <span className="text-base text-fg">{file ? file.name : t('Attach transfer receipt (required)')}</span>
           <input ref={fileInput} type="file" accept="image/*,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </button>
       )}

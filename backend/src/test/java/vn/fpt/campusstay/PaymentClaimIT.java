@@ -95,7 +95,8 @@ class PaymentClaimIT {
     /**
      * TC-BIL-032: the claim waits for a Manager and stops the Deposit window (the Application does not expire); the
      * queue lists it with the count and total; a bulk confirmation pays each Invoice at the time of its claim, one
-     * audit entry each, and the Applications are submitted; unknown Invoices are skipped.
+     * audit entry each, and the Applications are submitted; unknown Invoices and claims without their transfer
+     * receipt (R-23) are skipped.
      */
     @Test
     void claimStopsTheClockAndBulkConfirmationPays() throws Exception {
@@ -134,6 +135,18 @@ class PaymentClaimIT {
                 .andExpect(jsonPath("$.summary.count").value(2))
                 .andExpect(jsonPath("$.summary.amount").value(1_560_000 + 1_200_000));
 
+        // A claim is confirmed only with its transfer receipt (R-23): without one it is skipped.
+        postJson("/payment-claims/confirm", manager, "{\"invoiceIds\":[\"%s\"]}".formatted(a.depositInvoiceId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.confirmed").value(0))
+                .andExpect(jsonPath("$.skipped[0].reason").value("Attach the transfer receipt first."));
+        flow.attachReceipt(a.depositInvoiceId()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("transfer.png"))
+                .andExpect(jsonPath("$.url").isString());
+        flow.attachReceipt(b.depositInvoiceId()).andExpect(status().isOk());
+        getAs("/payment-claims?q=SE190030", manager)
+                .andExpect(jsonPath("$.items[0].receipt.name").value("transfer.png"));
+        flow.attachReceipt("INV-TT31-999999").andExpect(status().isNotFound());
         postJson("/payment-claims/confirm", manager, "{\"invoiceIds\":[\"%s\",\"%s\",\"INV-TT31-999999\"]}"
                 .formatted(a.depositInvoiceId(), b.depositInvoiceId()))
                 .andExpect(status().isOk())

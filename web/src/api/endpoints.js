@@ -74,6 +74,8 @@ export const api = {
     /** The bank account refunds are paid to: { holder, number, bank, updatedAt } (null fields until entered; A-62). */
     refundAccount: g('/students/me/refund-account'),
     saveRefundAccount: (body) => http.put('/students/me/refund-account', body),
+    /** The student's refunds (R-24): { items: [{ id, reason, rule, percent, paid, amount, status, createdAt, decidedAt, note }], total, pendingAmount }. */
+    refunds: g('/students/me/refunds'),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */
     board: g('/students/me/board'),
   },
@@ -330,6 +332,8 @@ export const api = {
     summary: g('/finance/summary'),
     refunds: g('/refunds'),
     decideRefund: (id, body) => http.post(`/refunds/${id}/decision`, body),
+    /** R-19: in-app and push reminder to enter the refund bank account → { remindedAt }. */
+    remindAccount: (id) => http.post(`/refunds/${id}/account-reminder`),
     overdue: g('/finance/overdue'),
     remind: (body) => http.post('/finance/reminders', body),
     invoices: g('/invoices'),
@@ -397,7 +401,9 @@ export const api = {
   /** Payment claims (ADR-22): the Managers' queue; each Invoice is confirmed or rejected on its own. */
   paymentClaims: {
     list: g('/payment-claims'),
-    /** { invoiceIds } → { confirmed, amount, skipped: [{ invoiceId, reason }] }. */
+    /** The transfer receipt of an open claim (multipart: receipt) → { name, size, url } (R-23). */
+    attachReceipt: (invoiceId, formData) => http.post(`/payment-claims/${invoiceId}/receipt`, formData),
+    /** { invoiceIds } → { confirmed, amount, skipped: [{ invoiceId, reason }] }; claims without a receipt are skipped. */
     confirm: (body) => http.post('/payment-claims/confirm', body),
     /** { invoiceIds, reason } → { rejected, cancelled, skipped }. */
     reject: (body) => http.post('/payment-claims/reject', body),
@@ -414,6 +420,8 @@ export const api = {
     /** A Manager confirms one Invoice (multipart: reference?, receipt?): its claim, or a transfer not claimed yet. */
     confirm: (invoiceId, formData) => http.post(`/payments/${invoiceId}/confirm`, formData),
   },
+  /** Vietnamese banks a refund can go to (R-22): [{ bin, shortName, name }]. */
+  banks: g('/banks'),
   /** Back-office search in the top bar: { q } → { q, items: [{ kind, id, title, detail }] } (spec §11.3). */
   search: (q, opts) => http.get('/search', { q }, opts),
   dashboards: {

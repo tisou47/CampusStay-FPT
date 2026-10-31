@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 30/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 31/10/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -32,7 +32,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-APP-03 | Application Detail | `/student/applications/:id` | 17:888 | `GET /applications/:id`<br>`POST /applications/:id/cancel`<br>`POST /applications/:id/withdraw` | [student/ApplicationDetail.jsx](../../web/src/pages/student/ApplicationDetail.jsx) |
 | SCR-APP-04 | Roommate Invitation | `/student/roommate-invitation` | 40:1439 | `GET /students/me/roommate-invitation`<br>`POST /roommate-invitations/:id/respond` | [student/RoommateInvitation.jsx](../../web/src/pages/student/RoommateInvitation.jsx) |
 | SCR-ASG-02 | Round 2 Offer | `/student/round-2-offer` | 102:2059 | `GET /students/me/round2-offer`<br>`POST /round2-offers/:id/respond` | [student/Round2Offer.jsx](../../web/src/pages/student/Round2Offer.jsx) |
-| SCR-BIL-01 | My Invoices | `/student/invoices` | 19:1051 | `GET /students/me/invoices` | [student/MyInvoices.jsx](../../web/src/pages/student/MyInvoices.jsx) |
+| SCR-BIL-01 | My Invoices | `/student/invoices` | 19:1051 | `GET /students/me/invoices`<br>`GET /students/me/refunds` | [student/MyInvoices.jsx](../../web/src/pages/student/MyInvoices.jsx) |
 | SCR-BIL-03 | Utility Invoice | `/student/invoices/:id` | 102:2263 | `GET /invoices/:id` | [student/InvoiceDetail.jsx](../../web/src/pages/student/InvoiceDetail.jsx) |
 | SCR-BIL-02 | Invoice Payment | `/student/invoices/:id/pay` | 17:701 | `GET /invoices/:id/payment`<br>`POST /invoices/:id/claim`<br>`POST /invoices/:id/payment/refresh` | [student/InvoicePayment.jsx](../../web/src/pages/student/InvoicePayment.jsx) |
 | SCR-ASG-01 | My Room | `/student/room` | 39:1535 | `GET /students/me/allocation`<br>`POST /students/me/stay/extension`<br>`POST /students/me/stay/end`<br>`GET /students/me/late-check-in`<br>`POST /students/me/late-check-in`<br>`GET /students/me/door-code`<br>`POST /students/me/door-code/reveal`<br>`GET /students/me/furniture` | [student/MyRoom.jsx](../../web/src/pages/student/MyRoom.jsx) |
@@ -45,6 +45,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-05 | Swap Invitation | `/student/requests/swap/invitations/:id` | 104:2490 | `GET /swap-invitations/:id`<br>`POST /swap-invitations/:id/respond` | [student/SwapInvitation.jsx](../../web/src/pages/student/SwapInvitation.jsx) |
 | MOB-NTF-01 | Notifications (phone bell) | `/student/notifications` | 58:474 | `GET /notifications` | [student/Notifications.jsx](../../web/src/pages/student/Notifications.jsx) |
 | SCR-AUTH-06 | Account verification (sign-up form) | `/student/verification` | — | `GET /students/me/verification`<br>`PUT /students/me/verification` | [student/Verification.jsx](../../web/src/pages/student/Verification.jsx) |
+| — | My profile (`role="student"`) | `/student/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 | SCR-HOME-05 | Registration period details | `/student/registration-periods/:termId` | — | `GET /registration-periods/:termId` | [student/RegistrationPeriod.jsx](../../web/src/pages/student/RegistrationPeriod.jsx) |
 
 ## Staff — Figma page 06 Web – Staff
@@ -70,6 +71,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-13 | Students | `/staff/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
 | SCR-AUTH-14 | Student hub | `/staff/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
 | SCR-NTF-22 | Announcements | `/staff/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
+| — | My profile (`role="staff"`) | `/staff/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 
 ## Block Manager — Figma page 07 Web – Manager
 
@@ -83,7 +85,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-ASG-10 | Assignment Runs | `/manager/assignment` | 35:1357 | `GET /assignment-runs`<br>`POST /assignment-runs`<br>`GET /round2`<br>`POST /round2/run`<br>`GET /round2/offers` | [staff/AssignmentRuns.jsx](../../web/src/pages/staff/AssignmentRuns.jsx) |
 | SCR-ASG-11 | Assignment Proposal Review | `/manager/assignment/:runId` | 36:1580 | `GET /assignment-runs/:runId/proposal`<br>`GET /assignment-runs/:runId/conflicts/:applicationId`<br>`POST /assignment-runs/:runId/commit` | [staff/ProposalReview.jsx](../../web/src/pages/staff/ProposalReview.jsx) |
 | SCR-BIL-10 | Payments | `/manager/payments` | 23:614 | `GET /payments`<br>`POST /payments/:invoiceId/confirm` | [staff/Payments.jsx](../../web/src/pages/staff/Payments.jsx) |
-| SCR-BIL-13 | Payment confirmations | `/manager/payment-claims` | — | `GET /payment-claims`<br>`POST /payment-claims/confirm`<br>`POST /payment-claims/reject` | [manager/PaymentClaims.jsx](../../web/src/pages/manager/PaymentClaims.jsx) |
+| SCR-BIL-13 | Payment confirmations | `/manager/payment-claims` | — | `GET /payment-claims`<br>`POST /payment-claims/:invoiceId/receipt`<br>`POST /payment-claims/confirm`<br>`POST /payment-claims/reject` | [manager/PaymentClaims.jsx](../../web/src/pages/manager/PaymentClaims.jsx) |
 | SCR-ASG-12 | Terminations | `/manager/terminations` | — | `GET /terminations`<br>`POST /terminations`<br>`POST /terminations/:id/cancel` | [manager/Terminations.jsx](../../web/src/pages/manager/Terminations.jsx) |
 | SCR-REQ-10 | Room-Change Queue | `/manager/room-changes` | 60:2696 | `GET /room-changes`<br>`GET /room-changes/:id/matching-beds`<br>`POST /room-changes/:id/decision` | [staff/RoomChangeQueue.jsx](../../web/src/pages/staff/RoomChangeQueue.jsx) |
 | SCR-REQ-13 | Room Swap Requests | `/manager/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
@@ -99,7 +101,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-MNT-10 | Maintenance Queue | `/manager/maintenance` | 42:2251 | `GET /maintenance-requests`<br>`GET /maintenance-requests/options` | [staff/MaintenanceQueue.jsx](../../web/src/pages/staff/MaintenanceQueue.jsx) |
 | SCR-MNT-11 | Maintenance Detail | `/manager/maintenance/:id` | 42:2739 | `GET /maintenance-requests/:id`<br>`PATCH /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/updates` | [staff/MaintenanceDetail.jsx](../../web/src/pages/staff/MaintenanceDetail.jsx) |
 | SCR-MNT-20 | Inspection Schedule | `/manager/inspections` | 99:2569 | `GET /inspection-schedules`<br>`POST /inspection-schedules`<br>`PUT /inspection-schedules/:id` | [manager/InspectionSchedule.jsx](../../web/src/pages/manager/InspectionSchedule.jsx) |
-| SCR-BIL-20 | Block Finance | `/manager/finance` | 61:707 | `GET /finance/summary`<br>`GET /refunds`<br>`POST /refunds/:id/decision`<br>`GET /finance/overdue`<br>`POST /finance/reminders`<br>`GET /invoices` | [manager/BlockFinance.jsx](../../web/src/pages/manager/BlockFinance.jsx) |
+| SCR-BIL-20 | Block Finance | `/manager/finance` | 61:707 | `GET /finance/summary`<br>`GET /refunds`<br>`POST /refunds/:id/decision`<br>`POST /refunds/:id/account-reminder`<br>`GET /finance/overdue`<br>`POST /finance/reminders`<br>`GET /invoices` | [manager/BlockFinance.jsx](../../web/src/pages/manager/BlockFinance.jsx) |
 | SCR-AUTH-10 | Block Staff | `/manager/staff` | 69:554 | `GET /block-staff`<br>`PUT /block-staff/:id` | [manager/BlockStaff.jsx](../../web/src/pages/manager/BlockStaff.jsx) |
 | SCR-REQ-20 | Request Routing Rules | `/manager/routing-rules` | 69:949 | `GET /routing-rules`<br>`POST /routing-rules`<br>`PUT /routing-rules/:id`<br>`PUT /routing-rules/timers` | [manager/RoutingRules.jsx](../../web/src/pages/manager/RoutingRules.jsx) |
 | SCR-REQ-21 | Escalations | `/manager/escalations` | 69:1335 | `GET /escalations`<br>`POST /escalations/:id/actions` | [manager/Escalations.jsx](../../web/src/pages/manager/Escalations.jsx) |
@@ -113,6 +115,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-RPT-11 | Term dashboard | `/manager/terms` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms/:id` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-NTF-22 | Announcements | `/manager/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
+| — | My profile (`role="manager"`) | `/manager/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 
 ## Admin — Figma page 08 Web – Admin
 
@@ -127,6 +130,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-CFG-25 | Refunds, penalties and terminations | `/admin/refunds` | — | `GET /admin/fees`<br>`GET /admin/settings/refunds` | [admin/RefundsTerminations.jsx](../../web/src/pages/admin/RefundsTerminations.jsx) |
 | SCR-CFG-26 | Stay and renewal | `/admin/stay` | — | `GET /admin/settings/stay`<br>`PUT /admin/settings/stay` | [admin/StayRenewal.jsx](../../web/src/pages/admin/StayRenewal.jsx) |
 | SCR-NTF-22 | Announcements | `/admin/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
+| — | My profile (`role="admin"`) | `/admin/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 | SCR-CFG-02 | Room Types | `/admin/room-types` | 24:520 | `GET /admin/room-types`<br>`POST /admin/room-types`<br>`PUT /admin/room-types/:id` | [admin/RoomTypes.jsx](../../web/src/pages/admin/RoomTypes.jsx) |
 | SCR-CFG-03 | Room Classes | `/admin/room-classes` | 25:837 | `GET /admin/room-classes`<br>`POST /admin/room-classes`<br>`PUT /admin/room-classes/:id`<br>`GET /admin/room-class-requirements`<br>`PUT /admin/room-class-requirements/:roomClassId` | [admin/RoomClasses.jsx](../../web/src/pages/admin/RoomClasses.jsx) |
 | SCR-CFG-04 | Deposit | `/admin/fees` | — | `GET /admin/fees`<br>`PUT /admin/fees` | [admin/FeesRules.jsx](../../web/src/pages/admin/FeesRules.jsx) |

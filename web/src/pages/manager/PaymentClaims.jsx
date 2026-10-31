@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock, HandCoins, ReceiptText, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Clock, HandCoins, Paperclip, ReceiptText, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -23,13 +23,52 @@ import { ConfirmPaymentModal } from '../staff/Payments'
 // a Manager checks the bank statement and confirms the claims, one by one or in bulk, or rejects them with a reason.
 // GET /payment-claims?termId&block&type&since&q&page&pageSize → {
 //   items: [{ invoiceId, studentName, studentCode, type, typeLabel, title, amount, claimedAt, dueAt, timeLeftSeconds,
-//             reference, rejected, transferContent }], total, summary: { count, amount } }
-// POST /payment-claims/confirm { invoiceIds } → { confirmed, amount, skipped: [{ invoiceId, reason }] }
+//             reference, rejected, transferContent, receipt: { name, size, url } | null }], total, summary: { count, amount } }
+// POST /payment-claims/:invoiceId/receipt (multipart receipt) → { name, size, url }: the transfer receipt of the claim (R-23)
+// POST /payment-claims/confirm { invoiceIds } → { confirmed, amount, skipped: [{ invoiceId, reason }] } — claims without
+//   a receipt are skipped, so a bulk confirmation needs one receipt per Invoice, attached row by row first.
 // POST /payment-claims/reject { invoiceIds, reason } → { rejected, cancelled, skipped }
 // Each Invoice is paid and audited on its own; the dialog says what will happen in numbers (spec §11.1).
 // A work queue: claims of every Term are listed (a Deposit of the next Term waits too), only the Block filter applies.
 
 /** "2 days 4 h", "1 day 3 h", "5 h", "—" (a debt already due). */
+/** The claim's transfer receipt: a link once attached, else a button that uploads the chosen file at once. */
+function ReceiptCell({ claim }) {
+  const { notifyError } = useToast()
+  const input = useRef(null)
+  const attach = useMutation(
+    (file) => {
+      const data = new FormData()
+      data.set('receipt', file)
+      return api.paymentClaims.attachReceipt(claim.invoiceId, data)
+    },
+    { invalidates: ['payment-claims'], onError: (e) => notifyError(e, 'Could not attach the receipt') },
+  )
+  return (
+    <span className="flex min-w-0 items-center gap-1">
+      {claim.receipt?.url && (
+        <a href={claim.receipt.url} target="_blank" rel="noreferrer" className="truncate text-sm text-fg-link hover:underline" title={claim.receipt.name}>
+          {claim.receipt.name}
+        </a>
+      )}
+      <Button size="sm" variant="text" icon={claim.receipt ? undefined : Paperclip} iconSize={16} disabled={attach.pending} onClick={() => input.current?.click()}>
+        {attach.pending ? t('Uploading…') : claim.receipt ? t('Replace') : t('Attach receipt')}
+      </Button>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,application/pdf"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) attach.run(file)
+        }}
+      />
+    </span>
+  )
+}
+
 function duration(seconds) {
   if (!seconds) return '—'
   const hours = Math.floor(seconds / 3600)
@@ -64,6 +103,9 @@ export default function PaymentClaims() {
   const items = useMemo(() => query.data?.items ?? [], [query.data])
   const chosen = items.filter((c) => selected.has(c.invoiceId))
   const chosenTotal = chosen.reduce((sum, c) => sum + c.amount, 0)
+  // Only claims with their transfer receipt can be confirmed in bulk (R-23).
+  const ready = chosen.filter((c) => c.receipt)
+  const readyTotal = ready.reduce((sum, c) => sum + c.amount, 0)
   const allChecked = items.length > 0 && chosen.length === items.length
 
   // Drop selections that left the list (decided elsewhere).
@@ -94,7 +136,7 @@ export default function PaymentClaims() {
       notify({
         title: 'Payments confirmed',
         message: t('{n} confirmed, {amount} in all.', { n: formatNumber(r.confirmed), amount: formatVnd(r.amount) })
-          + (r.skipped?.length ? ' ' + t('{n} skipped: decided by someone else.', { n: r.skipped.length }) : ''),
+          + (r.skipped?.length ? ' ' + t('{n} skipped: decided by someone else or without a receipt.', { n: r.skipped.length }) : ''),
       })
       done()
     },
@@ -188,13 +230,14 @@ export default function PaymentClaims() {
             <Th className="w-40">Claimed</Th>
             <Th className="w-30">Time left</Th>
             <Th>Note</Th>
+            <Th className="w-52">Receipt</Th>
             <Th className="w-44">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={10} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
+          <TableStatus query={query} colSpan={11} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
           {items.map((c) => (
             <Tr key={c.invoiceId} selected={selected.has(c.invoiceId)} onClick={() => toggle(c.invoiceId)} className="[&>td]:h-12">
               <Td onClick={stop}>
@@ -216,6 +259,9 @@ export default function PaymentClaims() {
                   {c.reference && <span className="text-sm text-fg-secondary">{t('Ref. {ref}', { ref: c.reference })}</span>}
                   {c.rejected > 0 && <Tag tone="warning">{t('Rejected {n}×', { n: c.rejected })}</Tag>}
                 </span>
+              </Td>
+              <Td onClick={stop}>
+                <ReceiptCell claim={c} />
               </Td>
               <Td onClick={stop}>
                 <Button size="sm" variant="text" icon={ReceiptText} iconSize={16} onClick={() => setReceipting(c)}>
@@ -243,16 +289,23 @@ export default function PaymentClaims() {
       <Modal
         open={dialog === 'confirm'}
         onClose={() => setDialog(null)}
-        title={t('Confirm {n} payments, {amount}', { n: formatNumber(chosen.length), amount: formatVnd(chosenTotal) })}
+        title={t('Confirm {n} payments, {amount}', { n: formatNumber(ready.length), amount: formatVnd(readyTotal) })}
         footer={
           <>
             <Button onClick={() => setDialog(null)}>Cancel</Button>
-            <Button variant="primary" icon={Check} disabled={confirm.pending} onClick={() => confirm.run(chosen.map((c) => c.invoiceId))}>
-              {confirm.pending ? t('Confirming…') : t('Confirm {n} payments, {amount}', { n: formatNumber(chosen.length), amount: formatVnd(chosenTotal) })}
+            <Button variant="primary" icon={Check} disabled={confirm.pending || !ready.length} onClick={() => confirm.run(ready.map((c) => c.invoiceId))}>
+              {confirm.pending ? t('Confirming…') : t('Confirm {n} payments, {amount}', { n: formatNumber(ready.length), amount: formatVnd(readyTotal) })}
             </Button>
           </>
         }
       >
+        {ready.length < chosen.length && (
+          <Alert type="warning" title={t('{n} selected claims have no receipt', { n: chosen.length - ready.length })}>
+            {t('A payment is confirmed only with its transfer receipt. Attach one in the Receipt column; these stay waiting: {ids}.', {
+              ids: chosen.filter((c) => !c.receipt).map((c) => c.invoiceId).join(', '),
+            })}
+          </Alert>
+        )}
         <p className="text-base text-fg">
           {t('Each Invoice is marked Paid at the time its student reported the transfer, written to the Audit Log and announced to the student.')}
         </p>
