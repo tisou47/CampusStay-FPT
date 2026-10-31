@@ -343,7 +343,7 @@ Notification templates and Send email: C-35.
 - `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }` · `POST /inspection-checklists` `{ name }` · `POST /inspection-checklists/{id}/publish` `{ items }` → `{ id, version }` (A-14) · `POST /inspection-checklists/{id}/archive`
 - `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 - `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`
-- `GET /admin/audit-log?q&actor&action&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
+- `GET /admin/audit-log?q&actor&action&role=Student|Staff|Manager|Admin|System&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
 
 ## Exports
 

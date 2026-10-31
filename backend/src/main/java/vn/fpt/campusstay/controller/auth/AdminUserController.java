@@ -106,8 +106,8 @@ class AdminUserController {
     @GetMapping("/audit-log")
     AuditTrailService.AuditPage auditLog(@RequestParam(required = false) String q,
             @RequestParam(required = false) String actor, @RequestParam(required = false) String action,
-            @RequestParam(required = false) String range, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return auditTrail.list(q, actor, action, range, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String role, @RequestParam(required = false) String range,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return auditTrail.list(q, actor, action, role, range, PageQuery.of(page, pageSize));
     }
 }

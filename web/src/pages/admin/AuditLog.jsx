@@ -15,9 +15,12 @@ import { formatDateTime } from '@/lib/format'
 import { t } from '@/i18n'
 
 // SCR-AUTH-12 Audit Log (Figma 72:3772)
-// GET /admin/audit-log?q&actor&action&range&page&pageSize → { items: [{ id, at, actor, action, tone, object, change }], total,
+// GET /admin/audit-log?q&actor&action&role&range&page&pageSize → { items: [{ id, at, actor, action, tone, object, change }], total,
 //   actors: [string], actions: [string], retentionMonths }
 // GET /exports/audit-log?…filters (.csv) — the export itself is written to the log by the server.
+
+// System = entries written by a scheduled job, with no user behind them.
+const roles = ['Student', 'Staff', 'Manager', 'Admin', 'System']
 
 const ranges = [
   { value: '30d', label: 'Date: Last 30 days' },
@@ -33,6 +36,7 @@ export default function AuditLog() {
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [actor, setActor] = useState('')
   const [action, setAction] = useState('')
+  const [role, setRole] = useState('')
   const [range, setRange] = useState('30d')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -44,7 +48,7 @@ export default function AuditLog() {
     return () => clearTimeout(t)
   }, [q])
 
-  const filters = { q: search, actor, action, range, page, pageSize }
+  const filters = { q: search, actor, action, role, range, page, pageSize }
   const query = useQuery(['audit-log', filters], ({ signal }) => api.admin.auditLog(filters, { signal }))
   const d = query.data
   const exporting = useMutation(() => api.exports.download('audit-log', { ...filters, page: undefined, pageSize: undefined }, 'audit-log.csv'), {
@@ -70,6 +74,7 @@ export default function AuditLog() {
       <div className="flex shrink-0 items-center gap-3">
         <SearchInput aria-label={t('Search object or user')} placeholder="Search object or user" wrapperClassName="w-65" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select aria-label={t('Actor')} wrapperClassName="w-48" value={actor} onChange={filter(setActor)} options={[{ value: '', label: 'Actor: All' }, ...(d?.actors ?? []).map((a) => ({ value: a, label: t('Actor: {a}', { a }) }))]} />
+        <Select aria-label={t('Role')} wrapperClassName="w-44" value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...roles.map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
         <Select aria-label={t('Action')} wrapperClassName="w-48" value={action} onChange={filter(setAction)} options={[{ value: '', label: 'Action: All' }, ...(d?.actions ?? []).map((a) => ({ value: a, label: t('Action: {a}', { a }) }))]} />
         <Select aria-label={t('Date')} wrapperClassName="w-48" value={range} onChange={filter(setRange)} options={ranges} />
       </div>

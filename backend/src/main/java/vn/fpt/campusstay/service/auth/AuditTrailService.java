@@ -45,11 +45,15 @@ public class AuditTrailService {
         this.clock = clock;
     }
 
-    /** @param range {@code 7d}, {@code 30d}, {@code 90d} or {@code all} (blank = all) */
-    public AuditPage list(String q, String actor, String action, String range, PageQuery page) {
+    /**
+     * @param role  Student, Staff, Manager, Admin or System (jobs), any case (blank = all)
+     * @param range {@code 7d}, {@code 30d}, {@code 90d} or {@code all} (blank = all)
+     */
+    public AuditPage list(String q, String actor, String action, String role, String range, PageQuery page) {
         Instant since = since(range);
         String actionCode = action == null || action.isBlank() ? null : code(action);
-        AuditLogQuery.Page result = query.search(new AuditLogQuery.Filter(q, actor, actionCode, since), page);
+        AuditLogQuery.Page result = query.search(new AuditLogQuery.Filter(q, actor, actionCode, role(role), since),
+                page);
         List<AuditItem> items = result.items().stream()
                 .map(e -> new AuditItem(String.valueOf(e.id()), e.at(), e.actor(), label(e.action()), tone(e.tone()),
                         object(e), describe(e.change())))
@@ -77,6 +81,17 @@ public class AuditTrailService {
             case "90d" -> now.minus(Duration.ofDays(90));
             default -> throw ApiException.badRequest("BAD_PARAMETER", "Choose a date range: 7d, 30d, 90d or all.");
         };
+    }
+
+    private static String role(String role) {
+        if (role == null || role.isBlank()) {
+            return null;
+        }
+        String code = role.trim().toUpperCase(Locale.ROOT);
+        if (!List.of("STUDENT", "STAFF", "MANAGER", "ADMIN", "SYSTEM").contains(code)) {
+            throw ApiException.badRequest("BAD_PARAMETER", "Choose a role: Student, Staff, Manager, Admin or System.");
+        }
+        return code;
     }
 
     /** {@code TERM_PUBLISHED} → {@code Term published}. */

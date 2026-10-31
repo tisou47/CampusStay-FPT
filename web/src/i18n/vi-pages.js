@@ -1992,6 +1992,7 @@ const admin = {
   "Search name or email": "Tìm họ tên hoặc email",
   "Role: All": "Vai trò: Tất cả",
   "Role: {r}": "Vai trò: {r}",
+  "System": "Hệ thống",
   "Block: All": "Block: Tất cả",
   "Block: {b}": "Block: {b}",
   "User": "Người dùng",
