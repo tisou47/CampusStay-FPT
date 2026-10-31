@@ -165,12 +165,13 @@ public class RegistrationPeriodService {
 
     private List<Price> prices(long termId) {
         List<Price> result = new ArrayList<>();
+        TermCatalog.TermRooms offer = terms.rooms(termId);
         for (Catalog.RoomTypeInfo type : catalog.roomTypes()) {
             if (!type.active()) {
                 continue;
             }
             for (Catalog.RoomClassInfo c : catalog.roomClasses()) {
-                if (!c.active()) {
+                if (!c.active() || !offer.offers(type.id(), c.id())) {
                     continue;
                 }
                 fees.termPrice(termId, type.id(), c.id()).ifPresent(price -> result.add(new Price(

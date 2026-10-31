@@ -20,20 +20,33 @@ public interface TermCatalog {
     Optional<TermSummary> openForRegistration();
 
     /**
-     * Where a Term places students (ADR-20, spec §6.4 step 3).
+     * Where a Term places students (ADR-20, spec §6.4 step 3) and what it offers (review R-03).
      *
      * @param buildingIds     the Blocks it uses; empty = every active Block
      * @param excludedRoomIds Rooms it leaves out
+     * @param roomTypeIds     the Room Types it offers; empty = every active one
+     * @param roomClassIds    the Room Classes it offers (a Room's class in that Term); empty = every active one
      */
-    record TermRooms(Set<Long> buildingIds, Set<Long> excludedRoomIds) {
+    record TermRooms(Set<Long> buildingIds, Set<Long> excludedRoomIds, Set<Long> roomTypeIds, Set<Long> roomClassIds) {
 
         /** Every Room of every active Block. */
         public boolean all() {
-            return buildingIds.isEmpty() && excludedRoomIds.isEmpty();
+            return buildingIds.isEmpty() && excludedRoomIds.isEmpty() && roomTypeIds.isEmpty() && roomClassIds.isEmpty();
         }
 
         public boolean uses(long buildingId, long roomId) {
             return (buildingIds.isEmpty() || buildingIds.contains(buildingId)) && !excludedRoomIds.contains(roomId);
+        }
+
+        /** Whether the Term offers this Room Type × Room Class. */
+        public boolean offers(long roomTypeId, long roomClassId) {
+            return (roomTypeIds.isEmpty() || roomTypeIds.contains(roomTypeId))
+                    && (roomClassIds.isEmpty() || roomClassIds.contains(roomClassId));
+        }
+
+        /** A Room the Term uses and whose type and class it offers. */
+        public boolean uses(long buildingId, long roomId, long roomTypeId, long roomClassId) {
+            return uses(buildingId, roomId) && offers(roomTypeId, roomClassId);
         }
     }
 

@@ -14,6 +14,7 @@ import { cx } from '@/lib/cx'
 import { formatDate, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
 import { t, tx } from '@/i18n'
+import { countLines } from '@/lib/furniture'
 
 /**
  * Student page frame (one screen): header on top, content fills the rest of the window.
@@ -183,7 +184,7 @@ export function CompareClassesModal({ open, onClose }) {
             <THead>
               <tr>
                 <Th>Room Class</Th>
-                <Th>Amenities</Th>
+                <Th>Furniture</Th>
                 {roomTypes.map((t) => (
                   <Th key={t.id} align="right">
                     {t.name}
@@ -197,7 +198,7 @@ export function CompareClassesModal({ open, onClose }) {
                   <Td className="font-medium">
                     {c.name} <span className="font-normal text-fg-tertiary">+{Math.round((c.surchargeRate ?? 0) * 100)}%</span>
                   </Td>
-                  <Td className="text-fg-secondary">{(c.amenities ?? []).join(' · ')}</Td>
+                  <Td className="text-fg-secondary">{countLines(c.furniture)}</Td>
                   {roomTypes.map((t) => (
                     <Td key={t.id} align="right" className="whitespace-nowrap tabular">
                       {formatVnd(termPrice(t.id, c.id), { unit: false })}

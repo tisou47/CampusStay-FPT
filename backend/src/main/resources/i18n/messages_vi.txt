@@ -923,3 +923,15 @@ Attach the transfer receipt first. ⟶ Hãy đính kèm biên lai chuyển kho�
 This refund no longer waits for a transfer. ⟶ Khoản hoàn tiền này không còn chờ chuyển khoản.
 The student already entered their bank account. ⟶ Sinh viên đã nhập tài khoản ngân hàng.
 The student was reminded less than a day ago. ⟶ Sinh viên vừa được nhắc chưa đến một ngày trước.
+Ask for places only in the Room Types and Room Classes the Term offers. ⟶ Chỉ đề xuất số chỗ cho các loại phòng và hạng phòng mà kỳ mở.
+Choose active Room Types only. ⟶ Chỉ chọn các loại phòng đang hoạt động.
+Choose active Room Classes only. ⟶ Chỉ chọn các hạng phòng đang hoạt động.
+Choose an active Room Type for each base price. ⟶ Hãy chọn loại phòng đang hoạt động cho từng giá cơ bản.
+Enter each base price per Bed as a whole amount above 0 VND. ⟶ Hãy nhập từng giá cơ bản mỗi giường là số nguyên lớn hơn 0 VND.
+List each Room Type once. ⟶ Mỗi loại phòng chỉ ghi một lần.
+Choose an active Room Class for each surcharge. ⟶ Hãy chọn hạng phòng đang hoạt động cho từng phụ thu.
+List each Room Class once. ⟶ Mỗi hạng phòng chỉ ghi một lần.
+Enter a price for every Room Type and Room Class the Term offers. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng mà kỳ mở.
+Choose at least one active Room Type. ⟶ Hãy chọn ít nhất một loại phòng đang hoạt động.
+Choose at least one active Room Class. ⟶ Hãy chọn ít nhất một hạng phòng đang hoạt động.
+A published Term keeps the Room Types and Room Classes it offers. ⟶ Kỳ đã công bố giữ nguyên các loại phòng và hạng phòng đã mở.

@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -23,9 +22,9 @@ import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.Billing;
-import vn.fpt.campusstay.service.setting.BlockSettings;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.FeePolicy;
+import vn.fpt.campusstay.service.setting.RoomClassFurniture;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.Inventory;
@@ -46,13 +45,15 @@ public class StudentAllocationService {
      * @param codeReleased  the door code of the Room is released to the student
      */
     public record AllocationView(String room, String bed, String block, String blockLabel, int floor,
-            String roomTypeName, String roomClassName, List<String> amenities, Instant allocatedAt, String status,
+            String roomTypeName, String roomClassName, List<RoomClassFurniture.Line> furniture, Instant allocatedAt,
+            String status,
             String pass, Instant residentSince, boolean codeReleased) {
     }
 
     public record Roommate(String name, String bed) {
     }
 
+    /** {@code deskHours}: always null since review R-08 (desk hours are no longer shown). */
     public record CheckIn(LocalDate start, LocalDate end, String deskHours, String location, Instant checkedInAt) {
     }
 
@@ -110,27 +111,26 @@ public class StudentAllocationService {
             Instant residentAt, Instant codeReleasedAt) {
     }
 
-    private static final DateTimeFormatter HOURS = DateTimeFormatter.ofPattern("HH:mm");
-
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
     private final TermCatalog terms;
     private final Applications applications;
     private final Inventory inventory;
     private final Catalog catalog;
-    private final BlockSettings blockSettings;
     private final Billing billing;
     private final UserDirectory users;
     private final TerminationService terminations;
     private final Stays stays;
     private final FeePolicy fees;
+    private final RoomClassFurniture furniture;
     private final Clock clock;
 
     public StudentAllocationService(JdbcClient jdbc, CurrentUser currentUser, TermCatalog terms,
-            Applications applications, Inventory inventory, Catalog catalog, BlockSettings blockSettings,
+            Applications applications, Inventory inventory, Catalog catalog,
             Billing billing, UserDirectory users, TerminationService terminations, Stays stays, FeePolicy fees,
-            Clock clock) {
+            RoomClassFurniture furniture, Clock clock) {
         this.stays = stays;
+        this.furniture = furniture;
         this.fees = fees;
         this.clock = clock;
         this.jdbc = jdbc;
@@ -139,7 +139,6 @@ public class StudentAllocationService {
         this.applications = applications;
         this.inventory = inventory;
         this.catalog = catalog;
-        this.blockSettings = blockSettings;
         this.billing = billing;
         this.users = users;
         this.terminations = terminations;
@@ -181,7 +180,7 @@ public class StudentAllocationService {
                 .map(Catalog.RoomTypeInfo::name).findFirst().orElse(null);
         AllocationView view = new AllocationView(bed.roomCode(), bed.bedLabel(), bed.block(), "Block " + bed.block(),
                 bed.floor(), typeName, roomClass == null ? null : roomClass.name(),
-                roomClass == null ? List.of() : roomClass.amenities(), allocation.allocatedAt(),
+                roomClass == null ? List.of() : furniture.required(roomClass.id()), allocation.allocatedAt(),
                 allocation.residentAt() != null ? RESIDENT : billing.checkInDue(allocation.id()).isPresent() ? UNPAID
                         : PAID, "CSTAY-PASS:" + allocation.id(),
                 allocation.residentAt(), allocation.codeReleasedAt() != null);
@@ -200,10 +199,8 @@ public class StudentAllocationService {
                 .sorted(Comparator.comparing(Roommate::bed))
                 .toList();
 
-        String deskHours = blockSettings.forBlock(bed.buildingId())
-                .map(s -> s.deskOpens().format(HOURS) + "–" + s.deskCloses().format(HOURS)).orElse(null);
         CheckIn checkIn = term.checkInStart() == null && allocation.checkedInAt() == null ? null
-                : new CheckIn(term.checkInStart(), term.checkInEnd(), deskHours, "Reception, Block " + bed.block(),
+                : new CheckIn(term.checkInStart(), term.checkInEnd(), null, "Reception, Block " + bed.block(),
                         allocation.checkedInAt());
 
         Balance balance = app.flatMap(a -> billing.invoicesOfApplication(a.applicationId()).stream()

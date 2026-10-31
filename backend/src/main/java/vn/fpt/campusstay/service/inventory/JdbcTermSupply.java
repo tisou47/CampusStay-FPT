@@ -87,7 +87,7 @@ class JdbcTermSupply implements TermSupply {
                 .query((rs, i) -> new RoomRow(rs.getLong("id"), rs.getLong("building_id"), rs.getString("code"),
                         rs.getString("gender"), rs.getLong("room_type_id"), rs.getLong("class_id"), rs.getInt("beds")))
                 .list().stream()
-                .filter(r -> rooms.uses(r.buildingId(), r.id()))
+                .filter(r -> rooms.uses(r.buildingId(), r.id(), r.typeId(), r.classId()))
                 .toList();
         Map<Long, Long> classByRoom = new HashMap<>();
         all.forEach(r -> classByRoom.put(r.id(), r.classId()));

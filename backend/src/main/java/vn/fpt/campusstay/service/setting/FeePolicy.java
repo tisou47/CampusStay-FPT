@@ -29,6 +29,9 @@ public interface FeePolicy {
      */
     OptionalLong defaultTermPrice(long roomTypeId, long roomClassId);
 
+    /** {@code basePrice × (1 + surchargeRate)} rounded up to the pricing step (BR-10), for proposed prices. */
+    long price(long basePrice, BigDecimal surchargeRate);
+
     /** The Term's Deposit share of the Term price as a fraction, e.g. {@code 0.2}. */
     BigDecimal depositRate(long termId);
 

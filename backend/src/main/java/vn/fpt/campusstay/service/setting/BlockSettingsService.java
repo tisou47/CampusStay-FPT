@@ -32,9 +32,10 @@ import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
- * Block Manager › Block settings: desk hours, visitor hours, quiet hours and house
- * rules. Visitor and quiet hours stay inside the Admin limits (System parameters
- * {@code block.*}). Times are {@code HH:mm}, campus time.
+ * Block Manager › Block settings, shown as the Block's house rules: visitor hours, quiet hours and the rules text.
+ * Visitor and quiet hours stay inside the Admin limits (System parameters {@code block.*}). Times are {@code HH:mm},
+ * campus time. Desk hours (review R-08: check-in and check-out are becoming self-service) are no longer asked or
+ * shown; a save without them keeps the stored ones.
  */
 @Service
 public class BlockSettingsService {
@@ -111,8 +112,10 @@ public class BlockSettingsService {
         currentUser.require(Permission.MANAGE_BLOCK);
         long building = building(cmd.block());
         FieldErrors errors = new FieldErrors();
-        LocalTime deskOpens = time(errors, "deskOpens", cmd.deskOpens());
-        LocalTime deskCloses = time(errors, "deskCloses", cmd.deskCloses());
+        boolean desk = cmd.deskOpens() != null && !cmd.deskOpens().isBlank() || cmd.deskCloses() != null
+                && !cmd.deskCloses().isBlank();
+        LocalTime deskOpens = desk ? time(errors, "deskOpens", cmd.deskOpens()) : null;
+        LocalTime deskCloses = desk ? time(errors, "deskCloses", cmd.deskCloses()) : null;
         LocalTime visitFrom = time(errors, "visitFrom", cmd.visitFrom());
         LocalTime visitUntil = time(errors, "visitUntil", cmd.visitUntil());
         LocalTime quiet = time(errors, "quiet", cmd.quiet());
@@ -142,6 +145,11 @@ public class BlockSettingsService {
         errors.throwIfAny();
 
         Optional<Row> before = row(building, true);
+        if (!desk) {
+            // The column is required: keep the stored hours, or take the visitor hours for a Block's first save.
+            deskOpens = before.map(Row::deskOpens).orElse(visitFrom);
+            deskCloses = before.map(Row::deskCloses).orElse(visitUntil);
+        }
         Instant now = Instant.now(clock);
         jdbc.sql("""
                 INSERT INTO cfg_block_settings (building_id, desk_opens, desk_closes, visit_from, visit_until, quiet_from,

@@ -11,7 +11,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
-import { typeName } from '@/lib/furniture'
+import { countLines, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr, tx } from '@/i18n'
@@ -20,7 +20,7 @@ import { DateInput } from '@/components/ui/DatePicker'
 // SCR-ASG-01 My Room (Figma 39:1535)
 // GET /students/me/allocation?termId → {
 //   term: { name, stayStart, stayEnd, resultsPublishedAt },
-//   allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, amenities, allocatedAt,
+//   allocation: { room, bed, block, blockLabel, floor, roomTypeName, roomClassName, furniture, allocatedAt,
 //                 status (Assigned – unpaid, Paid – waiting for the door code, Resident), residentSince, codeReleased } | null,
 //   roommates: [{ name, bed }], roommateCapacity,
 //   checkIn: { start, end, deskHours, location, checkedInAt } | null,
@@ -438,7 +438,7 @@ function Room({ data }) {
           <Facts
             items={[
               ['Room Class', a.roomClassName ?? '—'],
-              ['Amenities', a.amenities?.length ? a.amenities.map(tr).join(', ') : '—'],
+              ['Furniture', a.furniture?.length ? countLines(a.furniture) : '—'],
               ['Allocated on', formatDate(a.allocatedAt)],
               ...(data.stay
                 ? [

@@ -178,6 +178,10 @@ public class ApplicationService {
         Catalog.RoomClassInfo roomClass = cmd.roomClassId() == null ? null : catalog.roomClasses().stream()
                 .filter(c -> c.id() == cmd.roomClassId() && c.active()).findFirst().orElse(null);
         errors.check(roomClass != null, "roomClassId", "Choose a Room Class.");
+        if (type != null && roomClass != null) {
+            errors.check(terms.rooms(term.id()).offers(type.id(), roomClass.id()), "roomClassId",
+                    "This Room Type and Room Class are not offered.");
+        }
 
         Roommate roommate = cmd.roommate();
         String mode = roommate == null || roommate.mode() == null ? "auto"

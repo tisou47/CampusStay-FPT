@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.service.setting;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -68,6 +69,27 @@ class TermDifferences {
                 .collect(Collectors.toMap(Catalog.RoomTypeInfo::id, Catalog.RoomTypeInfo::name));
         Map<Long, String> classes = catalog.roomClasses().stream()
                 .collect(Collectors.toMap(Catalog.RoomClassInfo::id, Catalog.RoomClassInfo::name));
+        if (proposal.roomTypes() != null && !proposal.roomTypes().isEmpty()) {
+            add(result, reasons, "roomTypes", names(proposal.roomTypes().stream().map(Long::valueOf).toList(), types),
+                    term.roomTypes().isEmpty() ? "All Room Types" : names(term.roomTypes(), types));
+        }
+        if (proposal.roomClasses() != null && !proposal.roomClasses().isEmpty()) {
+            add(result, reasons, "roomClasses",
+                    names(proposal.roomClasses().stream().map(Long::valueOf).toList(), classes),
+                    term.roomClasses().isEmpty() ? "All Room Classes" : names(term.roomClasses(), classes));
+        }
+        if (proposal.reservedNewPercent() != null) {
+            add(result, reasons, "reservedNewPercent", percent(proposal.reservedNewPercent()),
+                    percent(term.reservedNewPercent()));
+        }
+        if (proposal.depositPercent() != null) {
+            add(result, reasons, "depositPercent", percent(proposal.depositPercent()), percent(term.depositPercent()));
+        }
+        add(result, reasons, "utilityDeposit", text(proposal.utilityDeposit()), text(term.utilityDeposit()));
+        add(result, reasons, "houseRules", proposal.houseRules(), term.houseRules());
+        if (proposal.faq() != null && !proposal.faq().equals(term.faq())) {
+            add(result, reasons, "faq", proposal.faq().size() + " questions", term.faq().size() + " questions (changed)");
+        }
         for (TermPlan.Price price : proposal.prices() == null ? List.<TermPlan.Price>of() : proposal.prices()) {
             if (price.price() == null) {
                 continue;
@@ -90,6 +112,16 @@ class TermDifferences {
             out.add(new TermPlan.Difference(field, TermDrafts.LABELS.get(field), TermDrafts.TYPES.get(field), proposed,
                     built, reasons.get(field)));
         }
+    }
+
+    private static String percent(BigDecimal value) {
+        return value == null ? null : Decimals.plain(value).toPlainString();
+    }
+
+    /** Names in catalog order. */
+    private static String names(Collection<Long> ids, Map<Long, String> names) {
+        return names.entrySet().stream().filter(e -> ids.contains(e.getKey())).map(Map.Entry::getValue)
+                .collect(Collectors.joining(", "));
     }
 
     private static String text(Object value) {

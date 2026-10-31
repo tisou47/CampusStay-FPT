@@ -206,7 +206,7 @@ export const backOffice = {
             icon: Settings,
             to: '/manager/block-settings',
             tabs: [
-              { label: 'Block settings', to: '/manager/block-settings' },
+              { label: 'House rules', to: '/manager/block-settings' },
               { label: 'Routing and timers', to: '/manager/routing-rules' },
             ],
           },
