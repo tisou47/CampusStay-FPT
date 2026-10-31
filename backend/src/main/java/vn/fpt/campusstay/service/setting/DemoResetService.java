@@ -77,9 +77,9 @@ public class DemoResetService {
                     "Manager › Reconciliation, stage A: shows groups 1–4 (one suspended, two missing, an unknown code, "
                             + "a graduate)."),
             new FileInfo("meter-readings", "demo-meter-readings-block-a.csv", "Meter readings of Block A, this month",
-                    "Staff (staff.a1) › Utility › Meter readings › Import CSV."),
+                    "Staff (staffa01) › Utility › Meter readings › Import CSV."),
             new FileInfo("door-codes", "demo-door-codes-block-a.csv", "New door codes of Block A",
-                    "Staff (staff.a1) › Door codes › Import: the Rooms whose code must change."),
+                    "Staff (staffa01) › Door codes › Import: the Rooms whose code must change."),
             new FileInfo("rooms-left-out", "demo-rooms-left-out.csv", "Rooms a Term leaves out",
                     "Manager › Registration-period request, or Admin › Term wizard › Rooms: Import Excel or CSV."));
 
@@ -173,7 +173,7 @@ public class DemoResetService {
                 "Type RESET to confirm.");
         errors.throwIfAny();
         boolean baseData = jdbc.sql("""
-                SELECT count(*) FROM auth_user WHERE demo AND email IN ('manager.a@fpt.edu.vn', 'staff.a1@fpt.edu.vn',
+                SELECT count(*) FROM auth_user WHERE demo AND email IN ('manager01@fpt.edu.vn', 'staffa01@fpt.edu.vn',
                                                                         'se210001@fpt.edu.vn', 'se220006@fpt.edu.vn')
                 """).query(Long.class).single() == 4;
         if (!baseData) {

@@ -21,15 +21,15 @@ values:
     type: default
     description: Demo accounts of the production base data
   - key: staffEmail
-    value: staff.a1@fpt.edu.vn
+    value: staffa01@fpt.edu.vn
     enabled: true
     type: default
   - key: managerEmail
-    value: manager.a@fpt.edu.vn
+    value: manager01@fpt.edu.vn
     enabled: true
     type: default
   - key: adminEmail
-    value: admin@fpt.edu.vn
+    value: admin01@fpt.edu.vn
     enabled: true
     type: default
   - key: password

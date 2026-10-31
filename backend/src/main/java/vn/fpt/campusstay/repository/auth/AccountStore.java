@@ -42,6 +42,12 @@ public class AccountStore {
         return users.findByEmailIgnoreCase(email.trim());
     }
 
+    /** A fictional account of the base data (dev seed, demo server), {@code auth_user.demo}. */
+    @Transactional(readOnly = true)
+    public boolean isDemo(long userId) {
+        return jdbc.sql("SELECT demo FROM auth_user WHERE id = :id").param("id", userId).query(Boolean.class).single();
+    }
+
     /** The reason a Manager gave when rejecting this student account (spec §6.1), if it was rejected. */
     @Transactional(readOnly = true)
     public Optional<String> rejectionReason(long userId) {

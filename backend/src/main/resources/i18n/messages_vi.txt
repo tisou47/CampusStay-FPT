@@ -101,6 +101,7 @@ Enter a new password. ⟶ Hãy nhập mật khẩu mới.
 Too many failed attempts. Try again after {0}. ⟶ Bạn đã nhập sai quá nhiều lần. Hãy thử lại sau {0}.
 This account is disabled. Contact the dormitory office. ⟶ Tài khoản này đã bị khóa. Hãy liên hệ văn phòng ký túc xá.
 This account is linked to a different Google account. Contact the dormitory office. ⟶ Tài khoản này đã liên kết với một tài khoản Google khác. Hãy liên hệ văn phòng ký túc xá.
+This demo account signs in with its password, not with Google. ⟶ Tài khoản demo này đăng nhập bằng mật khẩu, không dùng Google.
 There is no CampusStay account for this Google account. Contact the dormitory office. ⟶ Chưa có tài khoản CampusStay cho tài khoản Google này. Hãy liên hệ văn phòng ký túc xá.
 Sign in with your @{0} Google account. ⟶ Hãy đăng nhập bằng tài khoản Google @{0} của bạn.
 Google sign-in could not start. Try again. ⟶ Không thể bắt đầu đăng nhập Google. Hãy thử lại.

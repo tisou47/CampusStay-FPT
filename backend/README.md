@@ -22,14 +22,15 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
    ```bash
    curl -s -X POST http://localhost:8080/api/auth/sign-in \
      -H 'Content-Type: application/json' \
-     -d '{"email":"admin@fpt.edu.vn","password":"12321321","remember":false}'
+     -d '{"email":"admin01@fpt.edu.vn","password":"123","remember":false}'
    ```
 6. Web app: in `web/`, keep `VITE_API_PROXY_TARGET=http://localhost:8080` and run `npm run dev`. The Vite proxy forwards `/api`.
 
 ### Base data
-The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready to sign in and has nothing else. It holds 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds), the Room Types and Room Classes, the back-office accounts and 6,200 students in the student directory (cohorts K18–K22, all enrolled). There is no Term, Application, Invoice, request or report data: start as `admin` by confirming the fees (Admin › Fees) and publishing a Term (Admin › Terms). Until then the dashboards show empty figures, the Blocks and the Admin's setup checklist; the reports answer "No Term is published yet."
+The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready to sign in and has nothing else. It holds 8 Blocks (A–D male, E–H female; 10 floors each, 960 Rooms, 3,680 Beds), the Room Types and Room Classes, the back-office accounts and 6,200 students in the student directory (cohorts K18–K22, all enrolled). There is no Term, Application, Invoice, request or report data: start as `admin01` by confirming the fees (Admin › Fees) and publishing a Term (Admin › Terms). Until then the dashboards show empty figures, the Blocks and the Admin's setup checklist; the reports answer "No Term is published yet."
 
-- **Password** of every account: `12321321`.
+- **Password** of every account: `123` (a demo with no real users, user decision 30/10/2026; migration `V65` converted databases that had the older accounts). The password-strength rule still applies to passwords people set themselves.
+- The back-office accounts sign in with their password only: Google sign-in refuses them (`403 GOOGLE_NOT_FOR_DEMO`), so whoever really owns e.g. `admin01@fpt.edu.vn` at FPT cannot take the role.
 - **Emails** use the FPT format: `<account>@fpt.edu.vn` for staff, `<student code>@fpt.edu.vn` for students (`se190001@fpt.edu.vn`). In `dev` every email stops in Mailpit.
 - **Codes:** `SE` (software, AI, security), `SS` (business, media, languages) or `SA` (design) + cohort + number, numbered from `0001` in each group: `se190001`, `ss220001`, `sa180001` …; about 58 % of the students are male.
 - The file is idempotent: a newer version adds what is missing. To start from scratch, recreate the database: `docker compose -f infra/docker-compose.yml down -v` and `up -d db mail` (**deletes all local data**), or in psql `DROP DATABASE campusstay WITH (FORCE); CREATE DATABASE campusstay OWNER campusstay;`.
@@ -37,9 +38,9 @@ The `dev` profile loads `db/seed/R__dev_seed.sql`: a fresh system that is ready 
 
 | Role | Account (before `@fpt.edu.vn`) | Scope |
 |---|---|---|
-| Admin | `admin` | all Blocks |
-| Manager | `manager.a` … `manager.h` | one Block each |
-| Staff | `staff.a1`, `staff.a2` … `staff.h1`, `staff.h2` (two per Block; the Manager sets what each handles in Block staff) | their Block |
+| Admin | `admin01` … `admin04` | all Blocks |
+| Manager | `manager01` … `manager04` | all Blocks (ADR-19) |
+| Staff | `staffa01` … `staffa04`, `staffb01` … `staffh04` (four per Block; the Manager sets what each handles in Block staff) | their Block |
 | Student | the student code in lower case, e.g. `se190001`, `ss220001` | own data |
 
 ### Google sign-in (optional)
@@ -53,7 +54,7 @@ Only `@fpt.edu.vn` Workspace accounts (`hd` claim) are accepted, and only for ac
 Every Invoice has a transfer content `CSTAY` + its id. The student transfers and presses **I have transferred** (`POST /invoices/{id}/claim`): the Invoice waits for confirmation and its deadline stops. Managers confirm the claims one by one or in bulk (`/payment-claims`, `POST /payments/{id}/confirm` with an optional receipt) or reject them with a reason; the deadline then continues with the time that was left (at least `payment.rejected_claim_min_hours`), and `payment.rejections_to_cancel` rejections cancel a Deposit or a Balance. Receipts are stored under `FILES_DIR` (default `data/files`, git-ignored); back that folder up with the database. With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_NUMBER` and `PAYMENT_ACCOUNT_NAME` set (the dev profile has a demo account) the payment page also shows a VietQR image of that account. SePay, its webhook and the payment simulator were removed in v2 phase 5.
 
 ### Assignment (S3)
-Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally: publish a Term as `admin`, apply as a few students of one gender (`se190001` …) and pay with the dev simulation, approve them as `staff.a1` (Block A, male students) and start a run.
+Staff approve Applications (`/applications`), start a run (`POST /assignment-runs`), resolve conflicts per Block and send the Block to its Manager (`commit`); the Manager approves it, which creates the Allocations, Balance Invoices and "Your room is ready" notifications. To try it locally: publish a Term as `admin01`, apply as a few students of one gender (`se190001` …) and pay with the dev simulation, approve them as `staffa01` (Block A, male students) and start a run.
 
 ### Desk, maintenance and push (S4)
 - **Check-in** needs the Balance paid (it includes the Utility Deposit) and today inside the Term's check-in window. The desk looks students up by code, name or the pass `CSTAY-PASS:<allocationId>` shown in the mobile app.

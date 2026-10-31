@@ -8,7 +8,7 @@
 
 INSERT INTO inv_room_class_term (room_id, term_id, room_class_id, set_by, set_at)
 SELECT r.id, t.x_id, (SELECT id FROM cfg_room_class WHERE name = 'Premium'),
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'), t.x_m1 - interval '5 days'
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_m1 - interval '5 days'
 FROM inv_room r CROSS JOIN demo_t t WHERE r.code = 'A-509';
 
 INSERT INTO inv_door_code_task (room_id, reason, created_at)

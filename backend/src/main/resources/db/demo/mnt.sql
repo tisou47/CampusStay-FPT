@@ -16,7 +16,7 @@ SELECT 'MR-DEMO-S' || v.n, t.n_id, d.room_id, d.bed_id, d.building_id, d.room_co
                                    WHERE i.room_id = d.room_id AND ft.code = 'AC' ORDER BY i.asset_code LIMIT 1) END
 FROM (VALUES (1, 'S28', 'Air conditioner leaks water onto the desk',
               'Water drips from the indoor unit since last night; we put a bucket under it.', 'AIR_CONDITIONING',
-              'ROOM', 'URGENT', 'ASSIGNED', 'staff.a2', interval '7 hours', interval '1 hour', TRUE),
+              'ROOM', 'URGENT', 'ASSIGNED', 'staffa02', interval '7 hours', interval '1 hour', TRUE),
              (2, 'S29', 'Bathroom light flickers and goes off',
               'The light over the mirror flickers for a few minutes and then goes off.', 'ELECTRICAL', 'BATHROOM',
               'NORMAL', 'SUBMITTED', NULL, interval '4 days', interval '-1 day', FALSE)) v
@@ -30,7 +30,7 @@ INSERT INTO mnt_request (code, term_id, room_id, bed_id, building_id, room_code,
 SELECT 'MR-DEMO-H' || x.n, t.n_id, x.room_id, x.bed_id, x.building_id, x.room_code, x.student_id, 'STUDENT', p.title,
        p.description, p.category, p.location, 'NORMAL', 'MEDIUM', TRUE,
        CASE WHEN x.n <= 6 THEN CASE WHEN x.n % 2 = 0 THEN 'IN_PROGRESS' ELSE 'ASSIGNED' END ELSE 'CLOSED' END,
-       (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(x.block) || '2'),
+       (SELECT id FROM demo_staff WHERE account = 'staff' || lower(x.block) || '02'),
        x.reported + interval '72 hours', x.reported,
        CASE WHEN x.n > 6 THEN x.reported + interval '1 day' END, CASE WHEN x.n > 6 THEN x.reported + interval '2 days' END,
        CASE WHEN x.n > 6 THEN TRUE END
