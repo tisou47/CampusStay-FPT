@@ -15,7 +15,7 @@ SELECT 'RC-DEMO-' || v.scenario, t.x_id, d.student_id, x.id, d.building_id, v.ki
        CASE WHEN t.stage = 'A' THEN 'SUBMITTED' WHEN v.scenario = 'S12' THEN 'APPROVED' ELSE 'REJECTED' END, t.x_m4,
        CASE WHEN t.stage <> 'A' AND v.scenario = 'S12'
             THEN (SELECT b.id FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE r.code = 'A-603' AND b.label = 'A') END,
-       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staff.a1') END,
+       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staffa01') END,
        CASE WHEN t.stage <> 'A' THEN t.x_m3 + interval '1 day' END,
        CASE WHEN t.stage <> 'A' AND v.scenario = 'S13' THEN 'NO_MATCHING_BED' END,
        CASE WHEN t.stage <> 'A' AND v.scenario = 'S12' THEN 'Moves to A-603 Bed A next Term.'
@@ -47,7 +47,7 @@ SELECT 'CC-DEMO-S15', t.x_id, d.room_id, d.building_id, d.room_code, d.room_clas
        (SELECT id FROM cfg_room_class WHERE name = 'Premium'), d.student_id, 'STUDENT',
        'All four of us stay next Term and would like a fridge and a balcony.',
        CASE WHEN t.stage = 'A' THEN 'AWAITING_CONSENT' ELSE 'REJECTED' END, t.x_m4,
-       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staff.a1') END,
+       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staffa01') END,
        CASE WHEN t.stage <> 'A' THEN t.x_m3 + interval '1 day' END,
        CASE WHEN t.stage <> 'A' THEN 'Not every continuing resident agreed by the request deadline.' END,
        t.x_m2 + interval '1 day'
@@ -71,7 +71,7 @@ INSERT INTO req_stay_request (code, term_id, student_id, allocation_id, building
                               sla_due_at, decided_by, decided_at, decision_note, submitted_at)
 SELECT 'ST-DEMO-' || v.scenario, t.x_id, d.student_id, x.id, d.building_id, v.kind, v.extra, v.reason,
        CASE WHEN t.stage = 'A' THEN 'SUBMITTED' ELSE 'APPROVED' END, t.x_m4,
-       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(d.block) || '1') END,
+       CASE WHEN t.stage <> 'A' THEN (SELECT id FROM demo_staff WHERE account = 'staff' || lower(d.block) || '01') END,
        CASE WHEN t.stage <> 'A' THEN t.x_m3 - interval '2 days' END, NULL, t.x_m2 + interval '6 hours'
 FROM (VALUES ('S10', 'EXTENSION', 2, 'I stay two more Terms for my internship and graduation project.'),
              ('S11', 'END_OF_STAY', NULL, 'I move to my family''s apartment next Term.')) v (scenario, kind, extra, reason)

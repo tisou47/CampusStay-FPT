@@ -9,14 +9,14 @@
 INSERT INTO asg_run (term_id, kind, status, stage, matching_snapshot_id, started_by, started_at, finished_at, input_count,
                      proposed_count, conflict_count, waitlisted_count, average_fit)
 SELECT t.n_id, 'REAL', 'COMMITTED', 5, (SELECT max(id) FROM cfg_matching_snapshot),
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'), t.n_results - interval '4 days',
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.n_results - interval '4 days',
        t.n_results - interval '1 day', (SELECT count(*) FROM demo_res), (SELECT count(*) FROM demo_res), 0, 0, 0.8420
 FROM demo_t t;
 
 INSERT INTO asg_run (term_id, kind, status, stage, matching_snapshot_id, started_by, started_at, finished_at, input_count,
                      proposed_count, conflict_count, waitlisted_count, average_fit)
 SELECT t.x_id, 'REAL', 'COMMITTED', 5, (SELECT max(id) FROM cfg_matching_snapshot),
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'), t.x_results - interval '3 days',
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_results - interval '3 days',
        t.x_results - interval '1 day', (SELECT count(*) FROM demo_app WHERE status <> 'AWAITING_DEPOSIT'),
        (SELECT count(*) FROM demo_app WHERE status IN ('ALLOCATED', 'FORFEITED')), 0,
        (SELECT count(*) FROM demo_app WHERE status = 'WAITLISTED'), 0.8130
@@ -44,9 +44,9 @@ INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, status,
                             code_released_at, stay_id)
 SELECT t.n_id, ap.id, d.student_id, d.bed_id, CASE WHEN d.leave = 'CHECKED_OUT' THEN 'ENDED' ELSE 'ACTIVE' END,
        'ASSIGNMENT', (SELECT id FROM asg_run WHERE term_id = t.n_id), t.n_results,
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'),
+       (SELECT id FROM demo_staff WHERE account = 'manager01'),
        CASE WHEN d.h % 2 = 0 THEN ((t.n_start - 3 + d.h % 5) + TIME '14:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
-       CASE WHEN d.h % 2 = 0 THEN (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(d.block) || '1') END,
+       CASE WHEN d.h % 2 = 0 THEN (SELECT id FROM demo_staff WHERE account = 'staff' || lower(d.block) || '01') END,
        CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE WHEN d.leave = 'CHECKED_OUT' THEN 'CHECK_OUT' END,
        ((t.n_start - 3 + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
@@ -64,7 +64,7 @@ SELECT t.x_id, t.n_id, t.x_m2,
        CASE WHEN t.stage IN ('B', 'C') THEN t.x_m3 + interval '5 minutes' END,
        CASE WHEN t.stage IN ('B', 'C') THEN t.x_m4 - interval '48 hours' END,
        CASE WHEN t.stage IN ('B', 'C') THEN t.x_m6 END,
-       CASE WHEN t.stage IN ('B', 'C') THEN (SELECT id FROM demo_staff WHERE account = 'manager.a') END,
+       CASE WHEN t.stage IN ('B', 'C') THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
        CASE WHEN t.stage = 'C' THEN t.x_m7 + interval '5 minutes' END
 FROM demo_t t;
 
@@ -91,7 +91,7 @@ INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, status,
                             allocated_by, ended_at, end_reason, stay_id)
 SELECT t.x_id, ap.id, a.student_id, a.x_bed_id, CASE WHEN a.status = 'FORFEITED' THEN 'CANCELLED' ELSE 'ACTIVE' END,
        'ASSIGNMENT', (SELECT id FROM asg_run WHERE term_id = t.x_id), t.x_results,
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'),
+       (SELECT id FROM demo_staff WHERE account = 'manager01'),
        CASE WHEN a.status = 'FORFEITED' THEN t.x_balance_due + interval '10 minutes' END,
        CASE WHEN a.status = 'FORFEITED' THEN 'FORFEIT' END,
        (SELECT id FROM asg_stay s WHERE s.student_id = a.student_id AND s.status = 'ACTIVE')
@@ -106,7 +106,7 @@ SELECT al.id,
                        ELSE 'Internship in Ha Noi until the end of the month; the company letter is attached.' END,
        t.x_start + 9, ((t.x_start + 4) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh', t.x_start + 9,
        a.late, CASE WHEN a.late = 'APPROVED' THEN t.x_start + 10 END,
-       CASE WHEN a.late = 'APPROVED' THEN (SELECT id FROM demo_staff WHERE account = 'manager.a') END,
+       CASE WHEN a.late = 'APPROVED' THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
        CASE WHEN a.late = 'APPROVED' THEN least(t.x_results + interval '2 days', t.now - interval '1 day') END,
        least(t.x_results + interval '1 day', t.now - interval '2 days'), 'ONLINE'
 FROM demo_app a CROSS JOIN demo_t t JOIN asg_allocation al ON al.term_id = t.x_id AND al.student_id = a.student_id
@@ -117,7 +117,7 @@ INSERT INTO asg_termination (allocation_id, term_id, student_id, reason, note, d
                              move_out_by)
 SELECT al.id, t.n_id, d.student_id, 'UTILITY_DEBT', 'Two Utility Invoices overdue after the final warning.',
        (SELECT sum(u.amount) FROM demo_util_share u WHERE u.student_id = d.student_id AND u.overdue),
-       'NOTICE_SENT', t.now - interval '2 days', (SELECT id FROM demo_staff WHERE account = 'manager.a'),
+       'NOTICE_SENT', t.now - interval '2 days', (SELECT id FROM demo_staff WHERE account = 'manager01'),
        least(t.today + 5, t.n_end)
 FROM demo_res d CROSS JOIN demo_t t JOIN asg_allocation al ON al.term_id = t.n_id AND al.student_id = d.student_id
 WHERE d.scenario = 'S21';
@@ -126,7 +126,7 @@ WHERE d.scenario = 'S21';
 INSERT INTO asg_check_out (allocation_id, reason, status, electricity, water, condition_good, key_returned, damage_charge,
                            refund_status, requested_at, completed_at, completed_by, updated_at)
 SELECT al.id, 'TERM_END', 'COMPLETED', 1200 + d.h * 7 + 95, 40 + d.h % 30 + 6, TRUE, TRUE, 0, 'NONE', al.ended_at,
-       al.ended_at, (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(d.block) || '1'), al.ended_at
+       al.ended_at, (SELECT id FROM demo_staff WHERE account = 'staff' || lower(d.block) || '01'), al.ended_at
 FROM demo_res d CROSS JOIN demo_t t JOIN asg_allocation al ON al.term_id = t.n_id AND al.student_id = d.student_id
 WHERE d.leave = 'CHECKED_OUT';
 

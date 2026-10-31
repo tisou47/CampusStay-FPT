@@ -18,7 +18,7 @@ SELECT 'REGISTRATION', 'ALL_STUDENTS', t.x_id, 'Registration period: ' || t.x_na
            || '. Sinh viên tiếp tục ở giữ giường và gửi yêu cầu trước '
            || to_char(t.x_m3 AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY HH24:MI') || '.',
        '/student/registration-periods/' || t.x_id, t.stage = 'A', t.x_m1, 'TERM_PUBLISHED',
-       (SELECT id FROM demo_staff WHERE account = 'admin'), t.x_m1
+       (SELECT id FROM demo_staff WHERE account = 'admin01'), t.x_m1
 FROM demo_t t;
 
 INSERT INTO ntf_announcement (category, audience, term_id, title, title_vi, body, body_vi, changes, pinned, shown_from,
@@ -33,7 +33,7 @@ SELECT 'FINANCE', 'ALL_STUDENTS', t.x_id, 'Room prices of ' || t.x_name, 'Giá p
                                                      AND px.room_class_id = pn.room_class_id AND px.term_id = t.x_id
         JOIN cfg_room_type rt ON rt.id = pn.room_type_id JOIN cfg_room_class rc ON rc.id = pn.room_class_id
         WHERE pn.term_id = t.n_id),
-       FALSE, t.x_m1 + interval '1 hour', 'POLICY_CHANGED', (SELECT id FROM demo_staff WHERE account = 'admin'),
+       FALSE, t.x_m1 + interval '1 hour', 'POLICY_CHANGED', (SELECT id FROM demo_staff WHERE account = 'admin01'),
        t.x_m1 + interval '1 hour'
 FROM demo_t t;
 
@@ -44,7 +44,7 @@ SELECT 'OPERATIONS', 'BLOCK_RESIDENTS', 'Water cut in Block A on Saturday mornin
        'The water tanks of Block A are cleaned on Saturday from 07:00 to 11:00. Please store some water the night before.',
        'Bồn nước Block A được vệ sinh vào thứ Bảy từ 07:00 đến 11:00. Các bạn hãy trữ nước từ tối hôm trước.',
        t.now - interval '1 day', t.now + interval '6 days', 'MANUAL',
-       (SELECT id FROM demo_staff WHERE account = 'staff.a1'), t.now - interval '1 day'
+       (SELECT id FROM demo_staff WHERE account = 'staffa01'), t.now - interval '1 day'
 FROM demo_t t;
 
 INSERT INTO ntf_announcement_block (announcement_id, building_id)
@@ -60,6 +60,6 @@ SELECT 'OPERATIONS', 'RESIDENTS', t.n_id, 'Check-out before ' || to_char(t.n_end
        'Sinh viên rời KTX cuối ' || t.n_name || ' làm thủ tục trả phòng tại quầy của Block trước '
            || to_char(t.n_end + 1, 'DD/MM/YYYY') || '. Sinh viên tiếp tục ở giữ phòng hoặc chuyển phòng vào ngày đầu '
            || t.x_name || '.',
-       TRUE, t.now - interval '2 days', 'MANUAL', (SELECT id FROM demo_staff WHERE account = 'manager.a'),
+       TRUE, t.now - interval '2 days', 'MANUAL', (SELECT id FROM demo_staff WHERE account = 'manager01'),
        t.now - interval '2 days'
 FROM demo_t t WHERE t.stage = 'C';

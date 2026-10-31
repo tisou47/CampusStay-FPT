@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import vn.fpt.campusstay.security.AuthenticatedUser;
+import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.config.AuthProperties;
@@ -119,6 +120,12 @@ public class SignInService {
             return finish(id, remember, SessionEntity.Method.GOOGLE, null);
         }
         UserEntity user = found.get();
+        // The fictional back-office accounts of the base data sign in with their password only: whoever really owns
+        // admin01@fpt.edu.vn at FPT must not become an Admin through Google.
+        if (user.getRole() != Role.STUDENT && accounts.isDemo(user.getId())) {
+            throw ApiException.forbidden("GOOGLE_NOT_FOR_DEMO",
+                    "This demo account signs in with its password, not with Google.");
+        }
         if (user.getGoogleSub() != null && !user.getGoogleSub().equals(identity.subject())) {
             throw ApiException.forbidden("GOOGLE_ACCOUNT_MISMATCH",
                     "This account is linked to a different Google account. Contact the dormitory office.");

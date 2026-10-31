@@ -62,7 +62,7 @@ FROM c;
 -- ---------- accounts used by the scenarios ----------
 CREATE TEMP TABLE demo_staff ON COMMIT DROP AS
 SELECT u.id, split_part(u.email, '@', 1) AS account, u.role FROM auth_user u
-WHERE u.demo AND u.email ~ '^(admin|manager\.[a-h]|staff\.[a-h][12])@fpt\.edu\.vn$';
+WHERE u.demo AND u.email ~ '^(admin0[1-4]|manager0[1-4]|staff[a-h]0[1-4])@fpt\.edu\.vn$';
 
 -- Students of the scenarios (also kept out of the bulk residents and applicants).
 CREATE TEMP TABLE demo_reserved ON COMMIT DROP AS

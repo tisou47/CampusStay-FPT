@@ -39,7 +39,7 @@ FROM src s CROSS JOIN demo_t t JOIN cfg_term cfg ON cfg.id = t.n_id JOIN app_app
 -- Meter periods per Block: every month of Term N before this one closed by the Block's second Staff, this month open.
 INSERT INTO bil_meter_period (building_id, label, period_start, period_end, due_at, closed_at, closed_by)
 SELECT b.id, m.label, m.period_start, m.period_end, m.due_at, m.closed_at,
-       (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(b.code) || '2')
+       (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '02')
 FROM inv_building b CROSS JOIN demo_util_month m;
 
 INSERT INTO bil_meter_period (building_id, label, period_start, period_end, due_at)
@@ -191,7 +191,7 @@ SELECT i.id, i.student_id, i.paid_at - interval '3 hours', i.student_id, 'FT' ||
        greatest(0, extract(epoch FROM i.due_at - (i.paid_at - interval '3 hours')))::bigint, 'CONFIRMED',
        m.id, i.paid_at
 FROM bil_invoice i LEFT JOIN inv_building b ON b.id = i.building_id
-JOIN demo_staff m ON m.account = 'manager.' || lower(coalesce(b.code, 'a'))
+JOIN demo_staff m ON m.account = 'manager0' || ((ascii(coalesce(b.code, 'A')) - 65) % 4 + 1)
 WHERE i.status = 'PAID';
 
 INSERT INTO bil_payment_claim (invoice_id, student_id, claimed_at, claimed_by, reference, time_left_seconds, status)
@@ -202,7 +202,7 @@ FROM bil_invoice i CROSS JOIN demo_t t WHERE i.status = 'AWAITING_CONFIRMATION';
 INSERT INTO bil_payment_claim (invoice_id, student_id, claimed_at, claimed_by, reference, time_left_seconds, status,
                                decided_by, decided_at, reason)
 SELECT i.id, i.student_id, i.created_at + interval '2 hours', i.student_id, 'FT0000000001',
-       extract(epoch FROM interval '46 hours')::bigint, 'REJECTED', (SELECT id FROM demo_staff WHERE account = 'manager.a'),
+       extract(epoch FROM interval '46 hours')::bigint, 'REJECTED', (SELECT id FROM demo_staff WHERE account = 'manager01'),
        i.created_at + interval '6 hours', 'No transfer with this content reached the account; check the content CSTAY… and send it again.'
 FROM bil_invoice i JOIN demo_app a ON a.student_id = i.student_id CROSS JOIN demo_t t
 WHERE a.scenario = 'S05' AND i.type = 'DEPOSIT' AND i.term_id = t.x_id;

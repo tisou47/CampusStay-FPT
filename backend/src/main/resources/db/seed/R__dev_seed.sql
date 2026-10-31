@@ -4,16 +4,18 @@
 -- A fresh system, ready to sign in and nothing more: 8 Blocks (A–D male,
 -- E–H female; 10 floors, 960 Rooms, 3,680 Beds) with their Room Types and
 -- Room Classes, the furniture each Room has (a bed, wardrobe and desk per
--- Bed, the items its Room Class requires, spares in every Block store), one
--- Admin, a Manager and two Staff per Block, and 6,200
+-- Bed, the items its Room Class requires, spares in every Block store), four
+-- Admins, four Managers (for every Block) and four Staff per Block, and 6,200
 -- students in the student directory (cohorts K18–K22, all enrolled). There is
 -- no Term, Application, Invoice or any other history: the Admin starts by
 -- confirming the fees and publishing a Term.
 --
 -- People are fictional and generated deterministically. Emails use the FPT
 -- format: <student code>@fpt.edu.vn for students (se190001@fpt.edu.vn) and
--- <account>@fpt.edu.vn for staff (admin, manager.a, staff.a1). In dev every
--- email stops in Mailpit. Password of every account: 12321321
+-- <account>@fpt.edu.vn for staff (admin01…04, manager01…04, staffa01…staffh04).
+-- In dev every email stops in Mailpit. Password of every account: 123 (a demo
+-- with no real users, user decision 30/10/2026; V65 converted older databases).
+-- The back-office ones sign in with the password only, never with Google.
 --
 -- Repeatable migration; every statement is idempotent (ON CONFLICT), so a new
 -- version only adds what is missing. The integration tests use their own seed
@@ -117,45 +119,60 @@ ON CONFLICT (asset_code) DO NOTHING;
 
 -- ---------- back-office accounts ----------
 INSERT INTO auth_user (email, display_name, password_hash, role, title)
-SELECT v.account || '@fpt.edu.vn', v.name, '$2a$10$aTv5QYm9jSPCEi8eeISY8eyqjt0mFPE6LYW2EyMl6nT0zCFJNAjiu', v.role, v.title
+SELECT v.account || '@fpt.edu.vn', v.name, '$2a$10$ZnX/vzGmBxfAftho3lPbDOh/77QstH0rKRE5vDVjI5qY5p/VU8K5C', v.role, v.title
 FROM (VALUES
-  ('admin',     'Tran Minh Quan',      'ADMIN',   'Housing Administrator'),
-  ('manager.a', 'Le Hoang Nam',        'MANAGER', 'Dormitory Manager'),
-  ('manager.b', 'Pham Thanh Tung',     'MANAGER', 'Dormitory Manager'),
-  ('manager.c', 'Vo Minh Triet',       'MANAGER', 'Dormitory Manager'),
-  ('manager.d', 'Dang Quoc Viet',      'MANAGER', 'Dormitory Manager'),
-  ('manager.e', 'Pham Thu Ha',         'MANAGER', 'Dormitory Manager'),
-  ('manager.f', 'Nguyen Ngoc Diem',    'MANAGER', 'Dormitory Manager'),
-  ('manager.g', 'Tran Bao Chau',       'MANAGER', 'Dormitory Manager'),
-  ('manager.h', 'Huynh Thanh Thao',    'MANAGER', 'Dormitory Manager'),
-  ('staff.a1',  'Nguyen Van Binh',     'STAFF',   'Residence Life Officer'),
-  ('staff.a2',  'Vo Thanh Tung',       'STAFF',   'Maintenance Technician'),
-  ('staff.b1',  'Tran Quoc Huy',       'STAFF',   'Residence Life Officer'),
-  ('staff.b2',  'Le Van Thanh',        'STAFF',   'Maintenance Technician'),
-  ('staff.c1',  'Phan Minh Khoa',      'STAFF',   'Residence Life Officer'),
-  ('staff.c2',  'Bui Duc Thang',       'STAFF',   'Maintenance Technician'),
-  ('staff.d1',  'Ho Tan Phat',         'STAFF',   'Residence Life Officer'),
-  ('staff.d2',  'Ngo Van Hai',         'STAFF',   'Maintenance Technician'),
-  ('staff.e1',  'Do Ngoc Lan',         'STAFF',   'Residence Life Officer'),
-  ('staff.e2',  'Truong Van Loc',      'STAFF',   'Maintenance Technician'),
-  ('staff.f1',  'Nguyen Thi Mai',      'STAFF',   'Residence Life Officer'),
-  ('staff.f2',  'Dinh Quang Vinh',     'STAFF',   'Maintenance Technician'),
-  ('staff.g1',  'Le Thi Hong Nhung',   'STAFF',   'Residence Life Officer'),
-  ('staff.g2',  'Cao Van Duc',         'STAFF',   'Maintenance Technician'),
-  ('staff.h1',  'Pham Thi Thanh Truc', 'STAFF',   'Residence Life Officer'),
-  ('staff.h2',  'Mai Xuan Truong',     'STAFF',   'Maintenance Technician')) AS v (account, name, role, title)
+  ('admin01',   'Tran Minh Quan',       'ADMIN',   'Housing Administrator'),
+  ('admin02',   'Nguyen Thi Thu Trang', 'ADMIN',   'Housing Administrator'),
+  ('admin03',   'Le Quoc Bao',          'ADMIN',   'Housing Administrator'),
+  ('admin04',   'Pham Ngoc Anh',        'ADMIN',   'Housing Administrator'),
+  ('manager01', 'Le Hoang Nam',         'MANAGER', 'Dormitory Manager'),
+  ('manager02', 'Pham Thanh Tung',      'MANAGER', 'Dormitory Manager'),
+  ('manager03', 'Vo Minh Triet',        'MANAGER', 'Dormitory Manager'),
+  ('manager04', 'Dang Quoc Viet',       'MANAGER', 'Dormitory Manager'),
+  ('staffa01',  'Nguyen Van Binh',      'STAFF',   'Residence Life Officer'),
+  ('staffa02',  'Vo Thanh Tung',        'STAFF',   'Maintenance Technician'),
+  ('staffa03',  'Tran Duc Manh',        'STAFF',   'Front Desk Officer'),
+  ('staffa04',  'Le Van Khai',          'STAFF',   'Maintenance Technician'),
+  ('staffb01',  'Tran Quoc Huy',        'STAFF',   'Residence Life Officer'),
+  ('staffb02',  'Le Van Thanh',         'STAFF',   'Maintenance Technician'),
+  ('staffb03',  'Nguyen Huu Phuoc',     'STAFF',   'Front Desk Officer'),
+  ('staffb04',  'Pham Van Sang',        'STAFF',   'Maintenance Technician'),
+  ('staffc01',  'Phan Minh Khoa',       'STAFF',   'Residence Life Officer'),
+  ('staffc02',  'Bui Duc Thang',        'STAFF',   'Maintenance Technician'),
+  ('staffc03',  'Hoang Gia Bao',        'STAFF',   'Front Desk Officer'),
+  ('staffc04',  'Do Van Tai',           'STAFF',   'Maintenance Technician'),
+  ('staffd01',  'Ho Tan Phat',          'STAFF',   'Residence Life Officer'),
+  ('staffd02',  'Ngo Van Hai',          'STAFF',   'Maintenance Technician'),
+  ('staffd03',  'Vu Minh Hieu',         'STAFF',   'Front Desk Officer'),
+  ('staffd04',  'Luong Van Toan',       'STAFF',   'Maintenance Technician'),
+  ('staffe01',  'Do Ngoc Lan',          'STAFF',   'Residence Life Officer'),
+  ('staffe02',  'Truong Van Loc',       'STAFF',   'Maintenance Technician'),
+  ('staffe03',  'Nguyen Thi Kim Ngan',  'STAFF',   'Front Desk Officer'),
+  ('staffe04',  'Huynh Van Tri',        'STAFF',   'Maintenance Technician'),
+  ('stafff01',  'Nguyen Thi Mai',       'STAFF',   'Residence Life Officer'),
+  ('stafff02',  'Dinh Quang Vinh',      'STAFF',   'Maintenance Technician'),
+  ('stafff03',  'Tran Thi Bich Ngoc',   'STAFF',   'Front Desk Officer'),
+  ('stafff04',  'Ly Van Cuong',         'STAFF',   'Maintenance Technician'),
+  ('staffg01',  'Le Thi Hong Nhung',    'STAFF',   'Residence Life Officer'),
+  ('staffg02',  'Cao Van Duc',          'STAFF',   'Maintenance Technician'),
+  ('staffg03',  'Pham Thi My Duyen',    'STAFF',   'Front Desk Officer'),
+  ('staffg04',  'Ta Van Long',          'STAFF',   'Maintenance Technician'),
+  ('staffh01',  'Pham Thi Thanh Truc',  'STAFF',   'Residence Life Officer'),
+  ('staffh02',  'Mai Xuan Truong',      'STAFF',   'Maintenance Technician'),
+  ('staffh03',  'Vo Thi Thu Hien',      'STAFF',   'Front Desk Officer'),
+  ('staffh04',  'Chau Van Nghia',       'STAFF',   'Maintenance Technician')) AS v (account, name, role, title)
 ON CONFLICT DO NOTHING;
 
--- staff.a1 and staff.a2 work in Block A, and so on. Managers work for every Block (ADR-19).
+-- staffa01 … staffa04 work in Block A, and so on. Managers work for every Block (ADR-19).
 INSERT INTO auth_user_block (user_id, building_id)
 SELECT u.id, b.id
 FROM auth_user u JOIN inv_building b
-  ON u.email IN ('staff.' || lower(b.code) || '1@fpt.edu.vn', 'staff.' || lower(b.code) || '2@fpt.edu.vn')
+  ON u.email ~ ('^staff' || lower(b.code) || '0[1-4]@fpt\.edu\.vn$')
 ON CONFLICT DO NOTHING;
 
 -- What each person handles is set by a Manager (Staff).
 INSERT INTO auth_staff_profile (user_id)
-SELECT u.id FROM auth_user u WHERE u.role = 'STAFF' AND u.email LIKE 'staff.__@fpt.edu.vn'
+SELECT u.id FROM auth_user u WHERE u.role = 'STAFF' AND u.email ~ '^staff[a-h]0[1-4]@fpt\.edu\.vn$'
 ON CONFLICT (user_id) DO NOTHING;
 
 -- ---------- students (mock SIS directory) ----------
@@ -206,7 +223,7 @@ FROM p;
 
 INSERT INTO auth_user (email, display_name, password_hash, role)
 SELECT lower(code) || '@fpt.edu.vn', family || ' ' || middle || ' ' || given,
-       '$2a$10$aTv5QYm9jSPCEi8eeISY8eyqjt0mFPE6LYW2EyMl6nT0zCFJNAjiu', 'STUDENT'
+       '$2a$10$ZnX/vzGmBxfAftho3lPbDOh/77QstH0rKRE5vDVjI5qY5p/VU8K5C', 'STUDENT'
 FROM t_student
 ON CONFLICT DO NOTHING;
 
@@ -234,5 +251,5 @@ ON CONFLICT DO NOTHING;
 -- with Google or come from an imported student list, receive their own email (spec O-3).
 UPDATE auth_user SET demo = TRUE
 WHERE NOT demo
-  AND (email ~ '^(admin|manager\.[a-h]|staff\.[a-h][12])@fpt\.edu\.vn$'
+  AND (email ~ '^(admin0[1-4]|manager0[1-4]|staff[a-h]0[1-4])@fpt\.edu\.vn$'
        OR email IN (SELECT lower(code) || '@fpt.edu.vn' FROM t_student));
