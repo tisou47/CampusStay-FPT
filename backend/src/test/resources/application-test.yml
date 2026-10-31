@@ -22,6 +22,7 @@ campusstay:
   bil:
     overdue-interval: 1h
     reminder-interval: 1h
+    meter-interval: 1h
   asg:
     forfeit-interval: 1h
     release-interval: 1h

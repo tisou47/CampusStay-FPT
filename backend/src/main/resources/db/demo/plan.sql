@@ -56,13 +56,6 @@ SELECT c.stage, c.now, c.today, c.n_start, c.n_end, c.x_start, c.x_end,
        ((c.today + 9 - c.k) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS x_reg_close,
        ((c.today + 15 - c.k) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS x_results,
        ((c.today + 28 - c.k) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS x_balance_due,
-       -- Utility: the month before this one is billed (paid by most); the month before that only for two debtors
-       to_char(date_trunc('month', c.today) - interval '1 month', 'MM/YYYY') AS util_label,
-       to_char(date_trunc('month', c.today) - interval '2 month', 'MM/YYYY') AS util_label_2,
-       (date_trunc('month', c.today) - interval '1 month')::date AS util_start,
-       (date_trunc('month', c.today) - interval '1 day')::date AS util_end,
-       ((date_trunc('month', c.today)::date + 9) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS util_due,
-       ((date_trunc('month', c.today)::date - 22) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS util_due_2,
        NULL::bigint AS n_id, NULL::bigint AS x_id
 FROM c;
 
@@ -248,3 +241,58 @@ UPDATE demo_app a SET room_type_id = coalesce(r.room_type_id, (SELECT x.id FROM 
 FROM (SELECT a2.student_id, ro.room_type_id, ro.room_class_id FROM demo_app a2
       LEFT JOIN inv_bed b ON b.id = a2.x_bed_id LEFT JOIN inv_room ro ON ro.id = b.room_id) r
 WHERE r.student_id = a.student_id;
+
+-- ---------- monthly Utility of Term N ----------
+-- Every calendar month of Term N before this one was closed by its Block's Staff: a reading for every Room and a
+-- Utility Invoice for every resident, split as Meter readings › Close period does (no meter cut in these months, so
+-- one segment; shares by the time each resident lived in the Room since the door code). This month stays open.
+CREATE TEMP TABLE demo_util_month ON COMMIT DROP AS
+WITH m AS (
+    SELECT (date_trunc('month', t.today::timestamp) - interval '1 month' * g)::date AS period_start, g AS age, t.n_start,
+           t.now
+    FROM demo_t t CROSS JOIN generate_series(1, 12) g),
+e AS (
+    SELECT m.*, (m.period_start + interval '1 month' - interval '1 day')::date AS period_end FROM m)
+SELECT e.period_start, e.period_end, to_char(e.period_start, 'MM/YYYY') AS label, e.age,
+       least(((e.period_end + 2) + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh', e.now - interval '3 hours') AS closed_at,
+       ((e.period_end + 1 + u.payment_due_days) + TIME '00:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS due_at
+FROM e CROSS JOIN cfg_utility_policy u
+WHERE e.period_end >= e.n_start - 3;
+
+-- Residence starts with the door code (asg.sql: resident_at = Term start - 3 + h % 5, 10:00): hours in each month.
+CREATE TEMP TABLE demo_util_stay ON COMMIT DROP AS
+SELECT d.student_id, d.room_id, d.room_code, d.scenario, d.h, m.label, m.age,
+       (m.period_end + 1 - greatest(m.period_start, t.n_start - 3 + d.h % 5)) * 24
+           - CASE WHEN t.n_start - 3 + d.h % 5 >= m.period_start THEN 10 ELSE 0 END AS hours
+FROM demo_res d CROSS JOIN demo_t t JOIN demo_util_month m ON m.period_end >= t.n_start - 3 + d.h % 5;
+
+-- Each lived-in Room's use (only those get a reading, as Close period does): about 1.2–1.6 kWh and 0.1 m³ per
+-- resident a day; readings chained from month to month.
+CREATE TEMP TABLE demo_util_room ON COMMIT DROP AS
+WITH u AS (
+    SELECT r.id AS room_id, r.code AS room_code, r.building_id, m.label, m.age, m.period_start,
+           o.hours, o.residents, 5 + o.hours * (12 + r.id % 5) / 240 AS kwh, 1 + o.hours / 240 AS m3
+    FROM inv_room r CROSS JOIN demo_util_month m
+    JOIN (SELECT room_id, label, sum(hours) AS hours, count(*) AS residents FROM demo_util_stay
+          GROUP BY room_id, label) o ON o.room_id = r.id AND o.label = m.label)
+SELECT u.*,
+       1000 + (u.room_id % 97) * 7 + coalesce(sum(u.kwh) OVER w, 0) AS electricity_prev,
+       30 + u.room_id % 40 + coalesce(sum(u.m3) OVER w, 0) AS water_prev
+FROM u
+WINDOW w AS (PARTITION BY u.room_id ORDER BY u.period_start ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING);
+
+-- Each resident's share, rounded as Admin › Utility says; S19 owes last month, S20 and S21 also the month before.
+CREATE TEMP TABLE demo_util_share ON COMMIT DROP AS
+WITH p AS (
+    SELECT price_kwh, price_m3,
+           CASE WHEN rounding LIKE 'ROUND\_UP\_%' THEN greatest(1, substring(rounding FROM 10)::bigint) ELSE 1 END AS step
+    FROM cfg_utility_policy),
+x AS (
+    SELECT s.student_id, s.room_id, s.room_code, s.scenario, s.h, s.label, s.age, r.residents, r.kwh, r.m3,
+           r.kwh * p.price_kwh AS electricity_cost, r.m3 * p.price_m3 AS water_cost, p.price_kwh, p.price_m3, p.step,
+           (r.kwh * p.price_kwh + r.m3 * p.price_m3)::numeric * s.hours / r.hours AS exact
+    FROM demo_util_stay s CROSS JOIN p JOIN demo_util_room r ON r.room_id = s.room_id AND r.label = s.label)
+SELECT x.*, round(x.exact)::bigint AS share, (ceil(ceil(x.exact) / x.step) * x.step)::bigint AS amount,
+       coalesce((x.scenario IN ('S19', 'S20', 'S21') AND x.age = 1) OR (x.scenario IN ('S20', 'S21') AND x.age = 2),
+                FALSE) AS overdue
+FROM x;
