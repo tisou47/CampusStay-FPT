@@ -128,3 +128,25 @@ SELECT al.id, 'TERM_END', 'COMPLETED', 1200 + d.h * 7 + 95, 40 + d.h % 30 + 6, T
        al.ended_at, (SELECT id FROM demo_staff WHERE account = 'staff.' || lower(d.block) || '1'), al.ended_at
 FROM demo_res d CROSS JOIN demo_t t JOIN asg_allocation al ON al.term_id = t.n_id AND al.student_id = d.student_id
 WHERE d.leave = 'CHECKED_OUT';
+
+-- The Round-1 runs' proposals, read back by Assignment › a run: each placed Application on the Bed it was allocated,
+-- the waitlisted ones (B, C) in a Block of their gender, every Block committed by the Manager on results day.
+INSERT INTO asg_proposal_item (run_id, application_id, building_id, bed_id, fit)
+SELECT al.run_id, al.application_id, r.building_id, al.bed_id, 0.6500 + (abs(hashtext('fit' || al.application_id)) % 31) / 100.0
+FROM asg_allocation al JOIN inv_bed b ON b.id = al.bed_id JOIN inv_room r ON r.id = b.room_id
+WHERE al.source = 'ASSIGNMENT' AND al.run_id IS NOT NULL
+ON CONFLICT DO NOTHING;
+
+INSERT INTO asg_proposal_item (run_id, application_id, building_id, waitlisted, issue_code, issue_tone, resolved, reason)
+SELECT ru.id, ap.id, (SELECT min(bl.id) FROM inv_building bl WHERE bl.gender = a.gender), TRUE, 'NO_BED', 'DANGER', TRUE,
+       'No free Bed of the chosen Room Type and Room Class in a Block for this gender.'
+FROM demo_app a CROSS JOIN demo_t t JOIN app_application ap ON ap.term_id = t.x_id AND ap.student_id = a.student_id
+JOIN asg_run ru ON ru.term_id = t.x_id AND ru.kind = 'REAL'
+WHERE a.status = 'WAITLISTED'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO asg_run_block (run_id, building_id, status, submitted_by, submitted_at, decided_by, decided_at, committed_at)
+SELECT DISTINCT p.run_id, p.building_id, 'COMMITTED', ru.started_by, ru.finished_at - interval '6 hours', ru.started_by,
+       ru.finished_at, ru.finished_at
+FROM asg_proposal_item p JOIN asg_run ru ON ru.id = p.run_id
+WHERE p.building_id IS NOT NULL;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Check, Clock, Download, Layers } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -22,7 +22,8 @@ import { useRoleBase } from '@/lib/useRoleBase'
 // SCR-ASG-11 Assignment Proposal Review (Figma 36:1580) and "Commit Block" modal (36:1994).
 // A Manager commits a Block: Allocations, Balance Invoices and notifications are created at once (ADR-19, C-38).
 // GET /assignment-runs/:runId/proposal?block&view=conflicts|proposed|all&q&page&pageSize → {
-//   run: { id, status, snapshot }, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount,
+//   run: { id, kind, status, statusTone, startedAt, finishedAt, startedBy, snapshot, input, proposed, conflicts, waitlisted, averageFit },
+//   editable (false: a dry run or a run that is committed, discarded or failed, shown read only), blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount,
 //   items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total,
 //   commitSummary: { students, balanceDueAt } }
 // GET /assignment-runs/:runId/conflicts/:applicationId → { applicationId, studentName, preference, bed,
@@ -116,6 +117,42 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
       </Alert>
       <Field label={t('Type {phrase} to confirm', { phrase })}>{(id) => <Input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={phrase} autoComplete="off" />}</Field>
     </Modal>
+  )
+}
+
+/** A run that can no longer change (dry, committed, discarded, failed): who ran it, when, and what it gave. */
+function RunDetails({ run }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-0.5">
+        <p className="text-sm font-medium text-fg-tertiary">{t('Run details')}</p>
+        <p className="text-h3 font-semibold text-fg">
+          {run.id} · {tr(run.kind)}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2 rounded-lg border border-line bg-subtle p-4 text-base">
+        {[
+          ['Status', <Tag key="s" tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>],
+          ['Started by', run.startedBy ?? '—'],
+          ['Started', formatDateTime(run.startedAt)],
+          ['Finished', run.finishedAt ? formatDateTime(run.finishedAt) : '—'],
+          ['Rules snapshot', run.snapshot ?? '—'],
+          ['Input', t('{n} Approved Applications', { n: formatNumber(run.input) })],
+          ['Proposed', formatNumber(run.proposed)],
+          ['Conflicts', formatNumber(run.conflicts)],
+          ['Waitlisted', formatNumber(run.waitlisted)],
+          ['Average Room fit', run.averageFit != null ? `${run.averageFit} / 100` : '—'],
+        ].map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between gap-4">
+            <span className="text-fg-secondary">{t(label)}</span>
+            <span className="text-right font-medium text-fg">{value}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-sm text-fg-tertiary">
+        {run.kind === 'Dry run' ? t('A dry run is a preview: nothing in it can be changed or committed.') : t('This run can no longer change: its proposal is shown read only.')}
+      </p>
+    </div>
   )
 }
 
@@ -221,6 +258,14 @@ export default function ProposalReview() {
   const blocks = data?.blocks ?? []
   const activeBlock = tab && tab !== 'waitlisted' ? blocks.find((b) => b.block === tab) : null
   const items = data?.items ?? []
+  const readOnly = data?.editable === false
+
+  // A run that can no longer change has no conflicts left to work on: show its whole proposal.
+  const viewChosen = useRef(false)
+  useEffect(() => {
+    if (readOnly && !viewChosen.current && view === 'conflicts') setView('all')
+    if (data) viewChosen.current = true
+  }, [readOnly, data, view])
 
   // Open the first Block once the proposal loads.
   useEffect(() => {
@@ -229,24 +274,35 @@ export default function ProposalReview() {
 
   // Keep a conflict selected while the conflicts list is shown.
   useEffect(() => {
-    if (tab === 'waitlisted') return
+    if (tab === 'waitlisted' || readOnly) return
     const conflicts = items.filter((r) => r.issue && !r.resolved)
     if (!conflicts.some((r) => r.applicationId === selectedId)) setSelectedId(conflicts[0]?.applicationId ?? null)
-  }, [items, tab, selectedId])
+  }, [items, tab, selectedId, readOnly])
 
   const exporting = useMutation(() => api.exports.download('assignment-proposal', { runId, block: tab }, `${runId}-proposal.xlsx`), { onError: (e) => notifyError(e, 'Export failed') })
   const submitted = activeBlock && activeBlock.status !== 'review'
-  const ready = activeBlock && activeBlock.conflicts === 0 && !submitted
+  const ready = activeBlock && activeBlock.conflicts === 0 && !submitted && !readOnly
+  const run = data?.run
 
   return (
     <>
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Assignment', to: `${base}/assignment` }, { label: runId }]} />}
         title={t('Proposal · {id}', { id: runId })}
-        badge={activeBlock && <Tag tone={submitted ? 'success' : 'warning'}>{submitted ? t('Committed') : t('In review')}</Tag>}
+        description={
+          run &&
+          `${tr(run.kind)} · ${t('Started by {name} · {date}', { name: run.startedBy ?? '—', date: formatDateTime(run.startedAt) })} · ${t('{n} proposed', { n: formatNumber(run.proposed) })} · ${t('{c} conflicts · {w} waitlisted', { c: run.conflicts, w: run.waitlisted })}`
+        }
+        badge={
+          readOnly ? (
+            <Tag tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>
+          ) : (
+            activeBlock && <Tag tone={submitted ? 'success' : 'warning'}>{submitted ? t('Committed') : t('In review')}</Tag>
+          )
+        }
         actions={
           <>
-            {activeBlock && !submitted && (
+            {activeBlock && !submitted && !readOnly && (
               <p className="text-sm text-fg-tertiary">
                 {activeBlock.conflicts ? t('Resolve {n} conflicts in Block {code} to commit it', { n: activeBlock.conflicts, code: tab }) : t('Block {code} is ready to commit', { code: tab })}
               </p>
@@ -254,7 +310,7 @@ export default function ProposalReview() {
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
               Export
             </Button>
-            {activeBlock && (
+            {activeBlock && !readOnly && (
               <Button variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
                 {submitted ? t('Block {code} committed', { code: tab }) : t('Commit Block {code}', { code: tab })}
               </Button>
@@ -265,7 +321,7 @@ export default function ProposalReview() {
 
       {blocks.length > 0 && (
         <Tabs
-          className="shrink-0"
+          className="shrink-0 overflow-x-auto [scrollbar-width:thin]"
           value={tab}
           onChange={(key) => {
             setTab(key)
@@ -340,10 +396,10 @@ export default function ProposalReview() {
                 </tr>
               </THead>
               <TBody>
-                <TableStatus query={query} colSpan={5} emptyIcon={Layers} emptyTitle={view === 'conflicts' ? t('No conflicts left in Block {code}', { code: tab ?? '' }) : t('Nothing matches the search')} />
+                <TableStatus query={query} colSpan={5} emptyIcon={Layers} emptyTitle={!blocks.length ? t('This run has no proposal to show') : view === 'conflicts' ? t('No conflicts left in Block {code}', { code: tab ?? '' }) : t('Nothing matches the search')} />
                 {items.map((r) => {
                   const isSelected = r.applicationId === selectedId
-                  const open = r.issue && !r.resolved
+                  const open = r.issue && !r.resolved && !readOnly
                   return (
                     <Tr
                       key={r.applicationId}
@@ -382,6 +438,8 @@ export default function ProposalReview() {
           <Card className="flex min-h-0 w-100 shrink-0 flex-col gap-3.5 overflow-y-auto">
             {data === undefined && !query.loading && query.error ? (
               <EmptyBlock title="Proposal unavailable" />
+            ) : readOnly ? (
+              <RunDetails run={run} />
             ) : (
               <ConflictPanel
                 runId={runId}

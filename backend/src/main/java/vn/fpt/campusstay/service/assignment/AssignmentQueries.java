@@ -59,9 +59,6 @@ public class AssignmentQueries {
     public record Overview(RunSummary current, List<RunRow> history, Rules rules) {
     }
 
-    public record RunRef(String id, String status, String snapshot) {
-    }
-
     /** {@code status}: review, submitted or approved. */
     public record BlockTab(String block, long total, long conflicts, String status) {
     }
@@ -76,7 +73,8 @@ public class AssignmentQueries {
     public record CommitSummary(long students, Instant balanceDueAt) {
     }
 
-    public record Proposal(RunRef run, List<BlockTab> blocks, long waitlistedCount, List<ProposalItem> items, long total,
+    /** {@code editable}: false for a dry run and a run that is committed, discarded or failed (read only). */
+    public record Proposal(RunSummary run, boolean editable, List<BlockTab> blocks, long waitlistedCount, List<ProposalItem> items, long total,
             CommitSummary commitSummary) {
     }
 
@@ -108,6 +106,8 @@ public class AssignmentQueries {
 
     public record Approval(ApprovalItem item) {
     }
+
+    private static final Set<String> OPEN_RUN = Set.of("PROPOSED", "IN_REVIEW");
 
     private static final Map<String, String> ISSUE_TITLES = Map.of("NO_BED", "No free Bed of the chosen kind",
             "PARTNER_NOT_READY", "The invited roommate is not ready", "NOT_ELIGIBLE", "No longer eligible", "LOW_FIT",
@@ -274,8 +274,9 @@ public class AssignmentQueries {
         Long chosen = selected;
         long students = items.stream()
                 .filter(i -> Objects.equals(i.buildingId(), chosen) && i.bedId() != null && !i.waitlisted()).count();
-        return new Proposal(new RunRef(run.code(), RunStore.statusLabel(run.status()),
-                criteria.byId(run.snapshotId()).map(MatchingCriteria.Snapshot::label).orElse(null)), tabs, waitlisted,
+        Map<Long, String> names = users.displayNames(List.of(run.startedBy()));
+        boolean editable = !run.kind().equals("DRY_RUN") && OPEN_RUN.contains(run.status());
+        return new Proposal(summary(run, names, new LinkedHashMap<>()), editable, tabs, waitlisted,
                 rows, shown.size(), new CommitSummary(students, Instant.now(clock).plus(Duration.ofDays(fees.balanceDays()))));
     }
 

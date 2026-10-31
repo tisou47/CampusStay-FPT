@@ -174,6 +174,11 @@ class AssignmentIT {
         getAs("/assignment-runs/" + run + "/proposal?block=A", manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.run.id").value(run))
+                .andExpect(jsonPath("$.run.kind").value("Final run"))
+                .andExpect(jsonPath("$.run.startedBy").isString())
+                .andExpect(jsonPath("$.run.startedAt").isString())
+                .andExpect(jsonPath("$.run.input").value(3))
+                .andExpect(jsonPath("$.editable").value(true))
                 .andExpect(jsonPath("$.blocks[0].block").value("A"))
                 .andExpect(jsonPath("$.blocks[0].total").value(3))
                 .andExpect(jsonPath("$.blocks[0].conflicts").value(1))
@@ -230,6 +235,12 @@ class AssignmentIT {
         getAs("/assignment-runs?termId=" + termId, manager)
                 .andExpect(jsonPath("$.current.status").value("Committed"))
                 .andExpect(jsonPath("$.current.stage").value(5));
+        // A committed run stays readable: its whole proposal, read only.
+        getAs("/assignment-runs/" + run + "/proposal?block=A&view=all", manager)
+                .andExpect(jsonPath("$.run.status").value("Committed"))
+                .andExpect(jsonPath("$.editable").value(false))
+                .andExpect(jsonPath("$.blocks[0].status").value("approved"))
+                .andExpect(jsonPath("$.total").value(2));
 
         // The students see the outcome.
         assertThat(flow.statuses(first)).containsExactly("Allocated");
@@ -281,6 +292,9 @@ class AssignmentIT {
         postJson("/assignment-runs/" + run + "/commit", manager, "{\"block\":\"A\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DRY_RUN"));
+        getAs("/assignment-runs/" + run + "/proposal", manager)
+                .andExpect(jsonPath("$.run.kind").value("Dry run"))
+                .andExpect(jsonPath("$.editable").value(false));
         postJson("/assignment-runs", manager, "{\"dryRun\":true}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.termId").isString());
