@@ -14,7 +14,7 @@
 -- format: <student code>@fpt.edu.vn for students (se190001@fpt.edu.vn) and
 -- <account>@fpt.edu.vn for staff (admin01…04, manager01…04, staffa01…staffh04).
 -- In dev every email stops in Mailpit. Password of every account: 123 (a demo
--- with no real users, user decision 30/10/2026; V65 converted older databases).
+-- with no real users, user decision 30/10/2026; V68 converted older databases).
 -- The back-office ones sign in with the password only, never with Google.
 --
 -- Repeatable migration; every statement is idempotent (ON CONFLICT), so a new
