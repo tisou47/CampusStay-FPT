@@ -25,8 +25,13 @@ import vn.fpt.campusstay.security.Role;
 @Service
 public class RefundAccountService implements RefundAccounts {
 
-    /** {@code holder}, {@code number} and {@code bank} are null until the student enters them. */
-    public record Mine(String holder, String number, String bank, Instant updatedAt) {
+    /**
+     * {@code holder}, {@code number} and {@code bank} are null until the student enters them. {@code bankCode} is the
+     * bank's BIN ({@link Banks}), null for a bank typed before the list (R-22) until the student chooses it again;
+     * {@code acceptedAt} is when they committed that a wrong account is their responsibility.
+     */
+    public record Mine(String holder, String number, String bank, String bankCode, Instant acceptedAt,
+            Instant updatedAt) {
     }
 
     private final JdbcClient jdbc;
@@ -43,32 +48,42 @@ public class RefundAccountService implements RefundAccounts {
     public Mine mine() {
         long me = currentUser.require(Role.STUDENT).userId();
         return jdbc.sql("""
-                SELECT refund_account_holder, refund_account_number, refund_bank, refund_account_at
+                SELECT refund_account_holder, refund_account_number, refund_bank, refund_bank_bin,
+                       refund_account_accepted_at, refund_account_at
                 FROM auth_student WHERE user_id = :me
                 """).param("me", me)
-                .query((rs, i) -> new Mine(rs.getString(1), rs.getString(2), rs.getString(3),
-                        rs.getTimestamp(4) == null ? null : rs.getTimestamp(4).toInstant()))
-                .optional().orElse(new Mine(null, null, null, null));
+                .query((rs, i) -> new Mine(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant(),
+                        rs.getTimestamp(6) == null ? null : rs.getTimestamp(6).toInstant()))
+                .optional().orElse(new Mine(null, null, null, null, null, null));
     }
 
-    /** The account number keeps its digits only; the holder is kept as written (banks match it without accents). */
+    /**
+     * The account number keeps its digits only; the holder is kept as written (banks match it without accents). The
+     * bank is chosen from {@link Banks} by its BIN, and the student accepts that a wrong account is their
+     * responsibility (R-22).
+     */
     @Transactional
-    public Mine save(String holder, String number, String bank) {
+    public Mine save(String holder, String number, String bankCode, Boolean accepted) {
         long me = currentUser.require(Role.STUDENT).userId();
         String name = holder == null ? "" : holder.trim().replaceAll("\\s+", " ");
         String digits = number == null ? "" : number.replaceAll("[\\s.-]", "");
-        String bankName = bank == null ? "" : bank.trim().replaceAll("\\s+", " ");
+        Banks.Bank bank = Banks.byBin(bankCode).orElse(null);
         FieldErrors errors = new FieldErrors();
         errors.check(name.length() >= 2 && name.length() <= 100, "holder", "Enter the account holder's name.");
         errors.check(digits.matches("\\d{6,20}"), "number", "Enter the account number: 6 to 20 digits.");
-        errors.check(bankName.length() >= 2 && bankName.length() <= 100, "bank", "Enter the bank's name.");
+        errors.check(bank != null, "bankCode", "Choose the bank from the list.");
+        errors.check(Boolean.TRUE.equals(accepted), "accepted",
+                "Confirm that you checked the account: a refund sent to a wrong account is your responsibility.");
         errors.throwIfAny();
+        Timestamp now = Timestamp.from(Instant.now(clock));
         int updated = jdbc.sql("""
                 UPDATE auth_student SET refund_account_holder = :holder, refund_account_number = :number,
-                       refund_bank = :bank, refund_account_at = :now
+                       refund_bank = :bank, refund_bank_bin = :bin, refund_account_accepted_at = :now,
+                       refund_account_at = :now
                 WHERE user_id = :me
-                """).param("holder", name).param("number", digits).param("bank", bankName)
-                .param("now", Timestamp.from(Instant.now(clock))).param("me", me).update();
+                """).param("holder", name).param("number", digits).param("bank", bank.shortName())
+                .param("bin", bank.bin()).param("now", now).param("me", me).update();
         if (updated == 0) {
             throw FieldErrors.single("holder", "Send the sign-up form first.");
         }

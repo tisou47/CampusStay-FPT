@@ -21,9 +21,9 @@ import { t, tr } from '@/i18n'
 
 // SCR-BIL-20 Block Finance (Figma 61:707)
 // GET /finance/summary?termId&block → { invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }
-// GET /refunds?termId&block&page → { items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status,
-//   account: { holder, number, bank } | null }], total } — the account the student gave for refunds (A-62)
-// POST /refunds/:id/decision { decision, note }
+// GET /refunds?termId&block&page → { items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, percent, exception, status,
+//   account: { holder, number, bank } | null, createdAt, accountRemindedAt }], total } — the account the student gave for refunds (A-62)
+// POST /refunds/:id/decision { decision, note } · POST /refunds/:id/account-reminder → { remindedAt } (R-19, once a day)
 // GET /finance/overdue?termId&block&page → { items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }
 // POST /finance/reminders { invoiceIds } · GET /invoices?termId&block&page → { items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }
 
@@ -92,8 +92,17 @@ function usePaged(key, fetcher) {
   return [query, pagination]
 }
 
+/** A day after the last reminder a student may be reminded again (the API refuses sooner). */
+const remindedToday = (at) => Boolean(at) && Date.now() - new Date(at).getTime() < 24 * 3600 * 1000
+
 function RefundsTab({ scope }) {
+  const { notify, notifyError } = useToast()
   const [params] = useSearchParams()
+  const remind = useMutation((r) => api.finance.remindAccount(r.id), {
+    invalidates: ['refunds'],
+    onSuccess: (_, r) => notify({ title: 'Reminder sent', message: t('{name} is asked to enter the bank account for the refund.', { name: r.name }) }),
+    onError: (e) => notifyError(e, 'Could not send the reminder'),
+  })
   const [deciding, setDeciding] = useState(null)
   const [query, pagination] = usePaged(['refunds', scope], (p, signal) => api.finance.refunds({ ...scope, ...p }, { signal }))
   const highlight = params.get('refund')
@@ -107,15 +116,16 @@ function RefundsTab({ scope }) {
             <Th>Reason</Th>
             <Th className="w-40">Rule</Th>
             <Th className="w-28">Paid</Th>
-            <Th className="w-32">Refund</Th>
-            <Th className="w-52">Pay to</Th>
+            <Th className="w-20">Percent</Th>
+            <Th className="w-28">Total</Th>
+            <Th className="w-56">Pay to</Th>
             <Th className="w-48">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} emptyTitle="No refund requests" />
+          <TableStatus query={query} colSpan={9} emptyTitle="No refund requests" />
           {(query.data?.items ?? []).map((r) => (
             <Tr key={r.id} selected={r.id === highlight} className="[&>td]:h-15">
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
@@ -125,12 +135,20 @@ function RefundsTab({ scope }) {
               <Td>{tr(r.reason)}</Td>
               <Td className="text-sm text-fg-secondary">{tr(r.rule)}</Td>
               <Td className="tabular">{r.paid != null ? formatNumber(r.paid) : '—'}</Td>
-              <Td className="font-medium whitespace-nowrap tabular">{r.proposedLabel ? tr(r.proposedLabel) : formatNumber(r.amount)}</Td>
+              <Td className="tabular">{r.percent != null ? `${formatNumber(r.percent)}%` : '—'}</Td>
+              <Td className="font-medium whitespace-nowrap tabular">{formatNumber(r.amount)}</Td>
               <Td>
                 {r.account ? (
                   <TwoLine primary={<span className="tabular">{r.account.number}</span>} secondary={`${r.account.holder} · ${r.account.bank}`} />
                 ) : (
-                  <span className="text-sm text-warning-fg">{t('No bank account yet')}</span>
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-sm text-warning-fg">{t('No bank account yet')}</span>
+                    {(r.status === 'Pending' || r.status === 'Approved') && (
+                      <Button size="sm" variant="text" icon={Bell} iconSize={14} disabled={remindedToday(r.accountRemindedAt) || remind.pending} onClick={() => remind.run(r)}>
+                        {r.accountRemindedAt ? t('Reminded {date}', { date: formatDate(r.accountRemindedAt) }) : t('Remind to enter it')}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </Td>
               <Td>

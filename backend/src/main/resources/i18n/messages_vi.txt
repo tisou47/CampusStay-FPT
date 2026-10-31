@@ -913,6 +913,12 @@ Say whether you are on duty. ⟶ Hãy cho biết bạn có đang trong ca trực
 Choose Pending, Accepted, Declined, Expired, Withdrawn or No offer. ⟶ Hãy chọn Đang chờ, Đã nhận, Đã từ chối, Hết hạn, Đã rút hoặc Chưa có đề nghị.
 Enter the account holder's name. ⟶ Hãy nhập tên chủ tài khoản.
 Enter the account number: 6 to 20 digits. ⟶ Hãy nhập số tài khoản: từ 6 đến 20 chữ số.
-Enter the bank's name. ⟶ Hãy nhập tên ngân hàng.
 Only an Application on the waitlist can be withdrawn. ⟶ Chỉ rút được đơn đang trong danh sách chờ.
 Send the sign-up form first. ⟶ Hãy gửi biểu mẫu đăng ký trước.
+Choose the bank from the list. ⟶ Hãy chọn ngân hàng trong danh sách.
+Confirm that you checked the account: a refund sent to a wrong account is your responsibility. ⟶ Hãy xác nhận bạn đã kiểm tra tài khoản: tiền hoàn chuyển vào tài khoản sai là trách nhiệm của bạn.
+Attach the transfer receipt. ⟶ Hãy đính kèm biên lai chuyển khoản.
+Attach the transfer receipt first. ⟶ Hãy đính kèm biên lai chuyển khoản trước.
+This refund no longer waits for a transfer. ⟶ Khoản hoàn tiền này không còn chờ chuyển khoản.
+The student already entered their bank account. ⟶ Sinh viên đã nhập tài khoản ngân hàng.
+The student was reminded less than a day ago. ⟶ Sinh viên vừa được nhắc chưa đến một ngày trước.

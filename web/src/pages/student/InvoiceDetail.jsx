@@ -1,7 +1,8 @@
 import { useParams } from 'react-router'
 import { ReceiptText } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useQuery } from '@/api/hooks'
+import { useMutation, useQuery } from '@/api/hooks'
+import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Card, DetailRows } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
@@ -15,7 +16,33 @@ import { t, tr } from '@/i18n'
 // GET /invoices/:id → { id, title, type, typeLabel, amount, status, issuedAt, dueAt, paidAt, room,
 //   breakdown: { segments: [{ from, to, note, residents, kwh, electricityCost, m3, waterCost, share }],
 //                subtotal, roundingNote, priceKwh, priceM3 } | null,
-//   lines: [{ label, amount }] | null, utilityDeposit }
+//   lines: [{ label, amount }] | null, utilityDeposit, termName, paymentMethod, transferContent, reference,
+//   period: { label, from, to, month, months } | null }   — the month of the Term a Utility Invoice bills (R-26)
+// Every Invoice of Payments opens here (R-26): its lines or meter breakdown and, once paid, its receipt.
+
+/** The receipt of a paid Invoice, with its PDF (inside the amount card). */
+function ReceiptCard({ inv }) {
+  const { notifyError } = useToast()
+  const pdf = useMutation(() => api.invoices.receipt(inv.id), { onError: (e) => notifyError(e, 'Could not download the receipt') })
+  return (
+    <div className="flex w-full flex-col gap-3 border-t border-line pt-3">
+      <h2 className="text-base font-semibold text-fg">{t('Receipt')}</h2>
+      <DetailRows
+        rows={[
+          ['Invoice', inv.id],
+          ['Term', inv.termName ?? '—'],
+          ['Paid on', formatDateTime(inv.paidAt)],
+          ['Method', inv.paymentMethod ? tr(inv.paymentMethod) : '—'],
+          ['Transfer content', inv.transferContent ?? '—'],
+          ['Amount', <span className="font-medium">{formatVnd(inv.amount)}</span>],
+        ]}
+      />
+      <Button block onClick={() => pdf.run()} disabled={pdf.pending}>
+        {pdf.pending ? 'Downloading…' : 'Download PDF'}
+      </Button>
+    </div>
+  )
+}
 
 function Breakdown({ inv }) {
   const b = inv.breakdown
@@ -23,6 +50,13 @@ function Breakdown({ inv }) {
     <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
       <div className="flex shrink-0 flex-col gap-1">
         <h2 className="text-h3 font-semibold text-fg">{t('How your share is calculated')}</h2>
+        {inv.period && (
+          <p className="text-base font-medium text-fg">
+            {inv.period.months
+              ? t('{label} · month {month} of {months} of {term} ({from} – {to})', { label: tr(inv.period.label), month: inv.period.month, months: inv.period.months, term: inv.termName ?? '', from: formatDate(inv.period.from), to: formatDate(inv.period.to) })
+              : `${tr(inv.period.label)} (${formatDate(inv.period.from)} – ${formatDate(inv.period.to)})`}
+          </p>
+        )}
         <p className="text-base text-fg-secondary">{inv.room ? `${t('{room} has one shared meter.', { room: inv.room })} ` : ''}{t('Each segment is split equally among the residents in it.')}</p>
       </div>
       {/* Phone: MOB-BIL-03 Utility Invoice › Segments (Figma 104:14502) — a dated line and its usage per segment. */}
@@ -138,14 +172,15 @@ export default function InvoiceDetail() {
               <Button size="lg" block disabled>
                 {t('Paid on {date}', { date: formatDate(inv.paidAt) })}
               </Button>
-            ) : payable ? (
+            ) : payable || inv.status === 'Awaiting confirmation' ? (
               <Button variant="primary" size="lg" block to={`/student/invoices/${inv.id}/pay`}>
-                Pay with VietQR
+                {payable ? t('Pay with VietQR') : t('View payment')}
               </Button>
             ) : null}
             {inv.type === 'utility' && inv.utilityDeposit != null && (
               <p className="text-sm text-fg-tertiary">{t('Your Utility Deposit ({amount}) is not used for monthly bills. It is settled at check-out.', { amount: formatVnd(inv.utilityDeposit) })}</p>
             )}
+            {(inv.status === 'Paid' || inv.status === 'Refunded') && <ReceiptCard inv={inv} />}
           </Card>
         </div>
       )}

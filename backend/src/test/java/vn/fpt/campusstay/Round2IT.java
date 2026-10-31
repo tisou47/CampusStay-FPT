@@ -188,7 +188,7 @@ class Round2IT {
 
         mvc.perform(put("/students/me/refund-account")
                         .header(HttpHeaders.AUTHORIZATION, offered.auth()).contentType("application/json")
-                        .content("{\"holder\":\"Ngo Thi Lan\",\"number\":\"0123 456 789\",\"bank\":\"VietinBank\"}"))
+                        .content("{\"holder\":\"Ngo Thi Lan\",\"number\":\"0123 456 789\",\"bankCode\":\"970415\",\"accepted\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.number").value("0123456789"));
         stay.postJson(path + "/withdraw", waiting.auth(), "{}").andExpect(status().isNotFound());

@@ -1,6 +1,7 @@
 package vn.fpt.campusstay;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -11,6 +12,7 @@ import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -92,8 +94,18 @@ final class ApplyFlow {
                 .contentType(MediaType.APPLICATION_JSON).content("{}"));
     }
 
-    /** A Manager confirms the claims of the Invoices. */
+    /** A Manager attaches the transfer receipt to the Invoice's open claim (R-23). */
+    ResultActions attachReceipt(String invoiceId) throws Exception {
+        return mvc.perform(multipart("/payment-claims/" + invoiceId + "/receipt")
+                .file(new MockMultipartFile("receipt", "transfer.png", "image/png", PNG))
+                .header(HttpHeaders.AUTHORIZATION, manager()));
+    }
+
+    /** A Manager attaches each claim's receipt, then confirms the claims of the Invoices. */
     ResultActions confirm(String... invoiceIds) throws Exception {
+        for (String id : invoiceIds) {
+            attachReceipt(id);
+        }
         return mvc.perform(post("/payment-claims/confirm").header(HttpHeaders.AUTHORIZATION, manager())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"invoiceIds\":[" + String.join(",", java.util.Arrays.stream(invoiceIds)

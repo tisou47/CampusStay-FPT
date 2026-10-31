@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import '../api.dart';
 import '../common.dart';
 
-/// Payments: what is outstanding and every Invoice (`GET /students/me/invoices`, A-39).
+/// Payments: what is outstanding, every Invoice (`GET /students/me/invoices`, A-39) and the refunds, which are not
+/// Invoices (`GET /students/me/refunds`, A-66).
 class PaymentsScreen extends StatelessWidget {
   const PaymentsScreen({super.key});
 
@@ -14,7 +15,11 @@ class PaymentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Loader<Json>(
-      fetch: () => Api.get('/students/me/invoices?pageSize=100'),
+      fetch: () async {
+        final d = await Api.get('/students/me/invoices?pageSize=100');
+        d['refunds'] = await Api.get('/students/me/refunds?pageSize=50');
+        return d;
+      },
       builder: (context, d, reload) {
         final summary = d.obj('summary');
         final warning = summary?.obj('warning');
@@ -63,6 +68,25 @@ class PaymentsScreen extends StatelessWidget {
                 ),
               ),
             ),
+          if (d.obj('refunds')?.objects('items').isNotEmpty ?? false)
+            Section(title: t('Refunds', 'Hoàn tiền'), children: [
+              for (final refund in d.obj('refunds')!.objects('items'))
+                Column(crossAxisAlignment: CrossAxisAlignment.start, spacing: 4, children: [
+                  Row(children: [
+                    Expanded(child: Text(refund.text('reason'), style: const TextStyle(fontWeight: FontWeight.w500))),
+                    Text(money(refund.number('amount')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ]),
+                  if (refund.number('percent') != null)
+                    Line(t('Rule', 'Quy định'), '${refund.text('rule')} · ${refund.number('percent')}%'),
+                  Row(children: [
+                    Expanded(
+                      child: Text(t('Requested ', 'Yêu cầu ') + moment(refund.str('createdAt')),
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                    ),
+                    StatusChip(refund.str('status')),
+                  ]),
+                ]),
+            ]),
         ]);
       },
     );

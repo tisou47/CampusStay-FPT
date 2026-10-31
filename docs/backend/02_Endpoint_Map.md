@@ -162,6 +162,8 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | BIL | GET | `/invoices` | Should | Verified | TC-BIL-020 |
 | BIL | GET | `/refunds` | Should | Verified | C-28; TC-BIL-021 |
 | BIL | POST | `/refunds/{id}/decision` | Should | Verified | TC-BIL-021 |
+| BIL | POST | `/refunds/{id}/account-reminder` | Should | Verified | A-66 (R-19); TC-BIL-040 |
+| BIL | GET | `/students/me/refunds` | Should | Verified | A-66 (R-24); TC-BIL-040 |
 | REQ | GET | `/room-changes` | Should | Verified | C-26, B-08 (next Term since v2 phase 6); TC-REQ-002, 003 |
 | REQ | POST | `/room-changes` | Should | Verified | B-08; TC-REQ-001 |
 | REQ | GET | `/room-changes/options` | Should | Verified | B-08; TC-REQ-001 |
@@ -186,6 +188,7 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
 | AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
 | AUTH | PUT | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058, TC-APP-025 |
+| AUTH | GET | `/banks` | Must | Verified | A-66 (R-22); TC-AUTH-058 |
 | AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
 | BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |
 | BIL | POST | `/meter-periods/{id}/close` | Should | Verified | C-29; shares in `UtilitySplitTest` (TC-BIL-022, 029…031); TC-BIL-024, 026 |
@@ -332,6 +335,7 @@ Built on `feat/v2-phase5` (ADR-22, ADR-23, ADR-27), in `main` and production sin
 | BIL | POST | `/invoices/{id}/claim` | Must | Verified | A-34; the student's "I have transferred"; one open claim; Deposit and Balance only before their deadline; TC-BIL-032, 033, 034, 035 |
 | BIL | GET | `/payment-claims` | Must | Verified | A-35; Managers; filters type, since, q, Term, Block (the web sends no Term: a queue of every Term); count and total; TC-BIL-032, 034 |
 | BIL | POST | `/payment-claims/confirm` | Must | Verified | A-35; each Invoice paid at the time of its claim, audited and announced on its own; TC-BIL-032, 034, 035 |
+| BIL | POST | `/payment-claims/{invoiceId}/receipt` | Must | Verified | A-66, B-15 (R-23): the transfer receipt a bulk confirmation needs; TC-BIL-032 |
 | BIL | POST | `/payment-claims/reject` | Must | Verified | A-35; reason required; time left given back (min. 12 h); a second rejection cancels a Deposit or Balance; debts never cancelled; TC-BIL-033, 034, 035, TC-ASG-034 |
 | ASG | GET | `/students/me/late-check-in` | Should | Verified | A-36; TC-ASG-037 |
 | ASG | POST | `/students/me/late-check-in` | Should | Verified | A-36; reason, day (up to the check-in end + `late_check_in.max_days`), evidence file; Managers told; TC-ASG-033, 037 |
