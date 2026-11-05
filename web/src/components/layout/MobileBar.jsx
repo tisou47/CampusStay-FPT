@@ -31,10 +31,10 @@ export function useMobileBar(title, back) {
   }, [setBar, title, back])
 }
 
-export function MobileAppBar() {
+export function MobileAppBar({ termLabel }) {
   const navigate = useNavigate()
   const { bar } = useContext(MobileBarContext)
-  const { user, term, signOut } = useSession()
+  const { user, signOut } = useSession()
   const { unread } = useNotifications()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
@@ -68,10 +68,10 @@ export function MobileAppBar() {
               <div className="border-b border-line px-3 pt-1.5 pb-2.5">
                 <p className="text-base font-medium text-fg">{user.name}</p>
                 <p className="truncate text-sm text-fg-tertiary">{user.studentCode ?? user.email}</p>
-                {term && (
+                {termLabel && (
                   <p className="mt-1 flex items-center gap-1.5 text-sm text-fg-secondary">
-                    <Calendar size={14} aria-hidden="true" />
-                    {term.name}
+                    <Calendar size={14} aria-hidden="true" className="shrink-0" />
+                    {termLabel}
                   </p>
                 )}
               </div>

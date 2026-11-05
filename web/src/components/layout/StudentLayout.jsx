@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { Calendar, ChevronDown, KeyRound, LogOut, ShieldAlert, User } from 'lucide-react'
+import { api } from '@/api/endpoints'
+import { useQuery } from '@/api/hooks'
 import { isNavActive, studentNav } from '@/app/navigation'
-import { useSession } from '@/app/session'
+import { setupPath, useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
 import { MenuItem, Popover } from '@/components/ui/Popover'
 import { t } from '@/i18n'
@@ -21,11 +23,31 @@ export function StudentContainer({ className, children }) {
   return <div className={cx('mx-auto w-full max-w-170 px-4 lg:max-w-[1248px] lg:px-6', className)}>{children}</div>
 }
 
+const ENDED_APPLICATION = new Set(['Rejected', 'Cancelled', 'Expired', 'Forfeited'])
+
+/**
+ * Says what the Term in the student's bar is to them, since GET /terms marks each student's own Term as current
+ * (C-19): the Term they live in, the one they applied for, or the one open for registration.
+ */
+function useTermLabel() {
+  const { user, term } = useSession()
+  const home = useQuery(['home', term?.id], ({ signal }) => api.me.home({ termId: term?.id }, { signal }), {
+    enabled: Boolean(term) && !setupPath(user),
+  })
+  if (!term) return null
+  const mine = home.data?.term?.id === term.id ? home.data : null
+  const name = term.name
+  if (mine?.checkedIn) return t('Living in: {name}', { name })
+  if (mine?.application && !ENDED_APPLICATION.has(mine.application.status)) return t('Application: {name}', { name })
+  if (mine && term.registrationOpen) return t('Registration open: {name}', { name })
+  return t('Term {name}', { name })
+}
+
 // Figma: 02 Components › Shell/Student Top Bar.
-function StudentTopBar() {
+function StudentTopBar({ termLabel }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { user, term, signOut } = useSession()
+  const { user, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
     <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band lg:block">
@@ -56,10 +78,10 @@ function StudentTopBar() {
         </div>
         {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
         <div className="flex items-center gap-4">
-          {term && (
+          {termLabel && (
             <span className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-sm font-medium whitespace-nowrap text-fg shadow-card xl:flex">
               <Calendar size={16} aria-hidden="true" />
-              {term.name}
+              {termLabel}
             </span>
           )}
           <LanguageSwitch size="sm" />
@@ -70,8 +92,8 @@ function StudentTopBar() {
             trigger={({ toggle, props }) => (
               <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
                 <Avatar name={user?.name} />
-                <span className="hidden flex-col whitespace-nowrap xl:flex">
-                  <span className="text-base font-semibold text-band-fg">{user?.name ?? t('Not signed in')}</span>
+                <span className="hidden flex-col whitespace-nowrap xl:flex xl:max-w-24 2xl:max-w-none">
+                  <span className="truncate text-base font-semibold text-band-fg">{user?.name ?? t('Not signed in')}</span>
                   {user?.studentCode && <span className="text-sm text-band-fg">{user.studentCode}</span>}
                 </span>
                 <ChevronDown size={16} aria-hidden="true" className="text-band-fg" />
@@ -133,11 +155,12 @@ function VerificationBanner() {
 // One-screen shell: the window never scrolls; each page fills the area under the top bar.
 // On a phone the App Bar and Bottom Nav stay in place and the page scrolls between them.
 export function StudentLayout() {
+  const termLabel = useTermLabel()
   return (
     <MobileBarProvider>
       <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
-        <StudentTopBar />
-        <MobileAppBar />
+        <StudentTopBar termLabel={termLabel} />
+        <MobileAppBar termLabel={termLabel} />
         <VerificationBanner />
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <Outlet />
