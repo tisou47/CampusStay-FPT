@@ -6,6 +6,7 @@ import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { StageNow } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
+import { AutoTabs } from '@/components/ui/AutoTabs'
 import { KpiTile } from '@/components/ui/Charts'
 import { Avatar } from '@/components/ui/Display'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
@@ -170,64 +171,84 @@ export default function ManagerDashboard() {
         <KpiTile icon={TriangleAlert} label="Waiting for you" value={loading ? '—' : formatNumber(items.length)} valueTone={items.length ? 'warning' : undefined} note="Decisions in the list below" />
       </div>
 
-      <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,1fr)_380px] gap-4">
-        <Panel title="Waiting for you" subtitle="Every decision that needs a Manager, the most urgent first">
-          <QueryState query={query} compact isEmpty={() => false}>
-            {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, Applications, proposals and requests appear here.</EmptyBlock>} />}
-          </QueryState>
-          {routingGaps.length > 0 && (
-            <p className="mt-2 flex items-center gap-2 border-t border-line pt-2 text-sm text-fg-secondary">
-              <Route size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
-              <span className="min-w-0 flex-1">
-                {t('Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.', { n: routingGaps.length, list: gapBlocks.join(', ') })}
-              </span>
-              <Link to="/manager/routing-rules" className="shrink-0 font-medium text-fg-link hover:underline">
-                {t('Add rules')}
-              </Link>
-            </p>
-          )}
-        </Panel>
-
-        <div className="flex min-h-0 flex-col gap-4">
-          <Panel title="Beds by Block" subtitle="Allocated and proposed Beds against capacity" className="min-h-0 flex-1">
-            <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
-              {(data) => <CapacityRows rows={data.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />}
-            </QueryState>
-            {d?.floorNote && <p className="pt-2 text-sm text-fg-tertiary">{tr(d.floorNote)}</p>}
-          </Panel>
-
-          <Panel
-            title="Staff on duty"
-            subtitle={s ? t('{n} of {total} on duty · new requests go to them', { n: s.onDuty, total: s.total }) : null}
-            action={
+      <AutoTabs
+        className="min-h-96 flex-1"
+        eyebrow={t('Overview')}
+        title={t('Work at a glance')}
+        label={t('Work at a glance')}
+        tabs={[
+          {
+            key: 'waiting',
+            label: t('Waiting for you'),
+            icon: TriangleAlert,
+            note: t('Every decision that needs a Manager, the most urgent first'),
+            content: (
+              <>
+                <QueryState query={query} compact isEmpty={() => false}>
+                  {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, Applications, proposals and requests appear here.</EmptyBlock>} />}
+                </QueryState>
+                {routingGaps.length > 0 && (
+                  <p className="mt-2 flex items-center gap-2 border-t border-line pt-2 text-sm text-fg-secondary">
+                    <Route size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+                    <span className="min-w-0 flex-1">
+                      {t('Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.', { n: routingGaps.length, list: gapBlocks.join(', ') })}
+                    </span>
+                    <Link to="/manager/routing-rules" className="shrink-0 font-medium text-fg-link hover:underline">
+                      {t('Add rules')}
+                    </Link>
+                  </p>
+                )}
+              </>
+            ),
+          },
+          {
+            key: 'beds',
+            label: t('Beds by Block'),
+            icon: Bed,
+            note: t('Allocated and proposed Beds against capacity'),
+            content: (
+              <>
+                <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
+                  {(data) => <CapacityRows rows={data.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />}
+                </QueryState>
+                {d?.floorNote && <p className="pt-2 text-sm text-fg-tertiary">{tr(d.floorNote)}</p>}
+              </>
+            ),
+          },
+          {
+            key: 'staff',
+            label: t('Staff on duty'),
+            icon: Users,
+            note: s ? t('{n} of {total} on duty · new requests go to them', { n: s.onDuty, total: s.total }) : null,
+            action: (
               <Button variant="text" size="sm" icon={Users} iconSize={16} to="/manager/staff">
                 Workload
               </Button>
-            }
-            className="min-h-0 flex-1"
-          >
-            <QueryState query={staff} compact isEmpty={(x) => !x.items?.length}>
-              {() => (
-                <ul className="flex flex-col divide-y divide-line">
-                  {[...people]
-                    .sort((x, y) => Number(y.onDuty) - Number(x.onDuty) || y.open - x.open)
-                    .map((p) => (
-                      <li key={p.id} className="flex items-center gap-2.5 py-2">
-                        <Avatar name={p.name} size={28} />
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-base text-fg">{p.name}</span>
-                          <span className="truncate text-sm text-fg-tertiary">{p.handles.map((h) => tr(h)).join(', ') || tr(p.title)}</span>
-                        </div>
-                        <span className="shrink-0 text-sm text-fg-secondary tabular">{t('{n} open', { n: p.open })}</span>
-                        <span title={t(p.onDuty ? 'On duty' : 'Off duty')} className={cx('size-2 shrink-0 rounded-full', p.onDuty ? 'bg-success' : 'bg-gray-300')} />
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </QueryState>
-          </Panel>
-        </div>
-      </div>
+            ),
+            content: (
+              <QueryState query={staff} compact isEmpty={(x) => !x.items?.length}>
+                {() => (
+                  <ul className="flex flex-col divide-y divide-line">
+                    {[...people]
+                      .sort((x, y) => Number(y.onDuty) - Number(x.onDuty) || y.open - x.open)
+                      .map((p) => (
+                        <li key={p.id} className="flex items-center gap-2.5 py-2">
+                          <Avatar name={p.name} size={28} />
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <span className="truncate text-base text-fg">{p.name}</span>
+                            <span className="truncate text-sm text-fg-tertiary">{p.handles.map((h) => tr(h)).join(', ') || tr(p.title)}</span>
+                          </div>
+                          <span className="shrink-0 text-sm text-fg-secondary tabular">{t('{n} open', { n: p.open })}</span>
+                          <span title={t(p.onDuty ? 'On duty' : 'Off duty')} className={cx('size-2 shrink-0 rounded-full', p.onDuty ? 'bg-success' : 'bg-gray-300')} />
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </QueryState>
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

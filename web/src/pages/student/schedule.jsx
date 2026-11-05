@@ -1,3 +1,5 @@
+import { BedDouble, ClipboardList, CreditCard } from 'lucide-react'
+import { AutoTabs } from '@/components/ui/AutoTabs'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { getLang, t } from '@/i18n'
@@ -54,6 +56,14 @@ function monthTicks(from, to) {
   return ticks.length > 7 ? ticks.filter((_, i) => i % 2 === 0) : ticks
 }
 
+// The milestones grouped into the tabs of the graph; a milestone not listed goes to the last one.
+const PHASES = [
+  { key: 'register', label: 'Registration', icon: ClipboardList },
+  { key: 'move-in', label: 'Pay and check in', icon: CreditCard },
+  { key: 'stay', label: 'Stay', icon: BedDouble },
+]
+const PHASE_OF = { registration: 'register', resultsPublishedAt: 'register', balanceDueAt: 'move-in', checkIn: 'move-in' }
+
 /** The graph; `timeline` as the API sends it, `now` for tests. */
 export function TermSchedule({ timeline, now = Date.now(), className }) {
   const rows = scheduleRows(timeline)
@@ -69,9 +79,10 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
   const ticks = monthTicks(from, to)
   // The first row not over yet is the one to watch.
   const current = rows.findIndex((r) => (r.end ?? r.start) > now)
+  const stateOf = (r) => (r === rows[current] ? 'current' : (r.end ?? r.start) <= now ? 'done' : 'upcoming')
 
-  return (
-    <div className={cx('flex flex-col gap-2', className)}>
+  const graph = (phaseRows) => (
+    <div className="flex flex-col gap-2">
       <div aria-hidden="true" className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-x-4">
         <span className="hidden lg:block" />
         <div className="relative h-5 text-xs text-fg-tertiary">
@@ -86,9 +97,10 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
         </div>
       </div>
       <ol className="flex flex-col gap-3 lg:gap-2.5">
-        {rows.map((r, i) => {
-          const state = i === current ? 'current' : (r.end ?? r.start) <= now ? 'done' : 'upcoming'
+        {phaseRows.map((r, i) => {
+          const state = stateOf(r)
           const tone = state === 'current' ? 'bg-primary' : state === 'done' ? 'bg-success' : 'bg-line-strong'
+          const delay = { '--u213-d': `${(0.15 + i * 0.09).toFixed(2)}s` }
           return (
             <li key={r.key} className="grid grid-cols-1 gap-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:items-center lg:gap-x-4">
               <div className="flex items-baseline justify-between gap-3 lg:flex-col lg:items-start lg:gap-0">
@@ -101,11 +113,11 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
                 ))}
                 {r.end ? (
                   <span
-                    className={cx('absolute inset-y-0 min-w-1.5 rounded-full', tone)}
-                    style={{ left: pos(r.start), width: `calc(${pos(r.end)} - ${pos(r.start)})` }}
+                    className={cx('u213-gb absolute inset-y-0 min-w-1.5 rounded-full', tone)}
+                    style={{ ...delay, left: pos(r.start), width: `calc(${pos(r.end)} - ${pos(r.start)})` }}
                   />
                 ) : (
-                  <span className={cx('absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px]', tone)} style={{ left: pos(r.start) }} />
+                  <span className={cx('u213-gd absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px]', tone)} style={{ ...delay, left: pos(r.start) }} />
                 )}
                 {todayIn && <span className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-fg" style={{ left: pos(now) }} />}
               </div>
@@ -120,5 +132,18 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
         </p>
       )}
     </div>
+  )
+
+  const phases = PHASES.map((p) => ({ ...p, rows: rows.filter((r) => (PHASE_OF[r.key] ?? PHASES.at(-1).key) === p.key) })).filter((p) => p.rows.length)
+  const live = current < 0 ? phases.length - 1 : phases.findIndex((p) => p.rows.includes(rows[current]))
+  return (
+    <AutoTabs
+      className={className}
+      eyebrow={t('Schedule')}
+      title={t('The stages of this Term')}
+      label={t('The stages of this Term')}
+      initial={live}
+      tabs={phases.map((p) => ({ key: p.key, label: t(p.label), icon: p.icon, content: graph(p.rows) }))}
+    />
   )
 }
