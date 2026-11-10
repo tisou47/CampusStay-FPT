@@ -945,3 +945,61 @@ Choose who wrote this message. ⟶ Hãy chọn người viết tin nhắn này.
 Write your question. ⟶ Hãy viết câu hỏi của bạn.
 Use at most 2000 characters. ⟶ Dùng tối đa 2000 ký tự.
 The conversation is too long. Start a new one. ⟶ Cuộc trò chuyện quá dài. Hãy bắt đầu cuộc mới.
+
+# ---------- Family Day (ADR-29) ----------
+This Family Day does not exist. ⟶ Ngày gia đình này không tồn tại.
+This time slot does not exist. ⟶ Khung giờ này không tồn tại.
+This guest does not exist. ⟶ Khách này không tồn tại.
+This registration does not exist. ⟶ Đăng ký này không tồn tại.
+Choose one of: {0}. ⟶ Hãy chọn một trong: {0}.
+Only a Draft can be edited. Cancel this Family Day and create a new one instead. ⟶ Chỉ bản nháp mới sửa được. Hãy hủy Ngày gia đình này và tạo một sự kiện mới.
+Write a title of 3 to 120 characters. ⟶ Hãy nhập tiêu đề từ 3 đến 120 ký tự.
+Write where families are received (2 to 200 characters). ⟶ Hãy nhập nơi đón tiếp gia đình (2 đến 200 ký tự).
+Allow from 1 to 10 guests per student. ⟶ Mỗi sinh viên được mời từ 1 đến 10 khách.
+Choose when registration opens. ⟶ Hãy chọn thời điểm mở đăng ký.
+Choose when registration closes. ⟶ Hãy chọn thời điểm đóng đăng ký.
+Registration must close after it opens. ⟶ Thời điểm đóng đăng ký phải sau thời điểm mở.
+Add from 1 to 10 time slots. ⟶ Hãy thêm từ 1 đến 10 khung giờ.
+Choose when the time slot starts and ends. ⟶ Hãy chọn giờ bắt đầu và kết thúc của khung giờ.
+A time slot must end after it starts. ⟶ Khung giờ phải kết thúc sau khi bắt đầu.
+Allow from 1 to 5000 guests in a time slot. ⟶ Mỗi khung giờ nhận từ 1 đến 5000 khách.
+Registration must close before the first time slot starts. ⟶ Đăng ký phải đóng trước khi khung giờ đầu tiên bắt đầu.
+Time slots must not overlap. ⟶ Các khung giờ không được trùng nhau.
+Choose the Block that receives the families. ⟶ Hãy chọn Block đón tiếp gia đình.
+This Family Day is already published. ⟶ Ngày gia đình này đã được công bố.
+Registration must close and the first time slot must start in the future. Edit the dates first. ⟶ Thời điểm đóng đăng ký và khung giờ đầu tiên phải ở tương lai. Hãy sửa lại thời gian trước.
+Write why the Family Day is cancelled. ⟶ Hãy ghi lý do hủy Ngày gia đình.
+This Family Day is already cancelled or completed. ⟶ Ngày gia đình này đã bị hủy hoặc đã kết thúc.
+Guests have already come in. Close the Family Day instead of cancelling it. ⟶ Đã có khách vào. Hãy kết thúc Ngày gia đình thay vì hủy.
+Only a published Family Day can be closed. ⟶ Chỉ Ngày gia đình đã công bố mới kết thúc được.
+The last time slot ends at {0}. Close the Family Day after it. ⟶ Khung giờ cuối kết thúc lúc {0}. Hãy kết thúc Ngày gia đình sau thời điểm đó.
+{0} guests are still checked in. Check them out at the desk first. ⟶ Còn {0} khách chưa ra. Hãy ghi nhận khách ra tại quầy trước.
+Write why the registration is cancelled. ⟶ Hãy ghi lý do hủy đăng ký.
+This registration is already cancelled. ⟶ Đăng ký này đã bị hủy.
+A guest of this registration has already come in, so it cannot be cancelled. ⟶ Đã có khách của đăng ký này vào nên không thể hủy.
+Choose a time slot. ⟶ Hãy chọn một khung giờ.
+Choose one of this Family Day's time slots. ⟶ Hãy chọn một khung giờ của Ngày gia đình này.
+Register from 1 to {0} guests. ⟶ Hãy đăng ký từ 1 đến {0} khách.
+Write the guest's full name (2 to 100 characters). ⟶ Hãy nhập họ tên khách (2 đến 100 ký tự).
+Write how the guest is related to you (up to 40 characters). ⟶ Hãy nhập quan hệ của khách với bạn (tối đa 40 ký tự).
+Enter the guest's year of birth. ⟶ Hãy nhập năm sinh của khách.
+This guest is already in the list. ⟶ Khách này đã có trong danh sách.
+A guest under {0} must come with an adult guest. ⟶ Khách dưới {0} tuổi phải đi cùng một khách là người lớn.
+This time slot has already started. Choose a later one. ⟶ Khung giờ này đã bắt đầu. Hãy chọn khung giờ sau.
+This time slot is full. Choose another one. ⟶ Khung giờ này đã đủ chỗ. Hãy chọn khung giờ khác.
+Only {0} places are left in this time slot. Choose another one or register fewer guests. ⟶ Khung giờ này chỉ còn {0} chỗ. Hãy chọn khung giờ khác hoặc đăng ký ít khách hơn.
+You have already registered guests for this Family Day. ⟶ Bạn đã đăng ký khách cho Ngày gia đình này.
+You have no registration for this Family Day. ⟶ Bạn chưa đăng ký khách cho Ngày gia đình này.
+Your time slot has already started, so the registration can no longer be cancelled. ⟶ Khung giờ của bạn đã bắt đầu nên không thể hủy đăng ký nữa.
+Only residents of this Block can register guests for its Family Day. ⟶ Chỉ sinh viên đang ở Block này mới đăng ký khách cho Ngày gia đình của Block.
+Registration opens on {0} at {1}. ⟶ Đăng ký mở vào ngày {0} lúc {1}.
+Registration for this Family Day is closed. ⟶ Đăng ký cho Ngày gia đình này đã đóng.
+This pass is not a Family Day pass of CampusStay. ⟶ Mã này không phải mã vào Ngày gia đình của CampusStay.
+Check the guest's identity paper against their name before letting them in. ⟶ Hãy đối chiếu giấy tờ tùy thân với tên khách trước khi cho vào.
+This guest is already checked in. ⟶ Khách này đã vào rồi.
+This guest is not checked in. ⟶ Khách này chưa vào.
+This pass was cancelled and no longer works. ⟶ Mã vào này đã bị hủy và không còn hiệu lực.
+This Family Day is over. ⟶ Ngày gia đình này đã kết thúc.
+This pass was already used: the guest came and left. ⟶ Mã vào này đã được dùng: khách đã vào và ra.
+This guest's time slot is {0}. Check them in from {1}. ⟶ Khung giờ của khách là {0}. Hãy cho khách vào từ {1}.
+This guest's time slot ended at {0}. ⟶ Khung giờ của khách đã kết thúc lúc {0}.

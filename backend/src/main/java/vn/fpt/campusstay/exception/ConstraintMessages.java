@@ -15,6 +15,8 @@ public final class ConstraintMessages {
 
     private static final Map<String, Entry> ENTRIES = Map.ofEntries(
             Map.entry("ux_auth_user_email", new Entry("EMAIL_TAKEN", "An account with this email already exists.")),
+            Map.entry("ux_vis_registration_live", new Entry("FAMILY_DAY_ALREADY_REGISTERED", "You have already registered guests for this Family Day.")),
+            Map.entry("ck_vis_time_slot_capacity", new Entry("FAMILY_DAY_SLOT_FULL", "This time slot is full. Choose another one.")),
             Map.entry("ex_term_no_overlap", new Entry("TERM_OVERLAP", "The stay dates overlap another published Term.")),
             Map.entry("ux_app_one_live_per_term", new Entry("APPLICATION_EXISTS", "You already have an Application for this Term.")),
             Map.entry("ux_invite_one_pending_per_inviter", new Entry("INVITATION_PENDING", "You already have a pending roommate invitation.")),

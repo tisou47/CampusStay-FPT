@@ -39,6 +39,7 @@ const FEATURES = [
   ['NTF', 'Notifications, push, templates, email', 'notification'],
   ['RPT', 'Dashboards, reports, exports', 'report'],
   ['AST', "Students' AI assistant", 'assistant'],
+  ['VIS', 'Family Day: events, guest registrations, passes, visitor desk', 'visitor'],
   ['ARCH', 'Architecture rules', null],
 ]
 

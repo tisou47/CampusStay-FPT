@@ -278,7 +278,7 @@ public class FamilyDayService {
         errors.check(area != null && area.length() >= 2 && area.length() <= 200, "area",
                 "Write where families are received (2 to 200 characters).");
         errors.check(description == null || description.length() <= 2000, "description",
-                "Keep the description under 2000 characters.");
+                "Keep the description under 2,000 characters.");
         errors.check(cmd.maxGuests() != null && cmd.maxGuests() >= 1 && cmd.maxGuests() <= 10, "maxGuests",
                 "Allow from 1 to 10 guests per student.");
         errors.check(cmd.registrationOpensAt() != null, "registrationOpensAt", "Choose when registration opens.");
