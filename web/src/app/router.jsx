@@ -15,6 +15,11 @@ import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
 const Announcements = () => import('@/pages/common/Announcements')
 const Profile = () => import('@/pages/common/Profile')
+const FamilyDays = () => import('@/pages/manager/FamilyDays')
+const FamilyDayDetail = () => import('@/pages/manager/FamilyDayDetail')
+const VisitorDesk = () => import('@/pages/staff/VisitorDesk')
+const MyFamilyDays = () => import('@/pages/student/FamilyDays')
+const MyFamilyDay = () => import('@/pages/student/FamilyDayDetail')
 const TermRequests = () => import('@/pages/registration/TermRequests')
 
 // Student — 05 Web – Student
@@ -197,6 +202,8 @@ export const router = createBrowserRouter([
         { path: 'verification', ...page(Verification) },
         { path: 'profile', ...page(Profile, { role: 'student' }) },
         { path: 'registration-periods/:termId', ...page(RegistrationPeriod) },
+        { path: 'family-days', ...page(MyFamilyDays) },
+        { path: 'family-days/:id', ...page(MyFamilyDay) },
       ]),
 
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
@@ -219,6 +226,9 @@ export const router = createBrowserRouter([
         { path: 'check-out', ...page(CheckOutDesk) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
+        { path: 'family-days', ...page(FamilyDays) },
+        { path: 'family-days/:id', ...page(FamilyDayDetail) },
+        { path: 'family-days/:id/desk', ...page(VisitorDesk) },
         { path: 'announcements', ...page(Announcements) },
         { path: 'profile', ...page(Profile, { role: 'staff' }) },
       ]),
@@ -236,6 +246,9 @@ export const router = createBrowserRouter([
         { path: 'payments', ...page(Payments) },
         { path: 'payment-claims', ...page(PaymentClaims) },
         { path: 'terminations', ...page(Terminations) },
+        { path: 'family-days', ...page(FamilyDays) },
+        { path: 'family-days/:id', ...page(FamilyDayDetail) },
+        { path: 'family-days/:id/desk', ...page(VisitorDesk) },
         { path: 'room-changes', ...page(RoomChangeQueue) },
         { path: 'room-changes/swaps', ...page(SwapRequests) },
         { path: 'next-term', ...page(TermTransition) },

@@ -47,6 +47,8 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-06 | Account verification (sign-up form) | `/student/verification` | — | `GET /students/me/verification`<br>`PUT /students/me/verification` | [student/Verification.jsx](../../web/src/pages/student/Verification.jsx) |
 | — | My profile (`role="student"`) | `/student/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 | SCR-HOME-05 | Registration period details | `/student/registration-periods/:termId` | — | `GET /registration-periods/:termId` | [student/RegistrationPeriod.jsx](../../web/src/pages/student/RegistrationPeriod.jsx) |
+| SCR-VIS-04 | Family Days | `/student/family-days` | — | `GET /students/me/family-days` | [student/FamilyDays.jsx](../../web/src/pages/student/FamilyDays.jsx) |
+| SCR-VIS-05 | Family Day | `/student/family-days/:id` | — | `GET /students/me/family-days/:id`<br>`POST /students/me/family-days/:id/registration`<br>`POST /students/me/family-days/:id/registration/cancel` | [student/FamilyDayDetail.jsx](../../web/src/pages/student/FamilyDayDetail.jsx) |
 
 ## Staff — Figma page 06 Web – Staff
 
@@ -70,6 +72,9 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-12 | Check-out Desk | `/staff/check-out` | 95:3876 | `GET /check-out`<br>`GET /check-out/:allocationId`<br>`POST /check-out/:allocationId` | [staff/CheckOutDesk.jsx](../../web/src/pages/staff/CheckOutDesk.jsx) |
 | SCR-AUTH-13 | Students | `/staff/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
 | SCR-AUTH-14 | Student hub | `/staff/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
+| SCR-VIS-01 | Family Days | `/staff/family-days` | — | `GET /family-days`<br>`POST /family-days` | [manager/FamilyDays.jsx](../../web/src/pages/manager/FamilyDays.jsx) |
+| SCR-VIS-02 | Family Day | `/staff/family-days/:id` | — | `GET /family-days/:id`<br>`GET /family-days/:id/registrations`<br>`PUT /family-days/:id`<br>`POST /family-days/:id/publish`<br>`POST /family-day-registrations/:id/cancel` | [manager/FamilyDayDetail.jsx](../../web/src/pages/manager/FamilyDayDetail.jsx) |
+| SCR-VIS-03 | Family Day visitor desk | `/staff/family-days/:id/desk` | — | `POST /family-day-visitors/verify`<br>`GET /family-days/:id/visitors`<br>`POST /family-day-visitors/:id/check-in`<br>`POST /family-day-visitors/:id/check-out` | [staff/VisitorDesk.jsx](../../web/src/pages/staff/VisitorDesk.jsx) |
 | SCR-NTF-22 | Announcements | `/staff/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
 | — | My profile (`role="staff"`) | `/staff/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 
@@ -87,6 +92,9 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-BIL-10 | Payments | `/manager/payments` | 23:614 | `GET /payments`<br>`POST /payments/:invoiceId/confirm` | [staff/Payments.jsx](../../web/src/pages/staff/Payments.jsx) |
 | SCR-BIL-13 | Payment confirmations | `/manager/payment-claims` | — | `GET /payment-claims`<br>`POST /payment-claims/:invoiceId/receipt`<br>`POST /payment-claims/confirm`<br>`POST /payment-claims/reject` | [manager/PaymentClaims.jsx](../../web/src/pages/manager/PaymentClaims.jsx) |
 | SCR-ASG-12 | Terminations | `/manager/terminations` | — | `GET /terminations`<br>`POST /terminations`<br>`POST /terminations/:id/cancel` | [manager/Terminations.jsx](../../web/src/pages/manager/Terminations.jsx) |
+| SCR-VIS-01 | Family Days | `/manager/family-days` | — | `GET /family-days`<br>`POST /family-days` | [manager/FamilyDays.jsx](../../web/src/pages/manager/FamilyDays.jsx) |
+| SCR-VIS-02 | Family Day | `/manager/family-days/:id` | — | `GET /family-days/:id`<br>`GET /family-days/:id/registrations`<br>`PUT /family-days/:id`<br>`POST /family-days/:id/publish`<br>`POST /family-day-registrations/:id/cancel` | [manager/FamilyDayDetail.jsx](../../web/src/pages/manager/FamilyDayDetail.jsx) |
+| SCR-VIS-03 | Family Day visitor desk | `/manager/family-days/:id/desk` | — | `POST /family-day-visitors/verify`<br>`GET /family-days/:id/visitors`<br>`POST /family-day-visitors/:id/check-in`<br>`POST /family-day-visitors/:id/check-out` | [staff/VisitorDesk.jsx](../../web/src/pages/staff/VisitorDesk.jsx) |
 | SCR-REQ-10 | Room-Change Queue | `/manager/room-changes` | 60:2696 | `GET /room-changes`<br>`GET /room-changes/:id/matching-beds`<br>`POST /room-changes/:id/decision` | [staff/RoomChangeQueue.jsx](../../web/src/pages/staff/RoomChangeQueue.jsx) |
 | SCR-REQ-13 | Room Swap Requests | `/manager/room-changes/swaps` | 98:3780 | `GET /swaps`<br>`POST /swaps/:id/decision` | [staff/SwapRequests.jsx](../../web/src/pages/staff/SwapRequests.jsx) |
 | SCR-ASG-20 | Term transition – requests window, next-Term fees and turnover | `/manager/next-term` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |

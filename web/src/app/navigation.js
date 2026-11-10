@@ -18,6 +18,7 @@ import {
   Gauge,
   GraduationCap,
   HandCoins,
+  HeartHandshake,
   Hourglass,
   House,
   KeyRound,
@@ -68,13 +69,14 @@ export function tabGroupFor(role, pathname) {
   return items.find((item) => item.tabs && item.tabs.some((tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`))) ?? null
 }
 
-// Student top bar: Home, Registration, My Room, Payments, Requests.
+// Student top bar: Home, Registration, My Room, Payments, Requests, Family Day.
 export const studentNav = [
   { label: 'Home', to: '/student', end: true },
   { label: 'Registration', to: '/student/applications', match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer'] },
   { label: 'My Room', to: '/student/room' },
   { label: 'Payments', to: '/student/invoices' },
   { label: 'Requests', to: '/student/requests' },
+  { label: 'Family Day', to: '/student/family-days' },
 ]
 
 // Phone width: Home, My Room, Payments, Activity (Registration and Requests), as on Android.
@@ -86,7 +88,7 @@ export const studentTabs = [
     label: 'Activity',
     icon: FileText,
     to: '/student/applications',
-    match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer', '/student/requests'],
+    match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer', '/student/requests', '/student/family-days'],
   },
 ]
 
@@ -126,6 +128,7 @@ export const backOffice = {
           { label: 'Maintenance', icon: Wrench, to: '/staff/maintenance' },
           { label: 'Inspections', icon: ClipboardCheck, to: '/staff/inspections' },
           { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
+          { label: 'Family Days', icon: HeartHandshake, to: '/staff/family-days' },
         ],
       },
       { items: [{ label: 'Announcements', icon: Megaphone, to: '/staff/announcements' }] },
@@ -201,6 +204,7 @@ export const backOffice = {
           { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
+          { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
           {
             label: 'Block settings',
             icon: Settings,

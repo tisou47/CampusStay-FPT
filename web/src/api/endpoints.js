@@ -82,6 +82,12 @@ export const api = {
     assistant: g('/students/me/assistant'),
     /** { messages: [{ role: 'user' | 'assistant', content }] } ending with the question → { reply }. */
     askAssistant: (body) => http.post('/students/me/assistant/chat', body),
+    /** Family Days of the student's Block (ADR-29, A-69): { resident, items }. */
+    familyDays: g('/students/me/family-days'),
+    familyDay: (id, opts) => http.get(`/students/me/family-days/${id}`, undefined, opts),
+    /** { slotId, guests: [{ fullName, relationship, birthYear }] } → the Family Day with the registration and passes. */
+    registerFamily: (id, body) => http.post(`/students/me/family-days/${id}/registration`, body),
+    cancelFamily: (id) => http.post(`/students/me/family-days/${id}/registration/cancel`),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */
@@ -418,6 +424,24 @@ export const api = {
     /** { studentCode, reason: 'Manager decision' | 'Not enrolled', note } → { id, moveOutBy }. */
     start: (body) => http.post('/terminations', body),
     cancel: (id, body) => http.post(`/terminations/${id}/cancel`, body),
+  },
+  /** Family Day (ADR-29, A-69): Managers organise it for a Block; its Staff run the visitor desk. */
+  familyDays: {
+    list: g('/family-days'),
+    get: (id, opts) => http.get(`/family-days/${id}`, undefined, opts),
+    /** { block, title, description, area, registrationOpensAt, registrationClosesAt, maxGuests, slots: [{ startsAt, endsAt, capacity }] }. */
+    create: (body) => http.post('/family-days', body),
+    update: (id, body) => http.put(`/family-days/${id}`, body),
+    publish: (id) => http.post(`/family-days/${id}/publish`),
+    cancel: (id, body) => http.post(`/family-days/${id}/cancel`, body),
+    close: (id, body) => http.post(`/family-days/${id}/close`, body),
+    registrations: (id, query, opts) => http.get(`/family-days/${id}/registrations`, query, opts),
+    cancelRegistration: (id, body) => http.post(`/family-day-registrations/${id}/cancel`, body),
+    visitors: (id, query, opts) => http.get(`/family-days/${id}/visitors`, query, opts),
+    /** { token } from the pass → { visitor, familyDayTitle, canCheckIn, canCheckOut, problem }; changes nothing. */
+    verify: (body) => http.post('/family-day-visitors/verify', body),
+    checkIn: (id, body) => http.post(`/family-day-visitors/${id}/check-in`, body),
+    checkOut: (id, body) => http.post(`/family-day-visitors/${id}/check-out`, body),
   },
   payments: {
     list: g('/payments'),

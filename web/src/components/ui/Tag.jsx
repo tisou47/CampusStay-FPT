@@ -126,6 +126,12 @@ const statusTone = {
   Confirmed: 'success',
   Warning: 'warning',
   'Final warning': 'error',
+  // Family Day (ADR-29)
+  'Registration open': 'success',
+  'Registration closed': 'info',
+  Completed: 'neutral',
+  'Not arrived': 'neutral',
+  'No-show': 'warning',
 }
 
 export function toneForStatus(status) {
