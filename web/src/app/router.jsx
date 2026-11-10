@@ -14,6 +14,7 @@ import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
 const Announcements = () => import('@/pages/common/Announcements')
+const Profile = () => import('@/pages/common/Profile')
 const TermRequests = () => import('@/pages/registration/TermRequests')
 
 // Student — 05 Web – Student
@@ -194,6 +195,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/invitations/:id', ...page(SwapInvitation) },
         { path: 'notifications', ...page(Notifications) },
         { path: 'verification', ...page(Verification) },
+        { path: 'profile', ...page(Profile, { role: 'student' }) },
         { path: 'registration-periods/:termId', ...page(RegistrationPeriod) },
       ]),
 
@@ -218,6 +220,7 @@ export const router = createBrowserRouter([
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'announcements', ...page(Announcements) },
+        { path: 'profile', ...page(Profile, { role: 'staff' }) },
       ]),
 
       // Managers work for every Block: registration, assignment, payments and decisions (ADR-19). They share
@@ -261,6 +264,7 @@ export const router = createBrowserRouter([
         { path: 'terms', ...page(TermDashboard) },
         { path: 'terms/:id', ...page(TermDashboard) },
         { path: 'announcements', ...page(Announcements) },
+        { path: 'profile', ...page(Profile, { role: 'manager' }) },
       ]),
 
       portal('admin', <BackOfficeLayout role="admin" />, [
@@ -273,6 +277,7 @@ export const router = createBrowserRouter([
         { path: 'refunds', ...page(RefundsTerminations) },
         { path: 'stay', ...page(StayRenewal) },
         { path: 'announcements', ...page(Announcements) },
+        { path: 'profile', ...page(Profile, { role: 'admin' }) },
         { path: 'room-types', ...page(RoomTypes) },
         { path: 'room-classes', ...page(RoomClasses) },
         { path: 'fees', ...page(FeesRules) },

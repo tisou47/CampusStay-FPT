@@ -48,9 +48,9 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read, kind: 'notification'\|'announcement' }], unread }`; a student's list also holds the board's announcements (`id: 'ann-<n>'`) and `unread` counts them (C-41) |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | `id` may be `ann-<n>` (an announcement) | `204` |
 | GET | `/registration-periods/current` | — | `{ card: { termId, name, status: 'Opens soon'\|'Open'\|'Closed', opensAt, closesAt, countdownTo, stayStart, stayEnd, places, fromPrice } \| null }` (A-29) |
-| GET | `/registration-periods/{termId}` | — | A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit }], depositPercent, utilityDeposit, rooms: [{ roomType, roomClass, gender, rooms, beds }], houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `404` for a Draft (A-29) |
+| GET | `/registration-periods/{termId}` | — | A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit, places, furniture: [{ name, nameVi, quantity }] }], depositPercent, utilityDeposit, houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `places`: Beds of the reader's gender for a student; `404` for a Draft (A-29, B-14) |
 
-- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
+- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `403 GOOGLE_NOT_FOR_DEMO` (a fictional back-office account of the base data signs in with its password only), `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
 - **Password rule:** 8–64 characters, at least one letter and one number, not containing the email name; otherwise `400 WEAK_PASSWORD` with a message to show as is.
 - **Email links:** invitation and reset emails open the web pages `/set-password?token=…` (valid 72 hours) and `/reset-password?token=…` (valid 30 minutes). Both call `POST /auth/password/reset`, then go to Sign In. Each token works once. Students sign up with Google (A-17); back-office accounts are invited.
 
@@ -89,6 +89,8 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 }
 ```
 
+`contact` is optional, and so is each of its fields (a field given must be valid): without it the Application keeps the contact on the student's profile (C-46).
+
 `stayTerms` is the stay length, the number of Terms the student wants to stay: 1 to `maxStayTerms` of `GET /applications/eligibility` (default 1, A-38).
 
 `roommate` is sent only for Room Types with 2 Beds. `roommate.preferences` is the free, optional **Roommate preferences** service: it is sent only when the student chose *Match me automatically* and turned the service on. The matcher weighs it on top of the Admin Matching Criteria (see the boost setting).
@@ -107,7 +109,7 @@ Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-0001
 - `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
 - `POST /applications/{id}/withdraw` (a Waitlisted Application) → `{ applicationId, refund }`: an open offer closes as declined, the Application is cancelled and the whole Deposit refunded after a Manager approves; `GET /applications/{id}` of a Waitlisted one carries `waitlist: { offer: { id, expiresAt, options } | null, until, refund }` (A-61)
 - `GET /students/me/refund-account` → `{ holder, number, bank, updatedAt }` · `PUT /students/me/refund-account` `{ holder, number, bank }` → the same (A-62)
-- `GET /students/me/assistant` → `{ enabled }` · `POST /students/me/assistant/chat` `{ messages: [{ role: user|assistant, content }] }` (1–40 messages, ending with the question, each ≤ 2000 characters) → `{ reply }`; `429 ASSISTANT_LIMIT` over the hourly limit, `503 ASSISTANT_OFFLINE` without a model server (A-64)
+- `GET /students/me/assistant` → `{ enabled }` · `POST /students/me/assistant/chat` `{ messages: [{ role: user|assistant, content }] }` (1–40 messages, ending with the question, each ≤ 2000 characters) → `{ reply }`; `429 ASSISTANT_LIMIT` over the hourly limit, `503 ASSISTANT_OFFLINE` without a model server (A-68)
 - `GET /round2/offers?termId&status&q&page&pageSize` (Managers) → `{ items: [{ id, applicationId, studentName, studentCode, requested, status: Pending|Accepted|Declined|Expired|Withdrawn|No offer, offeredAt, expiresAt, respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }` (A-58)
 
 ### Invoices and payment
@@ -172,7 +174,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 
 - `GET /assignment-runs?termId&block` → `{ current: { id, kind, status, statusTone, stage (0–5), startedAt, finishedAt, startedBy, snapshot, input, proposed, conflicts, waitlisted, averageFit } | null, history: [{ id, kind, startedAt, startedBy, proposed, conflicts, waitlisted, status }], rules: { snapshot, groups: [{ title, items: [string] }] } }`
 - `POST /assignment-runs` `{ termId, dryRun }` → `{ id }`
-- `GET /assignment-runs/{runId}/proposal?block&view=conflicts|proposed|all&q&page&pageSize` → `{ run: { id, status, snapshot }, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount, items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total, commitSummary: { students, balanceDueAt } }`. `block=waitlisted` lists waitlisted Applications.
+- `GET /assignment-runs/{runId}/proposal?block&view=conflicts|proposed|all&q&page&pageSize` → `{ run: { id, kind, status, statusTone, stage, startedAt, finishedAt, startedBy, snapshot, input, proposed, conflicts, waitlisted, averageFit }, editable, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount, items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total, commitSummary: { students, balanceDueAt } }`. `block=waitlisted` lists waitlisted Applications.
 - `GET /assignment-runs/{runId}/conflicts/{applicationId}` → `{ applicationId, studentName, preference, bed, issue: { label, title, detail, tone }, options: [{ key, label, detail, recommended }] }`
 - `POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve` `{ optionKey }` or `{ waitlist: true }` → `{ applicationId, bed, resolved, waitlisted }`
 - `POST /assignment-runs/{runId}/commit` `{ block }` → `204` (sends the Block to its Manager)
@@ -342,7 +344,7 @@ Notification templates and Send email: C-35.
 - `GET /inspection-checklists` → `{ items: [{ id, name, version, status, updatedAt, archivedAt, items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories, severities }` · `POST /inspection-checklists` `{ name }` · `POST /inspection-checklists/{id}/publish` `{ items }` → `{ id, version }` (A-14) · `POST /inspection-checklists/{id}/archive`
 - `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 - `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`
-- `GET /admin/audit-log?q&actor&action&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
+- `GET /admin/audit-log?q&actor&action&role=Student|Staff|Manager|Admin|System&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
 
 ## Exports
 

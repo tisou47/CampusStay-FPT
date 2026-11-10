@@ -60,7 +60,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
           aria-label={t('Page size')}
           value={pageSize}
           onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-          wrapperClassName="w-29 max-lg:hidden"
+          wrapperClassName="w-32 max-lg:hidden"
           options={[10, 20, 50, 100].map((n) => ({ value: n, label: t('{n} / page', { n }) }))}
         />
       )}

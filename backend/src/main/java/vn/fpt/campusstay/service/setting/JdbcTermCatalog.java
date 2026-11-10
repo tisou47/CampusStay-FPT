@@ -66,6 +66,10 @@ class JdbcTermCatalog implements TermCatalog {
                 new HashSet<>(jdbc.sql("SELECT building_id FROM cfg_term_block WHERE term_id = :t").param("t", termId)
                         .query(Long.class).list()),
                 new HashSet<>(jdbc.sql("SELECT room_id FROM cfg_term_room_excluded WHERE term_id = :t")
+                        .param("t", termId).query(Long.class).list()),
+                new HashSet<>(jdbc.sql("SELECT room_type_id FROM cfg_term_room_type WHERE term_id = :t")
+                        .param("t", termId).query(Long.class).list()),
+                new HashSet<>(jdbc.sql("SELECT room_class_id FROM cfg_term_room_class WHERE term_id = :t")
                         .param("t", termId).query(Long.class).list()));
     }
 

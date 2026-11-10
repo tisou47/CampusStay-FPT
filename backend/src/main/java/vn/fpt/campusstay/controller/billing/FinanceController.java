@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.controller.billing;
 
+import java.time.Instant;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -64,6 +65,22 @@ class FinanceController {
             @RequestParam(required = false) String block, @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
         return finance.refunds(termId, block, status, PageQuery.of(page, pageSize));
+    }
+
+    record Reminded(Instant remindedAt) {
+    }
+
+    /** R-19: reminds the student to enter the bank account the refund waits for. */
+    @PostMapping("/refunds/{id}/account-reminder")
+    Reminded remindAccount(@PathVariable String id) {
+        return new Reminded(finance.remindAccount(id));
+    }
+
+    /** R-24: the student's own refunds. */
+    @GetMapping("/students/me/refunds")
+    FinanceService.MyRefunds myRefunds(@RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return finance.mine(PageQuery.of(page, pageSize));
     }
 
     @PostMapping("/refunds/{id}/decision")

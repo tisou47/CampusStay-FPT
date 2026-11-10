@@ -86,9 +86,9 @@ public class ApplicationReviewService {
     public record BulkResult(int approved, int skipped) {
     }
 
-    /** The statuses the queue counts (and shows when no status is chosen, with Allocated and Cancelled). */
-    private static final List<String> COUNTED = List.of("SUBMITTED", "UNDER_REVIEW", "APPROVED", "WAITLISTED",
-            "REJECTED", "EXPIRED");
+    /** The statuses the queue counts (it shows them all when no status is chosen, with Cancelled). */
+    private static final List<String> COUNTED = List.of("SUBMITTED", "UNDER_REVIEW", "APPROVED", "ALLOCATED",
+            "WAITLISTED", "REJECTED", "EXPIRED", "FORFEITED");
     private static final Set<String> REVIEWABLE = Set.of("SUBMITTED", "UNDER_REVIEW");
 
     private final JdbcClient jdbc;
@@ -211,7 +211,8 @@ public class ApplicationReviewService {
         });
         String emergency = contact.get("emergencyName") == null ? null
                 : contact.get("emergencyName")
-                        + (contact.get("relationship") == null ? "" : " (" + contact.get("relationship") + ")")
+                        + (contact.get("relationship") == null ? ""
+                                : " (" + label("RELATIONSHIP", contact.get("relationship")) + ")")
                         + (contact.get("emergencyPhone") == null ? "" : " · " + contact.get("emergencyPhone"));
         Student student = new Student(app.studentName(), app.studentCode(), app.gender().equals("F") ? "Female" : "Male",
                 profile == null ? null : profile.cohort(),

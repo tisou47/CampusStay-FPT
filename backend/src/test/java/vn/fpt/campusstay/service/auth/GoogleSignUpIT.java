@@ -213,4 +213,24 @@ class GoogleSignUpIT {
                 .andExpect(jsonPath("$.message").value("Your student account was not verified: The student code is not on"
                         + " the enrolled list. Contact the dormitory office."));
     }
+
+    /**
+     * TC-AUTH-059 (security): a fictional back-office account of the seed signs in with its password only, so whoever
+     * owns that address at FPT cannot take its role through Google; a real staff account still can.
+     */
+    @Test
+    void demoBackOfficeAccountsRefuseGoogle() throws Exception {
+        for (String email : new String[] { TestAuth.ADMIN, TestAuth.MANAGER_A, TestAuth.STAFF_A }) {
+            google("sub-059-" + email, email, "Someone Else").andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("GOOGLE_NOT_FOR_DEMO"));
+        }
+        assertThat(jdbc.sql("SELECT count(*) FROM auth_user WHERE google_sub LIKE 'sub-059-%'").query(Long.class)
+                .single()).isZero();
+        jdbc.sql("""
+                INSERT INTO auth_user (email, display_name, role, title)
+                VALUES ('real.staff059@fpt.edu.vn', 'Tran Van That', 'STAFF', 'Residence Life Officer')
+                """).update();
+        google("sub-059-real", "real.staff059@fpt.edu.vn", "Tran Van That").andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.email").value("real.staff059@fpt.edu.vn"));
+    }
 }

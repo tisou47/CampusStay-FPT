@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { Link } from 'react-router'
-import { Bed, CalendarCheck, ChevronRight, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
+import { Bed, CalendarCheck, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -8,17 +7,15 @@ import { useMobileBar } from '@/components/layout/MobileBar'
 import { useNotifications } from '@/components/layout/Notifications'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Display'
-import { ErrorState, LoadingState, QueryState } from '@/components/ui/States'
+import { ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
-import { catalogHelpers, useCatalog } from './apply/wizard'
 import { DormitoryBoard } from './board'
-import { CompareClassesModal, NextAction, StatusCard, StatusList, StatusRow, TermTimeline } from './shared'
+import { NextAction, StatusCard, StatusList, StatusRow } from './shared'
 import { t, tr } from '@/i18n'
 
-// SCR-HOME-01 Student Home (13:96) and SCR-HOME-01 Student Home · Allocated (39:1165). The dormitory board (spec
-// §6.5, §11.4) comes first: the registration period card and the announcements.
+// SCR-HOME-01 Student Home (13:96) and SCR-HOME-01 Student Home · Allocated (39:1165). The next action comes first
+// (R-12), then the dormitory board (spec §6.5, §11.4): the registration period with its schedule, and the announcements.
 // Phone: MOB-HOME-01 Home (55:160) — Next action, a status list and the latest notification.
 // GET /students/me/home?termId → {
 //   firstName, term, application: { id, status, roomTypeName, roomClassName } | null,
@@ -47,42 +44,6 @@ const dueIn = (iso) => {
   return t(d === 1 ? 'Due in {n} day' : 'Due in {n} days', { n: d })
 }
 const range = (a, b) => (a ? `${formatDate(a)}${b ? ` – ${formatDate(b)}` : ''}` : '—')
-
-function RoomTypesCard() {
-  const [open, setOpen] = useState(false)
-  const catalog = useCatalog()
-  const { fromPrice } = catalogHelpers(catalog.data)
-  return (
-    <Card padding="lg" className="flex w-full shrink-0 flex-col gap-3 lg:min-h-0 lg:w-96">
-      <div className="flex shrink-0 flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{t('Room Types')}</h2>
-        <p className="text-sm text-fg-tertiary">{t('Lowest Term price per Bed.')}</p>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <QueryState query={catalog} compact isEmpty={(d) => !d?.roomTypes?.length}>
-          {(data) => (
-            <ul className="flex flex-col">
-              {data.roomTypes.map((type) => (
-                <li key={type.id} className="flex items-center gap-3 border-t border-line py-2">
-                  <Bed size={20} aria-hidden="true" className="shrink-0 text-fg-secondary" />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-base font-medium text-fg">{tr(type.name)}</span>
-                    <span className="text-sm text-fg-tertiary">{type.beds === 2 ? t('Roommate selection available') : t('Matched automatically')}</span>
-                  </span>
-                  <span className="text-base font-medium whitespace-nowrap text-fg">{formatVnd(fromPrice(type.id))}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </QueryState>
-      </div>
-      <Button variant="text" icon={ChevronRight} className="self-start" onClick={() => setOpen(true)}>
-        Compare Room Classes
-      </Button>
-      <CompareClassesModal open={open} onClose={() => setOpen(false)} />
-    </Card>
-  )
-}
 
 function HomeContent({ home }) {
   const stage = stageOf(home)
@@ -209,23 +170,6 @@ function HomeContent({ home }) {
           : { value: t('{n} due', { n: 0 }), note: t('All Invoices are paid'), to: '/student/invoices' },
   }
 
-  // Milestones before today are done; the first one after today is current.
-  const points = [
-    ['Registration opens', term?.registrationOpensAt],
-    ['Registration closes', term?.registrationClosesAt],
-    ['Assignment results published', term?.resultsPublishedAt],
-    ['Balance due', term?.balanceDueAt],
-    ['Check-in', term?.checkInStart, term?.checkInEnd],
-    ['Term starts', term?.stayStart],
-  ]
-  const now = new Date()
-  const firstUpcoming = points.findIndex(([, d]) => d && new Date(d) > now)
-  const milestones = points.map(([label, d, end], i) => ({
-    label,
-    date: end ? range(d, end) : d ? formatDate(d) : '—',
-    state: firstUpcoming === -1 || i < firstUpcoming ? 'done' : i === firstUpcoming ? 'current' : 'upcoming',
-  }))
-
   return (
     <>
       <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
@@ -233,9 +177,9 @@ function HomeContent({ home }) {
         <p className="text-lg text-fg-secondary">{subtitle}</p>
       </div>
 
-      <DormitoryBoard />
-
       {next}
+
+      <DormitoryBoard />
 
       <div className="hidden shrink-0 items-stretch gap-6 lg:flex">
         <StatusCard icon={FileText} label="Application" {...cards.application} />
@@ -265,11 +209,6 @@ function HomeContent({ home }) {
       </StatusList>
 
       <LatestNotification />
-
-      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
-        <TermTimeline term={term} milestones={milestones} className="lg:min-w-0 lg:flex-1" />
-        {stage !== 'allocated' && <RoomTypesCard />}
-      </div>
     </>
   )
 }

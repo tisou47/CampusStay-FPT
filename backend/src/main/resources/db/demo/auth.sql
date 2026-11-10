@@ -11,7 +11,7 @@ WHERE student_code = 'SE220006';
 INSERT INTO auth_reconciliation (term_id, kind, file_name, rows_read, created_by, created_at)
 SELECT t.x_id, 'ENROLLED', 'enrolled-' || lower(t.x_code) || '.csv',
        (SELECT count(*) FROM demo_res) + (SELECT count(*) FROM demo_app) + 1,
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'), t.x_m5 - interval '2 days'
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_m5 - interval '2 days'
 FROM demo_t t WHERE t.stage IN ('B', 'C');
 
 INSERT INTO auth_reconciliation_item (reconciliation_id, grp, student_id, student_code, student_name, roles,

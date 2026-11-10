@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { ArrowLeft, Bell, Calendar, KeyRound, LogOut } from 'lucide-react'
+import { ArrowLeft, Bell, Calendar, KeyRound, LogOut, User } from 'lucide-react'
 import { isNavActive, studentTabs } from '@/app/navigation'
 import { useSession } from '@/app/session'
 import { Avatar } from '@/components/ui/Display'
@@ -80,6 +80,9 @@ export function MobileAppBar() {
               <span className="text-sm text-fg-secondary">{t('Language')}</span>
               <LanguageSwitch size="sm" />
             </div>
+            <MenuItem icon={User} onClick={() => { close(); navigate('/student/profile') }}>
+              {t('My profile')}
+            </MenuItem>
             <MenuItem icon={KeyRound} onClick={() => { close(); setChangingPassword(true) }}>
               {t('Change password')}
             </MenuItem>

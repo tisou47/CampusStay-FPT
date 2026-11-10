@@ -20,6 +20,10 @@ const WORDS = {
   queue: (v) => ({ title: t('{n} Applications to review', { n: formatNumber(v.count) }), body: t('{s} Submitted · {u} Under Review', { s: v.submitted, u: v.underReview }) }),
   room: (v) => ({ title: t('{n} Rooms out of service', { n: formatNumber(v.count) }), body: t('Oldest: {room} since {date}', { room: v.room, date: formatDate(v.since) }) }),
   'check-out': (v) => ({ title: t('{n} leavers past the check-out date', { n: formatNumber(v.count) }), body: t('They have not checked out at the desk.') }),
+  'meter-period': (v) => ({
+    title: t('Meter period {period} of Block {block} not closed', { period: v.period, block: v.block }),
+    body: t('The month ended {n} days ago; its residents get no Utility Invoice until it is closed.', { n: formatNumber(v.days) }),
+  }),
   expired: (v) => ({ title: t('{n} Deposits expired this week', { n: formatNumber(v.count) }), body: t('Their Applications were cancelled; the students may apply again.') }),
   refund: (v) => ({ title: t('Refund of {amount}', { amount: formatVnd(v.amount) }), body: t(REFUND_SOURCE[v.source] ?? 'Other') }),
   routing: (v) => ({

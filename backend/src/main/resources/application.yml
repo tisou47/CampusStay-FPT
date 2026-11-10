@@ -91,6 +91,7 @@ campusstay:
   bil:
     overdue-interval: 1h                # unpaid Invoices past their due date become Overdue; Utility warnings
     reminder-interval: 1h               # payment reminders before deadlines; the Managers' summary of claims
+    meter-interval: 1h                  # this month's meter periods opened; Staff reminded of months not closed
   asg:
     forfeit-interval: 5m                # Allocations whose Balance passed its deadline are cancelled
     release-interval: 15m               # door codes released to paid residents; overdue terminations

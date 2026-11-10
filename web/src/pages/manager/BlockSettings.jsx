@@ -12,12 +12,13 @@ import { ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDate } from '@/lib/format'
 import { t } from '@/i18n'
 
-// SCR-CFG-20 Block Settings (Figma 70:1488)
-// GET /block-settings?block → { deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy,
+// SCR-CFG-20 Block house rules (Figma 70:1488; review R-08: one card, desk hours dropped as check-in and check-out
+// become self-service; a save without them keeps the stored ones)
+// GET /block-settings?block → { visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy,
 //   limits: { visitWindow, quietStartsBy }, quietOptions }
-// PUT /block-settings { block, deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules }
+// PUT /block-settings { block, visitFrom, visitUntil, quiet, houseRules }
 
-const fields = ['deskOpens', 'deskCloses', 'visitFrom', 'visitUntil', 'quiet', 'houseRules']
+const fields = ['visitFrom', 'visitUntil', 'quiet', 'houseRules']
 
 const halfHours = (from, to) => {
   const out = []
@@ -34,7 +35,7 @@ function Form({ saved, block, picker }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const save = useMutation(() => api.blockSettings.save({ block, ...form }), {
     invalidates: ['block-settings'],
-    onSuccess: () => notify({ title: 'Block settings saved', message: 'Residents see the new hours and house rules in My Room on web and Android.' }),
+    onSuccess: () => notify({ title: 'House rules saved', message: 'Residents see the new hours and house rules in My Room on web and Android.' }),
     onError: () => {},
   })
   const withCurrent = (list, value) => (value && !list.includes(value) ? [value, ...list] : list)
@@ -42,8 +43,8 @@ function Form({ saved, block, picker }) {
   return (
     <>
       <PageHeader
-        title={block ? t('Block settings · Block {code}', { code: block }) : 'Block settings'}
-        description="Local rules for each Block. Values must stay inside the limits set by Admin."
+        title={block ? t('House rules · Block {code}', { code: block }) : 'Block house rules'}
+        description="Visiting hours, quiet hours and the rules residents of this Block follow, inside the limits set by Admin."
         actions={
           <>
             {picker}
@@ -61,38 +62,26 @@ function Form({ saved, block, picker }) {
           {save.error.message}
         </Alert>
       )}
-      <div className="flex min-h-0 shrink items-stretch gap-4">
-        <Card className="flex min-w-0 flex-1 flex-col gap-3.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Front desk and visits')}</h2>
-          <div className="flex gap-4">
-            <Field label="Desk opens" className="flex-1">
-              {(id) => <Select id={id} value={form.deskOpens} onChange={set('deskOpens')} options={withCurrent(halfHours(6, 9), form.deskOpens)} />}
-            </Field>
-            <Field label="Desk closes" className="flex-1">
-              {(id) => <Select id={id} value={form.deskCloses} onChange={set('deskCloses')} options={withCurrent(halfHours(18, 23), form.deskCloses)} />}
-            </Field>
-          </div>
-          <div className="flex gap-4">
-            <Field label="Visitor hours from" className="flex-1">
-              {(id) => <Select id={id} value={form.visitFrom} onChange={set('visitFrom')} options={withCurrent(halfHours(7, 10), form.visitFrom)} />}
-            </Field>
-            <Field label="Visitor hours until" helper={saved.limits?.visitWindow ? t('Admin limit: {value}', { value: saved.limits.visitWindow }) : undefined} className="flex-1">
-              {(id) => <Select id={id} value={form.visitUntil} onChange={set('visitUntil')} options={withCurrent(halfHours(17, 21), form.visitUntil)} />}
-            </Field>
-          </div>
+      <Card className="flex min-h-0 shrink flex-col gap-3.5">
+        <div className="grid grid-cols-3 gap-4">
+          <Field label="Visitor hours from">
+            {(id) => <Select id={id} value={form.visitFrom} onChange={set('visitFrom')} options={withCurrent(halfHours(7, 10), form.visitFrom)} />}
+          </Field>
+          <Field label="Visitor hours until" helper={saved.limits?.visitWindow ? t('Admin limit: {value}', { value: saved.limits.visitWindow }) : undefined}>
+            {(id) => <Select id={id} value={form.visitUntil} onChange={set('visitUntil')} options={withCurrent(halfHours(17, 21), form.visitUntil)} />}
+          </Field>
           <Field label="Quiet hours" helper={saved.limits?.quietStartsBy ? t('Admin limit: must start by {time}', { time: saved.limits.quietStartsBy }) : undefined}>
             {(id) => <Select id={id} value={form.quiet} onChange={set('quiet')} options={withCurrent(saved.quietOptions ?? [], form.quiet)} />}
           </Field>
-        </Card>
-        <Card className="flex min-w-0 flex-1 flex-col gap-3">
-          <h2 className="text-h3 font-semibold text-fg">{t('House rules shown to residents')}</h2>
-          <Textarea aria-label={t('House rules')} rows={6} value={form.houseRules} onChange={set('houseRules')} className="min-h-0 flex-1" />
-          <p className="text-sm text-fg-tertiary">
-            {t('Shown in My Room (web and Android).')}
-            {saved.editedAt ? ` ${saved.editedBy ? t('Last edited {date} by {name}.', { date: formatDate(saved.editedAt), name: saved.editedBy }) : t('Last edited {date}.', { date: formatDate(saved.editedAt) })}` : ''}
-          </p>
-        </Card>
-      </div>
+        </div>
+        <Field label="House rules" className="flex min-h-0 flex-1 flex-col">
+          {(id) => <Textarea id={id} rows={8} value={form.houseRules} onChange={set('houseRules')} className="min-h-0 flex-1" />}
+        </Field>
+        <p className="text-sm text-fg-tertiary">
+          {t('Shown in My Room (web and Android).')}
+          {saved.editedAt ? ` ${saved.editedBy ? t('Last edited {date} by {name}.', { date: formatDate(saved.editedAt), name: saved.editedBy }) : t('Last edited {date}.', { date: formatDate(saved.editedAt) })}` : ''}
+        </p>
+      </Card>
       <Alert title="What you cannot change here" className="shrink-0">
         Prices, Room Types, Room Classes, refund rules and check-in windows are set by Admin for all Blocks.
       </Alert>
@@ -106,7 +95,7 @@ export default function BlockSettings() {
   if (query.data) return <Form saved={query.data} block={block} picker={picker} />
   return (
     <>
-      <PageHeader title="Block settings" actions={picker} />
+      <PageHeader title="Block house rules" actions={picker} />
       {query.loading ? <LoadingState /> : <ErrorState error={query.error} onRetry={query.reload} />}
     </>
   )

@@ -154,24 +154,23 @@ class AdminConfigIT {
                 .andExpect(jsonPath("$.items[?(@.name == 'Basic')].surchargeRate", contains(0)))
                 .andExpect(jsonPath("$.roomTypes[*].name", hasItem("4-bed")));
         mvc.perform(as(post("/admin/room-classes")).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"Deluxe\",\"surchargeRate\":6,\"amenities\":[],\"status\":\"Active\"}"))
+                .content("{\"name\":\"Deluxe\",\"surchargeRate\":6,\"status\":\"Active\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.surchargeRate").value("Enter a surcharge from 0% to 500%."));
         mvc.perform(as(post("/admin/room-classes")).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"Deluxe\",\"surchargeRate\":0.5,\"amenities\":[\" Sofa \",\"\",\"Sofa\"],\"status\":\"Inactive\"}"))
+                .content("{\"name\":\"Deluxe\",\"surchargeRate\":0.5,\"status\":\"Inactive\"}"))
                 .andExpect(status().isOk());
         mvc.perform(as(get("/admin/room-classes")))
-                .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].amenities[*]", contains("Sofa")))
+                .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].amenities").doesNotExist())
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].status", contains("Inactive")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].usedIn", contains((Object) null)));
         String deluxe = this.<List<String>>read(as(get("/admin/room-classes")), "$.items[?(@.name == 'Deluxe')].id").getFirst();
         mvc.perform(as(put("/admin/room-classes/" + deluxe)).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"Deluxe\",\"surchargeRate\":0.45,\"amenities\":[\"Sofa\",\"Bathtub\"],\"status\":\"Active\"}"))
+                .content("{\"name\":\"Deluxe\",\"surchargeRate\":0.45,\"status\":\"Active\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(deluxe));
         mvc.perform(as(get("/admin/room-classes")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].surchargeRate", contains(0.45)))
-                .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].amenities[*]", contains("Sofa", "Bathtub")))
                 .andExpect(jsonPath("$.items[?(@.name == 'Deluxe')].status", contains("Active")));
     }
 

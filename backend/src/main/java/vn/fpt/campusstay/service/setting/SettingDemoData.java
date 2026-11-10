@@ -31,6 +31,8 @@ class SettingDemoData implements DemoData {
         jdbc.execute("DELETE FROM cfg_term_room_excluded");
         jdbc.execute("DELETE FROM cfg_term_price");
         jdbc.execute("DELETE FROM cfg_term_block");
+        jdbc.execute("DELETE FROM cfg_term_room_type");
+        jdbc.execute("DELETE FROM cfg_term_room_class");
         jdbc.execute("DELETE FROM cfg_term");
     }
 

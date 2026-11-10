@@ -21,7 +21,7 @@ SELECT s.id, 'APP-' || t.n_code || '-' || lpad(s.id::text, greatest(6, length(s.
        jsonb_build_object('phone', st.phone, 'email', NULL, 'emergencyName', st.emergency_name,
                           'relationship', st.emergency_relationship, 'emergencyPhone', st.emergency_phone),
        TRUE, TRUE, s.created, s.created + interval '48 hours', s.created + interval '2 hours',
-       (SELECT id FROM demo_staff WHERE account = 'manager.' || lower(s.block)), t.n_results - interval '3 days',
+       (SELECT id FROM demo_staff WHERE account = 'manager0' || ((ascii(s.block) - 65) % 4 + 1)), t.n_results - interval '3 days',
        s.created, t.n_results, s.name, s.code, s.gender, s.committed
 FROM src s CROSS JOIN demo_t t CROSS JOIN cfg_term cfg
 JOIN cfg_term_price p ON p.term_id = cfg.id AND p.room_type_id = s.room_type_id AND p.room_class_id = s.room_class_id
@@ -50,7 +50,7 @@ SELECT s.id, 'APP-' || t.x_code || '-' || lpad(s.id::text, greatest(6, length(s.
        TRUE, TRUE, s.created, s.created + interval '48 hours',
        CASE WHEN s.status <> 'AWAITING_DEPOSIT' THEN s.created + interval '3 hours' END,
        CASE WHEN s.status IN ('APPROVED', 'ALLOCATED', 'WAITLISTED', 'FORFEITED')
-            THEN (SELECT id FROM demo_staff WHERE account = 'manager.a') END,
+            THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
        CASE WHEN s.status IN ('APPROVED', 'ALLOCATED', 'WAITLISTED', 'FORFEITED')
             THEN least(s.created + interval '1 day', t.now - interval '1 hour') END,
        s.created, s.created + interval '3 hours', s.name, s.code, s.gender, 1 + s.h % 2

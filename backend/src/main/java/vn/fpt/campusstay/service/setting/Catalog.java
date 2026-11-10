@@ -11,7 +11,7 @@ public interface Catalog {
             boolean mutual) {
     }
 
-    record RoomClassInfo(long id, String name, BigDecimal surchargeRate, List<String> amenities, boolean active) {
+    record RoomClassInfo(long id, String name, BigDecimal surchargeRate, boolean active) {
     }
 
     /** In display order (sort order, then Beds). */

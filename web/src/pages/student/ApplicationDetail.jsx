@@ -101,6 +101,8 @@ function Detail({ app }) {
   const [alertType, alertTitle, alertBody] = alertFor(app)
   const unpaid = app.invoices?.find((i) => i.status === 'Unpaid' || i.status === 'Overdue')
   const allocated = app.status === 'Allocated'
+  // A paid Invoice is refunded by the rules when the Application is cancelled: the account comes first (R-19).
+  const refundable = app.invoices?.some((i) => i.status === 'Paid')
 
   return (
     <>
@@ -233,7 +235,7 @@ function Detail({ app }) {
               <Button onClick={() => setWithdrawing(false)}>Keep waiting</Button>
               <Button
                 variant="danger"
-                disabled={withdraw.pending || account.saving}
+                disabled={withdraw.pending || account.saving || (waitlist.refund > 0 && !account.unchanged && !account.draft.accepted)}
                 onClick={async () => {
                   if (waitlist.refund > 0 && !(await account.save())) return
                   withdraw.run()
@@ -250,7 +252,7 @@ function Detail({ app }) {
               amount: formatVnd(waitlist.refund),
             })}
           </p>
-          {waitlist.refund > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} />}
+          {waitlist.refund > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} unchanged={account.unchanged} />}
         </Modal>
       )}
 
@@ -262,7 +264,14 @@ function Detail({ app }) {
         footer={
           <>
             <Button onClick={() => setConfirmCancel(false)}>Keep application</Button>
-            <Button variant="danger" onClick={() => cancel.run()} disabled={cancel.pending}>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (refundable && !(await account.save())) return
+                cancel.run()
+              }}
+              disabled={cancel.pending || account.saving || (refundable && !account.unchanged && !account.draft.accepted)}
+            >
               {cancel.pending ? t('Cancelling…') : t('Cancel application')}
             </Button>
           </>
@@ -270,6 +279,7 @@ function Detail({ app }) {
       >
         {app.cancelPolicy && <p className="text-base text-fg-secondary">{tr(app.cancelPolicy)}</p>}
         <Field label="Reason (optional)">{(id) => <Textarea id={id} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />}</Field>
+        {refundable && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} unchanged={account.unchanged} />}
       </Modal>
     </>
   )

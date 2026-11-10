@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Banknote, Calendar, CreditCard, ReceiptText } from 'lucide-react'
+import { Banknote, Calendar, CreditCard, ReceiptText, Undo2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -10,7 +10,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { ReceiptModal, StatusList, StatusRow, StudentPage } from './shared'
 import { RefundAccountCard } from './refundAccount'
 import { t, tr } from '@/i18n'
@@ -22,9 +22,84 @@ import { t, tr } from '@/i18n'
 //              awaitingCount, warning: { level (Warning, Final warning), debt, overdue, terminateOn, issuedAt } | null } }
 // The Utility debt warning (spec §6.14): unpaid Utility for the configured months, or a debt reaching the Utility
 // Deposit, ends the stay after the final warning.
+// GET /students/me/refunds → { items: [{ id, reason, rule, percent, paid, amount, status, createdAt, decidedAt, note }],
+//   total, pendingAmount } — refunds are not Invoices, so they are listed apart (R-24).
 
-/** Utility Invoices open their breakdown; others open the payment page ("I have transferred"). */
-export const invoicePath = (inv) => (inv.type === 'utility' ? `/student/invoices/${inv.id}` : `/student/invoices/${inv.id}/pay`)
+/** Every Invoice opens its detail (lines or meter breakdown, the receipt once paid); paying starts from there (R-26). */
+export const invoicePath = (inv) => `/student/invoices/${inv.id}`
+
+const REFUND_TONES = { Pending: 'warning', Approved: 'info', Paid: 'success', Rejected: 'error' }
+
+/** The student's refunds: what comes back, by which rule, and where it stands. Hidden when there is none. */
+function Refunds() {
+  const query = useQuery(['refunds', 'mine'], ({ signal }) => api.me.refunds({ pageSize: 50 }, { signal }))
+  const items = query.data?.items ?? []
+  if (!items.length) return null
+  return (
+    <section className="flex shrink-0 flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-h3 font-semibold text-fg">{t('Refunds')}</h2>
+        {query.data.pendingAmount > 0 && <span className="text-sm text-fg-secondary">{t('{amount} on its way to you', { amount: formatVnd(query.data.pendingAmount) })}</span>}
+      </div>
+      <StatusList className="lg:hidden">
+        {items.map((r) => (
+          <StatusRow
+            key={r.id}
+            icon={Undo2}
+            value={`${formatVnd(r.amount)}${r.percent != null ? ` · ${formatNumber(r.percent)}%` : ''}`}
+            note={`${tr(r.reason)} · ${formatDate(r.createdAt)}`}
+            tag={<StatusTag status={r.status} tone={REFUND_TONES[r.status]} />}
+          />
+        ))}
+      </StatusList>
+      <Table className="max-lg:hidden">
+        <THead>
+          <tr>
+            <Th>Reason</Th>
+            <Th className="w-56">Rule</Th>
+            <Th className="w-32" align="right">
+              Paid
+            </Th>
+            <Th className="w-20" align="right">
+              Percent
+            </Th>
+            <Th className="w-36" align="right">
+              Refund
+            </Th>
+            <Th className="w-32">Requested</Th>
+            <Th className="w-32">Decided</Th>
+            <Th className="w-32">Status</Th>
+          </tr>
+        </THead>
+        <TBody>
+          {items.map((r) => (
+            <Tr key={r.id}>
+              <Td>
+                <div className="flex flex-col gap-0.5">
+                  <span>{tr(r.reason)}</span>
+                  {r.note && <span className="text-sm text-fg-tertiary">{tr(r.note)}</span>}
+                </div>
+              </Td>
+              <Td className="text-sm text-fg-secondary">{tr(r.rule) || '—'}</Td>
+              <Td align="right" className="whitespace-nowrap">
+                {formatVnd(r.paid)}
+              </Td>
+              <Td align="right">{r.percent != null ? `${formatNumber(r.percent)}%` : '—'}</Td>
+              <Td align="right" className="font-medium whitespace-nowrap">
+                {formatVnd(r.amount)}
+              </Td>
+              <Td className="whitespace-nowrap">{formatDate(r.createdAt)}</Td>
+              <Td className="whitespace-nowrap">{r.decidedAt ? formatDate(r.decidedAt) : '—'}</Td>
+              <Td>
+                <StatusTag status={r.status} tone={REFUND_TONES[r.status]} />
+              </Td>
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+    </section>
+  )
+}
 
 export default function MyInvoices() {
   const navigate = useNavigate()
@@ -159,6 +234,8 @@ export default function MyInvoices() {
           }}
         />
       </div>
+
+      <Refunds />
 
       <ReceiptModal invoice={receipt} onClose={() => setReceipt(null)} />
     </StudentPage>

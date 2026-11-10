@@ -50,7 +50,7 @@ class DemoResetIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C")))
-                .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager.a@fpt.edu.vn")))
+                .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager01@fpt.edu.vn")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D12')].scenarioVi").isNotEmpty())
                 .andExpect(jsonPath("$.files", hasSize(5)))
                 .andExpect(jsonPath("$.lastReset").isEmpty());

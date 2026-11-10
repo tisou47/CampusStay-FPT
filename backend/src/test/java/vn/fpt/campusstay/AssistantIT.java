@@ -32,7 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import vn.fpt.campusstay.service.assistant.AssistantModel;
 import vn.fpt.campusstay.service.assistant.AssistantModel.Message;
 
-/** The students' AI assistant (ADR-28, A-64) with the model replaced; its Ollama adapter has its own test. */
+/** The students' AI assistant (ADR-28, A-68) with the model replaced; its Ollama adapter has its own test. */
 @SpringBootTest(properties = { "campusstay.assistant.base-url=http://model.test",
         "campusstay.assistant.requests-per-hour=3" })
 @AutoConfigureMockMvc

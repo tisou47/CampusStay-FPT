@@ -26,7 +26,7 @@ function greeting(name) {
 }
 
 const severityTone = { error: 'error', warning: 'warning', info: 'info', neutral: undefined }
-const attentionIcon = { room: Building, maintenance: Wrench, 'check-out': LogOut }
+const attentionIcon = { room: Building, maintenance: Wrench, 'check-out': LogOut, 'meter-period': Gauge }
 const STAFF_KINDS = new Set(Object.keys(attentionIcon))
 
 function span(ms) {

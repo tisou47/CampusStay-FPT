@@ -51,7 +51,7 @@ public class AdminCatalogService {
     public record RoomTypeValues(String name, Integer beds, Long basePrice, String roommateSelection, String status) {
     }
 
-    public record RoomClassItem(String id, String name, BigDecimal surchargeRate, List<String> amenities, String usedIn,
+    public record RoomClassItem(String id, String name, BigDecimal surchargeRate, String usedIn,
             long rooms, String status) {
     }
 
@@ -61,12 +61,12 @@ public class AdminCatalogService {
     public record RoomClassPage(List<RoomClassItem> items, List<TypePrice> roomTypes, BigDecimal depositRate) {
     }
 
-    public record RoomClassValues(String name, BigDecimal surchargeRate, List<String> amenities, String status) {
+    /** Free-text amenities are gone (review R-05): students see the class's required furniture. */
+    public record RoomClassValues(String name, BigDecimal surchargeRate, String status) {
     }
 
     private static final int MAX_BEDS = 12;
     private static final BigDecimal MAX_SURCHARGE = new BigDecimal("5");
-    private static final int MAX_AMENITIES = 20;
 
     private final RoomTypeRepository roomTypes;
     private final RoomClassRepository roomClasses;
@@ -199,7 +199,7 @@ public class AdminCatalogService {
                 .map(c -> {
                     RoomUsage.ClassUsage u = byClass.get(c.getId());
                     return new RoomClassItem(String.valueOf(c.getId()), c.getName(),
-                            Decimals.plain(c.getSurchargeRate()), c.getAmenities(), u == null ? null : u.usedIn(),
+                            Decimals.plain(c.getSurchargeRate()), u == null ? null : u.usedIn(),
                             u == null ? 0 : u.rooms(), c.getStatus().label());
                 })
                 .toList();
@@ -216,7 +216,7 @@ public class AdminCatalogService {
     public long createRoomClass(RoomClassValues values) {
         ValidatedClass v = validate(values, null);
         RoomClassEntity roomClass = roomClasses.saveAndFlush(new RoomClassEntity(v.name(), v.surchargeRate(),
-                v.amenities(), v.status(), roomClasses.maxSortOrder() + 1));
+                List.of(), v.status(), roomClasses.maxSortOrder() + 1));
         audit.record("ROOM_CLASS_CREATED", AuditLog.Tone.INFO, "Room Class", roomClass.getId(), roomClass.getName(),
                 Map.of("surchargeRate", Decimals.plain(v.surchargeRate())));
         return roomClass.getId();
@@ -231,9 +231,8 @@ public class AdminCatalogService {
         Map<String, Object> change = new LinkedHashMap<>();
         put(change, "name", roomClass.getName(), v.name());
         put(change, "surchargeRate", Decimals.plain(roomClass.getSurchargeRate()), Decimals.plain(v.surchargeRate()));
-        put(change, "amenities", roomClass.getAmenities(), v.amenities());
         put(change, "status", roomClass.getStatus().label(), v.status().label());
-        roomClass.update(v.name(), v.surchargeRate(), v.amenities(), v.status());
+        roomClass.update(v.name(), v.surchargeRate(), roomClass.getAmenities(), v.status());
         roomClasses.saveAndFlush(roomClass);
         if (!change.isEmpty()) {
             audit.record("ROOM_CLASS_UPDATED", AuditLog.Tone.INFO, "Room Class", id, roomClass.getName(), change);
@@ -246,7 +245,7 @@ public class AdminCatalogService {
         return id;
     }
 
-    private record ValidatedClass(String name, BigDecimal surchargeRate, List<String> amenities, ActiveStatus status) {
+    private record ValidatedClass(String name, BigDecimal surchargeRate, ActiveStatus status) {
     }
 
     private ValidatedClass validate(RoomClassValues values, Long id) {
@@ -261,16 +260,10 @@ public class AdminCatalogService {
         BigDecimal rate = values.surchargeRate();
         errors.check(rate != null && rate.signum() >= 0 && rate.compareTo(MAX_SURCHARGE) <= 0, "surchargeRate",
                 "Enter a surcharge from 0% to 500%.");
-        List<String> amenities = values.amenities() == null ? List.of()
-                : values.amenities().stream().filter(Objects::nonNull).map(String::trim).filter(a -> !a.isEmpty())
-                        .distinct().toList();
-        errors.check(amenities.size() <= MAX_AMENITIES, "amenities", "List at most " + MAX_AMENITIES + " amenities.");
-        errors.check(amenities.stream().allMatch(a -> a.length() <= 100), "amenities",
-                "Keep each amenity under 100 characters.");
         ActiveStatus status = ActiveStatus.parse(values.status()).orElse(null);
         errors.check(status != null, "status", "Choose Active or Inactive.");
         errors.throwIfAny();
-        return new ValidatedClass(name, rate.setScale(4, RoundingMode.HALF_UP), amenities, status);
+        return new ValidatedClass(name, rate.setScale(4, RoundingMode.HALF_UP), status);
     }
 
     private static void put(Map<String, Object> change, String field, Object before, Object after) {

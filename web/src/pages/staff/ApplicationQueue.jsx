@@ -27,9 +27,9 @@ import { t, tr } from '@/i18n'
 const statusFilters = [
   { value: 'Submitted,Under Review', label: 'Status: Submitted, Under Review' },
   { value: '', label: 'Status: All' },
-  ...['Submitted', 'Under Review', 'Approved', 'Waitlisted', 'Rejected', 'Expired'].map((s) => ({ value: s, label: `Status: ${s}` })),
+  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: `Status: ${s}` })),
 ]
-const countTones = { Submitted: 'info', 'Under Review': 'info', Approved: 'info', Waitlisted: 'warning', Rejected: 'error', Expired: 'neutral' }
+const countTones = { Submitted: 'info', 'Under Review': 'info', Approved: 'info', Allocated: 'success', Waitlisted: 'warning', Rejected: 'error', Expired: 'neutral', Forfeited: 'neutral' }
 const reviewable = (r) => ['Submitted', 'Under Review'].includes(r.status)
 
 export default function ApplicationQueue() {
@@ -107,18 +107,18 @@ export default function ApplicationQueue() {
         }
       />
 
-      <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search name, student code or ID" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-60" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Student name or code, Application" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select wrapperClassName="w-64" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
-          wrapperClassName="w-38"
+          wrapperClassName="w-48"
           aria-label={t('Room Type')}
           value={roomTypeId}
           onChange={filter(setRoomTypeId)}
           options={[{ value: '', label: 'Room Type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room Type: {name}', { name: tr(type.name) }) }))]}
         />
         <Select
-          wrapperClassName="w-40"
+          wrapperClassName="w-48"
           aria-label={t('Room Class')}
           value={roomClassId}
           onChange={filter(setRoomClassId)}
@@ -137,7 +137,7 @@ export default function ApplicationQueue() {
         />
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         {Object.entries(countTones).map(([s, tone]) => (
           <Tag key={s} tone={tone}>
             {tr(s)} {counts[s] ?? '—'}
@@ -156,7 +156,7 @@ export default function ApplicationQueue() {
                 onChange={() => setSelected(allChecked ? new Set() : new Set(selectable.map((r) => r.id)))}
               />
             </Th>
-            <Th className="w-35">Application</Th>
+            <Th className="w-40">Application</Th>
             <Th className="w-48">Student</Th>
             <Th className="w-24">Room Type</Th>
             <Th className="w-26">Room Class</Th>
@@ -175,7 +175,7 @@ export default function ApplicationQueue() {
               <Td onClick={stop}>
                 <Checkbox aria-label={t('Select {id}', { id: r.id })} checked={selected.has(r.id)} disabled={!reviewable(r)} onChange={() => toggle(r.id)} />
               </Td>
-              <Td className="font-medium text-fg-brand">{r.id}</Td>
+              <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
               <Td>
                 <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · ${t('pair')}` : r.studentCode} />
               </Td>

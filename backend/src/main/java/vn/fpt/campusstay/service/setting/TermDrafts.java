@@ -33,6 +33,7 @@ class TermDrafts {
      * A Term as the wizard sees it.
      *
      * @param prices          {@code roomTypeId:roomClassId} → price per Bed
+     * @param roomTypes       the Room Types it offers; empty = every active one (same for {@code roomClasses})
      * @param eligibilityKeys the criteria it opened with, null while it is a Draft (or published before V42)
      */
     record Term(long id, String code, String name, String status, LocalDate stayStart, LocalDate stayEnd,
@@ -40,7 +41,7 @@ class TermDrafts {
             Long matchingSnapshotId, List<String> eligibilityKeys, List<String> priorityGroupKeys, String houseRules,
             List<TermPlan.Faq> faq, List<TermPlan.Document> documents, int wizardStep,
             Map<String, String> changeReasons, Instant publishedAt, Set<Long> blocks, Set<Long> excludedRooms,
-            Map<String, Long> prices) {
+            Map<String, Long> prices, Set<Long> roomTypes, Set<Long> roomClasses) {
 
         boolean draft() {
             return "DRAFT".equals(status);
@@ -75,6 +76,8 @@ class TermDrafts {
         field("checkOutBy", "Check-out by", "DATE");
         field("blocks", "Blocks used", "TEXT");
         field("excludedRooms", "Rooms left out", "TEXT");
+        field("roomTypes", "Room Types offered", "TEXT");
+        field("roomClasses", "Room Classes offered", "TEXT");
         field("reservedNewPercent", "Beds kept for new students", "PERCENT");
         field("depositPercent", "Deposit", "PERCENT");
         field("utilityDeposit", "Utility Deposit", "MONEY");
@@ -197,6 +200,21 @@ class TermDrafts {
                 .param("p", reservedNewPercent).param("id", id).update();
     }
 
+    /** The Room Types and Room Classes the Term offers; empty = every active one. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void writeOffer(long id, Set<Long> roomTypes, Set<Long> roomClasses) {
+        jdbc.sql("DELETE FROM cfg_term_room_type WHERE term_id = :id").param("id", id).update();
+        for (long t : roomTypes) {
+            jdbc.sql("INSERT INTO cfg_term_room_type (term_id, room_type_id) VALUES (:id, :t)").param("id", id)
+                    .param("t", t).update();
+        }
+        jdbc.sql("DELETE FROM cfg_term_room_class WHERE term_id = :id").param("id", id).update();
+        for (long c : roomClasses) {
+            jdbc.sql("INSERT INTO cfg_term_room_class (term_id, room_class_id) VALUES (:id, :c)").param("id", id)
+                    .param("c", c).update();
+        }
+    }
+
     /** Replaces the price table; {@code null} money keeps the default (read through {@link FeePolicy}). */
     @Transactional(propagation = Propagation.MANDATORY)
     void writePrices(long id, Map<String, Long> prices, BigDecimal depositPercent, Long utilityDeposit) {
@@ -253,10 +271,16 @@ class TermDrafts {
                         rs.getLong("price")))
                 .list()
                 .forEach(e -> prices.put(e.getKey(), e.getValue()));
+        Set<Long> types = new LinkedHashSet<>(jdbc.sql(
+                "SELECT room_type_id FROM cfg_term_room_type WHERE term_id = :id ORDER BY 1")
+                .param("id", t.id()).query(Long.class).list());
+        Set<Long> classes = new LinkedHashSet<>(jdbc.sql(
+                "SELECT room_class_id FROM cfg_term_room_class WHERE term_id = :id ORDER BY 1")
+                .param("id", t.id()).query(Long.class).list());
         return new Term(t.id(), t.code(), t.name(), t.status(), t.stayStart(), t.stayEnd(), t.timeline(),
                 t.reservedNewPercent(), t.depositPercent(), t.utilityDeposit(), t.matchingSnapshotId(),
                 t.eligibilityKeys(), t.priorityGroupKeys(), t.houseRules(), t.faq(), t.documents(), t.wizardStep(),
-                t.changeReasons(), t.publishedAt(), blocks, excluded, prices);
+                t.changeReasons(), t.publishedAt(), blocks, excluded, prices, types, classes);
     }
 
     private Term map(ResultSet rs) throws SQLException {
@@ -282,7 +306,7 @@ class TermDrafts {
                 rs.getInt("wizard_step"),
                 json.readValue(rs.getString("change_reasons"), new TypeReference<Map<String, String>>() {
                 }),
-                at(rs, "published_at"), Set.of(), Set.of(), Map.of());
+                at(rs, "published_at"), Set.of(), Set.of(), Map.of(), Set.of(), Set.of());
     }
 
     private List<String> list(String text) {

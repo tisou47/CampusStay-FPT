@@ -101,6 +101,7 @@ Enter a new password. ⟶ Hãy nhập mật khẩu mới.
 Too many failed attempts. Try again after {0}. ⟶ Bạn đã nhập sai quá nhiều lần. Hãy thử lại sau {0}.
 This account is disabled. Contact the dormitory office. ⟶ Tài khoản này đã bị khóa. Hãy liên hệ văn phòng ký túc xá.
 This account is linked to a different Google account. Contact the dormitory office. ⟶ Tài khoản này đã liên kết với một tài khoản Google khác. Hãy liên hệ văn phòng ký túc xá.
+This demo account signs in with its password, not with Google. ⟶ Tài khoản demo này đăng nhập bằng mật khẩu, không dùng Google.
 There is no CampusStay account for this Google account. Contact the dormitory office. ⟶ Chưa có tài khoản CampusStay cho tài khoản Google này. Hãy liên hệ văn phòng ký túc xá.
 Sign in with your @{0} Google account. ⟶ Hãy đăng nhập bằng tài khoản Google @{0} của bạn.
 Google sign-in could not start. Try again. ⟶ Không thể bắt đầu đăng nhập Google. Hãy thử lại.
@@ -913,9 +914,27 @@ Say whether you are on duty. ⟶ Hãy cho biết bạn có đang trong ca trực
 Choose Pending, Accepted, Declined, Expired, Withdrawn or No offer. ⟶ Hãy chọn Đang chờ, Đã nhận, Đã từ chối, Hết hạn, Đã rút hoặc Chưa có đề nghị.
 Enter the account holder's name. ⟶ Hãy nhập tên chủ tài khoản.
 Enter the account number: 6 to 20 digits. ⟶ Hãy nhập số tài khoản: từ 6 đến 20 chữ số.
-Enter the bank's name. ⟶ Hãy nhập tên ngân hàng.
 Only an Application on the waitlist can be withdrawn. ⟶ Chỉ rút được đơn đang trong danh sách chờ.
 Send the sign-up form first. ⟶ Hãy gửi biểu mẫu đăng ký trước.
+Choose the bank from the list. ⟶ Hãy chọn ngân hàng trong danh sách.
+Confirm that you checked the account: a refund sent to a wrong account is your responsibility. ⟶ Hãy xác nhận bạn đã kiểm tra tài khoản: tiền hoàn chuyển vào tài khoản sai là trách nhiệm của bạn.
+Attach the transfer receipt. ⟶ Hãy đính kèm biên lai chuyển khoản.
+Attach the transfer receipt first. ⟶ Hãy đính kèm biên lai chuyển khoản trước.
+This refund no longer waits for a transfer. ⟶ Khoản hoàn tiền này không còn chờ chuyển khoản.
+The student already entered their bank account. ⟶ Sinh viên đã nhập tài khoản ngân hàng.
+The student was reminded less than a day ago. ⟶ Sinh viên vừa được nhắc chưa đến một ngày trước.
+Ask for places only in the Room Types and Room Classes the Term offers. ⟶ Chỉ đề xuất số chỗ cho các loại phòng và hạng phòng mà kỳ mở.
+Choose active Room Types only. ⟶ Chỉ chọn các loại phòng đang hoạt động.
+Choose active Room Classes only. ⟶ Chỉ chọn các hạng phòng đang hoạt động.
+Choose an active Room Type for each base price. ⟶ Hãy chọn loại phòng đang hoạt động cho từng giá cơ bản.
+Enter each base price per Bed as a whole amount above 0 VND. ⟶ Hãy nhập từng giá cơ bản mỗi giường là số nguyên lớn hơn 0 VND.
+List each Room Type once. ⟶ Mỗi loại phòng chỉ ghi một lần.
+Choose an active Room Class for each surcharge. ⟶ Hãy chọn hạng phòng đang hoạt động cho từng phụ thu.
+List each Room Class once. ⟶ Mỗi hạng phòng chỉ ghi một lần.
+Enter a price for every Room Type and Room Class the Term offers. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng mà kỳ mở.
+Choose at least one active Room Type. ⟶ Hãy chọn ít nhất một loại phòng đang hoạt động.
+Choose at least one active Room Class. ⟶ Hãy chọn ít nhất một hạng phòng đang hoạt động.
+A published Term keeps the Room Types and Room Classes it offers. ⟶ Kỳ đã công bố giữ nguyên các loại phòng và hạng phòng đã mở.
 
 # ---------- assistant (ADR-28) ----------
 The assistant is offline right now. Try again later. ⟶ Trợ lý đang offline. Hãy thử lại sau.

@@ -59,11 +59,18 @@ function Sidebar({ role }) {
         </nav>
       </div>
       <div className="flex items-center gap-2.5 border-t border-line p-4">
-        <Avatar name={user?.name} />
-        <div className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
-          <span className="truncate text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
-          <span className="truncate text-sm text-fg-tertiary">{tx(user?.title) || t(config.roleTitle)}</span>
-        </div>
+        <Link
+          to={`/${role}/profile`}
+          aria-current={pathname === `/${role}/profile` ? 'page' : undefined}
+          title={t('My profile')}
+          className="-m-1 flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-1 hover:bg-subtle aria-[current=page]:bg-primary-subtle"
+        >
+          <Avatar name={user?.name} />
+          <div className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
+            <span className="truncate text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
+            <span className="truncate text-sm text-fg-tertiary">{tx(user?.title) || t(config.roleTitle)}</span>
+          </div>
+        </Link>
         <button
           type="button"
           onClick={() => setChangingPassword(true)}

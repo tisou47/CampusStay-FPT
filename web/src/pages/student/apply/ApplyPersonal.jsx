@@ -1,31 +1,30 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { api } from '@/api/endpoints'
+import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Card, Facts } from '@/components/ui/Display'
-import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
-import { WizardActions, WizardLayout, useProfileDefaults, useWizard } from './wizard'
+import { WizardActions, WizardLayout, useWizard } from './wizard'
 import { t } from '@/i18n'
 
-// SCR-APP-01 Application Wizard – 3 Personal info (Figma 15:352)
+// SCR-APP-01 Application Wizard – 3 Personal info (Figma 15:352): the student record and the consent. The wizard asks
+// for no contact (R-16): the Application keeps the one on the student's profile.
 // GET /students/me/profile → { name, studentCode, gender, major, cohort, hometown, contact }
-const required = ['phone', 'emergencyName', 'relationship', 'emergencyPhone']
 
 export default function ApplyPersonal() {
   const navigate = useNavigate()
   const { term } = useSession()
   const wizard = useWizard()
-  const { draft, setDraft, catalog } = wizard
-  const profile = useProfileDefaults(wizard)
+  const { draft, setDraft } = wizard
+  const profile = useQuery(['profile'], ({ signal }) => api.me.profile(undefined, { signal }))
   const [privacyOpen, setPrivacyOpen] = useState(false)
-  const contact = draft.contact ?? {}
-  const setContact = (key) => (e) => setDraft((d) => ({ ...d, contact: { ...d.contact, [key]: e.target.value } }))
   const setConsent = (key) => (e) => setDraft((d) => ({ ...d, consent: { ...d.consent, [key]: e.target.checked } }))
-  const complete = required.every((k) => String(contact[k] ?? '').trim()) && draft.consent.matching && draft.consent.rules
+  const complete = draft.consent.matching && draft.consent.rules
 
   return (
     <WizardLayout
@@ -58,37 +57,6 @@ export default function ApplyPersonal() {
             </div>
           )}
         </QueryState>
-      </Card>
-
-      <Card padding="lg" className="flex shrink-0 flex-col gap-4">
-        <h2 className="text-h3 font-semibold text-fg">{t('Contact and emergency contact')}</h2>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-          <Field label="Phone number" required className="flex-1">
-            {(id) => <Input id={id} size="lg" type="tel" value={contact.phone ?? ''} onChange={setContact('phone')} />}
-          </Field>
-          <Field label="Personal email" className="flex-1">
-            {(id) => <Input id={id} size="lg" type="email" value={contact.email ?? ''} onChange={setContact('email')} />}
-          </Field>
-        </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-          <Field label="Emergency contact name" required className="flex-1">
-            {(id) => <Input id={id} size="lg" value={contact.emergencyName ?? ''} onChange={setContact('emergencyName')} />}
-          </Field>
-          <Field label="Relationship" required className="flex-1">
-            {(id) => (
-              <Select
-                id={id}
-                size="lg"
-                value={contact.relationship ?? ''}
-                onChange={setContact('relationship')}
-                options={[{ value: '', label: 'Choose…', disabled: true }, ...(catalog.data?.relationships ?? [])]}
-              />
-            )}
-          </Field>
-          <Field label="Emergency contact phone" required className="flex-1">
-            {(id) => <Input id={id} size="lg" type="tel" value={contact.emergencyPhone ?? ''} onChange={setContact('emergencyPhone')} />}
-          </Field>
-        </div>
       </Card>
 
       <Card padding="lg" className="flex shrink-0 flex-col items-start gap-3">

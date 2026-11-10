@@ -22,6 +22,7 @@ import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.event.InvoiceOverdue;
+import vn.fpt.campusstay.event.RefundAccountReminded;
 import vn.fpt.campusstay.event.RefundDecided;
 import vn.fpt.campusstay.service.setting.FeePolicy;
 import vn.fpt.campusstay.service.auth.RefundAccounts;
@@ -65,12 +66,25 @@ public class FinanceService {
     public record Sent(int sent) {
     }
 
-    /** @param account where the student wants the money (A-62), null until they enter it */
+    /**
+     * @param percent           the rule's refund percentage, null for a refund without a rule (R-21)
+     * @param account           where the student wants the money (A-62), null until they enter it
+     * @param accountRemindedAt when a Manager last reminded the student to enter it (R-19)
+     */
     public record RefundItem(String id, String name, String studentCode, String reason, String rule, long paid,
-            long amount, String proposedLabel, boolean exception, String status, RefundAccounts.Account account) {
+            long amount, String proposedLabel, BigDecimal percent, boolean exception, String status,
+            RefundAccounts.Account account, Instant createdAt, Instant accountRemindedAt) {
     }
 
     public record RefundPage(List<RefundItem> items, long total) {
+    }
+
+    /** One of the student's own refunds (R-24); {@code note} is the decision's note (the reason of a rejection). */
+    public record MyRefund(String id, String reason, String rule, BigDecimal percent, long paid, long amount,
+            String status, Instant createdAt, Instant decidedAt, String note) {
+    }
+
+    public record MyRefunds(List<MyRefund> items, long total, long pendingAmount) {
     }
 
     private static final Map<String, String> REFUND_STATUSES = Map.of("PENDING", "Pending", "APPROVED", "Approved",
@@ -265,16 +279,82 @@ public class FinanceService {
                             rule != null ? rule.description() : SOURCES.get(rs.getString("source_type")), paid,
                             rs.getLong("amount"),
                             rule == null ? null : percent(rule.refundPercent()) + " of " + vnd.format(paid) + " VND",
-                            rs.getBoolean("exception"), REFUND_STATUSES.get(rs.getString("status")), null));
+                            rule == null ? null : rule.refundPercent().stripTrailingZeros(),
+                            rs.getBoolean("exception"), REFUND_STATUSES.get(rs.getString("status")), null,
+                            InvoiceStore.instant(rs, "created_at"), InvoiceStore.instant(rs, "account_reminded_at")));
                 })
                 .list();
         Map<Long, RefundAccounts.Account> paidTo = accounts.of(rows.stream().map(Row::studentId).distinct().toList());
         List<RefundItem> items = rows.stream().map(r -> {
             RefundItem i = r.item();
             return new RefundItem(i.id(), i.name(), i.studentCode(), i.reason(), i.rule(), i.paid(), i.amount(),
-                    i.proposedLabel(), i.exception(), i.status(), paidTo.get(r.studentId()));
+                    i.proposedLabel(), i.percent(), i.exception(), i.status(), paidTo.get(r.studentId()),
+                    i.createdAt(), i.accountRemindedAt());
         }).toList();
         return new RefundPage(items, total);
+    }
+
+    /** The student's own refunds, newest first (R-24): refunds are not Invoices, so Payments lists them apart. */
+    @Transactional(readOnly = true)
+    public MyRefunds mine(PageQuery page) {
+        long me = currentUser.require(Role.STUDENT).userId();
+        long total = jdbc.sql("SELECT count(*) FROM bil_refund WHERE student_id = :me").param("me", me)
+                .query(Long.class).single();
+        long pending = jdbc.sql("""
+                SELECT coalesce(sum(amount), 0) FROM bil_refund WHERE student_id = :me AND status IN ('PENDING', 'APPROVED')
+                """).param("me", me).query(Long.class).single();
+        Map<Long, FeePolicy.RefundRule> rules = fees.refundRules();
+        List<MyRefund> items = jdbc.sql("""
+                SELECT * FROM bil_refund WHERE student_id = :me ORDER BY created_at DESC, id DESC
+                LIMIT :limit OFFSET :offset
+                """).param("me", me).param("limit", page.limit()).param("offset", page.offset())
+                .query((rs, n) -> {
+                    Long ruleId = rs.getObject("rule_id", Long.class);
+                    FeePolicy.RefundRule rule = ruleId == null ? null : rules.get(ruleId);
+                    return new MyRefund(String.valueOf(rs.getLong("id")), rs.getString("reason"),
+                            rule != null ? rule.description() : SOURCES.get(rs.getString("source_type")),
+                            rule == null ? null : rule.refundPercent().stripTrailingZeros(), rs.getLong("paid_amount"),
+                            rs.getLong("amount"), REFUND_STATUSES.get(rs.getString("status")),
+                            InvoiceStore.instant(rs, "created_at"), InvoiceStore.instant(rs, "decided_at"),
+                            rs.getString("status").equals("REJECTED") ? rs.getString("note") : null);
+                })
+                .list();
+        return new MyRefunds(items, total, pending);
+    }
+
+    /**
+     * Reminds a student whose refund waits for their bank account to enter it (R-19): in-app and push, at most once a
+     * day per refund.
+     */
+    @Transactional
+    public Instant remindAccount(String id) {
+        AuthenticatedUser user = currentUser.require(Role.MANAGER, Role.ADMIN);
+        InvoiceScope.Scope s = scope.resolve(null);
+        Map<String, Object> params = new HashMap<>(s.params());
+        params.put("id", parse(id).orElse(-1L));
+        record Refund(long id, long studentId, long amount, String reason, String status, Instant remindedAt) {
+        }
+        Refund r = jdbc.sql("SELECT * FROM bil_refund r WHERE r.id = :id AND " + s.where("r") + " FOR UPDATE")
+                .params(params)
+                .query((rs, n) -> new Refund(rs.getLong("id"), rs.getLong("student_id"), rs.getLong("amount"),
+                        rs.getString("reason"), rs.getString("status"), InvoiceStore.instant(rs, "account_reminded_at")))
+                .optional().orElseThrow(() -> ApiException.notFound("This refund does not exist."));
+        if (!r.status().equals("PENDING") && !r.status().equals("APPROVED")) {
+            throw ApiException.conflict("REFUND_CLOSED", "This refund no longer waits for a transfer.");
+        }
+        if (accounts.of(List.of(r.studentId())).containsKey(r.studentId())) {
+            throw ApiException.conflict("ACCOUNT_ENTERED", "The student already entered their bank account.");
+        }
+        Instant now = Instant.now(clock);
+        if (r.remindedAt() != null && r.remindedAt().isAfter(now.minus(1, ChronoUnit.DAYS))) {
+            throw ApiException.conflict("ALREADY_REMINDED", "The student was reminded less than a day ago.");
+        }
+        jdbc.sql("UPDATE bil_refund SET account_reminded_at = :now WHERE id = :id")
+                .param("now", Timestamp.from(now)).param("id", r.id()).update();
+        audit.record("REFUND_ACCOUNT_REMINDED", AuditLog.Tone.INFO, "Refund", r.id(), r.reason(),
+                Map.of("amount", r.amount(), "by", user.name()));
+        events.publishEvent(new RefundAccountReminded(r.id(), r.studentId(), r.amount(), r.reason()));
+        return now;
     }
 
     /**

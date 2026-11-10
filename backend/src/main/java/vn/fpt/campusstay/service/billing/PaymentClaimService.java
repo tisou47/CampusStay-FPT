@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.file.FileLinks;
 import vn.fpt.campusstay.common.file.FileStore;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.PageQuery;
@@ -47,6 +48,9 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
  * that was left, at least {@code payment.rejected_claim_min_hours}; after {@code payment.rejections_to_cancel}
  * rejections a Deposit or a Balance is cancelled together with what depends on it. Utility and charge Invoices are
  * debts: they are never cancelled, and a claim made after their due date leaves the date as it was.
+ * <p>
+ * A claim is confirmed only with the transfer receipt (R-23): one Invoice at a time with its file, or in bulk once a
+ * receipt is attached to each claim ({@link #attachReceipt}); claims without one are skipped.
  */
 @Service
 public class PaymentClaimService {
@@ -62,10 +66,16 @@ public class PaymentClaimService {
     public record Filter(Long termId, String block, String type, String since, String q) {
     }
 
-    /** @param timeLeftSeconds what was left of the deadline when the student claimed (0 for a debt already due) */
+    /**
+     * @param timeLeftSeconds what was left of the deadline when the student claimed (0 for a debt already due)
+     * @param receipt         the transfer receipt attached by a Manager, null until then
+     */
     public record ClaimItem(String invoiceId, String studentName, String studentCode, String type, String typeLabel,
             String title, long amount, Instant claimedAt, Instant dueAt, long timeLeftSeconds, String reference,
-            int rejected, String transferContent) {
+            int rejected, String transferContent, Receipt receipt) {
+    }
+
+    public record Receipt(String name, long size, String url) {
     }
 
     public record ClaimSummary(long count, long amount) {
@@ -87,7 +97,8 @@ public class PaymentClaimService {
     static final Set<String> PLACE_TYPES = Set.of("DEPOSIT", "BALANCE", "TERM_FEE");
     private static final int MAX_BULK = 200;
 
-    private record Claim(long id, long invoiceId, Instant claimedAt, String reference, long timeLeftSeconds) {
+    private record Claim(long id, long invoiceId, Instant claimedAt, String reference, long timeLeftSeconds,
+            Long receiptFileId) {
     }
 
     private final JdbcClient jdbc;
@@ -97,13 +108,14 @@ public class PaymentClaimService {
     private final TermCatalog terms;
     private final Parameters parameters;
     private final FileStore files;
+    private final FileLinks links;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public PaymentClaimService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
-            TermCatalog terms, Parameters parameters, FileStore files, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            TermCatalog terms, Parameters parameters, FileStore files, FileLinks links, ApplicationEventPublisher events,
+            AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
@@ -111,6 +123,7 @@ public class PaymentClaimService {
         this.terms = terms;
         this.parameters = parameters;
         this.files = files;
+        this.links = links;
         this.events = events;
         this.audit = audit;
         this.clock = clock;
@@ -225,18 +238,44 @@ public class PaymentClaimService {
         params.put("offset", page.offset());
         List<ClaimItem> items = jdbc.sql("""
                 SELECT i.code, i.student_name, i.student_code, i.type, i.title, i.amount, i.due_at, i.transfer_content,
-                       c.claimed_at, c.time_left_seconds, c.reference,
+                       c.claimed_at, c.time_left_seconds, c.reference, c.receipt_file_id,
                        (SELECT count(*) FROM bil_payment_claim r WHERE r.invoice_id = i.id AND r.status = 'REJECTED')
                            AS rejected
                 """ + from + where + " ORDER BY c.claimed_at, c.id LIMIT :limit OFFSET :offset")
-                .params(params).query(PaymentClaimService::item).list();
+                .params(params).query(this::item).list();
         return new ClaimPage(items, summary.count(), summary,
                 List.of("Deposit", "Balance", "Utility", "Room change", "Damage"));
     }
 
     // ---------------------------------------------------------------- Managers: decisions
 
-    /** Confirms the open claims of the Invoices; each is paid, audited and announced on its own. */
+    /**
+     * The transfer receipt of an open claim, attached before a bulk confirmation (R-23); a new file replaces the one
+     * attached before.
+     */
+    @Transactional
+    public Receipt attachReceipt(String invoiceCode, String receiptName, byte[] receipt) {
+        AuthenticatedUser user = currentUser.require(Permission.CONFIRM_PAYMENTS);
+        InvoiceStore.Invoice inv = lockedInScope(invoiceCode == null ? "" : invoiceCode.trim().toUpperCase(Locale.ROOT))
+                .orElseThrow(() -> ApiException.notFound("This Invoice does not exist."));
+        Claim claim = openClaim(inv.id()).orElseThrow(() -> ApiException.conflict("NO_CLAIM_WAITING",
+                "No payment claim is waiting for this Invoice."));
+        if (receipt == null || receipt.length == 0) {
+            throw FieldErrors.single("receipt", "Attach the transfer receipt.");
+        }
+        FileStore.StoredFile file = files.store("bil", Optional.ofNullable(receiptName).orElse("receipt"), receipt,
+                FileStore.IMAGES_AND_PDF, user.userId());
+        jdbc.sql("UPDATE bil_payment_claim SET receipt_file_id = :file WHERE id = :id")
+                .param("file", file.id()).param("id", claim.id()).update();
+        audit.record("PAYMENT_RECEIPT_ATTACHED", AuditLog.Tone.INFO, "Invoice", inv.id(), inv.code(),
+                Map.of("file", file.name()));
+        return new Receipt(file.name(), file.size(), links.link(file.id()));
+    }
+
+    /**
+     * Confirms the open claims of the Invoices; each is paid, audited and announced on its own. A claim without its
+     * transfer receipt is skipped (R-23).
+     */
     @Transactional
     public Confirmed confirm(List<String> invoiceCodes) {
         AuthenticatedUser user = currentUser.require(Permission.CONFIRM_PAYMENTS);
@@ -252,7 +291,11 @@ public class PaymentClaimService {
                         : "No payment claim is waiting for this Invoice."));
                 continue;
             }
-            pay(inv.get(), claim.get(), user, claim.get().reference(), null);
+            if (claim.get().receiptFileId() == null) {
+                skipped.add(new Skipped(code, "Attach the transfer receipt first."));
+                continue;
+            }
+            pay(inv.get(), claim.get(), user, claim.get().reference(), claim.get().receiptFileId());
             confirmed++;
             amount += inv.get().amount();
         }
@@ -260,8 +303,9 @@ public class PaymentClaimService {
     }
 
     /**
-     * One Invoice with an optional receipt: its open claim, or a transfer the Manager saw although the student did
-     * not claim it (the claim is recorded in the Manager's name, at the time of the confirmation).
+     * One Invoice with its transfer receipt (required, R-23; one attached to the claim before counts): its open claim,
+     * or a transfer the Manager saw although the student did not claim it (the claim is recorded in the Manager's
+     * name, at the time of the confirmation).
      */
     @Transactional
     public void confirmOne(String invoiceCode, String reference, String receiptName, byte[] receipt) {
@@ -282,11 +326,14 @@ public class PaymentClaimService {
             }
             Instant now = Instant.now(clock);
             long id = insertClaim(inv, user.userId(), now, ref, Math.max(0, Duration.between(now, inv.dueAt()).toSeconds()));
-            return new Claim(id, inv.id(), now, ref, 0);
+            return new Claim(id, inv.id(), now, ref, 0, null);
         });
-        Long receiptId = receipt == null || receipt.length == 0 ? null
-                : files.store("bil", Optional.ofNullable(receiptName).orElse("receipt"), receipt,
+        Long receiptId = receipt == null || receipt.length == 0 ? claim.receiptFileId()
+                : (Long) files.store("bil", Optional.ofNullable(receiptName).orElse("receipt"), receipt,
                         FileStore.IMAGES_AND_PDF, user.userId()).id();
+        if (receiptId == null) { // nothing attached before the claim was decided: the claim is rolled back too
+            throw FieldErrors.single("receipt", "Attach the transfer receipt.");
+        }
         pay(inv, claim, user, ref != null ? ref : claim.reference(), receiptId);
     }
 
@@ -435,11 +482,12 @@ public class PaymentClaimService {
 
     private Optional<Claim> openClaim(long invoiceId) {
         return jdbc.sql("""
-                SELECT id, invoice_id, claimed_at, reference, time_left_seconds FROM bil_payment_claim
+                SELECT id, invoice_id, claimed_at, reference, time_left_seconds, receipt_file_id FROM bil_payment_claim
                 WHERE invoice_id = :id AND status = 'CLAIMED' FOR UPDATE
                 """).param("id", invoiceId)
                 .query((rs, i) -> new Claim(rs.getLong("id"), rs.getLong("invoice_id"),
-                        InvoiceStore.instant(rs, "claimed_at"), rs.getString("reference"), rs.getLong("time_left_seconds")))
+                        InvoiceStore.instant(rs, "claimed_at"), rs.getString("reference"), rs.getLong("time_left_seconds"),
+                        rs.getObject("receipt_file_id", Long.class)))
                 .optional();
     }
 
@@ -467,12 +515,15 @@ public class PaymentClaimService {
         };
     }
 
-    private static ClaimItem item(ResultSet rs, int i) throws SQLException {
+    private ClaimItem item(ResultSet rs, int i) throws SQLException {
         String type = rs.getString("type");
+        Long receiptId = rs.getObject("receipt_file_id", Long.class);
+        Receipt receipt = receiptId == null ? null : files.info(receiptId)
+                .map(f -> new Receipt(f.name(), f.size(), links.link(f.id()))).orElse(null);
         return new ClaimItem(rs.getString("code"), rs.getString("student_name"), rs.getString("student_code"),
                 InvoiceLabels.type(type), InvoiceLabels.typeLabel(type), rs.getString("title"), rs.getLong("amount"),
                 InvoiceStore.instant(rs, "claimed_at"), InvoiceStore.instant(rs, "due_at"),
                 rs.getLong("time_left_seconds"), rs.getString("reference"), rs.getInt("rejected"),
-                rs.getString("transfer_content"));
+                rs.getString("transfer_content"), receipt);
     }
 }

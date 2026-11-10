@@ -32,7 +32,8 @@ class AuditLogExport implements ReportExport {
     @Transactional(readOnly = true)
     public Table export(Map<String, String> f) {
         currentUser.require(Permission.READ_AUDIT_LOG);
-        AuditTrailService.AuditPage page = trail.list(f.get("q"), f.get("actor"), f.get("action"), f.get("range"), ALL);
+        AuditTrailService.AuditPage page = trail.list(f.get("q"), f.get("actor"), f.get("action"), f.get("role"),
+                f.get("range"), ALL);
         return new Table("audit-log", List.of("Time", "Actor", "Action", "Object", "Change"),
                 page.items().stream().map(i -> Arrays.<Object>asList(i.at(), i.actor(), i.action(),
                         i.object() == null ? "" : i.object(), i.change() == null ? "" : i.change())).toList());

@@ -52,6 +52,12 @@ class JdbcFeePolicy implements FeePolicy {
     }
 
     @Override
+    public long price(long basePrice, BigDecimal surchargeRate) {
+        return roundUp(BigDecimal.valueOf(basePrice).multiply(BigDecimal.ONE.add(surchargeRate)),
+                parameters.intValue("pricing.rounding_vnd"));
+    }
+
+    @Override
     public BigDecimal depositRate(long termId) {
         BigDecimal percent = jdbc.sql("""
                 SELECT COALESCE(t.deposit_percent, p.deposit_percent)

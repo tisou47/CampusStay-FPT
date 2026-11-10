@@ -127,7 +127,7 @@ class PaymentDeskIT {
     }
 
     /**
-     * TC-BIL-011: a Manager confirms one Invoice with the bank reference and a receipt, even a transfer the student
+     * TC-BIL-011: a Manager confirms one Invoice with the bank reference and its receipt (required, R-23), even a transfer the student
      * did not claim (the claim is recorded in the Manager's name); the Application is submitted; a second
      * confirmation is refused; Staff and students may not confirm (ADR-19, ADR-22).
      */
@@ -144,6 +144,9 @@ class PaymentDeskIT {
                 .andExpect(jsonPath("$.details.fields.reference").isString());
         confirm(invoice, bearer(mvc, TestAuth.STAFF_A), "FT26294001", null).andExpect(status().isForbidden());
         confirm(invoice, auth, "FT26294001", null).andExpect(status().isForbidden());
+        confirm(invoice, manager, "FT26294001", null)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.receipt").isString());
 
         confirm(invoice, manager, "FT26294001", receipt).andExpect(status().isNoContent());
         assertThat(flow.statuses(auth)).containsExactly("Submitted");

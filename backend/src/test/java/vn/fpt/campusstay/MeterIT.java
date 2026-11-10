@@ -247,7 +247,13 @@ class MeterIT {
                 .andExpect(jsonPath("$.amount").value(213_000))
                 .andExpect(jsonPath("$.breakdown.segments.length()").value(1))
                 .andExpect(jsonPath("$.breakdown.segments[0].residents").value(2))
-                .andExpect(jsonPath("$.breakdown.priceKwh").value(3500));
+                .andExpect(jsonPath("$.breakdown.priceKwh").value(3500))
+                // The month of the Term it bills (R-26).
+                .andExpect(jsonPath("$.period.label").isString())
+                .andExpect(jsonPath("$.period.from").isString())
+                .andExpect(jsonPath("$.period.month").isNumber())
+                .andExpect(jsonPath("$.period.months").isNumber())
+                .andExpect(jsonPath("$.termName").isString());
 
         putReading(staff, period, "B-101", "{\"electricity\":1200,\"water\":50}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PERIOD_CLOSED"));

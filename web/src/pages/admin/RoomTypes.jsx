@@ -66,9 +66,13 @@ function EditDrawer({ type, roomClasses, onClose }) {
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. 8-bed" />}</Field>
-      <Field label="Beds per Room" helper={type.hasAllocations ? 'Cannot change while Rooms of this type have active Allocations.' : undefined}>
-        {(id) => <Input id={id} value={form.beds} onChange={set('beds')} disabled={type.hasAllocations} inputMode="numeric" />}
-      </Field>
+      {isNew ? (
+        <Field label="Beds per Room" helper="Set once, when the type is created.">
+          {(id) => <Input id={id} value={form.beds} onChange={set('beds')} inputMode="numeric" />}
+        </Field>
+      ) : (
+        <p className="text-base text-fg-secondary">{t('{n} Beds per Room (set when the type was created).', { n: type.beds })}</p>
+      )}
       <Field label="Base price per Bed / Term (VND)">
         {(id) => <Input id={id} value={form.basePrice} onChange={set('basePrice')} onBlur={() => setForm((f) => ({ ...f, basePrice: f.basePrice ? formatNumber(parse(f.basePrice)) : '' }))} inputMode="numeric" />}
       </Field>
@@ -125,7 +129,6 @@ export default function RoomTypes() {
         <THead>
           <tr>
             <Th className="w-40">Room Type</Th>
-            <Th className="w-30">Beds per Room</Th>
             <Th className="w-50" align="right">
               Base price per Bed / Term
             </Th>
@@ -143,11 +146,10 @@ export default function RoomTypes() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} emptyIcon={Bed} emptyTitle="No Room Types yet" />
+          <TableStatus query={query} colSpan={7} emptyIcon={Bed} emptyTitle="No Room Types yet" />
           {items.map((t) => (
             <Tr key={t.id}>
               <Td className="font-medium">{tr(t.name)}</Td>
-              <Td>{t.beds}</Td>
               <Td align="right" className="tabular">
                 {formatVnd(t.basePrice)}
               </Td>

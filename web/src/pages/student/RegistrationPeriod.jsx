@@ -6,31 +6,37 @@ import { useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
 import { ErrorState, LoadingState } from '@/components/ui/States'
-import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
-import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { formatDate, formatNumber, formatVnd } from '@/lib/format'
+import { typeName } from '@/lib/furniture'
 import { StudentPage } from './shared'
 import { timeLeft } from './board'
+import { TermSchedule } from './schedule'
 import { t, tr } from '@/i18n'
 
-// SCR-HOME-05 Registration period details (spec §6.5): the timeline, prices, Rooms, house rules and questions of a
-// published Term, opened from the board.
+// SCR-HOME-05 Registration period details (spec §6.5): the schedule, prices, house rules and questions of a published
+// Term, opened from the board. Students see no Rooms (R-09): each price line says how many Beds of their gender it
+// offers and the furniture its Room Class has (R-14).
 // GET /registration-periods/:termId → { id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date,
-//   until, done }], prices: [{ roomType, beds, roomClass, price, deposit }], depositPercent, utilityDeposit,
-//   rooms: [{ roomType, roomClass, gender, rooms, beds }], houseRules, faq, documents }
+//   until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit, places,
+//   furniture: [{ name, nameVi, quantity }] }], depositPercent, utilityDeposit, houseRules, faq, documents }
 
 const TABS = [
   { key: 'timeline', label: 'Timeline' },
   { key: 'prices', label: 'Prices' },
-  { key: 'rooms', label: 'Rooms' },
   { key: 'rules', label: 'House rules' },
   { key: 'faq', label: 'FAQ' },
 ]
 
-const GENDER = { M: 'Male', F: 'Female' }
 const tone = { Open: 'success', 'Opens soon': 'info', Closed: 'neutral' }
+
+/** Price lines by Room Type, in the order the API sends them. */
+function groupByType(prices) {
+  const groups = new Map()
+  for (const p of prices) groups.set(p.roomType, [...(groups.get(p.roomType) ?? []), p])
+  return [...groups]
+}
 
 export default function RegistrationPeriod() {
   const { termId } = useParams()
@@ -38,7 +44,6 @@ export default function RegistrationPeriod() {
   const query = useQuery(['registration-period', termId], ({ signal }) => api.registrationPeriods.details(termId, { signal }))
   const d = query.data
   if (d === undefined) return query.error ? <ErrorState error={query.error} onRetry={query.reload} title="Could not load this registration period" /> : <LoadingState />
-  const firstUpcoming = d.timeline.findIndex((m) => !m.done)
   const closes = d.timeline.find((m) => m.key === 'registrationClosesAt')
 
   return (
@@ -60,20 +65,7 @@ export default function RegistrationPeriod() {
         {tab === 'timeline' && (
           <>
             {d.status === 'Open' && closes && timeLeft(closes.at) && <p className="text-base font-medium text-fg-brand">{t('Registration closes in {left}.', { left: timeLeft(closes.at) })}</p>}
-            <ol className="flex flex-col gap-3">
-              {d.timeline.map((m, i) => (
-                <li key={m.key} className="flex items-center gap-3">
-                  <span
-                    aria-hidden="true"
-                    className={cx('size-2.5 shrink-0 rounded-full', m.done ? 'bg-success' : i === firstUpcoming ? 'bg-primary' : 'border-[1.5px] border-line-strong bg-white')}
-                  />
-                  <span className={cx('flex-1 text-base', i === firstUpcoming ? 'font-medium text-fg' : m.done ? 'text-fg' : 'text-fg-secondary')}>{t(m.label)}</span>
-                  <span className="text-base whitespace-nowrap text-fg-secondary">
-                    {m.at ? formatDateTime(m.at) : m.until ? `${formatDate(m.date)} – ${formatDate(m.until)}` : formatDate(m.date)}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <TermSchedule timeline={d.timeline} />
           </>
         )}
         {tab === 'prices' && (
@@ -84,54 +76,36 @@ export default function RegistrationPeriod() {
                 amount: formatVnd(d.utilityDeposit),
               })}
             </p>
-            <Table>
-              <THead>
-                <tr>
-                  <Th>Room Type</Th>
-                  <Th>Room Class</Th>
-                  <Th align="right">Price per Bed</Th>
-                  <Th align="right">Deposit</Th>
-                </tr>
-              </THead>
-              <TBody>
-                {d.prices.map((p) => (
-                  <Tr key={`${p.roomTypeId}:${p.roomClassId}`}>
-                    <Td>{tr(p.roomType)}</Td>
-                    <Td>{tr(p.roomClass)}</Td>
-                    <Td align="right" className="font-medium">
-                      {formatVnd(p.price)}
-                    </Td>
-                    <Td align="right">{formatVnd(p.deposit)}</Td>
-                  </Tr>
-                ))}
-              </TBody>
-            </Table>
-            <p className="text-sm text-fg-tertiary">{t('These prices stay the same for the whole Term.')}</p>
+            {groupByType(d.prices).map(([type, lines]) => (
+              <section key={type} className="flex flex-col gap-2">
+                <h2 className="text-h3 font-semibold text-fg">{tr(type)}</h2>
+                <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
+                  {lines.map((p) => (
+                    <li key={`${p.roomTypeId}:${p.roomClassId}`} className="flex flex-col gap-2 p-4">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <span className="text-base font-semibold text-fg">{tr(p.roomClass)}</span>
+                        <span className="text-base font-semibold text-fg tabular">{formatVnd(p.price)}</span>
+                      </div>
+                      <p className="text-sm text-fg-secondary">
+                        {t('Deposit {amount}', { amount: formatVnd(p.deposit) })} ·{' '}
+                        <span className={p.places > 0 ? 'text-fg' : 'text-fg-tertiary'}>{p.places > 0 ? t(p.places === 1 ? '{n} place' : '{n} places', { n: formatNumber(p.places) }) : t('No places for you')}</span>
+                      </p>
+                      {p.furniture?.length > 0 && (
+                        <ul aria-label={t('Furniture')} className="flex flex-wrap gap-1.5">
+                          {p.furniture.map((f) => (
+                            <li key={f.name} className="rounded-full border border-line bg-subtle px-2.5 py-0.5 text-sm text-fg">
+                              {f.quantity > 1 ? `${f.quantity} × ${typeName(f)}` : typeName(f)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+            <p className="text-sm text-fg-tertiary">{t('Places are the Beds this Term offers to students of your gender. These prices stay the same for the whole Term.')}</p>
           </>
-        )}
-        {tab === 'rooms' && (
-          <Table>
-            <THead>
-              <tr>
-                <Th>Room Type</Th>
-                <Th>Room Class</Th>
-                <Th>For</Th>
-                <Th align="right">Rooms</Th>
-                <Th align="right">Beds</Th>
-              </tr>
-            </THead>
-            <TBody>
-              {d.rooms.map((r) => (
-                <Tr key={`${r.roomType}:${r.roomClass}:${r.gender}`}>
-                  <Td>{tr(r.roomType)}</Td>
-                  <Td>{tr(r.roomClass)}</Td>
-                  <Td>{t(GENDER[r.gender] ?? r.gender)}</Td>
-                  <Td align="right">{formatNumber(r.rooms)}</Td>
-                  <Td align="right">{formatNumber(r.beds)}</Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
         )}
         {tab === 'rules' && (
           <>

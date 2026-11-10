@@ -164,6 +164,14 @@ class AdminUsersIT {
                 .andExpect(jsonPath("$.items[0].tone").value("warning"))
                 .andExpect(jsonPath("$.items[0].object").value("User staff.a2@campusstay.test"))
                 .andExpect(jsonPath("$.items[0].change").value("status: Active → Disabled"));
+        mvc.perform(get("/admin/audit-log").header(HttpHeaders.AUTHORIZATION, admin)
+                .param("action", "User disabled").param("role", "Admin"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].action").value("User disabled"));
+        mvc.perform(get("/admin/audit-log").header(HttpHeaders.AUTHORIZATION, admin)
+                .param("action", "User disabled").param("role", "Staff"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+        mvc.perform(get("/admin/audit-log").header(HttpHeaders.AUTHORIZATION, admin).param("role", "Guest"))
+                .andExpect(status().isBadRequest());
         mvc.perform(put("/admin/users/" + id).header(HttpHeaders.AUTHORIZATION, admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Vo Thanh Tung\",\"role\":\"Staff\",\"scope\":\"A\",\"status\":\"Active\"}"))

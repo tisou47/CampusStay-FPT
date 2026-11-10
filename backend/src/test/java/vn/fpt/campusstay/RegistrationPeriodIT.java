@@ -41,8 +41,8 @@ class RegistrationPeriodIT {
 
     /**
      * TC-CFG-023: the card shows the Term open for registration with its countdown, places and lowest price; its
-     * details list the timeline, every price with its Deposit and the Beds per Room Type × Room Class × gender; a
-     * Draft has no details.
+     * details list the timeline and every price with its Deposit, the furniture its Room Class requires and the Beds
+     * of the student's gender (no Rooms); a Draft has no details.
      */
     @Test
     void cardAndDetails() throws Exception {
@@ -72,8 +72,11 @@ class RegistrationPeriodIT {
                 .andExpect(jsonPath("$.prices[?(@.roomType == '4-bed' && @.roomClass == 'Standard')].deposit",
                         hasItem(1380000)))
                 .andExpect(jsonPath("$.depositPercent").value(20))
-                .andExpect(jsonPath("$.rooms[?(@.roomType == '2-bed' && @.roomClass == 'Basic' && @.gender == 'M')].beds",
+                .andExpect(jsonPath("$.prices[?(@.roomType == '2-bed' && @.roomClass == 'Basic')].places",
                         hasItem(16)))
+                .andExpect(jsonPath("$.prices[?(@.roomType == '2-bed' && @.roomClass == 'Premium')].furniture[*].name",
+                        hasItem("Fridge")))
+                .andExpect(jsonPath("$.rooms").doesNotExist())
                 .andExpect(jsonPath("$.houseRules").value("Quiet after 23:00."))
                 .andExpect(jsonPath("$.faq[0].answer").value("No."));
         mvc.perform(get("/registration-periods/current").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_A)))

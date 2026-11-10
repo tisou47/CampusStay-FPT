@@ -117,7 +117,7 @@ export default function DemoData() {
         <Card padding="none" className="flex shrink-0 flex-col">
           <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
             <h2 className="text-h3 font-semibold text-fg">{t('Scenario accounts of stage {stage}', { stage })}</h2>
-            <span className="text-sm text-fg-tertiary">{t('Password of every demo account: 12321321')}</span>
+            <span className="text-sm text-fg-tertiary">{t('Password of every demo account: 123')}</span>
           </div>
           <Table>
             <THead>

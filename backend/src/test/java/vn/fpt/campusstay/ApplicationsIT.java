@@ -139,7 +139,7 @@ class ApplicationsIT {
                 .andExpect(jsonPath("$.code").value("NOT_ELIGIBLE"));
     }
 
-    /** TC-APP-003 (negative): contact, consent and roommate rules are named per field. */
+    /** TC-APP-003 (negative): a contact field given must be valid; consent and roommate rules are named per field. */
     @Test
     void applicationIsValidated() throws Exception {
         String auth = bearer(mvc, student(13));
@@ -152,10 +152,31 @@ class ApplicationsIT {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.details.fields.roommate").value("You can invite a roommate only for a 2-bed Room Type."))
                 .andExpect(jsonPath("$.details.fields.phone").exists())
-                .andExpect(jsonPath("$.details.fields.emergencyName").exists())
+                .andExpect(jsonPath("$.details.fields.emergencyName").doesNotExist())
                 .andExpect(jsonPath("$.details.fields.relationship").exists())
                 .andExpect(jsonPath("$.details.fields.consent").exists());
         assertThat(flow.statuses(auth)).isEmpty();
+    }
+
+    /**
+     * TC-APP-027: the wizard no longer asks for a contact (R-16): an Application without one is accepted and its
+     * snapshot is the contact on the student's profile, which stays as it was.
+     */
+    @Test
+    void contactComesFromTheProfile() throws Exception {
+        String auth = bearer(mvc, student(28));
+        String body = """
+                {"roomTypeId":"%s","roomClassId":"%s","consent":{"matching":true,"rules":true}}"""
+                .formatted(flow.roomTypeId("4-bed"), flow.roomClassId("Basic"));
+        String id = JsonPath.read(flow.submit(auth, body).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String contact = jdbc.sql("SELECT contact::text FROM app_application WHERE code = :id").param("id", id)
+                .query(String.class).single();
+        assertThat(JsonPath.<String>read(contact, "$.phone")).isEqualTo("09" + (10000000 + 28 * 137));
+        assertThat(JsonPath.<String>read(contact, "$.emergencyName")).isEqualTo("Parent of SE190028");
+        assertThat(JsonPath.<String>read(contact, "$.relationship")).isEqualTo("Mother");
+        assertThat(jdbc.sql("SELECT emergency_phone FROM auth_student WHERE student_code = 'SE190028'")
+                .query(String.class).single()).isEqualTo("08" + (20000000 + 28 * 311));
     }
 
     /** TC-APP-004 (privacy): the same answer for every unusable code, and a limited number of checks. */

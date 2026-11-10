@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.setting;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -13,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -52,10 +55,16 @@ public class TermRequestService {
     public record RequestList(List<Summary> items, long total, Map<String, Long> counts) {
     }
 
-    /** What a Manager sends; ids are strings or numbers (ADR-15). */
+    /**
+     * What a Manager sends; ids are strings or numbers (ADR-15). Prices are proposed as a base price per Room Type and a
+     * surcharge per Room Class ({@code basePrices}, {@code surcharges}); the server computes each line (BR-10). A body
+     * with only {@code prices} (before review R-02) is still read.
+     */
     public record Body(String termName, LocalDate stayStart, LocalDate stayEnd, TermPlan.Timeline timeline,
             List<String> blocks, List<String> excludedRooms, List<TermPlan.Places> places, List<TermPlan.Price> prices,
-            String notes) {
+            List<TermPlan.BasePrice> basePrices, List<TermPlan.Surcharge> surcharges, List<String> roomTypes,
+            List<String> roomClasses, BigDecimal reservedNewPercent, BigDecimal depositPercent, Long utilityDeposit,
+            String houseRules, List<TermPlan.Faq> faq, String notes) {
     }
 
     public record PlacesRow(String roomTypeId, String roomType, String roomClassId, String roomClass, String gender,
@@ -65,6 +74,42 @@ public class TermRequestService {
     /** {@code defaultPrice}: the default price per Bed (base price × surcharge) to compare with. */
     public record PriceRow(String roomTypeId, String roomType, String roomClassId, String roomClass, long price,
             Long defaultPrice) {
+    }
+
+    /** A proposed base price with today's default. */
+    public record BasePriceRow(String roomTypeId, String roomType, long price, long defaultPrice) {
+    }
+
+    /** A proposed surcharge (percent) with today's default. */
+    public record SurchargeRow(String roomClassId, String roomClass, BigDecimal percent, BigDecimal defaultPercent) {
+    }
+
+    public record Named(String id, String name) {
+    }
+
+    /**
+     * The Term's other settings the Manager proposed (review R-03), each null when not proposed, with today's defaults.
+     * {@code roomTypes}, {@code roomClasses}: what the Term offers; empty = every active one.
+     */
+    public record Settings(List<Named> roomTypes, List<Named> roomClasses, BigDecimal reservedNewPercent,
+            BigDecimal depositPercent, Long utilityDeposit, String houseRules, List<TermPlan.Faq> faq,
+            BigDecimal defaultReservedNewPercent, BigDecimal defaultDepositPercent, long defaultUtilityDeposit) {
+    }
+
+    public record DefaultType(String id, String name, int beds, long basePrice) {
+    }
+
+    public record DefaultClass(String id, String name, BigDecimal surchargePercent) {
+    }
+
+    /**
+     * What a new request starts from: the active Room Types with their base price, the active Room Classes with their
+     * surcharge (percent), the default Deposit, Utility Deposit and share for new students, and the house rules and
+     * questions of the latest published Term. {@code priceStep}: prices are rounded up to it (BR-10).
+     */
+    public record Defaults(List<DefaultType> roomTypes, List<DefaultClass> roomClasses, BigDecimal depositPercent,
+            long utilityDeposit, BigDecimal reservedNewPercent, String houseRules, List<TermPlan.Faq> faq,
+            int priceStep) {
     }
 
     /** {@code kind}: Submitted, Updated, Comment, In progress, Needs changes, Rejected, Draft built, Published. */
@@ -81,7 +126,8 @@ public class TermRequestService {
     public record Detail(String id, String code, String termName, LocalDate stayStart, LocalDate stayEnd, String status,
             String requestedById, String requestedBy, Instant requestedAt, Instant updatedAt, String notes,
             TermPlan.Timeline timeline, List<String> blocks, List<String> excludedRooms, List<PlacesRow> places,
-            List<PriceRow> prices, String decisionNote, TermLink term, List<TermPlan.Difference> differences,
+            List<PriceRow> prices, List<BasePriceRow> basePrices, List<SurchargeRow> surcharges, Settings settings,
+            String decisionNote, TermLink term, List<TermPlan.Difference> differences,
             List<HistoryItem> history, Actions actions) {
     }
 
@@ -104,6 +150,8 @@ public class TermRequestService {
             "Draft built", "DONE", "Published");
     private static final long MAX_PRICE = 1_000_000_000L;
     private static final int MAX_PLACES = 100_000;
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    private static final BigDecimal MAX_SURCHARGE = BigDecimal.valueOf(500);
 
     private final JdbcClient jdbc;
     private final JsonMapper json;
@@ -114,13 +162,14 @@ public class TermRequestService {
     private final FeePolicy fees;
     private final TermDrafts drafts;
     private final TermDifferences differences;
+    private final Parameters parameters;
     private final AuditLog audit;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public TermRequestService(JdbcClient jdbc, JsonMapper json, CurrentUser currentUser, UserDirectory users,
             Catalog catalog, TermSupply supply, FeePolicy fees, TermDrafts drafts, TermDifferences differences,
-            AuditLog audit, ApplicationEventPublisher events, Clock clock) {
+            Parameters parameters, AuditLog audit, ApplicationEventPublisher events, Clock clock) {
         this.jdbc = jdbc;
         this.json = json;
         this.currentUser = currentUser;
@@ -130,6 +179,7 @@ public class TermRequestService {
         this.fees = fees;
         this.drafts = drafts;
         this.differences = differences;
+        this.parameters = parameters;
         this.audit = audit;
         this.events = events;
         this.clock = clock;
@@ -141,6 +191,26 @@ public class TermRequestService {
     }
 
     // ---------------------------------------------------------------- reading
+
+    @Transactional(readOnly = true)
+    public Defaults defaults() {
+        currentUser.require(Permission.VIEW_REGISTRATION_PERIODS);
+        Optional<TermDrafts.Term> latest = jdbc.sql("""
+                SELECT id FROM cfg_term WHERE status <> 'DRAFT' ORDER BY stay_start DESC LIMIT 1
+                """).query(Long.class).optional().flatMap(drafts::find);
+        return new Defaults(
+                catalog.roomTypes().stream().filter(Catalog.RoomTypeInfo::active)
+                        .map(t -> new DefaultType(String.valueOf(t.id()), t.name(), t.beds(), t.basePrice())).toList(),
+                catalog.roomClasses().stream().filter(Catalog.RoomClassInfo::active)
+                        .map(c -> new DefaultClass(String.valueOf(c.id()), c.name(),
+                                Decimals.plain(c.surchargeRate().movePointRight(2))))
+                        .toList(),
+                Decimals.plain(fees.depositRate().movePointRight(2)), fees.utilityDeposit(),
+                BigDecimal.valueOf(parameters.intValue("stay.reserved_new_percent")),
+                latest.map(TermDrafts.Term::houseRules).orElse(null),
+                latest.map(TermDrafts.Term::faq).orElse(List.of()), Math.max(1,
+                        parameters.intValue("pricing.rounding_vnd")));
+    }
 
     @Transactional(readOnly = true)
     public RequestList list(String status, String q, PageQuery page) {
@@ -204,6 +274,32 @@ public class TermRequestService {
                             p.price(), standard.isPresent() ? standard.getAsLong() : null);
                 })
                 .toList();
+        Map<Long, Catalog.RoomTypeInfo> typeInfo = catalog.roomTypes().stream()
+                .collect(Collectors.toMap(Catalog.RoomTypeInfo::id, t -> t));
+        Map<Long, Catalog.RoomClassInfo> classInfo = catalog.roomClasses().stream()
+                .collect(Collectors.toMap(Catalog.RoomClassInfo::id, c -> c));
+        List<BasePriceRow> basePrices = proposal.basePrices() == null ? List.of() : proposal.basePrices().stream()
+                .filter(b -> typeInfo.containsKey(Long.valueOf(b.roomTypeId())))
+                .map(b -> {
+                    Catalog.RoomTypeInfo t = typeInfo.get(Long.valueOf(b.roomTypeId()));
+                    return new BasePriceRow(b.roomTypeId(), t.name(), b.price(), t.basePrice());
+                })
+                .toList();
+        List<SurchargeRow> surcharges = proposal.surcharges() == null ? List.of() : proposal.surcharges().stream()
+                .filter(c -> classInfo.containsKey(Long.valueOf(c.roomClassId())))
+                .map(c -> {
+                    Catalog.RoomClassInfo info = classInfo.get(Long.valueOf(c.roomClassId()));
+                    return new SurchargeRow(c.roomClassId(), info.name(), Decimals.plain(c.percent()),
+                            Decimals.plain(info.surchargeRate().movePointRight(2)));
+                })
+                .toList();
+        Settings settings = new Settings(
+                named(proposal.roomTypes(), types), named(proposal.roomClasses(), classes),
+                proposal.reservedNewPercent() == null ? null : Decimals.plain(proposal.reservedNewPercent()),
+                proposal.depositPercent() == null ? null : Decimals.plain(proposal.depositPercent()),
+                proposal.utilityDeposit(), proposal.houseRules(), proposal.faq(),
+                BigDecimal.valueOf(parameters.intValue("stay.reserved_new_percent")),
+                Decimals.plain(fees.depositRate().movePointRight(2)), fees.utilityDeposit());
         record Event(String kind, Long actorId, String note, Instant at) {
         }
         List<Event> raw = jdbc.sql("""
@@ -239,7 +335,7 @@ public class TermRequestService {
         return new Detail(String.valueOf(r.id()), r.code(), r.termName(), r.stayStart(), r.stayEnd(),
                 STATUS.get(r.status()), String.valueOf(r.requestedBy()), names.get(r.requestedBy()), r.createdAt(),
                 r.updatedAt(), r.notes(), proposal.timeline(), proposal.blocks(), proposal.excludedRooms(), places,
-                prices, r.decisionNote(), term, changed, history, actions);
+                prices, basePrices, surcharges, settings, r.decisionNote(), term, changed, history, actions);
     }
 
     // ---------------------------------------------------------------- the Manager's request
@@ -494,24 +590,112 @@ public class TermRequestService {
             }
             places.add(new TermPlan.Places(String.valueOf(type), String.valueOf(roomClass), gender, p.places()));
         }
+        // What the Term offers (R-03): the ids sent, empty when every active one is ticked.
+        List<String> offeredTypes = offer(body.roomTypes(), types, "roomTypes", "Choose active Room Types only.", errors);
+        List<String> offeredClasses = offer(body.roomClasses(), classes, "roomClasses",
+                "Choose active Room Classes only.", errors);
+        for (TermPlan.Places p : places) {
+            if (!offeredTypes.isEmpty() && !offeredTypes.contains(p.roomTypeId())
+                    || !offeredClasses.isEmpty() && !offeredClasses.contains(p.roomClassId())) {
+                errors.add("places", "Ask for places only in the Room Types and Room Classes the Term offers.");
+                break;
+            }
+        }
+
         List<TermPlan.Price> prices = new ArrayList<>();
+        List<TermPlan.BasePrice> basePrices = new ArrayList<>();
+        List<TermPlan.Surcharge> surcharges = new ArrayList<>();
         seen.clear();
-        for (TermPlan.Price p : body.prices() == null ? List.<TermPlan.Price>of() : body.prices()) {
-            Long type = id(p.roomTypeId());
-            Long roomClass = id(p.roomClassId());
-            if (type == null || !types.contains(type) || roomClass == null || !classes.contains(roomClass)) {
-                errors.add("prices", "Choose an active Room Type and Room Class for each price.");
-                continue;
+        boolean byRule = body.basePrices() != null && !body.basePrices().isEmpty()
+                || body.surcharges() != null && !body.surcharges().isEmpty();
+        if (byRule) {
+            Map<Long, Long> base = new LinkedHashMap<>();
+            for (TermPlan.BasePrice b : body.basePrices() == null ? List.<TermPlan.BasePrice>of() : body.basePrices()) {
+                Long type = id(b.roomTypeId());
+                if (type == null || !types.contains(type)) {
+                    errors.add("basePrices", "Choose an active Room Type for each base price.");
+                } else if (b.price() == null || b.price() <= 0 || b.price() > MAX_PRICE) {
+                    errors.add("basePrices", "Enter each base price per Bed as a whole amount above 0 VND.");
+                } else if (base.putIfAbsent(type, b.price()) != null) {
+                    errors.add("basePrices", "List each Room Type once.");
+                }
             }
-            if (p.price() == null || p.price() <= 0 || p.price() > MAX_PRICE) {
-                errors.add("prices", "Enter each price per Bed as a whole amount above 0 VND.");
-                continue;
+            Map<Long, BigDecimal> surcharge = new LinkedHashMap<>();
+            for (TermPlan.Surcharge c : body.surcharges() == null ? List.<TermPlan.Surcharge>of() : body.surcharges()) {
+                Long roomClass = id(c.roomClassId());
+                if (roomClass == null || !classes.contains(roomClass)) {
+                    errors.add("surcharges", "Choose an active Room Class for each surcharge.");
+                } else if (c.percent() == null || c.percent().signum() < 0
+                        || c.percent().compareTo(MAX_SURCHARGE) > 0) {
+                    errors.add("surcharges", "Enter a surcharge from 0% to 500%.");
+                } else if (surcharge.putIfAbsent(roomClass, c.percent().setScale(2, RoundingMode.HALF_UP)) != null) {
+                    errors.add("surcharges", "List each Room Class once.");
+                }
             }
-            if (!seen.add(type + ":" + roomClass)) {
-                errors.add("prices", "List each Room Type and Room Class once.");
-                continue;
+            base.forEach((type, price) -> {
+                if (offeredTypes.isEmpty() || offeredTypes.contains(String.valueOf(type))) {
+                    basePrices.add(new TermPlan.BasePrice(String.valueOf(type), price));
+                }
+            });
+            surcharge.forEach((roomClass, percent) -> {
+                if (offeredClasses.isEmpty() || offeredClasses.contains(String.valueOf(roomClass))) {
+                    surcharges.add(new TermPlan.Surcharge(String.valueOf(roomClass), Decimals.plain(percent)));
+                }
+            });
+            for (TermPlan.BasePrice b : basePrices) {
+                for (TermPlan.Surcharge c : surcharges) {
+                    prices.add(new TermPlan.Price(b.roomTypeId(), c.roomClassId(),
+                            fees.price(b.price(), c.percent().movePointLeft(2))));
+                }
             }
-            prices.add(new TermPlan.Price(String.valueOf(type), String.valueOf(roomClass), p.price()));
+        } else {
+            for (TermPlan.Price p : body.prices() == null ? List.<TermPlan.Price>of() : body.prices()) {
+                Long type = id(p.roomTypeId());
+                Long roomClass = id(p.roomClassId());
+                if (type == null || !types.contains(type) || roomClass == null || !classes.contains(roomClass)) {
+                    errors.add("prices", "Choose an active Room Type and Room Class for each price.");
+                    continue;
+                }
+                if (p.price() == null || p.price() <= 0 || p.price() > MAX_PRICE) {
+                    errors.add("prices", "Enter each price per Bed as a whole amount above 0 VND.");
+                    continue;
+                }
+                if (!seen.add(type + ":" + roomClass)) {
+                    errors.add("prices", "List each Room Type and Room Class once.");
+                    continue;
+                }
+                prices.add(new TermPlan.Price(String.valueOf(type), String.valueOf(roomClass), p.price()));
+            }
+        }
+
+        BigDecimal reserved = body.reservedNewPercent();
+        errors.check(reserved == null || reserved.signum() >= 0 && reserved.compareTo(HUNDRED) <= 0,
+                "reservedNewPercent", "Enter a share from 0 to 100%.");
+        BigDecimal deposit = body.depositPercent();
+        errors.check(deposit == null || deposit.signum() > 0 && deposit.compareTo(HUNDRED) <= 0, "depositPercent",
+                "Enter a deposit rate above 0 and up to 100.");
+        errors.check(body.utilityDeposit() == null || body.utilityDeposit() >= 0 && body.utilityDeposit() <= MAX_PRICE,
+                "utilityDeposit", "Enter the Utility Deposit as a whole amount of 0 VND or more.");
+        String houseRules = body.houseRules() == null || body.houseRules().isBlank() ? null : body.houseRules().trim();
+        errors.check(houseRules == null || houseRules.length() <= 10_000, "houseRules",
+                "Keep the house rules under 10,000 characters.");
+        List<TermPlan.Faq> faq = null;
+        if (body.faq() != null) {
+            List<TermPlan.Faq> lines = new ArrayList<>();
+            for (TermPlan.Faq f : body.faq()) {
+                String q = f.question() == null || f.question().isBlank() ? null : f.question().trim();
+                String a = f.answer() == null || f.answer().isBlank() ? null : f.answer().trim();
+                if (q == null && a == null) {
+                    continue;
+                }
+                if (q == null || a == null || q.length() > 300 || a.length() > 2000) {
+                    errors.add("faq", "Write each question (up to 300 characters) with its answer (up to 2,000).");
+                } else {
+                    lines.add(new TermPlan.Faq(q, a));
+                }
+            }
+            errors.check(lines.size() <= 30, "faq", "Keep at most 30 questions.");
+            faq = lines.isEmpty() ? null : lines;
         }
         String notes = body.notes() == null || body.notes().isBlank() ? null : body.notes().trim();
         errors.check(notes == null || notes.length() <= 2000, "notes", "Keep the notes under 2,000 characters.");
@@ -533,7 +717,32 @@ public class TermRequestService {
         if (published) {
             throw ApiException.conflict("TERM_EXISTS", "A Term named " + name + " is already published.");
         }
-        return new Clean(name, new TermPlan.Proposal(timeline, blockCodes, rooms, places, prices), notes);
+        return new Clean(name, new TermPlan.Proposal(timeline, blockCodes, rooms, places, prices,
+                byRule ? basePrices : null, byRule ? surcharges : null, offeredTypes, offeredClasses,
+                reserved == null ? null : Decimals.plain(reserved.setScale(2, RoundingMode.HALF_UP)),
+                deposit == null ? null : Decimals.plain(deposit.setScale(2, RoundingMode.HALF_UP)),
+                body.utilityDeposit(), houseRules, faq), notes);
+    }
+
+    /** Active ids sent, sorted; empty when none or every active one is sent. */
+    private static List<String> offer(List<String> sent, Set<Long> active, String field, String message,
+            FieldErrors errors) {
+        Set<Long> ids = new TreeSet<>();
+        for (String raw : sent == null ? List.<String>of() : sent) {
+            Long value = id(raw);
+            if (value == null || !active.contains(value)) {
+                errors.add(field, message);
+            } else {
+                ids.add(value);
+            }
+        }
+        return ids.containsAll(active) ? List.of() : ids.stream().map(String::valueOf).toList();
+    }
+
+    private static List<Named> named(List<String> ids, Map<Long, String> names) {
+        return ids == null ? List.of() : ids.stream()
+                .filter(i -> names.containsKey(Long.valueOf(i)))
+                .map(i -> new Named(i, names.get(Long.valueOf(i)))).toList();
     }
 
     /** Active users of the role, without {@code except}. */

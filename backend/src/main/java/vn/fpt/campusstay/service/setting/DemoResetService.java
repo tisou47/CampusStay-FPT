@@ -77,9 +77,9 @@ public class DemoResetService {
                     "Manager › Reconciliation, stage A: shows groups 1–4 (one suspended, two missing, an unknown code, "
                             + "a graduate)."),
             new FileInfo("meter-readings", "demo-meter-readings-block-a.csv", "Meter readings of Block A, this month",
-                    "Staff (staff.a1) › Utility › Meter readings › Import CSV."),
+                    "Staff (staffa01) › Utility › Meter readings › Import CSV."),
             new FileInfo("door-codes", "demo-door-codes-block-a.csv", "New door codes of Block A",
-                    "Staff (staff.a1) › Door codes › Import: the Rooms whose code must change."),
+                    "Staff (staffa01) › Door codes › Import: the Rooms whose code must change."),
             new FileInfo("rooms-left-out", "demo-rooms-left-out.csv", "Rooms a Term leaves out",
                     "Manager › Registration-period request, or Admin › Term wizard › Rooms: Import Excel or CSV."));
 
@@ -173,7 +173,7 @@ public class DemoResetService {
                 "Type RESET to confirm.");
         errors.throwIfAny();
         boolean baseData = jdbc.sql("""
-                SELECT count(*) FROM auth_user WHERE demo AND email IN ('manager.a@fpt.edu.vn', 'staff.a1@fpt.edu.vn',
+                SELECT count(*) FROM auth_user WHERE demo AND email IN ('manager01@fpt.edu.vn', 'staffa01@fpt.edu.vn',
                                                                         'se210001@fpt.edu.vn', 'se220006@fpt.edu.vn')
                 """).query(Long.class).single() == 4;
         if (!baseData) {
@@ -265,13 +265,17 @@ public class DemoResetService {
         return csv.toString();
     }
 
-    /** This month's readings of Block A (the open period), a little above last month's. */
+    /** This month's readings of Block A (the open period): about last month's use again, so none needs a check. */
     private String meterReadings() {
         List<String> lines = jdbc.sql("""
-                SELECT r.code || ',' || (m.electricity_prev + 60 + r.id % 80)::bigint || ','
-                       || (m.water_prev + 3 + r.id % 7)::bigint
+                SELECT r.code || ',' || (m.electricity_prev + coalesce(l.kwh, 60) + r.id % 7)::bigint || ','
+                       || (m.water_prev + coalesce(l.m3, 3) + r.id % 2)::bigint
                 FROM bil_meter_reading m JOIN bil_meter_period p ON p.id = m.period_id
                 JOIN inv_room r ON r.id = m.room_id JOIN inv_building b ON b.id = p.building_id
+                LEFT JOIN LATERAL (SELECT x.electricity_curr - x.electricity_prev AS kwh, x.water_curr - x.water_prev AS m3
+                                   FROM bil_meter_reading x JOIN bil_meter_period xp ON xp.id = x.period_id
+                                   WHERE x.room_id = m.room_id AND xp.closed_at IS NOT NULL
+                                   ORDER BY xp.period_start DESC LIMIT 1) l ON TRUE
                 WHERE b.code = 'A' AND p.closed_at IS NULL AND m.status = 'MISSING'
                 ORDER BY r.code
                 """).query(String.class).list();

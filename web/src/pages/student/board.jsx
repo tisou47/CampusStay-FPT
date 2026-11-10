@@ -4,15 +4,17 @@ import { CalendarClock, ChevronDown, ChevronRight, Megaphone, Pin } from 'lucide
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { Card } from '@/components/ui/Display'
+import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatNumber, formatRelative, formatVnd } from '@/lib/format'
+import { formatDate, formatRelative, formatVnd } from '@/lib/format'
 import { categoryTone } from '@/pages/common/Announcements'
 import { showValue } from '@/pages/registration/shared'
+import { TermSchedule } from './schedule'
 import { t, tr } from '@/i18n'
 
-// The dormitory board at the top of Student Home (spec §6.5, §11.4): the current registration period card, then the
-// pinned and recent announcements. A change announcement lists its old → new values.
+// The dormitory board on Student Home (spec §6.5, §11.4): the current registration period with its schedule, then
+// the pinned and recent announcements. A change announcement lists its old → new values.
 // GET /registration-periods/current → { card: { termId, name, status (Opens soon, Open, Closed), opensAt, closesAt,
 //   countdownTo, stayStart, stayEnd, places, fromPrice } | null }
 // GET /students/me/board → { items: [{ id, category, title, body, changes, link, pinned, shownFrom, createdAt, read }],
@@ -31,14 +33,17 @@ export function timeLeft(iso) {
   return t(days === 1 ? '{n} day' : '{n} days', { n: days })
 }
 
+/** The registration period and its schedule in one card (R-11): what used to be the card and the Term timeline. */
 function PeriodCard({ card }) {
   const left = timeLeft(card.countdownTo)
+  const details = useQuery(['registration-period', card.termId], ({ signal }) => api.registrationPeriods.details(card.termId, { signal }))
   return (
-    <Card padding="lg" className="flex min-w-0 flex-col gap-3 lg:w-96 lg:shrink-0">
+    <Card padding="lg" className="flex min-w-0 flex-col gap-4 lg:flex-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium text-fg-tertiary">{t('Registration period')}</span>
           <h2 className="text-h3 font-semibold text-fg">{card.name}</h2>
+          <p className="text-sm text-fg-secondary">{t('Stay {start} – {end}', { start: formatDate(card.stayStart), end: formatDate(card.stayEnd) })}</p>
         </div>
         <Tag tone={periodTone[card.status] ?? 'neutral'}>{card.status}</Tag>
       </div>
@@ -48,28 +53,18 @@ function PeriodCard({ card }) {
           {card.status === 'Open' ? t('Closes in {left}', { left }) : t('Opens in {left}', { left })}
         </p>
       )}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
-        <div className="flex flex-col">
-          <dt className="text-sm text-fg-tertiary">{t('Registration')}</dt>
-          <dd className="text-fg">{`${formatDate(card.opensAt)} – ${formatDate(card.closesAt)}`}</dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="text-sm text-fg-tertiary">{t('Stay')}</dt>
-          <dd className="text-fg">{`${formatDate(card.stayStart)} – ${formatDate(card.stayEnd)}`}</dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="text-sm text-fg-tertiary">{t('Places')}</dt>
-          <dd className="text-fg">{t('{n} Beds', { n: formatNumber(card.places) })}</dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="text-sm text-fg-tertiary">{t('From')}</dt>
-          <dd className="text-fg">{card.fromPrice != null ? t('{price} per Bed', { price: formatVnd(card.fromPrice) }) : '—'}</dd>
-        </div>
-      </dl>
-      <Link to={`/student/registration-periods/${card.termId}`} className="flex items-center gap-1 self-start text-base font-medium text-fg-link hover:underline">
-        {t('Registration period details')}
-        <ChevronRight size={16} aria-hidden="true" />
-      </Link>
+      <QueryState query={details} compact>
+        {(d) => <TermSchedule timeline={d.timeline} />}
+      </QueryState>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pt-3">
+        <p className="text-base text-fg">
+          {card.fromPrice != null ? t('From {price} per Bed', { price: formatVnd(card.fromPrice) }) : null}
+        </p>
+        <Link to={`/student/registration-periods/${card.termId}`} className="flex items-center gap-1 text-base font-medium text-fg-link hover:underline">
+          {t('Registration period details')}
+          <ChevronRight size={16} aria-hidden="true" />
+        </Link>
+      </div>
     </Card>
   )
 }
@@ -148,7 +143,7 @@ export function DormitoryBoard() {
   return (
     <section aria-label={t('Dormitory board')} className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-6">
       {card && <PeriodCard card={card} />}
-      <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-2">
+      <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-2">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
             <Megaphone size={18} aria-hidden="true" />

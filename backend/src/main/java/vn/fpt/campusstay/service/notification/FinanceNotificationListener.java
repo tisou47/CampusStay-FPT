@@ -17,6 +17,7 @@ import vn.fpt.campusstay.event.PaymentDueSoon;
 import vn.fpt.campusstay.event.UtilityWarningIssued;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.event.InvoiceOverdue;
+import vn.fpt.campusstay.event.RefundAccountReminded;
 import vn.fpt.campusstay.event.RefundDecided;
 import vn.fpt.campusstay.config.TimeConfig;
 
@@ -59,6 +60,12 @@ class FinanceNotificationListener {
     void on(RefundDecided e) {
         notifier.notify(e.studentId(), "REFUND_DECIDED", Map.of("amount", vnd(e.amount()), "decision", e.decision()),
                 "/student/invoices");
+    }
+
+    @EventListener
+    void on(RefundAccountReminded e) {
+        notifier.notify(e.studentId(), "REFUND_ACCOUNT_REMINDER",
+                Map.of("amount", vnd(e.amount()), "reason", sentence(e.reason())), "/student/invoices");
     }
 
     @EventListener

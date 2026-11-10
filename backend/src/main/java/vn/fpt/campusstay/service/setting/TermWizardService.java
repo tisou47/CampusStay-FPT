@@ -68,6 +68,10 @@ public class TermWizardService {
     public record BlockOption(String id, String code, String name, String gender, int rooms, int beds, boolean used) {
     }
 
+    /** A Room Type or Room Class the Term may offer; {@code used}: it does. */
+    public record OfferOption(String id, String name, boolean used) {
+    }
+
     /**
      * Supply and demand of one Room Type × Room Class × gender (spec §6.4 step 3).
      *
@@ -79,9 +83,13 @@ public class TermWizardService {
             int rooms, int beds, int roomsNotMatching, Integer requested, long applications) {
     }
 
-    /** {@code reservedBeds}: Beds kept for new students (D-29). */
+    /**
+     * {@code reservedBeds}: Beds kept for new students (D-29). {@code roomTypes}, {@code roomClasses}: what the Term
+     * offers (review R-03); {@code offerFixed}: it is published and keeps them.
+     */
     public record Rooms(List<BlockOption> blocks, boolean allBlocks, List<String> excludedRooms,
-            BigDecimal reservedNewPercent, List<SupplyRow> supply, int beds, int reservedBeds) {
+            BigDecimal reservedNewPercent, List<SupplyRow> supply, int beds, int reservedBeds,
+            List<OfferOption> roomTypes, List<OfferOption> roomClasses, boolean offerFixed) {
     }
 
     public record PriceRow(String roomTypeId, String roomType, String roomClassId, String roomClass, long price,
@@ -139,7 +147,7 @@ public class TermWizardService {
      */
     public record StepBody(String name, LocalDate stayStart, LocalDate stayEnd, TermPlan.Timeline timeline,
             List<String> blockIds, List<String> excludedRooms, BigDecimal reservedNewPercent,
-            List<TermPlan.Price> prices, BigDecimal depositPercent, Long utilityDeposit, String houseRules,
+            List<String> roomTypeIds, List<String> roomClassIds, List<TermPlan.Price> prices, BigDecimal depositPercent, Long utilityDeposit, String houseRules,
             List<TermPlan.Faq> faq, List<TermPlan.Document> documents, Map<String, String> reasons,
             String changeReason) {
     }
@@ -150,7 +158,9 @@ public class TermWizardService {
             "decisionsDueAt", "reconciliationDueAt", "feesIssueAt", "feesDueAt", "registrationOpensAt",
             "registrationClosesAt", "resultsPublishedAt", "roommateHours", "depositHours", "balanceDueAt",
             "checkInStart", "checkInEnd", "checkOutBy");
-    private static final Set<String> ROOM_FIELDS = Set.of("blocks", "excludedRooms");
+    private static final Set<String> ROOM_FIELDS = Set.of("blocks", "excludedRooms", "roomTypes", "roomClasses",
+            "reservedNewPercent");
+    private static final Set<String> INFORMATION_FIELDS = Set.of("houseRules", "faq");
     private static final long MAX_PRICE = 1_000_000_000L;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
@@ -239,23 +249,29 @@ public class TermWizardService {
         String finalName = name;
         String code = AdminTermService.uniqueCode(finalName, stayStart, c -> jdbc.sql(
                 "SELECT count(*) FROM cfg_term WHERE code = :c").param("c", c).query(Long.class).single() > 0);
+        BigDecimal reservedNew = proposal != null && proposal.reservedNewPercent() != null
+                ? proposal.reservedNewPercent()
+                : BigDecimal.valueOf(parameters.intValue("stay.reserved_new_percent"));
         long id = jdbc.sql("""
                 INSERT INTO cfg_term (code, name, status, stay_start, stay_end, wizard_step, reserved_new_percent)
                 VALUES (:code, :name, 'DRAFT', :start, :end, 1, :reserved)
                 RETURNING id
                 """)
                 .param("code", code).param("name", finalName).param("start", stayStart).param("end", stayEnd)
-                .param("reserved", BigDecimal.valueOf(parameters.intValue("stay.reserved_new_percent")))
+                .param("reserved", reservedNew)
                 .query(Long.class).single();
         drafts.writeTimeline(id, timeline);
+        Set<Long> offeredTypes = proposal == null ? Set.of() : ids(proposal.roomTypes(), typeNames().keySet());
+        Set<Long> offeredClasses = proposal == null ? Set.of() : ids(proposal.roomClasses(), classNames().keySet());
+        drafts.writeOffer(id, offeredTypes, offeredClasses);
 
         Map<String, Long> requested = new HashMap<>();
         if (proposal != null && proposal.prices() != null) {
             proposal.prices().forEach(p -> requested.put(p.roomTypeId() + ":" + p.roomClassId(), p.price()));
         }
         Map<String, Long> prices = new LinkedHashMap<>();
-        for (Catalog.RoomTypeInfo t : activeTypes()) {
-            for (Catalog.RoomClassInfo c : activeClasses()) {
+        for (Catalog.RoomTypeInfo t : offered(activeTypes(), offeredTypes, Catalog.RoomTypeInfo::id)) {
+            for (Catalog.RoomClassInfo c : offered(activeClasses(), offeredClasses, Catalog.RoomClassInfo::id)) {
                 String key = t.id() + ":" + c.id();
                 Long price = requested.get(key);
                 if (price == null && previous.isPresent()) {
@@ -270,7 +286,10 @@ public class TermWizardService {
                 }
             }
         }
-        drafts.writePrices(id, prices, fees.depositRate().movePointRight(2), fees.utilityDeposit());
+        drafts.writePrices(id, prices,
+                proposal != null && proposal.depositPercent() != null ? proposal.depositPercent()
+                        : fees.depositRate().movePointRight(2),
+                proposal != null && proposal.utilityDeposit() != null ? proposal.utilityDeposit() : fees.utilityDeposit());
 
         if (proposal != null) {
             Map<String, Long> blockIds = supply.blocks().stream()
@@ -280,9 +299,15 @@ public class TermWizardService {
                     .forEach(c -> Optional.ofNullable(blockIds.get(c.toUpperCase(Locale.ROOT))).ifPresent(blocks::add));
             Set<Long> rooms = supply.roomsByCode(proposal.excludedRooms() == null ? List.of() : proposal.excludedRooms())
                     .values().stream().map(TermSupply.Room::id).collect(Collectors.toCollection(LinkedHashSet::new));
-            drafts.writeRooms(id, blocks, rooms, BigDecimal.valueOf(parameters.intValue("stay.reserved_new_percent")));
+            drafts.writeRooms(id, blocks, rooms, reservedNew);
         }
-        previous.ifPresent(p -> drafts.writeInformation(id, p.houseRules(), p.faq(), p.documents()));
+        String houseRules = proposal != null && proposal.houseRules() != null ? proposal.houseRules()
+                : previous.map(TermDrafts.Term::houseRules).orElse(null);
+        List<TermPlan.Faq> faq = proposal != null && proposal.faq() != null ? proposal.faq()
+                : previous.map(TermDrafts.Term::faq).orElse(List.of());
+        if (houseRules != null || !faq.isEmpty() || previous.isPresent()) {
+            drafts.writeInformation(id, houseRules, faq, previous.map(TermDrafts.Term::documents).orElse(List.of()));
+        }
         if (request != null) {
             requests.built(request.id(), id);
         }
@@ -347,7 +372,7 @@ public class TermWizardService {
             throw ApiException.notFound("This wizard step does not exist.");
         }
         StepBody b = body == null ? new StepBody(null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null) : body;
+                null, null, null, null, null, null) : body;
         TermDrafts.Term before = drafts.lock(id);
         Instant now = Instant.now(clock);
         boolean published = !before.draft();
@@ -414,7 +439,20 @@ public class TermWizardService {
                 BigDecimal reserved = b.reservedNewPercent() == null ? BigDecimal.ZERO : b.reservedNewPercent();
                 errors.check(reserved.signum() >= 0 && reserved.compareTo(HUNDRED) <= 0, "reservedNewPercent",
                         "Enter a share from 0 to 100%.");
+                Set<Long> activeTypeIds = activeTypes().stream().map(Catalog.RoomTypeInfo::id)
+                        .collect(Collectors.toSet());
+                Set<Long> activeClassIds = activeClasses().stream().map(Catalog.RoomClassInfo::id)
+                        .collect(Collectors.toSet());
+                Set<Long> offeredTypes = offerIds(b.roomTypeIds(), activeTypeIds, "roomTypeIds",
+                        "Choose at least one active Room Type.", errors);
+                Set<Long> offeredClasses = offerIds(b.roomClassIds(), activeClassIds, "roomClassIds",
+                        "Choose at least one active Room Class.", errors);
+                if (published && (!offeredTypes.equals(before.roomTypes())
+                        || !offeredClasses.equals(before.roomClasses()))) {
+                    errors.add("roomTypeIds", "A published Term keeps the Room Types and Room Classes it offers.");
+                }
                 errors.throwIfAny();
+                drafts.writeOffer(id, offeredTypes, offeredClasses);
                 drafts.writeRooms(id, used, known.values().stream().map(TermSupply.Room::id)
                         .collect(Collectors.toCollection(LinkedHashSet::new)), reserved.setScale(2, RoundingMode.HALF_UP));
             }
@@ -426,7 +464,9 @@ public class TermWizardService {
                 }
                 Map<String, Long> prices = new LinkedHashMap<>();
                 Set<String> wanted = new LinkedHashSet<>();
-                activeTypes().forEach(t -> activeClasses().forEach(c -> wanted.add(t.id() + ":" + c.id())));
+                offered(activeTypes(), before.roomTypes(), Catalog.RoomTypeInfo::id)
+                        .forEach(t -> offered(activeClasses(), before.roomClasses(), Catalog.RoomClassInfo::id)
+                                .forEach(c -> wanted.add(t.id() + ":" + c.id())));
                 for (TermPlan.Price p : b.prices() == null ? List.<TermPlan.Price>of() : b.prices()) {
                     String key = id(p.roomTypeId()) + ":" + id(p.roomClassId());
                     if (!wanted.contains(key)) {
@@ -438,7 +478,7 @@ public class TermWizardService {
                     }
                 }
                 errors.check(prices.keySet().containsAll(wanted), "prices",
-                        "Enter a price for every Room Type and Room Class.");
+                        "Enter a price for every Room Type and Room Class the Term offers.");
                 BigDecimal percent = b.depositPercent();
                 errors.check(percent != null && percent.signum() > 0 && percent.compareTo(HUNDRED) <= 0,
                         "depositPercent", "Enter a deposit rate above 0 and up to 100.");
@@ -447,6 +487,8 @@ public class TermWizardService {
                 errors.throwIfAny();
                 drafts.writePrices(id, prices, percent.setScale(2, RoundingMode.HALF_UP), b.utilityDeposit());
                 stepFields = prices.keySet().stream().map(k -> "price:" + k).collect(Collectors.toSet());
+                stepFields.add("depositPercent");
+                stepFields.add("utilityDeposit");
             }
             case 5 -> {
                 if (published) {
@@ -455,6 +497,7 @@ public class TermWizardService {
             }
             default -> {
                 category = "RULES";
+                stepFields = INFORMATION_FIELDS;
                 String rules = b.houseRules() == null || b.houseRules().isBlank() ? null : b.houseRules().trim();
                 errors.check(rules == null || rules.length() <= 10_000, "houseRules",
                         "Keep the house rules under 10,000 characters.");
@@ -545,11 +588,13 @@ public class TermWizardService {
                     "This Term is not ready to publish. The Review step lists what to fix.", Map.of("checks", checks));
         }
         // The money the Term opens with: lines added since the prices step take the default price.
-        Map<String, Long> prices = new LinkedHashMap<>(t.prices());
-        for (Catalog.RoomTypeInfo type : activeTypes()) {
-            for (Catalog.RoomClassInfo c : activeClasses()) {
+        Map<String, Long> prices = new LinkedHashMap<>();
+        for (Catalog.RoomTypeInfo type : offered(activeTypes(), t.roomTypes(), Catalog.RoomTypeInfo::id)) {
+            for (Catalog.RoomClassInfo c : offered(activeClasses(), t.roomClasses(), Catalog.RoomClassInfo::id)) {
                 String key = type.id() + ":" + c.id();
-                if (!prices.containsKey(key)) {
+                if (t.prices().containsKey(key)) {
+                    prices.put(key, t.prices().get(key));
+                } else {
                     fees.defaultTermPrice(type.id(), c.id()).ifPresent(p -> prices.put(key, p));
                 }
             }
@@ -599,7 +644,8 @@ public class TermWizardService {
         StudentTerms demand = studentTerms.getIfAvailable();
         Map<String, Long> applications = demand == null ? Map.of() : demand.liveApplicationsByChoice(t.id());
         Map<String, int[]> totals = new LinkedHashMap<>();
-        for (TermSupply.Row r : supply.supply(t.id(), new TermCatalog.TermRooms(t.blocks(), t.excludedRooms()))) {
+        for (TermSupply.Row r : supply.supply(t.id(), new TermCatalog.TermRooms(t.blocks(), t.excludedRooms(),
+                t.roomTypes(), t.roomClasses()))) {
             int[] sum = totals.computeIfAbsent(r.roomTypeId() + ":" + r.roomClassId() + ":" + r.gender(),
                     k -> new int[3]);
             sum[0] += r.rooms();
@@ -628,7 +674,16 @@ public class TermWizardService {
         int beds = rows.stream().mapToInt(SupplyRow::beds).sum();
         int reserved = BigDecimal.valueOf(beds).multiply(t.reservedNewPercent()).divide(HUNDRED, 0, RoundingMode.HALF_UP)
                 .intValue();
-        return new Rooms(options, all, excluded, Decimals.plain(t.reservedNewPercent()), rows, beds, reserved);
+        List<OfferOption> typeOptions = activeTypes().stream()
+                .map(x -> new OfferOption(String.valueOf(x.id()), x.name(),
+                        t.roomTypes().isEmpty() || t.roomTypes().contains(x.id())))
+                .toList();
+        List<OfferOption> classOptions = activeClasses().stream()
+                .map(x -> new OfferOption(String.valueOf(x.id()), x.name(),
+                        t.roomClasses().isEmpty() || t.roomClasses().contains(x.id())))
+                .toList();
+        return new Rooms(options, all, excluded, Decimals.plain(t.reservedNewPercent()), rows, beds, reserved,
+                typeOptions, classOptions, !t.draft());
     }
 
     private Prices prices(TermDrafts.Term t, TermDrafts.Term previous, TermPlan.Proposal proposal, boolean locked) {
@@ -637,8 +692,8 @@ public class TermWizardService {
             proposal.prices().forEach(p -> requested.put(p.roomTypeId() + ":" + p.roomClassId(), p.price()));
         }
         List<PriceRow> rows = new ArrayList<>();
-        for (Catalog.RoomTypeInfo type : activeTypes()) {
-            for (Catalog.RoomClassInfo c : activeClasses()) {
+        for (Catalog.RoomTypeInfo type : offered(activeTypes(), t.roomTypes(), Catalog.RoomTypeInfo::id)) {
+            for (Catalog.RoomClassInfo c : offered(activeClasses(), t.roomClasses(), Catalog.RoomClassInfo::id)) {
                 String key = type.id() + ":" + c.id();
                 OptionalLong standard = fees.defaultTermPrice(type.id(), c.id());
                 Long price = t.prices().get(key);
@@ -729,7 +784,8 @@ public class TermWizardService {
         TermDrafts.Term withReasons = new TermDrafts.Term(t.id(), t.code(), t.name(), t.status(), t.stayStart(),
                 t.stayEnd(), t.timeline(), t.reservedNewPercent(), t.depositPercent(), t.utilityDeposit(),
                 t.matchingSnapshotId(), t.eligibilityKeys(), t.priorityGroupKeys(), t.houseRules(), t.faq(),
-                t.documents(), t.wizardStep(), reasons, t.publishedAt(), t.blocks(), t.excludedRooms(), t.prices());
+                t.documents(), t.wizardStep(), reasons, t.publishedAt(), t.blocks(), t.excludedRooms(), t.prices(),
+                t.roomTypes(), t.roomClasses());
         List<TermPlan.Difference> changed = differences.of(withReasons, r.termName(), r.stayStart(), r.stayEnd(),
                 r.proposal());
         Set<String> differing = changed.stream().map(TermPlan.Difference::field).collect(Collectors.toSet());
@@ -811,6 +867,10 @@ public class TermWizardService {
                         TermDifferences.codes(supply.roomCodes(after.excludedRooms()).values()));
                 change(out, "reservedNewPercent", Decimals.plain(before.reservedNewPercent()),
                         Decimals.plain(after.reservedNewPercent()));
+                change(out, "roomTypes", offerText(before.roomTypes(), typeNames(), "All Room Types"),
+                        offerText(after.roomTypes(), typeNames(), "All Room Types"));
+                change(out, "roomClasses", offerText(before.roomClasses(), classNames(), "All Room Classes"),
+                        offerText(after.roomClasses(), classNames(), "All Room Classes"));
             }
             case 4 -> {
                 Map<Long, String> types = typeNames();
@@ -918,6 +978,9 @@ public class TermWizardService {
         if (TIMELINE_FIELDS.contains(field)) {
             return "timeline";
         }
+        if (INFORMATION_FIELDS.contains(field)) {
+            return "information";
+        }
         return ROOM_FIELDS.contains(field) ? "rooms" : "prices";
     }
 
@@ -936,6 +999,45 @@ public class TermWizardService {
     private boolean invoicesExist(long termId) {
         TermInvoices port = invoices.getIfAvailable();
         return port != null && port.anyIssued(termId);
+    }
+
+    /** The items the Term offers: every one when {@code offer} is empty. */
+    private static <T> List<T> offered(List<T> items, Set<Long> offer, Function<T, Long> id) {
+        return offer.isEmpty() ? items : items.stream().filter(x -> offer.contains(id.apply(x))).toList();
+    }
+
+    /** Ids of a proposal that still exist, empty when none. */
+    private static Set<Long> ids(List<String> values, Set<Long> known) {
+        Set<Long> out = new LinkedHashSet<>();
+        (values == null ? List.<String>of() : values).forEach(v -> {
+            Long value = id(v);
+            if (value != null && known.contains(value)) {
+                out.add(value);
+            }
+        });
+        return out;
+    }
+
+    /** The ids ticked; empty (= every active one, so new ones join) when all are ticked. */
+    private static Set<Long> offerIds(List<String> values, Set<Long> active, String field, String message,
+            FieldErrors errors) {
+        if (values == null) {
+            return new LinkedHashSet<>();
+        }
+        Set<Long> out = new java.util.TreeSet<>();
+        values.forEach(v -> {
+            Long value = id(v);
+            if (value != null && active.contains(value)) {
+                out.add(value);
+            }
+        });
+        errors.check(!out.isEmpty(), field, message);
+        return out.containsAll(active) ? new LinkedHashSet<>() : out;
+    }
+
+    private static String offerText(Set<Long> ids, Map<Long, String> names, String all) {
+        return ids.isEmpty() ? all : names.entrySet().stream().filter(e -> ids.contains(e.getKey()))
+                .map(Map.Entry::getValue).collect(Collectors.joining(", "));
     }
 
     private List<Catalog.RoomTypeInfo> activeTypes() {

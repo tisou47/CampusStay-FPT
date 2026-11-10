@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ClipboardList, Hammer, MessageSquare, Pencil, Plus, Send, Trash2, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -40,12 +40,37 @@ const GENDERS = [
   { value: 'F', label: 'Female' },
 ]
 
-/** The Manager's form: dates, milestones, Blocks and Rooms, places and prices (spec §6.3 step 1). */
+/** BR-10: base × (1 + surcharge), rounded up to the pricing step. */
+const priceOf = (base, percent, step) => Math.ceil((Number(base) * (100 + Number(percent))) / 100 / step) * step
+
+const digits = (v) => String(v ?? '').replace(/\D/g, '')
+const decimal = (v) => String(v ?? '').replace(/[^\d.]/g, '')
+
+/** Ticked ids, or every option when the request offers every one (empty list). */
+const tickedOf = (sent, options) => new Set(sent?.length ? sent : options.map((o) => o.id))
+
+/**
+ * The Manager's form (spec §6.3 step 1, review R-02, R-03): dates and milestones, what the Term offers (Blocks, Rooms,
+ * Room Types, Room Classes), places, prices as a base price per Room Type and a surcharge per Room Class, money and
+ * information for students.
+ */
 function RequestForm({ request, onClose, onSaved }) {
   const { blocks } = useSession()
-  const catalog = useQuery(['catalog'], ({ signal }) => api.catalog.get(undefined, { signal }))
-  const types = catalog.data?.roomTypes ?? []
-  const classes = catalog.data?.roomClasses ?? []
+  const defaults = useQuery(['term-request-defaults'], ({ signal }) => api.termRequests.defaults(undefined, { signal }))
+  if (!defaults.data) {
+    return (
+      <Drawer open onClose={onClose} width={880} title={request?.id ? t('Change {code}', { code: request.code }) : 'Request a registration period'}>
+        {defaults.error ? <ErrorState error={defaults.error} onRetry={defaults.reload} /> : <LoadingState />}
+      </Drawer>
+    )
+  }
+  return <RequestFormBody request={request} defaults={defaults.data} blocks={blocks} onClose={onClose} onSaved={onSaved} />
+}
+
+function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
+  const types = defaults.roomTypes
+  const classes = defaults.roomClasses
+  const settings = request?.settings
   const [form, setForm] = useState(() => ({
     termName: request?.termName ?? '',
     stayStart: request?.stayStart ?? '',
@@ -53,21 +78,26 @@ function RequestForm({ request, onClose, onSaved }) {
     timeline: timelineForm(request?.timeline),
     blocks: new Set(request?.blocks ?? []),
     excludedRooms: request?.excludedRooms ?? [],
+    roomTypes: tickedOf(settings?.roomTypes?.map((x) => x.id), types),
+    roomClasses: tickedOf(settings?.roomClasses?.map((x) => x.id), classes),
     places: request?.places?.map((p) => ({ roomTypeId: p.roomTypeId, roomClassId: p.roomClassId, gender: p.gender, places: String(p.places) })) ?? [],
-    prices: request?.prices?.map((p) => ({ roomTypeId: p.roomTypeId, roomClassId: p.roomClassId, price: String(p.price) })) ?? null,
+    basePrices: Object.fromEntries(types.map((x) => [x.id, String(request?.basePrices?.find((b) => b.roomTypeId === x.id)?.price ?? x.basePrice)])),
+    surcharges: Object.fromEntries(classes.map((x) => [x.id, String(request?.surcharges?.find((c) => c.roomClassId === x.id)?.percent ?? x.surchargePercent)])),
+    depositPercent: String(settings?.depositPercent ?? defaults.depositPercent),
+    utilityDeposit: String(settings?.utilityDeposit ?? defaults.utilityDeposit),
+    reservedNewPercent: String(settings?.reservedNewPercent ?? defaults.reservedNewPercent),
+    houseRules: settings?.houseRules ?? defaults.houseRules ?? '',
+    faq: settings?.faq ?? defaults.faq ?? [],
     notes: request?.notes ?? '',
   }))
   const [fields, setFields] = useState({})
-  // A new request starts from the prices students see now, one line per Room Type × Room Class.
-  useEffect(() => {
-    if (form.prices == null && catalog.data) {
-      setForm((f) => ({ ...f, prices: catalog.data.prices.map((p) => ({ roomTypeId: p.roomTypeId, roomClassId: p.roomClassId, price: String(p.termPrice) })) }))
-    }
-  }, [catalog.data, form.prices])
   const set = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }))
     setFields((f) => ({ ...f, [key]: undefined }))
   }
+  const offeredTypes = types.filter((x) => form.roomTypes.has(x.id))
+  const offeredClasses = classes.filter((x) => form.roomClasses.has(x.id))
+  const all = (ticked, options) => ticked.size === options.length
   const body = () => ({
     termName: form.termName.trim(),
     stayStart: form.stayStart || null,
@@ -75,8 +105,16 @@ function RequestForm({ request, onClose, onSaved }) {
     timeline: timelineBody(form.timeline),
     blocks: blocks.filter((b) => form.blocks.has(b)),
     excludedRooms: form.excludedRooms,
-    places: form.places.filter((p) => p.places !== '').map((p) => ({ ...p, places: Number(p.places) })),
-    prices: (form.prices ?? []).filter((p) => p.price !== '').map((p) => ({ ...p, price: Number(String(p.price).replace(/\D/g, '')) })),
+    roomTypes: all(form.roomTypes, types) ? [] : [...form.roomTypes],
+    roomClasses: all(form.roomClasses, classes) ? [] : [...form.roomClasses],
+    places: form.places.filter((p) => p.places !== '' && form.roomTypes.has(p.roomTypeId) && form.roomClasses.has(p.roomClassId)).map((p) => ({ ...p, places: Number(p.places) })),
+    basePrices: offeredTypes.filter((x) => form.basePrices[x.id] !== '').map((x) => ({ roomTypeId: x.id, price: Number(form.basePrices[x.id]) })),
+    surcharges: offeredClasses.filter((x) => form.surcharges[x.id] !== '').map((x) => ({ roomClassId: x.id, percent: Number(form.surcharges[x.id]) })),
+    reservedNewPercent: form.reservedNewPercent === '' ? null : Number(form.reservedNewPercent),
+    depositPercent: form.depositPercent === '' ? null : Number(form.depositPercent),
+    utilityDeposit: form.utilityDeposit === '' ? null : Number(form.utilityDeposit),
+    houseRules: form.houseRules.trim() || null,
+    faq: form.faq,
     notes: form.notes.trim(),
   })
   const save = useMutation(() => (request?.id ? api.termRequests.update(request.id, body()) : api.termRequests.create(body())), {
@@ -84,7 +122,13 @@ function RequestForm({ request, onClose, onSaved }) {
     onSuccess: (res) => onSaved(res?.id ?? request?.id),
     onError: (err) => setFields(err.fields ?? {}),
   })
-  const name = (list, id) => tr(list.find((x) => x.id === id)?.name ?? '')
+  const toggle = (key, id) => {
+    const next = new Set(form[key])
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    set(key, next)
+  }
+  const fieldError = (key) => fields[key] && <p className="text-sm text-error-fg">{tr(fields[key])}</p>
 
   return (
     <Drawer
@@ -125,24 +169,34 @@ function RequestForm({ request, onClose, onSaved }) {
         renewalNote="Fill these in when residents of the Term before continue into this one; leave them empty otherwise."
       />
       <section className="flex flex-col gap-3">
-        <h3 className="text-base font-medium text-fg-secondary">{t('Blocks and Rooms')}</h3>
+        <h3 className="text-base font-medium text-fg-secondary">{t('What the Term offers')}</h3>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {blocks.map((b) => (
-            <Checkbox
-              key={b}
-              label={t('Block {code}', { code: b })}
-              checked={form.blocks.has(b)}
-              onChange={() => {
-                const next = new Set(form.blocks)
-                if (next.has(b)) next.delete(b)
-                else next.add(b)
-                set('blocks', next)
-              }}
-            />
+            <Checkbox key={b} label={t('Block {code}', { code: b })} checked={form.blocks.has(b)} onChange={() => toggle('blocks', b)} />
           ))}
         </div>
         <p className="text-sm text-fg-tertiary">{t('No Block ticked: every Block.')}</p>
-        {fields.blocks && <p className="text-sm text-error-fg">{tr(fields.blocks)}</p>}
+        {fieldError('blocks')}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fg-secondary">{t('Room Types offered')}</span>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {types.map((x) => (
+                <Checkbox key={x.id} label={tr(x.name)} checked={form.roomTypes.has(x.id)} onChange={() => toggle('roomTypes', x.id)} />
+              ))}
+            </div>
+            {fieldError('roomTypes')}
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fg-secondary">{t('Room Classes offered')}</span>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {classes.map((x) => (
+                <Checkbox key={x.id} label={tr(x.name)} checked={form.roomClasses.has(x.id)} onChange={() => toggle('roomClasses', x.id)} />
+              ))}
+            </div>
+            {fieldError('roomClasses')}
+          </div>
+        </div>
         <ExcludedRoomsField label="Rooms to leave out" helper="One column of Room codes in an Excel or CSV file; the assignment and Round 2 never use these Rooms." codes={form.excludedRooms} onChange={(v) => set('excludedRooms', v)} error={fields.excludedRooms} />
       </section>
       <section className="flex flex-col gap-2">
@@ -151,8 +205,8 @@ function RequestForm({ request, onClose, onSaved }) {
           <Button
             icon={Plus}
             size="sm"
-            disabled={!types.length}
-            onClick={() => set('places', [...form.places, { roomTypeId: types[0]?.id, roomClassId: classes[0]?.id, gender: 'M', places: '' }])}
+            disabled={!offeredTypes.length || !offeredClasses.length}
+            onClick={() => set('places', [...form.places, { roomTypeId: offeredTypes[0]?.id, roomClassId: offeredClasses[0]?.id, gender: 'M', places: '' }])}
           >
             Add line
           </Button>
@@ -160,41 +214,101 @@ function RequestForm({ request, onClose, onSaved }) {
         {form.places.length === 0 && <p className="text-sm text-fg-tertiary">{t('Optional: the places you want per Room Type, Room Class and gender.')}</p>}
         {form.places.map((p, i) => (
           <div key={i} className="flex items-end gap-3">
-            <Select wrapperClassName="flex-1" aria-label={t('Room Type')} value={p.roomTypeId} options={types.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomTypeId: e.target.value } : x)))} />
-            <Select wrapperClassName="flex-1" aria-label={t('Room Class')} value={p.roomClassId} options={classes.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomClassId: e.target.value } : x)))} />
+            <Select wrapperClassName="flex-1" aria-label={t('Room Type')} value={p.roomTypeId} options={offeredTypes.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomTypeId: e.target.value } : x)))} />
+            <Select wrapperClassName="flex-1" aria-label={t('Room Class')} value={p.roomClassId} options={offeredClasses.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomClassId: e.target.value } : x)))} />
             <Select wrapperClassName="w-32" aria-label={t('Gender')} value={p.gender} options={GENDERS} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, gender: e.target.value } : x)))} />
             <div className="w-28 shrink-0">
-              <Input aria-label={t('Places')} inputMode="numeric" value={p.places} placeholder="Places" onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, places: e.target.value.replace(/\D/g, '') } : x)))} />
+              <Input aria-label={t('Places')} inputMode="numeric" value={p.places} placeholder="Places" onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, places: digits(e.target.value) } : x)))} />
             </div>
             <IconButton icon={Trash2} aria-label={t('Remove line')} onClick={() => set('places', form.places.filter((_, j) => j !== i))} />
           </div>
         ))}
-        {fields.places && <p className="text-sm text-error-fg">{tr(fields.places)}</p>}
+        {fieldError('places')}
+      </section>
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="text-base font-medium text-fg-secondary">{t('Proposed prices')}</h3>
+          <p className="text-sm text-fg-tertiary">{t('A base price per Bed for each Room Type and a surcharge for each Room Class; the price per Bed is base × (1 + surcharge), rounded up to {step}. Filled with today’s values.', { step: formatVnd(defaults.priceStep) })}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            {offeredTypes.map((x) => (
+              <Field key={x.id} label={t('Base price · {name} (VND)', { name: tr(x.name) })} helper={Number(form.basePrices[x.id]) !== x.basePrice ? t('Today {amount}', { amount: formatVnd(x.basePrice) }) : undefined}>
+                {(id) => <Input id={id} inputMode="numeric" value={form.basePrices[x.id]} onChange={(e) => set('basePrices', { ...form.basePrices, [x.id]: digits(e.target.value) })} />}
+              </Field>
+            ))}
+            {fieldError('basePrices')}
+          </div>
+          <div className="flex flex-col gap-2">
+            {offeredClasses.map((x) => (
+              <Field key={x.id} label={t('Surcharge · {name} (%)', { name: tr(x.name) })} helper={Number(form.surcharges[x.id]) !== Number(x.surchargePercent) ? t('Today {n}%', { n: x.surchargePercent }) : undefined}>
+                {(id) => <Input id={id} inputMode="decimal" value={form.surcharges[x.id]} onChange={(e) => set('surcharges', { ...form.surcharges, [x.id]: decimal(e.target.value) })} />}
+              </Field>
+            ))}
+            {fieldError('surcharges')}
+          </div>
+        </div>
+        {offeredTypes.length > 0 && offeredClasses.length > 0 && (
+          <Table>
+            <THead>
+              <tr>
+                <Th>Price per Bed</Th>
+                {offeredClasses.map((c) => (
+                  <Th key={c.id} align="right">
+                    {`${tr(c.name)} (+${form.surcharges[c.id] || 0}%)`}
+                  </Th>
+                ))}
+              </tr>
+            </THead>
+            <TBody>
+              {offeredTypes.map((x) => (
+                <Tr key={x.id}>
+                  <Td>{tr(x.name)}</Td>
+                  {offeredClasses.map((c) => (
+                    <Td key={c.id} align="right" className="tabular">
+                      {form.basePrices[x.id] && form.surcharges[c.id] !== '' ? formatVnd(priceOf(form.basePrices[x.id], form.surcharges[c.id], defaults.priceStep)) : '—'}
+                    </Td>
+                  ))}
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        )}
+        {fieldError('prices')}
       </section>
       <section className="flex flex-col gap-2">
-        <h3 className="text-base font-medium text-fg-secondary">{t('Proposed price per Bed')}</h3>
-        <p className="text-sm text-fg-tertiary">{t('Filled with the prices students see now. Clear a price you do not propose.')}</p>
-        <Table>
-          <THead>
-            <tr>
-              <Th>Room Type</Th>
-              <Th>Room Class</Th>
-              <Th className="w-56">Price per Bed (VND)</Th>
-            </tr>
-          </THead>
-          <TBody>
-            {(form.prices ?? []).map((p, i) => (
-              <Tr key={`${p.roomTypeId}:${p.roomClassId}`}>
-                <Td>{name(types, p.roomTypeId)}</Td>
-                <Td>{name(classes, p.roomClassId)}</Td>
-                <Td>
-                  <Input aria-label={t('Price of {type} · {class}', { type: name(types, p.roomTypeId), class: name(classes, p.roomClassId) })} inputMode="numeric" value={p.price} onChange={(e) => set('prices', form.prices.map((x, j) => (j === i ? { ...x, price: e.target.value.replace(/\D/g, '') } : x)))} />
-                </Td>
-              </Tr>
-            ))}
-          </TBody>
-        </Table>
-        {fields.prices && <p className="text-sm text-error-fg">{tr(fields.prices)}</p>}
+        <h3 className="text-base font-medium text-fg-secondary">{t('Money and capacity')}</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <Field label="Deposit (% of the price)" error={fields.depositPercent} helper={t('Today {n}%', { n: defaults.depositPercent })}>
+            {(id) => <Input id={id} inputMode="decimal" value={form.depositPercent} onChange={(e) => set('depositPercent', decimal(e.target.value))} />}
+          </Field>
+          <Field label="Utility Deposit (VND)" error={fields.utilityDeposit} helper={t('Today {amount}', { amount: formatVnd(defaults.utilityDeposit) })}>
+            {(id) => <Input id={id} inputMode="numeric" value={form.utilityDeposit} onChange={(e) => set('utilityDeposit', digits(e.target.value))} />}
+          </Field>
+          <Field label="Beds kept for new students (%)" error={fields.reservedNewPercent} helper={t('Today {n}%', { n: defaults.reservedNewPercent })}>
+            {(id) => <Input id={id} inputMode="decimal" value={form.reservedNewPercent} onChange={(e) => set('reservedNewPercent', decimal(e.target.value))} />}
+          </Field>
+        </div>
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className="text-base font-medium text-fg-secondary">{t('Information for students')}</h3>
+        <Field label="House rules" error={fields.houseRules} helper="Filled with the latest Term’s rules; students read them before they apply.">
+          {(id) => <Textarea id={id} rows={4} value={form.houseRules} onChange={(e) => set('houseRules', e.target.value)} />}
+        </Field>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-fg-secondary">{t('Questions and answers')}</span>
+          <Button size="sm" icon={Plus} onClick={() => set('faq', [...form.faq, { question: '', answer: '' }])}>
+            Add question
+          </Button>
+        </div>
+        {form.faq.map((f, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <Input aria-label={t('Question')} className="flex-1" placeholder="Question" value={f.question} onChange={(e) => set('faq', form.faq.map((x, j) => (j === i ? { ...x, question: e.target.value } : x)))} />
+            <Textarea aria-label={t('Answer')} className="flex-[2]" rows={2} placeholder="Answer" value={f.answer} onChange={(e) => set('faq', form.faq.map((x, j) => (j === i ? { ...x, answer: e.target.value } : x)))} />
+            <IconButton icon={Trash2} aria-label={t('Remove question')} onClick={() => set('faq', form.faq.filter((_, j) => j !== i))} />
+          </div>
+        ))}
+        {fieldError('faq')}
       </section>
       <Field label="Notes for the Admin" error={fields.notes}>
         {(id) => <Textarea id={id} rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />}
@@ -235,6 +349,110 @@ function DecisionModal({ request, status, onClose }) {
         {(id) => <Textarea id={id} rows={4} value={note} onChange={(e) => setNote(e.target.value)} />}
       </Field>
     </Modal>
+  )
+}
+
+const percent = (n) => `${n}%`
+
+/** What the Term offers and the money and information the Manager proposed (review R-03). */
+function SettingsCard({ settings: s }) {
+  if (!s) return null
+  const row = (label, value, today) => (
+    <li key={label} className="flex justify-between gap-3 text-base">
+      <span className="text-fg-secondary">{t(label)}</span>
+      <span className="flex flex-col items-end">
+        <span className="font-medium text-fg">{value ?? '—'}</span>
+        {value != null && today != null && today !== value && <span className="text-sm text-fg-tertiary">{t('Today {value}', { value: today })}</span>}
+      </span>
+    </li>
+  )
+  return (
+    <Card className="flex flex-col gap-2">
+      <h3 className="text-h3 font-semibold text-fg">{t('Offer and money')}</h3>
+      <ul className="flex flex-col gap-1.5">
+        {row('Room Types offered', s.roomTypes.length ? s.roomTypes.map((x) => tr(x.name)).join(', ') : t('All'))}
+        {row('Room Classes offered', s.roomClasses.length ? s.roomClasses.map((x) => tr(x.name)).join(', ') : t('All'))}
+        {row('Deposit', s.depositPercent != null ? percent(s.depositPercent) : null, percent(s.defaultDepositPercent))}
+        {row('Utility Deposit', s.utilityDeposit != null ? formatVnd(s.utilityDeposit) : null, formatVnd(s.defaultUtilityDeposit))}
+        {row('Beds kept for new students', s.reservedNewPercent != null ? percent(s.reservedNewPercent) : null, percent(s.defaultReservedNewPercent))}
+      </ul>
+      {s.houseRules && (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-fg-secondary">{t('House rules')}</span>
+          <p className="text-base whitespace-pre-wrap text-fg">{s.houseRules}</p>
+        </div>
+      )}
+      {s.faq?.length > 0 && <p className="text-sm text-fg-tertiary">{t(s.faq.length === 1 ? '{n} question and answer' : '{n} questions and answers', { n: s.faq.length })}</p>}
+    </Card>
+  )
+}
+
+/** Base prices and surcharges with the price table they give (read-only, BR-10). */
+function PricesCard({ r }) {
+  if (!r.prices?.length) {
+    return (
+      <Card className="flex flex-col gap-2">
+        <h3 className="text-h3 font-semibold text-fg">{t('Prices per Bed')}</h3>
+        <p className="text-sm text-fg-tertiary">{t('No prices proposed.')}</p>
+      </Card>
+    )
+  }
+  const types = [...new Map(r.prices.map((p) => [p.roomTypeId, p.roomType])).entries()]
+  const classes = [...new Map(r.prices.map((p) => [p.roomClassId, p.roomClass])).entries()]
+  const price = (type, cls) => r.prices.find((p) => p.roomTypeId === type && p.roomClassId === cls)
+  const base = (type) => r.basePrices?.find((b) => b.roomTypeId === type)
+  const surcharge = (cls) => r.surcharges?.find((c) => c.roomClassId === cls)
+  return (
+    <Card className="flex flex-col gap-2">
+      <h3 className="text-h3 font-semibold text-fg">{t('Prices per Bed')}</h3>
+      {r.basePrices?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Price per Bed = base price × (1 + Room Class surcharge), rounded up. Today’s values in grey.')}</p>}
+      <Table>
+        <THead>
+          <tr>
+            <Th>Room Type</Th>
+            {classes.map(([id, name]) => {
+              const c = surcharge(id)
+              return (
+                <Th key={id} align="right">
+                  {c ? `${tr(name)} (+${c.percent}%)` : tr(name)}
+                  {c && c.percent !== c.defaultPercent && <span className="block text-sm font-normal text-fg-tertiary">{t('Today {n}%', { n: c.defaultPercent })}</span>}
+                </Th>
+              )
+            })}
+          </tr>
+        </THead>
+        <TBody>
+          {types.map(([id, name]) => {
+            const b = base(id)
+            return (
+              <Tr key={id}>
+                <Td>
+                  <div className="flex flex-col gap-0.5 py-1">
+                    <span className="font-medium text-fg">{tr(name)}</span>
+                    {b && <span className="text-sm text-fg-tertiary">{t('base {amount}', { amount: formatVnd(b.price) })}{b.price !== b.defaultPrice ? ` · ${t('Today {amount}', { amount: formatVnd(b.defaultPrice) })}` : ''}</span>}
+                  </div>
+                </Td>
+                {classes.map(([cls]) => {
+                  const p = price(id, cls)
+                  return (
+                    <Td key={cls} align="right" className="tabular">
+                      {p ? (
+                        <span className="flex flex-col items-end">
+                          <span className="font-medium text-fg">{formatVnd(p.price)}</span>
+                          {p.defaultPrice != null && p.defaultPrice !== p.price && <span className="text-sm text-fg-tertiary">{t('Default {price}', { price: formatVnd(p.defaultPrice) })}</span>}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </Td>
+                  )
+                })}
+              </Tr>
+            )
+          })}
+        </TBody>
+      </Table>
+    </Card>
   )
 }
 
@@ -351,25 +569,9 @@ function RequestDetail({ id, onEdit }) {
             <p className="text-sm text-fg-tertiary">{t('No places proposed.')}</p>
           )}
         </Card>
-        <Card className="flex flex-col gap-2">
-          <h3 className="text-h3 font-semibold text-fg">{t('Prices per Bed')}</h3>
-          {r.prices?.length ? (
-            <ul className="flex flex-col gap-1.5">
-              {r.prices.map((p) => (
-                <li key={`${p.roomTypeId}:${p.roomClassId}`} className="flex justify-between gap-3 text-base">
-                  <span className="text-fg-secondary">{`${tr(p.roomType)} · ${tr(p.roomClass)}`}</span>
-                  <span className="flex flex-col items-end">
-                    <span className="font-medium text-fg tabular">{formatVnd(p.price)}</span>
-                    {p.defaultPrice != null && p.defaultPrice !== p.price && <span className="text-sm text-fg-tertiary">{t('Default {price}', { price: formatVnd(p.defaultPrice) })}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-fg-tertiary">{t('No prices proposed.')}</p>
-          )}
-        </Card>
+        <SettingsCard settings={r.settings} />
       </div>
+      <PricesCard r={r} />
       {r.term && (
         <Card className="flex flex-col gap-2">
           <h3 className="text-h3 font-semibold text-fg">{t('What the Admin changed')}</h3>

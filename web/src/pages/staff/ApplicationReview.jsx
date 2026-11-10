@@ -87,17 +87,17 @@ function Review({ app }) {
               items={[
                 ['Full name', v(s.name)],
                 ['Student code', v(s.studentCode)],
-                ['Gender', v(s.gender)],
+                ['Gender', v(tr(s.gender))],
                 ['Cohort', v(s.cohort)],
               ]}
             />
             <Facts
               dense
               items={[
-                ['Major', v(s.major)],
+                ['Major', v(tr(s.major))],
                 ['Hometown', v(s.hometown)],
                 ['Phone', v(s.phone)],
-                ['Emergency contact', v(s.emergencyContact)],
+                ['Emergency contact', v(tr(s.emergencyContact))],
               ]}
             />
           </Card>

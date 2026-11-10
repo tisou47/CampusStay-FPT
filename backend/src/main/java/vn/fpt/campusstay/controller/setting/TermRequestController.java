@@ -42,6 +42,12 @@ class TermRequestController {
         return requests.list(status, q, PageQuery.of(page, pageSize));
     }
 
+    /** What a new request starts from: today's prices, money and the latest Term's information (review R-02, R-03). */
+    @GetMapping("/defaults")
+    TermRequestService.Defaults defaults() {
+        return requests.defaults();
+    }
+
     @GetMapping("/{id}")
     TermRequestService.Detail get(@PathVariable long id) {
         return requests.get(id);

@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * Admin › Registration periods › Terms: the wizard (spec §6.4, ADR-20; TC-CFG-019…022). Terms of these tests stay in
+ * Admin › Registration periods › Terms: the wizard (spec §6.4, ADR-20; TC-CFG-019…022, 030). Terms of these tests stay in
  * 2032; their registration opens yesterday so students can apply to them.
  */
 @SpringBootTest
@@ -188,6 +188,91 @@ class TermWizardIT {
                 .andExpect(jsonPath("$.differences[0].proposed").value("7500000"))
                 .andExpect(jsonPath("$.differences[0].built").value("7800000"))
                 .andExpect(jsonPath("$.differences[0].reason").value("Air conditioners were replaced this year."));
+    }
+
+    /**
+     * TC-CFG-030: the Manager proposes prices as a base price per Room Type and a surcharge per Room Class (BR-10: the
+     * request computes each line, rounded up), offers one Room Type and one Room Class, and proposes the Deposit,
+     * Utility Deposit, the share for new students and the house rules (review R-02, R-03), starting from the defaults
+     * ({@code /term-requests/defaults}). The Draft built from it
+     * holds them all; the Admin's different Deposit needs a reason and is listed for the Manager; a surcharge above
+     * 500% is refused.
+     */
+    @Test
+    void buildsTheOfferAndMoneyTheManagerProposed() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        String admin = bearer(mvc, ADMIN);
+        String body = """
+                {"termName":"Spring 2034","stayStart":"2034-01-10","stayEnd":"2034-04-20","timeline":%s,
+                 "roomTypes":["%s"],"roomClasses":["%s"],
+                 "basePrices":[{"roomTypeId":"%s","price":6100123}],
+                 "surcharges":[{"roomClassId":"%s","percent":%s}],
+                 "reservedNewPercent":15,"depositPercent":25,"utilityDeposit":700000,
+                 "houseRules":"No pets.","faq":[{"question":"Is there a gym?","answer":"Yes, in Block B."}]}""";
+        String timeline = timeline(20, "2034-01-07", "2034-01-09", "2034-04-21");
+        long base = jdbc.sql("SELECT base_price FROM cfg_room_type WHERE name = '4-bed'").query(Long.class).single();
+        mvc.perform(get("/term-requests/defaults").header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roomTypes[?(@.name == '4-bed')].basePrice", contains((int) base)))
+                .andExpect(jsonPath("$.roomClasses[?(@.name == 'Standard')].surchargePercent", hasSize(1)))
+                .andExpect(jsonPath("$.depositPercent").isNumber())
+                .andExpect(jsonPath("$.utilityDeposit").isNumber());
+        send("POST", "/term-requests", manager, body.formatted(timeline, fourBed(), standard(), fourBed(), standard(),
+                "600")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.surcharges").value("Enter a surcharge from 0% to 500%."));
+        String requestId = JsonPath.read(send("POST", "/term-requests", manager, body.formatted(timeline, fourBed(),
+                standard(), fourBed(), standard(), "15.5")).andExpect(status().isCreated()).andReturn().getResponse()
+                .getContentAsString(), "$.id");
+        mvc.perform(get("/term-requests/" + requestId).header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(jsonPath("$.prices", hasSize(1)))
+                .andExpect(jsonPath("$.prices[0].price").value(7_046_000))
+                .andExpect(jsonPath("$.basePrices[0].price").value(6_100_123))
+                .andExpect(jsonPath("$.basePrices[0].defaultPrice").value(base))
+                .andExpect(jsonPath("$.surcharges[0].percent").value(15.5))
+                .andExpect(jsonPath("$.surcharges[0].defaultPercent").isNumber())
+                .andExpect(jsonPath("$.settings.roomTypes[*].name", contains("4-bed")))
+                .andExpect(jsonPath("$.settings.roomClasses[*].name", contains("Standard")))
+                .andExpect(jsonPath("$.settings.depositPercent").value(25))
+                .andExpect(jsonPath("$.settings.utilityDeposit").value(700_000))
+                .andExpect(jsonPath("$.settings.reservedNewPercent").value(15))
+                .andExpect(jsonPath("$.settings.houseRules").value("No pets."));
+
+        String termId = JsonPath.read(send("POST", "/admin/terms/drafts", admin, "{\"requestId\":\"" + requestId + "\"}")
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.id");
+        String wizard = json("/admin/terms/" + termId + "/wizard", admin);
+        assertThat((List<String>) JsonPath.read(wizard, "$.rooms.roomTypes[?(@.used == true)].name"))
+                .containsExactly("4-bed");
+        assertThat((List<String>) JsonPath.read(wizard, "$.rooms.roomClasses[?(@.used == true)].name"))
+                .containsExactly("Standard");
+        assertThat((List<Object>) JsonPath.read(wizard, "$.rooms.supply[?(@.roomType != '4-bed')]")).isEmpty();
+        assertThat(JsonPath.read(wizard, "$.rooms.reservedNewPercent").toString()).isIn("15", "15.0");
+        assertThat((List<Object>) JsonPath.read(wizard, "$.prices.rows")).hasSize(1);
+        assertThat((Integer) JsonPath.read(wizard, "$.prices.rows[0].price")).isEqualTo(7_046_000);
+        assertThat((Integer) JsonPath.read(wizard, "$.prices.utilityDeposit")).isEqualTo(700_000);
+        assertThat(JsonPath.read(wizard, "$.prices.depositPercent").toString()).isEqualTo("25");
+        assertThat((String) JsonPath.read(wizard, "$.information.houseRules")).isEqualTo("No pets.");
+        assertThat((List<Object>) JsonPath.read(wizard, "$.differences")).isEmpty();
+
+        String prices = "{\"prices\":" + prices(wizard, fourBed(), standard(), 7_046_000)
+                + ",\"depositPercent\":20,\"utilityDeposit\":700000%s}";
+        send("PUT", "/admin/terms/" + termId + "/wizard/prices", admin, prices.formatted(""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.depositPercent")
+                        .value("Give a reason for changing the Manager's value."));
+        send("PUT", "/admin/terms/" + termId + "/wizard/prices", admin,
+                prices.formatted(",\"reasons\":{\"depositPercent\":\"The same Deposit for every Term.\"}"))
+                .andExpect(status().isOk());
+        send("PUT", "/admin/terms/" + termId + "/wizard/rooms", admin,
+                "{\"blockIds\":[],\"excludedRooms\":[],\"reservedNewPercent\":15,\"roomTypeIds\":[],"
+                        + "\"roomClassIds\":[\"" + standard() + "\"]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.roomTypeIds").value("Choose at least one active Room Type."));
+        mvc.perform(get("/term-requests/" + requestId).header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(jsonPath("$.differences", hasSize(1)))
+                .andExpect(jsonPath("$.differences[0].label").value("Deposit"))
+                .andExpect(jsonPath("$.differences[0].proposed").value("25"))
+                .andExpect(jsonPath("$.differences[0].built").value("20"))
+                .andExpect(jsonPath("$.differences[0].reason").value("The same Deposit for every Term."));
     }
 
     /**

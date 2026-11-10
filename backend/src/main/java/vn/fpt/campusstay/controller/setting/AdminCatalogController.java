@@ -1,7 +1,6 @@
 package vn.fpt.campusstay.controller.setting;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -32,7 +31,6 @@ class AdminCatalogController {
     record RoomClassRequest(
             @Size(max = 50, message = "Use at most 50 characters.") String name,
             BigDecimal surchargeRate,
-            List<String> amenities,
             String status) {
     }
 
@@ -81,6 +79,6 @@ class AdminCatalogController {
     }
 
     private static AdminCatalogService.RoomClassValues values(RoomClassRequest b) {
-        return new AdminCatalogService.RoomClassValues(b.name(), b.surchargeRate(), b.amenities(), b.status());
+        return new AdminCatalogService.RoomClassValues(b.name(), b.surchargeRate(), b.status());
     }
 }

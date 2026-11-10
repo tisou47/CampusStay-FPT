@@ -24,7 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** Block Manager › Block settings, inside the Admin limits (TC-CFG-014, 015). */
+/** Block Manager › Block settings, inside the Admin limits (TC-CFG-014, 015, 031). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -88,5 +88,20 @@ class BlockSettingsIT {
 
         save(bearer(mvc, STAFF_A), VALID).andExpect(status().isForbidden());
         save(bearer(mvc, MANAGER_B), VALID).andExpect(status().isOk()); // any Manager, every Block (ADR-19)
+    }
+
+    /**
+     * TC-CFG-031: the house rules are saved without desk hours (review R-08: no longer asked); the stored desk hours
+     * stay as they were.
+     */
+    @Test
+    void savesHouseRulesWithoutDeskHours() throws Exception {
+        save(bearer(mvc, MANAGER_A), """
+                {"block":"B","visitFrom":"08:30","visitUntil":"21:00","quiet":"22:30","houseRules":"Shoes off."}""")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visitFrom").value("08:30"))
+                .andExpect(jsonPath("$.houseRules").value("Shoes off."))
+                .andExpect(jsonPath("$.deskOpens").value("07:30"))
+                .andExpect(jsonPath("$.deskCloses").value("21:00"));
     }
 }

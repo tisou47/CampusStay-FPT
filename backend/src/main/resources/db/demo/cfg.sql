@@ -52,7 +52,7 @@ SELECT t.n_id, b.id FROM demo_t t CROSS JOIN inv_building b
 UNION ALL
 SELECT t.x_id, b.id FROM demo_t t CROSS JOIN inv_building b;
 
--- The request manager.a filed for N+1, built into the Term by the Admin (Done) …
+-- The request manager01 filed for N+1, built into the Term by the Admin (Done) …
 INSERT INTO cfg_term_request (code, term_name, stay_start, stay_end, proposal, notes, status, requested_by, term_id,
                               created_at, updated_at)
 SELECT 'RP-DEMO-1', t.x_name, t.x_start, t.x_end,
@@ -72,10 +72,10 @@ SELECT 'RP-DEMO-1', t.x_name, t.x_start, t.x_end,
                                           'decisionsDueAt', t.x_m4, 'reconciliationDueAt', t.x_m5,
                                           'feesIssueAt', t.x_m6, 'feesDueAt', t.x_m7)),
        'Prices 5 % higher than this Term (new air conditioners in Blocks A and E).', 'DONE',
-       (SELECT id FROM demo_staff WHERE account = 'manager.a'), t.x_id, t.x_m1 - interval '30 days', t.x_m1
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_id, t.x_m1 - interval '30 days', t.x_m1
 FROM demo_t t;
 
--- … and the one manager.b filed for the Term after it, waiting for the Admin.
+-- … and the one manager02 filed for the Term after it, waiting for the Admin.
 INSERT INTO cfg_term_request (code, term_name, stay_start, stay_end, proposal, notes, status, requested_by, created_at,
                               updated_at)
 SELECT 'RP-DEMO-2', t.f_name, t.f_start, t.f_end,
@@ -90,7 +90,7 @@ SELECT 'RP-DEMO-2', t.f_name, t.f_start, t.f_end,
                                           'requestsCloseAt', NULL, 'decisionsDueAt', NULL, 'reconciliationDueAt', NULL,
                                           'feesIssueAt', NULL, 'feesDueAt', NULL)),
        'Same prices as next Term; Room A-509 stays closed for its renovation.', 'SUBMITTED',
-       (SELECT id FROM demo_staff WHERE account = 'manager.b'), t.now - interval '2 days', t.now - interval '2 days'
+       (SELECT id FROM demo_staff WHERE account = 'manager02'), t.now - interval '2 days', t.now - interval '2 days'
 FROM demo_t t;
 
 UPDATE cfg_term_request SET code = 'RP-' || id WHERE code LIKE 'RP-DEMO-%';
@@ -98,10 +98,10 @@ UPDATE cfg_term_request SET code = 'RP-' || id WHERE code LIKE 'RP-DEMO-%';
 INSERT INTO cfg_term_request_event (request_id, kind, actor_id, note, at)
 SELECT r.id, e.kind, (SELECT id FROM demo_staff WHERE account = e.actor), e.note, r.created_at + e.wait
 FROM cfg_term_request r CROSS JOIN demo_t t
-JOIN (VALUES ('SUBMITTED', 'manager.a', NULL, interval '0 days'),
-             ('IN_PROGRESS', 'admin', 'Building the Term from this request.', interval '3 days'),
-             ('BUILT', 'admin', NULL, interval '20 days'),
-             ('DONE', 'admin', NULL, interval '30 days')) e (kind, actor, note, wait) ON TRUE
+JOIN (VALUES ('SUBMITTED', 'manager01', NULL, interval '0 days'),
+             ('IN_PROGRESS', 'admin01', 'Building the Term from this request.', interval '3 days'),
+             ('BUILT', 'admin01', NULL, interval '20 days'),
+             ('DONE', 'admin01', NULL, interval '30 days')) e (kind, actor, note, wait) ON TRUE
 WHERE r.term_id = t.x_id;
 
 INSERT INTO cfg_term_request_event (request_id, kind, actor_id, at)

@@ -14,6 +14,7 @@ import { cx } from '@/lib/cx'
 import { formatDate, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
 import { t, tx } from '@/i18n'
+import { countLines } from '@/lib/furniture'
 
 /**
  * Student page frame (one screen): header on top, content fills the rest of the window.
@@ -170,50 +171,6 @@ export function StatusCard({ icon: Glyph, label, value, note, to }) {
   )
 }
 
-/**
- * Term milestones: done = success dot, current = action/primary dot, upcoming = hollow 1.5 px ring. A list on
- * phones; on wide screens one row of steps joined by a line (green up to the current step), so the whole home page
- * fits on one screen.
- */
-export function TermTimeline({ term, milestones, className }) {
-  return (
-    <Card padding="lg" className={cx('flex flex-col gap-4', className)}>
-      <div className="flex shrink-0 flex-col gap-0.5 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-h3 font-semibold text-fg">{term?.name ? t('{name} timeline', { name: term.name }) : t('Term timeline')}</h2>
-        {term?.stayStart && (
-          <p className="text-sm text-fg-tertiary">
-            {t('Term {start} – {end}', { start: formatDate(term.stayStart), end: formatDate(term.stayEnd) })}
-          </p>
-        )}
-      </div>
-      <ol className="flex flex-col gap-3 lg:flex-row lg:gap-0">
-        {milestones.map(({ label, date, state }, i) => (
-          <li key={label} className="flex items-center gap-3 lg:min-w-0 lg:flex-1 lg:flex-col lg:items-start lg:gap-2">
-            <span className="flex items-center lg:w-full">
-              <span
-                aria-hidden="true"
-                className={cx(
-                  'size-2.5 shrink-0 rounded-full',
-                  state === 'done' && 'bg-success',
-                  state === 'current' && 'bg-primary ring-4 ring-primary-subtle',
-                  state === 'upcoming' && 'border-[1.5px] border-line-strong bg-white',
-                )}
-              />
-              {i < milestones.length - 1 && (
-                <span aria-hidden="true" className={cx('mx-2 hidden h-0.5 flex-1 rounded-full lg:block', state === 'done' ? 'bg-success' : 'bg-line')} />
-              )}
-            </span>
-            <span className={cx('flex-1 text-base lg:flex-none lg:pr-3 lg:text-sm', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
-              {tx(label)}
-            </span>
-            <span className={cx('text-base whitespace-nowrap lg:text-sm lg:whitespace-normal', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-secondary')}>{date}</span>
-          </li>
-        ))}
-      </ol>
-    </Card>
-  )
-}
-
 /** Compare Room Classes (opened from Student Home › Room Types). */
 export function CompareClassesModal({ open, onClose }) {
   const catalog = useCatalog()
@@ -227,7 +184,7 @@ export function CompareClassesModal({ open, onClose }) {
             <THead>
               <tr>
                 <Th>Room Class</Th>
-                <Th>Amenities</Th>
+                <Th>Furniture</Th>
                 {roomTypes.map((t) => (
                   <Th key={t.id} align="right">
                     {t.name}
@@ -241,7 +198,7 @@ export function CompareClassesModal({ open, onClose }) {
                   <Td className="font-medium">
                     {c.name} <span className="font-normal text-fg-tertiary">+{Math.round((c.surchargeRate ?? 0) * 100)}%</span>
                   </Td>
-                  <Td className="text-fg-secondary">{(c.amenities ?? []).join(' · ')}</Td>
+                  <Td className="text-fg-secondary">{countLines(c.furniture)}</Td>
                   {roomTypes.map((t) => (
                     <Td key={t.id} align="right" className="whitespace-nowrap tabular">
                       {formatVnd(termPrice(t.id, c.id), { unit: false })}

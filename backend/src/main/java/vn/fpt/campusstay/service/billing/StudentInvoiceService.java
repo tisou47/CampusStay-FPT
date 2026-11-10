@@ -7,7 +7,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -68,10 +70,18 @@ public class StudentInvoiceService {
     public record Line(String label, long amount) {
     }
 
-    /** {@code room} and {@code breakdown} are filled for Utility Invoices (S6); null otherwise. */
+    /**
+     * {@code room}, {@code breakdown} and {@code period} are filled for Utility Invoices (S6, R-26); null otherwise.
+     * {@code paymentMethod} and {@code transferContent} make the receipt shown on the detail page (R-26).
+     */
     public record InvoiceDetail(String id, String title, String type, String typeLabel, long amount, String status,
             Instant issuedAt, Instant dueAt, Instant paidAt, String room, long utilityDeposit, List<Line> lines,
-            Object breakdown) {
+            Object breakdown, String termName, String paymentMethod, String transferContent, String reference,
+            UtilityPeriod period) {
+    }
+
+    /** The month a Utility Invoice bills: {@code month} of the Term's {@code months} (1 = the month the stay starts). */
+    public record UtilityPeriod(String label, LocalDate from, LocalDate to, int month, int months) {
     }
 
     public record PaymentInvoice(String id, String title, String typeLabel, long amount, String status, Instant dueAt,
@@ -186,9 +196,29 @@ public class StudentInvoiceService {
         Map<String, Object> breakdown = i.breakdown() == null ? null
                 : json.readValue(i.breakdown(), new TypeReference<Map<String, Object>>() {
                 });
+        Optional<TermSummary> term = terms.findPublished(i.termId());
         return new InvoiceDetail(i.code(), i.title(), InvoiceLabels.type(i.type()), InvoiceLabels.typeLabel(i.type()),
                 i.amount(), InvoiceLabels.status(i.status()), i.issuedAt(), i.dueAt(), i.paidAt(),
-                breakdown == null ? null : (String) breakdown.get("room"), i.utilityDeposit(), lines, breakdown);
+                breakdown == null ? null : (String) breakdown.get("room"), i.utilityDeposit(), lines, breakdown,
+                term.map(TermSummary::name).orElse(null), InvoiceLabels.method(i.paymentMethod()), i.transferContent(),
+                i.reference(), i.type().equals("UTILITY") ? period(i, breakdown, term.orElse(null)) : null);
+    }
+
+    /** The billed month from the meter segments, counted from the month the Term's stay starts. */
+    private static UtilityPeriod period(InvoiceStore.Invoice i, Map<String, Object> breakdown, TermSummary term) {
+        if (breakdown == null || !(breakdown.get("segments") instanceof List<?> segments) || segments.isEmpty()) {
+            return null;
+        }
+        LocalDate from = LocalDate.parse(String.valueOf(((Map<?, ?>) segments.getFirst()).get("from")));
+        LocalDate to = LocalDate.parse(String.valueOf(((Map<?, ?>) segments.getLast()).get("to")));
+        String label = i.title().startsWith("Utility · ") ? i.title().substring("Utility · ".length()) : i.title();
+        if (term == null || term.stayStart() == null || term.stayEnd() == null) {
+            return new UtilityPeriod(label, from, to, 0, 0);
+        }
+        YearMonth start = YearMonth.from(term.stayStart());
+        int months = (int) start.until(YearMonth.from(term.stayEnd()), ChronoUnit.MONTHS) + 1;
+        int month = (int) start.until(YearMonth.from(from), ChronoUnit.MONTHS) + 1;
+        return new UtilityPeriod(label, from, to, Math.max(1, Math.min(month, months)), months);
     }
 
     /** The payment page; the first visit starts the QR validity window. */
