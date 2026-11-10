@@ -268,6 +268,18 @@ Inspections (checklists, schedules, runs): C-34.
 
 ---
 
+## Family Day (ADR-29, A-69)
+
+Managers organise a Family Day for one Block; residents of that Block register guests for one time slot; the Block's Staff and Managers run the visitor desk. Guests have no account: name, relationship and year of birth only.
+
+- Manager: `GET /family-days?block&status&page&pageSize` · `POST /family-days` `{ block, title, description?, area, registrationOpensAt, registrationClosesAt, maxGuests, slots: [{ startsAt, endsAt, capacity }] }` · `GET|PUT /family-days/{id}` · `POST /family-days/{id}/publish` · `POST /family-days/{id}/cancel` `{ reason }` · `POST /family-days/{id}/close` `{ note? }` · `GET /family-days/{id}/registrations?slotId&q&page&pageSize` · `POST /family-day-registrations/{id}/cancel` `{ reason }`
+- Desk: `GET /family-days/{id}/visitors?slotId&status&q&page&pageSize` · `POST /family-day-visitors/verify` `{ token }` · `POST /family-day-visitors/{id}/check-in` `{ identityChecked: true }` · `POST /family-day-visitors/{id}/check-out` `{ note? }`
+- Student: `GET /students/me/family-days` · `GET /students/me/family-days/{id}` · `POST /students/me/family-days/{id}/registration` `{ slotId, guests: [{ fullName, relationship, birthYear }] }` · `POST /students/me/family-days/{id}/registration/cancel`
+
+Shapes, statuses and error codes: A-69.
+
+---
+
 ## Manager
 
 - `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, residents, beds, invoiced, collected, outstanding, outstandingInvoices, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing'|'check-out', severity, title, body, link, cta, values }], work: { toReview, submitted, underReview, paymentsToConfirm, proposal }, bedsByBlock: [{ block, proposed, capacity }] }` (A-63)
