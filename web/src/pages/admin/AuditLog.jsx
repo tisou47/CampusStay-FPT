@@ -83,7 +83,7 @@ export default function AuditLog() {
           <tr>
             <Th className="w-40">Time</Th>
             <Th className="w-44">Actor</Th>
-            <Th className="w-44">Action</Th>
+            <Th className="w-72">Action</Th>
             <Th className="w-52">Object</Th>
             <Th>Change</Th>
           </tr>
@@ -95,7 +95,11 @@ export default function AuditLog() {
               <Td className="font-medium whitespace-nowrap tabular">{formatDateTime(e.at)}</Td>
               <Td className="truncate">{e.actor}</Td>
               <Td>
-                <Tag tone={e.tone ?? 'info'}>{e.action}</Tag>
+                {/* Long actions ("Family day registration cancelled") wrap inside the column instead of running over
+                    the Object column. */}
+                <Tag tone={e.tone ?? 'info'} className="max-w-full whitespace-normal">
+                  {e.action}
+                </Tag>
               </Td>
               <Td className="truncate" title={e.object}>
                 {e.object}

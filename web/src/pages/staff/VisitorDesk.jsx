@@ -18,6 +18,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-03 Family Day visitor desk — Staff of the Block and Managers (ADR-29, contract A-69). Scan the guest's pass
 // (a handheld scanner types it into the field; phones and tablets can use the camera), check the identity paper
@@ -230,7 +231,7 @@ export default function VisitorDesk() {
           />
         }
         title="Visitor desk"
-        badge={day.data && <StatusTag status={day.data.status} />}
+        badge={day.data && <StatusTag status={day.data.status}>{familyDayStatusLabel(day.data.status)}</StatusTag>}
         description={day.data ? t('Block {block} · {area}', { block: day.data.block, area: day.data.area }) : undefined}
       />
 
@@ -254,7 +255,7 @@ export default function VisitorDesk() {
             <div className="flex flex-col gap-3 rounded-lg border border-line p-3">
               <div className="flex items-start justify-between gap-3">
                 <TwoLine primary={result.visitor.fullName} secondary={t('{relationship} · born {year}', { relationship: tr(result.visitor.relationship), year: result.visitor.birthYear })} />
-                <StatusTag status={result.visitor.overdue ? 'Overdue' : result.visitor.status} />
+                <StatusTag status={result.visitor.overdue ? 'Overdue' : result.visitor.status}>{result.visitor.overdue ? t('Overdue') : guestStatusLabel(result.visitor.status)}</StatusTag>
               </div>
               <p className="text-sm text-fg-secondary">
                 {t('Guest of {student} ({code}, Room {room})', { student: result.visitor.studentName, code: result.visitor.studentCode, room: result.visitor.room ?? '—' })}
@@ -306,7 +307,7 @@ export default function VisitorDesk() {
             setStatus(e.target.value)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: tr(s) }) }))]}
+          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: guestStatusLabel(s) }) }))]}
         />
         <Select
           wrapperClassName="w-60"
@@ -347,7 +348,7 @@ export default function VisitorDesk() {
               </Td>
               <Td className="whitespace-nowrap">{slotText(v)}</Td>
               <Td>
-                <StatusTag status={v.overdue ? 'Overdue' : v.status}>{v.overdue ? t('Overdue') : undefined}</StatusTag>
+                <StatusTag status={v.overdue ? 'Overdue' : v.status}>{v.overdue ? t('Overdue') : guestStatusLabel(v.status)}</StatusTag>
               </Td>
               <Td className="text-sm text-fg-secondary">
                 {[

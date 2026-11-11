@@ -18,6 +18,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { FamilyDayFormModal } from './familyDayForm'
+import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-02 Family Day — Manager and Staff (ADR-29, contract A-69): the day, its time slots with places and who is
 // inside, the registrations with their guests. Managers edit a Draft, publish, cancel (while no guest came in) and
@@ -123,7 +124,7 @@ function Registrations({ day, manager }) {
                       <span className="text-fg-secondary">
                         {tr(g.relationship)} · {g.birthYear}
                       </span>
-                      <StatusTag status={g.overdue ? 'Overdue' : g.status}>{g.overdue ? t('Overdue') : undefined}</StatusTag>
+                      <StatusTag status={g.overdue ? 'Overdue' : g.status}>{g.overdue ? t('Overdue') : guestStatusLabel(g.status)}</StatusTag>
                     </li>
                   ))}
                 </ul>
@@ -225,7 +226,7 @@ export default function FamilyDayDetail() {
           <PageHeader
             breadcrumb={<Breadcrumb items={[{ label: 'Family Days', to: `${base}/family-days` }, { label: day.title }]} />}
             title={day.title}
-            badge={<StatusTag status={day.status} />}
+            badge={<StatusTag status={day.status}>{familyDayStatusLabel(day.status)}</StatusTag>}
             description={t('Block {block} · {area}', { block: day.block, area: day.area })}
             actions={
               <>

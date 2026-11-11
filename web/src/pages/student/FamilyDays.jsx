@@ -7,6 +7,7 @@ import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatTime } from '@/lib/format'
 import { t } from '@/i18n'
 import { StatusList, StatusRow, StudentPage } from './shared'
+import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-04 Family Days — Student (ADR-29, contract A-69): the Family Days of the Block the student lives in, and
 // those they registered guests for. Families meet residents in a common area: never in the Rooms, never overnight.
@@ -37,7 +38,7 @@ export default function FamilyDays() {
                   note={t('{date}, {from}–{to} · {area}', { date: formatDateTime(d.startsAt), from: formatTime(d.startsAt), to: formatTime(d.endsAt), area: d.area })}
                   below={
                     <>
-                      <StatusTag status={d.status} />
+                      <StatusTag status={d.status}>{familyDayStatusLabel(d.status)}</StatusTag>
                       {d.registration && (
                         <span className="text-sm text-fg-secondary">
                           {d.registration.status === 'Approved'

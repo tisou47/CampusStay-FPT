@@ -13,8 +13,9 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatNumber } from '@/lib/format'
-import { t, tr } from '@/i18n'
+import { t } from '@/i18n'
 import { FamilyDayFormModal } from './familyDayForm'
+import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-01 Family Days — Manager › Students (ADR-29, contract A-69) and Staff › Family Day desk list. A Manager
 // creates a Draft for a Block, publishes it (the Block's residents are told), cancels it while no guest came in and
@@ -72,7 +73,7 @@ export default function FamilyDays({ role = 'manager' }) {
             setStatus(e.target.value)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: tr(s) }) }))]}
+          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: familyDayStatusLabel(s) }) }))]}
         />
       </div>
 
@@ -107,7 +108,7 @@ export default function FamilyDays({ role = 'manager' }) {
               <Td align="right">{t('{booked} / {capacity}', { booked: formatNumber(d.booked), capacity: formatNumber(d.capacity) })}</Td>
               <Td align="right">{formatNumber(d.inside)}</Td>
               <Td>
-                <StatusTag status={d.status} />
+                <StatusTag status={d.status}>{familyDayStatusLabel(d.status)}</StatusTag>
               </Td>
             </Tr>
           ))}

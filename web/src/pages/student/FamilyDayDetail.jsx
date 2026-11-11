@@ -15,6 +15,7 @@ import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
+import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-05 Family Day — Student (ADR-29, contract A-69). The student registers their guests for one time slot
 // (within the places left; a guest under the adult age comes with an adult guest); the registration is approved at
@@ -142,7 +143,7 @@ function MyRegistration({ day, registration }) {
             <span className="text-sm text-fg-secondary">
               {tr(g.relationship)} · {g.birthYear}
             </span>
-            <StatusTag status={g.status} />
+            <StatusTag status={g.status}>{guestStatusLabel(g.status)}</StatusTag>
             {g.checkedInAt && (
               <span className="text-sm text-fg-secondary">
                 {[t('In {time}', { time: formatTime(g.checkedInAt) }), g.checkedOutAt && t('Out {time}', { time: formatTime(g.checkedOutAt) })].filter(Boolean).join(' · ')}
@@ -189,7 +190,7 @@ export default function FamilyDayDetail() {
     <StudentPage
       breadcrumb={[{ label: 'Family Days', to: '/student/family-days' }, { label: day?.title ?? '…' }]}
       title={day?.title ?? 'Family Day'}
-      badge={day && <StatusTag status={day.status} />}
+      badge={day && <StatusTag status={day.status}>{familyDayStatusLabel(day.status)}</StatusTag>}
       description={day ? t('Block {block} · {area}', { block: day.block, area: day.area }) : undefined}
       width="lg:max-w-3xl"
     >
