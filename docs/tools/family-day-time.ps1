@@ -42,20 +42,33 @@ $sql = switch ($Action) {
     }
 }
 
-$container = docker ps --filter 'name=campusstay-db-1' --format '{{.Names}}' 2>$null
-if ($container) {
-    docker exec -e "PGPASSWORD=$password" $container psql -U $user -d campusstay -c $sql
-    exit $LASTEXITCODE
-}
+# Both may run at once (a PostgreSQL service on Windows and the Docker container): use the one whose schema has
+# Family Day, i.e. the one the backend migrated.
+$probe = "SELECT to_regclass('vis_family_day') IS NOT NULL;"
+$ErrorActionPreference = 'Continue'
 
 $psql = (Get-Command psql -ErrorAction SilentlyContinue).Source
 if (-not $psql) {
     $psql = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue |
         Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
-if (-not $psql) {
-    Write-Error 'No database found: start Docker (docker compose -f infra/docker-compose.yml up -d db) or install PostgreSQL.'
+if ($psql) {
+    $env:PGPASSWORD = $password
+    $found = & $psql -h localhost -U $user -d campusstay -tAc $probe 2>$null
+    if ("$found".Trim() -eq 't') {
+        & $psql -h localhost -U $user -d campusstay -c $sql
+        exit $LASTEXITCODE
+    }
 }
-$env:PGPASSWORD = $password
-& $psql -h localhost -U $user -d campusstay -c $sql
-exit $LASTEXITCODE
+
+$container = docker ps --filter 'name=campusstay-db-1' --format '{{.Names}}' 2>$null
+if ($container) {
+    $found = docker exec -e "PGPASSWORD=$password" $container psql -U $user -d campusstay -tAc $probe 2>$null
+    if ("$found".Trim() -eq 't') {
+        docker exec -e "PGPASSWORD=$password" $container psql -U $user -d campusstay -c $sql
+        exit $LASTEXITCODE
+    }
+}
+
+Write-Error 'No database with Family Day found: start the backend once (it creates the tables), on Docker (docker compose -f infra/docker-compose.yml --profile app up -d) or on a local PostgreSQL.'
+exit 1
