@@ -36,6 +36,28 @@ import { FamilyDayFormModal } from './familyDayForm'
 
 const slotLabel = (s) => `${formatDateTime(s.startsAt)} – ${formatTime(s.endsAt)}`
 
+// Who cancelled a registration, when, and why: the student themself (no reason needed) or a Manager (a reason is
+// required; cancelling the whole Family Day also cancels every registration with its reason).
+function CancellationNote({ registration: r }) {
+  const who = r.cancelledByStudent ? t('Cancelled by the student') : t('Cancelled by a Manager')
+  return (
+    <div className="mt-1 flex gap-2 rounded-md border border-line bg-subtle px-3 py-2 text-sm">
+      <Ban size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="font-medium text-fg">{who}</p>
+        {(r.cancelledBy || r.cancelledAt) && (
+          <p className="text-fg-secondary">{[r.cancelledBy, r.cancelledAt && formatDateTime(r.cancelledAt)].filter(Boolean).join(' · ')}</p>
+        )}
+        {r.cancelReason ? (
+          <p className="text-fg">{t('Reason: {reason}', { reason: r.cancelReason })}</p>
+        ) : (
+          r.cancelledByStudent && <p className="text-fg-secondary">{t('No reason needed when students cancel themselves.')}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Registrations({ day, manager }) {
   const { notify } = useToast()
   const [q, setQ] = useState('')
@@ -105,7 +127,7 @@ function Registrations({ day, manager }) {
                     </li>
                   ))}
                 </ul>
-                {r.cancelReason && <p className="text-sm text-fg-secondary">{t('Cancelled: {reason}', { reason: r.cancelReason })}</p>}
+                {r.status === 'Cancelled' && <CancellationNote registration={r} />}
               </Td>
               <Td>
                 <StatusTag status={r.status} />

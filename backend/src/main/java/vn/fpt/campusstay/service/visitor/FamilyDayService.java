@@ -84,8 +84,8 @@ public class FamilyDayService {
     }
 
     public record RegistrationItem(String id, String studentName, String studentCode, String room, String slotId,
-            Instant slotStartsAt, Instant slotEndsAt, String status, Instant createdAt, String cancelReason,
-            List<GuestView> guests) {
+            Instant slotStartsAt, Instant slotEndsAt, String status, Instant createdAt, Instant cancelledAt,
+            String cancelledBy, boolean cancelledByStudent, String cancelReason, List<GuestView> guests) {
     }
 
     public record RegistrationPage(List<RegistrationItem> items, long total, long guests) {
@@ -178,6 +178,9 @@ public class FamilyDayService {
         Set<Long> studentIds = regs.stream().map(Registration::studentId).collect(Collectors.toSet());
         Map<Long, UserDirectory.Student> students = users.students(studentIds);
         Map<Long, Residences.Residence> homes = residences.current(studentIds);
+        // Who cancelled: the student themself, or a Manager (one registration, or the whole Family Day).
+        Map<Long, String> cancellers = users.displayNames(regs.stream().map(Registration::cancelledBy)
+                .filter(java.util.Objects::nonNull).collect(Collectors.toSet()));
         String needle = q == null || q.isBlank() ? null : q.trim().toLowerCase(Locale.ROOT);
         List<RegistrationItem> items = new ArrayList<>();
         for (Registration r : regs) {
@@ -191,7 +194,9 @@ public class FamilyDayService {
                     s == null ? null : s.studentCode(),
                     homes.containsKey(r.studentId()) ? homes.get(r.studentId()).room() : null,
                     String.valueOf(r.slotId()), slot.startsAt(), slot.endsAt(),
-                    FamilyDays.REGISTRATION_STATUSES.get(r.status()), r.createdAt(), r.cancelReason(),
+                    FamilyDays.REGISTRATION_STATUSES.get(r.status()), r.createdAt(), r.cancelledAt(),
+                    r.cancelledBy() == null ? null : cancellers.get(r.cancelledBy()),
+                    r.cancelledBy() != null && r.cancelledBy() == r.studentId(), r.cancelReason(),
                     vs.stream().map(v -> guest(v, slot, now)).toList()));
         }
         // Live registrations first, then by time slot and name.

@@ -428,6 +428,17 @@ class FamilyDayIT {
         postJson("/family-day-registrations/" + regId + "/cancel", manager, "{\"reason\":\"Guest list not confirmed\"}")
                 .andExpect(status().isNoContent());
         assertThat(notifications(A1, "FAMILY_DAY_REGISTRATION_CANCELLED")).isPositive();
+        // The list tells who cancelled and when: the student themself (no reason), then a Manager (with the reason).
+        String cancelled = body(getAs("/family-days/" + id + "/registrations", manager));
+        assertThat(JsonPath.<List<Boolean>>read(cancelled, "$.items[?(@.status == 'Cancelled')].cancelledByStudent"))
+                .containsExactlyInAnyOrder(true, false);
+        assertThat(JsonPath.<List<String>>read(cancelled,
+                "$.items[?(@.cancelledByStudent == false && @.status == 'Cancelled')].cancelReason"))
+                .containsExactly("Guest list not confirmed");
+        assertThat(JsonPath.<List<String>>read(cancelled, "$.items[?(@.status == 'Cancelled')].cancelledBy"))
+                .hasSize(2).doesNotContainNull();
+        assertThat(JsonPath.<List<String>>read(cancelled, "$.items[?(@.status == 'Cancelled')].cancelledAt"))
+                .hasSize(2).doesNotContainNull();
 
         String pass = JsonPath.read(body(register(A2, id, slot, guests("Ly Van Bo")).andExpect(status().isCreated())),
                 "$.registration.guests[0].passToken");
