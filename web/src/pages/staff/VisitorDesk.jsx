@@ -280,7 +280,7 @@ export default function VisitorDesk() {
             </div>
           )}
         </Card>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid content-start grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiTile size="md" icon={Users} label="Not arrived" value={formatNumber(counts?.notArrived)} />
           <KpiTile size="md" icon={DoorOpen} label="Inside now" value={formatNumber(counts?.inside)} />
           <KpiTile size="md" icon={TriangleAlert} label="Overdue" value={formatNumber(counts?.overdue)} valueTone={counts?.overdue ? 'error' : undefined} note="Inside after their time slot" />
@@ -320,7 +320,9 @@ export default function VisitorDesk() {
         />
       </div>
 
-      <Table fill>
+      {/* The list keeps the height of its rows and the page scrolls: with "fill" it only got what the pass card and
+          the tiles left, a few rows on a laptop. */}
+      <Table className="shrink-0">
         <THead>
           <tr>
             <Th className="w-56">Guest</Th>
