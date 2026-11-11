@@ -58,7 +58,7 @@ function Registrations({ day, manager }) {
   const editable = day.status !== 'Cancelled' && day.status !== 'Completed' && day.status !== 'Draft'
 
   return (
-    <Card padding="none" className="flex min-h-0 flex-col">
+    <Card padding="none" className="flex shrink-0 flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <h2 className="text-h3 font-semibold text-fg">{t('Registrations')}</h2>
         <SearchInput
