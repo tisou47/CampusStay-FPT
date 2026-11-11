@@ -448,7 +448,13 @@ class FamilyDayIT {
         slotIsNow(slot);
         postJson("/family-day-visitors/verify", bearer(mvc, STAFF_A), "{\"token\":\"%s\"}".formatted(pass))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.canCheckIn").value(false))
-                .andExpect(jsonPath("$.visitor.status").value("Cancelled"));
+                .andExpect(jsonPath("$.visitor.status").value("Cancelled"))
+                .andExpect(jsonPath("$.problem").value("This pass was cancelled and no longer works."));
+        // The desk reads why in its language, like an error message.
+        mvc.perform(post("/family-day-visitors/verify").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_A))
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "vi").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"%s\"}".formatted(pass))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.problem").value("Mã vào này đã bị hủy và không còn hiệu lực."));
         getAs("/students/me/family-days/" + id, bearer(mvc, StayFlow.student(A2))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.registration.status").value("Cancelled"))
                 .andExpect(jsonPath("$.registration.guests[0].passToken").isEmpty());

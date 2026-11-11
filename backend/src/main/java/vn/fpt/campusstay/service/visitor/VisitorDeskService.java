@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.common.audit.ActorResolver;
+import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -72,11 +73,12 @@ public class VisitorDeskService {
     private final Parameters parameters;
     private final AuditLog audit;
     private final ActorResolver actors;
+    private final Messages messages;
     private final Clock clock;
 
     public VisitorDeskService(JdbcClient jdbc, FamilyDays days, CurrentUser currentUser, BlockScope blockScope,
             UserDirectory users, Residences residences, Parameters parameters, AuditLog audit, ActorResolver actors,
-            Clock clock) {
+            Messages messages, Clock clock) {
         this.jdbc = jdbc;
         this.days = days;
         this.currentUser = currentUser;
@@ -86,6 +88,7 @@ public class VisitorDeskService {
         this.parameters = parameters;
         this.audit = audit;
         this.actors = actors;
+        this.messages = messages;
         this.clock = clock;
     }
 
@@ -152,7 +155,8 @@ public class VisitorDeskService {
         Refusal refusal = refusal(day, r, v, slot, now);
         VisitorItem item = item(day, v, now);
         return new PassCheck(item, day.title(), refusal == null, v.status().equals("CHECKED_IN"),
-                refusal == null ? null : refusal.message());
+                // A 200 body is not an error, so LocalizedErrors leaves it: the desk reads the problem in its language.
+                refusal == null ? null : messages.forRequest(refusal.message()));
     }
 
     // ---------------------------------------------------------------- check in and out
