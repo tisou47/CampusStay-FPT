@@ -29,8 +29,9 @@ export default defineConfig(({ mode }) => {
       rolldownOptions: {
         output: {
           // Libraries in one long-cached chunk; each page is its own chunk, loaded on its first visit (app/router.jsx).
+          // jsQR stays out of it: only the visitor desk's camera loads it, on demand.
           codeSplitting: {
-            groups: [{ name: 'vendor', test: /node_modules/ }],
+            groups: [{ name: 'vendor', test: /node_modules[\\/](?!jsqr[\\/])/ }],
           },
         },
       },

@@ -76,7 +76,7 @@ Trong các bước bên dưới, `.\docs\tools\family-day-time.ps1 <lệnh>` ngh
 **Vì sao cần script:**
 
 - Trên giao diện chỉ chọn được giờ chẵn, và khách chỉ được vào trong khung giờ của mình, nên không tua thì phải chờ đồng hồ thật.
-- Chrome trên Windows không đọc QR bằng camera. Trên máy tính, bạn dán mã vào ô "Quét hoặc nhập mã vào"; máy quét cầm tay cũng hoạt động đúng như vậy (gõ mã rồi Enter). Muốn thử camera thật thì mở trang quầy trên điện thoại Android.
+- Không có camera thì dán mã vào ô "Quét hoặc nhập mã vào"; máy quét cầm tay cũng hoạt động đúng như vậy (gõ mã rồi Enter). Muốn quét thật: bấm nút camera cạnh ô đó và đưa mã QR trên điện thoại của sinh viên trước webcam. Trình duyệt chỉ cho dùng camera trên `localhost` hoặc trang `https`, nên mở quầy qua `http://<IP máy>:5173` từ máy khác sẽ không bật được camera.
 
 ## 1. Manager tạo Family Day
 

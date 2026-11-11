@@ -33,7 +33,37 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 const slotText = (v) => `${formatDateTime(v.slotStartsAt)} – ${formatTime(v.slotEndsAt)}`
 
-/** Reads a QR code with the device camera where the browser can (BarcodeDetector); otherwise says so. */
+/**
+ * A QR reader for video frames: the browser's own (BarcodeDetector: Chrome on Android, macOS) when it has one, otherwise
+ * jsQR in JavaScript (Chrome and Edge on Windows, Safari on iPhone), loaded only when a desk opens the camera.
+ */
+async function qrReader() {
+  if ('BarcodeDetector' in window) {
+    try {
+      const formats = await window.BarcodeDetector.getSupportedFormats()
+      if (formats.includes('qr_code')) {
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+        return async (frame) => (await detector.detect(frame))[0]?.rawValue
+      }
+    } catch {
+      // no usable detector: fall back to jsQR
+    }
+  }
+  const { default: jsQR } = await import('jsqr')
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  return async (frame) => {
+    const width = frame.videoWidth
+    const height = frame.videoHeight
+    if (!width || !height) return undefined
+    canvas.width = width
+    canvas.height = height
+    context.drawImage(frame, 0, 0, width, height)
+    return jsQR(context.getImageData(0, 0, width, height).data, width, height, { inversionAttempts: 'dontInvert' })?.data
+  }
+}
+
+/** Reads a QR code with the device camera (the back camera on phones, the webcam on a computer). */
 function CameraScanner({ onCode, onClose }) {
   const video = useRef(null)
   const handler = useRef(onCode)
@@ -46,7 +76,8 @@ function CameraScanner({ onCode, onClose }) {
     let timer
     let stopped = false
     async function start() {
-      if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+      // Browsers give the camera only to secure pages (https, or localhost on the same machine).
+      if (!navigator.mediaDevices?.getUserMedia) {
         setError(t('This browser cannot read QR codes with the camera. Use a handheld scanner or type the pass code.'))
         return
       }
@@ -55,19 +86,19 @@ function CameraScanner({ onCode, onClose }) {
         if (stopped) return
         video.current.srcObject = stream
         await video.current.play()
-        const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+        const read = await qrReader()
         const scan = async () => {
           if (stopped) return
           try {
-            const codes = await detector.detect(video.current)
-            if (codes.length > 0) {
-              handler.current(codes[0].rawValue)
+            const value = await read(video.current)
+            if (value) {
+              handler.current(value)
               return
             }
           } catch {
             // a frame that cannot be read: try the next one
           }
-          timer = setTimeout(scan, 300)
+          timer = setTimeout(scan, 250)
         }
         scan()
       } catch {
