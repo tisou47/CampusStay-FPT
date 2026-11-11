@@ -239,7 +239,7 @@ public class FamilyDayService {
                 .param("closes", ts(cmd.registrationClosesAt())).param("max", cmd.maxGuests())
                 .param("by", user.userId()).param("now", ts(Instant.now(clock))).query(Long.class).single();
         insertSlots(id, cmd.slots());
-        audit.record("Family Day created", AuditLog.Tone.INFO, "FamilyDay", id, v.title(),
+        audit.record("FAMILY_DAY_CREATED", AuditLog.Tone.INFO, "FamilyDay", id, v.title(),
                 Map.of("block", v.blockCode(), "slots", cmd.slots().size()));
         return detail(days.get(id));
     }
@@ -266,7 +266,7 @@ public class FamilyDayService {
                 .update();
         jdbc.sql("DELETE FROM vis_time_slot WHERE family_day_id = :id").param("id", day.id()).update();
         insertSlots(day.id(), cmd.slots());
-        audit.record("Family Day edited", AuditLog.Tone.INFO, "FamilyDay", day.id(), v.title(), Map.of());
+        audit.record("FAMILY_DAY_EDITED", AuditLog.Tone.INFO, "FamilyDay", day.id(), v.title(), Map.of());
         return detail(days.get(day.id()));
     }
 
@@ -358,7 +358,7 @@ public class FamilyDayService {
         List<Long> students = List.copyOf(residences.residentsOf(Set.of(day.buildingId())));
         events.publishEvent(new FamilyDayPublished(day.id(), day.title(), block, day.area(),
                 FamilyDays.firstStart(slots), day.closesAt(), students));
-        audit.record("Family Day published", AuditLog.Tone.SUCCESS, "FamilyDay", day.id(), day.title(),
+        audit.record("FAMILY_DAY_PUBLISHED", AuditLog.Tone.SUCCESS, "FamilyDay", day.id(), day.title(),
                 Map.of("residentsTold", students.size()));
         return detail(days.get(day.id()));
     }
@@ -409,7 +409,7 @@ public class FamilyDayService {
             events.publishEvent(new FamilyDayCancelled(day.id(), day.title(), FamilyDays.firstStart(days.slots(day.id())),
                     why, students));
         }
-        audit.record("Family Day cancelled", AuditLog.Tone.WARNING, "FamilyDay", day.id(), day.title(),
+        audit.record("FAMILY_DAY_CANCELLED", AuditLog.Tone.WARNING, "FamilyDay", day.id(), day.title(),
                 Map.of("reason", why, "registrationsCancelled", students.size()));
         return detail(days.get(day.id()));
     }
@@ -459,7 +459,7 @@ public class FamilyDayService {
         if (text != null) {
             change.put("note", text);
         }
-        audit.record("Family Day closed", AuditLog.Tone.SUCCESS, "FamilyDay", day.id(), day.title(), change);
+        audit.record("FAMILY_DAY_CLOSED", AuditLog.Tone.SUCCESS, "FamilyDay", day.id(), day.title(), change);
         return detail(days.get(day.id()));
     }
 
@@ -480,7 +480,7 @@ public class FamilyDayService {
         blockScope.check(day.buildingId());
         Registrations.cancel(jdbc, days, day, r, user.userId(), why, Instant.now(clock));
         events.publishEvent(new FamilyDayRegistrationCancelled(day.id(), day.title(), r.studentId(), why));
-        audit.record("Family Day registration cancelled", AuditLog.Tone.WARNING, "FamilyDayRegistration", r.id(),
+        audit.record("FAMILY_DAY_REGISTRATION_CANCELLED", AuditLog.Tone.WARNING, "FamilyDayRegistration", r.id(),
                 day.title(), Map.of("reason", why));
     }
 

@@ -329,11 +329,11 @@ class FamilyDayIT {
         assertThat((Object) JsonPath.read(mine, "$.registration.guests[0].passToken")).isNull();
         assertThat((String) JsonPath.read(mine, "$.registration.guests[0].status")).isEqualTo("Checked out");
 
-        long refused = jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'Family Day pass refused'")
+        long refused = jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'FAMILY_DAY_PASS_REFUSED'")
                 .query(Long.class).single();
         postJson("/family-day-visitors/verify", staff, "{\"token\":\"not-a-real-pass\"}").andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("VISITOR_PASS_UNKNOWN"));
-        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'Family Day pass refused'")
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'FAMILY_DAY_PASS_REFUSED'")
                 .query(Long.class).single()).isEqualTo(refused + 1);
     }
 
@@ -361,8 +361,15 @@ class FamilyDayIT {
         } finally {
             pool.shutdown();
         }
-        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'Family Day guest checked in' AND object_id = :g")
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'FAMILY_DAY_GUEST_CHECKED_IN' AND object_id = :g")
                 .param("g", guest).query(Long.class).single()).isEqualTo(1);
+        // Admin › Audit Log: the action filter offers the Family Day actions and finds them.
+        String admin = bearer(mvc, TestAuth.ADMIN);
+        getAs("/admin/audit-log?pageSize=100", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.actions[?(@ == 'Family day guest checked in')]").exists());
+        getAs("/admin/audit-log?pageSize=100&action=Family day guest checked in", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.action == 'Family day guest checked in')]").isNotEmpty())
+                .andExpect(jsonPath("$.items[?(@.action != 'Family day guest checked in')]").isEmpty());
     }
 
     /**

@@ -142,7 +142,7 @@ public class VisitorDeskService {
         String value = token == null ? "" : token.trim();
         Visitor v = value.isEmpty() || value.length() > 64 ? null : days.visitorByPass(value).orElse(null);
         if (v == null) {
-            audit.recordIndependently(actors.currentActor(), "Family Day pass refused", AuditLog.Tone.WARNING,
+            audit.recordIndependently(actors.currentActor(), "FAMILY_DAY_PASS_REFUSED", AuditLog.Tone.WARNING,
                     "FamilyDayPass", null, null, Map.of("why", "Unknown pass"));
             throw new ApiException(org.springframework.http.HttpStatus.NOT_FOUND, "VISITOR_PASS_UNKNOWN",
                     "This pass is not a Family Day pass of CampusStay.");
@@ -181,7 +181,7 @@ public class VisitorDeskService {
         Slot slot = days.slot(r.slotId()).orElseThrow();
         Refusal refusal = refusal(day, r, days.visitor(v.id()).orElseThrow(), slot, now);
         if (refusal != null) {
-            audit.recordIndependently(actors.currentActor(), "Family Day check-in refused", AuditLog.Tone.WARNING,
+            audit.recordIndependently(actors.currentActor(), "FAMILY_DAY_CHECK_IN_REFUSED", AuditLog.Tone.WARNING,
                     "FamilyDayGuest", v.id(), day.title(), Map.of("why", refusal.message()));
             throw ApiException.conflict(refusal.code(), refusal.message());
         }
@@ -192,7 +192,7 @@ public class VisitorDeskService {
         if (changed == 0) {
             throw ApiException.conflict("VISITOR_ALREADY_IN", "This guest is already checked in.");
         }
-        audit.record("Family Day guest checked in", AuditLog.Tone.SUCCESS, "FamilyDayGuest", v.id(), day.title(),
+        audit.record("FAMILY_DAY_GUEST_CHECKED_IN", AuditLog.Tone.SUCCESS, "FamilyDayGuest", v.id(), day.title(),
                 Map.of("slot", slot.label()));
         return item(day, days.visitor(v.id()).orElseThrow(), now);
     }
@@ -226,7 +226,7 @@ public class VisitorDeskService {
         if (text != null) {
             change.put("note", text);
         }
-        audit.record("Family Day guest checked out", text == null ? AuditLog.Tone.SUCCESS : AuditLog.Tone.WARNING,
+        audit.record("FAMILY_DAY_GUEST_CHECKED_OUT", text == null ? AuditLog.Tone.SUCCESS : AuditLog.Tone.WARNING,
                 "FamilyDayGuest", v.id(), day.title(), change);
         return item(day, days.visitor(v.id()).orElseThrow(), now);
     }
