@@ -8,6 +8,7 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
@@ -30,7 +31,7 @@ function Sidebar({ role }) {
     <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <div className="flex min-h-0 flex-col">
-        <nav aria-label={t('Main')} className="flex min-h-0 flex-col gap-4 overflow-y-auto px-3 pt-4 pb-4">
+        <nav aria-label={t('Main')} className="scrollbar-none flex min-h-0 flex-col gap-4 overflow-y-auto px-3 pt-4 pb-4">
           {config.sections.map((section, si) => (
             <div key={section.title ?? si} className="flex flex-col gap-px">
               {section.title && (
@@ -58,12 +59,12 @@ function Sidebar({ role }) {
           ))}
         </nav>
       </div>
-      <div className="flex items-center gap-2.5 border-t border-line p-4">
+      <div className="flex items-center gap-0.5 border-t border-line px-2.5 py-3">
         <Link
           to={`/${role}/profile`}
           aria-current={pathname === `/${role}/profile` ? 'page' : undefined}
           title={t('My profile')}
-          className="-m-1 flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-1 hover:bg-subtle aria-[current=page]:bg-primary-subtle"
+          className="mr-1 flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-subtle aria-[current=page]:bg-primary-subtle"
         >
           <Avatar name={user?.name} />
           <div className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
@@ -71,27 +72,35 @@ function Sidebar({ role }) {
             <span className="truncate text-sm text-fg-tertiary">{tx(user?.title) || t(config.roleTitle)}</span>
           </div>
         </Link>
-        <button
-          type="button"
-          onClick={() => setChangingPassword(true)}
-          aria-label={t('Change password')}
-          title={t('Change password')}
-          className="rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg"
-        >
-          <KeyRound size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            await signOut()
-            navigate('/signin')
-          }}
-          aria-label={t('Sign out')}
-          title={t('Sign out')}
-          className="rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg"
-        >
-          <LogOut size={16} aria-hidden="true" />
-        </button>
+        {/* Staff and Managers see their shift here; Admins have no shift and keep the password shortcut
+            (everyone can also change it on My profile). */}
+        {role === 'admin' ? (
+          <Tooltip label={t('Change password')} align="end">
+            <button
+              type="button"
+              onClick={() => setChangingPassword(true)}
+              aria-label={t('Change password')}
+              className="flex size-7 items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-subtle hover:text-fg"
+            >
+              <KeyRound size={16} aria-hidden="true" />
+            </button>
+          </Tooltip>
+        ) : (
+          <DutyIndicator />
+        )}
+        <Tooltip label={t('Sign out')} align="end">
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut()
+              navigate('/signin')
+            }}
+            aria-label={t('Sign out')}
+            className="flex size-7 items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-error-bg hover:text-error-fg"
+          >
+            <LogOut size={16} aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
     </aside>
   )
@@ -112,45 +121,57 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
   return (
     <Popover
       align="start"
-      width={240}
-      trigger={({ toggle, props }) => (
+      width="max-content"
+      minWidth={240}
+      trigger={({ open, toggle, props }) => (
         <button
           type="button"
           onClick={toggle}
           aria-label={label}
           disabled={disabled}
-          className="flex h-8 items-center gap-2 rounded-md bg-surface px-3 text-base font-medium whitespace-nowrap text-fg shadow-card hover:bg-primary-subtle disabled:pointer-events-none disabled:opacity-60"
+          className={cx(
+            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
+            open && 'bg-surface ring-2 ring-white/60',
+          )}
           {...props}
         >
-          <Glyph size={16} aria-hidden="true" className="text-fg-secondary" />
+          <Glyph size={16} aria-hidden="true" className="text-fg-brand" />
           {current?.label ?? label}
-          {current?.note && <span className="text-sm font-normal text-fg-secondary">· {t(current.note)}</span>}
-          <ChevronDown size={16} aria-hidden="true" className="text-fg-secondary" />
+          {current?.note && <span className="rounded-full bg-primary-subtle px-2 text-sm font-medium text-fg-brand">{t(current.note)}</span>}
+          <ChevronDown size={16} aria-hidden="true" className={cx('text-fg-tertiary transition-transform', open && 'rotate-180')} />
         </button>
       )}
     >
       {({ close }) => (
-        <ul className="flex max-h-80 flex-col overflow-y-auto py-1" role="listbox" aria-label={label}>
-          {options.map((opt) => (
-            <li key={opt.value ?? 'all'}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={opt.value === value}
-                onClick={() => {
-                  onChange(opt.value)
-                  close()
-                }}
-                className={cx('flex w-full items-center justify-between px-3 py-2 text-left text-base hover:bg-subtle', opt.value === value ? 'font-medium text-fg-brand' : 'text-fg')}
-              >
-                <span className="flex items-center gap-2">
-                  {opt.label}
-                  {opt.note && <span className="text-sm text-fg-tertiary">{t(opt.note)}</span>}
-                </span>
-                {opt.value === value && <Check size={16} aria-hidden="true" />}
-              </button>
-            </li>
-          ))}
+        <ul className="scrollbar-none flex max-h-80 flex-col gap-0.5 overflow-y-auto p-1.5" role="listbox" aria-label={label}>
+          {options.map((opt) => {
+            const selected = opt.value === value
+            return (
+              <li key={opt.value ?? 'all'}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => {
+                    onChange(opt.value)
+                    close()
+                  }}
+                  className={cx(
+                    'flex w-full items-center gap-6 rounded-lg px-3 py-2 text-left text-base whitespace-nowrap transition-colors',
+                    selected ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg hover:bg-subtle',
+                  )}
+                >
+                  <span className="flex flex-1 items-center gap-2">
+                    {opt.label}
+                    {opt.note && (
+                      <span className={cx('rounded-full px-2 text-sm font-normal', selected ? 'bg-surface text-fg-brand' : 'bg-subtle text-fg-tertiary')}>{t(opt.note)}</span>
+                    )}
+                  </span>
+                  <Check size={16} aria-hidden="true" className={selected ? 'opacity-100' : 'opacity-0'} />
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
     </Popover>
@@ -242,12 +263,12 @@ function QuickSearch({ role }) {
           onClick={toggle}
           aria-keyshortcuts="/"
           title={t('Search pages, students, Rooms, codes…')}
-          className="flex h-8 w-72 items-center gap-2 rounded-md bg-surface px-3 text-base whitespace-nowrap text-fg-tertiary shadow-card hover:text-fg-secondary"
+          className="flex h-9 w-72 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-surface hover:text-fg-secondary"
           {...props}
         >
           <Search size={16} aria-hidden="true" className="shrink-0" />
           <span className="min-w-0 flex-1 truncate text-left">{t('Search…')}</span>
-          <kbd aria-hidden="true" className="shrink-0 rounded border border-line px-1.5 font-sans text-sm text-fg-tertiary">/</kbd>
+          <kbd aria-hidden="true" className="shrink-0 rounded-md border border-line bg-subtle px-1.5 font-sans text-sm text-fg-tertiary">/</kbd>
         </button>
       )}
     >
@@ -263,7 +284,7 @@ function QuickSearch({ role }) {
               className="h-8 w-full rounded-md px-2 text-base outline-none placeholder:text-fg-tertiary"
             />
           </div>
-          <ul className="max-h-96 overflow-y-auto py-1">
+          <ul className="scrollbar-none max-h-96 overflow-y-auto py-1">
             {hits.map((h) => (
               <li key={`${h.kind}:${h.id}`}>
                 <button type="button" onClick={() => go(h.to, close)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-subtle">
@@ -301,7 +322,7 @@ function QuickSearch({ role }) {
  * The person's shift (A-60): routing gives new requests to people on duty first, so Staff say when they start and
  * end work. Signing in is not the same as being on duty: an off-duty person may still look things up.
  */
-function DutyToggle() {
+function DutyIndicator() {
   const { notify, notifyError } = useToast()
   const me = useQuery(['me-duty'], ({ signal }) => api.blockStaff.me(undefined, { signal }))
   const onDuty = me.data?.onDuty
@@ -317,20 +338,33 @@ function DutyToggle() {
   })
   if (!me.data) return null
   return (
-    <button
-      type="button"
-      onClick={() => change.run(!onDuty)}
-      disabled={change.pending}
-      title={onDuty ? t('On duty: new requests can be routed to you. Click to end your shift.') : t('Off duty: new requests are not routed to you. Click to start your shift.')}
-      className={cx(
-        'flex h-8 items-center gap-2 rounded-full border px-3 text-base font-medium whitespace-nowrap transition-colors disabled:opacity-60',
-        onDuty ? 'border-transparent bg-success-bg text-success-fg shadow-card hover:bg-green-100' : 'border-transparent bg-surface text-fg-secondary shadow-card hover:text-fg',
-      )}
+    <Tooltip
+      align="end"
+      label={
+        <span className="flex flex-col">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true" className={cx('size-1.5 rounded-full', onDuty ? 'bg-green-500' : 'bg-red-500')} />
+            {onDuty ? t('Recording your shift') : t('Shift off')}
+          </span>
+          <span className="font-normal text-white/70">{onDuty ? t('Click to end your shift') : t('Click to start your shift')}</span>
+        </span>
+      }
     >
-      <span aria-hidden="true" className={cx('size-2 rounded-full', onDuty ? 'bg-success' : 'bg-gray-400')} />
-      {onDuty ? t('On duty') : t('Off duty')}
-      <span className="text-sm font-normal opacity-80">· {onDuty ? t('End shift') : t('Start shift')}</span>
-    </button>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!!onDuty}
+        onClick={() => change.run(!onDuty)}
+        disabled={change.pending}
+        aria-label={onDuty ? t('On duty: new requests can be routed to you. Click to end your shift.') : t('Off duty: new requests are not routed to you. Click to start your shift.')}
+        className="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-subtle disabled:opacity-60"
+      >
+        <span aria-hidden="true" className="relative flex size-2.5">
+          {onDuty && <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />}
+          <span className={cx('relative inline-flex size-2.5 rounded-full ring-2', onDuty ? 'bg-success ring-success-bg' : 'bg-error ring-error-bg')} />
+        </span>
+      </button>
+    </Tooltip>
   )
 }
 
@@ -345,7 +379,7 @@ function BackOfficeTopBar({ role }) {
   ]
   const fixedBlock = role === 'staff' && blocks.length === 1
   return (
-    <header data-band className="z-30 flex h-14 shrink-0 items-center gap-4 border-b border-band-line bg-band pr-6">
+    <header data-band className="z-30 flex h-16 shrink-0 items-center gap-4 border-b border-band-line bg-band-gradient pr-6">
       <Link to={`/${role}`} aria-label={t('Home')} className="flex h-full w-62 shrink-0 items-center px-4">
         <Logo tone="band" subtitle={t(backOffice[role].portal)} />
       </Link>
@@ -354,16 +388,15 @@ function BackOfficeTopBar({ role }) {
         {fixedBlock ? (
           <span
             title={t('Your Block. A Manager sets the Blocks of your account.')}
-            className="flex h-8 items-center gap-2 rounded-md bg-surface px-3 text-base font-medium whitespace-nowrap text-fg shadow-card"
+            className="flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
           >
-            <Building size={16} aria-hidden="true" className="text-fg-secondary" />
+            <Building size={16} aria-hidden="true" className="text-fg-brand" />
             {t('Block {code}', { code: blocks[0] })}
           </span>
         ) : (
           role !== 'admin' &&
           blockOptions.length > 0 && <SelectorButton icon={Building} label={t('Block scope')} value={block} options={blockOptions} onChange={setBlock} />
         )}
-        {role !== 'admin' && <DutyToggle />}
       </div>
       <div className="flex items-center gap-3">
         <QuickSearch role={role} />

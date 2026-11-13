@@ -10,7 +10,7 @@ export function LanguageSwitch({ className, size = 'md' }) {
   const { lang } = useI18n()
   const { setLanguage } = useSession()
   return (
-    <div role="radiogroup" aria-label={t('Language')} className={cx('flex shrink-0 rounded-md border border-line-strong bg-surface p-0.5', className)}>
+    <div role="radiogroup" aria-label={t('Language')} className={cx('flex shrink-0 rounded-xl border border-line-strong bg-surface p-0.5 shadow-card', className)}>
       {LANGUAGES.map((option) => {
         const active = option.value === lang
         return (
@@ -22,8 +22,8 @@ export function LanguageSwitch({ className, size = 'md' }) {
             title={option.label}
             onClick={() => setLanguage(option.value)}
             className={cx(
-              'rounded-sm font-medium transition-colors',
-              size === 'sm' ? 'px-2 py-0.5 text-sm' : 'px-2.5 py-0.5 text-sm',
+              'rounded-lg font-medium transition-colors',
+              size === 'sm' ? 'px-2 py-0.5 text-sm' : 'px-2.5 py-1 text-sm',
               active ? 'bg-primary text-fg-on-brand' : 'text-fg-secondary hover:text-fg',
             )}
           >

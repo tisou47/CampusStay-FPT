@@ -1,9 +1,10 @@
+import fptMark from '@/assets/fpt-mark.png'
 import { cx } from '@/lib/cx'
 import { tx } from '@/i18n'
 
 /**
- * CampusStay mark + wordmark. sm: 32 px mark (shells), lg: 40 px mark (Sign in).
- * tone "band": on the FPT-orange band the mark turns white and the words stay ink (white text fails contrast there).
+ * FPT mark + CampusStay wordmark. sm: 36 px tile (shells), lg: 44 px tile (Sign in).
+ * The FPT mark always sits on a white tile so its orange part stays visible on the orange band.
  */
 export function Logo({ subtitle = 'FPT University · Tân Uyên', size = 'sm', tone, className }) {
   const lg = size === 'lg'
@@ -13,16 +14,15 @@ export function Logo({ subtitle = 'FPT University · Tân Uyên', size = 'sm', t
       <span
         aria-hidden="true"
         className={cx(
-          'flex shrink-0 items-center justify-center rounded-lg font-bold tracking-tight',
-          band ? 'bg-surface text-fg-brand shadow-card' : 'bg-accent text-band-fg',
-          lg ? 'size-10 text-h3' : 'size-8 text-base',
+          'flex shrink-0 items-center justify-center rounded-xl bg-surface shadow-card ring-1 ring-black/5',
+          lg ? 'h-11 px-2.5' : 'h-9 px-2',
         )}
       >
-        CS
+        <img src={fptMark} alt="" className={cx('w-auto object-contain', lg ? 'h-7' : 'h-5.5')} />
       </span>
       <span className="flex flex-col whitespace-nowrap">
-        <span className={cx('font-bold tracking-tight', band ? 'text-band-fg' : 'text-fg', lg ? 'text-h2' : 'text-h3')}>CampusStay</span>
-        {subtitle && <span className={cx('text-sm', band ? 'text-band-fg' : lg ? 'text-fg-secondary' : 'text-fg-tertiary')}>{tx(subtitle)}</span>}
+        <span className={cx('leading-tight font-bold tracking-tight', band ? 'text-band-fg' : 'text-fg', lg ? 'text-h2' : 'text-h3')}>CampusStay</span>
+        {subtitle && <span className={cx('text-sm leading-tight', band ? 'text-band-fg/75' : lg ? 'text-fg-secondary' : 'text-fg-tertiary')}>{tx(subtitle)}</span>}
       </span>
     </div>
   )
