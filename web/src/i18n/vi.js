@@ -28,6 +28,7 @@ const vi = {
   'Back': 'Quay lại',
   'Account': 'Tài khoản',
   'Change password': 'Đổi mật khẩu',
+  'Stage {n}': 'Giai đoạn {n}',
   'Recording your shift': 'Đang ghi nhận trong ca',
   'Shift off': 'Đã tắt ca',
   'Click to end your shift': 'Bấm để kết thúc ca',

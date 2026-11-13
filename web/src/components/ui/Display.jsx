@@ -133,7 +133,7 @@ export function Steps({ steps, current, compact = false, className }) {
 // 12/20, earlier levels tertiary, current level secondary, 12 px chevrons.
 export function Breadcrumb({ items, className }) {
   return (
-    <nav aria-label={t('Breadcrumb')} className={cx('flex items-center gap-1.5 text-sm', className)}>
+    <nav aria-label={t('Breadcrumb')} className={cx('flex min-w-0 items-center gap-1.5 text-sm', className)}>
       {items.map((item, i) => {
         const last = i === items.length - 1
         return (
@@ -144,7 +144,7 @@ export function Breadcrumb({ items, className }) {
                 {tx(item.label)}
               </Link>
             ) : (
-              <span className={last ? 'text-fg-secondary' : 'text-fg-tertiary'} aria-current={last ? 'page' : undefined}>
+              <span title={tx(item.label)} className={cx('truncate', last ? 'max-w-80 font-medium text-fg-secondary' : 'text-fg-tertiary')} aria-current={last ? 'page' : undefined}>
                 {tx(item.label)}
               </span>
             )}

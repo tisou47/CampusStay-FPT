@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router'
-import { ArrowRight, ChevronRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, Check, Info } from 'lucide-react'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { ADMIN_STAGES, READY_SCREENS, flowPosition } from '@/app/adminFlow'
 import { MANAGER_STAGES, STAFF_STAGES, stagePosition } from '@/app/managerFlow'
 import { useSession } from '@/app/session'
@@ -17,43 +18,108 @@ export function FlowTrail({ role }) {
   const { term } = useSession()
   const flow = role === 'admin' ? adminTrail(pathname) : STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
   if (!flow) return null
+  const InfoGlyph = flow.notice ? AlertTriangle : Info
   return (
-    <nav aria-label={flow.title} className="flex shrink-0 flex-col gap-1.5 rounded-lg border border-line bg-surface px-4 py-2.5">
-      <ol className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-        <li>
-          <Link to={flow.home} className="font-semibold text-fg-link hover:underline">
-            {flow.title}
-          </Link>
-        </li>
-        {flow.stages.map((stage, i) => (
-          <li key={stage.key} className="flex items-center gap-1">
-            <ChevronRight size={14} aria-hidden="true" className="text-fg-disabled" />
-            <span
-              aria-current={i === flow.at ? 'step' : undefined}
-              className={cx('flex items-center gap-1.5 rounded-full px-2 py-0.5', i === flow.at ? 'bg-primary-subtle font-semibold text-fg-brand' : i < flow.at ? 'text-fg-secondary' : 'text-fg-tertiary')}
-            >
-              <span className="tabular">{i + 1}</span>
-              {t(stage.label)}
-              {i === flow.live && (
-                <span className="rounded-full bg-success-bg px-1.5 text-sm font-medium text-success-fg">{t('now')}</span>
-              )}
+    <nav
+      aria-label={flow.title}
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm"
+    >
+      <Link to={flow.home} className="flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-1 font-semibold text-fg-link transition-colors hover:bg-info-bg">
+        <CalendarDays size={15} aria-hidden="true" />
+        {flow.title}
+      </Link>
+      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-line" />
+
+      {/* Stages: this screen's stage spelled out, the others as numbered dots; each tells its name and purpose on hover. */}
+      <ol className="flex shrink-0 items-center">
+        {flow.stages.map((stage, i) => {
+          const here = i === flow.at
+          const live = i === flow.live
+          const done = i < flow.at
+          const tip = (
+            <span className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 font-semibold">
+                {t('Stage {n}', { n: i + 1 })}: {t(stage.label)}
+                {live && <span className="rounded-full bg-green-500/25 px-1.5 text-green-100">{t('now')}</span>}
+              </span>
+              {stage.why && <span className="font-normal text-white/75">{t(stage.why)}</span>}
             </span>
-          </li>
-        ))}
+          )
+          return (
+            <li key={stage.key} className="flex items-center">
+              {i > 0 && <span aria-hidden="true" className={cx('h-px w-2.5', i <= flow.at ? 'bg-primary/40' : 'bg-line-strong')} />}
+              <Tooltip label={tip} side="bottom" align={i === 0 ? 'start' : 'center'}>
+                <span
+                  tabIndex={0}
+                  aria-current={here ? 'step' : undefined}
+                  aria-label={`${t('Stage {n}', { n: i + 1 })}: ${t(stage.label)}${live ? ` (${t('now')})` : ''}`}
+                  className={cx(
+                    'relative flex h-6 cursor-default items-center justify-center rounded-full font-semibold tabular transition-colors',
+                    here
+                      ? 'gap-1.5 bg-primary-subtle pr-2.5 pl-1 text-fg-brand'
+                      : done
+                        ? 'size-6 bg-primary-subtle text-fg-brand hover:bg-orange-100'
+                        : 'size-6 border border-line-strong text-fg-tertiary hover:border-fg-tertiary hover:text-fg-secondary',
+                  )}
+                >
+                  {here ? (
+                    <>
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-primary text-xs text-fg-on-brand">{i + 1}</span>
+                      <span className="whitespace-nowrap">{t(stage.label)}</span>
+                    </>
+                  ) : done ? (
+                    <Check size={13} strokeWidth={3} aria-hidden="true" />
+                  ) : (
+                    i + 1
+                  )}
+                  {live && (
+                    <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-success ring-2 ring-surface" />
+                  )}
+                </span>
+              </Tooltip>
+            </li>
+          )
+        })}
       </ol>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
-        <p className="min-w-0 text-base text-fg-secondary">
-          {flow.screen && <span className="font-semibold text-fg">{flow.screen}: </span>}
-          {t(flow.why)}
-          {flow.notice && <span className="font-medium text-warning-fg"> {flow.notice}</span>}
-        </p>
-        {flow.next && (
-          <Link to={flow.next.to} className="flex shrink-0 items-center gap-1 text-base font-medium text-fg-link hover:underline">
-            {t('Next: {label}', { label: t(flow.next.label) })}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        )}
+      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-line" />
+
+      {/* This screen: its place in the stage, with why it matters (and any timing warning) on hover. */}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        {flow.screen && <span className="truncate font-medium text-fg">{flow.screen}</span>}
+        <Tooltip
+          side="bottom"
+          align="start"
+          label={
+            <span className="flex flex-col gap-1 font-normal">
+              <span>{t(flow.why)}</span>
+              {flow.notice && <span className="font-medium text-amber-100">{flow.notice}</span>}
+            </span>
+          }
+        >
+          <button
+            type="button"
+            aria-label={`${t(flow.why)}${flow.notice ? ` ${flow.notice}` : ''}`}
+            className={cx(
+              'flex size-6 shrink-0 cursor-help items-center justify-center rounded-full transition-colors',
+              flow.notice ? 'text-warning hover:bg-warning-bg' : 'text-fg-tertiary hover:bg-subtle hover:text-fg-secondary',
+            )}
+          >
+            <InfoGlyph size={15} aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
+
+      {flow.next && (
+        <Tooltip label={flow.next.why ? t(flow.next.why) : null} side="bottom" align="end">
+          <Link
+            to={flow.next.to}
+            className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 font-medium whitespace-nowrap text-fg-link transition-colors hover:bg-info-bg"
+          >
+            {t('Next: {label}', { label: t(flow.next.label) })}
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </Tooltip>
+      )}
     </nav>
   )
 }
