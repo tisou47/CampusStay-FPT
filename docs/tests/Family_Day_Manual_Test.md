@@ -1,6 +1,6 @@
-# Kịch bản test thủ công: Family Day (nhánh `feat/family-day`)
+# Kịch bản test thủ công: Family Day
 
-Nhánh `dev` (Family Day, ADR-29, contract A-69). Ngày soạn: 10/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
+Nhánh `dev` (Family Day, ADR-29, contract A-69; khách quá giờ và thống kê, A-70). Ngày soạn: 10/11/2026, bổ sung 13/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
 
 ## 0. Chuẩn bị
 
@@ -176,29 +176,62 @@ Trong các bước bên dưới, `.\docs\tools\family-day-time.ps1 <lệnh>` ngh
     - Mẹ hiện **Quá giờ** (màu đỏ) và ô "Quá giờ" = 1.
     - Em hiện **Vắng mặt**.
     - Bộ lọc trạng thái "Quá giờ" chỉ còn Mẹ.
+    - Trên quầy có khung cảnh báo vàng "1 khách vẫn còn ở trong sau khung giờ" với nút **Nhắc sinh viên**; ô "Quá giờ" ghi "1 khách chờ sinh viên xác nhận".
+    - Ở dòng Mẹ **không có** nút Ghi nhận ra mà là chữ "Chờ sinh viên xác nhận", và cột "Vào và ra" ghi "Chưa nhắc sinh viên".
     - Trang Manager có cảnh báo "1 khách vẫn còn ở trong sau khung giờ".
 - [ ] **7.4. Kết thúc khi còn khách bên trong.** Manager tải lại trang chi tiết.
   - **Kết quả mong đợi:** **chưa có** nút **Kết thúc Ngày gia đình**, vì Mẹ vẫn còn bên trong. Nút chỉ hiện khi các khung giờ đã qua và không còn ai bên trong. Server cũng chặn trường hợp này: gọi API trực tiếp sẽ nhận lỗi "Còn 1 khách chưa ra…".
-- [ ] **7.5. Khách đã rời mà không qua quầy.** Ở quầy, bấm **Ghi nhận ra** ở dòng Mẹ, tick "Khách đã rời đi mà không qua quầy".
-  - **Kết quả mong đợi:** nút xác nhận chỉ bật khi đã nhập ghi chú, ví dụ "Gọi điện cho SV xác nhận mẹ đã về lúc 16:10". Mẹ có trạng thái **Đã ra** và ghi chú hiện ở cột "Vào và ra".
-- [ ] **7.6. Kết thúc.** Manager bấm **Kết thúc Ngày gia đình**, nhập ghi chú báo cáo, xác nhận.
+- [ ] **7.5. Nhắc hàng loạt.** Ở quầy (`staffa01`), bấm **Nhắc sinh viên** → **Gửi nhắc nhở**.
+  - **Kết quả mong đợi:**
+    - Thông báo "Đã thông báo cho 1 sinh viên về 1 khách."
+    - Dòng Mẹ ghi "Đã nhắc 1 lần (gần nhất HH:mm), đang chờ sinh viên".
+    - `se200001` có thông báo ở chuông: "Người thân của bạn vẫn còn trong ký túc xá · …", nội dung nêu tên Mẹ và giờ khung kết thúc. Bấm vào thông báo thì mở trang Ngày gia đình.
+    - Bấm **Nhắc sinh viên** lần nữa vẫn gửi được (Mẹ vẫn ở lại); dòng Mẹ thành "Đã nhắc 2 lần".
+- [ ] **7.6. Staff chưa được ghi nhận ra.** Dán mã của Mẹ (lệnh `passes`) vào ô quét.
+  - **Kết quả mong đợi:** thẻ kết quả ghi "Đã nhắc … đang chờ sinh viên" và **không có** nút Ghi nhận ra.
+  - Mở trang quầy bằng `manager01`: dòng Mẹ **có** nút Ghi nhận ra; hộp thoại báo "Sinh viên chưa xác nhận" và bắt nhập lý do. **Bấm Quay lại, chưa ghi nhận ra**, để làm tiếp 7.7.
+- [ ] **7.7. Sinh viên xác nhận an toàn.** Đăng nhập `se200001`, mở Ngày gia đình.
+  - **Kết quả mong đợi:** khung vàng "Người thân của bạn vẫn còn trong ký túc xá" nêu tên Mẹ, giờ khung kết thúc và giờ quầy đã nhắc; thẻ của Mẹ hiện **Quá giờ**.
+  - Nhập lời nhắn "Mẹ đang ở cổng, đang về", bấm **Người thân của tôi an toàn**.
+  - **Kết quả mong đợi:** khung đổi sang "Bạn đã xác nhận người thân an toàn", thẻ Mẹ có dòng "Đã xác nhận an toàn lúc HH:mm". Bấm xác nhận lần nữa không còn được (không còn nút).
+- [ ] **7.8. Staff ghi nhận ra.** Ở quầy (`staffa01`), tải lại trang.
+  - **Kết quả mong đợi:** khung cảnh báo vàng biến mất; dòng Mẹ ghi "SV đã xác nhận an toàn lúc HH:mm: “Mẹ đang ở cổng, đang về”" và **có lại** nút Ghi nhận ra.
+  - Bấm **Ghi nhận ra**: hộp thoại có khung xanh "Sinh viên đã xác nhận khách an toàn" kèm lời nhắn → xác nhận. Mẹ **Đã ra**.
+- [ ] **7.9. Kết thúc.** Manager bấm **Kết thúc Ngày gia đình**, nhập ghi chú báo cáo, xác nhận.
   - **Kết quả mong đợi:** trạng thái **Đã kết thúc**; ô số liệu: Đã ra = 2, Vắng mặt = 1; mục Chi tiết có dòng "Đã kết thúc" với giờ, người kết thúc và ghi chú.
 
-## 8. Hủy cả sự kiện
+## 8. Thống kê
 
-- [ ] **8.1.** Manager tạo một Family Day mới cho Block A (giống bước 1.3) và công bố. `se200005` đăng ký 1 khách. Manager bấm **Hủy Ngày gia đình**, nhập lý do "Dự báo mưa bão".
-  - **Kết quả mong đợi:** sự kiện **Đã hủy** và lý do hiện ở đầu trang; `se200005` nhận thông báo hủy kèm lý do; trang của SV hiện đăng ký **Đã hủy** và không còn QR.
-- [ ] **8.2.** Chạy `.\docs\tools\family-day-time.ps1 passes`, rồi dán mã của khách đó ở quầy (`staffa01`).
+- [ ] **8.1. Staff.** `staffa01` → menu **Vận hành › Thống kê Ngày gia đình**.
+  - **Kết quả mong đợi:** bảng có sự kiện vừa kết thúc; 4 ô tổng: số Ngày gia đình, Đơn đăng ký, Khách thực tế đến (ví dụ 2 / 3, 67%), Ở lại quá giờ = 1 kèm số khách vắng mặt.
+- [ ] **8.2. Chi tiết.** Bấm vào dòng sự kiện. (Manager cũng mở được từ nút **Thống kê** ở trang chi tiết sự kiện.)
+  - **Kết quả mong đợi:**
+    - Không có khung "Số liệu chưa chốt" (sự kiện đã kết thúc).
+    - Ô: Đơn đăng ký (kèm số đơn đã hủy ở bước 5), Khách đăng ký (kèm số chỗ đã đặt / tổng chỗ), Khách thực tế đến, Vắng mặt.
+    - Bảng **Khung giờ**: mỗi khung có chỗ đã đặt / sức chứa, số đơn, khách đến / đăng ký, vắng mặt, ở quá giờ, thời gian ở trung bình.
+    - **Thời điểm gia đình đến** theo giờ; **Ai đến thăm** theo quan hệ (Bố, Mẹ, Anh/em trai…), số người lớn và chưa đủ tuổi.
+    - **Đơn đăng ký**: còn hiệu lực / SV tự hủy / Quản lý hủy.
+    - **Khách ở lại quá giờ**: Ở quá giờ = 1, Đã nhắc = 1 (đã báo 1 sinh viên), SV xác nhận an toàn = 1, Quản lý ghi nhận ra khi chưa có xác nhận = 0.
+- [ ] **8.3. Admin.** `admin01` → **Báo cáo › Thống kê Ngày gia đình**.
+  - **Kết quả mong đợi:** thấy sự kiện của mọi Block và mở được trang chi tiết.
+- [ ] **8.4. Phạm vi Block.** `staffb01` mở **Thống kê Ngày gia đình**.
+  - **Kết quả mong đợi:** không thấy sự kiện của Block A. Mở thẳng `/staff/family-day-stats/<id>` của sự kiện Block A thì báo không có quyền.
+
+## 9. Hủy cả sự kiện
+
+- [ ] **9.1.** Manager tạo một Family Day mới cho Block A (giống bước 1.3) và công bố. `se200005` đăng ký 1 khách. Manager bấm **Hủy Ngày gia đình**, nhập lý do "Dự báo mưa bão".
+  - **Kết quả mong đợi:** sự kiện **Đã hủy** và lý do hiện ở đầu trang; `se200005` nhận thông báo hủy kèm lý do; trang của SV hiện đăng ký **Đã hủy** và không còn QR. Sự kiện đã hủy **không** xuất hiện ở Thống kê.
+- [ ] **9.2.** Chạy `.\docs\tools\family-day-time.ps1 passes`, rồi dán mã của khách đó ở quầy (`staffa01`).
   - **Kết quả mong đợi:** "Mã vào này đã bị hủy và không còn hiệu lực."
 
-## 9. Kiểm tra chung
+## 10. Kiểm tra chung
 
-- [ ] **9.1. Audit Log.** Đăng nhập `admin01` → **Audit Log**.
-  - **Kết quả mong đợi:** có các dòng Family Day created / published / guest checked in / guest checked out (dòng của Mẹ màu cảnh báo vì có ghi chú) / pass refused (mã giả) / registration cancelled / cancelled / closed, mỗi dòng ghi người thực hiện.
-- [ ] **9.2. Ngôn ngữ.** Đổi sang English (nút ngôn ngữ ở góc trên).
-  - **Kết quả mong đợi:** các màn hình Family Day và thông báo lỗi hiện tiếng Anh; đổi lại thì về tiếng Việt.
-- [ ] **9.3. Màn hình điện thoại.** Thu nhỏ cửa sổ sinh viên xuống bề rộng điện thoại.
-  - **Kết quả mong đợi:** trang Ngày gia đình nằm dưới tab **Hoạt động**; thẻ QR xếp một cột; không bị cuộn ngang.
+- [ ] **10.1. Audit Log.** Đăng nhập `admin01` → **Audit Log**.
+  - **Kết quả mong đợi:** có các dòng Family Day created / published / guest checked in / guest checked out / overdue reminded / safety confirmed / pass refused (mã giả) / registration cancelled / cancelled / closed, mỗi dòng ghi người thực hiện.
+- [ ] **10.2. Ngôn ngữ.** Đổi sang English (nút ngôn ngữ ở góc trên).
+  - **Kết quả mong đợi:** các màn hình Family Day, Thống kê và thông báo lỗi hiện tiếng Anh; đổi lại thì về tiếng Việt.
+- [ ] **10.3. Màn hình điện thoại.** Thu nhỏ cửa sổ sinh viên xuống bề rộng điện thoại.
+  - **Kết quả mong đợi:** trang Ngày gia đình nằm dưới tab **Hoạt động**; thẻ QR và khung xác nhận an toàn xếp một cột; không bị cuộn ngang.
 
 ## Ghi lỗi
 
