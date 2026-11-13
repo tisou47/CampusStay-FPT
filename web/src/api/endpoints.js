@@ -74,6 +74,19 @@ export const api = {
     /** The bank account refunds are paid to: { holder, number, bank, updatedAt } (null fields until entered; A-62). */
     refundAccount: g('/students/me/refund-account'),
     saveRefundAccount: (body) => http.put('/students/me/refund-account', body),
+    /**
+     * My profile contacts: { email, phone, personalEmail, emergencyContacts: [{ id, name, relationship,
+     * relationshipLabel, phone, primary }], maxEmergencyContacts, relationships: [{ value, label }] }.
+     * Every change below answers with the same shape.
+     */
+    contacts: g('/students/me/contacts'),
+    /** { phone, personalEmail } */
+    saveContacts: (body) => http.put('/students/me/contacts', body),
+    /** { name, relationship, phone } */
+    addEmergencyContact: (body) => http.post('/students/me/contacts/emergency', body),
+    updateEmergencyContact: (id, body) => http.put(`/students/me/contacts/emergency/${id}`, body),
+    primaryEmergencyContact: (id) => http.post(`/students/me/contacts/emergency/${id}/primary`),
+    removeEmergencyContact: (id) => http.delete(`/students/me/contacts/emergency/${id}`),
     /** The student's refunds (R-24): { items: [{ id, reason, rule, percent, paid, amount, status, createdAt, decidedAt, note }], total, pendingAmount }. */
     refunds: g('/students/me/refunds'),
     /** The dormitory board: announcements shown to the student now, pinned first (A-30). */

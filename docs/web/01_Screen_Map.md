@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 10/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 13/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -45,7 +45,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-05 | Swap Invitation | `/student/requests/swap/invitations/:id` | 104:2490 | `GET /swap-invitations/:id`<br>`POST /swap-invitations/:id/respond` | [student/SwapInvitation.jsx](../../web/src/pages/student/SwapInvitation.jsx) |
 | MOB-NTF-01 | Notifications (phone bell) | `/student/notifications` | 58:474 | `GET /notifications` | [student/Notifications.jsx](../../web/src/pages/student/Notifications.jsx) |
 | SCR-AUTH-06 | Account verification (sign-up form) | `/student/verification` | — | `GET /students/me/verification`<br>`PUT /students/me/verification` | [student/Verification.jsx](../../web/src/pages/student/Verification.jsx) |
-| — | My profile (`role="student"`) | `/student/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
+| — | My profile (`role="student"`) | `/student/profile` | — | `GET /auth/me`<br>`GET /block-staff/me`<br>`GET /students/me/profile` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 | SCR-HOME-05 | Registration period details | `/student/registration-periods/:termId` | — | `GET /registration-periods/:termId` | [student/RegistrationPeriod.jsx](../../web/src/pages/student/RegistrationPeriod.jsx) |
 | SCR-VIS-04 | Family Days | `/student/family-days` | — | `GET /students/me/family-days` | [student/FamilyDays.jsx](../../web/src/pages/student/FamilyDays.jsx) |
 | SCR-VIS-05 | Family Day | `/student/family-days/:id` | — | `GET /students/me/family-days/:id`<br>`POST /students/me/family-days/:id/registration`<br>`POST /students/me/family-days/:id/registration/cancel` | [student/FamilyDayDetail.jsx](../../web/src/pages/student/FamilyDayDetail.jsx) |
@@ -76,7 +76,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-VIS-02 | Family Day | `/staff/family-days/:id` | — | `GET /family-days/:id`<br>`GET /family-days/:id/registrations`<br>`PUT /family-days/:id`<br>`POST /family-days/:id/publish`<br>`POST /family-day-registrations/:id/cancel` | [manager/FamilyDayDetail.jsx](../../web/src/pages/manager/FamilyDayDetail.jsx) |
 | SCR-VIS-03 | Family Day visitor desk | `/staff/family-days/:id/desk` | — | `POST /family-day-visitors/verify`<br>`GET /family-days/:id/visitors`<br>`POST /family-day-visitors/:id/check-in`<br>`POST /family-day-visitors/:id/check-out` | [staff/VisitorDesk.jsx](../../web/src/pages/staff/VisitorDesk.jsx) |
 | SCR-NTF-22 | Announcements | `/staff/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
-| — | My profile (`role="staff"`) | `/staff/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
+| — | My profile (`role="staff"`) | `/staff/profile` | — | `GET /auth/me`<br>`GET /block-staff/me`<br>`GET /students/me/profile` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 
 ## Block Manager — Figma page 07 Web – Manager
 
@@ -123,7 +123,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-RPT-11 | Term dashboard | `/manager/terms` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms/:id` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-NTF-22 | Announcements | `/manager/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
-| — | My profile (`role="manager"`) | `/manager/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
+| — | My profile (`role="manager"`) | `/manager/profile` | — | `GET /auth/me`<br>`GET /block-staff/me`<br>`GET /students/me/profile` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 
 ## Admin — Figma page 08 Web – Admin
 
@@ -138,7 +138,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-CFG-25 | Refunds, penalties and terminations | `/admin/refunds` | — | `GET /admin/fees`<br>`GET /admin/settings/refunds` | [admin/RefundsTerminations.jsx](../../web/src/pages/admin/RefundsTerminations.jsx) |
 | SCR-CFG-26 | Stay and renewal | `/admin/stay` | — | `GET /admin/settings/stay`<br>`PUT /admin/settings/stay` | [admin/StayRenewal.jsx](../../web/src/pages/admin/StayRenewal.jsx) |
 | SCR-NTF-22 | Announcements | `/admin/announcements` | — | `GET /announcements`<br>`GET /announcements/options`<br>`POST /announcements`<br>`PUT /announcements/:id` | [common/Announcements.jsx](../../web/src/pages/common/Announcements.jsx) |
-| — | My profile (`role="admin"`) | `/admin/profile` | — | `GET /auth/me`<br>`GET /students/me/verification` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
+| — | My profile (`role="admin"`) | `/admin/profile` | — | `GET /auth/me`<br>`GET /block-staff/me`<br>`GET /students/me/profile` | [common/Profile.jsx](../../web/src/pages/common/Profile.jsx) |
 | SCR-CFG-02 | Room Types | `/admin/room-types` | 24:520 | `GET /admin/room-types`<br>`POST /admin/room-types`<br>`PUT /admin/room-types/:id` | [admin/RoomTypes.jsx](../../web/src/pages/admin/RoomTypes.jsx) |
 | SCR-CFG-03 | Room Classes | `/admin/room-classes` | 25:837 | `GET /admin/room-classes`<br>`POST /admin/room-classes`<br>`PUT /admin/room-classes/:id`<br>`GET /admin/room-class-requirements`<br>`PUT /admin/room-class-requirements/:roomClassId` | [admin/RoomClasses.jsx](../../web/src/pages/admin/RoomClasses.jsx) |
 | SCR-CFG-04 | Deposit | `/admin/fees` | — | `GET /admin/fees`<br>`PUT /admin/fees` | [admin/FeesRules.jsx](../../web/src/pages/admin/FeesRules.jsx) |

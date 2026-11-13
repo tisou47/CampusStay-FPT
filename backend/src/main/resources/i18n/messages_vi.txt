@@ -1003,3 +1003,8 @@ This Family Day is over. ⟶ Ngày gia đình này đã kết thúc.
 This pass was already used: the guest came and left. ⟶ Mã vào này đã được dùng: khách đã vào và ra.
 This guest's time slot is {0}. Check them in from {1}. ⟶ Khung giờ của khách là {0}. Hãy cho khách vào từ {1}.
 This guest's time slot ended at {0}. ⟶ Khung giờ của khách đã kết thúc lúc {0}.
+Enter a valid email address. ⟶ Nhập một địa chỉ email hợp lệ.
+Enter the contact's full name. ⟶ Nhập họ tên của người liên hệ.
+Choose the relationship from the list. ⟶ Chọn mối quan hệ trong danh sách.
+This emergency contact does not exist. ⟶ Người liên hệ khẩn cấp này không tồn tại.
+You already have the most emergency contacts allowed. Edit or remove one first. ⟶ Bạn đã có số người liên hệ khẩn cấp tối đa. Hãy sửa hoặc xóa bớt một người trước.

@@ -18,6 +18,7 @@ import {
   HeartHandshake,
   Home,
   IdCard,
+  Inbox,
   KeyRound,
   Languages,
   LogOut,
@@ -25,6 +26,7 @@ import {
   MapPin,
   Pencil,
   Phone,
+  Receipt,
   ShieldCheck,
   User,
   UserRound,
@@ -35,7 +37,6 @@ import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { backOffice } from '@/app/navigation'
 import { useSession } from '@/app/session'
-import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { ChangePasswordDialog } from '@/components/layout/ChangePasswordDialog'
 import { LanguageSwitch } from '@/components/layout/LanguageSwitch'
 import { useNotifications } from '@/components/layout/Notifications'
@@ -45,6 +46,8 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatRelative } from '@/lib/format'
 import { RefundAccountCard, useRefundAccount } from '@/pages/student/refundAccount'
+import { Chips, InfoGrid, Panel } from './profileParts'
+import { ContactPanel, EmergencyPanel, useContacts } from './profileContacts'
 import { StudentPage } from '@/pages/student/shared'
 import { t, tx } from '@/i18n'
 
@@ -64,91 +67,38 @@ const initialsOf = (name) =>
     .join('')
     .toUpperCase()
 
-/* ------------------------------------------------------------------ building blocks */
-
-/** Rounded panel with a title row (and optional description and actions) over a divider. */
-function Panel({ icon: Glyph, title, description, actions, children, className, bodyClassName }) {
-  return (
-    <section className={cx('flex flex-col rounded-2xl border border-line bg-surface shadow-card', className)}>
-      <header className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
-            {Glyph && <Glyph size={18} aria-hidden="true" className="text-fg-brand" />}
-            {tx(title)}
-          </h2>
-          {description && <p className="text-sm text-fg-tertiary">{tx(description)}</p>}
-        </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-      </header>
-      <div className={cx('p-6', bodyClassName)}>{children}</div>
-    </section>
-  )
+/**
+ * Countdown of the stay for the header card: days left while the Term's stay runs, else the day it starts.
+ * Null without a Bed or dates.
+ */
+function stayCountdown(term, allocation) {
+  if (!allocation || !term?.stayStart || !term?.stayEnd) return null
+  const day = 86_400_000
+  const now = new Date()
+  const start = new Date(`${term.stayStart}T00:00:00`)
+  const end = new Date(`${term.stayEnd}T23:59:59`)
+  if (now < start) return { value: formatDate(term.stayStart), label: 'Stay starts', note: t('Term {name}', { name: term.name }) }
+  if (now > end) return null
+  const left = Math.max(0, Math.ceil((end - now) / day))
+  return { value: t('{n} days', { n: left }), label: 'Left in the Term', note: t('Until {date}', { date: formatDate(term.stayEnd) }) }
 }
 
-/** One fact as a soft tile: icon, label, value. Empty values are left out by the callers. */
-function InfoTile({ icon: Glyph, label, children, wide }) {
-  return (
-    <div className={cx('flex min-w-0 items-start gap-3 rounded-xl bg-subtle/70 px-4 py-3', wide && 'sm:col-span-2')}>
-      <Glyph size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-tertiary" />
-      <div className="flex min-w-0 flex-col">
-        <span className="text-sm text-fg-tertiary">{tx(label)}</span>
-        <span className="text-base font-medium break-words text-fg">{children}</span>
-      </div>
-    </div>
-  )
-}
-
-/** Tiles in two columns; rows whose value is empty are dropped so no "—" fills the page. */
-function InfoGrid({ items }) {
-  const shown = items.filter((i) => i && i.value != null && i.value !== '' && !(Array.isArray(i.value) && !i.value.length))
-  if (!shown.length) return null
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {shown.map((i) => (
-        <InfoTile key={i.label} icon={i.icon} label={i.label} wide={i.wide}>
-          {i.value}
-        </InfoTile>
-      ))}
-    </div>
-  )
-}
-
-function Chips({ items }) {
-  return (
-    <span className="flex flex-wrap gap-1.5 pt-0.5">
-      {items.map((x) => (
-        <span key={x} className="rounded-full bg-surface px-2.5 text-sm font-medium text-fg-secondary ring-1 ring-line">
-          {x}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-function StatBox({ value, label }) {
-  return (
-    <div className="flex min-w-0 flex-col items-center justify-center rounded-xl bg-subtle/70 px-2 py-2.5 text-center sm:min-w-28 sm:px-4 sm:py-3">
-      <span className="text-h3 font-bold text-fg tabular sm:text-h2">{value}</span>
-      <span className="text-sm text-fg-secondary sm:whitespace-nowrap">{tx(label)}</span>
-    </div>
-  )
-}
-
-/** The person at a glance: a soft brand strip, the initials tile, name, status and up to three numbers. */
+/** The person at a glance: initials tile, name, status and up to three numbers, all on one centred line. */
 function Hero({ name, status, subline, stats }) {
   return (
     <section className="relative shrink-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-      <div aria-hidden="true" className="bg-band-gradient h-16 opacity-45 sm:h-20" />
-      <div className="flex flex-col gap-4 px-4 pb-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
-        {/* Phones: centred under the strip; from sm the tile sits left with the name beside it. */}
-        <div className="relative -mt-10 flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row sm:items-end sm:gap-4 sm:text-left">
+      {/* A soft warm wash from the left and a blurred glow behind the tile: brand colour without a heavy band. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-linear-to-r from-orange-50 via-surface to-surface" />
+      <div aria-hidden="true" className="pointer-events-none absolute -top-20 -left-16 size-64 rounded-full bg-orange-200/40 blur-3xl" />
+      <div className="relative flex flex-col items-center gap-5 p-5 sm:p-6 lg:flex-row lg:justify-between lg:gap-8">
+        <div className="flex min-w-0 flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
           <span
             aria-hidden="true"
-            className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-[28px] font-bold text-fg-brand shadow-dropdown ring-4 ring-surface sm:size-22 sm:text-[32px]"
+            className="flex size-18 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-orange-100 to-orange-200 text-[26px] font-bold tracking-tight text-fg-brand shadow-card ring-4 ring-surface"
           >
             {initialsOf(name)}
           </span>
-          <div className="flex min-w-0 flex-col items-center gap-1 pb-1 sm:items-start">
+          <div className="flex min-w-0 flex-col items-center gap-1.5 sm:items-start">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <h2 className="text-h2 font-bold tracking-tight text-fg">{name}</h2>
               {status}
@@ -157,14 +107,63 @@ function Hero({ name, status, subline, stats }) {
           </div>
         </div>
         {stats?.length > 0 && (
-          <div className="relative grid grid-flow-col auto-cols-fr gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
+          <dl
+            className="grid w-full shrink-0 gap-2 sm:gap-3 lg:flex lg:w-auto"
+            style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
+          >
             {stats.map((s) => (
-              <StatBox key={s.label} value={s.value} label={s.label} />
+              <StatCard key={s.label} {...s} />
             ))}
-          </div>
+          </dl>
         )}
       </div>
     </section>
+  )
+}
+
+const statTones = {
+  brand: 'bg-orange-100 text-fg-brand',
+  success: 'bg-success-bg text-success',
+  warning: 'bg-warning-bg text-warning-fg',
+  info: 'bg-info-bg text-info',
+}
+
+/** One number of the header card: a tinted icon, the value and what it is (with an optional small note). */
+function StatCard({ icon: Glyph, value, label, note, tone = 'brand' }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-2 rounded-xl border border-line bg-surface/90 px-3 py-3 text-center shadow-card backdrop-blur-sm sm:flex-row sm:gap-3 sm:text-left lg:min-w-44 lg:px-4">
+      <span aria-hidden="true" className={cx('flex size-10 shrink-0 items-center justify-center rounded-xl', statTones[tone])}>
+        <Glyph size={20} />
+      </span>
+      <div className="flex min-w-0 flex-col">
+        <dd className="truncate text-h3 leading-tight font-bold text-fg tabular">{value}</dd>
+        <dt className="text-sm text-fg-tertiary sm:whitespace-nowrap">{tx(label)}</dt>
+        {note && <span className="truncate text-xs text-fg-tertiary/80 max-sm:hidden">{note}</span>}
+      </div>
+    </div>
+  )
+}
+
+/** Where the page sits: a small pill (Home › My profile) instead of a loose breadcrumb line. */
+function TrailPill({ home }) {
+  return (
+    <nav aria-label={t('Breadcrumb')} className="flex shrink-0 max-lg:hidden">
+      <ol className="flex items-center gap-1 rounded-full border border-line bg-surface py-1 pr-3 pl-1 text-sm shadow-card">
+        <li>
+          <Link to={home} className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-fg-secondary transition-colors hover:bg-subtle hover:text-fg">
+            <Home size={14} aria-hidden="true" />
+            {t('Home')}
+          </Link>
+        </li>
+        <li aria-hidden="true" className="text-fg-disabled">
+          /
+        </li>
+        <li aria-current="page" className="flex items-center gap-1.5 px-1 font-medium text-fg">
+          <UserRound size={14} aria-hidden="true" className="text-fg-brand" />
+          {t('My profile')}
+        </li>
+      </ol>
+    </nav>
   )
 }
 
@@ -252,7 +251,12 @@ function SecurityPanel() {
 function ActivityPanel() {
   const { query, markOne } = useNotifications()
   return (
-    <Panel icon={Bell} title="Recent activity" description="Your latest notifications." bodyClassName="px-3 py-3">
+    <Panel
+      icon={Bell}
+      title="Recent activity"
+      description="Your latest notifications."
+      bodyClassName="max-h-[min(520px,calc(100dvh-400px))] min-h-48 overflow-y-auto overscroll-contain px-3 py-3"
+    >
       <QueryState query={query} compact empty={<p className="px-3 py-8 text-center text-base text-fg-secondary">{t('You have no notifications.')}</p>}>
         {(data) => (
           <ol className="flex flex-col">
@@ -318,6 +322,7 @@ function StudentProfile({ user }) {
   const allocationQ = useQuery(['allocation', term?.id], ({ signal }) => api.me.allocation({ termId: term?.id }, { signal }))
   const home = useQuery(['home', term?.id], ({ signal }) => api.me.home({ termId: term?.id }, { signal }))
   const refund = useRefundAccount()
+  const contacts = useContacts()
 
   const p = profile.data
   const v = verification.data
@@ -343,16 +348,21 @@ function StudentProfile({ user }) {
     </span>
   ))
 
+  // The three numbers that matter most right now: where they live, how long is left, what they owe.
+  const stay = stayCountdown(al?.term, a)
+  const due = home.data?.invoices?.due
   const stats = [
-    al?.stay && { value: `${al.stay.termsUsed}/${al.stay.committedTerms}`, label: 'Terms stayed' },
-    a && { value: a.room, label: 'Room' },
-    home.data && { value: home.data.openRequests ?? 0, label: 'Open requests' },
-  ].filter(Boolean)
+    a && { icon: Bed, value: a.room, label: t('Bed {bed}', { bed: a.bed }), note: a.blockLabel, tone: 'brand' },
+    stay && { icon: CalendarClock, value: stay.value, label: stay.label, note: stay.note, tone: 'info' },
+    home.data && { icon: Receipt, value: due ?? 0, label: 'Invoices to pay', note: due ? t('Open Payments') : t('All paid'), tone: due ? 'warning' : 'success' },
+    home.data && { icon: Wrench, value: home.data.openRequests ?? 0, label: 'Open requests', tone: 'brand' },
+    al?.stay && { icon: Hash, value: `${al.stay.termsUsed}/${al.stay.committedTerms}`, label: 'Terms stayed', tone: 'brand' },
+  ].filter(Boolean).slice(0, 3)
 
   const completeness = [
     { label: 'Basic information', ok: v?.status === 'Verified' },
-    { label: 'Phone number', ok: Boolean(contact.phone ?? f?.phone) },
-    { label: 'Emergency contact', ok: Boolean(contact.emergencyName && contact.emergencyPhone) },
+    { label: 'Phone number', ok: Boolean(contacts.data?.phone ?? contact.phone ?? f?.phone) },
+    { label: 'Emergency contact', ok: contacts.data ? contacts.data.emergencyContacts.length > 0 : Boolean(contact.emergencyName && contact.emergencyPhone) },
     { label: 'Refund bank account', ok: refund.complete },
   ]
 
@@ -366,6 +376,7 @@ function StudentProfile({ user }) {
 
   return (
     <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pb-2">
+      <TrailPill home="/student" />
       <Hero name={p?.name ?? user.name} status={status} subline={subline} stats={stats} />
       <PillTabs items={tabs} value={tab} onChange={setTab} />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -401,38 +412,11 @@ function StudentProfile({ user }) {
                   )}
                 </QueryState>
               </Panel>
-              <Panel icon={Contact} title="Contact information">
-                <InfoGrid
-                  items={[
-                    { icon: Mail, label: 'Student email', value: user.email },
-                    { icon: Phone, label: 'Phone number', value: contact.phone ?? f?.phone },
-                    { icon: Mail, label: 'Personal email', value: contact.email },
-                    { icon: Home, label: 'Current address', value: a ? `${place}, ${a.blockLabel ?? t('Block {code}', { code: a.block })}` : null },
-                  ]}
-                />
-              </Panel>
+              <ContactPanel address={a ? `${place}, ${a.blockLabel ?? t('Block {code}', { code: a.block })}` : null} />
             </>
           )}
 
-          {tab === 'emergency' && (
-            <Panel icon={HeartHandshake} title="Emergency contact" description="Who the dormitory calls if something happens to you.">
-              <QueryState query={profile} compact>
-                {() =>
-                  contact.emergencyName || contact.emergencyPhone ? (
-                    <InfoGrid
-                      items={[
-                        { icon: User, label: 'Full name', value: contact.emergencyName },
-                        { icon: Users, label: 'Relationship', value: contact.relationship ? t(contact.relationship) : null },
-                        { icon: Phone, label: 'Phone number', value: contact.emergencyPhone },
-                      ]}
-                    />
-                  ) : (
-                    <p className="py-6 text-center text-base text-fg-secondary">{t('No emergency contact yet. You give one when you apply for a Bed.')}</p>
-                  )
-                }
-              </QueryState>
-            </Panel>
-          )}
+          {tab === 'emergency' && <EmergencyPanel />}
 
           {tab === 'stay' && (
             <Panel icon={Bed} title="Accommodation" description={al?.term ? t('Term {name}', { name: al.term.name }) : null}>
@@ -501,9 +485,9 @@ function BackOfficeProfile({ user, role }) {
     </span>
   ))
   const stats = [
-    desk && blocks.length > 0 && { value: blocks.length, label: 'Blocks' },
-    w && { value: w.open ?? 0, label: 'Open requests' },
-    w && { value: w.resolved7d ?? 0, label: 'Resolved in 7 days' },
+    desk && blocks.length > 0 && { icon: Building, value: blocks.length, label: 'Blocks', note: blocks.join(' · '), tone: 'brand' },
+    w && { icon: Inbox, value: w.open ?? 0, label: 'Open requests', tone: w.open ? 'warning' : 'success' },
+    w && { icon: CheckCircle2, value: w.resolved7d ?? 0, label: 'Resolved in 7 days', tone: 'success' },
   ].filter(Boolean)
   const tabs = [
     { key: 'account', label: 'Account information', icon: UserRound },
@@ -512,8 +496,9 @@ function BackOfficeProfile({ user, role }) {
   ]
   return (
     <>
-      <PageHeader title="My profile" description="Your account, work and sign-in settings." />
+      <h1 className="sr-only">{t('My profile')}</h1>
       <div className="flex w-full max-w-300 flex-col gap-4">
+        <TrailPill home={`/${role}`} />
         <Hero name={user.name} status={status} subline={subline} stats={stats} />
         <PillTabs items={tabs} value={tab} onChange={setTab} />
         {tab === 'account' && (
@@ -574,7 +559,7 @@ export default function Profile({ role }) {
       <StudentPage
         breadcrumb={[{ label: 'Home', to: '/student' }, { label: 'My profile' }]}
         title="My profile"
-        description="Your account, student details and sign-in settings."
+        headerless
       >
         <StudentProfile user={user} />
       </StudentPage>
