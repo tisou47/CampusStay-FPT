@@ -400,7 +400,13 @@ class FamilyDayIT {
         postJson("/family-days/" + id + "/close", manager, "{}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("FAMILY_DAY_GUESTS_INSIDE"))
                 .andExpect(jsonPath("$.details.inside").value(1));
+        // Overdue and not confirmed safe by the student: Staff wait; a Manager may close it, saying why.
         postJson("/family-day-visitors/" + inside + "/check-out", staff,
+                "{\"note\":\"Left through the main gate without passing the desk\"}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("VISITOR_SAFETY_NOT_CONFIRMED"));
+        postJson("/family-day-visitors/" + inside + "/check-out", manager, "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.note").isString());
+        postJson("/family-day-visitors/" + inside + "/check-out", manager,
                 "{\"note\":\"Left through the main gate without passing the desk; confirmed by phone\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.checkOutNote").isString());
         postJson("/family-days/" + id + "/close", staff, "{}").andExpect(status().isForbidden());
@@ -479,5 +485,142 @@ class FamilyDayIT {
         getAs("/students/me/family-days/" + id, bearer(mvc, StayFlow.student(A1))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("Registration closed"))
                 .andExpect(jsonPath("$.canRegister").value(false)).andExpect(jsonPath("$.registerBlockedBy").isString());
+    }
+
+    /**
+     * TC-VIS-009 (contract A-70): guests still inside after their time slot. The desk reminds every student concerned in
+     * one batch (one notification each, sent again while guests stay); a student confirms their guests are safe; Staff
+     * check out a confirmed guest and must wait for the others; nothing to remind or confirm before the slot ends.
+     */
+    @Test
+    void overdueGuestsAreRemindedAndConfirmedBeforeCheckOut() throws Exception {
+        String id = published("Overdue reminders");
+        String slot = slot(id, 1);
+        String first = body(register(A1, id, slot, guests("Ngo Van Bo", "Ngo Thi Me")).andExpect(status().isCreated()));
+        String second = body(register(A2, id, slot, guests("Ly Van Ong")).andExpect(status().isCreated()));
+        String bo = JsonPath.read(first, "$.registration.guests[0].id");
+        String me = JsonPath.read(first, "$.registration.guests[1].id");
+        String ong = JsonPath.read(second, "$.registration.guests[0].id");
+        String staff = bearer(mvc, STAFF_A);
+        String a1 = bearer(mvc, StayFlow.student(A1));
+        slotIsNow(slot);
+        for (String guest : List.of(bo, me, ong)) {
+            postJson("/family-day-visitors/" + guest + "/check-in", staff, "{\"identityChecked\":true}")
+                    .andExpect(status().isOk());
+        }
+        postJson("/family-days/" + id + "/overdue-reminders", staff, "{}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("FAMILY_DAY_NO_OVERDUE_GUESTS"));
+        postJson("/students/me/family-days/" + id + "/registration/safety-confirmation", a1, "{}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("FAMILY_DAY_NOTHING_TO_CONFIRM"));
+        // Inside the time slot a guest leaves at the desk as usual.
+        postJson("/family-day-visitors/" + me + "/check-out", staff, "{}").andExpect(status().isOk());
+
+        slotsAreOver(id);
+        getAs("/family-days/" + id + "/visitors", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.counts.overdue").value(2)).andExpect(jsonPath("$.counts.awaitingSafety").value(2));
+        postJson("/family-days/" + id + "/overdue-reminders", bearer(mvc, STAFF_B2), "{}").andExpect(status().isForbidden());
+        long toldA1 = notifications(A1, "FAMILY_DAY_GUESTS_OVERDUE");
+        long toldA2 = notifications(A2, "FAMILY_DAY_GUESTS_OVERDUE");
+        postJson("/family-days/" + id + "/overdue-reminders", staff, "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.students").value(2)).andExpect(jsonPath("$.guests").value(2));
+        assertThat(notifications(A1, "FAMILY_DAY_GUESTS_OVERDUE")).isEqualTo(toldA1 + 1);
+        assertThat(notifications(A2, "FAMILY_DAY_GUESTS_OVERDUE")).isEqualTo(toldA2 + 1);
+        assertThat(notifications(A3, "FAMILY_DAY_GUESTS_OVERDUE")).isZero();
+        postJson("/family-days/" + id + "/overdue-reminders", staff, "{}").andExpect(status().isOk());
+        getAs("/family-days/" + id + "/visitors?status=Overdue&q=Ngo Van Bo", staff)
+                .andExpect(jsonPath("$.items[0].reminders").value(2)).andExpect(jsonPath("$.items[0].remindedAt").isString());
+
+        getAs("/students/me/family-days/" + id, a1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.registration.canConfirmSafety").value(true))
+                .andExpect(jsonPath("$.registration.guests[0].overdue").value(true))
+                .andExpect(jsonPath("$.registration.guests[0].remindedAt").isString());
+        postJson("/family-day-visitors/" + bo + "/check-out", staff, "{}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("VISITOR_SAFETY_NOT_CONFIRMED"));
+        postJson("/students/me/family-days/" + id + "/registration/safety-confirmation", a1,
+                "{\"note\":\"My father is at the gate, leaving now\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.registration.canConfirmSafety").value(false))
+                .andExpect(jsonPath("$.registration.guests[0].safetyConfirmedAt").isString())
+                .andExpect(jsonPath("$.registration.guests[0].safetyNote").value("My father is at the gate, leaving now"));
+        getAs("/family-days/" + id + "/visitors", staff).andExpect(jsonPath("$.counts.awaitingSafety").value(1))
+                .andExpect(jsonPath("$.counts.safetyConfirmed").value(1));
+
+        // Only the student who has not confirmed is reminded again.
+        postJson("/family-days/" + id + "/overdue-reminders", staff, "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.students").value(1)).andExpect(jsonPath("$.guests").value(1));
+        postJson("/family-day-visitors/" + bo + "/check-out", staff, "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Checked out"));
+        postJson("/family-day-visitors/" + ong + "/check-out", staff, "{}").andExpect(status().isConflict());
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'FAMILY_DAY_SAFETY_CONFIRMED'")
+                .query(Long.class).single()).isPositive();
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'FAMILY_DAY_OVERDUE_REMINDED'")
+                .query(Long.class).single()).isGreaterThanOrEqualTo(3);
+    }
+
+    /**
+     * TC-VIS-010 (contract A-70): Family Day statistics. The Block's Staff, Managers and the Admin read the figures of a
+     * Family Day (registrations, guests registered and arrived, time slots, the overdue procedure) and the overview of
+     * the Family Days that are over; Staff of another Block and students cannot; a Draft has none.
+     */
+    @Test
+    void statisticsAfterTheFamilyDay() throws Exception {
+        String id = published("Statistics");
+        String small = slot(id, 0);
+        String big = slot(id, 1);
+        String manager = bearer(mvc, MANAGER_A);
+        String staff = bearer(mvc, STAFF_A);
+        String json = body(register(A1, id, big, guests("Dang Van Bo", "Dang Thi Me")).andExpect(status().isCreated()));
+        String came = JsonPath.read(json, "$.registration.guests[0].id");
+        register(A2, id, big, guests("Cao Van Chu")).andExpect(status().isCreated());
+        postJson("/students/me/family-days/" + id + "/registration/cancel", bearer(mvc, StayFlow.student(A2)), "{}")
+                .andExpect(status().isNoContent());
+        register(A3, id, small, guests("Mai Van Ong")).andExpect(status().isCreated());
+        long a3Registration = jdbc.sql("""
+                SELECT r.id FROM vis_registration r JOIN auth_user u ON u.id = r.student_id
+                WHERE r.family_day_id = :d AND u.email = :e AND r.status = 'APPROVED'
+                """).param("d", Long.parseLong(id)).param("e", StayFlow.student(A3)).query(Long.class).single();
+        postJson("/family-day-registrations/" + a3Registration + "/cancel", manager, "{\"reason\":\"Duplicate\"}")
+                .andExpect(status().isNoContent());
+
+        slotIsNow(big);
+        postJson("/family-day-visitors/" + came + "/check-in", staff, "{\"identityChecked\":true}").andExpect(status().isOk());
+        getAs("/family-days/" + id + "/stats", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.complete").value(false)).andExpect(jsonPath("$.guests.inside").value(1));
+        slotsAreOver(id);
+        postJson("/family-day-visitors/" + came + "/check-out", manager, "{\"note\":\"Left with the student, seen on camera\"}")
+                .andExpect(status().isOk());
+        postJson("/family-days/" + id + "/close", manager, "{}").andExpect(status().isOk());
+
+        getAs("/family-days/" + id + "/stats", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.complete").value(true))
+                .andExpect(jsonPath("$.registrations.total").value(3))
+                .andExpect(jsonPath("$.registrations.approved").value(1))
+                .andExpect(jsonPath("$.registrations.cancelledByStudent").value(1))
+                .andExpect(jsonPath("$.registrations.cancelledByManager").value(1))
+                .andExpect(jsonPath("$.guests.registered").value(2))
+                .andExpect(jsonPath("$.guests.arrived").value(1))
+                .andExpect(jsonPath("$.guests.noShow").value(1))
+                .andExpect(jsonPath("$.guests.cancelled").value(2))
+                .andExpect(jsonPath("$.attendanceRate").value(50))
+                .andExpect(jsonPath("$.overdue.overstayed").value(1))
+                .andExpect(jsonPath("$.overdue.closedWithoutConfirmation").value(1))
+                .andExpect(jsonPath("$.slots.length()").value(2))
+                .andExpect(jsonPath("$.slots[1].registrations").value(1))
+                .andExpect(jsonPath("$.slots[1].guests.arrived").value(1))
+                .andExpect(jsonPath("$.arrivalsByHour.length()").value(1));
+        String admin = bearer(mvc, TestAuth.ADMIN);
+        getAs("/family-days/" + id + "/stats", admin).andExpect(status().isOk());
+        getAs("/family-days/" + id + "/stats", bearer(mvc, STAFF_B2)).andExpect(status().isForbidden());
+        getAs("/family-days/" + id + "/stats", bearer(mvc, StayFlow.student(A1))).andExpect(status().isForbidden());
+        getAs("/family-day-stats", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].guestsArrived").value(1))
+                .andExpect(jsonPath("$.totals.familyDays").isNumber());
+        getAs("/family-day-stats?block=A", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')]").isNotEmpty());
+        getAs("/family-day-stats", bearer(mvc, STAFF_B2)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')]").isEmpty());
+
+        String draft = JsonPath.read(body(postJson("/family-days", manager, draft("Not yet")).andExpect(status().isCreated())),
+                "$.id");
+        getAs("/family-days/" + draft + "/stats", staff).andExpect(status().isNotFound());
     }
 }

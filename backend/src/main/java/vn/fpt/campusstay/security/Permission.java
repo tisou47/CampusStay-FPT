@@ -39,6 +39,7 @@ public enum Permission {
             Role.MANAGER),
     FAMILY_DAY_DESK("Receive Family Day guests: check passes, check guests in and out (Staff inside their Blocks)",
             Role.STAFF, Role.MANAGER),
+    VIEW_FAMILY_DAY_STATS("View Family Day statistics (Staff: their Blocks)", Role.STAFF, Role.MANAGER, Role.ADMIN),
     VIEW_STUDENTS("View student accounts (Staff: residents of their Blocks)", Role.STAFF, Role.MANAGER, Role.ADMIN),
     MANAGE_STUDENTS("Import, verify, lock and edit student accounts", Role.MANAGER, Role.ADMIN),
     MANAGE_STAFF_ACCOUNTS("Create Staff accounts and choose their Blocks", Role.MANAGER, Role.ADMIN),

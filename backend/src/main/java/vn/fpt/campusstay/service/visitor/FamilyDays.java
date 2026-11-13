@@ -46,9 +46,14 @@ class FamilyDays {
             Instant cancelledAt, Long cancelledBy, String cancelReason) {
     }
 
+    /**
+     * @param remindedAt        the last time the desk reminded the student that this guest stayed past their time slot
+     * @param safetyConfirmedAt when the student confirmed, after a reminder, that this guest is safe
+     */
     record Visitor(long id, long registrationId, String fullName, String relationship, int birthYear,
             String passToken, String status, Instant checkedInAt, Long checkedInBy, Instant checkedOutAt,
-            Long checkedOutBy, String checkOutNote) {
+            Long checkedOutBy, String checkOutNote, Instant remindedAt, int reminders, Instant safetyConfirmedAt,
+            String safetyNote) {
     }
 
     private static final String DAY_COLUMNS = """
@@ -65,7 +70,8 @@ class FamilyDays {
             """;
     private static final String VISITOR_COLUMNS = """
             SELECT id, registration_id, full_name, relationship, birth_year, pass_token, status, checked_in_at,
-                   checked_in_by, checked_out_at, checked_out_by, check_out_note
+                   checked_in_by, checked_out_at, checked_out_by, check_out_note, overdue_reminded_at,
+                   overdue_reminders, safety_confirmed_at, safety_note
             FROM vis_visitor
             """;
 
@@ -264,6 +270,8 @@ class FamilyDays {
         return new Visitor(rs.getLong("id"), rs.getLong("registration_id"), rs.getString("full_name"),
                 rs.getString("relationship"), rs.getInt("birth_year"), rs.getString("pass_token"),
                 rs.getString("status"), instant(rs, "checked_in_at"), longOrNull(rs, "checked_in_by"),
-                instant(rs, "checked_out_at"), longOrNull(rs, "checked_out_by"), rs.getString("check_out_note"));
+                instant(rs, "checked_out_at"), longOrNull(rs, "checked_out_by"), rs.getString("check_out_note"),
+                instant(rs, "overdue_reminded_at"), rs.getInt("overdue_reminders"), instant(rs, "safety_confirmed_at"),
+                rs.getString("safety_note"));
     }
 }

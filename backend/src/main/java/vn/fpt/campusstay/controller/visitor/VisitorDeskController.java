@@ -40,6 +40,12 @@ class VisitorDeskController {
         return desk.visitors(id, slotId, status, q, PageQuery.of(page, pageSize));
     }
 
+    /** Reminds every student whose guests are still inside after their time slot (contract A-70). */
+    @PostMapping("/family-days/{id}/overdue-reminders")
+    VisitorDeskService.ReminderResult remindOverdue(@PathVariable String id) {
+        return desk.remindOverdue(id);
+    }
+
     @PostMapping("/family-day-visitors/verify")
     VisitorDeskService.PassCheck verify(@Valid @RequestBody VerifyRequest body) {
         return desk.verify(body.token());

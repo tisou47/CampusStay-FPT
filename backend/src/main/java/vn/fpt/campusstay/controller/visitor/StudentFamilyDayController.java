@@ -1,5 +1,8 @@
 package vn.fpt.campusstay.controller.visitor;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +38,16 @@ class StudentFamilyDayController {
     StudentFamilyDayService.MyFamilyDay register(@PathVariable String id,
             @RequestBody StudentFamilyDayService.RegisterCommand body) {
         return familyDays.register(id, body);
+    }
+
+    record SafetyRequest(@Size(max = 500, message = "Keep the note under 500 characters.") String note) {
+    }
+
+    /** The student confirms their guests still inside after the time slot are safe (contract A-70). */
+    @PostMapping("/students/me/family-days/{id}/registration/safety-confirmation")
+    StudentFamilyDayService.MyFamilyDay confirmSafety(@PathVariable String id,
+            @Valid @RequestBody(required = false) SafetyRequest body) {
+        return familyDays.confirmSafety(id, body == null ? null : body.note());
     }
 
     @PostMapping("/students/me/family-days/{id}/registration/cancel")

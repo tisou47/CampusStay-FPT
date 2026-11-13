@@ -80,7 +80,8 @@ public class FamilyDayService {
     }
 
     public record GuestView(String id, String fullName, String relationship, int birthYear, String status,
-            boolean overdue, Instant checkedInAt, Instant checkedOutAt) {
+            boolean overdue, Instant checkedInAt, Instant checkedOutAt, Instant remindedAt,
+            Instant safetyConfirmedAt) {
     }
 
     public record RegistrationItem(String id, String studentName, String studentCode, String room, String slotId,
@@ -220,7 +221,7 @@ public class FamilyDayService {
     static GuestView guest(Visitor v, Slot slot, Instant now) {
         return new GuestView(String.valueOf(v.id()), v.fullName(), v.relationship(), v.birthYear(),
                 FamilyDays.visitorStatus(v, slot, now), FamilyDays.overdue(v, slot, now), v.checkedInAt(),
-                v.checkedOutAt());
+                v.checkedOutAt(), v.remindedAt(), v.safetyConfirmedAt());
     }
 
     // ---------------------------------------------------------------- create and edit a Draft

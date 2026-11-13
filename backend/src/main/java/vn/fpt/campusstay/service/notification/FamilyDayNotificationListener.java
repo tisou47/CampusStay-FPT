@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.FamilyDayCancelled;
+import vn.fpt.campusstay.event.FamilyDayGuestsOverdue;
 import vn.fpt.campusstay.event.FamilyDayPublished;
 import vn.fpt.campusstay.event.FamilyDayRegistered;
 import vn.fpt.campusstay.event.FamilyDayRegistrationCancelled;
@@ -51,6 +52,12 @@ class FamilyDayNotificationListener {
     void on(FamilyDayRegistrationCancelled e) {
         notifier.notify(e.studentId(), "FAMILY_DAY_REGISTRATION_CANCELLED",
                 Map.of("title", e.title(), "reason", e.reason()), link(e.familyDayId()));
+    }
+
+    @EventListener
+    void on(FamilyDayGuestsOverdue e) {
+        notifier.notify(e.studentId(), "FAMILY_DAY_GUESTS_OVERDUE", Map.of("title", e.title(), "guests",
+                String.join(", ", e.guests()), "ends", WHEN.format(e.endsAt())), link(e.familyDayId()));
     }
 
     @EventListener

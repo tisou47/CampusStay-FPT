@@ -1003,3 +1003,9 @@ This Family Day is over. ⟶ Ngày gia đình này đã kết thúc.
 This pass was already used: the guest came and left. ⟶ Mã vào này đã được dùng: khách đã vào và ra.
 This guest's time slot is {0}. Check them in from {1}. ⟶ Khung giờ của khách là {0}. Hãy cho khách vào từ {1}.
 This guest's time slot ended at {0}. ⟶ Khung giờ của khách đã kết thúc lúc {0}.
+The student has not confirmed yet that this guest is safe. Send a reminder and check the guest out once the student confirms. ⟶ Sinh viên chưa xác nhận khách này an toàn. Hãy gửi nhắc nhở và ghi nhận khách ra sau khi sinh viên xác nhận.
+Write why you check this guest out without the student's confirmation. ⟶ Hãy ghi lý do ghi nhận khách ra khi sinh viên chưa xác nhận.
+Only a published Family Day has guests inside. ⟶ Chỉ Ngày gia đình đã công bố mới có khách bên trong.
+No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation. ⟶ Không có khách nào cần nhắc: không ai còn ở lại quá giờ mà chưa được xác nhận.
+None of your guests is inside after their time slot, so there is nothing to confirm. ⟶ Không có người thân nào của bạn còn ở lại quá giờ nên không cần xác nhận.
+This Family Day was cancelled, so it has no statistics. ⟶ Ngày gia đình này đã bị hủy nên không có số liệu thống kê.

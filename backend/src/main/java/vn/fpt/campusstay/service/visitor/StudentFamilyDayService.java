@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.FamilyDayRegistered;
 import vn.fpt.campusstay.exception.ApiException;
@@ -64,13 +65,21 @@ public class StudentFamilyDayService {
     public record SlotChoice(String id, Instant startsAt, Instant endsAt, int remaining) {
     }
 
-    /** @param passToken the value of the guest's QR, only while the pass may still be used */
+    /**
+     * @param passToken         the value of the guest's QR, only while the pass may still be used
+     * @param overdue           still inside after the time slot: the student asks them to leave and confirms they are safe
+     * @param remindedAt        the last reminder the desk sent about this guest
+     * @param safetyConfirmedAt when the student confirmed this guest is safe
+     */
     public record MyGuest(String id, String fullName, String relationship, int birthYear, String status,
-            String passToken, Instant checkedInAt, Instant checkedOutAt) {
+            String passToken, Instant checkedInAt, Instant checkedOutAt, boolean overdue, Instant remindedAt,
+            Instant safetyConfirmedAt, String safetyNote) {
     }
 
+    /** @param canConfirmSafety some guests are overdue and not yet confirmed safe */
     public record MyRegistration(String id, String status, String slotId, Instant slotStartsAt, Instant slotEndsAt,
-            Instant createdAt, Instant cancelledAt, String cancelReason, boolean canCancel, List<MyGuest> guests) {
+            Instant createdAt, Instant cancelledAt, String cancelReason, boolean canCancel, boolean canConfirmSafety,
+            List<MyGuest> guests) {
     }
 
     /** @param registerBlockedBy why the student cannot register now, or null when they can */
@@ -87,10 +96,13 @@ public class StudentFamilyDayService {
     private final BlockDirectory blocks;
     private final Parameters parameters;
     private final ApplicationEventPublisher events;
+    private final AuditLog audit;
     private final Clock clock;
 
     public StudentFamilyDayService(JdbcClient jdbc, FamilyDays days, CurrentUser currentUser, Residences residences,
-            BlockDirectory blocks, Parameters parameters, ApplicationEventPublisher events, Clock clock) {
+            BlockDirectory blocks, Parameters parameters, ApplicationEventPublisher events, AuditLog audit,
+            Clock clock) {
+        this.audit = audit;
         this.jdbc = jdbc;
         this.days = days;
         this.currentUser = currentUser;
@@ -267,6 +279,47 @@ public class StudentFamilyDayService {
         Registrations.cancel(jdbc, days, day, r, me, null, now);
     }
 
+    // ---------------------------------------------------------------- guests past their time slot
+
+    /**
+     * The student confirms that their guests still inside after the time slot are safe (they asked them to leave, or
+     * know where they are): every such guest not confirmed yet is marked, and the desk may now check them out.
+     *
+     * @param note what the student says, e.g. "My parents are at the gate", optional
+     */
+    @Transactional
+    public MyFamilyDay confirmSafety(String id, String note) {
+        long me = currentUser.require(Role.STUDENT).userId();
+        String text = FamilyDayService.trim(note);
+        if (text != null && text.length() > 500) {
+            throw FieldErrors.single("note", "Keep the note under 500 characters.");
+        }
+        Day day = days.lock(visible(FamilyDays.id(id, "Family Day"), me).id());
+        Registration r = days.registrationOf(day.id(), me).filter(x -> x.status().equals("APPROVED"))
+                .orElseThrow(() -> ApiException.notFound("You have no registration for this Family Day."));
+        Instant now = Instant.now(clock);
+        Slot slot = days.slot(r.slotId()).orElseThrow();
+        List<Visitor> waiting = days.visitors(List.of(r.id())).stream()
+                .filter(v -> FamilyDays.overdue(v, slot, now) && v.safetyConfirmedAt() == null).toList();
+        if (waiting.isEmpty()) {
+            throw ApiException.conflict("FAMILY_DAY_NOTHING_TO_CONFIRM",
+                    "None of your guests is inside after their time slot, so there is nothing to confirm.");
+        }
+        jdbc.sql("""
+                UPDATE vis_visitor SET safety_confirmed_at = :now, safety_note = :note
+                WHERE id IN (:ids) AND status = 'CHECKED_IN' AND safety_confirmed_at IS NULL
+                """).param("now", FamilyDayService.ts(now)).param("note", text)
+                .param("ids", waiting.stream().map(Visitor::id).toList()).update();
+        Map<String, Object> change = new java.util.LinkedHashMap<>();
+        change.put("guests", waiting.stream().map(Visitor::fullName).toList());
+        if (text != null) {
+            change.put("note", text);
+        }
+        audit.record("FAMILY_DAY_SAFETY_CONFIRMED", AuditLog.Tone.INFO, "FamilyDayRegistration", r.id(), day.title(),
+                change);
+        return detail(day, me);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     /** A Family Day the student may see: not a Draft, in the Block they live in or one they registered for; else 404. */
@@ -326,10 +379,12 @@ public class StudentFamilyDayService {
             List<MyGuest> guests = vs.stream().map(v -> new MyGuest(String.valueOf(v.id()), v.fullName(),
                     v.relationship(), v.birthYear(), FamilyDays.visitorStatus(v, slot, now),
                     live && v.status().equals("NOT_ARRIVED") && now.isBefore(slot.endsAt()) ? v.passToken() : null,
-                    v.checkedInAt(), v.checkedOutAt())).toList();
+                    v.checkedInAt(), v.checkedOutAt(), FamilyDays.overdue(v, slot, now), v.remindedAt(),
+                    v.safetyConfirmedAt(), v.safetyNote())).toList();
+            boolean toConfirm = vs.stream().anyMatch(v -> FamilyDays.overdue(v, slot, now) && v.safetyConfirmedAt() == null);
             return new MyRegistration(String.valueOf(r.id()), FamilyDays.REGISTRATION_STATUSES.get(r.status()),
                     String.valueOf(slot.id()), slot.startsAt(), slot.endsAt(), r.createdAt(), r.cancelledAt(),
-                    r.cancelReason(), live && !anyCame && now.isBefore(slot.startsAt()), guests);
+                    r.cancelReason(), live && !anyCame && now.isBefore(slot.startsAt()), toConfirm, guests);
         }).orElse(null);
         String blocked = blockedBy(day, me, now);
         List<SlotChoice> choices = slots.stream()

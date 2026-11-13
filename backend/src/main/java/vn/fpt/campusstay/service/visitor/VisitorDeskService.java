@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.common.audit.ActorResolver;
 import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.dto.PageQuery;
+import vn.fpt.campusstay.event.FamilyDayGuestsOverdue;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.security.AuthenticatedUser;
@@ -44,13 +46,29 @@ import vn.fpt.campusstay.service.visitor.FamilyDays.Visitor;
 @Service
 public class VisitorDeskService {
 
+    /**
+     * @param remindedAt        the last reminder sent to the student while the guest was overdue
+     * @param reminders         how many reminders were sent
+     * @param safetyConfirmedAt when the student confirmed the guest is safe; an overdue guest is checked out by Staff
+     *                          only after it
+     */
     public record VisitorItem(String id, String familyDayId, String fullName, String relationship, int birthYear,
             String studentName, String studentCode, String room, String slotId, Instant slotStartsAt,
             Instant slotEndsAt, String status, boolean overdue, Instant checkedInAt, String checkedInBy,
-            Instant checkedOutAt, String checkedOutBy, String checkOutNote) {
+            Instant checkedOutAt, String checkedOutBy, String checkOutNote, Instant remindedAt, int reminders,
+            Instant safetyConfirmedAt, String safetyNote) {
     }
 
-    public record DeskCounts(long notArrived, long inside, long overdue, long checkedOut, long noShow) {
+    /**
+     * @param awaitingSafety overdue guests the student has not confirmed safe yet
+     * @param safetyConfirmed overdue guests the student confirmed safe, whom Staff may now check out
+     */
+    public record DeskCounts(long notArrived, long inside, long overdue, long checkedOut, long noShow,
+            long awaitingSafety, long safetyConfirmed) {
+    }
+
+    /** The result of a batch reminder: how many students were told, about how many guests. */
+    public record ReminderResult(long students, long guests) {
     }
 
     public record VisitorPage(List<VisitorItem> items, long total, DeskCounts counts, List<String> statuses) {
@@ -74,11 +92,13 @@ public class VisitorDeskService {
     private final AuditLog audit;
     private final ActorResolver actors;
     private final Messages messages;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public VisitorDeskService(JdbcClient jdbc, FamilyDays days, CurrentUser currentUser, BlockScope blockScope,
             UserDirectory users, Residences residences, Parameters parameters, AuditLog audit, ActorResolver actors,
-            Messages messages, Clock clock) {
+            Messages messages, ApplicationEventPublisher events, Clock clock) {
+        this.events = events;
         this.jdbc = jdbc;
         this.days = days;
         this.currentUser = currentUser;
@@ -111,8 +131,10 @@ public class VisitorDeskService {
         Long slotFilter = slotId == null || slotId.isBlank() ? null : FamilyDays.id(slotId, "time slot");
         Instant now = Instant.now(clock);
         List<VisitorItem> all = items(day, now);
-        DeskCounts counts = new DeskCounts(count(all, "Not arrived"), count(all, "Checked in"),
-                all.stream().filter(VisitorItem::overdue).count(), count(all, "Checked out"), count(all, "No-show"));
+        long confirmed = all.stream().filter(v -> v.overdue() && v.safetyConfirmedAt() != null).count();
+        long overdue = all.stream().filter(VisitorItem::overdue).count();
+        DeskCounts counts = new DeskCounts(count(all, "Not arrived"), count(all, "Checked in"), overdue,
+                count(all, "Checked out"), count(all, "No-show"), overdue - confirmed, confirmed);
         String needle = q == null || q.isBlank() ? null : q.trim().toLowerCase(Locale.ROOT);
         List<VisitorItem> shown = all.stream()
                 .filter(v -> slotFilter == null || v.slotId().equals(String.valueOf(slotFilter)))
@@ -199,7 +221,9 @@ public class VisitorDeskService {
 
     /**
      * Records that a guest left. A guest who left without passing the desk is closed with a note saying so: the time
-     * recorded is when the desk closes the visit, never a guessed one.
+     * recorded is when the desk closes the visit, never a guessed one. A guest still inside after their time slot
+     * (Overdue) is checked out only once their student has confirmed they are safe (contract A-70); a Manager may do it
+     * without that confirmation, writing why in the note.
      */
     @Transactional
     public VisitorItem checkOut(String id, String note) {
@@ -213,6 +237,22 @@ public class VisitorDeskService {
         Day day = days.lock(r.dayId());
         blockScope.check(day.buildingId());
         Instant now = Instant.now(clock);
+        Visitor current = days.visitor(v.id()).orElseThrow();
+        boolean unconfirmed = FamilyDays.overdue(current, days.slot(r.slotId()).orElseThrow(), now)
+                && current.safetyConfirmedAt() == null;
+        boolean override = false;
+        if (unconfirmed) {
+            if (!Permission.MANAGE_FAMILY_DAYS.allows(user.role())) {
+                throw ApiException.conflict("VISITOR_SAFETY_NOT_CONFIRMED",
+                        "The student has not confirmed yet that this guest is safe. Send a reminder and check the guest"
+                                + " out once the student confirms.");
+            }
+            if (text == null) {
+                throw FieldErrors.single("note",
+                        "Write why you check this guest out without the student's confirmation.");
+            }
+            override = true;
+        }
         int changed = jdbc.sql("""
                 UPDATE vis_visitor SET status = 'CHECKED_OUT', checked_out_at = :now, checked_out_by = :by,
                        check_out_note = :note
@@ -226,9 +266,63 @@ public class VisitorDeskService {
         if (text != null) {
             change.put("note", text);
         }
+        if (current.safetyConfirmedAt() != null) {
+            change.put("safetyConfirmedAt", current.safetyConfirmedAt().toString());
+        }
+        if (override) {
+            change.put("withoutStudentConfirmation", true);
+        }
         audit.record("FAMILY_DAY_GUEST_CHECKED_OUT", text == null ? AuditLog.Tone.SUCCESS : AuditLog.Tone.WARNING,
                 "FamilyDayGuest", v.id(), day.title(), change);
         return item(day, days.visitor(v.id()).orElseThrow(), now);
+    }
+
+    // ---------------------------------------------------------------- overdue guests
+
+    /**
+     * Reminds, in one batch, every student whose guests are still inside after their time slot and not yet confirmed
+     * safe: one notification per student naming their guests (in-app and push). Can be sent again while guests stay.
+     */
+    @Transactional
+    public ReminderResult remindOverdue(String familyDayId) {
+        currentUser.require(Permission.FAMILY_DAY_DESK);
+        Day day = days.lock(FamilyDays.id(familyDayId, "Family Day"));
+        blockScope.check(day.buildingId());
+        if (!day.status().equals("PUBLISHED")) {
+            throw ApiException.conflict("FAMILY_DAY_NOT_PUBLISHED", "Only a published Family Day has guests inside.");
+        }
+        Instant now = Instant.now(clock);
+        List<Registration> regs = days.registrations(day.id());
+        Map<Long, Registration> byId = regs.stream().collect(Collectors.toMap(Registration::id, Function.identity()));
+        Map<Long, Slot> slots = days.slots(day.id()).stream().collect(Collectors.toMap(Slot::id, Function.identity()));
+        Map<Long, List<Visitor>> byStudent = new LinkedHashMap<>();
+        for (Visitor v : days.visitors(byId.keySet())) {
+            Registration r = byId.get(v.registrationId());
+            if (FamilyDays.overdue(v, slots.get(r.slotId()), now) && v.safetyConfirmedAt() == null) {
+                byStudent.computeIfAbsent(r.studentId(), k -> new ArrayList<>()).add(v);
+            }
+        }
+        if (byStudent.isEmpty()) {
+            throw ApiException.conflict("FAMILY_DAY_NO_OVERDUE_GUESTS",
+                    "No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation.");
+        }
+        long guests = 0;
+        for (Map.Entry<Long, List<Visitor>> e : byStudent.entrySet()) {
+            List<Visitor> vs = e.getValue();
+            jdbc.sql("""
+                    UPDATE vis_visitor SET overdue_reminded_at = :now, overdue_reminders = overdue_reminders + 1
+                    WHERE id IN (:ids)
+                    """).param("now", FamilyDayService.ts(now)).param("ids", vs.stream().map(Visitor::id).toList())
+                    .update();
+            Instant ended = vs.stream().map(v -> slots.get(byId.get(v.registrationId()).slotId()).endsAt())
+                    .min(Instant::compareTo).orElseThrow();
+            events.publishEvent(new FamilyDayGuestsOverdue(day.id(), day.title(), e.getKey(),
+                    vs.stream().map(Visitor::fullName).toList(), ended));
+            guests += vs.size();
+        }
+        audit.record("FAMILY_DAY_OVERDUE_REMINDED", AuditLog.Tone.WARNING, "FamilyDay", day.id(), day.title(),
+                Map.of("students", byStudent.size(), "guests", guests));
+        return new ReminderResult(byStudent.size(), guests);
     }
 
     // ---------------------------------------------------------------- rules
@@ -317,6 +411,7 @@ public class VisitorDeskService {
                 home == null ? null : home.room(), String.valueOf(r.slotId()), slot.startsAt(), slot.endsAt(),
                 FamilyDays.visitorStatus(v, slot, now), FamilyDays.overdue(v, slot, now), v.checkedInAt(),
                 v.checkedInBy() == null ? null : staff.get(v.checkedInBy()), v.checkedOutAt(),
-                v.checkedOutBy() == null ? null : staff.get(v.checkedOutBy()), v.checkOutNote());
+                v.checkedOutBy() == null ? null : staff.get(v.checkedOutBy()), v.checkOutNote(), v.remindedAt(),
+                v.reminders(), v.safetyConfirmedAt(), v.safetyNote());
     }
 }
