@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Ban, CheckCheck, DoorOpen, Pencil, Send, TriangleAlert, UserX, Users } from 'lucide-react'
+import { Ban, ChartColumn, CheckCheck, DoorOpen, Pencil, Send, TriangleAlert, UserX, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -230,6 +230,11 @@ export default function FamilyDayDetail() {
             description={t('Block {block} · {area}', { block: day.block, area: day.area })}
             actions={
               <>
+                {day.status !== 'Draft' && day.status !== 'Cancelled' && (
+                  <Button icon={ChartColumn} onClick={() => navigate(`${base}/family-day-stats/${day.id}`)}>
+                    Statistics
+                  </Button>
+                )}
                 {day.status !== 'Draft' && day.status !== 'Cancelled' && (
                   <Button icon={DoorOpen} onClick={() => navigate(`${base}/family-days/${day.id}/desk`)}>
                     Visitor desk

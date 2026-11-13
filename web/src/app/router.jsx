@@ -18,6 +18,8 @@ const Profile = () => import('@/pages/common/Profile')
 const FamilyDays = () => import('@/pages/manager/FamilyDays')
 const FamilyDayDetail = () => import('@/pages/manager/FamilyDayDetail')
 const VisitorDesk = () => import('@/pages/staff/VisitorDesk')
+const FamilyDayStats = () => import('@/pages/manager/FamilyDayStats')
+const FamilyDayStatsDetail = () => import('@/pages/manager/FamilyDayStatsDetail')
 const MyFamilyDays = () => import('@/pages/student/FamilyDays')
 const MyFamilyDay = () => import('@/pages/student/FamilyDayDetail')
 const TermRequests = () => import('@/pages/registration/TermRequests')
@@ -229,6 +231,8 @@ export const router = createBrowserRouter([
         { path: 'family-days', ...page(FamilyDays) },
         { path: 'family-days/:id', ...page(FamilyDayDetail) },
         { path: 'family-days/:id/desk', ...page(VisitorDesk) },
+        { path: 'family-day-stats', ...page(FamilyDayStats) },
+        { path: 'family-day-stats/:id', ...page(FamilyDayStatsDetail) },
         { path: 'announcements', ...page(Announcements) },
         { path: 'profile', ...page(Profile, { role: 'staff' }) },
       ]),
@@ -249,6 +253,8 @@ export const router = createBrowserRouter([
         { path: 'family-days', ...page(FamilyDays) },
         { path: 'family-days/:id', ...page(FamilyDayDetail) },
         { path: 'family-days/:id/desk', ...page(VisitorDesk) },
+        { path: 'family-day-stats', ...page(FamilyDayStats) },
+        { path: 'family-day-stats/:id', ...page(FamilyDayStatsDetail) },
         { path: 'room-changes', ...page(RoomChangeQueue) },
         { path: 'room-changes/swaps', ...page(SwapRequests) },
         { path: 'next-term', ...page(TermTransition) },
@@ -307,6 +313,8 @@ export const router = createBrowserRouter([
         { path: 'users', ...page(UsersRoles) },
         { path: 'reports/occupancy', ...page(OccupancyReport) },
         { path: 'reports/financial', ...page(FinancialReport) },
+        { path: 'family-day-stats', ...page(FamilyDayStats) },
+        { path: 'family-day-stats/:id', ...page(FamilyDayStatsDetail) },
         { path: 'audit-log', ...page(AuditLog) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
-import { Camera, CheckCheck, DoorOpen, LogIn, LogOut, ScanLine, TriangleAlert, UserX, Users } from 'lucide-react'
+import { BellRing, Camera, CheckCheck, DoorOpen, LogIn, LogOut, ScanLine, TriangleAlert, UserX, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
-import { Alert, Breadcrumb, Card } from '@/components/ui/Display'
+import { Alert, Breadcrumb, Card, Note } from '@/components/ui/Display'
 import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
@@ -30,6 +30,9 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 //   checkedOutAt, checkedOutBy, checkOutNote }], total, counts: { notArrived, inside, overdue, checkedOut, noShow },
 //   statuses }
 // POST /family-day-visitors/:id/check-in { identityChecked } · POST /family-day-visitors/:id/check-out { note }
+// A-70: overdue guests wait for their student's safety confirmation (remindedAt, reminders, safetyConfirmedAt,
+// safetyNote; counts.awaitingSafety, counts.safetyConfirmed) before Staff check them out; a Manager may do it with a
+// note. POST /family-days/:id/overdue-reminders → { students, guests } reminds every student concerned at once.
 
 const slotText = (v) => `${formatDateTime(v.slotStartsAt)} – ${formatTime(v.slotEndsAt)}`
 
@@ -164,11 +167,59 @@ function CheckInModal({ visitor, onClose }) {
   )
 }
 
-function CheckOutModal({ visitor, onClose }) {
+/** A-70: an overdue guest whose student has not confirmed they are safe; only a Manager may check them out, with a note. */
+const awaitingSafety = (v) => v.overdue && !v.safetyConfirmedAt
+
+/** What the desk knows about an overdue guest: reminders sent, the student's confirmation. */
+function overdueText(v) {
+  if (!v.overdue) return null
+  if (v.safetyConfirmedAt) {
+    return [t('Student confirmed safe at {time}', { time: formatTime(v.safetyConfirmedAt) }), v.safetyNote && `“${v.safetyNote}”`].filter(Boolean).join(': ')
+  }
+  return v.remindedAt ? t('Reminded {n}× (last {time}), waiting for the student', { n: v.reminders, time: formatTime(v.remindedAt) }) : t('Student not reminded yet')
+}
+
+function RemindModal({ dayId, count, onClose }) {
+  const { notify } = useToast()
+  const run = useMutation(() => api.familyDays.remindOverdue(dayId), {
+    invalidates: ['family-day-visitors'],
+    onSuccess: (r) => {
+      notify({ title: 'Reminders sent', message: t('{students} students were told about {guests} guests.', { students: formatNumber(r.students), guests: formatNumber(r.guests) }) })
+      onClose()
+    },
+    onError: () => {},
+  })
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Remind students about overdue guests"
+      footer={
+        <>
+          <Button onClick={onClose}>Back</Button>
+          <Button variant="primary" icon={BellRing} disabled={run.pending} onClick={() => run.run()}>
+            {run.pending ? t('Sending…') : t('Send reminders')}
+          </Button>
+        </>
+      }
+    >
+      {run.error && <Alert type="error" title="Could not send">{run.error.message}</Alert>}
+      <p className="text-base text-fg-secondary">
+        {t('{n} guests are still inside after their time slot and their student has not confirmed they are safe. Each student gets one notification (in the app and on their phone) asking them to have their family leave through the desk and to confirm they are safe.', { n: formatNumber(count) })}
+      </p>
+      <Note>{t('Once a student confirms, you can check their guests out. You can send the reminder again while guests stay.')}</Note>
+    </Modal>
+  )
+}
+
+function CheckOutModal({ visitor, manager, onClose }) {
   const { notify } = useToast()
   const [unseen, setUnseen] = useState(false)
   const [note, setNote] = useState('')
-  const run = useMutation(() => api.familyDays.checkOut(visitor.id, { note: unseen ? note.trim() : null }), {
+  // A Manager checking out a guest the student has not confirmed safe must say why (A-70).
+  const override = awaitingSafety(visitor)
+  const needsNote = unseen || override
+  const run = useMutation(() => api.familyDays.checkOut(visitor.id, { note: needsNote ? note.trim() : null }), {
     invalidates: ['family-day-visitors', 'family-day'],
     onSuccess: () => {
       notify({ title: 'Guest checked out', message: t('{name} has left.', { name: visitor.fullName }) })
@@ -184,26 +235,35 @@ function CheckOutModal({ visitor, onClose }) {
       footer={
         <>
           <Button onClick={() => onClose(false)}>Back</Button>
-          <Button variant="primary" icon={LogOut} disabled={run.pending || (unseen && !note.trim())} onClick={() => run.run()}>
+          <Button variant="primary" icon={LogOut} disabled={run.pending || (needsNote && !note.trim()) || (override && !manager)} onClick={() => run.run()}>
             {run.pending ? t('Saving…') : t('Check out')}
           </Button>
         </>
       }
     >
       {run.error && <Alert type="error" title="Could not check out">{run.error.message}</Alert>}
-      {visitor.overdue && (
-        <Alert type="warning" title="Overdue">
-          {t('The time slot ended at {time}.', { time: formatTime(visitor.slotEndsAt) })}
+      {visitor.overdue && visitor.safetyConfirmedAt && (
+        <Alert type="success" title="The student confirmed the guest is safe">
+          {[t('Confirmed at {time}.', { time: formatTime(visitor.safetyConfirmedAt) }), visitor.safetyNote && `“${visitor.safetyNote}”`].filter(Boolean).join(' ')}
         </Alert>
       )}
-      <Checkbox
-        checked={unseen}
-        onChange={(e) => setUnseen(e.target.checked)}
-        label="The guest left without passing the desk"
-        description="The time recorded is now, when you close the visit; write how you confirmed that the guest left."
-      />
-      {unseen && (
-        <Field label="How did you confirm it?" required>
+      {override && (
+        <Alert type="warning" title="The student has not confirmed yet">
+          {manager
+            ? t('The time slot ended at {time}. As a Manager you may check the guest out without the confirmation: write why below.', { time: formatTime(visitor.slotEndsAt) })
+            : t('The time slot ended at {time}. Send a reminder and check the guest out once the student confirms they are safe.', { time: formatTime(visitor.slotEndsAt) })}
+        </Alert>
+      )}
+      {!override && (
+        <Checkbox
+          checked={unseen}
+          onChange={(e) => setUnseen(e.target.checked)}
+          label="The guest left without passing the desk"
+          description="The time recorded is now, when you close the visit; write how you confirmed that the guest left."
+        />
+      )}
+      {needsNote && (manager || !override) && (
+        <Field label={override ? 'Why without the confirmation?' : 'How did you confirm it?'} required>
           {(id) => <Textarea id={id} rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}
         </Field>
       )}
@@ -214,7 +274,9 @@ function CheckOutModal({ visitor, onClose }) {
 export default function VisitorDesk() {
   const { id } = useParams()
   const { user } = useSession()
-  const base = user?.role === 'manager' ? '/manager' : '/staff'
+  const manager = user?.role === 'manager'
+  const base = manager ? '/manager' : '/staff'
+  const [reminding, setReminding] = useState(false)
   const [token, setToken] = useState('')
   const [scanning, setScanning] = useState(false)
   const [result, setResult] = useState(null)
@@ -294,13 +356,14 @@ export default function VisitorDesk() {
                 {t('Time slot {slot}', { slot: slotText(result.visitor) })}
               </p>
               {result.problem && <Alert type="warning" title="Cannot check in">{result.problem}</Alert>}
+              {result.visitor.overdue && <p className="text-sm text-fg-secondary">{overdueText(result.visitor)}</p>}
               <div className="flex gap-2">
                 {result.canCheckIn && (
                   <Button variant="primary" icon={LogIn} onClick={() => setCheckingIn(result.visitor)}>
                     Check in
                   </Button>
                 )}
-                {result.canCheckOut && (
+                {result.canCheckOut && (manager || !awaitingSafety(result.visitor)) && (
                   <Button variant="primary" icon={LogOut} onClick={() => setCheckingOut(result.visitor)}>
                     Check out
                   </Button>
@@ -315,10 +378,31 @@ export default function VisitorDesk() {
         <div className="grid content-start grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiTile size="md" icon={Users} label="Not arrived" value={formatNumber(counts?.notArrived)} />
           <KpiTile size="md" icon={DoorOpen} label="Inside now" value={formatNumber(counts?.inside)} />
-          <KpiTile size="md" icon={TriangleAlert} label="Overdue" value={formatNumber(counts?.overdue)} valueTone={counts?.overdue ? 'error' : undefined} note="Inside after their time slot" />
+          <KpiTile
+            size="md"
+            icon={TriangleAlert}
+            label="Overdue"
+            value={formatNumber(counts?.overdue)}
+            valueTone={counts?.overdue ? 'error' : undefined}
+            note={counts?.overdue ? t('{n} waiting for the student', { n: formatNumber(counts.awaitingSafety) }) : 'Inside after their time slot'}
+          />
           <KpiTile size="md" icon={CheckCheck} label="Left" value={formatNumber(counts?.checkedOut)} note={counts?.noShow ? t('{n} No-shows', { n: formatNumber(counts.noShow) }) : undefined} />
         </div>
       </div>
+
+      {counts?.awaitingSafety > 0 && (
+        <Alert
+          type="warning"
+          title={t('{n} guests are still inside after their time slot', { n: formatNumber(counts.awaitingSafety) })}
+          action={
+            <Button variant="primary" size="sm" icon={BellRing} onClick={() => setReminding(true)}>
+              Remind their students
+            </Button>
+          }
+        >
+          {t('Their students must confirm they are safe before you check them out. Send every student concerned one reminder at once.')}
+        </Alert>
+      )}
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput
@@ -386,6 +470,7 @@ export default function VisitorDesk() {
                   v.checkedInAt ? t('In {time} by {name}', { time: formatTime(v.checkedInAt), name: v.checkedInBy ?? '—' }) : null,
                   v.checkedOutAt ? t('Out {time} by {name}', { time: formatTime(v.checkedOutAt), name: v.checkedOutBy ?? '—' }) : null,
                   v.checkOutNote,
+                  v.status === 'Checked in' ? overdueText(v) : null,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
@@ -396,11 +481,14 @@ export default function VisitorDesk() {
                     Check in
                   </Button>
                 )}
-                {v.status === 'Checked in' && (
-                  <Button size="sm" icon={LogOut} onClick={() => setCheckingOut(v)}>
-                    Check out
-                  </Button>
-                )}
+                {v.status === 'Checked in' &&
+                  (awaitingSafety(v) && !manager ? (
+                    <span className="text-sm text-warning-fg">{t('Waiting for the student')}</span>
+                  ) : (
+                    <Button size="sm" icon={LogOut} onClick={() => setCheckingOut(v)}>
+                      Check out
+                    </Button>
+                  ))}
               </Td>
             </Tr>
           ))}
@@ -430,7 +518,8 @@ export default function VisitorDesk() {
         />
       )}
       {checkingIn && <CheckInModal visitor={checkingIn} onClose={closeModal} />}
-      {checkingOut && <CheckOutModal visitor={checkingOut} onClose={closeModal} />}
+      {checkingOut && <CheckOutModal visitor={checkingOut} manager={manager} onClose={closeModal} />}
+      {reminding && <RemindModal dayId={id} count={counts?.awaitingSafety ?? 0} onClose={() => setReminding(false)} />}
     </>
   )
 }

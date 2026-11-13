@@ -129,6 +129,7 @@ export const backOffice = {
           { label: 'Inspections', icon: ClipboardCheck, to: '/staff/inspections' },
           { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
           { label: 'Family Days', icon: HeartHandshake, to: '/staff/family-days' },
+          { label: 'Family Day statistics', icon: ChartColumn, to: '/staff/family-day-stats' },
         ],
       },
       { items: [{ label: 'Announcements', icon: Megaphone, to: '/staff/announcements' }] },
@@ -242,7 +243,10 @@ export const backOffice = {
       { items: [{ label: 'Announcements', icon: Megaphone, to: '/manager/announcements' }] },
       {
         title: 'Reports',
-        items: [{ label: 'Block reports', icon: ChartColumn, to: '/manager/reports' }],
+        items: [
+          { label: 'Block reports', icon: ChartColumn, to: '/manager/reports' },
+          { label: 'Family Day statistics', icon: HeartHandshake, to: '/manager/family-day-stats' },
+        ],
       },
     ],
   },
@@ -304,6 +308,7 @@ export const backOffice = {
         items: [
           { label: 'Occupancy', icon: ChartColumn, to: '/admin/reports/occupancy' },
           { label: 'Finance', icon: ShieldCheck, to: '/admin/reports/financial' },
+          { label: 'Family Day statistics', icon: HeartHandshake, to: '/admin/family-day-stats' },
         ],
       },
     ],

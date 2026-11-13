@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import qrcode from 'qrcode-generator'
-import { Plus, Trash2, UserPlus } from 'lucide-react'
+import { Plus, ShieldCheck, Trash2, TriangleAlert, UserPlus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Card, Note } from '@/components/ui/Display'
-import { Field, Input, Select } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Radio } from '@/components/ui/Choice'
 import { QueryState } from '@/components/ui/States'
@@ -28,6 +28,8 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 //   checkedInAt, checkedOutAt }] } | null }
 // POST /students/me/family-days/:id/registration { slotId, guests: [{ fullName, relationship, birthYear }] }
 // POST /students/me/family-days/:id/registration/cancel
+// A-70: guests still inside after the time slot are `overdue`; the student confirms they are safe:
+// POST /students/me/family-days/:id/registration/safety-confirmation { note? }
 
 const RELATIONSHIPS = ['Father', 'Mother', 'Brother', 'Sister', 'Grandparent', 'Guardian', 'Relative']
 const emptyGuest = { fullName: '', relationship: 'Father', birthYear: '' }
@@ -112,6 +114,64 @@ function RegisterForm({ day }) {
   )
 }
 
+/**
+ * Guests still inside after the time slot (A-70): the desk reminds the student, who asks their family to leave through
+ * the desk and confirms here that they are safe; the desk checks them out only after that.
+ */
+function OverdueGuests({ day, registration }) {
+  const { notify } = useToast()
+  const [note, setNote] = useState('')
+  const overdue = registration.guests.filter((g) => g.overdue)
+  const waiting = overdue.filter((g) => !g.safetyConfirmedAt)
+  const confirm = useMutation(() => api.me.confirmFamilySafety(day.id, { note: note.trim() || null }), {
+    invalidates: ['my-family-day', 'my-family-days'],
+    onSuccess: () => {
+      notify({ title: 'Confirmation sent', message: 'The visitor desk can now check your guests out.' })
+      setNote('')
+    },
+    onError: () => {},
+  })
+  if (overdue.length === 0) return null
+  const names = (list) => list.map((g) => g.fullName).join(', ')
+  if (waiting.length === 0) {
+    return (
+      <Alert type="info" title="You confirmed your guests are safe">
+        {t('{names}: confirmed at {time}. The visitor desk checks them out when they leave.', {
+          names: names(overdue),
+          time: formatTime(overdue.map((g) => g.safetyConfirmedAt).sort().at(-1)),
+        })}
+      </Alert>
+    )
+  }
+  const reminded = waiting.map((g) => g.remindedAt).filter(Boolean).sort().at(-1)
+  return (
+    <Card className="flex flex-col gap-3 border-warning bg-warning-bg">
+      <div className="flex items-start gap-3">
+        <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning-fg" aria-hidden />
+        <div className="flex flex-col gap-1">
+          <h2 className="text-h3 font-semibold text-fg">{t('Your guests are still inside')}</h2>
+          <p className="text-base text-fg-secondary">
+            {t('The time slot of {names} ended at {time}. Ask them to leave through the visitor desk, then confirm here that they are safe.', {
+              names: names(waiting),
+              time: formatTime(registration.slotEndsAt),
+            })}
+          </p>
+          {reminded && <p className="text-sm text-fg-secondary">{t('The visitor desk reminded you at {time}.', { time: formatTime(reminded) })}</p>}
+        </div>
+      </div>
+      {confirm.error && <Alert type="error" title="Could not confirm">{confirm.error.message}</Alert>}
+      <Field label="Message to the visitor desk" helper="Optional, e.g. where your family is now">
+        {(id) => <Textarea id={id} rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}
+      </Field>
+      <div className="flex justify-end">
+        <Button variant="primary" icon={ShieldCheck} disabled={confirm.pending} onClick={() => confirm.run()}>
+          {confirm.pending ? t('Sending…') : t('My family is safe')}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 function MyRegistration({ day, registration }) {
   const { notify } = useToast()
   const [confirming, setConfirming] = useState(false)
@@ -143,7 +203,8 @@ function MyRegistration({ day, registration }) {
             <span className="text-sm text-fg-secondary">
               {tr(g.relationship)} · {g.birthYear}
             </span>
-            <StatusTag status={g.status}>{guestStatusLabel(g.status)}</StatusTag>
+            <StatusTag status={g.overdue ? 'Overdue' : g.status}>{g.overdue ? t('Overdue') : guestStatusLabel(g.status)}</StatusTag>
+            {g.overdue && g.safetyConfirmedAt && <span className="text-sm text-fg-secondary">{t('Confirmed safe at {time}', { time: formatTime(g.safetyConfirmedAt) })}</span>}
             {g.checkedInAt && (
               <span className="text-sm text-fg-secondary">
                 {[t('In {time}', { time: formatTime(g.checkedInAt) }), g.checkedOutAt && t('Out {time}', { time: formatTime(g.checkedOutAt) })].filter(Boolean).join(' · ')}
@@ -207,6 +268,7 @@ export default function FamilyDayDetail() {
               {d.description && <p className="whitespace-pre-line text-base text-fg-secondary">{d.description}</p>}
               <Note>{t('Guests stay in the common area of the Block. They may not enter the Rooms or stay overnight.')}</Note>
             </Card>
+            {d.registration && <OverdueGuests day={d} registration={d.registration} />}
             {d.registration && <MyRegistration day={d} registration={d.registration} />}
             {d.canRegister ? <RegisterForm day={d} /> : !d.registration?.status?.startsWith('Approved') && d.registerBlockedBy && <Alert type="info" title="Registration">{d.registerBlockedBy}</Alert>}
           </div>

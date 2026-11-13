@@ -88,6 +88,8 @@ export const api = {
     /** { slotId, guests: [{ fullName, relationship, birthYear }] } → the Family Day with the registration and passes. */
     registerFamily: (id, body) => http.post(`/students/me/family-days/${id}/registration`, body),
     cancelFamily: (id) => http.post(`/students/me/family-days/${id}/registration/cancel`),
+    /** A-70: { note? } → the student confirms their guests still inside after the time slot are safe. */
+    confirmFamilySafety: (id, body) => http.post(`/students/me/family-days/${id}/registration/safety-confirmation`, body),
   },
   catalog: {
     /** Room Types, Room Classes, Term prices, deposit rate, Utility Deposit and form options for a Term. */
@@ -442,6 +444,12 @@ export const api = {
     verify: (body) => http.post('/family-day-visitors/verify', body),
     checkIn: (id, body) => http.post(`/family-day-visitors/${id}/check-in`, body),
     checkOut: (id, body) => http.post(`/family-day-visitors/${id}/check-out`, body),
+    /** A-70: one notification to every student whose guests are inside after their time slot → { students, guests }. */
+    remindOverdue: (id) => http.post(`/family-days/${id}/overdue-reminders`),
+    /** A-70: Family Day statistics (Staff of the Block, Managers, Admin). */
+    stats: (id, opts) => http.get(`/family-days/${id}/stats`, undefined, opts),
+    /** A-70: Family Days that are over, with their figures and the totals: { totals, items }. */
+    overview: g('/family-day-stats'),
   },
   payments: {
     list: g('/payments'),
