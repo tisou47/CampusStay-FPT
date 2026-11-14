@@ -283,21 +283,21 @@ export default function DoorCodes() {
                 <Td>
                   <div className="flex justify-end gap-1">
                     {(r.status === 'Active' || r.proposed) && (
-                      <Button variant="text" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
+                      <Button tip="Show the current code. Every view is written to the Audit Log." variant="text" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
                         Show code
                       </Button>
                     )}
                     {r.proposed ? (
                       <>
-                        <Button variant="text" icon={X} onClick={() => cancel.run(r.room)} disabled={cancel.pending}>
+                        <Button tip="Discard the new code that is not on the lock yet. The current code stays." variant="text" icon={X} onClick={() => cancel.run(r.room)} disabled={cancel.pending}>
                           Drop
                         </Button>
-                        <Button variant="primary" size="sm" icon={Check} onClick={() => confirm.run(r.room)} disabled={confirm.pending}>
+                        <Button tip="Confirm once the new code is set on the lock. Residents are told, without the code." variant="primary" size="sm" icon={Check} onClick={() => confirm.run(r.room)} disabled={confirm.pending}>
                           Confirm
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
+                      <Button tip="Generate or type a new 6-digit code for this Room." size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
                         Set new code
                       </Button>
                     )}

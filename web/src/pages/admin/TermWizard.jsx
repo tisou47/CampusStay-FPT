@@ -692,7 +692,7 @@ function ReviewStep({ w, goTo }) {
             </ul>
           )}
           <div className="flex justify-end">
-            <Button variant="primary" icon={Rocket} disabled={w.checks.length > 0 || publish.pending} onClick={() => setConfirming(true)}>
+            <Button tip="Students see the Term, its prices and its rules once it is published. Fix every check listed here first." variant="primary" icon={Rocket} disabled={w.checks.length > 0 || publish.pending} onClick={() => setConfirming(true)}>
               Publish the Term
             </Button>
           </div>

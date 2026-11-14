@@ -275,10 +275,10 @@ function CheckOutPanel({ d }) {
             The share is estimated from the last reading; the final amounts are calculated when you confirm. The Bed becomes available once check-out is confirmed.
           </Alert>
           <div className="flex justify-end gap-2">
-            <Button onClick={() => submit.run(true)} disabled={submit.pending}>
+            <Button tip="Keep what you entered and finish the check-out later." onClick={() => submit.run(true)} disabled={submit.pending}>
               Save draft
             </Button>
-            <Button variant="primary" disabled={!key || submit.pending} onClick={() => submit.run(false)}>
+            <Button tip="Ends the student’s stay and frees the Bed. A meter reading is taken." variant="primary" disabled={!key || submit.pending} onClick={() => submit.run(false)}>
               Confirm check-out
             </Button>
           </div>

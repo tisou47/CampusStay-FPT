@@ -67,7 +67,7 @@ function DoorCodeCard() {
               </Button>
             </div>
           ) : (
-            <Button variant="primary" size="lg" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
+            <Button tip="Keep it to yourself: never share the code with people who do not live in your Room." variant="primary" size="lg" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
               Show door code
             </Button>
           )}
@@ -321,10 +321,10 @@ function NextTermCard({ data }) {
           </Button>
           {n.state === 'Continuing' && (
             <>
-              <Button block icon={Repeat} to="/student/requests/room-change/new">
+              <Button tip="Ask for another Room from next Term. Staff decide; nothing is charged now." block icon={Repeat} to="/student/requests/room-change/new">
                 Change Room next Term
               </Button>
-              <Button block icon={Users} to="/student/requests/swap/new">
+              <Button tip="Invite another resident to exchange Beds with you from next Term." block icon={Users} to="/student/requests/swap/new">
                 Swap Beds for next Term
               </Button>
               <Button block icon={Layers} to="/student/requests/room-class/new">
@@ -332,7 +332,7 @@ function NextTermCard({ data }) {
               </Button>
             </>
           )}
-          <Button variant="text" onClick={() => setEnding(true)}>
+          <Button tip="Leave the dormitory when this Term ends. You keep your Bed until then." variant="text" onClick={() => setEnding(true)}>
             End my stay after this Term
           </Button>
         </div>

@@ -8,7 +8,7 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
-import { Tooltip } from '@/components/ui/Tooltip'
+import { InfoTip, Tooltip } from '@/components/ui/Tooltip'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
@@ -429,13 +429,15 @@ export function BackOfficeLayout({ role }) {
  * Page header used by every back-office screen: optional breadcrumb, H1 (+ status tag) and description
  * on the left (2 px apart), actions bottom-aligned on the right.
  */
-export function PageHeader({ title, description, actions, badge, breadcrumb, className }) {
+/** tip: a "?" after the title explaining what the screen is for and when to use it. */
+export function PageHeader({ title, tip, description, actions, badge, breadcrumb, className }) {
   return (
     <div className={cx('flex shrink-0 items-end justify-between gap-4', className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
         {breadcrumb}
         <div className="flex items-center gap-3">
           <h1 className="text-h1 font-bold tracking-tight text-fg">{tx(title)}</h1>
+          {tip && <InfoTip label={tip} size={16} side="bottom" align="start" />}
           {badge}
         </div>
         {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}

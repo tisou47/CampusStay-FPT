@@ -133,6 +133,7 @@ export default function MyInvoices() {
         <StatTile
           icon={Banknote}
           label="Outstanding"
+          tip="Total of your Invoices that are not paid yet."
           value={summary ? formatVnd(summary.outstanding) : '—'}
           note={summary?.dueCount ? t(summary.dueCount === 1 ? '{n} Invoice due · next {date}' : '{n} Invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) }) : t('Nothing to pay right now')}
         />
@@ -147,6 +148,7 @@ export default function MyInvoices() {
           icon={Calendar}
           className="max-lg:hidden"
           label="Next Invoice"
+          tip="The next Invoice the dormitory will issue to you, and its amount."
           value={summary?.upcoming ? formatVnd(summary.upcoming.amount) : '—'}
           note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming Invoice this Term')}
         />

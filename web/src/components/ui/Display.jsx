@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { initials as toInitials } from '@/lib/format'
+import { InfoTip } from './Tooltip'
 
 /* ---------------------------------------------------------------- Avatar */
 // Figma: 02 Components › Avatar — 32 px, orange/100 fill, brand initials.
@@ -36,11 +37,14 @@ export function Card({ as: Tag = 'section', padding = 'md', className, children,
   )
 }
 
-export function CardHeader({ title, description, actions, className }) {
+export function CardHeader({ title, tip, description, actions, className }) {
   return (
     <div className={cx('flex items-start justify-between gap-4', className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{tx(title)}</h2>
+        <h2 className="flex items-center gap-1.5 text-h3 font-semibold text-fg">
+          {tx(title)}
+          {tip && <InfoTip label={tip} />}
+        </h2>
         {description && <p className="text-sm text-fg-tertiary">{tx(description)}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -251,12 +255,13 @@ export function DetailRows({ rows, className, rowClassName = 'py-2.5' }) {
 
 /* ---------------------------------------------------------------- Stat tile */
 // Summary tiles (My Invoices, dashboards): icon + Label/Small, Display/KPI value, Body/Small note.
-export function StatTile({ icon: Glyph, label, value, note, className, children }) {
+export function StatTile({ icon: Glyph, label, tip, value, note, className, children }) {
   return (
     <Card className={cx('flex min-w-0 flex-1 flex-col gap-2', className)}>
       <div className="flex items-center gap-2 text-fg-tertiary">
         {Glyph && <Glyph size={16} aria-hidden="true" />}
         <p className="text-sm font-medium">{tx(label)}</p>
+        {tip && <InfoTip label={tip} />}
       </div>
       <p className="text-kpi font-semibold text-fg">{value}</p>
       {note && <p className="text-sm text-fg-secondary">{tx(note)}</p>}

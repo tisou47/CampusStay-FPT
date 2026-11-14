@@ -107,10 +107,10 @@ function Offer({ offer }) {
         </Card>
 
         <div className="flex shrink-0 justify-end gap-3">
-          <Button variant="danger" size="lg" onClick={() => setDeclining(true)} disabled={respond.pending}>
+          <Button tip="Give up this offer and ask for your deposit back under the refund rules." variant="danger" size="lg" onClick={() => setDeclining(true)} disabled={respond.pending}>
             Decline and request refund
           </Button>
-          <Button variant="primary" size="lg" onClick={() => respond.run(true)} disabled={!selected || respond.pending}>
+          <Button tip="Choose a Bed first. It then becomes yours for this Term." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={!selected || respond.pending}>
             Accept offer
           </Button>
         </div>

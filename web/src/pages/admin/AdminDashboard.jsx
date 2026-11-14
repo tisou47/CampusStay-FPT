@@ -134,7 +134,7 @@ export default function AdminDashboard() {
       <div className="flex shrink-0 gap-4">
         <KpiTile icon={Calendar} label="Current Term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
         <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} Beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
-        <KpiTile icon={Banknote} label="Collected this Term" value={<span className="text-h1" title={t(COLLECTED_RULE)}>{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
+        <KpiTile icon={Banknote} label="Collected this Term" tip={t(COLLECTED_RULE)} value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
         <KpiTile
           icon={Users}
           label="Active users"

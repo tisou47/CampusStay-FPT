@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { InfoTip } from './Tooltip'
 
 // Figma: 02 Components › Input and Select (maps to Ant Design <Input> / <Select>).
 // md = Middle 32 px (back office), lg = Large 40 px (student web). Label above, helper or error below.
@@ -24,7 +25,8 @@ export function controlClasses({ size = 'md', invalid = false } = {}) {
 }
 
 /** Label + control + helper/error. Pass a render function to receive the generated id. */
-export function Field({ label, hint, helper, error, required, className, children, id: idProp }) {
+/** tip: a "?" after the label explaining the field (what it means, where the value is used). */
+export function Field({ label, hint, tip, helper, error, required, className, children, id: idProp }) {
   const autoId = useId()
   const id = idProp ?? autoId
   return (
@@ -33,6 +35,7 @@ export function Field({ label, hint, helper, error, required, className, childre
         <label htmlFor={id} className="flex items-baseline gap-1 text-base font-medium text-fg">
           {tx(label)}
           {required && <span className="text-error-fg">*</span>}
+          {tip && <InfoTip label={tip} className="self-center" />}
           {hint && <span className="ml-auto text-sm font-normal text-fg-tertiary">{tx(hint)}</span>}
         </label>
       )}

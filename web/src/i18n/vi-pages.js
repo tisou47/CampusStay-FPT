@@ -4135,4 +4135,38 @@ const familyDay = {
   "Grandparent": "Ông/bà",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay }
+// Tooltips on the important buttons and figures (components/ui/Tooltip.jsx)
+const tooltips = {
+  "Send the ticked claims back to the students with your reason. Their Invoices stay unpaid.": "Trả các xác nhận đã chọn về cho sinh viên kèm lý do. Hóa đơn của họ vẫn ở trạng thái chưa thanh toán.",
+  "Mark the ticked Invoices as paid, only after you found each amount and transfer content on the bank statement.": "Đánh dấu các hóa đơn đã chọn là đã thanh toán, chỉ sau khi bạn đã thấy đúng số tiền và nội dung chuyển khoản trên sao kê ngân hàng.",
+  "Offer the free Beds to waitlisted students. Needs waitlisted students and free Beds in this Term.": "Mời sinh viên trong danh sách chờ nhận các giường còn trống. Cần có cả sinh viên đang chờ và giường trống trong kỳ này.",
+  "Try the engine without saving anything, to preview its proposals before a real run.": "Chạy thử bộ xếp phòng mà không lưu gì, để xem trước đề xuất trước khi chạy thật.",
+  "Run the engine for real. Its proposals are then reviewed and committed Block by Block.": "Chạy bộ xếp phòng thật. Đề xuất sau đó được xem lại và chốt theo từng Block.",
+  "Leave this Application without a Bed for now. It can still get one in Round 2.": "Tạm để hồ sơ này chưa có giường. Hồ sơ vẫn có thể nhận giường ở Vòng 2.",
+  "Fix the proposed Beds of this Block for good. Every conflict must be resolved first.": "Chốt chính thức các giường đề xuất của Block này. Phải xử lý hết các xung đột trước.",
+  "For a student who cannot come on the check-in day: record the reason and the planned date. A Manager decides.": "Dành cho sinh viên không đến được vào ngày nhận phòng: ghi lý do và ngày dự kiến. Quản lý sẽ quyết định.",
+  "Tick every item of the checklist first. The stay starts and a meter reading is taken.": "Hãy đánh dấu đủ mọi mục trong danh sách trước. Thời gian ở bắt đầu và chỉ số điện nước được chốt.",
+  "Keep what you entered and finish the check-out later.": "Lưu những gì đã nhập và hoàn tất trả phòng sau.",
+  "Ends the student’s stay and frees the Bed. A meter reading is taken.": "Kết thúc thời gian ở của sinh viên và giải phóng giường. Chỉ số điện nước được chốt.",
+  "Show the current code. Every view is written to the Audit Log.": "Xem mã hiện tại. Mỗi lần xem đều được ghi vào Nhật ký hệ thống.",
+  "Discard the new code that is not on the lock yet. The current code stays.": "Bỏ mã mới chưa được cài lên khóa. Mã hiện tại vẫn giữ nguyên.",
+  "Confirm once the new code is set on the lock. Residents are told, without the code.": "Xác nhận khi mã mới đã được cài lên khóa. Cư dân sẽ được báo, không kèm mã.",
+  "Generate or type a new 6-digit code for this Room.": "Tạo hoặc nhập mã 6 chữ số mới cho phòng này.",
+  "Reject the Application. The student is notified.": "Từ chối hồ sơ. Sinh viên sẽ được thông báo.",
+  "Approve the Application. The Assignment engine then proposes a Room and Bed for it.": "Duyệt hồ sơ. Sau đó bộ xếp phòng sẽ đề xuất phòng và giường cho hồ sơ này.",
+  "Students see the Term, its prices and its rules once it is published. Fix every check listed here first.": "Sinh viên sẽ thấy kỳ, giá và quy định khi kỳ được công bố. Hãy xử lý hết các mục kiểm tra ở đây trước.",
+  "Close the reading period and bill Utility to the residents. Readings can no longer change afterwards.": "Đóng kỳ ghi chỉ số và lập hóa đơn điện nước cho cư dân. Sau đó không thể sửa chỉ số nữa.",
+  "Tell the dormitory you paid. A Manager checks it against the bank statement, then the Invoice shows as paid.": "Báo cho ký túc xá là bạn đã chuyển khoản. Quản lý đối chiếu với sao kê ngân hàng, sau đó hóa đơn được ghi là đã thanh toán.",
+  "Give up this offer and ask for your deposit back under the refund rules.": "Từ chối lời mời này và yêu cầu hoàn tiền cọc theo quy định hoàn tiền.",
+  "Choose a Bed first. It then becomes yours for this Term.": "Hãy chọn một giường trước. Giường đó sẽ là của bạn trong kỳ này.",
+  "You and the other student exchange Beds for next Term, after approval. No price difference is charged.": "Bạn và sinh viên kia đổi giường cho kỳ sau, sau khi được duyệt. Không thu chênh lệch giá.",
+  "Keep it to yourself: never share the code with people who do not live in your Room.": "Hãy giữ kín: không chia sẻ mã cho người không ở cùng phòng.",
+  "Ask for another Room from next Term. Staff decide; nothing is charged now.": "Xin chuyển sang phòng khác từ kỳ sau. Nhân viên sẽ quyết định; hiện chưa thu phí.",
+  "Invite another resident to exchange Beds with you from next Term.": "Mời một cư dân khác đổi giường với bạn từ kỳ sau.",
+  "Leave the dormitory when this Term ends. You keep your Bed until then.": "Rời ký túc xá khi kỳ này kết thúc. Bạn vẫn giữ giường đến lúc đó.",
+  "Available while the registration period of a Term is open.": "Chỉ mở khi đang trong thời gian đăng ký của một kỳ.",
+  "Total of your Invoices that are not paid yet.": "Tổng các hóa đơn bạn chưa thanh toán.",
+  "The next Invoice the dormitory will issue to you, and its amount.": "Hóa đơn tiếp theo ký túc xá sẽ phát hành cho bạn và số tiền.",
+}
+
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips }

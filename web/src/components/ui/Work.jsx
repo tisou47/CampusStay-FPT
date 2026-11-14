@@ -3,6 +3,7 @@ import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { formatNumber } from '@/lib/format'
 import { Button } from './Button'
+import { InfoTip } from './Tooltip'
 import { Meter } from './Charts'
 import { EmptyBlock } from './States'
 import { Tag } from './Tag'
@@ -139,12 +140,15 @@ export function CapacityRows({ rows, className }) {
 }
 
 /** A card section with a title, a one-line subtitle and an action on the right. */
-export function Panel({ title, subtitle, action, className, bodyClassName, children }) {
+export function Panel({ title, tip, subtitle, action, className, bodyClassName, children }) {
   return (
     <section className={cx('flex min-h-0 flex-col rounded-lg border border-line bg-surface', className)}>
       <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4 pb-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{tx(title)}</h2>
+          <h2 className="flex items-center gap-1.5 text-h3 font-semibold text-fg">
+            {tx(title)}
+            {tip && <InfoTip label={tip} />}
+          </h2>
           {subtitle && <p className="truncate text-sm text-fg-tertiary">{tx(subtitle)}</p>}
         </div>
         {action}

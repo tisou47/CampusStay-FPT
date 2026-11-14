@@ -65,10 +65,10 @@ function Review({ app }) {
         actions={
           <>
             <Button to={`${base}/applications`}>Back to queue</Button>
-            <Button variant="danger" icon={X} onClick={() => decide('Rejected')} disabled={decided || review.pending}>
+            <Button tip="Reject the Application. The student is notified." variant="danger" icon={X} onClick={() => decide('Rejected')} disabled={decided || review.pending}>
               Reject
             </Button>
-            <Button variant="primary" icon={Check} onClick={() => decide('Approved')} disabled={decided || review.pending}>
+            <Button tip="Approve the Application. The Assignment engine then proposes a Room and Bed for it." variant="primary" icon={Check} onClick={() => decide('Approved')} disabled={decided || review.pending}>
               Approve
             </Button>
           </>

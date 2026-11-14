@@ -1,6 +1,7 @@
 import { tx } from '@/i18n'
 import { formatNumber } from '@/lib/format'
 import { cx } from '@/lib/cx'
+import { InfoTip } from './Tooltip'
 
 // Simple chart marks used by dashboards and reports (as drawn in the Figma frames).
 // Every mark carries a text label and value next to it, so colour never carries meaning alone;
@@ -54,13 +55,14 @@ export function MeterRows({ rows, max, labelWidth = 'w-24', trackWidth = 'w-45',
 
 /** Small KPI tile used on back-office dashboards (16/14 px padding, Display/KPI value). */
 // size "lg" = Display/KPI value (dashboards); "md" = Heading/H2 value with 16 px padding (Payments, Finance…).
-export function KpiTile({ icon: Glyph, label, value, note, noteTone = 'secondary', valueTone, size = 'lg', className, children }) {
+export function KpiTile({ icon: Glyph, label, tip, value, note, noteTone = 'secondary', valueTone, size = 'lg', className, children }) {
   const tone = { secondary: 'text-fg-secondary', warning: 'text-warning-fg', error: 'text-error-fg', success: 'text-success-fg', brand: 'text-fg-brand', tertiary: 'text-fg-tertiary' }
   return (
     <div className={cx('flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-line bg-surface', size === 'lg' ? 'px-4 py-3.5' : 'p-4', className)}>
       <div className="flex items-center gap-2 text-fg-tertiary">
         {Glyph && <Glyph size={16} aria-hidden="true" />}
         <p className="truncate text-sm font-medium">{tx(label)}</p>
+        {tip && <InfoTip label={tip} />}
       </div>
       <p className={cx('font-semibold whitespace-nowrap tabular', size === 'lg' ? 'text-kpi' : 'text-h2', valueTone ? tone[valueTone] : 'text-fg')}>{value}</p>
       {note && <p className={cx('truncate text-sm', tone[noteTone])}>{tx(note)}</p>}
