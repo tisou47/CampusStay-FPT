@@ -99,12 +99,15 @@ Start-Process ngrok -ArgumentList "http $Port --url=https://$($s.NGROK_DOMAIN)" 
 Remove-Item Env:OLLAMA_PROXY_KEY
 
 # ---------------------------------------------------------------- self-test through the tunnel
+# ngrok's free plan puts a warning page in front of browser-like clients, and Windows PowerShell calls itself
+# "Mozilla/…"; the header skips it. The backend's Java client is not browser-like and is not stopped.
 $public = "https://$($s.NGROK_DOMAIN)"
+$skip = @{ 'ngrok-skip-browser-warning' = 'true' }
 $ok = $false
 for ($i = 0; $i -lt 15 -and -not $ok; $i++) {
     Start-Sleep 2
     try {
-        $r = Invoke-RestMethod "$public/api/tags" -Headers @{ Authorization = "Bearer $($s.OLLAMA_PROXY_KEY)" } -TimeoutSec 10
+        $r = Invoke-RestMethod "$public/api/tags" -Headers ($skip + @{ Authorization = "Bearer $($s.OLLAMA_PROXY_KEY)" }) -TimeoutSec 10
         $ok = $r.models.name -contains $Model
     } catch { }
 }
@@ -112,7 +115,7 @@ if (-not $ok) {
     throw "The tunnel does not answer at $public. Check the ngrok window (authtoken set? domain yours?)."
 }
 try {
-    Invoke-RestMethod "$public/api/tags" -TimeoutSec 10 | Out-Null
+    Invoke-RestMethod "$public/api/tags" -Headers $skip -TimeoutSec 10 | Out-Null
     throw 'The tunnel answered WITHOUT the key: stop and check the proxy.'
 } catch [System.Net.WebException] {
     if ([int]$_.Exception.Response.StatusCode -ne 401) { throw }
