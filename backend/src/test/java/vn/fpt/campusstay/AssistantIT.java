@@ -157,7 +157,8 @@ class AssistantIT {
     @Test
     void answersInTheLanguageTheStudentWrites() throws Exception {
         answers("ok");
-        String student = bearer(mvc, StayFlow.student(49));
+        // The test seed has students 1 to 48; 45 is used by no other test here (3 questions, the hourly limit in this class).
+        String student = bearer(mvc, StayFlow.student(45));
 
         mvc.perform(post("/students/me/assistant/chat").header(HttpHeaders.AUTHORIZATION, student)
                 .header(HttpHeaders.ACCEPT_LANGUAGE, "en").contentType(MediaType.APPLICATION_JSON)
