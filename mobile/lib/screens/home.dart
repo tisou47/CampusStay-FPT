@@ -289,75 +289,7 @@ class _BoardState extends State<_Board> {
       setState(() => _read.add(id));
       Api.post('/notifications/${Uri.encodeComponent(id)}/read').ignore();
     }
-    final link = item.str('link');
-    final changes = item.objects('changes');
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheet) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 10,
-            children: [
-              Wrap(
-                spacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (item.flag('pinned')) const Icon(Icons.push_pin, size: 16, color: Tokens.fgBrand),
-                  if (item.str('category') != null)
-                    Tag(label(item.str('category')), tone: _tone(item.str('category')), dot: false),
-                  Text(
-                    moment(item.str('shownFrom') ?? item.str('createdAt')),
-                    style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
-                  ),
-                ],
-              ),
-              Text(item.text('title'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-              for (final c in changes)
-                Panel(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 4,
-                    children: [
-                      Text(label(c.str('field')), style: const TextStyle(color: Tokens.fgTertiary)),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: _value(c.str('type'), c['before']),
-                              style: const TextStyle(decoration: TextDecoration.lineThrough, color: Tokens.fgSecondary),
-                            ),
-                            const TextSpan(text: '  →  '),
-                            TextSpan(
-                              text: _value(c.str('type'), c['after']),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (changes.isEmpty)
-                Text(item.text('body'), style: const TextStyle(color: Tokens.fgSecondary, fontSize: 15)),
-              if (link != null && link != '/student')
-                BusyButton(
-                  label: t('Open', 'Mở'),
-                  onPressed: () async {
-                    Navigator.pop(sheet);
-                    await openLink(context, link);
-                    await widget.reload();
-                  },
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
+    await showAnnouncement(context, item, reload: widget.reload);
   }
 
   @override
@@ -473,6 +405,81 @@ class _BoardState extends State<_Board> {
       _ => label('$value'),
     };
   }
+}
+
+/// Opens an announcement of the dormitory board in a sheet (the board's rows and the notifications that are
+/// announcements): its category, date and title, the old → new values of a change announcement or its text, and
+/// "Open" when it links to another screen. [reload] runs after that screen is closed.
+Future<void> showAnnouncement(BuildContext context, Json item, {Future<void> Function()? reload}) async {
+  final link = item.str('link');
+  final changes = item.objects('changes');
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (sheet) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 10,
+          children: [
+            Wrap(
+              spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (item.flag('pinned')) const Icon(Icons.push_pin, size: 16, color: Tokens.fgBrand),
+                if (item.str('category') != null)
+                  Tag(label(item.str('category')), tone: _BoardState._tone(item.str('category')), dot: false),
+                Text(
+                  moment(item.str('shownFrom') ?? item.str('createdAt')),
+                  style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+                ),
+              ],
+            ),
+            Text(item.text('title'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+            for (final c in changes)
+              Panel(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 4,
+                  children: [
+                    Text(label(c.str('field')), style: const TextStyle(color: Tokens.fgTertiary)),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: _BoardState._value(c.str('type'), c['before']),
+                            style: const TextStyle(decoration: TextDecoration.lineThrough, color: Tokens.fgSecondary),
+                          ),
+                          const TextSpan(text: '  →  '),
+                          TextSpan(
+                            text: _BoardState._value(c.str('type'), c['after']),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (changes.isEmpty)
+              Text(item.text('body'), style: const TextStyle(color: Tokens.fgSecondary, fontSize: 15)),
+            if (link != null && link != '/student')
+              BusyButton(
+                label: t('Open', 'Mở'),
+                onPressed: () async {
+                  Navigator.pop(sheet);
+                  await openLink(context, link);
+                  await reload?.call();
+                },
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// The dormitory board on a page of its own (Home's "Dormitory board" tile): every announcement, newest first.
