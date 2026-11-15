@@ -286,8 +286,9 @@ class DeskIT {
         getAs("/students/me/allocation?termId=" + termId, p.auth())
                 .andExpect(jsonPath("$.allocation").value((Object) null));
         assertThat(jdbc.sql("""
-                SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = 300000
-                  AND status = 'PENDING'
+                SELECT count(*) FROM bil_refund f JOIN asg_check_out c ON c.id = f.check_out_id
+                WHERE f.source_type = 'CHECK_OUT' AND f.source_id = :a AND c.allocation_id = :a AND f.amount = 300000
+                  AND f.status = 'PENDING'
                 """).param("a", Long.parseLong(p.allocationId())).query(Long.class).single()).isEqualTo(1);
         // The Room's door code must change now that a resident left (spec §6.8).
         assertThat(jdbc.sql("""

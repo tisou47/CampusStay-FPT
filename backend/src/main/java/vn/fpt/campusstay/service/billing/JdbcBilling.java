@@ -442,16 +442,21 @@ class JdbcBilling implements Billing {
         return issued;
     }
 
-    /** A monthly Utility Invoice with its meter breakdown (Meter readings › Close period); then the debt rules. */
+    /**
+     * A monthly Utility Invoice with its meter breakdown (Meter readings › Close period), linked to the Room's
+     * reading it was computed from (ERD: Meter Reading generates Invoices); then the debt rules.
+     */
     @Transactional(propagation = Propagation.MANDATORY)
-    IssuedInvoice issueUtility(long termId, long studentId, long allocationId, long buildingId, String periodLabel,
-            long amount, List<Map<String, Object>> lines, Map<String, Object> breakdown, Instant dueAt, String reference) {
+    IssuedInvoice issueUtility(long termId, long studentId, long allocationId, long buildingId, long meterReadingId,
+            String periodLabel, long amount, List<Map<String, Object>> lines, Map<String, Object> breakdown,
+            Instant dueAt, String reference) {
         TermSummary term = term(termId);
         String title = "Utility · " + periodLabel;
         IssuedInvoice issued = insert(new Draft(term, studentId, null, allocationId, buildingId, "UTILITY", title, amount,
                 lines, dueAt, reference, 0));
-        jdbc.sql("UPDATE bil_invoice SET breakdown = CAST(:breakdown AS jsonb) WHERE id = :id")
-                .param("breakdown", json.writeValueAsString(breakdown)).param("id", issued.id()).update();
+        jdbc.sql("UPDATE bil_invoice SET breakdown = CAST(:breakdown AS jsonb), meter_reading_id = :reading WHERE id = :id")
+                .param("breakdown", json.writeValueAsString(breakdown)).param("reading", meterReadingId)
+                .param("id", issued.id()).update();
         events.publishEvent(new InvoiceIssued(issued.id(), issued.code(), studentId, title, amount, dueAt));
         debts.afterIssued(studentId, issued.id());
         return issued;
@@ -468,23 +473,35 @@ class JdbcBilling implements Billing {
         return id;
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void linkCheckOutRefund(long refundId, long checkOutId) {
+        jdbc.sql("UPDATE bil_refund SET check_out_id = :checkOut WHERE id = :id AND source_type = 'CHECK_OUT'")
+                .param("checkOut", checkOutId).param("id", refundId).update();
+    }
+
     private record RefundDraft(long termId, long studentId, Long buildingId, Long invoiceId, String sourceType,
             long sourceId, String reason, Long ruleId, long paid, long amount, boolean automatic) {
     }
 
-    /** Every refund row carries the student snapshot (V17) so lists are searched and scoped without Auth tables. */
+    /**
+     * Every refund row carries the student snapshot (V17) so lists are searched and scoped without Auth tables.
+     * A refund for a cancelled Application also names it in {@code application_id} (V75, ERD "refunding").
+     */
     private long insertRefund(RefundDraft d) {
         UserDirectory.StudentProfile student = users.studentProfile(d.studentId())
                 .orElseThrow(() -> new IllegalStateException("Refund for a user who is not a student: " + d.studentId()));
         return jdbc.sql("""
-                INSERT INTO bil_refund (term_id, student_id, building_id, invoice_id, source_type, source_id, reason, rule_id,
-                                        paid_amount, amount, status, decided_at, student_name, student_code, gender)
-                VALUES (:term, :student, :building, :invoice, :sourceType, :sourceId, :reason, :rule, :paid, :amount,
-                        :status, :decidedAt, :name, :code, :gender)
+                INSERT INTO bil_refund (term_id, student_id, building_id, invoice_id, source_type, source_id, application_id,
+                                        reason, rule_id, paid_amount, amount, status, decided_at, student_name,
+                                        student_code, gender)
+                VALUES (:term, :student, :building, :invoice, :sourceType, :sourceId, :application, :reason, :rule, :paid,
+                        :amount, :status, :decidedAt, :name, :code, :gender)
                 RETURNING id
                 """)
                 .param("term", d.termId()).param("student", d.studentId()).param("building", d.buildingId())
                 .param("invoice", d.invoiceId()).param("sourceType", d.sourceType()).param("sourceId", d.sourceId())
+                .param("application", "APPLICATION_CANCEL".equals(d.sourceType()) ? d.sourceId() : null)
                 .param("reason", d.reason()).param("rule", d.ruleId()).param("paid", d.paid()).param("amount", d.amount())
                 .param("status", d.automatic() ? "APPROVED" : "PENDING")
                 .param("decidedAt", d.automatic() ? Timestamp.from(Instant.now(clock)) : null)

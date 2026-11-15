@@ -29,11 +29,12 @@ class BillingDemoData implements DemoData {
         jdbc.execute("DELETE FROM bil_payment_claim");
         jdbc.execute("DELETE FROM bil_refund");
         jdbc.execute("DELETE FROM bil_utility_warning");
+        jdbc.execute("DELETE FROM bil_bank_transaction_archive");
+        // Invoices before the meter readings they were issued from (bil_invoice.meter_reading_id, V75).
+        jdbc.execute("DELETE FROM bil_invoice");
         jdbc.execute("DELETE FROM bil_meter_cut");
         jdbc.execute("DELETE FROM bil_meter_reading");
         jdbc.execute("DELETE FROM bil_meter_period");
-        jdbc.execute("DELETE FROM bil_bank_transaction_archive");
-        jdbc.execute("DELETE FROM bil_invoice");
     }
 
     @Override

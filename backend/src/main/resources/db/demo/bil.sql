@@ -220,3 +220,12 @@ FROM demo_t t,
      (SELECT (SELECT value::int FROM cfg_parameter WHERE key = 'payment.reminder_first_days') AS first_days,
              (SELECT value::int FROM cfg_parameter WHERE key = 'payment.reminder_second_days') AS second_days) p
 WHERE i.type IN ('BALANCE', 'TERM_FEE') AND i.status = 'UNPAID' AND i.due_at > t.now;
+
+-- Each Utility Invoice names the Room's reading it was computed from (V75, ERD "generating").
+UPDATE bil_invoice i SET meter_reading_id = mr.id
+FROM bil_meter_period p
+JOIN bil_meter_reading mr ON mr.period_id = p.id
+JOIN inv_room r ON r.id = mr.room_id
+WHERE i.type = 'UTILITY' AND i.meter_reading_id IS NULL
+  AND p.building_id = i.building_id AND i.title = 'Utility · ' || p.label
+  AND r.code = i.breakdown ->> 'room';

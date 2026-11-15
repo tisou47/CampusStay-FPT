@@ -137,7 +137,7 @@ class Round2IT {
                 """).param("code", silent.applicationId()).query(Long.class).single()).isZero();
         assertThat(jdbc.sql("""
                 SELECT count(*) FROM bil_refund WHERE source_type = 'APPLICATION_CANCEL' AND status = 'PENDING'
-                  AND amount > 0
+                  AND amount > 0 AND application_id = source_id
                 """).query(Long.class).single()).isEqualTo(2);
     }
 

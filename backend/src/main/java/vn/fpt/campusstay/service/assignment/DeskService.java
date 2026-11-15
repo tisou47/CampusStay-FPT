@@ -489,6 +489,9 @@ public class DeskService {
         Billing.SettledCheckOut settled = billing.settleCheckOut(request, user.userId());
         upsert(p.alloc().id(), reason, "COMPLETED", cmd, damage, settled.settlement(),
                 settled.refundId().isPresent() ? "PENDING" : "NONE", user.userId(), now);
+        settled.refundId().ifPresent(refundId -> billing.linkCheckOutRefund(refundId, jdbc.sql(
+                "SELECT id FROM asg_check_out WHERE allocation_id = :a").param("a", p.alloc().id())
+                .query(Long.class).single()));
         saveDamages(p.alloc().id(), cmd.damages() == null ? null : damages);
         String where = "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel();
         damages.forEach((itemId, d) -> events.publishEvent(new FurnitureDamaged(itemId,

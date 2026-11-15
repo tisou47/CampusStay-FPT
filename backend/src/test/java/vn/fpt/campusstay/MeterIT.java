@@ -235,6 +235,11 @@ class MeterIT {
         assertThat(issued).isGreaterThanOrEqualTo(2);
         assertThat(jdbc.sql("SELECT count(*) FROM bil_invoice WHERE type = 'UTILITY'").query(Long.class).single())
                 .isEqualTo(before + issued);
+        // Each Utility Invoice names the Room's reading of this period it was computed from (V75).
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM bil_invoice i JOIN bil_meter_reading r ON r.id = i.meter_reading_id
+                WHERE i.type = 'UTILITY' AND r.period_id = :p
+                """).param("p", Long.parseLong(period)).query(Long.class).single()).isEqualTo((long) issued);
 
         String student = bearer(mvc, StayFlow.student(25));
         String mine = mvc.perform(get("/students/me/invoices").header(HttpHeaders.AUTHORIZATION, student))

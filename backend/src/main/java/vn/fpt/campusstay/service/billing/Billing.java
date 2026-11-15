@@ -169,6 +169,12 @@ public interface Billing {
      */
     SettledCheckOut settleCheckOut(SettlementRequest request, long recordedBy);
 
+    /**
+     * Links the refund {@link #settleCheckOut} requested to the check-out record ASG saved afterwards
+     * (ERD: a Check-out returns a Refund).
+     */
+    void linkCheckOutRefund(long refundId, long checkOutId);
+
     /** Status label of the check-out refund of an Allocation ({@code Pending}, {@code Approved} …). */
     Optional<String> checkOutRefundStatus(long allocationId);
 

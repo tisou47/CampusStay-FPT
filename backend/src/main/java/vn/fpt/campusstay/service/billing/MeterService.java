@@ -389,7 +389,7 @@ public class MeterService {
                     continue;
                 }
                 billing.issueUtility(share.termId(), share.studentId(), share.allocationId(),
-                        p.buildingId(), p.label(), share.amount(),
+                        p.buildingId(), r.id(), p.label(), share.amount(),
                         List.of(Map.of("label", "Electricity and water · Room " + room.code(), "amount", share.amount())),
                         breakdown(split, share.studentId(), room.code(), prices), p.dueAt(),
                         "Room " + room.code() + " · " + p.label());
