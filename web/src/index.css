@@ -230,6 +230,21 @@
   }
 }
 
+/*
+ * Shared tables (components/ui/Table.jsx): a last column that holds only actions (a button or link, or a row of
+ * them) lines up with the table's right edge, and so does its header.
+ */
+@layer components {
+  .cs-table td:last-child:has(> :is(button, a):only-child),
+  .cs-table th:last-child:has(> .sr-only:only-child),
+  .cs-table th:last-child:empty {
+    text-align: right;
+  }
+  .cs-table td:last-child > .flex:only-child:not(:has(> :not(button, a))) {
+    justify-content: flex-end;
+  }
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }

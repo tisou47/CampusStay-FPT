@@ -1,11 +1,13 @@
-import { createContext, useContext } from 'react'
+import { Children, createContext, useContext } from 'react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 // Table patterns from the designs:
-//  md (back office): 40 px header on bg/subtle, 52 px rows, 12 px between cells.
-//  lg (student web): 44 px header, 56 px rows, 16 px between cells.
-// Both use 16 px side padding, Label/Small header text and border/default row separators.
+//  md (back office): 40 px header on bg/subtle, rows at least 52 px, 24 px between columns.
+//  lg (student web): 44 px header, rows at least 56 px, 32 px between columns.
+// Every cell is padded on both sides, so a right-aligned figure never touches the column after it, and rows that
+// wrap keep space above and below. Both use 16/20 px side padding, Label/Small header text and border/default
+// row separators.
 // `fill` makes the table take the remaining height of a one-screen page and scroll inside,
 // with the header row kept in view.
 const SizeContext = createContext({ size: 'md', inset: 'md' })
@@ -13,8 +15,8 @@ const SizeContext = createContext({ size: 'md', inset: 'md' })
 const insets = { md: 'first:pl-4 last:pr-4', lg: 'first:pl-5 last:pr-5' }
 
 const sizes = {
-  md: { th: 'h-10 pr-3', td: 'h-13 pr-3' },
-  lg: { th: 'h-11 pr-4', td: 'h-14 pr-4' },
+  md: { th: 'h-10 px-3 py-2', td: 'h-13 px-3 py-2.5' },
+  lg: { th: 'h-11 px-4 py-2.5', td: 'h-14 px-4 py-3' },
 }
 
 // bare: no outer border/radius (table inside a Card). inset: side padding md = 16 px, lg = 20 px.
@@ -25,7 +27,7 @@ export function Table({ size = 'md', inset = 'md', bare = false, fill = false, c
         className={cx('overflow-auto bg-surface', fill && 'min-h-0 flex-1', !bare && 'rounded-lg border border-line', className)}
         {...props}
       >
-        <table className={cx('w-full border-separate border-spacing-0 text-left text-base', tableClassName)}>{children}</table>
+        <table className={cx('cs-table w-full border-separate border-spacing-0 text-left text-base', tableClassName)}>{children}</table>
       </div>
     </SizeContext.Provider>
   )
@@ -76,12 +78,29 @@ export function Tr({ selected, onClick, className, children, ...props }) {
   )
 }
 
-export function Td({ className, align = 'left', children, ...props }) {
+// A cell whose text is short (a code, a date, an amount, a name) stays on one line: "APP-FA26-024993" never breaks
+// at its hyphens and "2,588,000 VND" never splits. Longer text wraps between words with balanced lines.
+const SHORT = 28
+function textOf(children) {
+  let text = ''
+  for (const child of Children.toArray(children)) {
+    if (typeof child !== 'string' && typeof child !== 'number') return null
+    text += child
+  }
+  return text
+}
+
+/** wrap: true lets a cell wrap even when its text is short; false keeps any cell on one line. */
+export function Td({ className, align = 'left', wrap, children, ...props }) {
   const { size, inset } = useContext(SizeContext)
+  const text = textOf(children)
+  const oneLine = wrap === false || (wrap !== true && (align === 'right' || (text != null && (text.length <= SHORT || !/\s/.test(text)))))
   return (
     <td
       className={cx(
-        'align-middle text-fg',
+        'align-middle text-fg [text-wrap:pretty]',
+        oneLine && 'whitespace-nowrap',
+        align === 'right' && 'tabular',
         insets[inset] ?? insets.md,
         (sizes[size] ?? sizes.md).td,
         align === 'right' && 'text-right',
