@@ -1,4 +1,6 @@
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
+import { reuseScreenData } from '@/api/hooks'
 import shell from './vi'
 
 /*
@@ -9,7 +11,8 @@ import shell from './vi'
  * the same keys with their values left open. A text without a translation shows in English, never blank.
  *
  * The language is kept in the browser for the sign-in page and saved on the account once signed in
- * (PUT /auth/me/locale), so notifications, push and emails follow it. Changing it re-renders the app.
+ * (PUT /auth/me/locale), so notifications, push and emails follow it. Changing it rebuilds the screens
+ * (LanguageScope) with the data they show, so nothing loads again on screen.
  *
  * The screens' Vietnamese texts (./vi-pages.js, the largest file of the app) are a chunk of their own, loaded by
  * loadLanguage('vi') before the app renders in Vietnamese or switches to it; English never downloads them.
@@ -111,9 +114,60 @@ export const tx = (node) => (typeof node === 'string' ? tr(node) : node)
 const I18nContext = createContext({ lang: current, setLang: () => {} })
 let requested = current
 
+// Scroll offsets of the screen's scrolled areas, found again after the switch by their place in the page.
+function pathOf(el) {
+  const steps = []
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    steps.push(Array.prototype.indexOf.call(node.parentElement?.children ?? [], node))
+  }
+  return steps
+}
+function find(steps) {
+  let node = document.body
+  for (let i = steps.length - 1; i >= 0 && node; i--) node = node.children[steps[i]]
+  return node
+}
+function saveScroll() {
+  const saved = []
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.scrollTop > 0 || el.scrollLeft > 0) saved.push({ steps: pathOf(el), top: el.scrollTop, left: el.scrollLeft })
+  }
+  return saved
+}
+function restoreScroll(saved) {
+  for (const { steps, top, left } of saved) {
+    const el = find(steps)
+    if (el) el.scrollTo({ top, left, behavior: 'instant' })
+  }
+}
+
 /**
- * Holds the language. `onChange(lang)` is told about every change the person makes (the session saves it on
- * the account); `follow(lang)` lets the account's language take over after sign-in without saving it back.
+ * Shows the new language in one step: the screens are rebuilt with the data they already show (no loading
+ * state; the queries refresh behind it), the scrolled areas keep their place, and where the browser can, the old
+ * and new screens cross-fade while the VI | EN marker slides (View Transitions; index.css).
+ */
+function switchScreen(update) {
+  const swap = () => {
+    const scroll = saveScroll()
+    reuseScreenData(() => flushSync(update))
+    restoreScroll(scroll)
+  }
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  // A hidden page draws no frames, so a transition would wait until it is shown again: switch at once instead.
+  if (!document.startViewTransition || reduced || document.visibilityState !== 'visible') {
+    swap()
+    return
+  }
+  try {
+    document.startViewTransition(swap)
+  } catch {
+    swap()
+  }
+}
+
+/**
+ * Holds the language. setLang(lang) loads what the language needs, then shows it; the session's setLanguage also
+ * saves it on the account.
  */
 export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(current)
@@ -124,13 +178,15 @@ export function I18nProvider({ children }) {
     loadLanguage(next).then(() => {
       // A later choice made while this one loaded wins.
       if (requested !== next || next === current) return
-      current = next
-      try {
-        localStorage.setItem(STORAGE_KEY, next)
-      } catch {
-        // Storage unavailable: the language lasts until the page is closed.
-      }
-      setLangState(next)
+      switchScreen(() => {
+        current = next
+        try {
+          localStorage.setItem(STORAGE_KEY, next)
+        } catch {
+          // Storage unavailable: the language lasts until the page is closed.
+        }
+        setLangState(next)
+      })
     })
   }, [])
 
@@ -139,12 +195,16 @@ export function I18nProvider({ children }) {
   }, [lang])
 
   const value = useMemo(() => ({ lang, setLang: apply }), [lang, apply])
-  // The key re-renders every screen in the new language, including texts built outside components.
-  return (
-    <I18nContext.Provider value={value}>
-      <Fragment key={lang}>{children}</Fragment>
-    </I18nContext.Provider>
-  )
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+}
+
+/**
+ * Rebuilds the screens under it in the new language, including texts built outside components. It sits under the
+ * session, so the signed-in user, the Term and the Block scope stay as they were.
+ */
+export function LanguageScope({ children }) {
+  const { lang } = useI18n()
+  return <Fragment key={lang}>{children}</Fragment>
 }
 
 /** { lang, setLang } — setLang only changes the screen; use the session's setLanguage to also save it. */

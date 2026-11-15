@@ -14,6 +14,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const listeners = new Set()
 
+// The data each mounted query shows, by key. When the language changes the screens are rebuilt (i18n
+// LanguageScope); the rebuilt queries start from this data instead of a loading state, then refresh.
+const shown = new Map()
+let reusing = false
+
+/** Runs `render` (a synchronous rebuild of the screens) letting new queries start from the data shown now. */
+export function reuseScreenData(render) {
+  reusing = true
+  try {
+    render()
+  } finally {
+    reusing = false
+  }
+}
+
 export function invalidate(...names) {
   for (const listener of listeners) listener(names)
 }
@@ -24,7 +39,10 @@ export function invalidateAll() {
 
 export function useQuery(key, fetcher, { enabled = true, keepPrevious = true } = {}) {
   const hash = JSON.stringify(key)
-  const [state, setState] = useState({ data: undefined, error: null, loading: enabled })
+  const [state, setState] = useState(() => {
+    const data = reusing && enabled ? shown.get(hash) : undefined
+    return data === undefined ? { data: undefined, error: null, loading: enabled } : { data, error: null, loading: false }
+  })
   const [version, setVersion] = useState(0)
   const fetcherRef = useRef(fetcher)
   fetcherRef.current = fetcher
@@ -44,6 +62,12 @@ export function useQuery(key, fetcher, { enabled = true, keepPrevious = true } =
       )
     return () => controller.abort()
   }, [hash, enabled, version, keepPrevious])
+
+  useEffect(() => {
+    if (state.data === undefined) return undefined
+    shown.set(hash, state.data)
+    return () => shown.get(hash) === state.data && shown.delete(hash)
+  }, [hash, state.data])
 
   useEffect(() => {
     const name = key[0]

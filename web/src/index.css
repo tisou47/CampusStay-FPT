@@ -209,6 +209,17 @@
     outline-color: var(--color-band-fg);
   }
 
+  /* Changing the language (i18n switchScreen): the old and new screens cross-fade, the VI | EN marker slides. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
+    animation-timing-function: ease-out;
+  }
+  ::view-transition-group(lang-marker) {
+    animation-duration: 220ms;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

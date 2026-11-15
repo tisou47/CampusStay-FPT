@@ -31,7 +31,8 @@ function StudentTopBar() {
   return (
     <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band-gradient lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
-      <StudentContainer className="flex h-16 items-center justify-between gap-6">
+      {/* Full width like the back-office band: the logo sits at the left edge, the account at the right edge. */}
+      <div className="flex h-16 items-center justify-between gap-6 pr-6 pl-4">
         <div className="flex items-center gap-10">
           <Link to="/student" aria-label={t('Home')}>
             <Logo tone="band" />
@@ -108,7 +109,7 @@ function StudentTopBar() {
             )}
           </Popover>
         </div>
-      </StudentContainer>
+      </div>
     </header>
   )
 }
