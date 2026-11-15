@@ -3,7 +3,6 @@ import { Link } from 'react-router'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import campusAerial from '@/assets/signin/campus-aerial.png'
 import fptLogo from '@/assets/signin/fpt-logo.png'
-import { LanguageSwitch } from '@/components/layout/LanguageSwitch'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
@@ -25,7 +24,6 @@ export function AuthShell({ children }) {
       <img src={campusAerial} alt="" className="pointer-events-none absolute inset-0 -z-10 size-full max-w-none object-cover" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgba(10,15,26,0.72)]" />
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1.25 bg-accent" />
-      <LanguageSwitch className="absolute top-4 right-4" />
 
       <main className="flex w-full max-w-105 flex-col items-center gap-6">
         <div className="flex w-full flex-col items-center gap-2.5">
