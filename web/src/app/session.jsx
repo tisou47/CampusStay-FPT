@@ -4,6 +4,7 @@ import { api } from '@/api/endpoints'
 import { readSession, writeSession } from '@/api/client'
 import { useQuery } from '@/api/hooks'
 import { useI18n } from '@/i18n'
+import { clearAssistantHistory } from '@/lib/assistantHistory'
 
 /*
  * Signed-in user and the working context every screen shares:
@@ -115,6 +116,8 @@ export function SessionProvider({ children }) {
     } catch {
       // Signing out locally is enough when the server cannot be reached.
     }
+    // The assistant's conversation holds the student's data: the next person on this computer must not see it.
+    clearAssistantHistory()
     writeSession(null)
   }, [])
 
