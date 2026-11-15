@@ -460,3 +460,119 @@ Future<void> showAccountSheet(BuildContext context, Session session, Future<void
     ),
   );
 }
+
+/// The Account tab: who is signed in (name, student code, email, verification) and the account's own actions —
+/// verification details, change password, sign out. The language follows the phone.
+class AccountScreen extends StatelessWidget {
+  const AccountScreen({super.key, required this.session, required this.onSignOut});
+
+  final Session session;
+  final Future<void> Function() onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = session.name.trim();
+    final initial = name.split(RegExp(r'\s+')).last.characters.firstOrNull ?? '?';
+    Widget info(IconData icon, Color color, String label, String value) => Row(
+      spacing: 14,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+          child: Icon(icon, color: color),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 2,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Tokens.fg),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    return Cards(
+      children: [
+        HeroCard(
+          child: Column(
+            spacing: 10,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.18),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text(initial, style: HeroCard.strong.copyWith(fontSize: 34)),
+              ),
+              Text(name, textAlign: TextAlign.center, style: HeroCard.strong.copyWith(fontSize: 22)),
+              if (session.verification != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    label(session.verification),
+                    style: TextStyle(color: toneOf(session.verification).fg, fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Section(
+          title: t('Student information', 'Thông tin sinh viên'),
+          children: [
+            if (session.studentCode != null)
+              info(
+                Icons.badge_outlined,
+                Tokens.link,
+                t('Student code', 'Mã sinh viên'),
+                session.studentCode!.toUpperCase(),
+              ),
+            info(Icons.mail_outline, Tokens.accent, 'Email', session.email),
+            info(
+              Icons.verified_user_outlined,
+              Tone.success.mark,
+              t('Account', 'Tài khoản'),
+              label(session.verification).isEmpty ? '—' : label(session.verification),
+            ),
+          ],
+        ),
+        StatusList(
+          children: [
+            StatusRow(
+              icon: Icons.verified_user_outlined,
+              title: t('Account verification', 'Xác minh tài khoản'),
+              onTap: () => push(context, const VerificationScreen()),
+            ),
+            StatusRow(
+              icon: Icons.lock_outline,
+              title: t('Change password', 'Đổi mật khẩu'),
+              onTap: () => push(context, const ChangePasswordScreen()),
+            ),
+            StatusRow(
+              icon: Icons.language,
+              title: t('Language', 'Ngôn ngữ'),
+              note: t('Follows the phone: English', 'Theo ngôn ngữ của máy: Tiếng Việt'),
+            ),
+          ],
+        ),
+        BusyButton(
+          label: t('Sign out', 'Đăng xuất'),
+          icon: Icons.logout,
+          outlined: true,
+          danger: true,
+          onPressed: onSignOut,
+        ),
+      ],
+    );
+  }
+}

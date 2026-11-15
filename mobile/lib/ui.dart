@@ -115,14 +115,15 @@ ThemeData campusTheme() {
     fontFamily: 'Roboto',
     colorScheme: scheme,
     scaffoldBackgroundColor: Tokens.canvas,
+    // The top bar in the brand orange with white text and icons.
     appBarTheme: const AppBarTheme(
-      backgroundColor: Tokens.surface,
-      foregroundColor: Tokens.fg,
+      backgroundColor: Tokens.primary,
+      foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      scrolledUnderElevation: 0.5,
-      titleTextStyle: TextStyle(fontFamily: 'Roboto', fontSize: 18, fontWeight: FontWeight.w600, color: Tokens.fg),
-      shape: Border(bottom: BorderSide(color: Tokens.line)),
+      scrolledUnderElevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(fontFamily: 'Roboto', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Tokens.surface,
@@ -799,13 +800,30 @@ class StatusList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Panel(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[if (i > 0) const Divider(height: 1, indent: 56), children[i]],
-        ],
-      ),
+    // One white card per row with an orange bar on its left edge, a little apart from the next.
+    return Column(
+      spacing: 10,
+      children: [
+        for (final child in children)
+          Material(
+            color: Tokens.surface,
+            elevation: 1,
+            shadowColor: const Color(0x261D1714),
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: Tokens.accent),
+                  Expanded(
+                    child: Padding(padding: const EdgeInsets.fromLTRB(8, 2, 8, 2), child: child),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -850,6 +868,7 @@ class StatusRow extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 spacing: 2,
                 children: [
                   Text(
@@ -1316,6 +1335,172 @@ class HeroCard extends StatelessWidget {
         boxShadow: const [BoxShadow(color: Color(0x33C64F0E), blurRadius: 16, offset: Offset(0, 6))],
       ),
       child: child,
+    );
+  }
+}
+
+/// A group of feature tiles on Home under an upper-case heading (the phone's menu), two per row.
+class FeatureSection extends StatelessWidget {
+  const FeatureSection({super.key, required this.title, required this.tiles});
+
+  final String title;
+  final List<FeatureTile> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 10,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, top: 6),
+          child: Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: Tokens.fgBrand,
+            ),
+          ),
+        ),
+        LayoutBuilder(
+          builder: (context, box) {
+            final width = (box.maxWidth - 12) / 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [for (final tile in tiles) SizedBox(width: width, child: tile)],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// A feature of the app on Home: a coloured icon square, its name, an optional count or short note.
+class FeatureTile extends StatelessWidget {
+  const FeatureTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.badge,
+    this.note,
+  });
+
+  final IconData icon;
+  final String label;
+
+  /// The icon's colour; its square is the same colour, light.
+  final Color color;
+  final VoidCallback onTap;
+  final int? badge;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Tokens.surface,
+      elevation: 1,
+      shadowColor: const Color(0x1F1D1714),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 18, 10, 14),
+          child: Column(
+            spacing: 10,
+            children: [
+              Badge(
+                isLabelVisible: (badge ?? 0) > 0,
+                label: Text('${badge ?? 0}'),
+                backgroundColor: Tone.error.mark,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, size: 28, color: color),
+                ),
+              ),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Tokens.fg),
+              ),
+              // Always a note line (blank when none), so the tiles of a row are the same height.
+              Text(
+                note ?? ' ',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Tokens.fgBrand, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The phone's bottom bar: white, rounded on top, icons only, the current one orange on a light orange pill.
+class BottomBar extends StatelessWidget {
+  const BottomBar({super.key, required this.items, required this.index, required this.onTap});
+
+  /// (icon, label for screen readers)
+  final List<(IconData, String)> items;
+  final int index;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Tokens.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Color(0x1A1D1714), blurRadius: 12, offset: Offset(0, -2))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    selected: i == index,
+                    label: items[i].$2,
+                    child: InkWell(
+                      onTap: () => onTap(i),
+                      child: Center(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: i == index ? Tokens.brandSubtle : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(items[i].$1, size: 28, color: i == index ? Tokens.primary : Tokens.fgTertiary),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

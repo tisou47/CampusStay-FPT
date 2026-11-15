@@ -1,7 +1,7 @@
 # CampusStay — mobile app for students (Flutter)
 
 Flutter (Dart), Android build (package `vn.fpt.campusstay.student`, Android 8.0 / API 26 or later). It follows the
-web's student portal (Change Specification v2 §11.2, phone menu: Home · My Room · Payments · Activity) and calls the
+web's student portal (Change Specification v2 §11.2, bottom bar: Home · My Room · Account; Home holds the other features as tiles) and calls the
 same API (`docs/api-contract.md`).
 
 Every screen and action of the web's Student portal is reachable in the app (web page → app screen):

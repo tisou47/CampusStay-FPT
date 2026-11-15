@@ -9,12 +9,12 @@ import 'screens/activity.dart';
 import 'screens/assistant.dart';
 import 'screens/home.dart';
 import 'screens/notifications.dart';
-import 'screens/payments.dart';
+
 import 'screens/room.dart';
 import 'screens/sign_in.dart';
 import 'session.dart';
 
-/// The CampusStay student app (Change Specification v2 §11.2, phone menu: Home · My Room · Payments · Activity).
+/// The CampusStay student app (Change Specification v2 §11.2, bottom bar: Home · My Room · Account).
 /// It follows the web's student portal and calls the same API; students sign in with their CampusStay password or
 /// with Google (a Google sign-up first sets its password, then sends the sign-up form when the student list does not
 /// know it), and the app registers for push once signed in.
@@ -111,7 +111,7 @@ class _CampusStayAppState extends State<CampusStayApp> {
   }
 }
 
-/// The four tabs of the phone menu; the top bar has the notifications bell and the account menu.
+/// The three tabs (Home with the features as tiles, My Room, Account); the top bar has the assistant and the bell.
 class Shell extends StatefulWidget {
   const Shell({super.key, required this.session, required this.onSignOut});
 
@@ -124,7 +124,6 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
-  String _segment = 'requests';
   int _unread = 0;
   bool _assistant = false;
   Key _key = UniqueKey();
@@ -163,41 +162,78 @@ class _ShellState extends State<Shell> {
     }
   }
 
-  void _open(int tab, [String? segment]) {
+  /// Opens a part of the app: 0 Home, 1 My Room and 4 Account are tabs; 2 Payments and 3 Activity (applications or
+  /// requests) open as pages over Home.
+  Future<void> _open(int tab, [String? segment]) async {
+    if (tab == 2 || tab == 3) {
+      final page = tab == 2
+          ? const PaymentsPage()
+          : segment == 'applications'
+          ? const ApplicationsPage()
+          : RequestsPage(kind: segment == 'room-changes' ? 'room-changes' : 'maintenance');
+      await push(context, page);
+      _refresh();
+      return;
+    }
     setState(() {
-      _tab = tab;
-      if (segment != null) _segment = segment;
+      _tab = tab == 4 ? 2 : tab;
       _key = UniqueKey();
     });
     _loadUnread();
   }
 
+  void _refresh() {
+    if (!mounted) return;
+    setState(() => _key = UniqueKey());
+    _loadUnread();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final tabs = [
-      (t('Home', 'Trang chủ'), Icons.home_outlined, Icons.home),
-      (t('My Room', 'Phòng của tôi'), Icons.bed_outlined, Icons.bed),
-      (t('Payments', 'Thanh toán'), Icons.payments_outlined, Icons.payments),
-      (t('Activity', 'Hoạt động'), Icons.view_list_outlined, Icons.view_list),
-    ];
     final pending = widget.session.verification == 'Pending verification';
-    final first = widget.session.name.trim().split(RegExp(r'\s+')).last;
+    final name = widget.session.name.trim();
+    final first = name.split(RegExp(r'\s+')).last;
+    final titles = [null, t('My Room', 'Phòng của tôi'), t('Account', 'Tài khoản')];
     return Scaffold(
       appBar: AppBar(
+        centerTitle: _tab != 0,
+        titleSpacing: _tab == 0 ? 16 : null,
+        toolbarHeight: _tab == 0 ? 68 : null,
+        // Home's bar: the student's initial, name and code; the other tabs: their name.
         title: _tab == 0
             ? Row(
-                spacing: 8,
+                spacing: 12,
                 children: [
                   Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(color: Tokens.accent, borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.apartment, size: 18, color: Colors.white),
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    alignment: Alignment.center,
+                    child: Text(
+                      first.characters.firstOrNull ?? '?',
+                      style: const TextStyle(color: Tokens.primary, fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
                   ),
-                  const Text('CampusStay'),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(
+                          joinDot([widget.session.studentCode?.toUpperCase(), 'CampusStay FPT']),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               )
-            : Text(tabs[_tab].$1),
+            : Text(titles[_tab]!),
         actions: [
           if (_assistant)
             IconButton(
@@ -205,32 +241,19 @@ class _ShellState extends State<Shell> {
               onPressed: () => push(context, const AssistantScreen()),
               icon: const Icon(Icons.smart_toy_outlined),
             ),
-          IconButton(
-            tooltip: t('Notifications', 'Thông báo'),
-            onPressed: () async {
-              await push(context, const NotificationsScreen());
-              _loadUnread();
-            },
-            icon: Badge(
-              isLabelVisible: _unread > 0,
-              label: Text('$_unread'),
-              backgroundColor: Tokens.primary,
-              child: const Icon(Icons.notifications_outlined),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
-              tooltip: t('Account', 'Tài khoản'),
-              onPressed: () => showAccountSheet(context, widget.session, widget.onSignOut),
-              icon: CircleAvatar(
-                radius: 15,
-                backgroundColor: Tokens.accent,
-                foregroundColor: Colors.white,
-                child: Text(
-                  first.characters.firstOrNull ?? '?',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
+              tooltip: t('Notifications', 'Thông báo'),
+              onPressed: () async {
+                await push(context, const NotificationsScreen());
+                _refresh();
+              },
+              icon: Badge(
+                isLabelVisible: _unread > 0,
+                label: Text('$_unread'),
+                backgroundColor: Tone.error.mark,
+                child: const Icon(Icons.notifications, size: 28),
               ),
             ),
           ),
@@ -271,21 +294,21 @@ class _ShellState extends State<Shell> {
             child: KeyedSubtree(
               key: _key,
               child: switch (_tab) {
-                0 => HomeScreen(session: widget.session, openTab: _open),
+                0 => HomeScreen(session: widget.session, openTab: _open, unread: _unread),
                 1 => const RoomScreen(),
-                2 => const PaymentsScreen(),
-                _ => ActivityScreen(segment: _segment),
+                _ => AccountScreen(session: widget.session, onSignOut: widget.onSignOut),
               },
             ),
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => _open(i),
-        destinations: [
-          for (final (name, icon, selected) in tabs)
-            NavigationDestination(icon: Icon(icon), selectedIcon: Icon(selected), label: name),
+      bottomNavigationBar: BottomBar(
+        index: _tab,
+        onTap: (i) => _open(i == 2 ? 4 : i),
+        items: [
+          (Icons.home_rounded, t('Home', 'Trang chủ')),
+          (Icons.bed_rounded, t('My Room', 'Phòng của tôi')),
+          (Icons.person_rounded, t('Account', 'Tài khoản')),
         ],
       ),
     );

@@ -2,59 +2,38 @@ import 'package:flutter/material.dart';
 
 import '../common.dart';
 import 'applications.dart';
+import 'payments.dart';
 import 'requests.dart';
 
-/// Activity (phone menu, spec §11.2): Applications · Requests (web Activity › Segmented), as two tabs under the top
-/// bar that can also be swiped. The notifications live on Home and behind the bell.
-class ActivityScreen extends StatefulWidget {
-  const ActivityScreen({super.key, this.segment = 'requests'});
+// The pages Home's feature tiles open: each list of the app on a page of its own with the top bar's back arrow.
 
-  /// `applications` or `requests`.
-  final String segment;
+/// My applications (web SCR-APP-02).
+class ApplicationsPage extends StatelessWidget {
+  const ApplicationsPage({super.key});
 
   @override
-  State<ActivityScreen> createState() => _ActivityScreenState();
+  Widget build(BuildContext context) =>
+      SubPage(title: t('Applications', 'Đơn đăng ký'), body: const ApplicationsList());
 }
 
-class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProviderStateMixin {
-  static int _index(String segment) => segment == 'applications' ? 0 : 1;
+/// Maintenance and room-change requests (web SCR-MNT-01).
+class RequestsPage extends StatelessWidget {
+  const RequestsPage({super.key, this.kind = 'maintenance'});
 
-  late final TabController _tabs = TabController(length: 2, vsync: this, initialIndex: _index(widget.segment));
-
-  @override
-  void didUpdateWidget(ActivityScreen old) {
-    super.didUpdateWidget(old);
-    if (old.segment != widget.segment) _tabs.animateTo(_index(widget.segment));
-  }
+  /// `maintenance` or `room-changes`.
+  final String kind;
 
   @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) => SubPage(
+    title: t('Requests', 'Yêu cầu'),
+    body: RequestsList(initial: kind),
+  );
+}
+
+/// Payments: Invoices, refunds (web SCR-BIL-01).
+class PaymentsPage extends StatelessWidget {
+  const PaymentsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Material(
-          color: Tokens.surface,
-          child: TabBar(
-            controller: _tabs,
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-            tabs: [
-              Tab(text: t('Applications', 'Đơn đăng ký')),
-              Tab(text: t('Requests', 'Yêu cầu')),
-            ],
-          ),
-        ),
-        Expanded(
-          child: TabBarView(controller: _tabs, children: const [ApplicationsList(), RequestsList()]),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => SubPage(title: t('Payments', 'Thanh toán'), body: const PaymentsScreen());
 }
