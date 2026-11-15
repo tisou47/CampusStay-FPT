@@ -142,7 +142,7 @@ const one = {
   "{n} guests are still inside after their time slot and their student has not confirmed they are safe. Each student gets one notification (in the app and on their phone) asking them to have their family leave through the desk and to confirm they are safe.": "{n} guest is still inside after their time slot and their student has not confirmed they are safe. Each student gets one notification (in the app and on their phone) asking them to have their family leave through the desk and to confirm they are safe.",
   "{n} registrations in all · {guests} guests of cancelled registrations": "{n} registration in all · {guests} guests of cancelled registrations",
   "{n} students told": "{n} student told",
-  "{n} requests in your charge, the most urgent first": "{n} request in your charge, the most urgent first",
+  "{n} requests · most urgent first": "{n} request · most urgent first",
 }
 
 export default one

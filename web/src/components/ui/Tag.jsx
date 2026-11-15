@@ -1,6 +1,7 @@
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatTimeLeft } from '@/lib/format'
+import { StatusBadge, statusVariant } from './StatusBadge'
 
 // Figma: 02 Components › Tag (status). Pill with a 6 px dot in the status solid colour.
 const tones = {
@@ -30,113 +31,13 @@ export function Tag({ tone = 'neutral', dot = true, className, children }) {
 }
 
 /*
- * One status vocabulary for web and Android (Foundations › Application status tags).
- * Draft/Expired/Cancelled = Neutral; Awaiting Roommate/Awaiting Deposit/Waitlisted = Warning;
- * Submitted/Under Review/Approved = Info; Allocated = Success; Rejected = Error.
- * Other entities (invoices, requests, rooms) extend the same mapping.
+ * One status vocabulary for web and Android: the map and the colours live in StatusBadge.jsx; StatusTag and
+ * toneForStatus are kept for the pages that use them and draw the same pill.
  */
-const statusTone = {
-  // Application
-  Draft: 'neutral',
-  Expired: 'neutral',
-  Cancelled: 'neutral',
-  'Awaiting Roommate': 'warning',
-  'Awaiting Deposit': 'warning',
-  Waitlisted: 'warning',
-  Submitted: 'info',
-  'Under Review': 'info',
-  Approved: 'info',
-  Allocated: 'success',
-  Rejected: 'error',
-  // Invoices and payments
-  Paid: 'success',
-  Unpaid: 'warning',
-  'Partially paid': 'warning',
-  Pending: 'warning',
-  Overdue: 'error',
-  Refunded: 'neutral',
-  Void: 'neutral',
-  // Requests
-  New: 'info',
-  Open: 'info',
-  Assigned: 'info',
-  'In progress': 'warning',
-  'On hold': 'warning',
-  Resolved: 'success',
-  Closed: 'neutral',
-  Declined: 'error',
-  Escalated: 'error',
-  'Awaiting confirmation': 'warning',
-  // Priorities
-  Urgent: 'error',
-  High: 'warning',
-  Normal: 'neutral',
-  Low: 'neutral',
-  // Generic
-  Upcoming: 'neutral',
-  'Not issued': 'neutral',
-  Archived: 'neutral',
-  Paused: 'neutral',
-  Planned: 'info',
-  Invited: 'info',
-  Locked: 'error',
-  'Waiting approval': 'warning',
-  'Proposal ready': 'warning',
-  'In approval': 'info',
-  Committed: 'success',
-  Discarded: 'neutral',
-  Handled: 'success',
-  'Checked in': 'success',
-  'Checked out': 'neutral',
-  Active: 'success',
-  Inactive: 'neutral',
-  Disabled: 'neutral',
-  Published: 'success',
-  Scheduled: 'info',
-  // Accounts and the student list (Change Spec v2 phase 2)
-  Verified: 'success',
-  'Pending verification': 'warning',
-  'Profile needed': 'info',
-  'Not signed in yet': 'neutral',
-  Ended: 'neutral',
-  Update: 'info',
-  Unchanged: 'neutral',
-  Error: 'error',
-  Preview: 'warning',
-  Applied: 'success',
-  // Inventory: furniture, conformance, door codes (Change Spec v2 phase 3)
-  'In use': 'success',
-  Broken: 'error',
-  'In repair': 'warning',
-  'In store': 'info',
-  Disposed: 'neutral',
-  Done: 'success',
-  Matches: 'success',
-  'Does not match': 'warning',
-  'Change needed': 'warning',
-  'Not set': 'neutral',
-  'Waiting for confirmation': 'info',
-  Ready: 'success',
-  'Not ready': 'neutral',
-  // Money and residence (Change Spec v2 phase 5)
-  Forfeited: 'error',
-  'Assigned – unpaid': 'warning',
-  'Paid – waiting for the door code': 'info',
-  Resident: 'brand',
-  'Notice sent': 'warning',
-  Confirmed: 'success',
-  Warning: 'warning',
-  'Final warning': 'error',
-  // Family Day (ADR-29)
-  'Registration open': 'success',
-  'Registration closed': 'info',
-  Completed: 'neutral',
-  'Not arrived': 'neutral',
-  'No-show': 'warning',
-}
+const VARIANT_TONE = { assigned: 'info', in_progress: 'info', unassigned: 'neutral', overdue: 'error', done: 'success', pending: 'warning', cancelled: 'neutral', neutral: 'neutral', brand: 'brand' }
 
 export function toneForStatus(status) {
-  return statusTone[status] ?? 'neutral'
+  return VARIANT_TONE[statusVariant(status)] ?? 'neutral'
 }
 
 /**
@@ -155,10 +56,11 @@ export function SlaBadge({ dueAt, done = false, warnHours = 4, className }) {
   )
 }
 
+/** A status pill (see StatusBadge); `tone` overrides the colour the status would get. */
 export function StatusTag({ status, tone, className, children }) {
   return (
-    <Tag tone={tone ?? toneForStatus(status)} className={className}>
-      {children ?? status}
-    </Tag>
+    <StatusBadge status={status} variant={tone} className={className}>
+      {children}
+    </StatusBadge>
   )
 }

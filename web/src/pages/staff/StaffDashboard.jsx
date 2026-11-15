@@ -1,4 +1,5 @@
-import { Building, ClipboardCheck, Gauge, Hand, KeyRound, LogIn, LogOut, TriangleAlert, Wrench } from 'lucide-react'
+import { useState } from 'react'
+import { Building, CircleCheck, ClipboardCheck, Gauge, Hand, KeyRound, LogIn, LogOut, TriangleAlert, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -7,8 +8,8 @@ import { StageNow } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
-import { CapacityRows, Journey, Panel, WorkList } from '@/components/ui/Work'
-import { formatDate, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
+import { CapacityRows, DetailTip, Journey, Panel, WorkList } from '@/components/ui/Work'
+import { formatDate, formatDateTime, formatDuration, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
 import { termJourney } from '@/lib/termJourney'
 import { t, tr } from '@/i18n'
@@ -27,10 +28,11 @@ const severityTone = { error: 'error', warning: 'warning', info: 'info', neutral
 const attentionIcon = { room: Building, maintenance: Wrench, 'check-out': LogOut, 'meter-period': Gauge }
 const STAFF_KINDS = new Set(Object.keys(attentionIcon))
 
-/** How soon a request is due, for its line. */
-function due(r) {
-  if (!r.slaDueAt) return t('Reported {when}', { when: formatRelative(r.reportedAt) })
-  return formatTimeLeft(r.slaDueAt)
+/** Overdue in whole days once a day late ("5 days overdue"), else hours: the badge stays short; the tooltip has the exact time. */
+const DAY = 86_400_000
+function overdueShort(ms) {
+  const late = -ms
+  return t('{time} overdue', { time: formatDuration(late >= DAY ? Math.floor(late / DAY) * DAY : late) })
 }
 
 export default function StaffDashboard() {
@@ -49,35 +51,64 @@ export default function StaffDashboard() {
   const meters = useQuery(['meters', 'list', period?.id, 'summary'], ({ signal }) => api.meters.list(period.id, { pageSize: 1 }, { signal }), { enabled: Boolean(period) })
   const inspection = useQuery(['dashboard', 'inspection', scope], ({ signal }) => api.inspections.current(scope, { signal }))
 
+  // Requests taken on this screen move to "My work" at once (and slide in) while the lists reload.
+  const [taken, setTaken] = useState(() => new Map())
   const take = useMutation((id) => api.maintenance.update(id, { assigneeId: me.data.id }), {
     invalidates: ['maintenance', 'dashboard', 'me-duty'],
-    onSuccess: (_, id) => notify({ title: t('You are now in charge of {id}', { id }), message: 'It is in your list; start it when you get there.' }),
+    onSuccess: (_, id) => {
+      setTaken((m) => new Map(m).set(id, Date.now()))
+      notify({ title: t('You are now in charge of {id}', { id }), message: 'It is in your list; start it when you get there.' })
+    },
     onError: (e) => notifyError(e, 'Could not take the request'),
   })
 
   const d = dash.data
-  const myItems = (mine.data?.items ?? []).map((r) => {
-    const late = r.slaDueAt && new Date(r.slaDueAt) < new Date()
+  const now = new Date()
+  /** One request as a row: the row opens it; status, deadline and the whole record are on the row and its tooltip. */
+  const requestItem = (r, mine) => {
+    const left = r.slaDueAt ? new Date(r.slaDueAt) - now : null
+    const late = left != null && left < 0
+    const soon = left != null && !late && left <= 4 * 3_600_000
+    const status = mine ? (r.status === 'Open' || r.status === 'New' || r.status === 'Unassigned' ? 'Assigned' : r.status) : 'Unassigned'
+    const takenAt = taken.get(r.id)
     return {
-      id: `mine-${r.id}`,
-      icon: Wrench,
-      tone: late ? 'error' : r.priority === 'High' ? 'warning' : 'info',
+      id: `${mine ? 'mine' : 'free'}-${r.id}`,
+      to: `/staff/maintenance/${r.id}`,
+      icon: mine ? Wrench : Hand,
+      tone: late ? 'error' : r.priority === 'High' ? 'warning' : mine ? 'info' : undefined,
       title: `${r.room} · ${tr(r.title)}`,
-      meta: `${r.id} · ${tr(r.category)} · ${due(r)}`,
-      badge: { label: r.status, tone: r.status === 'In progress' ? 'info' : 'neutral' },
-      action: { label: r.status === 'In progress' ? 'Continue' : 'Open', to: `/staff/maintenance/${r.id}`, primary: late },
+      meta: [r.id, tr(r.category), formatRelative(r.reportedAt)].filter(Boolean).join(' · '),
+      // In the Unassigned group the heading already says it; the row keeps its width for the title.
+      status: mine ? status : null,
+      flags: [
+        !mine && r.priority === 'High' && { label: t('Urgent'), variant: 'overdue' },
+        (late || soon) && { label: late ? overdueShort(left) : formatTimeLeft(r.slaDueAt), variant: late ? 'overdue' : 'pending', title: formatDateTime(r.slaDueAt) },
+      ].filter(Boolean),
+      details: (
+        <DetailTip
+          title={`${r.room} · ${tr(r.title)}`}
+          rows={[
+            { label: t('Room'), value: r.room },
+            { label: t('Code'), value: r.id },
+            { label: t('Category'), value: tr(r.category) },
+            { label: t('Priority'), value: tr(r.priority) },
+            { label: t('Status'), value: t(status) },
+            { label: t('In charge'), value: mine ? (r.assignee?.name ?? user?.name) : t('Nobody is in charge') },
+            { label: t('Reported'), value: formatDateTime(r.reportedAt) },
+            { label: t('Due'), value: r.slaDueAt ? `${formatDateTime(r.slaDueAt)} · ${formatTimeLeft(r.slaDueAt)}` : null },
+          ]}
+        />
+      ),
+      fresh: Boolean(takenAt) && Date.now() - takenAt < 5000,
+      action: mine ? null : { label: 'Assign to me', onClick: () => take.run(r.id), disabled: take.pending || !me.data },
     }
-  })
-  const freeItems = (unassigned.data?.items ?? []).map((r) => ({
-    id: `free-${r.id}`,
-    icon: Hand,
-    tone: r.priority === 'High' ? 'warning' : undefined,
-    title: `${r.room} · ${tr(r.title)}`,
-    meta: `${r.id} · ${t('Nobody is in charge')} · ${due(r)}`,
-    badge: r.priority === 'High' ? { label: 'Urgent', tone: 'error' } : null,
-    secondary: { label: 'View', to: `/staff/maintenance/${r.id}` },
-    action: { label: 'Assign to me', onClick: () => take.run(r.id), disabled: take.pending || !me.data },
-  }))
+  }
+  const mineList = mine.data?.items ?? []
+  const freeList = unassigned.data?.items ?? []
+  // Taken here but not in "mine" yet (it is reloading): shown at the top of My work already.
+  const justTaken = freeList.filter((r) => taken.has(r.id) && !mineList.some((m) => m.id === r.id)).map((r) => ({ ...r, status: 'Assigned' }))
+  const myItems = [...justTaken, ...mineList].map((r) => requestItem(r, true))
+  const freeItems = freeList.filter((r) => !taken.has(r.id)).map((r) => requestItem(r, false))
 
   const ci = checkIns.data
   // Before the first check-in day the desk only knows how many will come (contract A-63, window UPCOMING).
@@ -189,10 +220,10 @@ export default function StaffDashboard() {
         <KpiTile icon={Gauge} label="Meter readings" value={ms ? `${formatNumber(ms.entered)} / ${formatNumber(ms.roomsDue)}` : '—'} note={period ? t('Period {label}', { label: tr(period.label) }) : null} />
       </div>
 
-      <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_360px] gap-4">
+      <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_280px] min-[1440px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_320px] gap-4">
         <Panel
           title="My work"
-          subtitle={me.data ? t('{n} requests in your charge, the most urgent first', { n: myItems.length }) : 'Requests in your charge'}
+          subtitle={me.data ? t('{n} requests · most urgent first', { n: myItems.length }) : 'Requests in your charge'}
           action={
             <Button variant="text" size="sm" to="/staff/maintenance">
               All requests
@@ -202,7 +233,7 @@ export default function StaffDashboard() {
           <QueryState query={me.data ? mine : me} compact isEmpty={() => false}>
             {() => (
               <>
-                <WorkList items={myItems} empty={<EmptyBlock icon={Wrench} title="Nothing in your charge">Take a request below, or wait for routing to give you one while you are on duty.</EmptyBlock>} />
+                <WorkList items={myItems} empty={<EmptyBlock icon={CircleCheck} title="You have nothing to do. Nice work!" className="py-6">Take a request below, or wait for routing to give you one while you are on duty.</EmptyBlock>} />
                 {freeItems.length > 0 && (
                   <>
                     <p className="pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">{t('Unassigned')}</p>

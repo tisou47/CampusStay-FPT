@@ -1,11 +1,14 @@
-import { Check } from 'lucide-react'
+import { useCallback, useRef } from 'react'
+import { Link } from 'react-router'
+import { ArrowRight, Check } from 'lucide-react'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { formatNumber } from '@/lib/format'
 import { Button } from './Button'
-import { InfoTip } from './Tooltip'
+import { InfoTip, Tooltip, Truncate, isTruncated } from './Tooltip'
 import { Meter } from './Charts'
 import { EmptyBlock } from './States'
+import { StatusBadge } from './StatusBadge'
 import { Tag } from './Tag'
 
 /*
@@ -14,53 +17,162 @@ import { Tag } from './Tag'
  * can act without opening a menu first.
  */
 
+const iconTone = { error: 'bg-error-bg text-error', warning: 'bg-warning-bg text-warning', info: 'bg-info-bg text-info', success: 'bg-success-bg text-success' }
+
+function RowIcon({ icon: Glyph, tone }) {
+  if (!Glyph) return null
+  return (
+    <span className={cx('flex size-8 shrink-0 items-center justify-center rounded-md', iconTone[tone] ?? 'bg-subtle text-fg-secondary')}>
+      <Glyph size={16} aria-hidden="true" />
+    </span>
+  )
+}
+
+/**
+ * The whole of a record for a row's tooltip: a bold first line, then label / value pairs.
+ * rows: [{ label, value }]; empty values are left out.
+ */
+export function DetailTip({ title, rows }) {
+  return (
+    <span className="flex min-w-56 flex-col gap-1.5 py-0.5">
+      <span className="font-semibold">{tx(title)}</span>
+      <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 font-normal">
+        {rows
+          .filter((r) => r.value != null && r.value !== '')
+          .map((r) => (
+            <span key={r.label} className="contents">
+              <span className="text-white/65">{tx(r.label)}</span>
+              <span className="text-white">{tx(r.value)}</span>
+            </span>
+          ))}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * A row that is a link as a whole (a request, a ticket): no "Open" button, the row opens it. Hover tints it and
+ * shows an arrow; Tab reaches it with a focus ring and Enter opens it. Its title and meta stay on one line each and
+ * are cut with "…"; when they are, hovering (300 ms), focusing or tapping the row shows `details` (or the full
+ * text). A tap on a phone then shows the details first, with an "Open details" button.
+ * `action` is a button of its own beside the link (e.g. "Take it"), never a part of it.
+ */
+function LinkRow({ item }) {
+  const titleRef = useRef(null)
+  const metaRef = useRef(null)
+  const cut = useCallback(() => isTruncated(titleRef.current) || isTruncated(metaRef.current), [])
+  const tip = item.details ?? <DetailTip title={item.title} rows={item.meta ? [{ label: '', value: item.meta }] : []} />
+  return (
+    <li className={cx('group/row -mx-2 flex items-center gap-2 rounded-md px-2 transition-colors hover:bg-primary-subtle/70', item.fresh && 'animate-row-in')}>
+      <Tooltip label={tip} when={cut} delay={300} touch action={{ to: item.to, label: t('Open details') }} align="start" block className="min-w-0 flex-1">
+        {({ describedBy }) => (
+          <Link
+            to={item.to}
+            aria-describedby={describedBy}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-md py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          >
+            <RowIcon icon={item.icon} tone={item.tone} />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="flex min-w-0 items-center gap-2">
+                <span ref={titleRef} className="min-w-0 flex-1 truncate text-base font-medium text-fg decoration-1 underline-offset-2 group-hover/row:text-fg-brand group-hover/row:underline">
+                  {tx(item.title)}
+                </span>
+                {item.status && <StatusBadge status={item.status} variant={item.statusVariant}>{item.statusLabel}</StatusBadge>}
+              </span>
+              {(item.meta || item.flags?.length > 0) && (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span ref={metaRef} className="min-w-0 flex-1 truncate text-sm text-fg-secondary">
+                    {tx(item.meta)}
+                  </span>
+                  {item.flags?.map((f) => (
+                    <StatusBadge key={f.label} variant={f.variant} dot={false} title={f.title}>
+                      {f.label}
+                    </StatusBadge>
+                  ))}
+                </span>
+              )}
+            </span>
+            <ArrowRight
+              size={14}
+              aria-hidden="true"
+              className="shrink-0 text-fg-brand opacity-0 transition-[opacity,translate] group-focus-within/row:opacity-100 group-hover/row:translate-x-0.5 group-hover/row:opacity-100"
+            />
+          </Link>
+        )}
+      </Tooltip>
+      {item.action && (
+        <Button
+          variant={item.action.primary ? 'primary' : 'default'}
+          size="sm"
+          to={item.action.to}
+          disabled={item.action.disabled}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (!item.action.to) e.preventDefault()
+            item.action.onClick?.(e)
+          }}
+        >
+          {item.action.label}
+        </Button>
+      )}
+    </li>
+  )
+}
+
+/** A row with its own buttons (a task to do: "Set codes", "Open desk"); its texts are cut with a tooltip. */
+function ActionRow({ item }) {
+  return (
+    <li className={cx('flex items-center gap-3 py-2.5', item.fresh && 'animate-row-in')}>
+      <RowIcon icon={item.icon} tone={item.tone} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <Truncate as="p" className="text-base font-medium text-fg">
+            {item.title}
+          </Truncate>
+          {item.badge && (
+            <Tag tone={item.badge.tone} dot={false}>
+              {item.badge.label}
+            </Tag>
+          )}
+        </div>
+        {item.meta && (
+          <Truncate as="p" className="text-sm text-fg-secondary">
+            {item.meta}
+          </Truncate>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        {item.secondary && (
+          <Button variant="text" size="sm" to={item.secondary.to} onClick={item.secondary.onClick}>
+            {item.secondary.label}
+          </Button>
+        )}
+        {item.action && (
+          <Button variant={item.action.primary ? 'primary' : 'default'} size="sm" to={item.action.to} onClick={item.action.onClick} disabled={item.action.disabled}>
+            {item.action.label}
+          </Button>
+        )}
+      </div>
+    </li>
+  )
+}
+
 /**
  * A list of things to do. Item: { id, icon, tone, title, meta, badge: { label, tone }, action: { label, to | onClick,
  * primary }, secondary: { label, to | onClick } }. `tone` colours the icon (error, warning, info, success).
+ * A record (request, ticket) passes `to` instead: the row is then a link (see LinkRow) with `status` (StatusBadge),
+ * `flags` ([{ label, variant }] after the meta, e.g. "2d overdue") and `details` (its tooltip); `fresh` animates a
+ * row that just arrived.
  */
 export function WorkList({ items, empty, className }) {
   if (!items.length) return empty ?? <EmptyBlock title="Nothing to do" />
-  const iconTone = { error: 'bg-error-bg text-error', warning: 'bg-warning-bg text-warning', info: 'bg-info-bg text-info', success: 'bg-success-bg text-success' }
   return (
     <ul className={cx('flex flex-col divide-y divide-line', className)}>
-      {items.map((item) => {
-        const Glyph = item.icon
-        return (
-          <li key={item.id} className="flex items-center gap-3 py-2.5">
-            {Glyph && (
-              <span className={cx('flex size-8 shrink-0 items-center justify-center rounded-md', iconTone[item.tone] ?? 'bg-subtle text-fg-secondary')}>
-                <Glyph size={16} aria-hidden="true" />
-              </span>
-            )}
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-base font-medium text-fg">{tx(item.title)}</p>
-                {item.badge && (
-                  <Tag tone={item.badge.tone} dot={false}>
-                    {item.badge.label}
-                  </Tag>
-                )}
-              </div>
-              {item.meta && <p className="truncate text-sm text-fg-secondary">{tx(item.meta)}</p>}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {item.secondary && (
-                <Button variant="text" size="sm" to={item.secondary.to} onClick={item.secondary.onClick}>
-                  {item.secondary.label}
-                </Button>
-              )}
-              {item.action && (
-                <Button variant={item.action.primary ? 'primary' : 'default'} size="sm" to={item.action.to} onClick={item.action.onClick} disabled={item.action.disabled}>
-                  {item.action.label}
-                </Button>
-              )}
-            </div>
-          </li>
-        )
-      })}
+      {items.map((item) => (item.to ? <LinkRow key={item.id} item={item} /> : <ActionRow key={item.id} item={item} />))}
     </ul>
   )
 }
+
 
 /**
  * Where a process stands, left to right. Step: { label, date, state: 'done' | 'current' | 'todo', note }. The
@@ -149,7 +261,11 @@ export function Panel({ title, tip, subtitle, action, className, bodyClassName, 
             {tx(title)}
             {tip && <InfoTip label={tip} />}
           </h2>
-          {subtitle && <p className="truncate text-sm text-fg-tertiary">{tx(subtitle)}</p>}
+          {subtitle && (
+            <Truncate as="p" className="text-sm text-fg-tertiary">
+              {subtitle}
+            </Truncate>
+          )}
         </div>
         {action}
       </div>

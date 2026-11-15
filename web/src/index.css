@@ -110,6 +110,9 @@
   --color-neutral: #75665b;
   --color-neutral-bg: #f5f0eb;
   --color-neutral-fg: #3f352e;
+  --color-progress: #7c3aed;       /* in progress (StatusBadge) */
+  --color-progress-bg: #f3effe;
+  --color-progress-fg: #5b21b6;
 
   /* ---------- Typography (Be Vietnam Pro) ---------- */
   --text-*: initial;
@@ -148,6 +151,14 @@
   --animate-slide-in-right: slide-in-right 200ms ease-out;
   --animate-pop-in: pop-in 160ms ease-out;
   --animate-toast-in: toast-in 200ms ease-out;
+  --animate-row-in: row-in 1200ms ease-out;
+
+  /* A row that just moved into a list (a request taken): it slides in, then its highlight fades. */
+  @keyframes row-in {
+    0% { opacity: 0; transform: translateY(-6px); background-color: var(--color-primary-subtle); }
+    25% { opacity: 1; transform: translateY(0); background-color: var(--color-primary-subtle); }
+    100% { background-color: transparent; }
+  }
 
   @keyframes fade-in {
     from { opacity: 0; }

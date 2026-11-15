@@ -3923,6 +3923,11 @@ const workspace = {
   "Requests in your charge": "Yêu cầu bạn đang phụ trách",
   "{n} requests in your charge, the most urgent first": "{n} yêu cầu bạn đang phụ trách, gấp nhất ở trên",
   "All requests": "Tất cả yêu cầu",
+  // Staff home: My work rows (a row opens the request; its tooltip shows the whole record)
+  "{n} requests · most urgent first": "{n} yêu cầu · gấp nhất ở trên",
+  "You have nothing to do. Nice work!": "Bạn không có việc nào. Tốt lắm!",
+  "In charge": "Người phụ trách",
+  "Open details": "Mở chi tiết",
   "Nothing in your charge": "Bạn chưa phụ trách yêu cầu nào",
   "Take a request below, or wait for routing to give you one while you are on duty.": "Hãy nhận một yêu cầu bên dưới, hoặc chờ hệ thống phân công khi bạn đang trực.",
   "Your block today": "Tòa của bạn hôm nay",

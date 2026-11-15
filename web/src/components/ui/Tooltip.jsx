@@ -1,32 +1,43 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CircleHelp } from 'lucide-react'
-import { tx } from '@/i18n'
+import { Link } from 'react-router'
+import { ArrowRight, CircleHelp } from 'lucide-react'
+import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
 const GAP = 8 // between the anchor and the bubble
 const EDGE = 8 // kept free at the window's edges
 const SHOW_DELAY = 120
 
+/** True when an element's text is cut by its width (text-overflow: ellipsis). */
+export const isTruncated = (el) => Boolean(el) && el.scrollWidth > el.clientWidth + 1
+
 /**
  * Small dark tooltip shown on hover and keyboard focus of its child.
  * The bubble is drawn in a portal with fixed positioning, so tables, drawers and scrolling panels never clip it;
  * it flips to the other side when there is no room and stays inside the window.
  * side: where the bubble sits ("top" | "bottom"); align: which edge it lines up with ("center" | "start" | "end").
- * title: optional bold first line, label then reads as the explanation below it.
+ * title: optional bold first line, label then reads as the explanation below it (label may be any node).
+ * delay: ms of hovering before it shows. when(): checked before showing (e.g. only when the text is cut).
+ * touch: on a touch screen a tap opens it as a popover (the tap does not follow the link it sits in), a tap
+ *   outside closes it; `action` ({ label, to }) then adds a button, e.g. "Open details".
+ * block: the anchor is a flex box taking its width (for a row's text) instead of an inline box.
+ * label may be a function, read when the tooltip opens; children may be a function of { describedBy }.
  */
-export function Tooltip({ label, title, children, side = 'top', align = 'center', className, bubbleClassName }) {
+export function Tooltip({ label, title, children, side = 'top', align = 'center', delay = SHOW_DELAY, when, touch = false, action, block = false, className, bubbleClassName }) {
   const anchor = useRef(null)
   const bubble = useRef(null)
   const timer = useRef(null)
+  const pointer = useRef('mouse')
   const id = useId()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false) // false | 'hover' | 'touch'
   const [pos, setPos] = useState(null)
 
+  const allowed = useCallback(() => (when ? when() : true), [when])
   const show = useCallback(() => {
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => setOpen(true), SHOW_DELAY)
-  }, [])
+    timer.current = setTimeout(() => allowed() && setOpen((o) => o || 'hover'), delay)
+  }, [allowed, delay])
   const hide = useCallback(() => {
     clearTimeout(timer.current)
     setOpen(false)
@@ -49,7 +60,8 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
       const top = s === 'top' ? a.top - b.height - GAP : a.bottom + GAP
       let left = align === 'start' ? a.left - 4 : align === 'end' ? a.right - b.width + 4 : a.left + a.width / 2 - b.width / 2
       left = Math.min(Math.max(left, EDGE), vw - b.width - EDGE)
-      const arrow = Math.min(Math.max(a.left + a.width / 2 - left, 12), b.width - 12)
+      const arrowAt = align === 'start' ? Math.min(a.left + 16, a.right) : a.left + a.width / 2
+      const arrow = Math.min(Math.max(arrowAt - left, 12), b.width - 12)
       setPos({ top, left, side: s, arrow })
     }
     place()
@@ -61,27 +73,50 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
     }
   }, [open, side, align, label, title])
 
-  // Escape closes it, as on any tooltip.
+  // Escape closes it, as on any tooltip; a tap outside closes the touch popover.
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => e.key === 'Escape' && hide()
+    const onDown = (e) => {
+      if (anchor.current?.contains(e.target) || bubble.current?.contains(e.target)) return
+      hide()
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    if (open === 'touch') document.addEventListener('pointerdown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onDown)
+    }
   }, [open, hide])
 
-  if (!label && !title) return children
+  // children may be a function of { describedBy }, to put aria-describedby on the element that takes focus.
+  const describedBy = open ? id : undefined
+  const content = typeof children === 'function' ? children({ describedBy }) : children
+  if (!label && !title) return content
+  const interactive = open === 'touch'
+  const text = typeof label === 'function' ? (open ? label() : null) : label
   return (
     <span
       ref={anchor}
-      className={cx('relative inline-flex', className)}
+      className={cx(block ? 'relative flex min-w-0' : 'relative inline-flex', className)}
       onPointerEnter={(e) => e.pointerType !== 'touch' && show()}
-      onPointerLeave={hide}
+      onPointerLeave={(e) => e.pointerType !== 'touch' && hide()}
       onFocus={(e) => e.target.matches?.(':focus-visible') && show()}
-      onBlur={hide}
-      onPointerDown={hide}
-      aria-describedby={open ? id : undefined}
+      onBlur={(e) => !interactive && !anchor.current?.contains(e.relatedTarget) && hide()}
+      onPointerDown={(e) => {
+        pointer.current = e.pointerType
+        if (e.pointerType !== 'touch') hide()
+      }}
+      onClickCapture={(e) => {
+        // A tap on cut text shows the whole of it first; the link it sits in opens from the popover's button.
+        if (!touch || pointer.current !== 'touch' || open === 'touch' || !allowed()) return
+        e.preventDefault()
+        e.stopPropagation()
+        setOpen('touch')
+      }}
+      aria-describedby={typeof children === 'function' ? undefined : describedBy}
     >
-      {children}
+      {content}
       {open &&
         createPortal(
           <span
@@ -90,8 +125,9 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
             role="tooltip"
             style={pos ? { top: pos.top, left: pos.left } : { top: -9999, left: -9999 }}
             className={cx(
-              'pointer-events-none fixed z-[1000] w-max max-w-80 rounded-lg bg-gray-900 px-2.5 py-1.5 text-left text-sm font-medium whitespace-normal text-white shadow-dropdown',
+              'fixed z-[1000] w-max max-w-80 rounded-lg bg-gray-900 px-2.5 py-1.5 text-left text-sm font-medium whitespace-normal text-white shadow-dropdown',
               'transition-[opacity,translate] duration-150',
+              interactive ? 'pointer-events-auto' : 'pointer-events-none',
               pos ? 'translate-y-0 opacity-100' : 'opacity-0',
               bubbleClassName,
             )}
@@ -99,10 +135,20 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
             {title ? (
               <span className="flex flex-col gap-0.5">
                 <span className="font-semibold">{tx(title)}</span>
-                {label && <span className="font-normal text-white/80">{tx(label)}</span>}
+                {text && <span className="font-normal text-white/80">{tx(text)}</span>}
               </span>
             ) : (
-              tx(label)
+              tx(text)
+            )}
+            {interactive && action?.to && (
+              <Link
+                to={action.to}
+                onClick={hide}
+                className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                {tx(action.label ?? t('Open details'))}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
             )}
             {pos && (
               <span
@@ -115,6 +161,23 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
           document.body,
         )}
     </span>
+  )
+}
+
+/**
+ * One line of text cut with "…" when it does not fit; hovering it for 300 ms, focusing it or tapping it shows the
+ * whole text (or `tip`), and only when it really is cut. `as` picks the element (span by default).
+ */
+export function Truncate({ children, tip, as: Tag = 'span', side = 'top', align = 'start', className, tipClassName }) {
+  const ref = useRef(null)
+  const when = useCallback(() => isTruncated(ref.current), [])
+  const content = tip ?? children
+  return (
+    <Tooltip label={content} when={when} delay={300} touch side={side} align={align} block className={tipClassName}>
+      <Tag ref={ref} className={cx('min-w-0 truncate', className)}>
+        {tx(children)}
+      </Tag>
+    </Tooltip>
   )
 }
 

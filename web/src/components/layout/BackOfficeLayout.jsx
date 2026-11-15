@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -8,7 +8,7 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
-import { InfoTip, Tooltip } from '@/components/ui/Tooltip'
+import { InfoTip, Tooltip, isTruncated } from '@/components/ui/Tooltip'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
@@ -22,6 +22,45 @@ import { campusToday } from '@/lib/format'
 // Back-office shell (Change Specification v2 §11): the FPT-orange band across the top carries the logo, the Term
 // and Block scope, search (pages and records), language and notifications; below it a 248 px menu grouped by the
 // work it belongs to.
+/**
+ * The signed-in person at the foot of the sidebar. A long name or job title is cut with "…"; the tooltip then shows
+ * both in full, otherwise it says the link opens My profile.
+ */
+function ProfileLink({ to, current, name, title, avatar }) {
+  const nameRef = useRef(null)
+  const titleRef = useRef(null)
+  const label = useCallback(
+    () =>
+      isTruncated(nameRef.current) || isTruncated(titleRef.current) ? (
+        <span className="flex flex-col">
+          <span className="font-semibold">{name}</span>
+          <span className="font-normal text-white/80">{title}</span>
+        </span>
+      ) : (
+        t('My profile')
+      ),
+    [name, title],
+  )
+  return (
+    <Tooltip label={label} delay={300} align="start" block className="mr-1 min-w-0 flex-1">
+      {({ describedBy }) => (
+        <Link
+          to={to}
+          aria-current={current ? 'page' : undefined}
+          aria-describedby={describedBy}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-subtle focus-visible:outline-2 focus-visible:outline-focus aria-[current=page]:bg-primary-subtle"
+        >
+          {avatar}
+          <div className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
+            <span ref={nameRef} className="truncate text-base font-medium text-fg">{name}</span>
+            <span ref={titleRef} className="truncate text-sm text-fg-tertiary">{title}</span>
+          </div>
+        </Link>
+      )}
+    </Tooltip>
+  )
+}
+
 function Sidebar({ role }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -61,18 +100,7 @@ function Sidebar({ role }) {
         </nav>
       </div>
       <div className="flex items-center gap-0.5 border-t border-line px-2.5 py-3">
-        <Link
-          to={`/${role}/profile`}
-          aria-current={pathname === `/${role}/profile` ? 'page' : undefined}
-          title={t('My profile')}
-          className="mr-1 flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-subtle aria-[current=page]:bg-primary-subtle"
-        >
-          <Avatar name={user?.name} />
-          <div className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
-            <span className="truncate text-base font-medium text-fg">{user?.name ?? t('Not signed in')}</span>
-            <span className="truncate text-sm text-fg-tertiary">{tx(user?.title) || t(config.roleTitle)}</span>
-          </div>
-        </Link>
+        <ProfileLink to={`/${role}/profile`} current={pathname === `/${role}/profile`} name={user?.name ?? t('Not signed in')} title={tx(user?.title) || t(config.roleTitle)} avatar={<Avatar name={user?.name} />} />
         {/* Staff and Managers see their shift here; Admins have no shift and keep the password shortcut
             (everyone can also change it on My profile). */}
         {role === 'admin' ? (
