@@ -135,6 +135,7 @@ function VerificationBanner() {
 // One-screen shell: the window never scrolls; each page fills the area under the top bar.
 // On a phone the App Bar and Bottom Nav stay in place and the page scrolls between them.
 export function StudentLayout() {
+  const { user } = useSession()
   return (
     <MobileBarProvider>
       <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
