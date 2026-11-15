@@ -58,7 +58,7 @@ export default function SendEmail() {
   const send = useMutation(() => api.admin.emails.send({ ...recipients, channel: form.channel, sendAt: form.sendAt }), {
     onSuccess: (res) => {
       setConfirming(false)
-      notify({ title: form.sendAt === 'now' ? 'Email queued' : 'Email scheduled', message: t('{n} recipients. Written to the Audit Log.', { n: formatNumber(res?.queued ?? count) }) })
+      notify({ title: form.sendAt === 'now' ? 'Email queued' : 'Email scheduled', message: t('{n} recipients. Written to the audit log.', { n: formatNumber(res?.queued ?? count) }) })
     },
     onError: () => {},
   })
@@ -70,7 +70,7 @@ export default function SendEmail() {
     <ConfigPage
       form={form_}
       title="Send email"
-      description="Send a template to one Student or to a filtered group. Every send is written to the Audit Log."
+      description="Send a template to one student or to a filtered group. Every send is written to the audit log."
       actions={
         <>
           <Button to="/admin/notifications">Templates</Button>
@@ -85,7 +85,7 @@ export default function SendEmail() {
           <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
             <h2 className="text-h3 font-semibold text-fg">{t('Recipients')}</h2>
             <div className="flex gap-6" role="radiogroup" aria-label={t('Recipients')}>
-              <Radio name="mode" label="One Student" checked={form.mode === 'one'} onChange={() => setForm((f) => ({ ...f, mode: 'one' }))} />
+              <Radio name="mode" label="One student" checked={form.mode === 'one'} onChange={() => setForm((f) => ({ ...f, mode: 'one' }))} />
               <Radio name="mode" label="Bulk by filter" checked={form.mode === 'bulk'} onChange={() => setForm((f) => ({ ...f, mode: 'bulk' }))} />
             </div>
             {form.mode === 'one' ? (
@@ -104,7 +104,7 @@ export default function SendEmail() {
                 </div>
                 <div className="flex gap-4">
                   <Field label="Block" className="flex-1">
-                    {(id) => <Select id={id} value={form.block} onChange={set('block')} options={[{ value: '', label: 'All Blocks' }, ...(o.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
+                    {(id) => <Select id={id} value={form.block} onChange={set('block')} options={[{ value: '', label: 'All blocks' }, ...(o.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
                   </Field>
                   <Field label="Gender" className="flex-1">
                     {(id) => <Select id={id} value={form.gender} onChange={set('gender')} options={[{ value: '', label: 'All' }, ...(o.genders ?? [])]} />}
@@ -113,7 +113,7 @@ export default function SendEmail() {
               </>
             )}
             <div className="flex items-center justify-between text-base">
-              <span className="text-fg-secondary">{t('Matching Students')}</span>
+              <span className="text-fg-secondary">{t('Matching students')}</span>
               <span className="flex items-center gap-2 font-medium text-fg tabular">
                 {preview.loading && <Spinner size={16} />}
                 {ready ? formatNumber(count) : '—'}
@@ -165,7 +165,7 @@ export default function SendEmail() {
                 ))}
               </div>
             ) : (
-              <p className="text-base text-fg-secondary">{t('No Student matches these filters.')}</p>
+              <p className="text-base text-fg-secondary">{t('No student matches these filters.')}</p>
             )}
             <p className="text-sm text-fg-tertiary">{t('Bulk sends are queued and delivered in batches. Students who unsubscribed from email still get the in-app notification.')}</p>
           </Card>
@@ -174,7 +174,7 @@ export default function SendEmail() {
       <Modal
         open={confirming}
         onClose={() => setConfirming(false)}
-        title={t(count === 1 ? 'Send to {n} Student?' : 'Send to {n} Students?', { n: formatNumber(count) })}
+        title={t(count === 1 ? 'Send to {n} student?' : 'Send to {n} students?', { n: formatNumber(count) })}
         description="You cannot recall an email once it is delivered."
         footer={
           <>

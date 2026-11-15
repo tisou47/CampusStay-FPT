@@ -100,7 +100,7 @@ export default function OpenRequests({ termId }) {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={ClipboardList} emptyTitle="No open next-Term requests" emptyText="Every request of this window is decided." />
+          <TableStatus query={query} colSpan={7} emptyIcon={ClipboardList} emptyTitle="No open next-term requests" emptyText="Every request of this window is decided." />
           {items.map((r) => (
             <Tr key={key(r)} selected={selected.has(key(r))} className="[&>td]:h-13">
               <Td onClick={stop}>
@@ -119,7 +119,7 @@ export default function OpenRequests({ termId }) {
               <Td>
                 <span className="flex items-center gap-2">
                   {t(kindLabels[r.kind] ?? r.kind)}
-                  {r.crossBlock && <Tag tone="info">Cross-Block</Tag>}
+                  {r.crossBlock && <Tag tone="info">Cross-block</Tag>}
                 </span>
               </Td>
               <Td>
@@ -161,7 +161,7 @@ export default function OpenRequests({ termId }) {
         {decide.error && <Alert type="error" title="Could not decide">{decide.error.details?.fields?.reason ?? decide.error.message}</Alert>}
         {deciding === 'Approved' ? (
           <p className="text-base text-fg-secondary">
-            {t('Each request is decided on its own. A room change gets the first matching free Bed you may give; a Room Class change needs every consent first. Requests that cannot be approved are listed afterwards.')}
+            {t('Each request is decided on its own. A room change gets the first matching free bed you may give; a room tier change needs every consent first. Requests that cannot be approved are listed afterwards.')}
           </p>
         ) : (
           <Field label="Why (the students see it)" required>

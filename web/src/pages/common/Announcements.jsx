@@ -13,7 +13,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, fromDateTimeInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { DateTimeInput } from '@/components/ui/DatePicker'
 
@@ -53,7 +53,7 @@ function NewAnnouncement({ options, onClose }) {
         title: form.title.trim(),
         body: form.body.trim(),
         pinned: form.pinned,
-        shownUntil: form.shownUntil ? new Date(form.shownUntil).toISOString() : null,
+        shownUntil: form.shownUntil ? fromDateTimeInput(form.shownUntil) : null,
       }),
     {
       invalidates: ['announcements'],
@@ -152,7 +152,7 @@ export default function Announcements() {
     <>
       <PageHeader
         title="Announcements"
-        description="News on the students' board: written here, and by the system for every published Term and every money or policy change."
+        description="News on the students' board: written here, and by the system for every published term and every money or policy change."
         actions={
           <Button variant="primary" icon={Plus} disabled={!options.data} onClick={() => setWriting(true)}>
             New announcement

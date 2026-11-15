@@ -71,7 +71,7 @@ function LateDecision({ req }) {
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
         title: decision === 'Approved' ? 'Late check-in approved' : 'Late check-in rejected',
-        message: decision === 'Approved' ? t('{name} can check in until {date}.', { name: req.name, date: formatDate(deadline) }) : t('{name}’s Allocation is released if they do not arrive.', { name: req.name }),
+        message: decision === 'Approved' ? t('{name} can check in until {date}.', { name: req.name, date: formatDate(deadline) }) : t('{name}’s allocation is released if they do not arrive.', { name: req.name }),
       }),
     onError: (e) => notifyError(e, 'Could not save the decision'),
   },
@@ -86,7 +86,7 @@ function LateDecision({ req }) {
       </div>
       <dl className="flex flex-col gap-3">
         <Row label="Requested date">{formatDate(req.requestedFor)}</Row>
-        <Row label="Balance + Utility Deposit">
+        <Row label="Balance + utility deposit">
           <span className={cx(!req.paid && 'text-error-fg')}>{tr(req.payment)}</span>
         </Row>
         <Row label="Evidence">
@@ -110,7 +110,7 @@ function LateDecision({ req }) {
           {!req.paid && (
             <Field
               label="Balance deadline"
-              error={balanceTooLate ? 'The Balance is paid before check-in: choose a day up to the new check-in deadline.' : undefined}
+              error={balanceTooLate ? 'The balance is paid before check-in: choose a day up to the new check-in deadline.' : undefined}
               helper={
                 req.balanceDueAt
                   ? t('Now due {date}. Leave it empty to keep it, or choose a later day up to the new check-in deadline.', { date: formatDateTime(req.balanceDueAt) })
@@ -134,7 +134,7 @@ function LateDecision({ req }) {
               {(id) => <Textarea id={id} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}
             </Field>
           )}
-          <Note>Approval only extends the window. The Student still checks in at the desk, and payment must be complete first.</Note>
+          <Note>Approval only extends the window. The student still checks in at the desk, and payment must be complete first.</Note>
           <div className="flex justify-end gap-2">
             <Button variant="danger" onClick={() => (rejecting ? decide.run('Rejected') : setRejecting(true))} disabled={(rejecting && !reason.trim()) || decide.pending}>
               {rejecting ? t('Confirm reject') : t('Reject')}
@@ -203,14 +203,14 @@ function SwapsTab() {
         {(data) =>
           !data.items?.length ? (
             <Card padding="none" className="flex flex-1 flex-col">
-              <EmptyBlock icon={Repeat} title="No cross-Block swaps are waiting" />
+              <EmptyBlock icon={Repeat} title="No cross-block swaps are waiting" />
             </Card>
           ) : (
             data.items.map((s) => (
               <Card key={s.id} className="flex shrink-0 flex-col gap-3">
                 <div className="flex flex-col gap-0.5">
-                  <h2 className="text-h3 font-semibold text-fg">{s.id} · {t('Cross-Block swap')}</h2>
-                  <p className="text-sm text-fg-secondary">{t('Both Students agreed on {date}', { date: formatDate(s.agreedAt) })}</p>
+                  <h2 className="text-h3 font-semibold text-fg">{s.id} · {t('Cross-block swap')}</h2>
+                  <p className="text-sm text-fg-secondary">{t('Both students agreed on {date}', { date: formatDate(s.agreedAt) })}</p>
                 </div>
                 <dl className="flex max-w-xl flex-col gap-3">
                   <Row label={`${s.a.name} · ${s.a.studentCode}`}>
@@ -285,13 +285,13 @@ export default function Approvals({ tab: routeTab = 'late-check-in' }) {
 
   return (
     <>
-      <PageHeader title="Decisions" description="Late check-ins, cross-Block swaps and refunds waiting for a Manager." />
+      <PageHeader title="Decisions" description="Late check-ins, cross-block swaps and refunds waiting for a manager." />
       <Tabs
         className="shrink-0"
         value={tab}
         items={[
           { key: 'late-check-in', label: label('Late check-in', c.lateCheckIn), to: '/manager/approvals' },
-          { key: 'swaps', label: label('Cross-Block swaps', c.swaps), to: '/manager/approvals?tab=swaps' },
+          { key: 'swaps', label: label('Cross-block swaps', c.swaps), to: '/manager/approvals?tab=swaps' },
           { key: 'refunds', label: label('Refunds', c.refunds), to: '/manager/approvals?tab=refunds' },
         ]}
       />

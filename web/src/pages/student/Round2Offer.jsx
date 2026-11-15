@@ -39,7 +39,7 @@ function Offer({ offer }) {
         navigate(result?.balanceInvoiceId ? `/student/invoices/${result.balanceInvoiceId}/pay` : '/student/room')
       } else {
         setDeclining(false)
-        notify({ type: 'info', title: 'Refund requested', message: t('{id} is cancelled. The deposit is refunded after Manager approval.', { id: app.id }) })
+        notify({ type: 'info', title: 'Refund requested', message: t('{id} is cancelled. The deposit is refunded after manager approval.', { id: app.id }) })
         navigate('/student')
       }
     },
@@ -50,13 +50,13 @@ function Offer({ offer }) {
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <Alert type="info" title="You were not placed in Round 1" className="shrink-0">
-          {t('No {type} {cls} Room could be filled with matching roommates. Your deposit stays with this Application.', { type: tr(app.roomTypeName), cls: tr(app.roomClassName) })}
+          {t('No {type} {cls} room could be filled with matching roommates. Your deposit stays with this application.', { type: tr(app.roomTypeName), cls: tr(app.roomClassName) })}
         </Alert>
 
         <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Pick a free Bed in a partly filled Room')}</h2>
-            <p className="text-base text-fg-secondary">{t('Offers are held until {date}. You choose a Room Type and Class; the system picks the Bed.', { date: formatDateTime(offer.expiresAt) })}</p>
+            <h2 className="text-h3 font-semibold text-fg">{t('Pick a free bed in a partly filled room')}</h2>
+            <p className="text-base text-fg-secondary">{t('Offers are held until {date}. You choose a room type and tier; the system picks the bed.', { date: formatDateTime(offer.expiresAt) })}</p>
           </div>
           <Table fill>
             <THead>
@@ -64,7 +64,7 @@ function Offer({ offer }) {
                 <Th className="w-11.5">
                   <span className="sr-only">{t('Select')}</span>
                 </Th>
-                <Th>Room Type and Class</Th>
+                <Th>Room type and tier</Th>
                 <Th className="w-33">Room fill</Th>
                 <Th className="w-38">Term price</Th>
                 <Th className="w-38">Difference</Th>
@@ -102,7 +102,7 @@ function Offer({ offer }) {
             </TBody>
           </Table>
           <p className="shrink-0 text-sm text-fg-tertiary">
-            {t('The difference is added to or taken from your balance. If you decline or do not reply, the Application is cancelled and your deposit is refunded after Manager approval.')}
+            {t('The difference is added to or taken from your balance. If you decline or do not reply, the application is cancelled and your deposit is refunded after manager approval.')}
           </p>
         </Card>
 
@@ -110,7 +110,7 @@ function Offer({ offer }) {
           <Button tip="Give up this offer and ask for your deposit back under the refund rules." variant="danger" size="lg" onClick={() => setDeclining(true)} disabled={respond.pending}>
             Decline and request refund
           </Button>
-          <Button tip="Choose a Bed first. It then becomes yours for this Term." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={!selected || respond.pending}>
+          <Button tip="Choose a bed first. It then becomes yours for this term." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={!selected || respond.pending}>
             Accept offer
           </Button>
         </div>
@@ -153,7 +153,7 @@ function Offer({ offer }) {
         }
       >
         <p className="text-base text-fg-secondary">
-          {t('Your deposit of {amount} is refunded in full to the account below after a Manager approves. You cannot apply again for {term}.', { amount: formatVnd(app.depositPaid), term: offer.termName ?? t('this Term') })}
+          {t('Your deposit of {amount} is refunded in full to the account below after a manager approves. You cannot apply again for {term}.', { amount: formatVnd(app.depositPaid), term: offer.termName ?? t('this term') })}
         </p>
         {app.depositPaid > 0 && <RefundAccountFields draft={account.draft} setDraft={account.setDraft} error={account.error} disabled={account.saving} unchanged={account.unchanged} />}
       </Modal>
@@ -172,7 +172,7 @@ export default function Round2Offer() {
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : !offer ? (
         <EmptyBlock icon={Bed} title="No Round 2 offer" action={<Button to="/student/applications">My applications</Button>}>
-          Round 2 offers go to Students who were not placed in Round 1.
+          Round 2 offers go to students who were not placed in Round 1.
         </EmptyBlock>
       ) : (
         <Offer offer={offer} />

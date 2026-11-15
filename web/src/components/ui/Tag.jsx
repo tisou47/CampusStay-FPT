@@ -1,5 +1,6 @@
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { formatDateTime, formatTimeLeft } from '@/lib/format'
 
 // Figma: 02 Components › Tag (status). Pill with a 6 px dot in the status solid colour.
 const tones = {
@@ -146,13 +147,10 @@ export function SlaBadge({ dueAt, done = false, warnHours = 4, className }) {
   if (!dueAt || done) return null
   const hours = (new Date(dueAt).getTime() - Date.now()) / 3_600_000
   const late = hours < 0
-  const abs = Math.abs(hours)
-  const n = abs >= 48 ? Math.floor(abs / 24) : late ? Math.max(1, Math.floor(abs)) : Math.max(1, Math.ceil(abs))
-  const unit = abs >= 48 ? 'd' : 'h'
-  const text = late ? t(`{n} ${unit} overdue`, { n }) : t(`{n} ${unit} left`, { n })
+  const text = formatTimeLeft(dueAt)
   return (
     <Tag tone={late ? 'error' : hours <= warnHours ? 'warning' : 'success'} className={className}>
-      <span title={new Date(dueAt).toLocaleString()}>{text}</span>
+      <span title={formatDateTime(dueAt)}>{text}</span>
     </Tag>
   )
 }

@@ -32,8 +32,8 @@ function ConfirmModal({ term, rooms, roomClass, onClose, onDone }) {
     invalidates: ['room-classes', 'inventory'],
     onSuccess: (res) => {
       notify({
-        title: t(res?.changed === 1 ? '{n} Room set to {roomClass}' : '{n} Rooms set to {roomClass}', { n: formatNumber(res?.changed ?? 0), roomClass: tr(roomClass.name) }),
-        message: res?.unchanged ? t(res.unchanged === 1 ? '{n} Room already had this Room Class.' : '{n} already had this Room Class.', { n: formatNumber(res.unchanged) }) : 'Next-Term prices use the new Room Class.',
+        title: t(res?.changed === 1 ? '{n} room set to {roomClass}' : '{n} rooms set to {roomClass}', { n: formatNumber(res?.changed ?? 0), roomClass: tr(roomClass.name) }),
+        message: res?.unchanged ? t(res.unchanged === 1 ? '{n} room already had this room tier.' : '{n} already had this room tier.', { n: formatNumber(res.unchanged) }) : 'Next-term prices use the new room tier.',
       })
       onDone()
     },
@@ -43,20 +43,20 @@ function ConfirmModal({ term, rooms, roomClass, onClose, onDone }) {
     <Modal
       open
       onClose={onClose}
-      title={t(rooms.length === 1 ? 'Set {n} Room to {roomClass}' : 'Set {n} Rooms to {roomClass}', { n: formatNumber(rooms.length), roomClass: tr(roomClass.name) })}
-      description={t('From {term} on. Rooms keep this class in later Terms until another one is set.', { term: term.name })}
+      title={t(rooms.length === 1 ? 'Set {n} room to {roomClass}' : 'Set {n} rooms to {roomClass}', { n: formatNumber(rooms.length), roomClass: tr(roomClass.name) })}
+      description={t('From {term} on. Rooms keep this class in later terms until another one is set.', { term: term.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Layers} onClick={() => save.run()} disabled={save.pending}>
-            Set Room Class
+            Set room tier
           </Button>
         </>
       }
     >
-      {save.error && <Alert type="error" title="Could not set the Room Class">{save.error.message}</Alert>}
+      {save.error && <Alert type="error" title="Could not set the room tier">{save.error.message}</Alert>}
       <p className="text-base text-fg-secondary">{rooms.slice(0, 12).join(', ')}{rooms.length > 12 ? ` ${t('and {n} more', { n: rooms.length - 12 })}` : ''}</p>
-      <Alert title="Check the furniture">Each Room must have the furniture its Room Class requires before the Term starts. Plan the moves in Furniture.</Alert>
+      <Alert title="Check the furniture">Each room must have the furniture its room tier requires before the term starts. Plan the moves in furniture.</Alert>
     </Modal>
   )
 }
@@ -102,7 +102,7 @@ export default function RoomClassesByTerm() {
 
   return (
     <>
-      <PageHeader title="Room Classes by Term" description="The Room Class of every Room for a Term. A class set for a Term stays for the Terms after it." />
+      <PageHeader title="Room tiers by term" description="The room tier of every room for a term. A class set for a term stays for the terms after it." />
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <Select
           wrapperClassName="w-60"
@@ -121,10 +121,10 @@ export default function RoomClassesByTerm() {
         />
         <Select
           wrapperClassName="w-48"
-          aria-label={t('Room Class')}
+          aria-label={t('Room tier')}
           value={roomClassId}
           onChange={filterChange(setRoomClassId)}
-          options={[{ value: '', label: t('{label}: All', { label: t('Room Class') }) }, ...(d?.roomClasses ?? []).map((c) => ({ value: c.id, label: `${t('Room Class')}: ${tr(c.name)}` }))]}
+          options={[{ value: '', label: t('{label}: All', { label: t('Room tier') }) }, ...(d?.roomClasses ?? []).map((c) => ({ value: c.id, label: `${t('Room tier')}: ${tr(c.name)}` }))]}
         />
         <Select
           wrapperClassName="w-52"
@@ -148,11 +148,11 @@ export default function RoomClassesByTerm() {
         </div>
       </div>
 
-      {d?.note && <Alert title={term ? 'This Term is running' : 'No Term yet'}>{tr(d.note)}</Alert>}
+      {d?.note && <Alert title={term ? 'This term is running' : 'No Term yet'}>{tr(d.note)}</Alert>}
       {editable && selected.length > 0 && (
         <Card className="flex shrink-0 flex-wrap items-center gap-3" padding="sm">
-          <span className="text-base font-medium text-fg">{t(selected.length === 1 ? '{n} Room selected' : '{n} Rooms selected', { n: formatNumber(selected.length) })}</span>
-          <Field label="New Room Class" className="w-56">
+          <span className="text-base font-medium text-fg">{t(selected.length === 1 ? '{n} room selected' : '{n} rooms selected', { n: formatNumber(selected.length) })}</span>
+          <Field label="New room tier" className="w-56">
             {(id) => (
               <Select id={id} value={target} onChange={(e) => setTarget(e.target.value)} options={[{ value: '', label: 'Choose…' }, ...(d?.roomClasses ?? []).map((c) => ({ value: c.id, label: tr(c.name) }))]} />
             )}
@@ -160,7 +160,7 @@ export default function RoomClassesByTerm() {
           <span className="flex-1" />
           <Button onClick={() => setSelected([])}>Clear selection</Button>
           <Button variant="primary" icon={Layers} onClick={() => setConfirming(true)} disabled={!chosenClass}>
-            Set Room Class
+            Set room tier
           </Button>
         </Card>
       )}
@@ -176,14 +176,14 @@ export default function RoomClassesByTerm() {
               )}
               <Th className="w-28">Room</Th>
               <Th className="w-20">Floor</Th>
-              <Th className="w-24">Room Type</Th>
-              <Th className="w-64">Room Class</Th>
+              <Th className="w-24">Room type</Th>
+              <Th className="w-64">Room tier</Th>
               <Th>Furniture</Th>
               <Th className="w-44">Change</Th>
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={editable ? 7 : 6} rows={items} emptyIcon={Layers} emptyTitle="No Rooms match these filters" />
+            <TableStatus query={query} colSpan={editable ? 7 : 6} rows={items} emptyIcon={Layers} emptyTitle="No rooms match these filters" />
             {items.map((r) => {
               const changed = r.previousClass && r.previousClass !== r.roomClass
               const c = r.conformance
@@ -201,7 +201,7 @@ export default function RoomClassesByTerm() {
                     <div className="flex flex-wrap items-center gap-2">
                       {changed && <span className="text-sm text-fg-tertiary line-through">{tr(r.previousClass)}</span>}
                       <span className="font-medium text-fg">{tr(r.roomClass)}</span>
-                      {r.setForTerm && <Tag tone="info" dot={false}>Set for this Term</Tag>}
+                      {r.setForTerm && <Tag tone="info" dot={false}>Set for this term</Tag>}
                     </div>
                   </Td>
                   <Td>

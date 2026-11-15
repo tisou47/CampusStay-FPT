@@ -30,8 +30,8 @@ export default function OccupancyReport() {
   return (
     <>
       <PageHeader
-        title="Occupancy Report"
-        description={`${t('Allocated Beds out of capacity')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
+        title="Occupancy report"
+        description={`${t('Allocated beds out of capacity')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
             Export .xlsx
@@ -39,13 +39,13 @@ export default function OccupancyReport() {
         }
       />
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Capacity" value={s ? t('{n} Beds', { n: formatNumber(s.capacity) }) : '—'} note={s ? t('{rooms} Rooms in {blocks} Blocks', { rooms: formatNumber(s.rooms), blocks: s.blocks }) : null} />
+        <KpiTile size="md" label="Capacity" value={s ? t('{n} beds', { n: formatNumber(s.capacity) }) : '—'} note={s ? t('{rooms} rooms in {blocks} blocks', { rooms: formatNumber(s.rooms), blocks: s.blocks }) : null} />
         <KpiTile size="md" label="Allocated" value={formatNumber(s?.allocated)} note={s?.capacity ? t('{p} of capacity', { p: formatPercent(s.allocated / s.capacity) }) : null} />
         <KpiTile size="md" label="Checked in" value={formatNumber(s?.checkedIn)} note={s ? t('{n} not yet arrived', { n: formatNumber(s.notArrived) }) : null} />
         <KpiTile size="md" label="Waitlisted" value={formatNumber(s?.waitlisted)} note={s?.waitlistNote} />
       </div>
       <div className="flex shrink-0 items-start justify-between">
-        <h2 className="text-h3 font-semibold text-fg">{t('Allocated / capacity by Room Type and Room Class')}</h2>
+        <h2 className="text-h3 font-semibold text-fg">{t('Allocated / capacity by room type and room tier')}</h2>
         {d?.note && <span className="text-sm text-fg-tertiary">{tr(d.note)}</span>}
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-auto rounded-lg border border-line bg-surface">
@@ -58,7 +58,7 @@ export default function OccupancyReport() {
                     {t('Block')}
                   </th>
                   <th scope="col" className="w-28 border-b border-line px-3 py-2 text-left font-medium">
-                    {t('Room Type')}
+                    {t('Room type')}
                   </th>
                   {data.roomClasses.map((c) => (
                     <th key={c} scope="col" className="border-b border-line px-3 py-2 text-right font-medium">

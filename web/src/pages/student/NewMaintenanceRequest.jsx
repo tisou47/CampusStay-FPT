@@ -20,7 +20,7 @@ import { typeName } from '@/lib/furniture'
 //   photos[] → { id }
 const MAX_DESCRIPTION = 1000
 const MAX_PHOTOS = 3
-const nextSteps = ['Submitted', 'Assigned to Staff', 'In progress', 'Resolved', 'You confirm the fix']
+const nextSteps = ['Submitted', 'Assigned to staff', 'In progress', 'Resolved', 'You confirm the fix']
 
 export default function NewMaintenanceRequest() {
   const navigate = useNavigate()
@@ -85,11 +85,11 @@ export default function NewMaintenanceRequest() {
               </Alert>
             )}
             {!a && allocation.data && (
-              <Alert type="warning" title="You have no Room this Term">
-                Maintenance requests are for the Room you live in.
+              <Alert type="warning" title="You have no room this term">
+                Maintenance requests are for the room you live in.
               </Alert>
             )}
-            <Field label="Location" helper="Filled in from your Allocation.">
+            <Field label="Location" helper="Filled in from your allocation.">
               <StaticField size="lg" className="text-fg-disabled">
                 {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), tr(a.floor)].filter(Boolean).join(' · ') : '—'}
               </StaticField>
@@ -107,7 +107,7 @@ export default function NewMaintenanceRequest() {
                   />
                 )}
               </Field>
-              <Field label="Where in the Room" className="flex-1">
+              <Field label="Where in the room" className="flex-1">
                 {(id) => <Select id={id} size="lg" value={form.location} onChange={set('location')} options={[{ value: '', label: 'Choose…', disabled: true }, ...(options.data?.locations ?? [])]} />}
               </Field>
             </div>
@@ -171,7 +171,7 @@ export default function NewMaintenanceRequest() {
               </div>
             </div>
 
-            <Checkbox label="Staff may enter the Room to fix this when I am not there" checked={form.entry} onChange={(e) => setForm((f) => ({ ...f, entry: e.target.checked }))} />
+            <Checkbox label="Staff may enter the room to fix this when I am not there" checked={form.entry} onChange={(e) => setForm((f) => ({ ...f, entry: e.target.checked }))} />
           </div>
 
           <div className="flex shrink-0 justify-end gap-3">

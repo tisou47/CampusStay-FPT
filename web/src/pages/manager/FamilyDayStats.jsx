@@ -8,7 +8,7 @@ import { KpiTile, Meter } from '@/components/ui/Charts'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
 import { t } from '@/i18n'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 
@@ -78,7 +78,7 @@ export default function FamilyDayStats() {
                 <TwoLine primary={d.title} secondary={d.area} />
               </Td>
               <Td>{d.block}</Td>
-              <Td className="whitespace-nowrap">{d.startsAt ? `${formatDateTime(d.startsAt)} – ${formatTime(d.endsAt)}` : '—'}</Td>
+              <Td className="whitespace-nowrap">{d.startsAt ? formatDateTimeRange(d.startsAt, d.endsAt) : '—'}</Td>
               <Td align="right">{formatNumber(d.registrations)}</Td>
               <Td>
                 <div className="flex items-center gap-3">

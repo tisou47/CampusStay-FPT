@@ -44,7 +44,7 @@ import { Button } from '@/components/ui/Button'
 import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatRelative } from '@/lib/format'
+import { campusDayStart, daysFromToday, formatDate, formatDateRange, formatRelative } from '@/lib/format'
 import { RefundAccountCard, useRefundAccount } from '@/pages/student/refundAccount'
 import { Chips, InfoGrid, Panel } from './profileParts'
 import { ContactPanel, EmergencyPanel, useContacts } from './profileContacts'
@@ -73,14 +73,13 @@ const initialsOf = (name) =>
  */
 function stayCountdown(term, allocation) {
   if (!allocation || !term?.stayStart || !term?.stayEnd) return null
-  const day = 86_400_000
   const now = new Date()
-  const start = new Date(`${term.stayStart}T00:00:00`)
-  const end = new Date(`${term.stayEnd}T23:59:59`)
+  const start = campusDayStart(term.stayStart)
+  const end = new Date(campusDayStart(term.stayEnd).getTime() + 86_400_000 - 1000)
   if (now < start) return { value: formatDate(term.stayStart), label: 'Stay starts', note: t('Term {name}', { name: term.name }) }
   if (now > end) return null
-  const left = Math.max(0, Math.ceil((end - now) / day))
-  return { value: t('{n} days', { n: left }), label: 'Left in the Term', note: t('Until {date}', { date: formatDate(term.stayEnd) }) }
+  const left = Math.max(0, daysFromToday(term.stayEnd) + 1)
+  return { value: t('{n} days', { n: left }), label: 'Left in the term', note: t('Until {date}', { date: formatDate(term.stayEnd) }) }
 }
 
 /** The person at a glance: initials tile, name, status and up to three numbers, all on one centred line. */
@@ -354,7 +353,7 @@ function StudentProfile({ user }) {
   const stats = [
     a && { icon: Bed, value: a.room, label: t('Bed {bed}', { bed: a.bed }), note: a.blockLabel, tone: 'brand' },
     stay && { icon: CalendarClock, value: stay.value, label: stay.label, note: stay.note, tone: 'info' },
-    home.data && { icon: Receipt, value: due ?? 0, label: 'Invoices to pay', note: due ? t('Open Payments') : t('All paid'), tone: due ? 'warning' : 'success' },
+    home.data && { icon: Receipt, value: due ?? 0, label: 'Invoices to pay', note: due ? t('Open payments') : t('All paid'), tone: due ? 'warning' : 'success' },
     home.data && { icon: Wrench, value: home.data.openRequests ?? 0, label: 'Open requests', tone: 'brand' },
     al?.stay && { icon: Hash, value: `${al.stay.termsUsed}/${al.stay.committedTerms}`, label: 'Terms stayed', tone: 'brand' },
   ].filter(Boolean).slice(0, 3)
@@ -386,7 +385,7 @@ function StudentProfile({ user }) {
               <Panel
                 icon={GraduationCap}
                 title="Academic information"
-                description={v?.locked ? 'Read-only: from the student list. Ask a Manager to correct it.' : 'You can still correct these until a Manager verifies them.'}
+                description={v?.locked ? 'Read-only: from the student list. Ask a manager to correct it.' : 'You can still correct these until a manager verifies them.'}
                 actions={
                   v && !v.locked ? (
                     <Button to="/student/verification" icon={Pencil} iconSize={16}>
@@ -426,23 +425,23 @@ function StudentProfile({ user }) {
                     <div className="flex flex-col gap-4">
                       <InfoGrid
                         items={[
-                          { icon: Bed, label: 'Room and Bed', value: place },
+                          { icon: Bed, label: 'Room and bed', value: place },
                           { icon: Building, label: 'Block', value: a.blockLabel ? `${a.blockLabel}${a.floor != null ? ` · ${t('Floor {n}', { n: a.floor })}` : ''}` : null },
                           { icon: Home, label: 'Room', value: [a.roomTypeName && t(a.roomTypeName), a.roomClassName && t(a.roomClassName)].filter(Boolean).join(' · ') },
-                          { icon: CalendarRange, label: 'Stay', value: al.term?.stayStart ? `${formatDate(al.term.stayStart)} – ${formatDate(al.term.stayEnd)}` : null },
+                          { icon: CalendarRange, label: 'Stay', value: al.term?.stayStart ? formatDateRange(al.term.stayStart, al.term.stayEnd) : null },
                           { icon: CalendarClock, label: 'Resident since', value: a.residentSince ? formatDate(a.residentSince) : null },
-                          { icon: Hash, label: 'Terms stayed', value: al.stay ? t('{used} of {total} Terms · {left} left', { used: al.stay.termsUsed, total: al.stay.committedTerms, left: al.stay.termsLeft }) : null },
+                          { icon: Hash, label: 'Terms stayed', value: al.stay ? t('{used} of {total} terms · {left} left', { used: al.stay.termsUsed, total: al.stay.committedTerms, left: al.stay.termsLeft }) : null },
                           { icon: Users, label: 'Roommates', value: al.roommates?.length ? <Chips items={al.roommates.map((r) => `${r.name} · ${r.bed}`)} /> : null, wide: true },
                         ]}
                       />
                       <div className="flex justify-end">
                         <Button to="/student/room" variant="text">
-                          {t('My Room')}
+                          {t('My room')}
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <p className="py-6 text-center text-base text-fg-secondary">{t('You have no Bed this Term yet.')}</p>
+                    <p className="py-6 text-center text-base text-fg-secondary">{t('You have no bed this term yet.')}</p>
                   )
                 }
               </QueryState>
@@ -503,7 +502,7 @@ function BackOfficeProfile({ user, role }) {
         <PillTabs items={tabs} value={tab} onChange={setTab} />
         {tab === 'account' && (
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <Panel icon={UserRound} title="Account information" description="Set by an Admin. Ask one to change it.">
+            <Panel icon={UserRound} title="Account information" description="Set by an admin. Ask one to change it.">
               <InfoGrid
                 items={[
                   { icon: User, label: 'Full name', value: user.name },

@@ -66,7 +66,7 @@ export default function Terminations() {
     <>
       <PageHeader
         title="Terminations"
-        description="Stays ended for Utility debt, enrollment or a Manager's decision, until the student checks out."
+        description="Stays ended for utility debt, enrollment or a manager's decision, until the student checks out."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setStarting(true)}>
             Terminate a stay
@@ -185,7 +185,7 @@ export default function Terminations() {
           {(id) => <Textarea id={id} rows={3} maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />}
         </Field>
         <Alert type="warning" title="What happens">
-          {t('The student is told at once and must check out at the desk within the configured days. At the check-out the Utility Deposit settles the debt and the unused room fee is refunded by its rule.')}
+          {t('The student is told at once and must check out at the desk within the configured days. At the check-out the utility deposit settles the debt and the unused room fee is refunded by its rule.')}
         </Alert>
       </Modal>
 

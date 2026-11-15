@@ -32,9 +32,9 @@ import { t, tr } from '@/i18n'
 const statusFilters = [{ value: '', label: 'Status: All' }, ...['Pending', 'Approved', 'Rejected'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]
 const changeFilters = [
   { value: '', label: 'Change: All' },
-  { value: 'same', label: 'Change: Same type, other Room' },
-  { value: 'class', label: 'Change: Room Class' },
-  { value: 'type', label: 'Change: Room Type' },
+  { value: 'same', label: 'Change: Same type, other room' },
+  { value: 'class', label: 'Change: room tier' },
+  { value: 'type', label: 'Change: room type' },
 ]
 
 // Room changes use success for Approved (a done move), unlike Application statuses.
@@ -51,7 +51,7 @@ function Row({ label, children, valueClassName }) {
   )
 }
 
-const target = (r) => `${tr(r.to.roomTypeName)} · ${tr(r.to.roomClassName)}${r.kind === 'same' ? ` · ${t('other Room')}` : ''}`
+const target = (r) => `${tr(r.to.roomTypeName)} · ${tr(r.to.roomClassName)}${r.kind === 'same' ? ` · ${t('other room')}` : ''}`
 
 function RejectModal({ request, reasons, onClose }) {
   const { notify } = useToast()
@@ -85,7 +85,7 @@ function RejectModal({ request, reasons, onClose }) {
         {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={reasons} />}
       </Field>
       <Field label="Message to the student" required={reason === 'Other'}>
-        {(id) => <Textarea id={id} rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="For example: a Bed may free up after the swap window closes." />}
+        {(id) => <Textarea id={id} rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="For example: a bed may free up after the swap window closes." />}
       </Field>
     </Modal>
   )
@@ -121,7 +121,7 @@ function Review({ request: r, onReject }) {
         <Row label="Decide by">{formatDateTime(r.dueAt)}</Row>
         {!pending && r.decision && (
           <>
-            {r.decision.bed && <Row label="New Bed">{r.decision.bed}</Row>}
+            {r.decision.bed && <Row label="New bed">{r.decision.bed}</Row>}
             {r.decision.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
             <Row label="Decided">
               {r.decision.by} · {formatDate(r.decision.at)}
@@ -134,10 +134,10 @@ function Review({ request: r, onReject }) {
         r.decision?.note && <Note>{tr(r.decision.note)}</Note>
       ) : (
         <>
-          <p className="text-base font-medium text-fg">{t('Free Beds that match')}</p>
-          <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free Bed matches this change right now. Reject the request or wait until a Bed frees up.</Note>}>
+          <p className="text-base font-medium text-fg">{t('Free beds that match')}</p>
+          <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
             {(data) => (
-              <div role="radiogroup" aria-label={t('Free Beds that match')} className="flex flex-col gap-3">
+              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex flex-col gap-3">
                 {data.items.map((b) => (
                   <div
                     key={b.bedId}
@@ -165,7 +165,7 @@ function Review({ request: r, onReject }) {
             </Button>
           </div>
           <p className="text-sm text-fg-tertiary">
-            {t('The student moves to this Bed at the start of the next Term and pays its next-Term price with the next-Term fee; nothing is invoiced or refunded now.')}
+            {t('The student moves to this bed at the start of the next term and pays its next-term price with the next-term fee; nothing is invoiced or refunded now.')}
           </p>
         </>
       )}
@@ -197,8 +197,8 @@ export default function RoomChangeQueue() {
   return (
     <>
       <PageHeader
-        title="Next-Term room changes"
-        description={query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-Term Bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-Change Requests of the next Term, in your scope.'}
+        title="Next-term room changes"
+        description={query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-term bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-change requests of the next term, in your scope.'}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -222,12 +222,12 @@ export default function RoomChangeQueue() {
                 <Th className="w-36">Request</Th>
                 <Th className="w-44">Student</Th>
                 <Th>From → To</Th>
-                <Th className="w-30">Submitted</Th>
+                <Th className="w-30">Submitted on</Th>
                 <Th className="w-26">Status</Th>
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No Room-Change Requests match these filters" />
+              <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
               {items.map((r) => (
                 <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)} className="[&>td]:h-14">
                   <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>

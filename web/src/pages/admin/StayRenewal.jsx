@@ -5,5 +5,5 @@ import SettingsGroup from './SettingsGroup'
 // GET /admin/settings/stay · PUT /admin/settings/stay { values }
 
 export default function StayRenewal() {
-  return <SettingsGroup group="stay" title="Stay and renewal" description="How long students may commit to stay, extensions, and the Beds kept for new students." />
+  return <SettingsGroup group="stay" title="Stay and renewal" description="How long students may commit to stay, extensions, and the beds kept for new students." />
 }

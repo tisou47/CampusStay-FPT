@@ -96,7 +96,7 @@ export default function StayRequests({ termId }) {
                 </span>
               </Td>
               <Td className="text-sm text-fg-secondary">
-                {t('{used} of {committed} Terms used', { used: r.termsUsed, committed: r.committedTerms })}
+                {t('{used} of {committed} terms used', { used: r.termsUsed, committed: r.committedTerms })}
                 {r.reason ? ` · ${r.reason}` : ''}
                 {r.decisionNote ? ` · ${tr(r.decisionNote)}` : ''}
               </Td>
@@ -146,7 +146,7 @@ export default function StayRequests({ termId }) {
         {decide.error && <Alert type="error" title="Could not decide">{decide.error.details?.fields?.note ?? decide.error.message}</Alert>}
         {deciding?.decision === 'Approved' && (
           <p className="text-base text-fg-secondary">
-            {t('{name} keeps the Bed for the next Term and the stay commits {n} more Terms.', { name: deciding.request.studentName, n: deciding.request.terms })}
+            {t('{name} keeps the bed for the next term and the stay commits {n} more terms.', { name: deciding.request.studentName, n: deciding.request.terms })}
           </p>
         )}
         <Field label={deciding?.decision === 'Approved' ? 'Note to the student (optional)' : 'Why (the student sees it)'} required={deciding?.decision === 'Rejected'}>

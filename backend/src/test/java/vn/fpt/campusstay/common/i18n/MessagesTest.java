@@ -13,9 +13,9 @@ class MessagesTest {
     @Test
     void translatesExactTextsAndTemplates() {
         assertThat(messages.translate("This Invoice does not exist.", Locales.VI)).isEqualTo("Hóa đơn này không tồn tại.");
-        assertThat(messages.translate("Block C does not exist.", Locales.VI)).isEqualTo("Block C không tồn tại.");
+        assertThat(messages.translate("Block C does not exist.", Locales.VI)).isEqualTo("Tòa C không tồn tại.");
         assertThat(messages.translate("Floor 7 does not exist in Block A.", Locales.VI))
-                .isEqualTo("Tầng 7 không có trong Block A.");
+                .isEqualTo("Tầng 7 không có trong Tòa A.");
         assertThat(messages.translate("This Invoice cannot be paid: it is overdue.", Locales.VI))
                 .isEqualTo("Không thể thanh toán hóa đơn này: hóa đơn đang ở trạng thái quá hạn.");
         assertThat(messages.translate("This Invoice does not exist.", Locales.EN)).isEqualTo("This Invoice does not exist.");

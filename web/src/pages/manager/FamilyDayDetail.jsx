@@ -15,7 +15,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { FamilyDayFormModal } from './familyDayForm'
 import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
@@ -35,12 +35,12 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 // PUT /family-days/:id · POST /family-days/:id/publish · /cancel { reason } · /close { note }
 // POST /family-day-registrations/:id/cancel { reason }
 
-const slotLabel = (s) => `${formatDateTime(s.startsAt)} – ${formatTime(s.endsAt)}`
+const slotLabel = (s) => formatDateTimeRange(s.startsAt, s.endsAt)
 
 // Who cancelled a registration, when, and why: the student themself (no reason needed) or a Manager (a reason is
 // required; cancelling the whole Family Day also cancels every registration with its reason).
 function CancellationNote({ registration: r }) {
-  const who = r.cancelledByStudent ? t('Cancelled by the student') : t('Cancelled by a Manager')
+  const who = r.cancelledByStudent ? t('Cancelled by the student') : t('Cancelled by a manager')
   return (
     <div className="mt-1 flex gap-2 rounded-md border border-line bg-subtle px-3 py-2 text-sm">
       <Ban size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-secondary" />
@@ -205,7 +205,7 @@ export default function FamilyDayDetail() {
   const update = useMutation((body) => api.familyDays.update(id, body), { invalidates: ['family-day', 'family-days'], onSuccess: done('Draft saved'), onError: () => {} })
   const publish = useMutation(() => api.familyDays.publish(id), {
     invalidates: ['family-day', 'family-days'],
-    onSuccess: done('Family Day published', "The Block's residents were told and can register their guests."),
+    onSuccess: done('Family Day published', "The block's residents were told and can register their guests."),
     onError: () => {},
   })
   const cancel = useMutation(() => api.familyDays.cancel(id, { reason: text.trim() }), {
@@ -285,7 +285,7 @@ export default function FamilyDayDetail() {
               <CardHeader title="Details" />
               <DescriptionList
                 items={[
-                  ['Registration', `${formatDateTime(day.registrationOpensAt)} – ${formatDateTime(day.registrationClosesAt)}`],
+                  ['Registration', formatDateTimeRange(day.registrationOpensAt, day.registrationClosesAt)],
                   ['Guests per student', formatNumber(day.maxGuests)],
                   ['Created by', `${day.createdBy ?? '—'} · ${formatDateTime(day.createdAt)}`],
                   day.publishedAt && ['Published', formatDateTime(day.publishedAt)],

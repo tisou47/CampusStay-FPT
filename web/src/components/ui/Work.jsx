@@ -127,9 +127,9 @@ export function CapacityRows({ rows, className }) {
                 <span className="text-base font-semibold text-fg tabular">{t('{n} free', { n: formatNumber(Math.max(0, r.total - r.used)) })}</span>
               </span>
             </div>
-            <Meter value={r.used} max={r.total} tone={l.bar} label={t('{name}: {used} of {total} Beds taken', { name: tx(r.name), used: r.used, total: r.total })} />
+            <Meter value={r.used} max={r.total} tone={l.bar} label={t('{name}: {used} of {total} beds taken', { name: tx(r.name), used: r.used, total: r.total })} />
             <span className="text-sm text-fg-tertiary">
-              {t('{used} of {total} Beds taken', { used: formatNumber(r.used), total: formatNumber(r.total) })}
+              {t('{used} of {total} beds taken', { used: formatNumber(r.used), total: formatNumber(r.total) })}
               {r.detail ? ` · ${tx(r.detail)}` : ''}
             </span>
           </li>

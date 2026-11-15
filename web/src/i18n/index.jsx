@@ -2,6 +2,7 @@ import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, u
 import { flushSync } from 'react-dom'
 import { reuseScreenData } from '@/api/hooks'
 import shell from './vi'
+import englishOne from './en-plurals'
 
 /*
  * Two languages (ADR-25): Vietnamese (default) and English. Texts in the code are English and are their own
@@ -61,11 +62,22 @@ export function loadLanguage(lang) {
 const fill = (text, vars) =>
   vars ? text.replace(/\{(\w+)\}/g, (whole, name) => (vars[name] == null ? whole : String(vars[name]))) : text
 
-/** The text in the current language, with its {values} filled in. */
+// English plural rules (ICU categories): "one" picks the singular form of ./en-plurals.js.
+const englishPlural = new Intl.PluralRules('en-GB')
+const countOf = (vars) => {
+  const raw = vars?.n ?? vars?.count
+  if (raw == null) return null
+  const n = Number(String(raw).replace(/[,.\s]/g, ''))
+  return Number.isNaN(n) ? null : n
+}
+
+/** The text in the current language, with its {values} filled in; in English, "1 request" not "1 requests". */
 export function t(text, vars) {
   if (text == null) return ''
-  const translated = current === 'vi' ? (vi[text] ?? text) : text
-  return fill(translated, vars)
+  if (current === 'vi') return fill(vi[text] ?? text, vars)
+  const n = countOf(vars)
+  const singular = n != null && englishOne[text] && englishPlural.select(n) === 'one' ? englishOne[text] : text
+  return fill(singular, vars)
 }
 
 let patterns = null

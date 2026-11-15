@@ -34,7 +34,7 @@ function Detail({ item, assignees }) {
       notify(
         body.action === 'reassign'
           ? { title: t('{id} reassigned', { id: item.id }), message: t('{name} was notified. The request is no longer overdue.', { name: assignees.find((a) => a.id === body.assigneeId)?.name ?? t('The new owner') }) }
-          : { type: 'info', title: 'Temporary Bed offer recorded', message: t('{id} is no longer overdue and nobody is notified. Tell the student; the move happens when the request is decided in Room changes.', { id: item.id }) },
+          : { type: 'info', title: 'Temporary bed offer recorded', message: t('{id} is no longer overdue and nobody is notified. Tell the student; the move happens when the request is decided in room changes.', { id: item.id }) },
       ),
     onError: (e) => notifyError(e, 'Could not save the action'),
   })
@@ -74,7 +74,7 @@ function Detail({ item, assignees }) {
             {item.link && <Button to={item.link}>Open request</Button>}
             {item.canOfferTemporaryBed && (
               <Button onClick={() => act.run({ action: 'temporary-bed', note: note.trim() || undefined })} disabled={act.pending}>
-                Offer temporary Bed
+                Offer temporary bed
               </Button>
             )}
             <Button variant="primary" icon={Check} onClick={() => act.run({ action: 'reassign', assigneeId, note: note.trim() || undefined })} disabled={!assigneeId || act.pending}>
@@ -98,7 +98,7 @@ export default function Escalations() {
 
   return (
     <>
-      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} description="Requests that passed their time limit or were escalated by Staff. Reassign them or add a note." />
+      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} description="Requests that passed their time limit or were escalated by staff. Reassign them or add a note." />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Table fill className="min-w-0">
           <THead>

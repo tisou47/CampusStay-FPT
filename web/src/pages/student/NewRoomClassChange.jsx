@@ -31,8 +31,8 @@ function Form({ opts }) {
     invalidates: ['requests', 'room-class-options'],
     onSuccess: (r) => {
       notify({
-        title: 'Room Class change asked',
-        message: r.status === 'Awaiting consent' ? t('{id}: your roommates are asked to agree.', { id: r.id }) : t('{id}: Staff decide it.', { id: r.id }),
+        title: 'Room tier change asked',
+        message: r.status === 'Awaiting consent' ? t('{id}: your roommates are asked to agree.', { id: r.id }) : t('{id}: staff decide it.', { id: r.id }),
       })
       navigate('/student/requests?tab=room-changes')
     },
@@ -44,25 +44,25 @@ function Form({ opts }) {
       <Card padding="lg" className="flex min-w-0 flex-1 flex-col gap-4">
         {submit.error && <Alert type="error" title="Could not send the request">{submit.error.details?.fields?.roomClassId ?? submit.error.message}</Alert>}
         {!opts.canAsk && <Alert type="warning" title="You cannot ask now">{tr(opts.unavailable)}</Alert>}
-        <Field label="Your Room next Term">
+        <Field label="Your room next term">
           <StaticField size="lg" className="text-fg-disabled">
             {opts.room} · {tr(opts.roomType)} · {tr(opts.current?.name)}
           </StaticField>
         </Field>
         <fieldset className="flex flex-col gap-2.5">
-          <legend className="mb-3 text-base font-medium text-fg">{t('Which Room Class do you want for {term}?', { term: opts.termName })}</legend>
+          <legend className="mb-3 text-base font-medium text-fg">{t('Which room tier do you want for {term}?', { term: opts.termName })}</legend>
           {opts.classes.map((c) => (
             <Radio
               key={c.id}
               name="roomClass"
-              label={`${tr(c.name)} · ${c.termPrice == null ? t('not offered') : t('{price} per Bed', { price: formatVnd(c.termPrice) })}`}
+              label={`${tr(c.name)} · ${c.termPrice == null ? t('not offered') : t('{price} per bed', { price: formatVnd(c.termPrice) })}`}
               disabled={c.termPrice == null}
               checked={target === c.id}
               onChange={() => setTarget(c.id)}
             />
           ))}
         </fieldset>
-        <Field label="Why (shown to your roommates and Staff)">
+        <Field label="Why (shown to your roommates and staff)">
           {(id) => <Textarea id={id} size="lg" rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
         </Field>
         <div className="flex justify-end gap-3">
@@ -76,7 +76,7 @@ function Form({ opts }) {
       </Card>
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4">
         <Card padding="lg" className="flex shrink-0 flex-col gap-2.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Next-Term fee')}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('Next-term fee')}</h2>
           <div className="flex justify-between text-base">
             <span className="text-fg-secondary">{tr(opts.current?.name)}</span>
             <span className="text-fg">{formatVnd(opts.current?.termPrice)}</span>
@@ -87,7 +87,7 @@ function Form({ opts }) {
           </div>
         </Card>
         <Note>
-          {t('{n} continuing residents of the Room must agree. Staff then check the furniture: an upgrade needs the missing items in the Block store; they move at the turnover.', { n: opts.residents })}
+          {t('{n} continuing residents of the room must agree. Staff then check the furniture: an upgrade needs the missing items in the block store; they move at the turnover.', { n: opts.residents })}
         </Note>
       </div>
     </div>
@@ -110,7 +110,7 @@ function OpenChange({ open }) {
           </li>
         ))}
       </ul>
-      <Button to="/student/requests?tab=room-changes">Answer in Requests</Button>
+      <Button to="/student/requests?tab=room-changes">Answer in requests</Button>
     </Card>
   )
 }
@@ -119,14 +119,14 @@ export default function NewRoomClassChange() {
   const query = useQuery(['room-class-options'], ({ signal }) => api.roomClassChanges.options(undefined, { signal }))
   const opts = query.data
   return (
-    <StudentPage breadcrumb={[{ label: 'My Room', to: '/student/room' }, { label: 'Room Class change' }]} title="Change the Room Class next Term">
+    <StudentPage breadcrumb={[{ label: 'My room', to: '/student/room' }, { label: 'Room tier change' }]} title="Change the room tier next term">
       {opts === undefined && query.loading ? (
         <LoadingState />
       ) : opts === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : !opts.room ? (
         <Card padding="none" className="flex min-h-0 flex-1 flex-col">
-          <EmptyBlock icon={Layers} title="Room Class changes open with the requests window">
+          <EmptyBlock icon={Layers} title="Room tier changes open with the requests window">
             {tr(opts.unavailable)}
           </EmptyBlock>
         </Card>

@@ -31,8 +31,8 @@ import { t, tr } from '@/i18n'
 // POST /reconciliations/:id/items/:itemId/resolve { outcome: Not enrolled | Enrolled, note } → item
 
 const groups = [
-  { key: 1, label: 'Not enrolled', hint: 'Someone of the Term who is not enrolled or is on the leavers list.' },
-  { key: 2, label: 'Not on the list', hint: 'Someone of the Term missing from the enrolled list: check and record.' },
+  { key: 1, label: 'Not enrolled', hint: 'Someone of the term who is not enrolled or is on the leavers list.' },
+  { key: 2, label: 'Not on the list', hint: 'Someone of the term missing from the enrolled list: check and record.' },
   { key: 3, label: 'Unknown codes', hint: 'Student codes of the file that do not exist (information).' },
   { key: 4, label: 'Status changed', hint: 'Enrollment statuses updated in the directory (information).' },
 ]
@@ -44,7 +44,7 @@ function Resolve({ run, item, onClose }) {
   const resolve = useMutation(() => api.reconciliations.resolve(run, item.id, { outcome, note: note.trim() }), {
     invalidates: ['reconciliations', 'renewal-overview', 'next-term-fees'],
     onSuccess: () => {
-      notify({ title: 'Item resolved', message: outcome === 'Not enrolled' ? t('{code}: what the student holds in the Term ends; they are told.', { code: item.studentCode }) : t('{code}: nothing changes.', { code: item.studentCode }) })
+      notify({ title: 'Item resolved', message: outcome === 'Not enrolled' ? t('{code}: what the student holds in the term ends; they are told.', { code: item.studentCode }) : t('{code}: nothing changes.', { code: item.studentCode }) })
       onClose()
     },
     onError: () => {},
@@ -68,14 +68,14 @@ function Resolve({ run, item, onClose }) {
         {item.studentName} · {(item.roles ?? []).map(tr).join(', ')}
       </p>
       <fieldset className="flex flex-col gap-2">
-        <Radio name="outcome" label="Not enrolled: end what the student holds in the Term" checked={outcome === 'Not enrolled'} onChange={() => setOutcome('Not enrolled')} />
+        <Radio name="outcome" label="Not enrolled: end what the student holds in the term" checked={outcome === 'Not enrolled'} onChange={() => setOutcome('Not enrolled')} />
         <Radio name="outcome" label="Enrolled: keep everything" checked={outcome === 'Enrolled'} onChange={() => setOutcome('Enrolled')} />
       </fieldset>
       <Field label="Note (audited)" required>
         {(id) => <Textarea id={id} rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}
       </Field>
       {outcome === 'Not enrolled' && (
-        <Note>A Bed kept for the next Term is released, a live Application is rejected (a paid Deposit is refunded by the rule Not enrolled) and a resident of a Term that has started gets a termination.</Note>
+        <Note>A bed kept for the next term is released, a live application is rejected (a paid deposit is refunded by the rule Not enrolled) and a resident of a term that has started gets a termination.</Note>
       )}
     </Modal>
   )
@@ -95,7 +95,7 @@ function RunDetail({ id }) {
         <THead>
           <tr>
             <Th className="w-56">Student</Th>
-            <Th className="w-56">Holds in the Term</Th>
+            <Th className="w-56">Holds in the term</Th>
             <Th className="w-36">File</Th>
             <Th className="w-36">Directory before</Th>
             <Th className="w-28">Status</Th>
@@ -167,7 +167,7 @@ export default function Reconciliation() {
     <>
       <PageHeader
         title="Reconciliation"
-        description="Compare the enrolled list of a Term with its residents and applicants, and resolve every difference."
+        description="Compare the enrolled list of a term with its residents and applicants, and resolve every difference."
         actions={
           o?.terms?.length > 0 && (
             <Select
@@ -216,8 +216,8 @@ export default function Reconciliation() {
                 <Note>{kind === 'enrolled' ? t('Columns: student code, full name (optional), enrollment status (blank = Enrolled).') : t('Columns: student code, full name (optional), reason (Graduated, Withdrawn).')}</Note>
               </Card>
               <div className="flex flex-1 flex-wrap gap-4">
-                <KpiTile size="md" label="People of the Term" value={formatNumber(d.people)} note="Residents, continuing residents and applicants" />
-                <KpiTile size="md" label="Open items" value={formatNumber(d.openItems)} note={d.resolved ? 'Reconciled' : d.runs.length ? 'Resolve them before the next-Term fees' : 'No list uploaded yet'} valueTone={d.openItems || !d.runs.length ? 'warning' : 'success'} />
+                <KpiTile size="md" label="People of the term" value={formatNumber(d.people)} note="Residents, continuing residents and applicants" />
+                <KpiTile size="md" label="Open items" value={formatNumber(d.openItems)} note={d.resolved ? 'Reconciled' : d.runs.length ? 'Resolve them before the next-term fees' : 'No list uploaded yet'} valueTone={d.openItems || !d.runs.length ? 'warning' : 'success'} />
               </div>
             </div>
             {d.runs.length > 0 ? (
@@ -238,8 +238,8 @@ export default function Reconciliation() {
               </>
             ) : (
               <Card padding="none" className="flex min-h-0 flex-1 flex-col">
-                <EmptyBlock icon={FileSearch} title="No list reconciled for this Term yet">
-                  {t('Upload the enrolled list before the next-Term fees, and again at the start of the Term to catch late changes.')}
+                <EmptyBlock icon={FileSearch} title="No list reconciled for this term yet">
+                  {t('Upload the enrolled list before the next-term fees, and again at the start of the term to catch late changes.')}
                 </EmptyBlock>
               </Card>
             )}

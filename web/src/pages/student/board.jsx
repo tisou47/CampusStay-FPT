@@ -58,7 +58,7 @@ function PeriodCard({ card }) {
       </QueryState>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pt-3">
         <p className="text-base text-fg">
-          {card.fromPrice != null ? t('From {price} per Bed', { price: formatVnd(card.fromPrice) }) : null}
+          {card.fromPrice != null ? t('From {price} per bed', { price: formatVnd(card.fromPrice) }) : null}
         </p>
         <Link to={`/student/registration-periods/${card.termId}`} className="flex items-center gap-1 text-base font-medium text-fg-link hover:underline">
           {t('Registration period details')}

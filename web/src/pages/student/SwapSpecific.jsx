@@ -13,9 +13,9 @@ import { t } from '@/i18n'
 // SCR-REQ-03 Room Swap – Specific Student (Figma 104:2080): a swap of next-Term Beds in the requests window (spec §6.10)
 // POST /swaps { studentCode, reason } → { id }
 const rules = [
-  'Same gender, both keep their Beds for the next Term',
-  'No overdue Invoices for either Student',
-  'No price difference: each pays the next-Term fee of the Bed they get',
+  'Same gender, both keep their beds for the next term',
+  'No overdue invoices for either student',
+  'No price difference: each pays the next-term fee of the bed they get',
   'Your partner must accept before the invitation expires (at the latest the request deadline)',
 ]
 
@@ -34,7 +34,7 @@ export default function SwapSpecific() {
   })
 
   return (
-    <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Room swap' }]} title="Swap your Room">
+    <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Room swap' }]} title="Swap your room">
       <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">

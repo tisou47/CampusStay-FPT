@@ -14,7 +14,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDate, formatNumber, formatPercent } from '@/lib/format'
+import { formatDate, formatDateRange, formatNumber, formatPercent } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-UTL-10 Meter Readings (Figma 95:3302)
@@ -91,7 +91,7 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
           <>
             {(d.priceKwh || d.priceM3) && (
               <p className="text-sm text-fg-tertiary">
-                {t('Price {kwh} VND/kWh · {m3} VND/m³ (Admin › Utility).', { kwh: formatNumber(d.priceKwh), m3: formatNumber(d.priceM3) })} {tr(d.roundingNote)}
+                {t('Price {kwh} ₫/kWh · {m3} ₫/m³ (Admin › Utility).', { kwh: formatNumber(d.priceKwh), m3: formatNumber(d.priceM3) })} {tr(d.roundingNote)}
               </p>
             )}
             {d.status === 'Check value' && (
@@ -123,7 +123,7 @@ function SplitPreview({ periodId, periodLabel, room, closed }) {
                     {i > 0 && <Divider />}
                     <p className="text-base font-medium text-fg">
                       {d.segments.length > 1 ? `${t('Segment {n}', { n: i + 1 })} · ` : ''}
-                      {formatDate(s.from)} – {formatDate(s.to)} · {t('{n} residents', { n: s.residents })}
+                      {formatDateRange(s.from, s.to)} · {t('{n} residents', { n: s.residents })}
                     </p>
                     <dl className="flex flex-col gap-3">
                       <Line label={t('Electricity {n} kWh', { n: formatNumber(s.kwh) })}>
@@ -199,7 +199,7 @@ export default function MeterReadings() {
           type: 'info',
           title: 'Readings uploaded',
           message: res?.skipped
-            ? t('{n} readings saved. {s} Rooms left blank wait for their reading.', { n: formatNumber(res?.imported ?? 0), s: formatNumber(res.skipped) })
+            ? t('{n} readings saved. {s} rooms left blank wait for their reading.', { n: formatNumber(res?.imported ?? 0), s: formatNumber(res.skipped) })
             : t('{n} readings saved.', { n: formatNumber(res?.imported ?? 0) }),
         }),
       onError: (e) => notifyError(e, 'Upload failed'),
@@ -212,7 +212,7 @@ export default function MeterReadings() {
     invalidates: ['meters', 'payments'],
     onSuccess: (res) => {
       setClosing(false)
-      notify({ title: 'Utility Invoices issued', message: t('{n} Rooms billed.', { n: formatNumber(res?.invoicesIssued ?? s?.entered) }) })
+      notify({ title: 'Utility invoices issued', message: t('{n} rooms billed.', { n: formatNumber(res?.invoicesIssued ?? s?.entered) }) })
     },
     onError: (e) => notifyError(e, 'Could not close the period'),
   })
@@ -221,7 +221,7 @@ export default function MeterReadings() {
     <>
       <PageHeader
         title="Meter readings"
-        description="Monthly readings per Room. Every check-in, check-out, room change and swap also cuts a reading."
+        description="Monthly readings per room. Every check-in, check-out, room change and swap also cuts a reading."
         actions={
           <>
             <Button icon={Download} onClick={() => template.run()} disabled={!activePeriod || template.pending}>
@@ -241,7 +241,7 @@ export default function MeterReadings() {
                 e.target.value = ''
               }}
             />
-            <Button tip="Close the reading period and bill Utility to the residents. Readings can no longer change afterwards." variant="primary" onClick={() => setClosing(true)} disabled={closed || !activePeriod}>
+            <Button tip="Close the reading period and bill utility to the residents. Readings can no longer change afterwards." variant="primary" onClick={() => setClosing(true)} disabled={closed || !activePeriod}>
               {closed ? t('Period closed') : t('Close period and bill')}
             </Button>
           </>
@@ -290,12 +290,12 @@ export default function MeterReadings() {
           <li className="flex items-center gap-2">
             <FileSpreadsheet size={16} aria-hidden="true" className="text-fg-brand" />
             <span>
-              <strong className="font-medium text-fg">1.</strong> {t('Download the template: one line per Room with last month’s values.')}
+              <strong className="font-medium text-fg">1.</strong> {t('Download the template: one line per room with last month’s values.')}
             </span>
           </li>
           <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
           <li>
-            <strong className="font-medium text-fg">2.</strong> {t('Fill the electricity and water columns in Excel; leave Rooms you have not read blank.')}
+            <strong className="font-medium text-fg">2.</strong> {t('Fill the electricity and water columns in Excel; leave rooms you have not read blank.')}
           </li>
           <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
           <li>
@@ -306,7 +306,7 @@ export default function MeterReadings() {
 
       {closed && (
         <Alert type="success" title={t('{period} is closed', { period: tr(period.label) })} className="shrink-0">
-          {t('Utility Invoices were issued for {n} Rooms. {missing} Rooms are billed when their readings are entered.', { n: formatNumber(s?.entered), missing: formatNumber(s?.missing) })}
+          {t('Utility invoices were issued for {n} rooms. {missing} rooms are billed when their readings are entered.', { n: formatNumber(s?.entered), missing: formatNumber(s?.missing) })}
         </Alert>
       )}
 
@@ -330,7 +330,7 @@ export default function MeterReadings() {
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={activePeriod ? query : periods} colSpan={5} rows={activePeriod ? items : periods.data?.items} emptyIcon={Gauge} emptyTitle={activePeriod ? 'No Rooms match these filters' : 'No billing period yet'} />
+              <TableStatus query={activePeriod ? query : periods} colSpan={5} rows={activePeriod ? items : periods.data?.items} emptyIcon={Gauge} emptyTitle={activePeriod ? 'No rooms match these filters' : 'No billing period yet'} />
               {items.map((r) => {
                 const [ep, es] = reading(r.electricity)
                 const [wp, ws] = reading(r.water)
@@ -371,7 +371,7 @@ export default function MeterReadings() {
           <SplitPreview key={`${activePeriod}-${selected.room}`} periodId={activePeriod} periodLabel={period?.label} room={selected.room} closed={closed} />
         ) : (
           <Card className="flex w-95 shrink-0 flex-col">
-            <EmptyBlock icon={Gauge} title="Select a Room" />
+            <EmptyBlock icon={Gauge} title="Select a room" />
           </Card>
         )}
       </div>
@@ -384,18 +384,18 @@ export default function MeterReadings() {
           <>
             <Button onClick={() => setClosing(false)}>Cancel</Button>
             <Button variant="primary" onClick={() => close.run()} disabled={close.pending}>
-              Close and issue Invoices
+              Close and issue invoices
             </Button>
           </>
         }
       >
         <p className="text-base text-fg-secondary">
-          {t('Utility Invoices are issued now for the {n} Rooms with readings. Students get an in-app notification and an email.', { n: formatNumber(s?.entered) })}
+          {t('Utility invoices are issued now for the {n} rooms with readings. Students get an in-app notification and an email.', { n: formatNumber(s?.entered) })}
           {period?.dueAt ? ` ${t('Payment is due by {date}.', { date: formatDate(period.dueAt) })}` : ''}
         </p>
         {s?.missing > 0 && (
-          <Alert type="warning" title={t('{n} Rooms have no reading', { n: formatNumber(s.missing) })}>
-            Their Invoices are held and issued as soon as the readings are entered.
+          <Alert type="warning" title={t('{n} rooms have no reading', { n: formatNumber(s.missing) })}>
+            Their invoices are held and issued as soon as the readings are entered.
           </Alert>
         )}
       </Modal>

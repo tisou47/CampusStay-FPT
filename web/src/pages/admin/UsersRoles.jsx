@@ -31,7 +31,7 @@ function UserModal({ user, roles, scopes, onClose }) {
   const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
     invalidates: ['admin-users'],
     onSuccess: () => {
-      notify({ title: isNew ? t('Invite sent') : t('{name} updated', { name: form.name }), message: isNew ? t('{email} can sign in after accepting the invite.', { email: form.email }) : 'The change is written to the Audit Log.' })
+      notify({ title: isNew ? t('Invite sent') : t('{name} updated', { name: form.name }), message: isNew ? t('{email} can sign in after accepting the invite.', { email: form.email }) : 'The change is written to the audit log.' })
       onClose()
     },
     onError: () => {},
@@ -69,13 +69,13 @@ function UserModal({ user, roles, scopes, onClose }) {
             {(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={scopes} />}
           </Field>
         ) : (
-          <Field label="Block scope" helper="Managers and Admins work for every Block." className="flex-1">
-            {(id) => <Input id={id} value={t('All Blocks')} disabled />}
+          <Field label="Block scope" helper="Managers and admins work for every block." className="flex-1">
+            {(id) => <Input id={id} value={t('All blocks')} disabled />}
           </Field>
         )}
       </div>
       {!isNew && (
-        <Field label="Status" helper="Disabled users cannot sign in; their history stays in the Audit Log.">
+        <Field label="Status" helper="Disabled users cannot sign in; their history stays in the audit log.">
           {(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Invited', 'Disabled']} />}
         </Field>
       )}
@@ -112,7 +112,7 @@ export default function UsersRoles() {
     <>
       <PageHeader
         title="Users and Roles"
-        description="Staff, Manager and Admin accounts. Students sign in with FPT accounts and are not created here."
+        description="Staff, manager and admin accounts. Students sign in with FPT accounts and are not created here."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!d}>
             Invite user
@@ -178,7 +178,7 @@ export default function UsersRoles() {
         </div>
         <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-2.5 overflow-y-auto">
           <h2 className="text-h3 font-semibold text-fg">{t('Role permissions')}</h2>
-          <p className="text-sm text-fg-tertiary">{t('Fixed by role. Staff see their Blocks; Managers and Admins see every Block.')}</p>
+          <p className="text-sm text-fg-tertiary">{t('Fixed by role. Staff see their blocks; managers and admins see every block.')}</p>
           <QueryState query={perms} compact isEmpty={(p) => !p.rows?.length}>
             {(p) => (
               <table className="w-full text-base">

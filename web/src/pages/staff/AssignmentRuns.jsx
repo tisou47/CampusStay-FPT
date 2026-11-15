@@ -30,7 +30,7 @@ import { useRoleBase } from '@/lib/useRoleBase'
 // GET /round2?termId → { waitlisted, openOffers, freeBeds } · POST /round2/run { termId } → { offered, waitlisted, freeBeds }
 // GET /round2/offers?termId&status&q&page&pageSize → { items, total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }
 
-const pipeline = ['Eligibility filter', 'Priority order', 'Constraint checks', 'Proposal', 'Manager review', 'Commit per Block']
+const pipeline = ['Eligibility filter', 'Priority order', 'Constraint checks', 'Proposal', 'Manager review', 'Commit per block']
 
 function Stat({ label, value, note, tone }) {
   return (
@@ -70,7 +70,7 @@ function Round2Tab({ term }) {
       setPage(1)
       notify({
         title: t('Round 2 offers sent to {n} students', { n: formatNumber(r.offered) }),
-        message: r.waitlisted ? t('{n} students are still waiting: no free Bed fits them.', { n: formatNumber(r.waitlisted) }) : t('Every waitlisted student has an offer to answer.'),
+        message: r.waitlisted ? t('{n} students are still waiting: no free bed fits them.', { n: formatNumber(r.waitlisted) }) : t('Every waitlisted student has an offer to answer.'),
       })
     },
     onError: (e) => notifyError(e, 'Could not run Round 2'),
@@ -89,19 +89,19 @@ function Round2Tab({ term }) {
     <>
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="Waitlisted without an offer" value={formatNumber(s?.waitlisted)} note="Get options when you send Round 2" noteTone={s?.waitlisted ? 'warning' : 'tertiary'} />
-        <KpiTile size="md" label="Offers waiting for an answer" value={formatNumber(s?.openOffers)} note="Their Beds are held until the offer expires" noteTone="tertiary" />
-        <KpiTile size="md" label="Accepted" value={formatNumber(c?.accepted)} note="Allocated, with a Balance to pay" noteTone="tertiary" />
-        <KpiTile size="md" label="Free Beds" value={formatNumber(s?.freeBeds)} note="Nobody holds them in this Term" noteTone="tertiary" />
+        <KpiTile size="md" label="Offers waiting for an answer" value={formatNumber(s?.openOffers)} note="Their beds are held until the offer expires" noteTone="tertiary" />
+        <KpiTile size="md" label="Accepted" value={formatNumber(c?.accepted)} note="Allocated, with a balance to pay" noteTone="tertiary" />
+        <KpiTile size="md" label="Free beds" value={formatNumber(s?.freeBeds)} note="Nobody holds them in this term" noteTone="tertiary" />
       </div>
 
       <Card className="flex shrink-0 items-center justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <Info size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-info" />
           <p className="text-base text-fg-secondary">
-            {t('Waitlisted students without an open offer get up to three held Beds of other kinds, nearest price first, in partly filled Rooms first. They choose one or decline on their offer page; an unanswered offer expires and the Application is cancelled with its Deposit refunded.')}
+            {t('Waitlisted students without an open offer get up to three held beds of other kinds, nearest price first, in partly filled rooms first. They choose one or decline on their offer page; an unanswered offer expires and the application is cancelled with its deposit refunded.')}
           </p>
         </div>
-        <Button tip="Offer the free Beds to waitlisted students. Needs waitlisted students and free Beds in this Term." variant="primary" icon={Repeat2} disabled={!term || !s?.waitlisted || !s?.freeBeds || run.pending} onClick={() => setConfirming(true)}>
+        <Button tip="Offer the free beds to waitlisted students. Needs waitlisted students and free beds in this term." variant="primary" icon={Repeat2} disabled={!term || !s?.waitlisted || !s?.freeBeds || run.pending} onClick={() => setConfirming(true)}>
           Send Round 2 offers
         </Button>
       </Card>
@@ -124,7 +124,7 @@ function Round2Tab({ term }) {
               setQ(e.target.value)
               setPage(1)
             }}
-            placeholder={t('Student name or code, Application')}
+            placeholder={t('Student name or code, application')}
             aria-label={t('Search')}
           />
         </div>
@@ -158,7 +158,7 @@ function Round2Tab({ term }) {
                       ))}
                     </ul>
                   ) : (
-                    <span className="text-sm text-fg-tertiary">{t('No free Bed fitted yet')}</span>
+                    <span className="text-sm text-fg-tertiary">{t('No free bed fitted yet')}</span>
                   )}
                 </Td>
                 <Td>
@@ -206,7 +206,7 @@ function Round2Tab({ term }) {
         }
       >
         <p className="text-base text-fg-secondary">
-          {t('{n} waitlisted students get held options among {beds} free Beds. Each student is notified in the app and by email and answers before the offer expires.', {
+          {t('{n} waitlisted students get held options among {beds} free beds. Each student is notified in the app and by email and answers before the offer expires.', {
             n: formatNumber(s?.waitlisted ?? 0),
             beds: formatNumber(s?.freeBeds ?? 0),
           })}
@@ -244,18 +244,18 @@ function RunsTab({ query, base }) {
               </p>
               {run.input === 0 && run.finishedAt && (
                 <Note>
-                  {t('Nothing to propose: no Approved Application is waiting for a Bed. Applications are placed by the run that was committed; students left without a Bed are Waitlisted and reached by Round 2.')}
+                  {t('Nothing to propose: no Approved application is waiting for a bed. Applications are placed by the run that was committed; students left without a bed are Waitlisted and reached by Round 2.')}
                 </Note>
               )}
               <div className="py-1">
                 <Steps steps={pipeline} current={run.stage ?? 3} compact />
               </div>
               <div className="flex gap-4">
-                <Stat label="Input" value={formatNumber(run.input)} note="Approved Applications" />
-                <Stat label="Proposed" value={formatNumber(run.proposed)} note="Room and Bed found" tone="success" />
-                <Stat label="Conflicts" value={formatNumber(run.conflicts)} note="Need a Manager decision" tone={run.conflicts ? 'warning' : undefined} />
-                <Stat label="Waitlisted" value={formatNumber(run.waitlisted)} note="No Bed of chosen type" tone={run.waitlisted ? 'warning' : undefined} />
-                <Stat label="Average Room fit" value={run.averageFit != null ? `${run.averageFit} / 100` : '—'} note="Major and hometown match" />
+                <Stat label="Input" value={formatNumber(run.input)} note="Approved applications" />
+                <Stat label="Proposed" value={formatNumber(run.proposed)} note="Room and bed found" tone="success" />
+                <Stat label="Conflicts" value={formatNumber(run.conflicts)} note="Need a manager decision" tone={run.conflicts ? 'warning' : undefined} />
+                <Stat label="Waitlisted" value={formatNumber(run.waitlisted)} note="No bed of chosen type" tone={run.waitlisted ? 'warning' : undefined} />
+                <Stat label="Average room fit" value={run.averageFit != null ? `${run.averageFit} / 100` : '—'} note="Major and hometown match" />
               </div>
             </>
           )}
@@ -266,7 +266,7 @@ function RunsTab({ query, base }) {
         <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-baseline justify-between gap-3 px-5 py-4">
             <h2 className="text-h3 font-semibold text-fg">{t('Run history')}</h2>
-            <span className="text-sm text-fg-tertiary">{t('Open a run to see each student, Room and Bed it proposed')}</span>
+            <span className="text-sm text-fg-tertiary">{t('Open a run to see each student, room and bed it proposed')}</span>
           </div>
           <Table bare inset="lg" fill>
             <THead>
@@ -337,7 +337,7 @@ function RunsTab({ query, base }) {
           </div>
           <p className="shrink-0 text-sm text-fg-tertiary">
             <SlidersHorizontal size={14} aria-hidden="true" className="mr-1 inline" />
-            {t('Admin edits the rules in Roommate matching.')}
+            {t('Admin edits the rules in roommate matching.')}
           </p>
         </Card>
       </div>
@@ -369,14 +369,14 @@ export default function AssignmentRuns() {
     <>
       <PageHeader
         title="Assignment"
-        description="The engine proposes a Room and Bed for every Approved Application. Managers resolve conflicts and commit per Block; Round 2 then offers the free Beds to waitlisted students."
+        description="The engine proposes a room and bed for every Approved application. Managers resolve conflicts and commit per block; Round 2 then offers the free beds to waitlisted students."
         actions={
           tab === 'runs' && (
             <>
               <Button tip="Try the engine without saving anything, to preview its proposals before a real run." icon={Eye} onClick={() => setStarting('dry')} disabled={!term}>
                 Dry run
               </Button>
-              <Button tip="Run the engine for real. Its proposals are then reviewed and committed Block by Block." icon={Plus} onClick={() => setStarting('final')} disabled={!term}>
+              <Button tip="Run the engine for real. Its proposals are then reviewed and committed block by block." icon={Plus} onClick={() => setStarting('final')} disabled={!term}>
                 Start new run
               </Button>
             </>

@@ -14,7 +14,7 @@ import { t, tr } from '@/i18n'
 export default function SystemParameters() {
   const { notify } = useToast()
   const cfg = useConfigForm('system', api.admin.system, {
-    onSaved: () => notify({ title: 'System parameters saved', message: 'New values apply to new sessions and Invoices.' }),
+    onSaved: () => notify({ title: 'System parameters saved', message: 'New values apply to new sessions and invoices.' }),
   })
   const sections = cfg.draft?.sections ?? []
   const isBad = (f) => !f.options && !/^\d+$/.test(String(f.value ?? '').trim())
@@ -30,7 +30,7 @@ export default function SystemParameters() {
     <ConfigPage
       form={cfg}
       title="System Parameters"
-      description="Global values used across CampusStay. Every change is written to the Audit Log."
+      description="Global values used across CampusStay. Every change is written to the audit log."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>

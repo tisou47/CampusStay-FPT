@@ -57,7 +57,7 @@ export default function ApplyRoommate() {
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-h3 font-semibold text-fg">{t('Roommate')}</h2>
-          <p className="text-base text-fg-secondary">{t('2-bed Rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.')}</p>
+          <p className="text-base text-fg-secondary">{t('2-bed rooms only. Enter the student code of the person you want to share with, or let the dormitory match you.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6" role="radiogroup" aria-label={t('Roommate')}>
           <Radio name="roommateMode" label="Invite a roommate" checked={invite} onChange={() => setRoommate({ mode: 'invite' })} />
@@ -108,11 +108,11 @@ export default function ApplyRoommate() {
             )}
             <Note>
               {t('For privacy, we never show who a student code belongs to. Any code that cannot be used returns the same message.')}
-              {roommate.checksLeft != null && ` ${t(roommate.checksLeft === 1 ? '{n} check left for this Application.' : '{n} checks left for this Application.', { n: roommate.checksLeft })}`}
+              {roommate.checksLeft != null && ` ${t(roommate.checksLeft === 1 ? '{n} check left for this application.' : '{n} checks left for this application.', { n: roommate.checksLeft })}`}
             </Note>
           </>
         ) : (
-          <Note>The dormitory pairs you with another Student of the same gender who also chose a 2-bed Room.</Note>
+          <Note>The dormitory pairs you with another student of the same gender who also chose a 2-bed room.</Note>
         )}
       </Card>
 
@@ -128,7 +128,7 @@ export default function ApplyRoommate() {
                 <Tag dot={false}>Optional</Tag>
               </div>
               <p className="text-base text-fg-secondary">
-                {t('Add-on service for 2-bed Rooms: we look for a roommate who matches your preferences. They raise the match score; they are not guaranteed.')}
+                {t('Add-on service for 2-bed rooms: we look for a roommate who matches your preferences. They raise the match score; they are not guaranteed.')}
               </p>
             </div>
             <Switch
@@ -155,7 +155,7 @@ export default function ApplyRoommate() {
 
       {invite && (
         <Alert type="info" title="How pairing works" className="shrink-0">
-          {t('After you submit, your roommate has a limited time to accept. Each of you pays your own deposit; both Applications reach the dormitory office together once both deposits are paid. If the invitation is declined or not answered, invite someone else or continue alone.')}
+          {t('After you submit, your roommate has a limited time to accept. Each of you pays your own deposit; both applications reach the dormitory office together once both deposits are paid. If the invitation is declined or not answered, invite someone else or continue alone.')}
         </Alert>
       )}
     </WizardLayout>

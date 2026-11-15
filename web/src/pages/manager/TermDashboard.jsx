@@ -10,7 +10,7 @@ import { ErrorState, LoadingState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { formatDate, formatDateRange, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { termTone } from '@/pages/admin/Terms'
 import { t, tr } from '@/i18n'
 
@@ -40,7 +40,7 @@ export default function TermDashboard() {
       <PageHeader
         title={t('{name} dashboard', { name: d.term.name })}
         badge={<Tag tone={termTone[d.term.status] ?? 'neutral'}>{d.term.status}</Tag>}
-        description={`${formatDate(d.stayStart)} – ${formatDate(d.stayEnd)}${d.requestCode ? ` · ${t('opened from {code}', { code: d.requestCode })}` : ''}`}
+        description={`${formatDateRange(d.stayStart, d.stayEnd)}${d.requestCode ? ` · ${t('opened from {code}', { code: d.requestCode })}` : ''}`}
         actions={
           <Select
             aria-label={t('Term')}
@@ -79,7 +79,7 @@ export default function TermDashboard() {
             {d.applications.length ? (
               <MeterRows rows={d.applications.map((a) => ({ label: tr(a.status), value: a.count }))} max={Math.max(...d.applications.map((a) => a.count))} labelWidth="w-40" />
             ) : (
-              <p className="text-sm text-fg-tertiary">{t('No Applications yet.')}</p>
+              <p className="text-sm text-fg-tertiary">{t('No applications yet.')}</p>
             )}
           </Card>
           <Card className="flex shrink-0 flex-col gap-3">
@@ -87,10 +87,10 @@ export default function TermDashboard() {
             <Table>
               <THead>
                 <tr>
-                  <Th>Room Type</Th>
-                  <Th>Room Class</Th>
+                  <Th>Room type</Th>
+                  <Th>Room tier</Th>
                   <Th>Gender</Th>
-                  <Th align="right">Price per Bed</Th>
+                  <Th align="right">Price per bed</Th>
                   <Th align="right">Beds</Th>
                   <Th className="w-56">Allocated</Th>
                 </tr>
@@ -120,7 +120,7 @@ export default function TermDashboard() {
               <div className="grid grid-cols-4 gap-4">
                 <KpiTile size="sm" label="Requests open" value={formatNumber(d.transition.requestsOpen)} note={t('Decided by the decision deadline (M4)')} />
                 <KpiTile size="sm" label="Continuing residents" value={formatNumber(d.transition.continuing)} />
-                <KpiTile size="sm" label="Next-Term fees paid" value={`${formatNumber(d.transition.feesPaid)} / ${formatNumber(d.transition.feesIssued)}`} />
+                <KpiTile size="sm" label="Next-term fees paid" value={`${formatNumber(d.transition.feesPaid)} / ${formatNumber(d.transition.feesIssued)}`} />
                 <KpiTile size="sm" label="Beds released" value={formatNumber(d.transition.released)} note={t('Not extended, not paid or end of stay')} />
               </div>
             </Card>

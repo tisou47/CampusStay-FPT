@@ -16,7 +16,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
@@ -34,7 +34,7 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 // safetyNote; counts.awaitingSafety, counts.safetyConfirmed) before Staff check them out; a Manager may do it with a
 // note. POST /family-days/:id/overdue-reminders → { students, guests } reminds every student concerned at once.
 
-const slotText = (v) => `${formatDateTime(v.slotStartsAt)} – ${formatTime(v.slotEndsAt)}`
+const slotText = (v) => formatDateTimeRange(v.slotStartsAt, v.slotEndsAt)
 
 /**
  * A QR reader for video frames: the browser's own (BarcodeDetector: Chrome on Android, macOS) when it has one, otherwise
@@ -161,7 +161,7 @@ function CheckInModal({ visitor, onClose }) {
         checked={checked}
         onChange={(e) => setChecked(e.target.checked)}
         label="I checked the guest's identity paper against this name"
-        description="Guests may only use the common area. They may not enter the Rooms or stay overnight."
+        description="Guests may only use the common area. They may not enter the rooms or stay overnight."
       />
     </Modal>
   )
@@ -250,7 +250,7 @@ function CheckOutModal({ visitor, manager, onClose }) {
       {override && (
         <Alert type="warning" title="The student has not confirmed yet">
           {manager
-            ? t('The time slot ended at {time}. As a Manager you may check the guest out without the confirmation: write why below.', { time: formatTime(visitor.slotEndsAt) })
+            ? t('The time slot ended at {time}. As a manager you may check the guest out without the confirmation: write why below.', { time: formatTime(visitor.slotEndsAt) })
             : t('The time slot ended at {time}. Send a reminder and check the guest out once the student confirms they are safe.', { time: formatTime(visitor.slotEndsAt) })}
         </Alert>
       )}
@@ -432,7 +432,7 @@ export default function VisitorDesk() {
             setSlotId(e.target.value)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Every time slot' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: `${formatDateTime(s.startsAt)} – ${formatTime(s.endsAt)}` }))]}
+          options={[{ value: '', label: 'Every time slot' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: formatDateTimeRange(s.startsAt, s.endsAt) }))]}
         />
       </div>
 

@@ -82,9 +82,9 @@ export default function ApplicationQueue() {
     invalidates: ['applications', 'dashboard'],
     onSuccess: (_, ids) => {
       setSelected(new Set())
-      notify({ title: t(ids.length === 1 ? '{n} Application approved' : '{n} Applications approved', { n: ids.length }), message: 'They join the next assignment run.' })
+      notify({ title: t(ids.length === 1 ? '{n} Application approved' : '{n} applications approved', { n: ids.length }), message: 'They join the next assignment run.' })
     },
-    onError: (e) => notifyError(e, 'Could not approve the Applications'),
+    onError: (e) => notifyError(e, 'Could not approve the applications'),
   })
   const exporting = useMutation(() => api.exports.download('applications', { ...filters, page: undefined, pageSize: undefined }, 'applications.xlsx'), {
     onError: (e) => notifyError(e, 'Export failed'),
@@ -108,21 +108,21 @@ export default function ApplicationQueue() {
       />
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Student name or code, Application" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Student name or code, application" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select wrapperClassName="w-64" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
           wrapperClassName="w-48"
-          aria-label={t('Room Type')}
+          aria-label={t('Room type')}
           value={roomTypeId}
           onChange={filter(setRoomTypeId)}
-          options={[{ value: '', label: 'Room Type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room Type: {name}', { name: tr(type.name) }) }))]}
+          options={[{ value: '', label: 'Room type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room type: {name}', { name: tr(type.name) }) }))]}
         />
         <Select
           wrapperClassName="w-48"
-          aria-label={t('Room Class')}
+          aria-label={t('Room tier')}
           value={roomClassId}
           onChange={filter(setRoomClassId)}
-          options={[{ value: '', label: 'Room Class: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room Class: {name}', { name: tr(c.name) }) }))]}
+          options={[{ value: '', label: 'Room tier: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room tier: {name}', { name: tr(c.name) }) }))]}
         />
         <Select
           wrapperClassName="w-44"
@@ -156,10 +156,10 @@ export default function ApplicationQueue() {
                 onChange={() => setSelected(allChecked ? new Set() : new Set(selectable.map((r) => r.id)))}
               />
             </Th>
-            <Th className="w-40">Application</Th>
+            <Th className="w-40">Application ID</Th>
             <Th className="w-48">Student</Th>
-            <Th className="w-24">Room Type</Th>
-            <Th className="w-26">Room Class</Th>
+            <Th className="w-24">Room type</Th>
+            <Th className="w-26">Room tier</Th>
             <Th className="w-22">Deposit</Th>
             <Th className="w-40">Deposit paid</Th>
             <Th>Status</Th>
@@ -169,7 +169,7 @@ export default function ApplicationQueue() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyIcon={FileText} emptyTitle="No Applications match these filters" />
+          <TableStatus query={query} colSpan={9} emptyIcon={FileText} emptyTitle="No applications match these filters" />
           {items.map((r) => (
             <Tr key={r.id} selected={selected.has(r.id)} onClick={() => navigate(`${base}/applications/${r.id}`)}>
               <Td onClick={stop}>

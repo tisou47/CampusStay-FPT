@@ -22,7 +22,7 @@ const failing = (n) => (n == null ? null : n === 0 ? t('No student fails this no
 export default function EligibilityRules() {
   const { notify } = useToast()
   const cfg = useConfigForm('eligibility', api.admin.eligibility, {
-    onSaved: (res) => notify({ title: 'Eligibility rules saved', message: t('They apply from {term}.', { term: res?.appliesFromTermName ?? t('the next Term that opens') }) }),
+    onSaved: (res) => notify({ title: 'Eligibility rules saved', message: t('They apply from {term}.', { term: res?.appliesFromTermName ?? t('the next term that opens') }) }),
   })
   const { draft } = cfg
   const [adding, setAdding] = useState(false)
@@ -32,7 +32,7 @@ export default function EligibilityRules() {
     <ConfigPage
       form={cfg}
       title="Who may apply"
-      description="The checks every Application passes, and who is placed first when Beds are short."
+      description="The checks every application passes, and who is placed first when beds are short."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
@@ -50,7 +50,7 @@ export default function EligibilityRules() {
             <Card className="flex min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
               <h2 className="text-h3 font-semibold text-fg">{t('A student may apply when…')}</h2>
               <p className="text-sm text-fg-tertiary">
-                {t('Every check that is on must pass; they are checked again when the Application is sent. Counted over {n} students of the directory.', { n: draft.students ?? 0 })}
+                {t('Every check that is on must pass; they are checked again when the application is sent. Counted over {n} students of the directory.', { n: draft.students ?? 0 })}
               </p>
               {(draft.fixed ?? []).map((c) => (
                 <div key={c.key} className="flex items-center gap-3 py-1.5">
@@ -81,12 +81,12 @@ export default function EligibilityRules() {
             </Card>
             <Card className="flex min-w-0 flex-1 flex-col gap-2.5 overflow-y-auto">
               <div className="flex items-center justify-between">
-                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when Beds are short?')}</h2>
+                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when beds are short?')}</h2>
                 <Button icon={Plus} onClick={() => setAdding(true)}>
                   Add group
                 </Button>
               </div>
-              <p className="text-sm text-fg-tertiary">{t('Students of a higher group get a Bed first; then the earlier Deposit. Use the arrows to reorder.')}</p>
+              <p className="text-sm text-fg-tertiary">{t('Students of a higher group get a bed first; then the earlier deposit. Use the arrows to reorder.')}</p>
               <ReorderList
                 label="Priority groups"
                 items={(draft.groups ?? []).map((g) => ({ ...g, extra: g.applied != null ? t(g.applied === 1 ? '{n} student in this group' : '{n} students in this group', { n: g.applied }) : null }))}
@@ -94,8 +94,8 @@ export default function EligibilityRules() {
               />
             </Card>
           </div>
-          <Alert type="warning" title="Changes apply from the next Term that opens" className="shrink-0">
-            A Term keeps the rules it opened with: publishing a Term copies these rules into it. Disability status is sensitive data: only the group flag is stored, never the reason.
+          <Alert type="warning" title="Changes apply from the next term that opens" className="shrink-0">
+            A term keeps the rules it opened with: publishing a term copies these rules into it. Disability status is sensitive data: only the group flag is stored, never the reason.
           </Alert>
           <Modal
             open={adding}
@@ -109,7 +109,7 @@ export default function EligibilityRules() {
                   disabled={!group.title.trim()}
                   onClick={() => {
                     const groups = [...(draft.groups ?? [])]
-                    groups.splice(Math.max(0, groups.length - 1), 0, { title: group.title.trim(), note: group.note.trim() || 'List uploaded per Term' })
+                    groups.splice(Math.max(0, groups.length - 1), 0, { title: group.title.trim(), note: group.note.trim() || 'List uploaded per term' })
                     cfg.setValue('groups', groups)
                     setGroup({ title: '', note: '' })
                     setAdding(false)
@@ -120,9 +120,9 @@ export default function EligibilityRules() {
               </>
             }
           >
-            <Field label="Group name">{(id) => <Input id={id} value={group.title} onChange={(e) => setGroup((g) => ({ ...g, title: e.target.value }))} placeholder="e.g. Students from remote provinces" />}</Field>
+            <Field label="Group name">{(id) => <Input id={id} value={group.title} onChange={(e) => setGroup((g) => ({ ...g, title: e.target.value }))} placeholder="e.g. students from remote provinces" />}</Field>
             <Field label="Source" helper="Where the system reads membership from.">
-              {(id) => <Input id={id} value={group.note} onChange={(e) => setGroup((g) => ({ ...g, note: e.target.value }))} placeholder="e.g. List from Student Affairs, uploaded per Term" />}
+              {(id) => <Input id={id} value={group.note} onChange={(e) => setGroup((g) => ({ ...g, note: e.target.value }))} placeholder="e.g. List from Student Affairs, uploaded per term" />}
             </Field>
           </Modal>
         </>

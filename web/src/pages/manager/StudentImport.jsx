@@ -201,7 +201,7 @@ function Preview({ id }) {
               data={data}
               markMissing={markMissing}
               onClose={() => setConfirming(false)}
-              onDone={() => notify({ title: t('Student list imported'), message: 'The result is shown above and written to the Audit Log.' })}
+              onDone={() => notify({ title: t('Student list imported'), message: 'The result is shown above and written to the audit log.' })}
             />
           )}
         </>

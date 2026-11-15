@@ -1,9 +1,9 @@
 import { t } from '@/i18n'
-import { formatDate } from './format'
+import { campusDayStart, daysFromToday, formatDate, formatDateRange } from './format'
 
 const DAY = 24 * 60 * 60 * 1000
-const startOf = (d) => (d ? new Date(`${String(d).slice(0, 10)}T00:00:00`) : null)
-const endOf = (d) => (d ? new Date(new Date(`${String(d).slice(0, 10)}T00:00:00`).getTime() + DAY) : null)
+const startOf = (d) => (d ? campusDayStart(String(d).slice(0, 10)) : null)
+const endOf = (d) => (d ? new Date(campusDayStart(String(d).slice(0, 10)).getTime() + DAY) : null)
 const at = (v) => (v ? new Date(v) : null)
 
 /**
@@ -28,7 +28,7 @@ export function termJourney(term, notes = {}, now = new Date()) {
       state = 'current'
       currentSeen = true
     }
-    const range = s.from && s.to ? `${formatDate(s.from)} – ${formatDate(new Date(s.to.getTime() - (s.key === 'checkin' || s.key === 'stay' ? DAY : 0)))}` : s.to ? formatDate(s.to) : null
+    const range = s.from && s.to ? formatDateRange(s.from, new Date(s.to.getTime() - (s.key === 'checkin' || s.key === 'stay' ? DAY : 0))) : s.to ? formatDate(s.to) : null
     let note = notes[s.key] ?? null
     if (!note && state === 'current' && s.to) {
       const before = s.from && now < s.from

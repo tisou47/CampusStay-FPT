@@ -31,7 +31,7 @@ const statusTag = {
   ready: <Tag tone="success">Ready to check in</Tag>,
   blocked: <Tag tone="error">Check-in blocked</Tag>,
   'checked-in': <Tag tone="info">Checked in</Tag>,
-  'not-allocated': <Tag tone="neutral">No Bed yet</Tag>,
+  'not-allocated': <Tag tone="neutral">No bed yet</Tag>,
 }
 
 function CheckItem({ ok, children }) {
@@ -64,7 +64,7 @@ function LateCheckInModal({ person, termId, onClose }) {
     {
       invalidates: ['approvals', 'dashboard'],
       onSuccess: () => {
-        notify({ title: 'Late check-in recorded', message: t('{name} arrives on {date}. A Manager decides it in Decisions › Late check-in.', { name: person.name, date: formatDate(requestedFor) }) })
+        notify({ title: 'Late check-in recorded', message: t('{name} arrives on {date}. A manager decides it in Decisions › Late check-in.', { name: person.name, date: formatDate(requestedFor) }) })
         onClose()
       },
       onError: () => {},
@@ -141,8 +141,8 @@ function StudentPanel({ person, onDone }) {
       </div>
 
       {person.status === 'not-allocated' ? (
-        <Alert type="warning" title="No Room and Bed for this Term yet">
-          {t('This student has no confirmed Allocation. Check-in opens after the assignment is committed and the balance is paid.')}
+        <Alert type="warning" title="No room and bed for this term yet">
+          {t('This student has no confirmed allocation. Check-in opens after the assignment is committed and the balance is paid.')}
         </Alert>
       ) : (
         <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -159,12 +159,12 @@ function StudentPanel({ person, onDone }) {
           type="warning"
           title={t('Check-in window closed on {date}', { date: formatDate(term.checkInEnd) })}
           action={
-            <Button tip="For a student who cannot come on the check-in day: record the reason and the planned date. A Manager decides." icon={CalendarClock} onClick={() => setLate(true)}>
+            <Button tip="For a student who cannot come on the check-in day: record the reason and the planned date. A manager decides." icon={CalendarClock} onClick={() => setLate(true)}>
               Record late check-in
             </Button>
           }
         >
-          {t('Record when {name} will arrive. Once a Manager approves it, check-in opens here until the approved day.', { name: person.name })}
+          {t('Record when {name} will arrive. Once a manager approves it, check-in opens here until the approved day.', { name: person.name })}
         </Alert>
       )}
       {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
@@ -176,7 +176,7 @@ function StudentPanel({ person, onDone }) {
             code: person.studentCode,
             what: [
               person.owes?.balance ? t('the balance of {amount}', { amount: formatVnd(person.owes.balance) }) : null,
-              person.owes?.utilityDeposit ? t('the Utility Deposit of {amount}', { amount: formatVnd(person.owes.utilityDeposit) }) : null,
+              person.owes?.utilityDeposit ? t('the utility deposit of {amount}', { amount: formatVnd(person.owes.utilityDeposit) }) : null,
             ].filter(Boolean).join(t(' and ')),
           })}
         </Alert>
@@ -184,7 +184,7 @@ function StudentPanel({ person, onDone }) {
 
       {person.status === 'checked-in' && (
         <Alert type="success" title={t('Checked in at {time}', { time: formatTime(person.checkedInAt) })}>
-          {t('Assets were handed over and the student’s QR pass now opens the Block gates.')}
+          {t('Assets were handed over and the student’s QR pass now opens the block gates.')}
         </Alert>
       )}
 

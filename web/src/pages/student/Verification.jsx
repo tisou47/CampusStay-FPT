@@ -50,7 +50,7 @@ function DetailsForm({ data, onSent }) {
       onSuccess: () => {
         notify({
           title: first ? t('Details sent') : t('Details updated'),
-          message: 'A Manager checks them against the student list and verifies your account.',
+          message: 'A manager checks them against the student list and verifies your account.',
         })
         onSent(first)
       },
@@ -127,7 +127,7 @@ export default function Verification() {
     <StudentPage
       breadcrumb={[{ label: 'Home', to: '/student' }, { label: 'Account verification' }]}
       title="Account verification"
-      description="CampusStay checks every student account against the student list before you can apply for a Bed."
+      description="CampusStay checks every student account against the student list before you can apply for a bed."
       badge={status && <Tag tone={statusTone[status] ?? 'neutral'}>{status}</Tag>}
       width="max-w-200"
     >
@@ -136,14 +136,14 @@ export default function Verification() {
           <div className="flex flex-col gap-4">
             {data.status === 'Profile needed' && (
               <Alert type="info" title="Your account was not found in the student list">
-                {t('Send your details below. A Manager checks them and verifies your account; you can look around meanwhile, and apply once it is verified.')}
+                {t('Send your details below. A manager checks them and verifies your account; you can look around meanwhile, and apply once it is verified.')}
               </Alert>
             )}
             {data.status === 'Pending verification' && (
-              <Alert type="warning" title="Waiting for a Manager">
+              <Alert type="warning" title="Waiting for a manager">
                 <span className="inline-flex items-center gap-1.5">
                   <Clock size={16} aria-hidden="true" />
-                  {t('Your details were sent. You can apply for a Bed once a Manager verifies your account. You can still correct them below.')}
+                  {t('Your details were sent. You can apply for a bed once a manager verifies your account. You can still correct them below.')}
                 </span>
               </Alert>
             )}
@@ -167,7 +167,7 @@ export default function Verification() {
                     ['Cohort', data.form.cohort ?? '—'],
                   ]}
                 />
-                <p className="text-sm text-fg-tertiary">{t('These details come from the student list. Ask a Manager to correct them.')}</p>
+                <p className="text-sm text-fg-tertiary">{t('These details come from the student list. Ask a manager to correct them.')}</p>
               </Card>
             ) : (
               <DetailsForm

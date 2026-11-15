@@ -45,7 +45,7 @@ function Editor({ item, options, block, onCreated }) {
   const save = useMutation(() => (isNew ? api.inspections.createSchedule(body()) : api.inspections.updateSchedule(item.id, body())), {
     invalidates: ['inspection-schedules'],
     onSuccess: (res) => {
-      notify({ title: 'Schedule saved', message: t('{name}. Staff get each run on their Inspections page.', { name: form.name.trim() }) })
+      notify({ title: 'Schedule saved', message: t('{name}. Staff get each run on their inspections page.', { name: form.name.trim() }) })
       if (isNew && res?.id) onCreated(res.id)
     },
     onError: () => {},
@@ -71,7 +71,7 @@ function Editor({ item, options, block, onCreated }) {
       <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats)} />}</Field>
       <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees)} />}</Field>
       <Field label="Due within (days)">{(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}</Field>
-      <Checkbox label="Create Maintenance Requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
+      <Checkbox label="Create maintenance requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
       <Checkbox label="Notify residents when the inspection starts" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
       <div className="flex justify-end gap-2">
         {!isNew && (
@@ -98,7 +98,7 @@ export default function InspectionSchedule() {
     <>
       <PageHeader
         title={block ? t('Inspection schedules · Block {code}', { code: block }) : 'Inspection schedules'}
-        description="Plan recurring inspections; Staff run them with the Admin checklist."
+        description="Plan recurring inspections; staff run them with the admin checklist."
         actions={
           <>
             {picker}
@@ -121,7 +121,7 @@ export default function InspectionSchedule() {
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={query} colSpan={5} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to Staff." />
+              <TableStatus query={query} colSpan={5} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to staff." />
               {items.map((s) => (
                 <Tr key={s.id} selected={s.id === selected?.id} onClick={() => setSelectedId(s.id)} className="[&>td]:h-15.5">
                   <Td className="font-medium text-fg-brand">{s.name}</Td>

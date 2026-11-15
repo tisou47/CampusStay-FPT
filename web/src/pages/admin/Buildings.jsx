@@ -31,7 +31,7 @@ function BlockModal({ block, genders, onClose, onSaved }) {
   const save = useMutation(() => (isNew ? api.admin.buildings.createBlock(form) : api.admin.buildings.updateBlock(block.id, form)), {
     invalidates: ['admin-buildings', 'inventory'],
     onSuccess: (res) => {
-      notify({ title: t('Block {code} saved', { code: form.name }), message: isNew ? 'Use Bulk generate Rooms to create its Floors.' : 'Changes are written to the Audit Log.' })
+      notify({ title: t('Block {code} saved', { code: form.name }), message: isNew ? 'Use Bulk generate rooms to create its floors.' : 'Changes are written to the audit log.' })
       onSaved(res?.id ?? block.id)
     },
     onError: () => {},
@@ -40,7 +40,7 @@ function BlockModal({ block, genders, onClose, onSaved }) {
     <Modal
       open
       onClose={onClose}
-      title={isNew ? 'New Block' : t('Edit Block {code}', { code: block.name })}
+      title={isNew ? 'New block' : t('Edit Block {code}', { code: block.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -72,7 +72,7 @@ function BulkModal({ block, floors, roomClasses, note, onClose }) {
   const run = useMutation(() => api.admin.buildings.bulkRooms(block.id, { fromFloor: Number(from), toFloor: Number(to), roomClassId: roomClassId || undefined }), {
     invalidates: ['admin-buildings', 'inventory'],
     onSuccess: (res) => {
-      notify({ title: 'Rooms generated', message: `${t('{n} Rooms created in Block {code}.', { n: formatNumber(res?.created), code: block.name })}${res?.skipped ? ` ${t('{n} Floors with Allocations were skipped.', { n: res.skipped })}` : ''}` })
+      notify({ title: 'Rooms generated', message: `${t('{n} rooms created in Block {code}.', { n: formatNumber(res?.created), code: block.name })}${res?.skipped ? ` ${t('{n} floors with allocations were skipped.', { n: res.skipped })}` : ''}` })
       onClose()
     },
     onError: () => {},
@@ -81,8 +81,8 @@ function BulkModal({ block, floors, roomClasses, note, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={t('Bulk generate Rooms · Block {code}', { code: block.name })}
-      description="Creates the standard layout on every Floor in the range. Floors with Allocations are skipped."
+      title={t('Bulk generate rooms · Block {code}', { code: block.name })}
+      description="Creates the standard layout on every floor in the range. Floors with allocations are skipped."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -92,22 +92,22 @@ function BulkModal({ block, floors, roomClasses, note, onClose }) {
         </>
       }
     >
-      {run.error && <Alert type="error" title="Could not generate Rooms">{run.error.message}</Alert>}
+      {run.error && <Alert type="error" title="Could not generate rooms">{run.error.message}</Alert>}
       <div className="flex gap-3">
-        <Field label="From Floor" className="flex-1">
+        <Field label="From floor" className="flex-1">
           {(id) => <Select id={id} value={from} onChange={(e) => setFrom(e.target.value)} options={floors.map(String)} />}
         </Field>
-        <Field label="To Floor" className="flex-1">
+        <Field label="To floor" className="flex-1">
           {(id) => <Select id={id} value={to} onChange={(e) => setTo(e.target.value)} options={floors.map(String)} />}
         </Field>
       </div>
-      <Field label="Room Class of the new Rooms" helper="Each Room keeps its own class per Term afterwards (Manager › Room Classes).">
+      <Field label="Room tier of the new rooms" helper="Each room keeps its own class per term afterwards (Manager › Room tiers).">
         {(id) => (
           <Select
             id={id}
             value={roomClassId}
             onChange={(e) => setRoomClassId(e.target.value)}
-            options={[{ value: '', label: t("Keep each Floor's class") }, ...roomClasses.map((c) => ({ value: c.id, label: tr(c.name) }))]}
+            options={[{ value: '', label: t("Keep each floor's class") }, ...roomClasses.map((c) => ({ value: c.id, label: tr(c.name) }))]}
           />
         )}
       </Field>
@@ -119,15 +119,15 @@ function BulkModal({ block, floors, roomClasses, note, onClose }) {
 function FloorDrawer({ block, floor, onClose }) {
   const query = useQuery(['admin-buildings', 'floor', block.id, floor.floor], ({ signal }) => api.admin.buildings.floorRooms(block.id, floor.floor, { signal }))
   return (
-    <Drawer open width={560} onClose={onClose} title={t('Block {code} · Floor {n}', { code: block.name, n: floor.floor })} description={t('{rooms} Rooms · {beds} Beds', { rooms: formatNumber(floor.rooms), beds: formatNumber(floor.beds) })}>
+    <Drawer open width={560} onClose={onClose} title={t('Block {code} · Floor {n}', { code: block.name, n: floor.floor })} description={t('{rooms} rooms · {beds} beds', { rooms: formatNumber(floor.rooms), beds: formatNumber(floor.beds) })}>
       <QueryState query={query} compact>
         {(data) => (
           <Table>
             <THead>
               <tr>
                 <Th>Room</Th>
-                <Th>Room Type</Th>
-                <Th>Room Class (this Term)</Th>
+                <Th>Room type</Th>
+                <Th>Room tier (this term)</Th>
                 <Th>Status</Th>
               </tr>
             </THead>
@@ -161,16 +161,16 @@ export default function Buildings() {
     <>
       <PageHeader
         title="Buildings"
-        description="Blocks, Floors, Rooms and Beds. Each Room has its Room Type, and its Room Class per Term (Manager › Room Classes); bulk-generate a Floor layout to save time."
+        description="Blocks, floors, rooms and beds. Each room has its room type, and its room tier per term (Manager › Room tiers); bulk-generate a floor layout to save time."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setModal({ type: 'block', block: {} })} disabled={!query.data}>
-            New Block
+            New block
           </Button>
         }
       />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <div className="flex min-h-0 w-75 shrink-0 flex-col gap-3 overflow-y-auto">
-          <QueryState query={query} compact empty={<EmptyBlock icon={Building} title="No Blocks yet" />}>
+          <QueryState query={query} compact empty={<EmptyBlock icon={Building} title="No blocks yet" />}>
             {(data) =>
               data.items.map((b) => {
                 const active = b.id === block?.id
@@ -195,7 +195,7 @@ export default function Buildings() {
                       {b.gender && <Tag>{b.gender}</Tag>}
                     </span>
                     <span className="text-sm text-fg-secondary">
-                      {b.floors?.length ? t('{floors} residential Floors · {rooms} Rooms · {beds} Beds', { floors: b.floors.length, rooms: formatNumber(rooms), beds: formatNumber(beds) }) : t('No Floors yet')}
+                      {b.floors?.length ? t('{floors} residential floors · {rooms} rooms · {beds} beds', { floors: b.floors.length, rooms: formatNumber(rooms), beds: formatNumber(beds) }) : t('No floors yet')}
                     </span>
                   </button>
                 )
@@ -214,10 +214,10 @@ export default function Buildings() {
                 </div>
                 <div className="flex gap-2">
                   <Button icon={Pencil} onClick={() => setModal({ type: 'block', block })}>
-                    Edit Block
+                    Edit block
                   </Button>
                   <Button icon={Layers} onClick={() => setModal({ type: 'bulk', block })}>
-                    Bulk generate Rooms
+                    Bulk generate rooms
                   </Button>
                 </div>
               </div>
@@ -225,7 +225,7 @@ export default function Buildings() {
                 <THead>
                   <tr>
                     <Th className="w-24">Floor</Th>
-                    <Th className="w-56">Room Classes (this Term)</Th>
+                    <Th className="w-56">Room tiers (this term)</Th>
                     <Th className="w-18" align="right">
                       2-bed
                     </Th>
@@ -245,16 +245,16 @@ export default function Buildings() {
                   </tr>
                 </THead>
                 <TBody>
-                  <TableStatus query={query} colSpan={8} rows={floors} emptyTitle="No Floors yet" emptyText="Use Bulk generate Rooms to create the layout." />
+                  <TableStatus query={query} colSpan={8} rows={floors} emptyTitle="No floors yet" emptyText="Use Bulk generate rooms to create the layout." />
                   {floors.map((f) => (
                     <Tr key={f.floor} className="[&>td]:h-10">
                       <Td className="font-medium">{t('Floor {n}', { n: f.floor })}</Td>
-                      <Td title={f.roomClassName ? t('New Rooms: {name}', { name: tr(f.roomClassName) }) : undefined}>{f.roomClasses?.length ? f.roomClasses.map((c) => `${tr(c.name)} ${c.rooms}`).join(' · ') : '—'}</Td>
+                      <Td title={f.roomClassName ? t('New rooms: {name}', { name: tr(f.roomClassName) }) : undefined}>{f.roomClasses?.length ? f.roomClasses.map((c) => `${tr(c.name)} ${c.rooms}`).join(' · ') : '—'}</Td>
                       <Td align="right">{f.twoBed}</Td>
                       <Td align="right">{f.fourBed}</Td>
                       <Td align="right">{f.sixBed}</Td>
                       <Td align="right">{f.beds}</Td>
-                      <Td>{f.closedRooms ? <Tag tone="warning">{t(f.closedRooms === 1 ? '{n} Room closed' : '{n} Rooms closed', { n: f.closedRooms })}</Tag> : <Tag tone="success">Active</Tag>}</Td>
+                      <Td>{f.closedRooms ? <Tag tone="warning">{t(f.closedRooms === 1 ? '{n} room closed' : '{n} rooms closed', { n: f.closedRooms })}</Tag> : <Tag tone="success">Active</Tag>}</Td>
                       <Td>
                         <Button variant="text" onClick={() => setFloorOpen(f)}>
                           Rooms
@@ -266,7 +266,7 @@ export default function Buildings() {
               </Table>
             </>
           ) : (
-            <EmptyBlock icon={Building} title="Select a Block" />
+            <EmptyBlock icon={Building} title="Select a block" />
           )}
         </Card>
       </div>

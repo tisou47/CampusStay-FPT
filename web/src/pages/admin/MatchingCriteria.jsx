@@ -39,7 +39,7 @@ function PreviewTable({ preview }) {
   const rows = [
     ['Students placed', (r) => (r ? `${r.placed} / ${preview.students}` : '—')],
     ['Average fit', (r) => (r?.averageFit != null ? `${r.averageFit} / 100` : '—')],
-    ['Priority students with a Bed', (r) => (r ? `${r.priorityPlaced} / ${r.priorityStudents}` : '—')],
+    ['Priority students with a bed', (r) => (r ? `${r.priorityPlaced} / ${r.priorityStudents}` : '—')],
   ]
   return (
     <table className="w-full text-base">
@@ -66,7 +66,7 @@ function PreviewTable({ preview }) {
 export default function MatchingCriteria() {
   const { notify, notifyError } = useToast()
   const cfg = useConfigForm('matching', api.admin.matching, {
-    onSaved: (res) => notify({ title: t('Snapshot v{n} saved', { n: res?.snapshot ?? '' }), message: 'Terms published from now on use it. A published Term and the runs already made keep their snapshot.' }),
+    onSaved: (res) => notify({ title: t('Snapshot v{n} saved', { n: res?.snapshot ?? '' }), message: 'Terms published from now on use it. A published term and the runs already made keep their snapshot.' }),
   })
   const { draft } = cfg
   const [preview, setPreview] = useState(null)
@@ -90,7 +90,7 @@ export default function MatchingCriteria() {
     <ConfigPage
       form={cfg}
       title="Roommate matching"
-      description="Who is placed first when Beds are short, and what roommates should share. Publishing a Term fixes these rules for it."
+      description="Who is placed first when beds are short, and what roommates should share. Publishing a term fixes these rules for it."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
@@ -109,7 +109,7 @@ export default function MatchingCriteria() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-h3 font-semibold text-fg">{t('Always true')}</h2>
-                  <p className="text-sm text-fg-tertiary">{t('A Bed that breaks any of these is never proposed.')}</p>
+                  <p className="text-sm text-fg-tertiary">{t('A bed that breaks any of these is never proposed.')}</p>
                 </div>
                 <Tag>Locked</Tag>
               </div>
@@ -124,8 +124,8 @@ export default function MatchingCriteria() {
             </Card>
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex flex-col gap-0.5">
-                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when Beds are short?')}</h2>
-                <p className="text-sm text-fg-tertiary">{t('The engine takes the Applications in this order. Use the arrows to reorder.')}</p>
+                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when beds are short?')}</h2>
+                <p className="text-sm text-fg-tertiary">{t('The engine takes the applications in this order. Use the arrows to reorder.')}</p>
               </div>
               <ol className="flex flex-col gap-2.5">
                 {(draft.order ?? []).map((o, i) => (
@@ -145,7 +145,7 @@ export default function MatchingCriteria() {
             <Card className="flex shrink-0 flex-col gap-4">
               <div className="flex flex-col gap-0.5">
                 <h2 className="text-h3 font-semibold text-fg">{t('How are roommates matched?')}</h2>
-                <p className="text-sm text-fg-tertiary">{t('For 4-bed and 6-bed Rooms, and 2-bed students who chose automatic matching. Very important counts twice as much as Important.')}</p>
+                <p className="text-sm text-fg-tertiary">{t('For 4-bed and 6-bed rooms, and 2-bed students who chose automatic matching. Very important counts twice as much as Important.')}</p>
               </div>
               {weights.map((w, i) => (
                 <div key={w.key} className="flex items-center gap-4">
@@ -162,7 +162,7 @@ export default function MatchingCriteria() {
                 {t('Advanced')}
               </button>
               {advanced && (
-                <Field label="Roommate-preference boost" helper="When a student's roommate preferences (region, semester, major) all match the Room, their fit is multiplied by this. 1 = off, at most 5.">
+                <Field label="Roommate-preference boost" helper="When a student's roommate preferences (region, semester, major) all match the room, their fit is multiplied by this. 1 = off, at most 5.">
                   {(id) => <Input id={id} inputMode="decimal" value={draft.boost ?? 1} onChange={(e) => cfg.setValue('boost', e.target.value)} className="w-32" />}
                 </Field>
               )}
@@ -179,7 +179,7 @@ export default function MatchingCriteria() {
               {preview?.draft ? (
                 <>
                   <PreviewTable preview={preview} />
-                  <p className="text-base text-fg">{t('{n} of {total} students get another Bed (or none) with this draft.', { n: preview.moved, total: preview.students })}</p>
+                  <p className="text-base text-fg">{t('{n} of {total} students get another bed (or none) with this draft.', { n: preview.moved, total: preview.students })}</p>
                   {preview.sameMajorRate != null && (
                     <p className="text-sm text-fg-secondary">{t('Rooms with 2+ students of the same major: {rate}', { rate: formatPercent(preview.sameMajorRate, 0) })}</p>
                   )}
@@ -190,7 +190,7 @@ export default function MatchingCriteria() {
                         {preview.example.attributes.map((a) => (
                           <li key={a.key}>{t('{label}: {n} of {total} share {value}', { label: t(a.label), n: a.sharing, total: preview.example.students, value: tr(a.value) })}</li>
                         ))}
-                        {preview.example.attributes.length === 0 && <li>{t('No criterion is used, so every Room fits the same.')}</li>}
+                        {preview.example.attributes.length === 0 && <li>{t('No criterion is used, so every room fits the same.')}</li>}
                       </ul>
                     </div>
                   )}

@@ -58,7 +58,7 @@ export default function ManagerDashboard() {
       id: 'applications',
       icon: FileText,
       tone: 'info',
-      title: t('{n} Applications to review', { n: formatNumber(w.toReview) }),
+      title: t('{n} applications to review', { n: formatNumber(w.toReview) }),
       meta: t('{s} Submitted · {u} Under Review', { s: w.submitted, u: w.underReview }),
       action: { label: 'Review', to: '/manager/applications' },
     },
@@ -66,8 +66,8 @@ export default function ManagerDashboard() {
       id: 'proposal',
       icon: Layers,
       tone: proposal.conflicts ? 'warning' : 'info',
-      title: t('{run}: {c} of {n} Blocks committed', { run: proposal.runId, c: proposal.committedBlocks, n: proposal.totalBlocks }),
-      meta: proposal.conflicts ? t('{n} conflicts to resolve before committing', { n: proposal.conflicts }) : t('{n} students proposed; commit each Block to allocate them', { n: proposal.proposed }),
+      title: t('{run}: {c} of {n} blocks committed', { run: proposal.runId, c: proposal.committedBlocks, n: proposal.totalBlocks }),
+      meta: proposal.conflicts ? t('{n} conflicts to resolve before committing', { n: proposal.conflicts }) : t('{n} students proposed; commit each block to allocate them', { n: proposal.proposed }),
       action: { label: proposal.conflicts ? 'Resolve' : 'Commit', to: `/manager/assignment/${proposal.runId}` },
     },
     r2?.waitlisted > 0 && {
@@ -75,14 +75,14 @@ export default function ManagerDashboard() {
       icon: Repeat2,
       tone: 'info',
       title: t('{n} waitlisted students without a Round 2 offer', { n: formatNumber(r2.waitlisted) }),
-      meta: r2.freeBeds ? t('{n} free Beds can be offered', { n: formatNumber(r2.freeBeds) }) : t('No free Bed yet: they get one when a Bed frees up'),
+      meta: r2.freeBeds ? t('{n} free beds can be offered', { n: formatNumber(r2.freeBeds) }) : t('No free bed yet: they get one when a bed frees up'),
       action: { label: 'Round 2', to: '/manager/assignment?tab=round2' },
     },
     r2?.openOffers > 0 && {
       id: 'round2-open',
       icon: Repeat2,
       title: t('{n} Round 2 offers waiting for an answer', { n: formatNumber(r2.openOffers) }),
-      meta: 'Their Beds are held until each offer expires',
+      meta: 'Their beds are held until each offer expires',
       action: { label: 'See who', to: '/manager/assignment?tab=round2' },
     },
     a?.lateCheckIn > 0 && {
@@ -96,7 +96,7 @@ export default function ManagerDashboard() {
     a?.swaps > 0 && {
       id: 'swaps',
       icon: ArrowRightLeft,
-      title: t('{n} swaps waiting for a Manager', { n: formatNumber(a.swaps) }),
+      title: t('{n} swaps waiting for a manager', { n: formatNumber(a.swaps) }),
       meta: 'Both students agreed; the swap needs your decision',
       action: { label: 'Decide', to: '/manager/room-changes/swaps' },
     },
@@ -105,7 +105,7 @@ export default function ManagerDashboard() {
       icon: TriangleAlert,
       tone: 'error',
       title: t('{n} overdue requests', { n: formatNumber(k.escalationsWaiting) }),
-      meta: 'Past their time limit: reassign them or offer a temporary Bed',
+      meta: 'Past their time limit: reassign them or offer a temporary bed',
       action: { label: 'Handle', to: '/manager/escalations', primary: true },
     },
     k?.refundsWaiting > 0 && {
@@ -113,7 +113,7 @@ export default function ManagerDashboard() {
       icon: CreditCard,
       tone: 'warning',
       title: t('{n} refunds to decide', { n: formatNumber(k.refundsWaiting) }),
-      meta: 'Cancelled Applications, ended stays and terminations',
+      meta: 'Cancelled applications, ended stays and terminations',
       action: { label: 'Decide', to: '/manager/finance' },
     },
     ...(d?.waiting ?? [])
@@ -129,7 +129,7 @@ export default function ManagerDashboard() {
   ].filter(Boolean)
 
   const journey = termJourney(term, {
-    assignment: w?.toReview ? t('{n} Applications to review', { n: w.toReview }) : proposal && proposal.committedBlocks < proposal.totalBlocks ? t('{run} in review', { run: proposal.runId }) : undefined,
+    assignment: w?.toReview ? t('{n} applications to review', { n: w.toReview }) : proposal && proposal.committedBlocks < proposal.totalBlocks ? t('{run} in review', { run: proposal.runId }) : undefined,
     payment: claim?.count ? t('{n} transfers to confirm', { n: claim.count }) : undefined,
   })
   const people = staff.data?.items ?? []
@@ -151,15 +151,15 @@ export default function ManagerDashboard() {
       <StaleNotice query={query} />
 
       {term && (
-        <Panel title={t('Term {name}', { name: term.name })} subtitle="The highlighted stage is now; under it, what waits for a Manager" className="shrink-0" bodyClassName="overflow-visible pt-1">
+        <Panel title={t('Term {name}', { name: term.name })} subtitle="The highlighted stage is now; under it, what waits for a manager" className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
           <StageNow role="manager" term={term} />
         </Panel>
       )}
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Bed} label="Occupancy" value={k ? formatPercent(k.beds ? Math.floor((k.allocated / k.beds) * 100) / 100 : null, 0) : '—'} note={k ? t('{n} Beds held of {total} · {r} living in', { n: formatNumber(k.allocated), total: formatNumber(k.beds), r: formatNumber(k.residents) }) : null} />
-        <KpiTile icon={Banknote} label="Collected this Term" value={<span title={t(COLLECTED_RULE)}>{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
+        <KpiTile icon={Bed} label="Occupancy" value={k ? formatPercent(k.beds ? Math.floor((k.allocated / k.beds) * 100) / 100 : null, 0) : '—'} note={k ? t('{n} beds held of {total} · {r} living in', { n: formatNumber(k.allocated), total: formatNumber(k.beds), r: formatNumber(k.residents) }) : null} />
+        <KpiTile icon={Banknote} label="Collected this term" value={<span title={t(COLLECTED_RULE)}>{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
         <KpiTile
           icon={Wrench}
           label="Maintenance SLA"
@@ -171,9 +171,9 @@ export default function ManagerDashboard() {
       </div>
 
       <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,1fr)_380px] gap-4">
-        <Panel title="Waiting for you" subtitle="Every decision that needs a Manager, the most urgent first">
+        <Panel title="Waiting for you" subtitle="Every decision that needs a manager, the most urgent first">
           <QueryState query={query} compact isEmpty={() => false}>
-            {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, Applications, proposals and requests appear here.</EmptyBlock>} />}
+            {() => <WorkList items={items} empty={<EmptyBlock title="Nothing is waiting for you">New transfers, applications, proposals and requests appear here.</EmptyBlock>} />}
           </QueryState>
           {routingGaps.length > 0 && (
             <p className="mt-2 flex items-center gap-2 border-t border-line pt-2 text-sm text-fg-secondary">
@@ -189,7 +189,7 @@ export default function ManagerDashboard() {
         </Panel>
 
         <div className="flex min-h-0 flex-col gap-4">
-          <Panel title="Beds by Block" subtitle="Allocated and proposed Beds against capacity" className="min-h-0 flex-1">
+          <Panel title="Beds by block" subtitle="Allocated and proposed beds against capacity" className="min-h-0 flex-1">
             <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
               {(data) => <CapacityRows rows={data.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />}
             </QueryState>

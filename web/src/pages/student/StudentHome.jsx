@@ -9,7 +9,7 @@ import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { daysFromToday, formatDate, formatDateRange, formatDateTime, formatVnd, greeting as greet } from '@/lib/format'
 import { DormitoryBoard } from './board'
 import { NextAction, StatusCard, StatusList, StatusRow } from './shared'
 import { t, tr } from '@/i18n'
@@ -23,9 +23,7 @@ import { t, tr } from '@/i18n'
 //   dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }
 
 function greeting(firstName) {
-  const h = new Date().getHours()
-  const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
-  return firstName ? t(`${part}, {name}`, { name: firstName }) : t(part)
+  return firstName ? `${greet()}, ${firstName}` : greet()
 }
 
 function stageOf(home) {
@@ -35,7 +33,7 @@ function stageOf(home) {
   return 'applied'
 }
 
-const daysUntil = (iso) => (iso ? Math.ceil((new Date(iso) - new Date()) / 86_400_000) : null)
+const daysUntil = (iso) => (iso ? daysFromToday(iso) : null)
 const dueIn = (iso) => {
   const d = daysUntil(iso)
   if (d == null) return null
@@ -43,7 +41,7 @@ const dueIn = (iso) => {
   if (d === 0) return t('Due today')
   return t(d === 1 ? 'Due in {n} day' : 'Due in {n} days', { n: d })
 }
-const range = (a, b) => (a ? `${formatDate(a)}${b ? ` – ${formatDate(b)}` : ''}` : '—')
+const range = (a, b) => (a ? formatDateRange(a, b ?? a) : '—')
 
 function HomeContent({ home }) {
   const stage = stageOf(home)
@@ -61,10 +59,10 @@ function HomeContent({ home }) {
         ? t('{term} registration is open until {date}.', { term: term.name, date: formatDateTime(term.registrationClosesAt) })
         : t('Registration is not open yet.'),
     'awaiting-deposit': t('Pay the deposit to send {id} to the dormitory office.', { id: app?.id }),
-    applied: t('Your Application is with the dormitory office.'),
+    applied: t('Your application is with the dormitory office.'),
     allocated: dueInvoice
-      ? t('Your Room for {term} is ready. Pay the balance to keep it.', { term: term?.name ?? t('this Term') })
-      : t('Your Room for {term} is confirmed.', { term: term?.name ?? t('this Term') }),
+      ? t('Your room for {term} is ready. Pay the balance to keep it.', { term: term?.name ?? t('this term') })
+      : t('Your room for {term} is confirmed.', { term: term?.name ?? t('this term') }),
   }[stage]
 
   let next
@@ -79,22 +77,22 @@ function HomeContent({ home }) {
     next = (
       <NextAction
         icon={FileText}
-        title={term ? t('Apply for a dormitory Bed for {term}', { term: term.name }) : t('Apply for a dormitory Bed')}
+        title={term ? t('Apply for a dormitory bed for {term}', { term: term.name }) : t('Apply for a dormitory bed')}
         deadline={left != null && left >= 0 ? t(left === 1 ? 'Registration closes in {n} day' : 'Registration closes in {n} days', { n: left }) : null}
         action={
-          <Button tip="Available while the registration period of a Term is open." variant="primary" size="lg" to="/student/apply/term" disabled={!term?.registrationOpen}>
+          <Button tip="Available while the registration period of a term is open." variant="primary" size="lg" to="/student/apply/term" disabled={!term?.registrationOpen}>
             Start application
           </Button>
         }
       >
-        Choose a Room Type and Room Class. Pay the deposit to submit; the dormitory assigns your Room and Bed after review.
+        Choose a room type and room tier. Pay the deposit to submit; the dormitory assigns your room and bed after review.
       </NextAction>
     )
   } else if (dueInvoice && (stage === 'awaiting-deposit' || stage === 'allocated')) {
     next = (
       <NextAction
         icon={CreditCard}
-        title={`${tr(dueInvoice.title) || t('Pay your Invoice')} · ${formatVnd(dueInvoice.amount)}`}
+        title={`${tr(dueInvoice.title) || t('Pay your invoice')} · ${formatVnd(dueInvoice.amount)}`}
         deadline={dueIn(dueInvoice.dueAt)}
         action={
           <Button variant="primary" size="lg" to={payLink}>
@@ -103,7 +101,7 @@ function HomeContent({ home }) {
         }
       >
         {dueInvoice.dueAt && t('Pay by {date}.', { date: formatDateTime(dueInvoice.dueAt) })}{' '}
-        {stage === 'awaiting-deposit' ? t('Unpaid Applications expire at the deadline.') : t('An unpaid balance blocks check-in.')}
+        {stage === 'awaiting-deposit' ? t('Unpaid applications expire at the deadline.') : t('An unpaid balance blocks check-in.')}
       </NextAction>
     )
   } else if (stage === 'awaiting-deposit') {
@@ -111,21 +109,21 @@ function HomeContent({ home }) {
     next = (
       <NextAction
         icon={Clock}
-        title="Your Deposit transfer is being confirmed"
+        title="Your deposit transfer is being confirmed"
         action={
           <Button variant="primary" size="lg" to={`/student/applications/${app.id}`}>
             View application
           </Button>
         }
       >
-        A Manager checks the transfer against the bank statement; your Application is submitted once it is confirmed.
+        A manager checks the transfer against the bank statement; your application is submitted once it is confirmed.
       </NextAction>
     )
   } else if (stage === 'applied' || !allocation) {
     next = (
       <NextAction
         icon={Clock}
-        title="Your Application is under review"
+        title="Your application is under review"
         deadline={term?.resultsPublishedAt ? t('Assignment results on {date}', { date: formatDate(term.resultsPublishedAt) }) : null}
         deadlineIcon={CalendarCheck}
         action={
@@ -134,7 +132,7 @@ function HomeContent({ home }) {
           </Button>
         }
       >
-        The dormitory office reviews Applications after registration closes, then assigns Rooms and Beds.
+        The dormitory office reviews applications after registration closes, then assigns rooms and beds.
       </NextAction>
     )
   } else {
@@ -146,11 +144,11 @@ function HomeContent({ home }) {
         deadlineIcon={CalendarCheck}
         action={
           <Button variant="primary" size="lg" to="/student/room">
-            View My Room
+            View My room
           </Button>
         }
       >
-        {home.checkedIn ? t('You live in this Room. Report problems in your Room from Requests.') : t('Pay the Balance; the door code comes on My Room when check-in starts. The {block} desk hands over the keys and items.', { block: tr(allocation.block) })}
+        {home.checkedIn ? t('You live in this room. Report problems in your room from requests.') : t('Pay the balance; the door code comes on My room when check-in starts. The {block} desk hands over the keys and items.', { block: tr(allocation.block) })}
       </NextAction>
     )
   }
@@ -164,10 +162,10 @@ function HomeContent({ home }) {
       : { value: t('Not assigned'), note: t('Assigned after the review and assignment run'), to: '/student/room' },
     payments:
       home.invoices?.total === 0
-        ? { value: t('No invoices'), note: t('The deposit Invoice is issued when you submit'), to: '/student/invoices' }
+        ? { value: t('No invoices'), note: t('The deposit invoice is issued when you submit'), to: '/student/invoices' }
         : home.invoices?.due
-          ? { value: t('{n} due', { n: home.invoices.due }), note: dueInvoice ? t('{amount} · due {date}', { amount: formatVnd(dueInvoice.amount), date: formatDate(dueInvoice.dueAt) }) : t('See Payments'), to: '/student/invoices' }
-          : { value: t('{n} due', { n: 0 }), note: t('All Invoices are paid'), to: '/student/invoices' },
+          ? { value: t('{n} due', { n: home.invoices.due }), note: dueInvoice ? t('{amount} · due {date}', { amount: formatVnd(dueInvoice.amount), date: formatDate(dueInvoice.dueAt) }) : t('See payments'), to: '/student/invoices' }
+          : { value: t('{n} due', { n: 0 }), note: t('All invoices are paid'), to: '/student/invoices' },
   }
 
   return (
@@ -183,9 +181,9 @@ function HomeContent({ home }) {
 
       <div className="hidden shrink-0 items-stretch gap-6 lg:flex">
         <StatusCard icon={FileText} label="Application" {...cards.application} />
-        <StatusCard icon={Bed} label="My Room" {...cards.room} />
+        <StatusCard icon={Bed} label="My room" {...cards.room} />
         <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
-        <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and Room-Change Requests" to="/student/requests" />
+        <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and room-change requests" to="/student/requests" />
       </div>
 
       <StatusList className="lg:hidden">
@@ -205,7 +203,7 @@ function HomeContent({ home }) {
           <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), tr(allocation.block)].filter(Boolean).join(' · ')} to="/student/room" />
         )}
         <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
-        <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and Room-Change Requests" to="/student/requests" />
+        <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and room-change requests" to="/student/requests" />
       </StatusList>
 
       <LatestNotification />

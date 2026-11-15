@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/Display'
 import { DatePickerField, DateTimePickerField, HourPickerField } from '@/components/ui/DateTimePicker'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
-import { toDateTimeInput } from '@/lib/format'
+import { campusToday, fromDateTimeInput, toDateTimeInput } from '@/lib/format'
 import { t } from '@/i18n'
 
 // The Family Day form (ADR-29): create a Draft or edit it. Times are whole hours in the browser's zone and go to the
@@ -14,7 +14,7 @@ import { t } from '@/i18n'
 // overlap) and answers field errors such as "slots[1].startsAt". A Family Day never runs overnight, so a time slot is
 // one day with a start and an end hour.
 
-const iso = (local) => (local ? new Date(local).toISOString() : null)
+const iso = (local) => (local ? fromDateTimeInput(local) : null)
 const pad = (n) => String(n).padStart(2, '0')
 const plusHours = (h, n) => (h ? `${pad(Math.min(23, Number(h.slice(0, 2)) + n))}:00` : '')
 
@@ -77,7 +77,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
   const setSlot = (i, patch) => setForm((f) => ({ ...f, slots: f.slots.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
   const fields = error?.details?.fields ?? {}
-  const today = toDateTimeInput(new Date()).slice(0, 10)
+  const today = campusToday()
 
   // A new time slot follows the last one: same day, starting when it ends, two hours long.
   const addSlot = () =>
@@ -93,7 +93,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
       onClose={onClose}
       width={680}
       title={day ? 'Edit the Family Day' : 'New Family Day'}
-      description="Families meet residents in a common area of the Block: never in the Rooms, never overnight."
+      description="Families meet residents in a common area of the block: never in the rooms, never overnight."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -111,7 +111,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
               id={id}
               value={form.block}
               onChange={(e) => set('block', e.target.value)}
-              options={[{ value: '', label: 'Choose a Block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]}
+              options={[{ value: '', label: 'Choose a block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]}
             />
           )}
         </Field>
@@ -134,7 +134,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
             >
               {/* The prompt shows in the field until a place is chosen, never in the list. */}
               <option value="" disabled hidden>
-                {form.block ? t('Choose where families are received') : t('Choose a Block first')}
+                {form.block ? t('Choose where families are received') : t('Select a block first')}
               </option>
               {form.block &&
                 AREAS.map((a) => (

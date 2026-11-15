@@ -91,13 +91,13 @@ export default function RoomHub() {
         }
       />
       <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-4">
-        <Section icon={BedDouble} title="Residents" items={s.residents} empty="Nobody holds a Bed of this Room in the current or next Term." link={(i) => `${base}/students/${i.id}`} />
+        <Section icon={BedDouble} title="Residents" items={s.residents} empty="Nobody holds a bed of this room in the current or next term." link={(i) => `${base}/students/${i.id}`} />
         <Card className="flex min-h-0 flex-col gap-3 overflow-y-auto">
           <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
             <Package size={18} aria-hidden="true" />
-            {t('Room Class and furniture')}
+            {t('Room tier and furniture')}
           </h2>
-          {d.next && <p className="text-base text-fg">{t('Next Term ({term}): {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}</p>}
+          {d.next && <p className="text-base text-fg">{t('Next term ({term}): {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}</p>}
           {d.doorCode && (
             <p className="flex items-center gap-2 text-base text-fg">
               {t('Door code')}
@@ -115,12 +115,12 @@ export default function RoomHub() {
                 <StatusTag status={f.status} className="ml-auto" />
               </li>
             ))}
-            {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this Room.')}</li>}
+            {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</li>}
           </ul>
         </Card>
-        <Section icon={Wrench} title="Maintenance Requests" items={s.maintenance} empty="No Maintenance Request for this Room." link={(i) => `${base}/maintenance/${i.id}`} />
+        <Section icon={Wrench} title="Maintenance requests" items={s.maintenance} empty="No maintenance request for this room." link={(i) => `${base}/maintenance/${i.id}`} />
         <Section icon={Gauge} title="Meter readings" items={s.meterReadings} empty="No meter reading yet." />
-        <Section icon={ClipboardCheck} title="Inspections" items={s.inspections} empty="No inspection of this Room yet." />
+        <Section icon={ClipboardCheck} title="Inspections" items={s.inspections} empty="No inspection of this room yet." />
       </div>
     </>
   )

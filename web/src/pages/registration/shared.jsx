@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatVnd, toDateInput, toDateTimeInput } from '@/lib/format'
+import { formatDate, formatDateTime, formatVnd, fromDateTimeInput, toDateInput, toDateTimeInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { DateInput, DateTimeInput } from '@/components/ui/DatePicker'
 
@@ -24,8 +24,8 @@ export const RENEWAL = [
   { key: 'requestsCloseAt', label: 'Request deadline (M3)', type: 'datetime' },
   { key: 'decisionsDueAt', label: 'Decision deadline (M4)', type: 'datetime' },
   { key: 'reconciliationDueAt', label: 'Reconciliation (M5)', type: 'datetime' },
-  { key: 'feesIssueAt', label: 'Next-Term fees issued (M6)', type: 'datetime' },
-  { key: 'feesDueAt', label: 'Next-Term fee deadline (M7)', type: 'datetime' },
+  { key: 'feesIssueAt', label: 'Next-term fees issued (M6)', type: 'datetime' },
+  { key: 'feesDueAt', label: 'Next-term fee deadline (M7)', type: 'datetime' },
 ]
 
 export const REGISTRATION = [
@@ -54,7 +54,7 @@ export function toInput(type, value) {
 export function fromInput(type, value) {
   if (value === '' || value == null) return null
   if (type === 'hours') return Number(value)
-  return type === 'datetime' ? new Date(value).toISOString() : value
+  return type === 'datetime' ? fromDateTimeInput(value) : value
 }
 
 /** A timeline from the API as form values, and back. */
@@ -181,14 +181,14 @@ export function TimelineStrip({ form, className }) {
 export function ReasonInput({ value, onChange, error }) {
   return (
     <Field label="Reason for the change" error={error}>
-      {(id) => <Input id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder="Shown to the Manager next to the difference" />}
+      {(id) => <Input id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder="Shown to the manager next to the difference" />}
     </Field>
   )
 }
 
 /** Values the Admin built differently from the request: label, proposed → built, and the reason. */
 export function DifferencesTable({ differences }) {
-  if (!differences?.length) return <p className="text-sm text-fg-tertiary">{t('The Term has every value the request proposed.')}</p>
+  if (!differences?.length) return <p className="text-sm text-fg-tertiary">{t('The term has every value the request proposed.')}</p>
   return (
     <ul className="flex flex-col divide-y divide-line">
       {differences.map((d) => (
@@ -262,7 +262,7 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-base font-medium text-fg">{t(label)}</span>
-        <span className="text-sm text-fg-tertiary">{t('{n} Rooms', { n: codes.length })}</span>
+        <span className="text-sm text-fg-tertiary">{t('{n} rooms', { n: codes.length })}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           <input
             ref={file}
@@ -289,7 +289,7 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
         </div>
       </div>
       <div className={cx('flex max-h-40 min-h-11 flex-wrap content-start gap-1.5 overflow-y-auto rounded-md border p-2', error ? 'border-error' : 'border-line')}>
-        {codes.length === 0 && <span className="self-center px-1 text-sm text-fg-tertiary">{t('No Room left out.')}</span>}
+        {codes.length === 0 && <span className="self-center px-1 text-sm text-fg-tertiary">{t('No room left out.')}</span>}
         {codes.map((code) => (
           <span key={code} className="inline-flex items-center gap-1 rounded-full bg-subtle py-0.5 pr-1 pl-2.5 text-sm font-medium text-fg">
             {code}
@@ -309,8 +309,8 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
       {!disabled && (
         <div className="flex gap-2">
           <Input
-            aria-label={t('Add Room codes')}
-            placeholder="Add a Room code, e.g. A-101"
+            aria-label={t('Add room codes')}
+            placeholder="Add a room code, e.g. A-101"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={(e) => {
@@ -327,11 +327,11 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
       )}
       {read.error && <Alert type="error" title="Could not read the file">{read.error.details?.fields?.file ?? read.error.message}</Alert>}
       {result?.unknown.length > 0 && (
-        <Alert type="warning" title={t('{n} codes are not Rooms and were left out', { n: result.unknown.length })}>
+        <Alert type="warning" title={t('{n} codes are not rooms and were left out', { n: result.unknown.length })}>
           {result.unknown.join(', ')}
         </Alert>
       )}
-      {result && !result.unknown.length && <p className="text-sm text-success-fg">{t('{n} Rooms read from the file.', { n: result.added })}</p>}
+      {result && !result.unknown.length && <p className="text-sm text-success-fg">{t('{n} rooms read from the file.', { n: result.added })}</p>}
       {error ? <p className="text-sm text-error-fg">{tr(error)}</p> : helper ? <p className="text-sm text-fg-tertiary">{t(helper)}</p> : null}
     </div>
   )

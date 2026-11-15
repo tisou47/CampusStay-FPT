@@ -214,7 +214,7 @@ class RoomClassIT {
                         .content("{\"termId\":\"%d\",\"rooms\":[\"A-101\"],\"roomClassId\":\"%d\"}"
                                 .formatted(term("FA26"), roomClass("Standard"))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Kỳ Fall 2026 đã bắt đầu, nên hạng phòng của kỳ này không thể thay đổi."));
+                .andExpect(jsonPath("$.message").value("Học kỳ Fall 2026 đã bắt đầu, nên hạng phòng của học kỳ này không thể thay đổi."));
         mvc.perform(get("/inventory/room-classes").header(HttpHeaders.AUTHORIZATION, manager).param("termId", "99999"))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/inventory/room-classes").header(HttpHeaders.AUTHORIZATION, manager).param("block", "A")

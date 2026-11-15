@@ -56,7 +56,7 @@ function MoveModal({ items, blocks, onClose, onDone }) {
       open
       onClose={onClose}
       title={t(items.length === 1 ? 'Move {code}' : 'Move {n} items', { code: items[0]?.assetCode, n: items.length })}
-      description="Inside your Blocks you move items yourself; moving to another Block is a Manager's transfer."
+      description="Inside your blocks you move items yourself; moving to another block is a manager's transfer."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -67,7 +67,7 @@ function MoveModal({ items, blocks, onClose, onDone }) {
       }
     >
       {move.error && <Alert type="error" title="Could not move the items">{move.error.summary}</Alert>}
-      <Segmented value={kind} onChange={setKind} options={[{ value: 'room', label: 'To a Room' }, { value: 'store', label: 'To a Block store' }]} />
+      <Segmented value={kind} onChange={setKind} options={[{ value: 'room', label: 'To a room' }, { value: 'store', label: 'To a block store' }]} />
       {kind === 'room' ? (
         <Field label="Room" error={move.error?.fields?.room}>
           {(id) => <Input id={id} value={room} placeholder="e.g. A-305" onChange={(e) => setRoom(e.target.value)} />}
@@ -76,7 +76,7 @@ function MoveModal({ items, blocks, onClose, onDone }) {
         <Field label="Block store">{(id) => <Select id={id} value={store} onChange={(e) => setStore(e.target.value)} options={blocks.map((b) => ({ value: b, label: t('Block {code} store', { code: b }) }))} />}</Field>
       )}
       <Field label="Reason" required error={move.error?.fields?.reason}>
-        {(id) => <Textarea id={id} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Room Class change for next Term" />}
+        {(id) => <Textarea id={id} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. room tier change for next term" />}
       </Field>
       <Checkbox label="Plan the move for later" description="A task for the turnover; the items stay where they are until it is marked done." checked={planned} onChange={(e) => setPlanned(e.target.checked)} />
     </Modal>
@@ -119,7 +119,7 @@ function RegisterModal({ types, blocks, onClose }) {
         <Field label="Block" className="flex-1">
           {(id) => <Select id={id} value={form.block} onChange={set('block')} options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))} />}
         </Field>
-        <Field label="Room" helper="Blank = the Block store." className="flex-1" error={save.error?.fields?.room}>
+        <Field label="Room" helper="Blank = the block store." className="flex-1" error={save.error?.fields?.room}>
           {(id) => <Input id={id} value={form.room} onChange={set('room')} placeholder="e.g. A-305" />}
         </Field>
       </div>
@@ -246,7 +246,7 @@ function Items({ manages }) {
           }}
           options={[
             { value: '', label: 'All' },
-            { value: 'room', label: 'In Rooms' },
+            { value: 'room', label: 'In rooms' },
             { value: 'store', label: 'In stores' },
           ]}
         />
@@ -270,7 +270,7 @@ function Items({ manages }) {
           }}
           options={[{ value: '', label: t('{label}: All', { label: t('Status') }) }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${t('Status')}: ${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
         />
-        <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, Room or type" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />
         <Button icon={QrCode} onClick={() => setModal({ type: 'labels' })} disabled={!items.length}>
           {selected.length ? t('Print {n} labels', { n: selected.length }) : t('Print labels')}
@@ -441,7 +441,7 @@ export default function Furniture() {
     <>
       <PageHeader
         title="Furniture"
-        description={manages ? 'Every item with its status and place, the Block stores, moves and transfers between Blocks.' : 'Items of your Blocks: their status, the Block store and moves between Rooms.'}
+        description={manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
       />
       <Tabs
         className="shrink-0"

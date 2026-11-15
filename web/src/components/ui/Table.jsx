@@ -61,17 +61,29 @@ export function Th({ className, align = 'left', children, ...props }) {
   )
 }
 
+/**
+ * A row. With onClick the whole row opens its record (no "Open"/"View" button): it is tinted on hover, Tab reaches
+ * it with a focus ring and Enter opens it. Buttons inside a cell call stop() so they do not open the row.
+ */
 export function Tr({ selected, onClick, className, children, ...props }) {
+  const onKeyDown = onClick
+    ? (e) => {
+        if (e.key === 'Enter' && e.target === e.currentTarget) onClick(e)
+        props.onKeyDown?.(e)
+      }
+    : props.onKeyDown
   return (
     <tr
       onClick={onClick}
+      tabIndex={onClick ? 0 : undefined}
+      {...props}
+      onKeyDown={onKeyDown}
       className={cx(
         'transition-colors [&>td]:border-b [&>td]:border-line',
-        selected ? 'bg-brand-subtle' : onClick && 'hover:bg-gray-50',
-        onClick && 'cursor-pointer',
+        selected ? 'bg-brand-subtle' : onClick && 'hover:bg-primary-subtle/60',
+        onClick && 'cursor-pointer outline-none focus-visible:bg-primary-subtle/60 focus-visible:[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-focus)]',
         className,
       )}
-      {...props}
     >
       {children}
     </tr>
@@ -79,7 +91,7 @@ export function Tr({ selected, onClick, className, children, ...props }) {
 }
 
 // A cell whose text is short (a code, a date, an amount, a name) stays on one line: "APP-FA26-024993" never breaks
-// at its hyphens and "2,588,000 VND" never splits. Longer text wraps between words with balanced lines.
+// at its hyphens and "2,588,000 ₫" never splits. Longer text wraps between words with balanced lines.
 const SHORT = 28
 function textOf(children) {
   let text = ''

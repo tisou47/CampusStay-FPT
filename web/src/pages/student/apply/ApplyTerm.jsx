@@ -37,9 +37,9 @@ export default function ApplyTerm() {
           {(d) => <TermSchedule timeline={d.timeline} />}
         </QueryState>
         {info?.depositWindowHours && (
-          <p className="text-base text-fg">{t('After you submit, pay the Deposit within {n} hours.', { n: info.depositWindowHours })}</p>
+          <p className="text-base text-fg">{t('After you submit, pay the deposit within {n} hours.', { n: info.depositWindowHours })}</p>
         )}
-        <Note>Registration opens only for the upcoming Term. The Term is set by the dormitory office and cannot be changed here.</Note>
+        <Note>Registration opens only for the upcoming term. The term is set by the dormitory office and cannot be changed here.</Note>
       </Card>
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">

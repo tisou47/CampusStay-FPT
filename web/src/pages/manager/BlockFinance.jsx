@@ -61,7 +61,7 @@ function DecisionModal({ refund, decision, onClose }) {
       {decide.error && <Alert type="error" title="Could not save the decision">{decide.error.message}</Alert>}
       {refund.exception && decision === 'Approved' && (
         <Alert type="warning" title="This refund is above the rule">
-          {tr(refund.rule)}. {t('Your reason is written to the audit log for Admin review.')}
+          {tr(refund.rule)}. {t('Your reason is written to the audit log for admin review.')}
         </Alert>
       )}
       <Field label={decision === 'Approved' ? 'Reason for the exception' : 'Reason shown to the student'} required={needsNote}>
@@ -200,7 +200,7 @@ function OverdueTab({ scope }) {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyTitle="No overdue Invoices" />
+          <TableStatus query={query} colSpan={7} emptyTitle="No overdue invoices" />
           {(query.data?.items ?? []).map((o) => (
             <Tr key={o.invoiceId}>
               <Td className="font-medium text-fg-brand">{o.invoiceId}</Td>
@@ -243,7 +243,7 @@ function AllInvoicesTab({ scope }) {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={6} emptyTitle="No Invoices" />
+          <TableStatus query={query} colSpan={6} emptyTitle="No invoices" />
           {(query.data?.items ?? []).map((i) => (
             <Tr key={i.id}>
               <Td className="font-medium text-fg-brand">{i.id}</Td>
@@ -279,7 +279,7 @@ export default function BlockFinance() {
     <>
       <PageHeader
         title={block ? t('Finance · Block {code}', { code: block }) : 'Collections and refunds'}
-        description={`${term ? `${t('{term} invoices and refunds.', { term: term.name })} ` : ''}${t('Refunds follow Admin rules; you approve exceptions and partial refunds.')}`}
+        description={`${term ? `${t('{term} invoices and refunds.', { term: term.name })} ` : ''}${t('Refunds follow admin rules; you approve exceptions and partial refunds.')}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
@@ -288,7 +288,7 @@ export default function BlockFinance() {
       />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? t('{n} Invoices', { n: formatNumber(s.invoices) }) : null} />
+        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? t('{n} invoices', { n: formatNumber(s.invoices) }) : null} />
         <KpiTile size="md" label="Collected" value={s ? formatVnd(s.collected) : '—'} note={s?.invoiced ? formatPercent(s.collected / s.invoiced, 0) : null} />
         <KpiTile size="md" label="Overdue" value={formatNumber(s?.overdueCount)} note={s ? formatVnd(s.overdueAmount) : null} />
         <KpiTile size="md" label="Refunds pending" value={formatNumber(s?.refundsPendingCount)} note={s ? formatVnd(s.refundsPendingAmount) : null} />
@@ -301,7 +301,7 @@ export default function BlockFinance() {
         items={[
           { key: 'refunds', label: 'Refund approvals', count: s?.refundsPendingCount },
           { key: 'overdue', label: 'Overdue', count: s?.overdueCount },
-          { key: 'all', label: 'All Invoices' },
+          { key: 'all', label: 'All invoices' },
         ]}
       />
 

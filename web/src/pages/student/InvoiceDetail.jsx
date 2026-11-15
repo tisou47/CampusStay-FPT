@@ -8,7 +8,7 @@ import { Card, DetailRows } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { formatDate, formatDateRange, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -54,7 +54,7 @@ function Breakdown({ inv }) {
           <p className="text-base font-medium text-fg">
             {inv.period.months
               ? t('{label} · month {month} of {months} of {term} ({from} – {to})', { label: tr(inv.period.label), month: inv.period.month, months: inv.period.months, term: inv.termName ?? '', from: formatDate(inv.period.from), to: formatDate(inv.period.to) })
-              : `${tr(inv.period.label)} (${formatDate(inv.period.from)} – ${formatDate(inv.period.to)})`}
+              : `${tr(inv.period.label)} (${formatDateRange(inv.period.from, inv.period.to)})`}
           </p>
         )}
         <p className="text-base text-fg-secondary">{inv.room ? `${t('{room} has one shared meter.', { room: inv.room })} ` : ''}{t('Each segment is split equally among the residents in it.')}</p>
@@ -64,7 +64,7 @@ function Breakdown({ inv }) {
         {b.segments.map((s) => (
           <li key={`${s.from}-${s.to}`} className="flex flex-col gap-1 border-b border-line pb-3 last:border-b-0 last:pb-0">
             <span className="text-sm text-fg-secondary">
-              {formatDate(s.from)} – {formatDate(s.to)} · {t(s.residents === 1 ? '{n} resident' : '{n} residents', { n: s.residents })}
+              {formatDateRange(s.from, s.to)} · {t(s.residents === 1 ? '{n} resident' : '{n} residents', { n: s.residents })}
               {s.note ? ` · ${tr(s.note)}` : ''}
             </span>
             <span className="flex items-start justify-between gap-3 text-base">
@@ -94,7 +94,7 @@ function Breakdown({ inv }) {
               <Td className="py-2.5">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium">
-                    {formatDate(s.from)} – {formatDate(s.to)}
+                    {formatDateRange(s.from, s.to)}
                   </span>
                   {s.note && <span className="text-sm text-fg-tertiary">{tr(s.note)}</span>}
                 </div>
@@ -122,7 +122,7 @@ function Breakdown({ inv }) {
         </div>
         {(b.priceKwh || b.priceM3) && (
           <p className="text-sm text-fg-tertiary">
-            {t('Prices: {kwh} VND/kWh and {m3} VND/m³. Readings are entered by Staff each month and at every move-in or move-out.', { kwh: formatNumber(b.priceKwh), m3: formatNumber(b.priceM3) })}
+            {t('Prices: {kwh} ₫/kWh and {m3} ₫/m³. Readings are entered by staff each month and at every move-in or move-out.', { kwh: formatNumber(b.priceKwh), m3: formatNumber(b.priceM3) })}
           </p>
         )}
       </div>
@@ -150,7 +150,7 @@ export default function InvoiceDetail() {
       {inv === undefined && query.loading ? (
         <LoadingState />
       ) : query.error?.status === 404 ? (
-        <EmptyBlock icon={ReceiptText} title="Invoice not found" action={<Button to="/student/invoices">Back to Payments</Button>} />
+        <EmptyBlock icon={ReceiptText} title="Invoice not found" action={<Button to="/student/invoices">Back to payments</Button>} />
       ) : inv === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : (
@@ -178,7 +178,7 @@ export default function InvoiceDetail() {
               </Button>
             ) : null}
             {inv.type === 'utility' && inv.utilityDeposit != null && (
-              <p className="text-sm text-fg-tertiary">{t('Your Utility Deposit ({amount}) is not used for monthly bills. It is settled at check-out.', { amount: formatVnd(inv.utilityDeposit) })}</p>
+              <p className="text-sm text-fg-tertiary">{t('Your utility deposit ({amount}) is not used for monthly bills. It is settled at check-out.', { amount: formatVnd(inv.utilityDeposit) })}</p>
             )}
             {(inv.status === 'Paid' || inv.status === 'Refunded') && <ReceiptCard inv={inv} />}
           </Card>

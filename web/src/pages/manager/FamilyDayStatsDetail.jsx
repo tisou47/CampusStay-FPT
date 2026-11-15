@@ -9,7 +9,7 @@ import { Alert, Breadcrumb, Card } from '@/components/ui/Display'
 import { QueryState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 import { statsBase } from './FamilyDayStats'
@@ -56,7 +56,7 @@ export default function FamilyDayStatsDetail() {
           <div className="flex flex-col gap-4">
             {!d.complete && (
               <Alert type="info" title="Figures still change">
-                {t('A Manager has not closed this Family Day yet: guests who have not come count as No-shows once their time slot is over, and the figures are final after closing.')}
+                {t('A manager has not closed this Family Day yet: guests who have not come count as No-shows once their time slot is over, and the figures are final after closing.')}
               </Alert>
             )}
 
@@ -94,7 +94,7 @@ export default function FamilyDayStatsDetail() {
                 <TBody>
                   {d.slots.map((slot) => (
                     <Tr key={slot.id} className="[&>td]:h-12">
-                      <Td className="whitespace-nowrap">{`${formatDateTime(slot.startsAt)} – ${formatTime(slot.endsAt)}`}</Td>
+                      <Td className="whitespace-nowrap">{formatDateTimeRange(slot.startsAt, slot.endsAt)}</Td>
                       <Td>
                         <div className="flex items-center gap-3">
                           <Meter value={slot.booked} max={slot.capacity} tone="info" label="Places booked" className="w-24 shrink-0" />
@@ -146,7 +146,7 @@ export default function FamilyDayStatsDetail() {
                   rows={[
                     { label: 'Live', value: d.registrations.approved, tone: 'success' },
                     { label: 'Cancelled by the student', value: d.registrations.cancelledByStudent, tone: 'neutral' },
-                    { label: 'Cancelled by a Manager', value: d.registrations.cancelledByManager, tone: 'warning' },
+                    { label: 'Cancelled by a manager', value: d.registrations.cancelledByManager, tone: 'warning' },
                   ]}
                   max={Math.max(1, d.registrations.total)}
                   labelWidth="w-48"
@@ -160,7 +160,7 @@ export default function FamilyDayStatsDetail() {
                   <KpiTile size="md" icon={TriangleAlert} label="Stayed late" value={formatNumber(d.overdue.overstayed)} valueTone={d.overdue.overstayed ? 'warning' : undefined} note={d.guests.inside ? t('{n} still inside', { n: formatNumber(d.guests.inside) }) : undefined} />
                   <KpiTile size="md" icon={BellRing} label="Reminded" value={formatNumber(d.overdue.reminded)} note={t('{n} students told', { n: formatNumber(d.overdue.studentsReminded) })} />
                   <KpiTile size="md" icon={ShieldCheck} label="Confirmed safe by the student" value={formatNumber(d.overdue.safetyConfirmed)} valueTone={d.overdue.safetyConfirmed ? 'success' : undefined} />
-                  <KpiTile size="md" icon={UserX} label="Closed by a Manager without it" value={formatNumber(d.overdue.closedWithoutConfirmation)} />
+                  <KpiTile size="md" icon={UserX} label="Closed by a manager without it" value={formatNumber(d.overdue.closedWithoutConfirmation)} />
                 </div>
               </Section>
             </div>

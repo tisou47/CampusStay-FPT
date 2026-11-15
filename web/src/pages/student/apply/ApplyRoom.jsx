@@ -32,10 +32,10 @@ export default function ApplyRoom() {
     >
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Room Type')}</h2>
-          <p className="text-base text-fg-secondary">{t('Number of Beds in the Room. Prices are per Bed for the whole Term.')}</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('Room type')}</h2>
+          <p className="text-base text-fg-secondary">{t('Number of beds in the room. Prices are per bed for the whole term.')}</p>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Type')}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room type')}>
           {roomTypes.map((rt) => {
             const from = helpers.fromPrice(rt.id)
             return (
@@ -56,10 +56,10 @@ export default function ApplyRoom() {
 
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Room Class')}</h2>
-          <p className="text-base text-fg-secondary">{t('Each Room of a class has the furniture listed. The surcharge is added to the Room Type price.')}</p>
+          <h2 className="text-h3 font-semibold text-fg">{t('Room tier')}</h2>
+          <p className="text-base text-fg-secondary">{t('Each room of a class has the furniture listed. The surcharge is added to the room type price.')}</p>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room Class')}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4" role="radiogroup" aria-label={t('Room tier')}>
           {roomClasses.map((c) => {
             const price = draft.roomTypeId ? helpers.termPrice(draft.roomTypeId, c.id) : null
             return (
@@ -81,16 +81,16 @@ export default function ApplyRoom() {
       <Card padding="lg" className="flex shrink-0 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-h3 font-semibold text-fg">{t('How long do you want to stay?')}</h2>
-          <p className="text-base text-fg-secondary">{t('The number of Terms you plan to stay. You keep your Bed from Term to Term and can extend or end your stay later.')}</p>
+          <p className="text-base text-fg-secondary">{t('The number of terms you plan to stay. You keep your bed from term to term and can extend or end your stay later.')}</p>
         </div>
         <Select
           wrapperClassName="w-full lg:w-60"
           aria-label={t('Stay length')}
           value={String(stayTerms)}
           onChange={(e) => setDraft({ stayTerms: Number(e.target.value) })}
-          options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} Term' : '{n} Terms', { n: i + 1 }) }))}
+          options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} term' : '{n} terms', { n: i + 1 }) }))}
         />
-        <Note>{t('Each Term is billed and paid on its own; the stay length is not a payment commitment.')}</Note>
+        <Note>{t('Each term is billed and paid on its own; the stay length is not a payment commitment.')}</Note>
       </Card>
     </WizardLayout>
   )

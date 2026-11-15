@@ -151,7 +151,7 @@ export default function Payments() {
     <>
       <PageHeader
         title="Payments"
-        description="Students report their transfer; a Manager confirms it against the bank statement."
+        description="Students report their transfer; a manager confirms it against the bank statement."
         actions={
           <>
             <Button to="/manager/payment-claims" icon={Check}>
@@ -178,7 +178,7 @@ export default function Payments() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search Invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-38"
           aria-label={t('Type')}
@@ -186,11 +186,11 @@ export default function Payments() {
           onChange={filter(setType)}
           options={[
             { value: '', label: 'Type: All' },
-            { value: 'deposit', label: 'Type: Deposit' },
-            { value: 'balance', label: 'Type: Balance' },
-            { value: 'termFee', label: 'Type: Next-Term fee' },
-            { value: 'utility', label: 'Type: Utility' },
-            { value: 'roomChange', label: 'Type: Room change' },
+            { value: 'deposit', label: 'Type: deposit' },
+            { value: 'balance', label: 'Type: balance' },
+            { value: 'termFee', label: 'Type: Next-term fee' },
+            { value: 'utility', label: 'Type: utility' },
+            { value: 'roomChange', label: 'Type: room change' },
           ]}
         />
         <Select
@@ -225,7 +225,7 @@ export default function Payments() {
           options={[
             { value: 'today', label: 'Date: Today' },
             { value: '7d', label: 'Date: Last 7 days' },
-            { value: 'term', label: 'Date: This Term' },
+            { value: 'term', label: 'Date: This term' },
           ]}
         />
       </div>

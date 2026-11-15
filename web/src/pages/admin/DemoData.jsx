@@ -30,7 +30,7 @@ export default function DemoData() {
       invalidateAll()
       notify({
         title: t('Stage {stage} loaded', { stage: res.stage }),
-        message: t('{terms} Terms, {applications} Applications, {allocations} Allocations, {invoices} Invoices.', res.counts),
+        message: t('{terms} terms, {applications} applications, {allocations} allocations, {invoices} invoices.', res.counts),
       })
     },
   })
@@ -45,7 +45,7 @@ export default function DemoData() {
     <>
       <PageHeader
         title="Demo data"
-        description="Replace the business data by a demo stage whose dates are relative to today. Accounts, Buildings, furniture and settings stay."
+        description="Replace the business data by a demo stage whose dates are relative to today. Accounts, buildings, furniture and settings stay."
       />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
         {!d.enabled && (
@@ -92,7 +92,7 @@ export default function DemoData() {
               {d.lastReset
                 ? t('Last reset: stage {stage}, {at}, by {by}.', { stage: d.lastReset.stage, at: formatDateTime(d.lastReset.at), by: d.lastReset.by })
                 : t('Not reset yet on this server.')}{' '}
-              {t('Every business record is replaced, for every user. The reset is written to the Audit Log.')}
+              {t('Every business record is replaced, for every user. The reset is written to the audit log.')}
             </p>
           </Card>
           <Card padding="lg" className="col-span-2 flex flex-col gap-3">

@@ -145,15 +145,15 @@ export function SelectionSummary({ wizard }) {
     <Card padding="lg" className="flex flex-col gap-3">
       <h2 className="text-h3 font-semibold text-fg">{t('Your selection')}</h2>
       <SummaryRow label="Term" value={term?.name} />
-      <SummaryRow label="Room Type" value={roomType?.name} />
-      <SummaryRow label="Room Class" value={classLabel(helpers.roomClass(draft.roomClassId))} />
+      <SummaryRow label="Room type" value={roomType?.name} />
+      <SummaryRow label="Room tier" value={classLabel(helpers.roomClass(draft.roomClassId))} />
       {isTwoBed(roomType) && <SummaryRow label="Roommate" value={roommateLabel(draft, roomType)} empty="Not set" />}
       <Divider />
-      <SummaryRow label="Term price per Bed" value={price != null && formatVnd(price)} empty="—" />
+      <SummaryRow label="Term price per bed" value={price != null && formatVnd(price)} empty="—" />
       <SummaryRow label={depositRate != null ? t('Deposit due on submit ({rate}%)', { rate: Math.round(depositRate * 100) }) : t('Deposit due on submit')} value={deposit != null && formatVnd(deposit)} empty="—" brand />
-      <SummaryRow label="Balance after Allocation" value={balance != null && formatVnd(balance)} empty="—" />
-      <SummaryRow label="Utility Deposit before check-in" value={catalog.data?.utilityDeposit != null && formatVnd(catalog.data.utilityDeposit)} empty="—" />
-      <Note>The dormitory assigns your Room and Bed after review. You cannot pick a specific Room.</Note>
+      <SummaryRow label="Balance after allocation" value={balance != null && formatVnd(balance)} empty="—" />
+      <SummaryRow label="Utility deposit before check-in" value={catalog.data?.utilityDeposit != null && formatVnd(catalog.data.utilityDeposit)} empty="—" />
+      <Note>The dormitory assigns your room and bed after review. You cannot pick a specific room.</Note>
     </Card>
   )
 }
@@ -189,7 +189,7 @@ export function WizardLayout({ wizard, stepKey, actions, children }) {
             {catalog.data === undefined && catalog.loading ? (
               <LoadingState />
             ) : catalog.data === undefined && catalog.error ? (
-              <ErrorState error={catalog.error} onRetry={catalog.reload} title="Could not load Room Types and prices" />
+              <ErrorState error={catalog.error} onRetry={catalog.reload} title="Could not load room types and prices" />
             ) : (
               children
             )}

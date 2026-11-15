@@ -9,7 +9,7 @@ import { Alert, Card, DetailRows, Note } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateTime, formatTimeLeft, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -95,7 +95,7 @@ function Payment({ data, reload }) {
   const sendClaim = useMutation(() => api.invoices.claim(invoice.id, reference.trim() ? { reference: reference.trim() } : {}), {
     invalidates: ['invoices', 'home'],
     onSuccess: () => {
-      notify({ title: 'Transfer reported', message: t('A Manager will check it. The deadline is paused until then.') })
+      notify({ title: 'Transfer reported', message: t('A manager will check it. The deadline is paused until then.') })
       reload()
     },
     onError: (e) => notifyError(e, 'Could not report the transfer'),
@@ -202,41 +202,41 @@ function Payment({ data, reload }) {
 
       <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
         {paid ? (
-          <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to Payments</Button>}>
-            {t('This payment was confirmed on {date}. A receipt is available under Payments.', { date: formatDateTime(invoice.paidAt) })}
+          <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to payments</Button>}>
+            {t('This payment was confirmed on {date}. A receipt is available under payments.', { date: formatDateTime(invoice.paidAt) })}
           </Alert>
         ) : waiting ? (
-          <Alert type="info" title="Waiting for a Manager" className="shrink-0">
-            {t('You reported the transfer on {date}. The deadline is paused until a Manager confirms or rejects it; you will be notified.', { date: formatDateTime(claim?.claimedAt) })}
+          <Alert type="info" title="Waiting for a manager" className="shrink-0">
+            {t('You reported the transfer on {date}. The deadline is paused until a manager confirms or rejects it; you will be notified.', { date: formatDateTime(claim?.claimedAt) })}
           </Alert>
         ) : (
           <>
             {rejection && (
               <Alert type="warning" title="Transfer not confirmed" className="shrink-0">
-                {t('A Manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.', { reason: rejection.reason })}
+                {t('A manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.', { reason: rejection.reason })}
               </Alert>
             )}
             <Card className="flex shrink-0 flex-col gap-3">
               <h2 className="text-h3 font-semibold text-fg">{t('Paid already? Tell the dormitory')}</h2>
               <p className="text-sm text-fg-secondary">
-                {t('Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A Manager checks the bank account and confirms it.', { amount: formatVnd(invoice.amount), content: transferContent })}
+                {t('Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A manager checks the bank account and confirms it.', { amount: formatVnd(invoice.amount), content: transferContent })}
               </p>
               {canClaim ? (
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <Field label="Bank reference (optional)" className="sm:flex-1">
                     <Input value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />
                   </Field>
-                  <Button tip="Tell the dormitory you paid. A Manager checks it against the bank statement, then the Invoice shows as paid." variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
+                  <Button tip="Tell the dormitory you paid. A manager checks it against the bank statement, then the invoice shows as paid." variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
                     {sendClaim.pending ? t('Sending…') : t('I have transferred')}
                   </Button>
                 </div>
               ) : (
                 <Alert type="error" title="The deadline has passed">
-                  {t('This Invoice can no longer be paid by transfer. Contact the dormitory office.')}
+                  {t('This invoice can no longer be paid by transfer. Contact the dormitory office.')}
                 </Alert>
               )}
               {claim?.rejected > 0 && (
-                <Note>{t('Transfers rejected so far: {n}. Two rejections cancel a Deposit or a Balance.', { n: claim.rejected })}</Note>
+                <Note>{t('Transfers rejected so far: {n}. Two rejections cancel a deposit or a balance.', { n: claim.rejected })}</Note>
               )}
             </Card>
           </>
@@ -255,7 +255,7 @@ function Payment({ data, reload }) {
                 ['Transfer content', <CopyValue value={transferContent} className="font-medium text-fg-brand" />],
               ]}
             />
-            <Note className="pt-1">{t('Enter the transfer content exactly. It links your payment to this Invoice.')}</Note>
+            <Note className="pt-1">{t('Enter the transfer content exactly. It links your payment to this invoice.')}</Note>
           </Card>
         )}
 
@@ -281,8 +281,7 @@ function Payment({ data, reload }) {
 function TimeLeft({ at }) {
   const ms = new Date(at).getTime() - Date.now()
   if (!at || Number.isNaN(ms)) return null
-  const hours = Math.floor(ms / 3600000)
-  const text = ms <= 0 ? t('overdue') : hours >= 48 ? t('{n} days left', { n: Math.floor(hours / 24) }) : t('{n} h left', { n: Math.max(1, hours) })
+  const text = formatTimeLeft(at)
   return <span className={ms <= 0 ? 'text-error-fg' : 'text-fg-tertiary'}>{' · '}{text}</span>
 }
 
@@ -293,14 +292,14 @@ export default function InvoicePayment() {
   return (
     <StudentPage
       breadcrumb={[{ label: 'Payments', to: '/student/invoices' }, { label: id }]}
-      title={tr(invoice?.title) || t('Pay Invoice')}
+      title={tr(invoice?.title) || t('Pay invoice')}
       badge={invoice && <StatusTag status={invoice.status} />}
     >
       {query.data === undefined && query.loading ? (
         <LoadingState />
       ) : query.error?.status === 404 ? (
-        <EmptyBlock icon={ReceiptText} title="Invoice not found" action={<Button to="/student/invoices">Back to Payments</Button>}>
-          {t('It may not be issued yet. The deposit Invoice is issued when you submit; the balance after your Room and Bed are assigned.')}
+        <EmptyBlock icon={ReceiptText} title="Invoice not found" action={<Button to="/student/invoices">Back to payments</Button>}>
+          {t('It may not be issued yet. The deposit invoice is issued when you submit; the balance after your room and bed are assigned.')}
         </EmptyBlock>
       ) : query.data === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />

@@ -9,7 +9,7 @@ import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, DetailRows, Note } from '@/components/ui/Display'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateRange, formatDateTime, formatDuration, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-APP-04 Roommate Invitation (Figma 40:1439) — centred 720 px card.
@@ -20,7 +20,7 @@ import { t, tr } from '@/i18n'
 const steps = [
   [FileText, 'Confirm your contact details and matching consent'],
   [CreditCard, 'Pay your own deposit with VietQR'],
-  [CircleCheck, 'When both deposits are paid, both Applications go to the dormitory office together'],
+  [CircleCheck, 'When both deposits are paid, both applications go to the dormitory office together'],
 ]
 
 function useTimeLeft(iso) {
@@ -31,8 +31,7 @@ function useTimeLeft(iso) {
   }, [])
   if (!iso) return null
   const minutes = Math.max(0, Math.round((new Date(iso).getTime() - now) / 60000))
-  const h = Math.floor(minutes / 60)
-  return minutes === 0 ? 'Expired' : h ? t('{h} h {m} min', { h, m: minutes % 60 }) : t('{m} min', { m: minutes })
+  return minutes === 0 ? 'Expired' : formatDuration(minutes * 60000)
 }
 
 function Invitation({ inv }) {
@@ -44,10 +43,10 @@ function Invitation({ inv }) {
     invalidates: ['home', 'applications', 'invoices', 'notifications'],
     onSuccess: (result, accept) => {
       if (accept) {
-        notify({ title: 'Invitation accepted', message: 'Pay your deposit so both Applications reach the dormitory office.' })
+        notify({ title: 'Invitation accepted', message: 'Pay your deposit so both applications reach the dormitory office.' })
         navigate(result?.depositInvoiceId ? `/student/invoices/${result.depositInvoiceId}/pay` : '/student/applications')
       } else {
-        notify({ type: 'info', title: 'Invitation declined', message: t('{name} only sees that the invitation was not accepted.', { name: firstName ?? t('The other Student') }) })
+        notify({ type: 'info', title: 'Invitation declined', message: t('{name} only sees that the invitation was not accepted.', { name: firstName ?? t('The other student') }) })
         navigate('/student')
       }
     },
@@ -63,7 +62,7 @@ function Invitation({ inv }) {
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-sm font-medium text-fg-tertiary">{t('Roommate invitation')}</p>
           <h1 className="text-h2 font-semibold text-fg">
-            {t('{name} invited you to share a {type} Room', { name: inv.fromName, type: tr(inv.roomTypeName) })}
+            {t('{name} invited you to share a {type} room', { name: inv.fromName, type: tr(inv.roomTypeName) })}
           </h1>
         </div>
       </div>
@@ -79,10 +78,10 @@ function Invitation({ inv }) {
       <DetailRows
         rowClassName="py-2.5 border-b border-line"
         rows={[
-          ['Term', `${inv.termName}${inv.stayStart ? ` · ${formatDate(inv.stayStart)} – ${formatDate(inv.stayEnd)}` : ''}`],
-          ['Room Type', t('{type} (shared with {name})', { type: tr(inv.roomTypeName), name: inv.fromName })],
-          ['Room Class', `${tr(inv.roomClassName)}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
-          ['Your Term price per Bed', formatVnd(inv.termPrice)],
+          ['Term', `${inv.termName}${inv.stayStart ? ` · ${formatDateRange(inv.stayStart, inv.stayEnd)}` : ''}`],
+          ['Room type', t('{type} (shared with {name})', { type: tr(inv.roomTypeName), name: inv.fromName })],
+          ['Room tier', `${tr(inv.roomClassName)}${inv.surchargeRate != null ? ` (+${Math.round(inv.surchargeRate * 100)}%)` : ''}`],
+          ['Your term price per bed', formatVnd(inv.termPrice)],
           [
             'Your deposit',
             <span className="font-medium text-fg-brand">
@@ -107,8 +106,8 @@ function Invitation({ inv }) {
 
       <Note>
         {inv.registrationClosesAt
-          ? t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own before {date}.', { name: firstName ?? t('the other Student'), date: formatDateTime(inv.registrationClosesAt) })
-          : t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own.', { name: firstName ?? t('the other Student') })}
+          ? t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own before {date}.', { name: firstName ?? t('the other student'), date: formatDateTime(inv.registrationClosesAt) })
+          : t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own.', { name: firstName ?? t('the other student') })}
       </Note>
 
       <div className="flex gap-3 *:flex-1 lg:justify-end lg:*:flex-none">
@@ -135,7 +134,7 @@ export default function RoommateInvitation() {
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : !query.data?.invitation ? (
         <EmptyBlock icon={Users} title="No roommate invitation" action={<Button to="/student">Back to Home</Button>}>
-          When another Student invites you to share a 2-bed Room, the invitation appears here.
+          When another student invites you to share a 2-bed room, the invitation appears here.
         </EmptyBlock>
       ) : (
         <Invitation inv={query.data.invitation} />

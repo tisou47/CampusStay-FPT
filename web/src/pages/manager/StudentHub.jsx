@@ -27,9 +27,9 @@ import { DateInput } from '@/components/ui/DatePicker'
 // POST /student-accounts/:id/lock { reason } · POST /student-accounts/:id/unlock
 
 const SECTIONS = [
-  ['applications', 'Applications', 'No Applications yet.'],
-  ['allocations', 'Beds', 'No Bed allocated yet.'],
-  ['invoices', 'Invoices', 'No Invoices yet.'],
+  ['applications', 'Applications', 'No applications yet.'],
+  ['allocations', 'Beds', 'No bed allocated yet.'],
+  ['invoices', 'Invoices', 'No invoices yet.'],
   ['requests', 'Requests', 'No requests yet.'],
 ]
 
@@ -93,7 +93,7 @@ function EditModal({ hub, onClose }) {
     {
       invalidates: ['student-hub', 'students'],
       onSuccess: () => {
-        notify({ title: t('{name} updated', { name: form.name }), message: 'The change is written to the Audit Log.' })
+        notify({ title: t('{name} updated', { name: form.name }), message: 'The change is written to the audit log.' })
         onClose()
       },
       onError: (err) => setFields(err.fields ?? {}),
@@ -215,7 +215,7 @@ function Hub({ hub }) {
   const [dialog, setDialog] = useState(null) // 'edit' | 'reject' | 'lock'
   const verify = useMutation(() => api.students.verify(hub.id), {
     invalidates: ['student-hub', 'students'],
-    onSuccess: () => notify({ title: t('{name} verified', { name: hub.name }), message: 'The student can apply for a Bed now and was told.' }),
+    onSuccess: () => notify({ title: t('{name} verified', { name: hub.name }), message: 'The student can apply for a bed now and was told.' }),
     onError: (err) => notify({ type: 'error', title: t('Could not verify'), message: err.message }),
   })
   const unlock = useMutation(() => api.students.unlock(hub.id), {
@@ -340,7 +340,7 @@ function Hub({ hub }) {
                 ]}
               />
             ) : (
-              <p className="text-base text-fg-tertiary">{t('No Bed now.')}</p>
+              <p className="text-base text-fg-tertiary">{t('No bed now.')}</p>
             )}
           </Card>
         </div>
@@ -387,7 +387,7 @@ function Hub({ hub }) {
       {dialog === 'lock' && (
         <ReasonModal
           title={t('Lock {name}', { name: hub.name })}
-          description="The student is signed out everywhere and cannot sign in until a Manager unlocks the account."
+          description="The student is signed out everywhere and cannot sign in until a manager unlocks the account."
           button="Lock account"
           danger
           onSubmit={async (reason) => {

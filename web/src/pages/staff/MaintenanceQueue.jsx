@@ -68,7 +68,7 @@ export default function MaintenanceQueue() {
     <>
       <PageHeader
         title="Maintenance"
-        description="Students set urgency; Staff set the final priority."
+        description="Students set urgency; staff set the final priority."
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
@@ -91,7 +91,7 @@ export default function MaintenanceQueue() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID, Room or title" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID, room or title" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select wrapperClassName="w-40" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
           wrapperClassName="w-36"
@@ -131,7 +131,7 @@ export default function MaintenanceQueue() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyIcon={Wrench} emptyTitle="No Maintenance Requests match these filters" />
+          <TableStatus query={query} colSpan={9} emptyIcon={Wrench} emptyTitle="No maintenance requests match these filters" />
           {items.map((r) => (
             <Tr key={r.id} onClick={() => navigate(`${base}/maintenance/${r.id}`)} className="[&>td]:h-11.5">
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>

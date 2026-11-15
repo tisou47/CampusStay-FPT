@@ -75,7 +75,7 @@ function Detail({ id }) {
                   <dd className="text-fg">{tr(d.item.fromClass)} → {tr(d.item.toClass)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-fg-secondary">{t('Next-Term price per Bed')}</dt>
+                  <dt className="text-fg-secondary">{t('Next-term price per bed')}</dt>
                   <dd className="text-fg">
                     {formatVnd(d.fromPrice)} → {formatVnd(d.toPrice)}
                   </dd>
@@ -107,14 +107,14 @@ function Detail({ id }) {
                   {f.missing.length > 0 && (
                     <p className="text-base text-fg-secondary">
                       {t('Missing: {items}', { items: countLines(f.missing) })}
-                      {open && ` · ${t('in the Block store: {items}', { items: f.missing.map((m) => `${m.available}`).join(' · ') })}`}
+                      {open && ` · ${t('in the block store: {items}', { items: f.missing.map((m) => `${m.available}`).join(' · ') })}`}
                     </p>
                   )}
                   {f.extra.length > 0 && <p className="text-base text-fg-secondary">{t('To remove: {items}', { items: countLines(f.extra) })}</p>}
-                  {!f.missing.length && !f.extra.length && <p className="text-base text-fg-secondary">{t('The Room already has what this class needs.')}</p>}
+                  {!f.missing.length && !f.extra.length && <p className="text-base text-fg-secondary">{t('The room already has what this class needs.')}</p>}
                   {f.reserved?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Reserved: {codes}', { codes: f.reserved.join(', ') })}</p>}
                   {f.removing?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Planned to the store: {codes}', { codes: f.removing.join(', ') })}</p>}
-                  {open && !f.enough && <Alert type="warning" title="The Block store lacks furniture">{t('Bring the missing items to the store before approving, or reject the change.')}</Alert>}
+                  {open && !f.enough && <Alert type="warning" title="The block store lacks furniture">{t('Bring the missing items to the store before approving, or reject the change.')}</Alert>}
                 </>
               )}
               {d.decisionNote && !open && <Note>{tr(d.decisionNote)}</Note>}
@@ -147,8 +147,8 @@ function Detail({ id }) {
                 }
               >
                 {act.error && <Alert type="error" title="Could not save">{act.error.details?.fields?.note ?? act.error.message}</Alert>}
-                {mode === 'Approved' && <p className="text-base text-fg-secondary">{t('The Room is {cls} from {term}; every next-Term fee of the Room uses its price. The missing items are reserved from the store and moved at the turnover.', { cls: tr(d.item.toClass), term: d.termName })}</p>}
-                {mode === 'set-back' && <p className="text-base text-fg-secondary">{t('Unpaid next-Term fees of the Room are issued again at the old price; a paid one gets the difference charged or refunded.')}</p>}
+                {mode === 'Approved' && <p className="text-base text-fg-secondary">{t('The room is {cls} from {term}; every next-term fee of the room uses its price. The missing items are reserved from the store and moved at the turnover.', { cls: tr(d.item.toClass), term: d.termName })}</p>}
+                {mode === 'set-back' && <p className="text-base text-fg-secondary">{t('Unpaid next-term fees of the room are issued again at the old price; a paid one gets the difference charged or refunded.')}</p>}
                 <Field label={mode === 'Approved' ? 'Note to the residents (optional)' : 'Why (the residents see it)'} required={mode !== 'Approved'}>
                   {(fid) => <Textarea id={fid} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />}
                 </Field>
@@ -168,7 +168,7 @@ function NewChange({ termId, onClose }) {
   const create = useMutation(() => api.roomClassChanges.create({ termId, ...form, room: form.room.trim().toUpperCase() }), {
     invalidates: ['room-class-changes', 'next-term-requests'],
     onSuccess: (r) => {
-      notify({ title: 'Room Class change created', message: t('{id}: {status}', { id: r.id, status: tr(r.status) }) })
+      notify({ title: 'Room tier change created', message: t('{id}: {status}', { id: r.id, status: tr(r.status) }) })
       onClose()
     },
     onError: () => {},
@@ -178,7 +178,7 @@ function NewChange({ termId, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title="Change the Room Class of a Room"
+      title="Change the room tier of a room"
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -192,7 +192,7 @@ function NewChange({ termId, onClose }) {
       <Field label="Room" required error={fields.room}>
         {(id) => <Input id={id} value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="A-306" />}
       </Field>
-      <Field label="New Room Class" required error={fields.roomClassId}>
+      <Field label="New room tier" required error={fields.roomClassId}>
         {(id) => (
           <Select
             id={id}
@@ -205,7 +205,7 @@ function NewChange({ termId, onClose }) {
       <Field label="Why" required error={fields.reason}>
         {(id) => <Textarea id={id} rows={2} maxLength={500} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />}
       </Field>
-      <Note>Continuing residents of the Room are asked to agree, as for a student's request.</Note>
+      <Note>Continuing residents of the room are asked to agree, as for a student's request.</Note>
     </Modal>
   )
 }
@@ -232,7 +232,7 @@ export default function RoomClassChanges({ termId }) {
         />
         {base === '/manager' && (
           <Button icon={Plus} onClick={() => setCreating(true)}>
-            Change a Room's class
+            Change a room's class
           </Button>
         )}
       </div>
@@ -249,7 +249,7 @@ export default function RoomClassChanges({ termId }) {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={6} emptyIcon={Layers} emptyTitle="No Room Class changes" />
+            <TableStatus query={query} colSpan={6} emptyIcon={Layers} emptyTitle="No room tier changes" />
             {items.map((r) => (
               <Tr key={r.id} selected={r.id === selectedId} onClick={() => setParams({ termId, id: r.id })} className="[&>td]:h-13">
                 <Td className="font-medium text-fg-brand">{r.id}</Td>

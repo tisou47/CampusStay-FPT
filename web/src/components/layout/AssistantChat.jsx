@@ -60,7 +60,7 @@ function Bubble({ message }) {
   )
 }
 
-const SUGGESTIONS = ['When is the registration deadline?', 'Which Invoices do I still have to pay?', 'How do I report a broken item in my Room?']
+const SUGGESTIONS = ['When is the registration deadline?', 'Which invoices do I still have to pay?', 'How do I report a broken item in my room?']
 
 export function AssistantChat() {
   const status = useQuery(['assistant'], ({ signal }) => api.me.assistant(null, { signal }))
@@ -143,7 +143,7 @@ export function AssistantChat() {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" aria-live="polite">
         {messages.length === 0 && (
           <div className="flex flex-col gap-2">
-            <p className="text-sm text-fg-secondary">{t('Hello! Ask me how to use CampusStay or about your Application, Room, Invoices and requests.')}</p>
+            <p className="text-sm text-fg-secondary">{t('Hello! Ask me how to use CampusStay or about your application, room, invoices and requests.')}</p>
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}

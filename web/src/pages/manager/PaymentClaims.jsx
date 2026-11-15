@@ -15,7 +15,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { formatDateTime, formatDuration, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { ConfirmPaymentModal } from '../staff/Payments'
 
@@ -71,9 +71,7 @@ function ReceiptCell({ claim }) {
 
 function duration(seconds) {
   if (!seconds) return '—'
-  const hours = Math.floor(seconds / 3600)
-  if (hours >= 48) return t('{d} days {h} h', { d: Math.floor(hours / 24), h: hours % 24 })
-  return hours >= 24 ? t('1 day {h} h', { h: hours - 24 }) : t('{n} h', { n: Math.max(1, hours) })
+  return formatDuration(Math.max(seconds, 3600) * 1000)
 }
 
 export default function PaymentClaims() {
@@ -148,7 +146,7 @@ export default function PaymentClaims() {
       notify({
         type: 'warning',
         title: 'Transfers rejected',
-        message: t('{n} rejected; {c} Invoices cancelled after too many rejections.', { n: r.rejected, c: r.cancelled }),
+        message: t('{n} rejected; {c} invoices cancelled after too many rejections.', { n: r.rejected, c: r.cancelled }),
       })
       done()
     },
@@ -163,10 +161,10 @@ export default function PaymentClaims() {
         description="Students said they transferred. Find each amount and transfer content on the bank statement, then confirm or reject."
         actions={
           <>
-            <Button tip="Send the ticked claims back to the students with your reason. Their Invoices stay unpaid." icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
+            <Button tip="Send the ticked claims back to the students with your reason. Their invoices stay unpaid." icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
               {t('Reject ({n})', { n: chosen.length })}
             </Button>
-            <Button tip="Mark the ticked Invoices as paid, only after you found each amount and transfer content on the bank statement." variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDialog('confirm')}>
+            <Button tip="Mark the ticked invoices as paid, only after you found each amount and transfer content on the bank statement." variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDialog('confirm')}>
               {t('Confirm ({n})', { n: chosen.length })}
             </Button>
           </>
@@ -180,7 +178,7 @@ export default function PaymentClaims() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search Invoice, student, transfer content or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search invoice, student, transfer content or reference" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-40"
           aria-label={t('Type')}
@@ -188,10 +186,10 @@ export default function PaymentClaims() {
           onChange={filter(setType)}
           options={[
             { value: '', label: 'Type: All' },
-            { value: 'deposit', label: 'Type: Deposit' },
-            { value: 'balance', label: 'Type: Balance' },
-            { value: 'termFee', label: 'Type: Next-Term fee' },
-            { value: 'utility', label: 'Type: Utility' },
+            { value: 'deposit', label: 'Type: deposit' },
+            { value: 'balance', label: 'Type: balance' },
+            { value: 'termFee', label: 'Type: Next-term fee' },
+            { value: 'utility', label: 'Type: utility' },
             { value: 'damage', label: 'Type: Damage' },
           ]}
         />
@@ -301,13 +299,13 @@ export default function PaymentClaims() {
       >
         {ready.length < chosen.length && (
           <Alert type="warning" title={t('{n} selected claims have no receipt', { n: chosen.length - ready.length })}>
-            {t('A payment is confirmed only with its transfer receipt. Attach one in the Receipt column; these stay waiting: {ids}.', {
+            {t('A payment is confirmed only with its transfer receipt. Attach one in the receipt column; these stay waiting: {ids}.', {
               ids: chosen.filter((c) => !c.receipt).map((c) => c.invoiceId).join(', '),
             })}
           </Alert>
         )}
         <p className="text-base text-fg">
-          {t('Each Invoice is marked Paid at the time its student reported the transfer, written to the Audit Log and announced to the student.')}
+          {t('Each invoice is marked Paid at the time its student reported the transfer, written to the audit log and announced to the student.')}
         </p>
         <Note>{t('Confirm only transfers you found on the bank statement with the exact amount and transfer content.')}</Note>
       </Modal>
@@ -329,7 +327,7 @@ export default function PaymentClaims() {
           {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="No transfer with this content reached the account." />}
         </Field>
         <Alert type="warning" title="What happens">
-          {t('The students are told and their deadline continues with the time that was left (at least 12 hours). A second rejection cancels a Deposit or a Balance and what depends on it.')}
+          {t('The students are told and their deadline continues with the time that was left (at least 12 hours). A second rejection cancels a deposit or a balance and what depends on it.')}
         </Alert>
       </Modal>
       <ConfirmPaymentModal payment={receipting} onClose={() => setReceipting(null)} />

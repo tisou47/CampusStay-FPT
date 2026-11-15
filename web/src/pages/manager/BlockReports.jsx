@@ -15,7 +15,7 @@ import { t, tr } from '@/i18n'
 // Exports: GET /exports/block-occupancy|block-collections|block-maintenance|block-residents?termId&block (.xlsx)
 
 const reports = [
-  { key: 'occupancy', icon: Bed, title: 'Occupancy', body: 'Beds by Floor, Room Type and Room Class' },
+  { key: 'occupancy', icon: Bed, title: 'Occupancy', body: 'Beds by floor, room type and room tier' },
   { key: 'collections', icon: Banknote, title: 'Collections', body: 'Invoiced, collected, overdue, refunds' },
   { key: 'maintenance', icon: Wrench, title: 'Maintenance', body: 'Volume, SLA, top categories' },
   { key: 'residents', icon: FileText, title: 'Residents', body: 'Allocated students and check-in status' },
@@ -37,7 +37,7 @@ export default function BlockReports() {
     <>
       <PageHeader
         title={block ? t('Reports · Block {code}', { code: block }) : 'Reports'}
-        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are .xlsx and include the Blocks in your scope.')}`}
+        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are .xlsx and include the blocks in your scope.')}`}
       />
 
       <div className="flex shrink-0 items-stretch gap-4">
@@ -63,7 +63,7 @@ export default function BlockReports() {
           <h2 className="text-h3 font-semibold text-fg">{t('Checked-in residents by week')}</h2>
           {d?.allocated != null && <span className="text-sm text-fg-tertiary">{t('of {n} allocated', { n: formatNumber(d.allocated) })}</span>}
         </div>
-        <QueryState query={query} compact isEmpty={(x) => !x.weekly?.length} empty={<EmptyBlock title="No check-ins yet this Term" />}>
+        <QueryState query={query} compact isEmpty={(x) => !x.weekly?.length} empty={<EmptyBlock title="No check-ins yet this term" />}>
           {(data) => (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               <ul className="flex min-h-0 flex-1 items-end gap-10 px-6 pt-2" aria-label={t('Checked-in residents by week')}>

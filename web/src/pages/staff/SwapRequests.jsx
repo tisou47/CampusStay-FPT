@@ -56,7 +56,7 @@ function Review({ swap: s }) {
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
         title: t(decision === 'Approved' ? '{id} approved' : '{id} rejected', { id: s.id }),
-        message: decision === 'Approved' ? t('{a} and {b} swap Beds on the move date.', { a: s.a.name, b: s.b.name }) : 'Both students were notified.',
+        message: decision === 'Approved' ? t('{a} and {b} swap beds on the move date.', { a: s.a.name, b: s.b.name }) : 'Both students were notified.',
       }),
     onError: (e) => notifyError(e, 'Could not save the decision'),
   })
@@ -68,7 +68,7 @@ function Review({ swap: s }) {
         <h2 className="text-h3 font-semibold text-fg">
           {s.id} · {s.kind === 'Direct' ? t('Direct swap') : t('Board match')}
         </h2>
-        <p className="text-sm text-fg-secondary">{t('Both Students agreed on {date}', { date: formatDate(s.agreedAt) })}</p>
+        <p className="text-sm text-fg-secondary">{t('Both students agreed on {date}', { date: formatDate(s.agreedAt) })}</p>
       </div>
       {[
         ['Student A', s.a],
@@ -96,7 +96,7 @@ function Review({ swap: s }) {
           </li>
         ))}
       </ul>
-      <p className="text-sm text-fg-tertiary">{t('Meter readings are cut for both Rooms on the move date. Current roommates of both Rooms are notified.')}</p>
+      <p className="text-sm text-fg-tertiary">{t('Meter readings are cut for both rooms on the move date. Current roommates of both rooms are notified.')}</p>
       {waiting ? (
         <div className="flex justify-end gap-2">
           <Button variant="danger" onClick={() => decide.run('Rejected')} disabled={decide.pending}>
@@ -109,7 +109,7 @@ function Review({ swap: s }) {
       ) : (
         <Note>
           {s.status === 'To Manager'
-            ? t('Cross-Block swap: a Manager decides it in Decisions › Swaps.')
+            ? t('Cross-block swap: a manager decides it in Decisions › Swaps.')
             : s.decision
               ? `${t('{status} by {name}', { status: t(s.status), name: s.decision.by })} · ${formatDate(s.decision.at)}${s.decision.reason ? ` · ${tr(s.decision.reason)}` : ''}`
               : t(s.status)}
@@ -137,7 +137,7 @@ export default function SwapRequests() {
 
   return (
     <>
-      <PageHeader title="Next-Term swaps" description={query.data?.window ? t('{term} · Same-Block swaps are approved here; cross-Block swaps go to a Manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-Block swaps are approved here; cross-Block swaps go to a Manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
+      <PageHeader title="Next-term swaps" description={query.data?.window ? t('{term} · Same-block swaps are approved here; cross-block swaps go to a manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-block swaps are approved here; cross-block swaps go to a manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
       <div className="flex shrink-0 items-center gap-3">
         <Select
           wrapperClassName="w-60"
@@ -159,8 +159,8 @@ export default function SwapRequests() {
             <THead>
               <tr>
                 <Th className="w-34">Swap</Th>
-                <Th>Student A → Room</Th>
-                <Th>Student B → Room</Th>
+                <Th>Student A → room</Th>
+                <Th>Student B → room</Th>
                 <Th className="w-30">Type</Th>
                 <Th className="w-38">Status</Th>
               </tr>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { campusToday, formatMonthYear, formatWeekdayDate } from '@/lib/format'
 import { controlClasses } from './Field'
 
 // Month-calendar pickers for forms in a Modal: one panel with the month, the days as round buttons, the hours as
@@ -18,13 +19,10 @@ const parse = (s) => {
 }
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-const locale = () => (document.documentElement.lang === 'vi' ? 'vi-VN' : 'en-GB')
 
-/** "T4, 20/01/2027" */
+/** "Thứ Tư, 20/01/2027" / "Wed, 20 Jan 2027" */
 export function showDay(s) {
-  const d = parse(s)
-  if (!d) return ''
-  return `${t(DAYS[(d.getDay() + 6) % 7])}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
+  return parse(s) ? formatWeekdayDate(s.slice(0, 10)) : ''
 }
 
 /** The panel, placed under its field (or above when there is no room below), in a portal over the Modal. */
@@ -107,15 +105,15 @@ function Trigger({ anchor, id, text, placeholder, icon: Icon, disabled, invalid,
 function Month({ value, min, onPick }) {
   const selected = parse(value)
   const [month, setMonth] = useState(() => {
-    const d = selected ?? parse(min) ?? new Date()
+    const d = selected ?? parse(min) ?? parse(campusToday())
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
-  const today = iso(new Date())
+  const today = campusToday()
   const first = addDays(month, -((month.getDay() + 6) % 7))
   const cells = Array.from({ length: 42 }, (_, i) => addDays(first, i))
   const weeks = cells[35].getMonth() === month.getMonth() ? 6 : 5
   const step = (n) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
-  const label = month.toLocaleDateString(locale(), { month: 'long', year: 'numeric' })
+  const label = formatMonthYear(iso(month))
 
   return (
     <div className="flex flex-col gap-2">
@@ -263,7 +261,7 @@ function Shortcuts({ items, onPick, value, min }) {
 }
 
 const dayShortcuts = () => {
-  const now = new Date()
+  const now = parse(campusToday())
   return [
     { label: 'Today', value: iso(now) },
     { label: 'Tomorrow', value: iso(addDays(now, 1)) },
@@ -344,7 +342,7 @@ export function DateTimePickerField({ id, value, onChange, min, disabled, invali
     setHour(value?.slice(11, 16) || '08:00')
     setOpen((o) => !o)
   }
-  const text = value ? `${showDay(value.slice(0, 10))} · ${value.slice(11, 16)}` : ''
+  const text = value ? `${showDay(value.slice(0, 10))}, ${value.slice(11, 16)}` : ''
   return (
     <>
       <Trigger anchor={anchor} id={id} text={text} placeholder={placeholder} icon={CalendarDays} disabled={disabled} invalid={invalid} open={open} onClick={toggle} />
@@ -352,7 +350,7 @@ export function DateTimePickerField({ id, value, onChange, min, disabled, invali
         <Panel anchor={anchor} width={460} onClose={() => setOpen(false)}>
           <div className="flex items-center justify-between gap-3 px-4 pt-4">
             <p className="text-base font-semibold text-fg">{t('Choose a day and time')}</p>
-            <span className="text-sm font-medium text-fg-brand tabular">{day ? `${showDay(day)} · ${hour}` : t('Choose a day first')}</span>
+            <span className="text-sm font-medium text-fg-brand tabular">{day ? `${showDay(day)}, ${hour}` : t('Choose a day first')}</span>
           </div>
           <div className="flex gap-4 p-4">
             <div className="flex min-w-0 flex-1 flex-col gap-3">

@@ -71,7 +71,7 @@ export default function RegistrationPeriod() {
         {tab === 'prices' && (
           <>
             <p className="text-base text-fg-secondary">
-              {t('The price is per Bed for the whole Term. The Deposit is {n}% of it; the Utility Deposit ({amount}) is added to the Balance and held until you check out.', {
+              {t('The price is per bed for the whole term. The deposit is {n}% of it; the utility deposit ({amount}) is added to the balance and held until you check out.', {
                 n: d.depositPercent,
                 amount: formatVnd(d.utilityDeposit),
               })}
@@ -104,12 +104,12 @@ export default function RegistrationPeriod() {
                 </ul>
               </section>
             ))}
-            <p className="text-sm text-fg-tertiary">{t('Places are the Beds this Term offers to students of your gender. These prices stay the same for the whole Term.')}</p>
+            <p className="text-sm text-fg-tertiary">{t('Places are the beds this term offers to students of your gender. These prices stay the same for the whole term.')}</p>
           </>
         )}
         {tab === 'rules' && (
           <>
-            {d.houseRules ? <p className="text-base whitespace-pre-wrap text-fg">{d.houseRules}</p> : <p className="text-base text-fg-tertiary">{t('The house rules of this Term are not published yet.')}</p>}
+            {d.houseRules ? <p className="text-base whitespace-pre-wrap text-fg">{d.houseRules}</p> : <p className="text-base text-fg-tertiary">{t('The house rules of this term are not published yet.')}</p>}
             {d.documents?.length > 0 && (
               <ul className="flex flex-col gap-2">
                 {d.documents.map((doc) => (

@@ -34,7 +34,7 @@ function EditDrawer({ item, categories, onClose }) {
   const save = useMutation(() => (isNew ? api.admin.furnitureTypes.create(form) : api.admin.furnitureTypes.update(item.id, form)), {
     invalidates: ['admin-furniture-types', 'admin-requirements'],
     onSuccess: () => {
-      notify({ title: t('{name} saved', { name: form.name.trim() }), message: isNew ? 'Register its items in Manager › Furniture.' : 'Changes are written to the Audit Log.' })
+      notify({ title: t('{name} saved', { name: form.name.trim() }), message: isNew ? 'Register its items in Manager › Furniture.' : 'Changes are written to the audit log.' })
       onClose()
     },
     onError: () => {},
@@ -73,8 +73,8 @@ function EditDrawer({ item, categories, onClose }) {
         </Field>
       </div>
       <Checkbox
-        label="Defines the Room Class"
-        description="Room Classes can require it (air conditioner, fridge…). Standard types (bed, wardrobe) are in every Room and do not decide the class."
+        label="Defines the room tier"
+        description="Room tiers can require it (air conditioner, fridge…). Standard types (bed, wardrobe) are in every room and do not decide the class."
         checked={form.definesClass}
         onChange={(e) => setForm((x) => ({ ...x, definesClass: e.target.checked }))}
       />
@@ -90,7 +90,7 @@ export default function FurnitureTypes() {
     <>
       <PageHeader
         title="Furniture types"
-        description="Kinds of furniture the dormitory tracks. Types that define a Room Class are what the classes require (Room Classes)."
+        description="Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers)."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!query.data}>
             New furniture type
@@ -125,7 +125,7 @@ export default function FurnitureTypes() {
                 </div>
               </Td>
               <Td>{tr(x.category)}</Td>
-              <Td>{x.definesClass ? <Tag tone="brand">Defines the Room Class</Tag> : <Tag>Standard</Tag>}</Td>
+              <Td>{x.definesClass ? <Tag tone="brand">Defines the room tier</Tag> : <Tag>Standard</Tag>}</Td>
               <Td align="right" className="tabular">
                 {formatNumber(x.items)}
               </Td>

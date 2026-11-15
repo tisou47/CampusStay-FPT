@@ -1,13 +1,13 @@
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime } from '@/lib/format'
-import { getLang, t } from '@/i18n'
+import { campusDayStart, campusNextMonth, formatDate, formatDateRange, formatDateTime, formatMonthShort } from '@/lib/format'
+import { t } from '@/i18n'
 
 // The Term schedule graph (R-10): one row per milestone or window on a shared date axis, windows as bars and moments
 // as diamonds, "today" marked on every row. Rows keep their text (label and dates) so the graph itself is decoration.
 // Reads the `timeline` of GET /registration-periods/:termId: [{ key, label, at, date, until, done }].
 
 const DAY = 86_400_000
-const day = (iso) => new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).getTime()
+const day = (iso) => campusDayStart(iso).getTime()
 
 /** Rows of the graph: the registration opening and closing become one window. */
 export function scheduleRows(timeline = []) {
@@ -34,7 +34,7 @@ export function scheduleRows(timeline = []) {
       start: day(start),
       // A range of days ends at the end of its last day.
       end: m.until ? day(m.until) + DAY : null,
-      text: m.at ? formatDateTime(m.at) : m.until ? `${formatDate(m.date)} – ${formatDate(m.until)}` : formatDate(m.date),
+      text: m.at ? formatDateTime(m.at) : m.until ? formatDateRange(m.date, m.until) : formatDate(m.date),
     })
   }
   return rows
@@ -42,14 +42,8 @@ export function scheduleRows(timeline = []) {
 
 function monthTicks(from, to) {
   const ticks = []
-  const d = new Date(from)
-  d.setDate(1)
-  d.setHours(0, 0, 0, 0)
-  d.setMonth(d.getMonth() + 1)
   // "T11" in Vietnamese ("Tháng 11" crowds a phone), "Nov" in English.
-  const fmt = new Intl.DateTimeFormat('en-GB', { month: 'short' })
-  const label = (date) => (getLang() === 'vi' ? `T${date.getMonth() + 1}` : fmt.format(date))
-  for (; d.getTime() < to; d.setMonth(d.getMonth() + 1)) ticks.push({ at: d.getTime(), label: label(d) })
+  for (let d = campusNextMonth(new Date(from)); d.getTime() < to; d = campusNextMonth(d)) ticks.push({ at: d.getTime(), label: formatMonthShort(d) })
   // Every other month when they would crowd a phone.
   return ticks.length > 7 ? ticks.filter((_, i) => i % 2 === 0) : ticks
 }
@@ -57,7 +51,7 @@ function monthTicks(from, to) {
 /** The graph; `timeline` as the API sends it, `now` for tests. */
 export function TermSchedule({ timeline, now = Date.now(), className }) {
   const rows = scheduleRows(timeline)
-  if (rows.length === 0) return <p className="text-base text-fg-tertiary">{t('The dates of this Term are not published yet.')}</p>
+  if (rows.length === 0) return <p className="text-base text-fg-tertiary">{t('The dates of this term are not published yet.')}</p>
   const first = Math.min(...rows.map((r) => r.start))
   const last = Math.max(...rows.map((r) => r.end ?? r.start))
   const pad = Math.max((last - first) * 0.03, DAY)
@@ -116,7 +110,7 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
       {todayIn && (
         <p className="flex items-center gap-2 text-xs text-fg-tertiary">
           <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-fg" />
-          {t('Today, {date}', { date: formatDate(new Date(now).toISOString()) })}
+          {t('Today, {date}', { date: formatDate(new Date(now)) })}
         </p>
       )}
     </div>

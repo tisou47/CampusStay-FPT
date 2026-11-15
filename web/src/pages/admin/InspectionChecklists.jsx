@@ -29,7 +29,7 @@ function ItemModal({ item, categories, severities, onClose, onSave, onRemove }) 
       open
       onClose={onClose}
       title={item.index == null ? 'Add item' : t('Edit item {n}', { n: item.index + 1 })}
-      description="Staff mark each item Pass or Fail. A failed item creates a Maintenance Request in this category."
+      description="Staff mark each item Pass or Fail. A failed item creates a maintenance request in this category."
       footer={
         <>
           {onRemove && (
@@ -88,7 +88,7 @@ function Editor({ checklist, categories, severities, onArchived }) {
           {dirty && <span className="font-normal text-fg-tertiary"> {t('(edited)')}</span>}
         </h2>
         <p className="text-sm text-fg-secondary">
-          {isDraft ? t('Add the items, then publish so Managers can schedule it.') : t('Editing creates v{next}. Runs already started keep v{current}.', { next: nextVersion, current: checklist.version })}
+          {isDraft ? t('Add the items, then publish so managers can schedule it.') : t('Editing creates v{next}. Runs already started keep v{current}.', { next: nextVersion, current: checklist.version })}
         </p>
       </div>
       <Table fill>
@@ -207,7 +207,7 @@ export default function InspectionChecklists() {
     <>
       <PageHeader
         title="Inspection checklists"
-        description="Checklists used by Staff when Managers schedule inspections. Failed items create Maintenance Requests."
+        description="Checklists used by staff when managers schedule inspections. Failed items create maintenance requests."
         actions={
           <Button variant="primary" onClick={() => setCreating('')}>
             New checklist

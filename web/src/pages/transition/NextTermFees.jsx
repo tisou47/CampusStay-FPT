@@ -27,7 +27,7 @@ export default function NextTermFees({ termId }) {
   const issue = useMutation(() => api.renewals.issueFees({ termId }), {
     invalidates: ['next-term-fees', 'renewal-overview'],
     onSuccess: (r) => {
-      notify({ title: 'Next-Term fees issued', message: t('{n} Invoices, {total}. {notices} leavers were told when to check out.', { n: r.issued, total: formatVnd(r.total), notices: r.notices }) })
+      notify({ title: 'Next-term fees issued', message: t('{n} invoices, {total}. {notices} leavers were told when to check out.', { n: r.issued, total: formatVnd(r.total), notices: r.notices }) })
       setConfirming(false)
     },
     onError: () => {},
@@ -38,7 +38,7 @@ export default function NextTermFees({ termId }) {
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
           <div className="flex shrink-0 flex-wrap gap-4">
             <KpiTile size="md" icon={Users} label="To bill now" value={formatNumber(p.count)} note={t('Due {date}', { date: formatDateTime(p.dueAt) })} />
-            <KpiTile size="md" icon={Banknote} label="Total" value={formatVnd(p.total)} note="100 % of the next Term's price" />
+            <KpiTile size="md" icon={Banknote} label="Total" value={formatVnd(p.total)} note="100 % of the next term's price" />
             <KpiTile size="md" icon={CircleCheck} label="Issued · paid" value={p.issued ? `${formatNumber(p.issued.count)} · ${formatNumber(p.issued.paid)}` : '—'} note={p.issued ? t('{total} · by {name}', { total: formatVnd(p.issued.total), name: p.issued.by ?? '—' }) : 'Not issued yet'} />
             <KpiTile size="md" icon={Users} label="Leavers" value={formatNumber(p.leavers)} note="Told to check out when fees are issued" />
           </div>
@@ -52,8 +52,8 @@ export default function NextTermFees({ termId }) {
             </Alert>
           ) : (
             p.count > 0 && (
-              <Alert type="info" title="Ready to issue" action={<Button variant="primary" icon={Send} onClick={() => setConfirming(true)}>Issue next-Term fees</Button>}>
-                {t('Next-Term Beds are fixed once the fees are issued; only a Manager can still move a student.')}
+              <Alert type="info" title="Ready to issue" action={<Button variant="primary" icon={Send} onClick={() => setConfirming(true)}>Issue next-term fees</Button>}>
+                {t('Next-term beds are fixed once the fees are issued; only a manager can still move a student.')}
               </Alert>
             )
           )}
@@ -62,8 +62,8 @@ export default function NextTermFees({ termId }) {
               <THead>
                 <tr>
                   <Th className="w-24">Block</Th>
-                  <Th>Room Type</Th>
-                  <Th>Room Class</Th>
+                  <Th>Room type</Th>
+                  <Th>Room tier</Th>
                   <Th align="right" className="w-28">Residents</Th>
                   <Th align="right" className="w-40">Total</Th>
                 </tr>
@@ -91,7 +91,7 @@ export default function NextTermFees({ termId }) {
           <Modal
             open={confirming}
             onClose={() => setConfirming(false)}
-            title={t('Issue {n} next-Term fees, {total}', { n: formatNumber(p.count), total: formatVnd(p.total) })}
+            title={t('Issue {n} next-term fees, {total}', { n: formatNumber(p.count), total: formatVnd(p.total) })}
             footer={
               <>
                 <Button onClick={() => setConfirming(false)}>Cancel</Button>
@@ -103,7 +103,7 @@ export default function NextTermFees({ termId }) {
           >
             {issue.error && <Alert type="error" title="Could not issue the fees">{issue.error.message}</Alert>}
             <p className="text-base text-fg-secondary">
-              {t('Each continuing resident is told in the app. Unpaid by {date} with no transfer claimed, the Bed for the next Term is released and the student checks out at the end of this Term.', { date: formatDateTime(p.dueAt) })}
+              {t('Each continuing resident is told in the app. Unpaid by {date} with no transfer claimed, the bed for the next term is released and the student checks out at the end of this term.', { date: formatDateTime(p.dueAt) })}
             </p>
           </Modal>
         </div>

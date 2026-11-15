@@ -1,9 +1,10 @@
 # Vietnamese texts of the API's English messages (ADR-25). One "English ⟶ Vietnamese" pair per line.
 # {0}, {1} … stand for values inside a message; a value found in this file is translated too.
-# Glossary: Term = kỳ · Block = Block · Floor = tầng · Room = phòng · Bed = giường · Room Type = loại phòng ·
-# Room Class = hạng phòng · Application = đơn đăng ký · Allocation = chỗ ở · Invoice = hóa đơn ·
-# Deposit = tiền cọc · Balance = tiền phòng còn lại · Utility = điện nước · Check-in = nhận phòng ·
-# Check-out = trả phòng · Room-Change Request = yêu cầu đổi phòng · swap = đổi chéo · Maintenance Request = yêu cầu sửa chữa
+# Glossary (docs/i18n-glossary.md): Term = học kỳ · Block = tòa · Floor = tầng · Room = phòng · Bed = giường ·
+# Room Type = loại phòng · Room Class (room tier) = hạng phòng · Application = đơn đăng ký · Allocation = chỗ ở ·
+# Invoice = hóa đơn · Deposit = tiền đặt cọc · Balance = tiền phòng còn lại · Utility = điện nước ·
+# Check-in = nhận phòng · Check-out = trả phòng · Room-Change Request = yêu cầu đổi phòng · swap = hoán đổi ·
+# Maintenance Request = yêu cầu bảo trì · Family Day = Ngày thăm thân
 
 # ---------- general ----------
 Some fields are not valid. Check the highlighted fields. ⟶ Một số trường chưa hợp lệ. Hãy kiểm tra các trường được đánh dấu.
@@ -13,10 +14,10 @@ A required value is missing or has the wrong format. ⟶ Thiếu một giá tr�
 The request could not be read. Check the values you entered. ⟶ Không đọc được yêu cầu. Hãy kiểm tra các giá trị đã nhập.
 You do not have permission to do this. ⟶ Bạn không có quyền thực hiện thao tác này.
 Your session has ended. Sign in again. ⟶ Phiên đăng nhập đã kết thúc. Hãy đăng nhập lại.
-No Block is assigned to your account. Contact the administrator. ⟶ Tài khoản của bạn chưa được gán Block nào. Hãy liên hệ quản trị viên.
-You do not have access to this Block. ⟶ Bạn không có quyền truy cập Block này.
-You do not have access to Block {0}. ⟶ Bạn không có quyền truy cập Block {0}.
-Block {0} does not exist. ⟶ Block {0} không tồn tại.
+No Block is assigned to your account. Contact the administrator. ⟶ Tài khoản của bạn chưa được gán tòa nào. Hãy liên hệ quản trị viên.
+You do not have access to this Block. ⟶ Bạn không có quyền truy cập tòa này.
+You do not have access to Block {0}. ⟶ Bạn không có quyền truy cập Tòa {0}.
+Block {0} does not exist. ⟶ Tòa {0} không tồn tại.
 Page must be 1 or more and page size between 1 and {0}. ⟶ Trang phải từ 1 trở lên và số dòng mỗi trang từ 1 đến {0}.
 Limit must be between 1 and {0}. ⟶ Giới hạn phải từ 1 đến {0}.
 There is no export called {0}. ⟶ Không có tệp xuất nào tên {0}.
@@ -34,31 +35,31 @@ This action is not supported here. ⟶ Thao tác này không được hỗ trợ
 
 # ---------- database rules (ConstraintMessages) ----------
 A Room with this code already exists. ⟶ Đã có phòng mang mã này.
-A Term with this name already exists. ⟶ Đã có kỳ mang tên này.
+A Term with this name already exists. ⟶ Đã có học kỳ mang tên này.
 A priority group with this name already exists. ⟶ Đã có nhóm ưu tiên mang tên này.
-An assignment run is already in progress for this Term. ⟶ Đang có một lượt xếp phòng chạy cho kỳ này.
+An assignment run is already in progress for this Term. ⟶ Đang có một lượt xếp phòng chạy cho học kỳ này.
 Someone else saved the matching criteria a moment ago. Reload the page and try again. ⟶ Người khác vừa lưu tiêu chí ghép phòng. Hãy tải lại trang và thử lại.
-The stay dates overlap another published Term. ⟶ Thời gian ở bị trùng với một kỳ đã công bố.
-This Application already has a Deposit Invoice. ⟶ Đơn này đã có hóa đơn tiền cọc.
+The stay dates overlap another published Term. ⟶ Thời gian ở bị trùng với một học kỳ đã công bố.
+This Application already has a Deposit Invoice. ⟶ Đơn này đã có hóa đơn tiền đặt cọc.
 This Bed is already used in the proposal. ⟶ Giường này đã có trong đề xuất.
 This Bed is held by another Round-2 offer. ⟶ Giường này đang được giữ cho một đề nghị vòng 2 khác.
 This Bed was just allocated to another student. Choose another Bed. ⟶ Giường này vừa được xếp cho sinh viên khác. Hãy chọn giường khác.
-This Floor already exists in the Building. ⟶ Tầng này đã có trong Block.
+This Floor already exists in the Building. ⟶ Tầng này đã có trong tòa.
 This item is already escalated. ⟶ Mục này đã được chuyển lên Quản lý.
-This student already has a Bed for this Term. ⟶ Sinh viên này đã có giường trong kỳ này.
+This student already has a Bed for this Term. ⟶ Sinh viên này đã có giường trong học kỳ này.
 You already have a pending roommate invitation. ⟶ Bạn đã có một lời mời bạn cùng phòng đang chờ.
-You already have an Application for this Term. ⟶ Bạn đã có đơn đăng ký cho kỳ này.
-You already have an active swap post. ⟶ Bạn đã có một bài đăng đổi chéo đang mở.
+You already have an Application for this Term. ⟶ Bạn đã có đơn đăng ký cho học kỳ này.
+You already have an active swap post. ⟶ Bạn đã có một bài đăng hoán đổi đang mở.
 You already have an open Room-Change Request. ⟶ Bạn đã có một yêu cầu đổi phòng đang mở.
-You already have an open swap request. ⟶ Bạn đã có một yêu cầu đổi chéo đang mở.
+You already have an open swap request. ⟶ Bạn đã có một yêu cầu hoán đổi đang mở.
 Email or password is incorrect. ⟶ Email hoặc mật khẩu không đúng.
 Use 8 to 64 characters with at least one letter and one number. ⟶ Dùng 8 đến 64 ký tự, có ít nhất một chữ cái và một chữ số.
-No Term is published yet. ⟶ Chưa có kỳ nào được công bố.
-This Term does not exist. ⟶ Kỳ này không tồn tại.
-Choose a Term. ⟶ Hãy chọn kỳ.
-Choose a Block. ⟶ Hãy chọn Block.
-Choose a Block from the list. ⟶ Hãy chọn một Block trong danh sách.
-Choose one of the listed Blocks. ⟶ Hãy chọn một trong các Block được liệt kê.
+No Term is published yet. ⟶ Chưa có học kỳ nào được công bố.
+This Term does not exist. ⟶ Học kỳ này không tồn tại.
+Choose a Term. ⟶ Hãy chọn học kỳ.
+Choose a Block. ⟶ Hãy chọn tòa.
+Choose a Block from the list. ⟶ Hãy chọn một tòa trong danh sách.
+Choose one of the listed Blocks. ⟶ Hãy chọn một trong các tòa được liệt kê.
 Choose a reason. ⟶ Hãy chọn lý do.
 Choose a reason from the list. ⟶ Hãy chọn một lý do trong danh sách.
 Choose a decision. ⟶ Hãy chọn quyết định.
@@ -71,7 +72,7 @@ Choose Male or Female. ⟶ Hãy chọn Nam hoặc Nữ.
 Choose Active or Inactive. ⟶ Hãy chọn Đang dùng hoặc Ngưng dùng.
 Choose 24h or 7d. ⟶ Hãy chọn 24 giờ hoặc 7 ngày.
 Choose a date range: 7d, 30d, 90d or all. ⟶ Hãy chọn khoảng thời gian: 7 ngày, 30 ngày, 90 ngày hoặc tất cả.
-Choose today, 7d or term. ⟶ Hãy chọn hôm nay, 7 ngày hoặc cả kỳ.
+Choose today, 7d or term. ⟶ Hãy chọn hôm nay, 7 ngày hoặc cả học kỳ.
 Unknown status {0}. ⟶ Trạng thái {0} không xác định.
 Use at most 10 letters or digits. ⟶ Dùng tối đa 10 chữ cái hoặc chữ số.
 Use at most 50 characters. ⟶ Dùng tối đa 50 ký tự.
@@ -121,21 +122,21 @@ Choose Staff or Manager. ⟶ Hãy chọn Nhân viên hoặc Quản lý.
 Choose Active, Invited or Disabled. ⟶ Hãy chọn Đang hoạt động, Đã mời hoặc Đã khóa.
 An account with this email already exists. ⟶ Đã có tài khoản dùng email này.
 The email cannot be changed. Invite a new user instead. ⟶ Không thể đổi email. Hãy mời người dùng mới.
-Choose the Blocks this user works in. ⟶ Hãy chọn các Block người này phụ trách.
-Create a Block first. ⟶ Hãy tạo Block trước.
+Choose the Blocks this user works in. ⟶ Hãy chọn các tòa người này phụ trách.
+Create a Block first. ⟶ Hãy tạo tòa trước.
 You cannot remove your own Admin access or disable your own account. ⟶ Bạn không thể tự gỡ quyền Quản trị viên hoặc khóa tài khoản của chính mình.
 At least one active Admin must remain. ⟶ Phải còn ít nhất một Quản trị viên đang hoạt động.
 An active account cannot go back to Invited. ⟶ Tài khoản đang hoạt động không thể quay lại trạng thái Đã mời.
 This user has not accepted the invitation yet. The account becomes Active when they set a password. ⟶ Người dùng chưa nhận lời mời. Tài khoản sẽ hoạt động khi họ đặt mật khẩu.
 This staff member does not exist. ⟶ Nhân viên này không tồn tại.
 Choose what the person handles from the list. ⟶ Hãy chọn các việc người này phụ trách trong danh sách.
-Choose the Block for the new account. ⟶ Hãy chọn Block cho tài khoản mới.
+Choose the Block for the new account. ⟶ Hãy chọn tòa cho tài khoản mới.
 A request for this email is already waiting for Admin. ⟶ Đã có yêu cầu cho email này đang chờ Quản trị viên.
 Use an @{0} email. ⟶ Hãy dùng email @{0}.
 Enter the full name (at most 150 characters). ⟶ Nhập họ tên (tối đa 150 ký tự).
 
 # ---------- Terms, Room Types, Room Classes, policies ----------
-Enter the Term name. ⟶ Hãy nhập tên kỳ.
+Enter the Term name. ⟶ Hãy nhập tên học kỳ.
 Enter the first day of the stay. ⟶ Hãy nhập ngày bắt đầu ở.
 Enter the last day of the stay. ⟶ Hãy nhập ngày kết thúc ở.
 The stay must end after it starts. ⟶ Ngày kết thúc ở phải sau ngày bắt đầu.
@@ -153,9 +154,9 @@ Check-in must end on or after its first day. ⟶ Ngày cuối nhận phòng ph�
 Check-in must end before the stay ends. ⟶ Thời gian nhận phòng phải kết thúc trước khi kỳ ở kết thúc.
 Enter the Check-out deadline. ⟶ Hãy nhập hạn trả phòng.
 Check-out must be after the stay starts. ⟶ Hạn trả phòng phải sau ngày bắt đầu ở.
-The stay dates overlap {0}. Published Terms cannot overlap. ⟶ Thời gian ở bị trùng với {0}. Các kỳ đã công bố không được trùng nhau.
-This Term has ended and can no longer be changed. ⟶ Kỳ này đã kết thúc và không thể thay đổi.
-This Term is already published. ⟶ Kỳ này đã được công bố.
+The stay dates overlap {0}. Published Terms cannot overlap. ⟶ Thời gian ở bị trùng với {0}. Các học kỳ đã công bố không được trùng nhau.
+This Term has ended and can no longer be changed. ⟶ Học kỳ này đã kết thúc và không thể thay đổi.
+This Term is already published. ⟶ Học kỳ này đã được công bố.
 Enter the Room Type name. ⟶ Hãy nhập tên loại phòng.
 Enter the Room Class name. ⟶ Hãy nhập tên hạng phòng.
 A Room Type with this name already exists. ⟶ Đã có loại phòng mang tên này.
@@ -198,17 +199,17 @@ Hold 2 to 12 months of the estimate. ⟶ Giữ từ 2 đến 12 tháng tiền ư
 This setting does not exist. ⟶ Thiết lập này không tồn tại.
 
 # ---------- Buildings, Rooms, inventory ----------
-This Block does not exist. ⟶ Block này không tồn tại.
-A Block with this name already exists. ⟶ Đã có Block mang tên này.
-The Block name cannot be changed. ⟶ Không thể đổi tên Block.
+This Block does not exist. ⟶ Tòa này không tồn tại.
+A Block with this name already exists. ⟶ Đã có tòa mang tên này.
+The Block name cannot be changed. ⟶ Không thể đổi tên tòa.
 Use 1 to 10 letters or digits, e.g. E. ⟶ Dùng từ 1 đến 10 chữ cái hoặc chữ số, ví dụ E.
-Students live in Block {0}, so its gender cannot change. ⟶ Block {0} đang có sinh viên ở nên không thể đổi giới tính.
-Students live in Block {0}, so its status cannot become Inactive. ⟶ Block {0} đang có sinh viên ở nên không thể ngưng dùng.
+Students live in Block {0}, so its gender cannot change. ⟶ Tòa {0} đang có sinh viên ở nên không thể đổi giới tính.
+Students live in Block {0}, so its status cannot become Inactive. ⟶ Tòa {0} đang có sinh viên ở nên không thể ngưng dùng.
 Create an active Room Type first. ⟶ Hãy tạo một loại phòng đang dùng trước.
 Create an active Room Class first. ⟶ Hãy tạo một hạng phòng đang dùng trước.
 Choose a Floor from 1 to {0}. ⟶ Hãy chọn tầng từ 1 đến {0}.
 The last Floor must not be below the first. ⟶ Tầng cuối không được thấp hơn tầng đầu.
-Floor {0} does not exist in Block {1}. ⟶ Tầng {0} không có trong Block {1}.
+Floor {0} does not exist in Block {1}. ⟶ Tầng {0} không có trong Tòa {1}.
 Room {0} does not exist. ⟶ Phòng {0} không tồn tại.
 Room {0} is already out of service. ⟶ Phòng {0} đã ngưng sử dụng.
 Room {0} is already in service. ⟶ Phòng {0} đang được sử dụng.
@@ -216,13 +217,13 @@ Move the {0} resident of Room {1} before you set it out of service. ⟶ Hãy chu
 Move the {0} residents of Room {1} before you set it out of service. ⟶ Hãy chuyển {0} người đang ở phòng {1} đi trước khi ngưng sử dụng phòng.
 
 # ---------- Applications ----------
-No Term is open for registration now. ⟶ Hiện không có kỳ nào đang mở đăng ký.
+No Term is open for registration now. ⟶ Hiện không có học kỳ nào đang mở đăng ký.
 Registration for {0} is not open. ⟶ Đăng ký cho {0} chưa mở.
 You cannot apply for {0}. {1} ⟶ Bạn không thể đăng ký {0}. {1}
 This Application does not exist. ⟶ Đơn đăng ký này không tồn tại.
 This Application can no longer be cancelled here. Contact the dormitory office. ⟶ Không thể hủy đơn này tại đây nữa. Hãy liên hệ văn phòng ký túc xá.
 Application {0} is {1} and cannot be reviewed now. ⟶ Đơn {0} đang ở trạng thái {1} nên chưa thể xét duyệt.
-This Application belongs to a Block you do not manage. ⟶ Đơn này thuộc Block bạn không phụ trách.
+This Application belongs to a Block you do not manage. ⟶ Đơn này thuộc tòa bạn không phụ trách.
 Select at least one Application. ⟶ Hãy chọn ít nhất một đơn.
 Add a note before rejecting. The student sees this note. ⟶ Hãy ghi chú trước khi từ chối. Sinh viên sẽ thấy ghi chú này.
 Reject Applications one at a time, with a note for the student. ⟶ Hãy từ chối từng đơn một, kèm ghi chú cho sinh viên.
@@ -232,7 +233,7 @@ This Room Type and Room Class are not offered. ⟶ Loại phòng và hạng phò
 Tick both consent boxes to apply. ⟶ Hãy đánh dấu cả hai ô đồng ý để đăng ký.
 Choose Invite a roommate or Match me automatically. ⟶ Hãy chọn Mời bạn cùng phòng hoặc Tự động ghép.
 You can invite a roommate only for a 2-bed Room Type. ⟶ Chỉ được mời bạn cùng phòng với loại phòng 2 giường.
-You have used all roommate code checks for this Term. Choose Match me automatically. ⟶ Bạn đã dùng hết lượt kiểm tra mã bạn cùng phòng của kỳ này. Hãy chọn Tự động ghép.
+You have used all roommate code checks for this Term. Choose Match me automatically. ⟶ Bạn đã dùng hết lượt kiểm tra mã bạn cùng phòng của học kỳ này. Hãy chọn Tự động ghép.
 Choose a {0} from the list. ⟶ Hãy chọn {0} trong danh sách.
 Enter the emergency contact's name. ⟶ Hãy nhập tên người liên hệ khẩn cấp.
 Choose the relationship. ⟶ Hãy chọn mối quan hệ.
@@ -259,13 +260,13 @@ Choose how to resolve the conflict. ⟶ Hãy chọn cách xử lý xung đột.
 Choose one of the listed options. ⟶ Hãy chọn một trong các phương án được liệt kê.
 There is no Bed to keep. Choose another option. ⟶ Không có giường để giữ. Hãy chọn phương án khác.
 No free Bed of that kind is left. Choose another option or the waitlist. ⟶ Không còn giường trống loại này. Hãy chọn phương án khác hoặc đưa vào danh sách chờ.
-Block {0} has nothing in this run. ⟶ Block {0} không có gì trong lượt xếp phòng này.
-Block {0} was already submitted. ⟶ Block {0} đã được chốt.
-Block {0} is not waiting for approval. ⟶ Block {0} không ở trạng thái chờ duyệt.
-This Block is with the Manager; it cannot change now. ⟶ Block này đang chờ Quản lý duyệt nên chưa thể thay đổi.
-Resolve the {0} conflict in Block {1} before you submit it. ⟶ Hãy xử lý {0} xung đột ở Block {1} trước khi chốt.
-Resolve the {0} conflicts in Block {1} before you submit it. ⟶ Hãy xử lý {0} xung đột ở Block {1} trước khi chốt.
-Blocks of {0} are already committed. Finish that run before starting a new one. ⟶ Một số Block của {0} đã được chốt. Hãy hoàn tất lượt đó trước khi chạy lượt mới.
+Block {0} has nothing in this run. ⟶ Tòa {0} không có gì trong lượt xếp phòng này.
+Block {0} was already submitted. ⟶ Tòa {0} đã được chốt.
+Block {0} is not waiting for approval. ⟶ Tòa {0} không ở trạng thái chờ duyệt.
+This Block is with the Manager; it cannot change now. ⟶ Tòa này đang chờ Quản lý duyệt nên chưa thể thay đổi.
+Resolve the {0} conflict in Block {1} before you submit it. ⟶ Hãy xử lý {0} xung đột ở Tòa {1} trước khi chốt.
+Resolve the {0} conflicts in Block {1} before you submit it. ⟶ Hãy xử lý {0} xung đột ở Tòa {1} trước khi chốt.
+Blocks of {0} are already committed. Finish that run before starting a new one. ⟶ Một số tòa của {0} đã được chốt. Hãy hoàn tất lượt đó trước khi chạy lượt mới.
 Tell Staff what to change. ⟶ Hãy ghi rõ cần thay đổi gì.
 Choose a run. ⟶ Hãy chọn lượt xếp phòng.
 
@@ -327,7 +328,7 @@ Choose the filled template (XLSX or CSV). ⟶ Hãy chọn tệp mẫu đã đi�
 The file has no readings. ⟶ Tệp không có chỉ số nào.
 Line {0}: the Room is not in this period. ⟶ Dòng {0}: phòng không có trong kỳ chỉ số này.
 Line {0}: enter two readings. ⟶ Dòng {0}: hãy nhập đủ chỉ số điện và nước.
-Room {0} is not in this Block. ⟶ Phòng {0} không thuộc Block này.
+Room {0} is not in this Block. ⟶ Phòng {0} không thuộc tòa này.
 Room {0} has no reading in this period. ⟶ Phòng {0} chưa có chỉ số trong kỳ này.
 Enter the reading before you confirm it. ⟶ Hãy nhập chỉ số trước khi xác nhận.
 Choose Missing, Entered, Check value or Confirmed. ⟶ Hãy chọn Chưa có, Đã nhập, Cần kiểm tra hoặc Đã xác nhận.
@@ -341,7 +342,7 @@ This Room-Change Request does not exist. ⟶ Yêu cầu đổi phòng này khôn
 This request was already decided. ⟶ Yêu cầu này đã được quyết định.
 This request is no longer open. ⟶ Yêu cầu này không còn mở.
 This request is closed and cannot change. ⟶ Yêu cầu đã đóng và không thể thay đổi.
-You already have an open Room-Change Request for this Term. ⟶ Bạn đã có một yêu cầu đổi phòng đang mở trong kỳ này.
+You already have an open Room-Change Request for this Term. ⟶ Bạn đã có một yêu cầu đổi phòng đang mở trong học kỳ này.
 You can ask for a room change once you have checked in. ⟶ Bạn có thể yêu cầu đổi phòng sau khi đã nhận phòng.
 Pay your overdue Invoice before you ask for a room change. ⟶ Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi phòng.
 Choose the kind of change. ⟶ Hãy chọn kiểu thay đổi.
@@ -353,29 +354,29 @@ Choose why the request is rejected. ⟶ Hãy chọn lý do từ chối yêu cầ
 Choose Pending, Approved, Rejected or Cancelled. ⟶ Hãy chọn Đang chờ, Đã duyệt, Từ chối hoặc Đã hủy.
 This Bed is not free for this request any more. Choose another one. ⟶ Giường này không còn trống cho yêu cầu này. Hãy chọn giường khác.
 This Bed was just taken. Choose another one. ⟶ Giường này vừa có người nhận. Hãy chọn giường khác.
-A move to another Block is decided by a Manager. ⟶ Việc chuyển sang Block khác do Quản lý quyết định.
+A move to another Block is decided by a Manager. ⟶ Việc chuyển sang tòa khác do Quản lý quyết định.
 {0} no longer holds the Bed this request was made from. ⟶ {0} không còn giữ giường mà yêu cầu này được gửi từ đó.
 This student no longer holds the Bed. ⟶ Sinh viên này không còn giữ giường.
-This swap does not exist. ⟶ Yêu cầu đổi chéo này không tồn tại.
-This swap invitation is no longer open. ⟶ Lời mời đổi chéo này không còn hiệu lực.
-This swap is not waiting for a decision. ⟶ Yêu cầu đổi chéo này không chờ quyết định.
-This post is no longer on the board. ⟶ Bài đăng này không còn trên bảng đổi chéo.
-You already have a swap waiting. Wait for it or let it expire. ⟶ Bạn đã có một yêu cầu đổi chéo đang chờ. Hãy chờ kết quả hoặc để nó hết hạn.
-You can swap Beds once you have checked in. ⟶ Bạn có thể đổi chéo giường sau khi đã nhận phòng.
-Pay your overdue Invoice before you ask for a swap. ⟶ Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi chéo.
+This swap does not exist. ⟶ Yêu cầu hoán đổi này không tồn tại.
+This swap invitation is no longer open. ⟶ Lời mời hoán đổi này không còn hiệu lực.
+This swap is not waiting for a decision. ⟶ Yêu cầu hoán đổi này không chờ quyết định.
+This post is no longer on the board. ⟶ Bài đăng này không còn trên bảng hoán đổi.
+You already have a swap waiting. Wait for it or let it expire. ⟶ Bạn đã có một yêu cầu hoán đổi đang chờ. Hãy chờ kết quả hoặc để nó hết hạn.
+You can swap Beds once you have checked in. ⟶ Bạn có thể hoán đổi giường sau khi đã nhận phòng.
+Pay your overdue Invoice before you ask for a swap. ⟶ Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu hoán đổi.
 Your Bed is not what this student is looking for. ⟶ Giường của bạn không đúng với điều sinh viên này cần.
 One of you no longer holds the Bed. ⟶ Một trong hai bạn không còn giữ giường.
-The swap does not pass the rule check any more. ⟶ Yêu cầu đổi chéo không còn đáp ứng điều kiện.
-A swap between Blocks is decided by a Manager. ⟶ Việc đổi chéo giữa các Block do Quản lý quyết định.
-Accept or decline the swap. ⟶ Hãy chấp nhận hoặc từ chối đổi chéo.
+The swap does not pass the rule check any more. ⟶ Yêu cầu hoán đổi không còn đáp ứng điều kiện.
+A swap between Blocks is decided by a Manager. ⟶ Việc hoán đổi giữa các tòa do Quản lý quyết định.
+Accept or decline the swap. ⟶ Hãy chấp nhận hoặc từ chối hoán đổi.
 Choose the Room Type and Room Class you want. ⟶ Hãy chọn loại phòng và hạng phòng bạn muốn.
 Choose maintenance or room-changes. ⟶ Hãy chọn sửa chữa hoặc đổi phòng.
 This routing rule does not exist. ⟶ Quy tắc phân công này không tồn tại.
 Choose a request type. ⟶ Hãy chọn loại yêu cầu.
 Choose a category from the list. ⟶ Hãy chọn một danh mục trong danh sách.
 Only maintenance rules can be limited to a category. ⟶ Chỉ quy tắc sửa chữa mới giới hạn được theo danh mục.
-Choose an assignee from this Block's staff. ⟶ Hãy chọn người nhận việc trong nhân viên của Block này.
-Choose a fallback from this Block's staff. ⟶ Hãy chọn người dự phòng trong nhân viên của Block này.
+Choose an assignee from this Block's staff. ⟶ Hãy chọn người nhận việc trong nhân viên của tòa này.
+Choose a fallback from this Block's staff. ⟶ Hãy chọn người dự phòng trong nhân viên của tòa này.
 Choose a fallback other than the assignee. ⟶ Người dự phòng phải khác người nhận việc.
 Keep the condition under 100 characters. ⟶ Điều kiện tối đa 100 ký tự.
 Choose one of the listed times (at most {0} hours). ⟶ Hãy chọn một trong các mốc thời gian được liệt kê (tối đa {0} giờ).
@@ -383,10 +384,10 @@ This escalation does not exist. ⟶ Yêu cầu quá hạn này không tồn tạ
 This escalation was already handled. ⟶ Yêu cầu quá hạn này đã được xử lý.
 Choose reassign or temporary-bed. ⟶ Hãy chọn giao lại hoặc cấp giường tạm.
 A temporary Bed can only be offered for a Room-Change Request. ⟶ Chỉ cấp giường tạm cho yêu cầu đổi phòng.
-Choose someone from this Block's staff. ⟶ Hãy chọn một người trong nhân viên của Block này.
+Choose someone from this Block's staff. ⟶ Hãy chọn một người trong nhân viên của tòa này.
 
 # ---------- maintenance and inspections ----------
-This Maintenance Request does not exist. ⟶ Yêu cầu sửa chữa này không tồn tại.
+This Maintenance Request does not exist. ⟶ Yêu cầu bảo trì này không tồn tại.
 You can report a problem once you have checked in to your Room. ⟶ Bạn có thể báo sự cố sau khi đã nhận phòng.
 You can confirm the fix once the request is resolved. ⟶ Bạn có thể xác nhận đã sửa xong khi yêu cầu được xử lý.
 Give the problem a short title. ⟶ Hãy đặt tiêu đề ngắn cho sự cố.
@@ -402,7 +403,7 @@ Say whether the problem is fixed. ⟶ Hãy cho biết sự cố đã được s�
 Assign the request before you mark it resolved. ⟶ Hãy giao việc trước khi đánh dấu đã xử lý.
 Assign someone first. ⟶ Hãy giao cho một người trước.
 This request is assigned to {0}. Take it over before you change its status. ⟶ Yêu cầu này đang giao cho {0}. Hãy nhận phụ trách trước khi đổi trạng thái.
-Choose a staff member of this Block. ⟶ Hãy chọn một nhân viên của Block này.
+Choose a staff member of this Block. ⟶ Hãy chọn một nhân viên của tòa này.
 Choose a staff member or none. ⟶ Hãy chọn một nhân viên hoặc để trống.
 Keep someone assigned while the work is in progress. ⟶ Phải có người được giao khi công việc đang xử lý.
 To send it back to the queue, remove the assignee. ⟶ Để đưa yêu cầu về hàng chờ, hãy bỏ người được giao.
@@ -532,14 +533,14 @@ The file could not be read. Save it as XLSX or CSV UTF-8 and try again. ⟶ Khô
 The workbook has no sheet. ⟶ Bảng tính không có trang nào.
 This account is disabled. Restore it first. ⟶ Tài khoản này đang bị vô hiệu hóa. Hãy khôi phục trước.
 This person has already set a password. ⟶ Người này đã đặt mật khẩu.
-Choose the Blocks this person works in. ⟶ Hãy chọn các Block người này làm việc.
+Choose the Blocks this person works in. ⟶ Hãy chọn các tòa người này làm việc.
 
 # ---------- inventory: Room Classes per Term, furniture, door codes (v2 phase 3) ----------
 Choose an active Room Class. ⟶ Hãy chọn một hạng phòng đang hoạt động.
 Choose at least one Room. ⟶ Hãy chọn ít nhất một phòng.
 Choose at most {0} Rooms at a time. ⟶ Mỗi lần chỉ chọn tối đa {0} phòng.
-The stay of {0} has started, so its Room Classes are fixed. ⟶ Kỳ {0} đã bắt đầu, nên hạng phòng của kỳ này không thể thay đổi.
-Beds of Room {0} are already given for {1} or later, so its Room Class can change only from a later Term. ⟶ Giường của phòng {0} đã được xếp cho kỳ {1} hoặc kỳ sau, nên chỉ có thể đổi hạng phòng từ một kỳ sau nữa.
+The stay of {0} has started, so its Room Classes are fixed. ⟶ Học kỳ {0} đã bắt đầu, nên hạng phòng của học kỳ này không thể thay đổi.
+Beds of Room {0} are already given for {1} or later, so its Room Class can change only from a later Term. ⟶ Giường của phòng {0} đã được xếp cho học kỳ {1} hoặc học kỳ sau, nên chỉ có thể đổi hạng phòng từ một học kỳ sau nữa.
 Door codes are not set up on this server yet. ⟶ Máy chủ này chưa được thiết lập mã cửa.
 Enter 6 digits. ⟶ Hãy nhập 6 chữ số.
 Choose a code different from the current one. ⟶ Hãy chọn mã khác với mã hiện tại.
@@ -550,7 +551,7 @@ Line {0}: Room {1} is in the file twice. ⟶ Dòng {0}: phòng {1} xuất hiện
 Line {0}: this is the current code of Room {1}. ⟶ Dòng {0}: đây là mã hiện tại của phòng {1}.
 The file has no Room and code lines. ⟶ Tệp không có dòng phòng và mã nào.
 Import at most {0} Rooms at a time. ⟶ Mỗi lần chỉ nhập tối đa {0} phòng.
-You do not hold a Bed this Term. ⟶ Bạn chưa có giường trong kỳ này.
+You do not hold a Bed this Term. ⟶ Bạn chưa có giường trong học kỳ này.
 Your door code is not ready yet. ⟶ Mã cửa của bạn chưa sẵn sàng.
 This furniture type does not exist. ⟶ Loại nội thất này không tồn tại.
 A Room Class requires {0}. Remove it from the Room Class requirements first. ⟶ Một hạng phòng đang yêu cầu {0}. Hãy bỏ nó khỏi yêu cầu của hạng phòng trước.
@@ -569,24 +570,24 @@ Move the item to a store to mark it In store. ⟶ Hãy chuyển món này vào k
 Move the item to a Room to mark it In use. ⟶ Hãy chuyển món này vào một phòng trước khi đánh dấu Đang dùng.
 Choose at least one item. ⟶ Hãy chọn ít nhất một món.
 Move at most {0} items at a time. ⟶ Mỗi lần chỉ chuyển tối đa {0} món.
-Choose a Room or a Block store. ⟶ Hãy chọn một phòng hoặc kho của một Block.
+Choose a Room or a Block store. ⟶ Hãy chọn một phòng hoặc kho của một tòa.
 Write why the items move. ⟶ Hãy ghi lý do chuyển.
 Keep the reason under 300 characters. ⟶ Lý do không quá 300 ký tự.
-Only a Manager moves furniture to another Block. ⟶ Chỉ Quản lý mới được chuyển nội thất sang Block khác.
+Only a Manager moves furniture to another Block. ⟶ Chỉ Quản lý mới được chuyển nội thất sang tòa khác.
 Item {0} is already in Room {1}. ⟶ Món {0} đã ở phòng {1}.
-Item {0} is already in Block {1} store. ⟶ Món {0} đã ở kho Block {1}.
+Item {0} is already in Block {1} store. ⟶ Món {0} đã ở kho Tòa {1}.
 Item {0} already has a planned move. Finish or cancel it first. ⟶ Món {0} đã có một lần chuyển theo kế hoạch. Hãy hoàn tất hoặc hủy nó trước.
 This move does not exist. ⟶ Lần chuyển này không tồn tại.
 This move is already done. ⟶ Lần chuyển này đã hoàn tất.
 This move is already cancelled. ⟶ Lần chuyển này đã bị hủy.
-Room {0} is not in Block {1}. ⟶ Phòng {0} không thuộc Block {1}.
+Room {0} is not in Block {1}. ⟶ Phòng {0} không thuộc Tòa {1}.
 
 # ---------- Change Spec v2 phase 4: registration periods ----------
 # Registration-period requests
 This registration-period request does not exist. ⟶ Đề nghị mở đợt đăng ký này không tồn tại.
-Enter the Term name in at most 100 characters. ⟶ Hãy nhập tên kỳ, tối đa 100 ký tự.
+Enter the Term name in at most 100 characters. ⟶ Hãy nhập tên học kỳ, tối đa 100 ký tự.
 Only the Manager who sent this request can change it. ⟶ Chỉ Quản lý đã gửi đề nghị này mới sửa được.
-The Admin is building this Term; comment on the request instead. ⟶ Quản trị viên đang dựng kỳ này; hãy bình luận trên đề nghị.
+The Admin is building this Term; comment on the request instead. ⟶ Quản trị viên đang dựng học kỳ này; hãy bình luận trên đề nghị.
 This request is closed. ⟶ Đề nghị này đã đóng.
 Write a comment of at most 1,000 characters. ⟶ Hãy viết bình luận, tối đa 1.000 ký tự.
 Choose In progress, Needs changes or Rejected. ⟶ Hãy chọn Đang xử lý, Cần chỉnh sửa hoặc Từ chối.
@@ -603,42 +604,42 @@ Enter each price per Bed as a whole amount above 0 VND. ⟶ Nhập giá mỗi gi
 List each Room Type and Room Class once. ⟶ Mỗi loại phòng và hạng phòng chỉ ghi một lần.
 Keep the notes under 2,000 characters. ⟶ Ghi chú tối đa 2.000 ký tự.
 {0} already has an open request ({1}). Comment on it instead. ⟶ {0} đã có một đề nghị đang mở ({1}). Hãy bình luận trên đề nghị đó.
-A Term named {0} is already published. ⟶ Kỳ tên {0} đã được công bố.
+A Term named {0} is already published. ⟶ Học kỳ tên {0} đã được công bố.
 
 # Timeline (spec §5.2)
-Enter the Deposit payment window in hours. ⟶ Hãy nhập thời hạn thanh toán tiền cọc theo giờ.
+Enter the Deposit payment window in hours. ⟶ Hãy nhập thời hạn thanh toán tiền đặt cọc theo giờ.
 Check-in starts on or after {0}, the day the residents of {1} must have checked out. ⟶ Nhận phòng bắt đầu từ {0}, ngày sinh viên của {1} phải trả phòng xong.
-No Term runs before this one, so leave the renewal milestones empty. ⟶ Không có kỳ nào trước kỳ này, nên hãy để trống các mốc ở tiếp.
+No Term runs before this one, so leave the renewal milestones empty. ⟶ Không có học kỳ nào trước học kỳ này, nên hãy để trống các mốc ở tiếp.
 Fill in every renewal milestone, or leave them all empty. ⟶ Hãy điền đủ mọi mốc ở tiếp, hoặc để trống tất cả.
-The requests window opens on or after the Term is published. ⟶ Đợt nhận yêu cầu mở vào hoặc sau khi công bố kỳ.
+The requests window opens on or after the Term is published. ⟶ Đợt nhận yêu cầu mở vào hoặc sau khi công bố học kỳ.
 The requests window must close after it opens. ⟶ Đợt nhận yêu cầu phải đóng sau khi mở.
 Decisions are due after the requests window closes. ⟶ Hạn quyết định phải sau khi đóng đợt nhận yêu cầu.
 The reconciliation is due on or after the decision deadline. ⟶ Hạn đối soát phải vào hoặc sau hạn quyết định.
-Next-Term fees are issued on or after the reconciliation. ⟶ Phí kỳ sau được phát hành vào hoặc sau hạn đối soát.
-The next-Term fee deadline comes after the fees are issued. ⟶ Hạn nộp phí kỳ sau phải sau ngày phát hành phí.
-The next-Term fees are due before {0} ends ({1}). ⟶ Phí kỳ sau phải đến hạn trước khi {0} kết thúc ({1}).
+Next-Term fees are issued on or after the reconciliation. ⟶ Phí học kỳ sau được phát hành vào hoặc sau hạn đối soát.
+The next-Term fee deadline comes after the fees are issued. ⟶ Hạn nộp phí học kỳ sau phải sau ngày phát hành phí.
+The next-Term fees are due before {0} ends ({1}). ⟶ Phí học kỳ sau phải đến hạn trước khi {0} kết thúc ({1}).
 Assignment results come out on or after the decision deadline. ⟶ Kết quả xếp phòng được công bố vào hoặc sau hạn quyết định.
 
 # Wizard
 This wizard step does not exist. ⟶ Bước này không tồn tại.
 The stay has started, so its dates cannot change. ⟶ Kỳ ở đã bắt đầu nên không thể đổi ngày.
-Choose active Blocks only. ⟶ Chỉ chọn các Block đang hoạt động.
+Choose active Blocks only. ⟶ Chỉ chọn các tòa đang hoạt động.
 Enter a share from 0 to 100%. ⟶ Nhập tỷ lệ từ 0 đến 100%.
-Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change. ⟶ Kỳ này đã có hóa đơn nên không thể đổi giá, tiền cọc và tiền cọc điện nước nữa.
+Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change. ⟶ Học kỳ này đã có hóa đơn nên không thể đổi giá, tiền đặt cọc và tiền đặt cọc điện nước nữa.
 Enter a price for every Room Type and Room Class. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng.
-Enter the Utility Deposit as a whole amount of 0 VND or more. ⟶ Nhập tiền cọc điện nước là số nguyên từ 0 ₫ trở lên.
-A published Term keeps the rules it opened with. ⟶ Kỳ đã công bố giữ nguyên các quy định lúc mở.
+Enter the Utility Deposit as a whole amount of 0 VND or more. ⟶ Nhập tiền đặt cọc điện nước là số nguyên từ 0 ₫ trở lên.
+A published Term keeps the rules it opened with. ⟶ Học kỳ đã công bố giữ nguyên các quy định lúc mở.
 Keep the house rules under 10,000 characters. ⟶ Nội quy tối đa 10.000 ký tự.
 Write each question (up to 300 characters) with its answer (up to 2,000). ⟶ Hãy viết mỗi câu hỏi (tối đa 300 ký tự) kèm câu trả lời (tối đa 2.000 ký tự).
 Keep at most 30 questions. ⟶ Tối đa 30 câu hỏi.
 Give each document a title and a link that starts with https://. ⟶ Hãy đặt tên cho từng tài liệu và một liên kết bắt đầu bằng https://.
 Keep at most 20 documents. ⟶ Tối đa 20 tài liệu.
-This Term is not ready to publish. The Review step lists what to fix. ⟶ Kỳ này chưa sẵn sàng để công bố. Bước Xem lại liệt kê những việc cần sửa.
+This Term is not ready to publish. The Review step lists what to fix. ⟶ Học kỳ này chưa sẵn sàng để công bố. Bước Xem lại liệt kê những việc cần sửa.
 Give a reason for changing the Manager's value. ⟶ Hãy nêu lý do thay đổi giá trị Quản lý đề nghị.
 This date has passed, so it cannot change. ⟶ Ngày này đã qua nên không thể đổi.
 This deadline is open: it can be extended but never shortened. ⟶ Hạn này đang mở: chỉ có thể gia hạn, không được rút ngắn.
-Say in up to 500 characters why you change a published Term; students read it in the announcement. ⟶ Hãy nêu lý do (tối đa 500 ký tự) khi thay đổi kỳ đã công bố; sinh viên sẽ đọc lý do trong thông báo.
-The requests window would open before students see the Term: move it after today. ⟶ Đợt nhận yêu cầu sẽ mở trước khi sinh viên thấy kỳ: hãy dời sang sau hôm nay.
+Say in up to 500 characters why you change a published Term; students read it in the announcement. ⟶ Hãy nêu lý do (tối đa 500 ký tự) khi thay đổi học kỳ đã công bố; sinh viên sẽ đọc lý do trong thông báo.
+The requests window would open before students see the Term: move it after today. ⟶ Đợt nhận yêu cầu sẽ mở trước khi sinh viên thấy học kỳ: hãy dời sang sau hôm nay.
 Save every step of the wizard before publishing. ⟶ Hãy lưu mọi bước trước khi công bố.
 
 # Settings groups, matching, announcements
@@ -650,9 +651,9 @@ Choose who reads it. ⟶ Hãy chọn người đọc.
 Write a title of at most 200 characters. ⟶ Hãy viết tiêu đề, tối đa 200 ký tự.
 Write the announcement in at most 4,000 characters. ⟶ Hãy viết nội dung thông báo, tối đa 4.000 ký tự.
 End it after it starts and after now. ⟶ Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại.
-Choose at least one Block. ⟶ Hãy chọn ít nhất một Block.
-Choose a published Term. ⟶ Hãy chọn một kỳ đã công bố.
-Staff write to the residents of their Blocks only. ⟶ Nhân viên chỉ gửi thông báo cho sinh viên đang ở các Block của mình.
+Choose at least one Block. ⟶ Hãy chọn ít nhất một tòa.
+Choose a published Term. ⟶ Hãy chọn một học kỳ đã công bố.
+Staff write to the residents of their Blocks only. ⟶ Nhân viên chỉ gửi thông báo cho sinh viên đang ở các tòa của mình.
 
 # Names of values in change announcements (the announcement's Vietnamese text)
 Name ⟶ Tên
@@ -663,26 +664,26 @@ Requests window opens (M2) ⟶ Mở nhận yêu cầu (M2)
 Request deadline (M3) ⟶ Hạn gửi yêu cầu (M3)
 Decision deadline (M4) ⟶ Hạn quyết định (M4)
 Reconciliation (M5) ⟶ Đối soát (M5)
-Next-Term fees issued (M6) ⟶ Phát hành phí kỳ sau (M6)
-Next-Term fee deadline (M7) ⟶ Hạn nộp phí kỳ sau (M7)
+Next-Term fees issued (M6) ⟶ Phát hành phí học kỳ sau (M6)
+Next-Term fee deadline (M7) ⟶ Hạn nộp phí học kỳ sau (M7)
 Registration opens ⟶ Mở đăng ký
 Registration closes ⟶ Đóng đăng ký
 Assignment results ⟶ Kết quả xếp phòng
 Roommate confirmation (hours) ⟶ Xác nhận bạn cùng phòng (giờ)
-Deposit payment (hours) ⟶ Thanh toán tiền cọc (giờ)
+Deposit payment (hours) ⟶ Thanh toán tiền đặt cọc (giờ)
 Balance due ⟶ Hạn tiền phòng còn lại
 Check-in from ⟶ Nhận phòng từ
 Check-in until ⟶ Nhận phòng đến
 Check-out by ⟶ Hạn trả phòng
-Blocks used ⟶ Block sử dụng
+Blocks used ⟶ Tòa sử dụng
 Rooms left out ⟶ Phòng không dùng
 Beds kept for new students ⟶ Giường dành cho sinh viên mới
-Deposit ⟶ Tiền cọc
-Utility Deposit ⟶ Tiền cọc điện nước
+Deposit ⟶ Tiền đặt cọc
+Utility Deposit ⟶ Tiền đặt cọc điện nước
 House rules ⟶ Nội quy
 Questions and answers ⟶ Hỏi đáp
 Documents ⟶ Tài liệu
-All Blocks ⟶ Tất cả Block
+All Blocks ⟶ Tất cả tòa
 None ⟶ Không có
 Price · {0} · {1} ⟶ Giá · {0} · {1}
 Base price · {0} ⟶ Giá gốc · {0}
@@ -691,7 +692,7 @@ Electricity price (per kWh) ⟶ Giá điện (mỗi kWh)
 Water price (per m³) ⟶ Giá nước (mỗi m³)
 Utility payment due (days) ⟶ Hạn thanh toán điện nước (ngày)
 Utility estimate per month ⟶ Ước tính điện nước mỗi tháng
-Months the Utility Deposit covers ⟶ Số tháng tiền cọc điện nước
+Months the Utility Deposit covers ⟶ Số tháng tiền đặt cọc điện nước
 Balance due (days after the assignment) ⟶ Hạn tiền phòng còn lại (ngày sau khi xếp phòng)
 Desk opens ⟶ Quầy mở cửa
 Desk closes ⟶ Quầy đóng cửa
@@ -700,32 +701,32 @@ Visitors until ⟶ Giờ thăm đến
 Quiet hours from ⟶ Giờ yên tĩnh từ
 Room Types ⟶ Loại phòng
 Room Classes ⟶ Hạng phòng
-Deposit and refunds ⟶ Tiền cọc và hoàn tiền
+Deposit and refunds ⟶ Tiền đặt cọc và hoàn tiền
 Utility ⟶ Điện nước
 Deadlines and reminders ⟶ Thời hạn và nhắc nhở
 Refunds, penalties and terminations ⟶ Hoàn tiền, phạt và chấm dứt ở
 Stay and renewal ⟶ Thời gian ở và gia hạn
-Block {0} settings ⟶ Thiết lập Block {0}
-Deposit payment window (hours) ⟶ Thời hạn thanh toán tiền cọc (giờ)
+Block {0} settings ⟶ Thiết lập Tòa {0}
+Deposit payment window (hours) ⟶ Thời hạn thanh toán tiền đặt cọc (giờ)
 Balance due after the assignment (days) ⟶ Hạn tiền phòng còn lại sau khi xếp phòng (ngày)
 First payment reminder (days before the deadline) ⟶ Nhắc thanh toán lần 1 (số ngày trước hạn)
 Second payment reminder (days before the deadline) ⟶ Nhắc thanh toán lần 2 (số ngày trước hạn)
 Time left after a rejected payment claim, at least (hours) ⟶ Thời gian còn lại tối thiểu sau khi xác nhận chuyển khoản bị từ chối (giờ)
 Rejected claims that cancel the Invoice ⟶ Số lần từ chối xác nhận chuyển khoản thì hủy hóa đơn
 Overdue Utility months that end a stay ⟶ Số tháng nợ điện nước thì chấm dứt ở
-End a stay when the Utility debt reaches the Utility Deposit ⟶ Chấm dứt ở khi nợ điện nước bằng tiền cọc điện nước
+End a stay when the Utility debt reaches the Utility Deposit ⟶ Chấm dứt ở khi nợ điện nước bằng tiền đặt cọc điện nước
 Days between the final warning and the termination ⟶ Số ngày từ cảnh báo cuối đến khi chấm dứt ở
 Days to move out after a termination notice ⟶ Số ngày phải chuyển đi sau thông báo chấm dứt ở
 Longest late check-in after the check-in end (days) ⟶ Nhận phòng muộn tối đa sau hạn nhận phòng (ngày)
-Most Terms a student may commit to (stay length) ⟶ Số kỳ tối đa sinh viên đăng ký ở (Gia hạn)
+Most Terms a student may commit to (stay length) ⟶ Số học kỳ tối đa sinh viên đăng ký ở (Gia hạn)
 Approve extension requests of eligible students automatically ⟶ Tự động duyệt yêu cầu gia hạn của sinh viên đủ điều kiện
-Share of Beds kept for new students in new Terms (%) ⟶ Tỷ lệ giường dành cho sinh viên mới ở các kỳ mới (%)
+Share of Beds kept for new students in new Terms (%) ⟶ Tỷ lệ giường dành cho sinh viên mới ở các học kỳ mới (%)
 Alert Managers about undecided requests before the decision deadline (hours) ⟶ Báo Quản lý về yêu cầu chưa quyết định trước hạn quyết định (giờ)
 Application cancelled before results are published ⟶ Hủy đơn trước khi công bố kết quả
 Application cancelled after results, before Check-in ⟶ Hủy đơn sau khi có kết quả, trước khi nhận phòng
-Check-out before the end of the Term (unused days) ⟶ Trả phòng trước khi hết kỳ (số ngày chưa ở)
-Utility Deposit at Check-out, minus unpaid Utility and damage ⟶ Tiền cọc điện nước khi trả phòng, trừ điện nước chưa trả và hư hỏng
-Balance not paid by its deadline (the Deposit is kept) ⟶ Không thanh toán tiền phòng còn lại đúng hạn (giữ lại tiền cọc)
+Check-out before the end of the Term (unused days) ⟶ Trả phòng trước khi hết học kỳ (số ngày chưa ở)
+Utility Deposit at Check-out, minus unpaid Utility and damage ⟶ Tiền đặt cọc điện nước khi trả phòng, trừ điện nước chưa trả và hư hỏng
+Balance not paid by its deadline (the Deposit is kept) ⟶ Không thanh toán tiền phòng còn lại đúng hạn (giữ lại tiền đặt cọc)
 Stay ended because the student is no longer enrolled (unused room fee) ⟶ Chấm dứt ở vì sinh viên không còn theo học (tiền phòng chưa dùng)
 Stay terminated for Utility debt or by a Manager (unused room fee) ⟶ Chấm dứt ở vì nợ điện nước hoặc do Quản lý quyết định (tiền phòng chưa dùng)
 
@@ -740,10 +741,10 @@ No bank account is configured for transfers yet. ⟶ Chưa cấu hình tài kho�
 Choose Bank transfer, VietQR or Manual transfer. ⟶ Hãy chọn Chuyển khoản ngân hàng, VietQR hoặc Chuyển khoản thủ công.
 This refund is decided by {0}. ⟶ Khoản hoàn tiền này do {0} quyết định.
 the Admin ⟶ Quản trị viên
-the Block's Staff ⟶ nhân viên của Block
+the Block's Staff ⟶ nhân viên của tòa
 a Manager ⟶ Quản lý
 A Manager is checking your transfer. Cancel once it is confirmed or rejected. ⟶ Quản lý đang kiểm tra khoản chuyển của bạn. Hãy hủy sau khi khoản chuyển được xác nhận hoặc từ chối.
-Choose from 1 to {0} Terms. ⟶ Hãy chọn từ 1 đến {0} kỳ.
+Choose from 1 to {0} Terms. ⟶ Hãy chọn từ 1 đến {0} học kỳ.
 You do not hold a Bed waiting for check-in. ⟶ Bạn không có chỗ ở nào đang chờ nhận phòng.
 You have already checked in. ⟶ Bạn đã nhận phòng rồi.
 The check-in period has ended. Ask the dormitory desk about a late check-in. ⟶ Thời gian nhận phòng đã kết thúc. Hãy hỏi quầy ký túc xá về việc nhận phòng muộn.
@@ -764,46 +765,46 @@ This stay is already terminated. ⟶ Hợp đồng ở này đã bị chấm d�
 Semesters of a study programme (the stay length stops at the last one) ⟶ Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)
 # Change Specification v2 phase 6 "Term transition"
 Agree or decline the change. ⟶ Hãy đồng ý hoặc từ chối việc đổi hạng phòng.
-Choose 1 to 9 Terms. ⟶ Hãy chọn từ 1 đến 9 kỳ.
+Choose 1 to 9 Terms. ⟶ Hãy chọn từ 1 đến 9 học kỳ.
 Choose Direct or Board match. ⟶ Hãy chọn Trực tiếp hoặc Ghép từ bảng tin.
 Choose Extension or End of stay. ⟶ Hãy chọn Gia hạn hoặc Kết thúc ở.
 Choose Not enrolled or Enrolled. ⟶ Hãy chọn Không còn theo học hoặc Đang theo học.
 Choose a Bed in another Room. ⟶ Hãy chọn giường ở phòng khác.
 Choose a Room Class other than the Room's. ⟶ Hãy chọn hạng phòng khác với hạng hiện tại của phòng.
-Choose a Room of your Blocks. ⟶ Hãy chọn một phòng thuộc Block của bạn.
-Choose a Room the Term uses. ⟶ Hãy chọn một phòng được dùng trong kỳ.
+Choose a Room of your Blocks. ⟶ Hãy chọn một phòng thuộc tòa của bạn.
+Choose a Room the Term uses. ⟶ Hãy chọn một phòng được dùng trong học kỳ.
 Choose at least one request. ⟶ Hãy chọn ít nhất một yêu cầu.
 Choose follow or keep. ⟶ Hãy chọn đi theo hoặc giữ nguyên.
-Choose room-change, swap, room-class-change or extension. ⟶ Hãy chọn đổi phòng, đổi chéo, đổi hạng phòng hoặc gia hạn.
-Choose the Term the list is for. ⟶ Hãy chọn kỳ của danh sách.
+Choose room-change, swap, room-class-change or extension. ⟶ Hãy chọn đổi phòng, hoán đổi, đổi hạng phòng hoặc gia hạn.
+Choose the Term the list is for. ⟶ Hãy chọn học kỳ của danh sách.
 Choose the enrolled list or a leavers list. ⟶ Hãy chọn danh sách đang học hoặc danh sách thôi học.
-Choose the next Term. ⟶ Hãy chọn kỳ tiếp theo.
+Choose the next Term. ⟶ Hãy chọn học kỳ tiếp theo.
 Choose why the student moves. ⟶ Hãy chọn lý do chuyển phòng.
 Decide at most 200 requests at once. ⟶ Mỗi lần chỉ quyết định tối đa 200 yêu cầu.
 Keep the reason under 1,000 characters. ⟶ Lý do không quá 1.000 ký tự.
-Next-Term requests open when your Bed is kept for the next Term (the requests window). ⟶ Yêu cầu cho kỳ sau mở khi giường của bạn được giữ cho kỳ sau (thời gian gửi yêu cầu).
-No Term has a requests window yet. ⟶ Chưa có kỳ nào có thời gian gửi yêu cầu.
+Next-Term requests open when your Bed is kept for the next Term (the requests window). ⟶ Yêu cầu cho học kỳ sau mở khi giường của bạn được giữ cho học kỳ sau (thời gian gửi yêu cầu).
+No Term has a requests window yet. ⟶ Chưa có học kỳ nào có thời gian gửi yêu cầu.
 No matching Bed is free for this request. ⟶ Không còn giường phù hợp còn trống cho yêu cầu này.
 No requests window is open. ⟶ Không có thời gian gửi yêu cầu nào đang mở.
 No student has this code. ⟶ Không có sinh viên nào có mã này.
 Only an approved change can be set back. ⟶ Chỉ việc đổi hạng đã duyệt mới có thể đặt lại.
-Pay your overdue Utility Invoice first, then the next-Term fee. ⟶ Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng kỳ sau.
+Pay your overdue Utility Invoice first, then the next-Term fee. ⟶ Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng học kỳ sau.
 The free Beds of this kind are kept for new students. ⟶ Các giường trống loại này được giữ cho sinh viên mới.
-The next-Term fees are issued, so next-Term Beds are fixed. A Manager can still move a student. ⟶ Tiền phòng kỳ sau đã được phát hành nên giường kỳ sau đã cố định. Quản lý vẫn có thể chuyển sinh viên.
-The next-Term fees are issued: only a Manager moves a student for the next Term now. ⟶ Tiền phòng kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho kỳ sau.
-The resident who asked for it does not continue next Term. ⟶ Cư dân đề nghị không ở tiếp kỳ sau.
+The next-Term fees are issued, so next-Term Beds are fixed. A Manager can still move a student. ⟶ Tiền phòng học kỳ sau đã được phát hành nên giường học kỳ sau đã cố định. Quản lý vẫn có thể chuyển sinh viên.
+The next-Term fees are issued: only a Manager moves a student for the next Term now. ⟶ Tiền phòng học kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho học kỳ sau.
+The resident who asked for it does not continue next Term. ⟶ Cư dân đề nghị không ở tiếp học kỳ sau.
 This Bed is not free any more. Choose another one. ⟶ Giường này không còn trống. Hãy chọn giường khác.
 This Room Class change does not exist. ⟶ Yêu cầu đổi hạng phòng này không tồn tại.
 This Room does not exist. ⟶ Phòng này không tồn tại.
-This Term has no requests window: it has no renewal milestones. ⟶ Kỳ này không có thời gian gửi yêu cầu: kỳ không có các mốc gia hạn.
+This Term has no requests window: it has no renewal milestones. ⟶ Học kỳ này không có thời gian gửi yêu cầu: học kỳ không có các mốc gia hạn.
 This change is no longer waiting for your answer. ⟶ Việc đổi hạng này không còn chờ câu trả lời của bạn.
-This is the last Term of your stay: ask for an extension first. ⟶ Đây là kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước.
+This is the last Term of your stay: ask for an extension first. ⟶ Đây là học kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước.
 This item is already resolved. ⟶ Mục này đã được xử lý.
 This reconciliation does not exist. ⟶ Lần đối soát này không tồn tại.
 This request does not exist. ⟶ Yêu cầu này không tồn tại.
 This request is not part of a requests window. ⟶ Yêu cầu này không thuộc thời gian gửi yêu cầu nào.
-This student cannot swap with you. ⟶ Sinh viên này không thể đổi chéo với bạn.
-This student has no Bed for the next Term. ⟶ Sinh viên này không có giường cho kỳ sau.
+This student cannot swap with you. ⟶ Sinh viên này không thể hoán đổi với bạn.
+This student has no Bed for the next Term. ⟶ Sinh viên này không có giường cho học kỳ sau.
 This student holds no Bed. ⟶ Sinh viên này không giữ giường nào.
 Type the student code. ⟶ Hãy nhập mã sinh viên.
 Write a note (up to 500 characters): it is audited. ⟶ Hãy ghi chú (tối đa 500 ký tự): ghi chú được lưu vào nhật ký.
@@ -824,18 +825,18 @@ Next-Term requests for {0} closed on {1}. ⟶ Yêu cầu cho {0} đã đóng lú
 Room changes are asked for {0}. ⟶ Yêu cầu đổi phòng được gửi cho {0}.
 Room {0} has no price in {1}. Ask the Admin to add it. ⟶ Phòng {0} chưa có giá trong {1}. Hãy nhờ Quản trị viên bổ sung.
 Room {0} has no price in {1}. ⟶ Phòng {0} chưa có giá trong {1}.
-The store of Block {0} does not have the furniture this Room Class needs: {1}. ⟶ Kho của Block {0} không đủ nội thất mà hạng phòng này cần: {1}.
-A stay can be at most {0} Terms. ⟶ Hợp đồng ở tối đa {0} kỳ.
-You can add at most {0} Terms (a stay has at most {1}). ⟶ Bạn chỉ có thể thêm tối đa {0} kỳ (hợp đồng ở tối đa {1} kỳ).
-Your stay already has the most Terms allowed ({0}). ⟶ Hợp đồng ở của bạn đã đạt số kỳ tối đa ({0}).
-Students can still file next-Term requests until {0}. ⟶ Sinh viên vẫn có thể gửi yêu cầu cho kỳ sau đến {0}.
-{0} next-Term requests are still open. Decide them first. ⟶ Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước.
+The store of Block {0} does not have the furniture this Room Class needs: {1}. ⟶ Kho của Tòa {0} không đủ nội thất mà hạng phòng này cần: {1}.
+A stay can be at most {0} Terms. ⟶ Hợp đồng ở tối đa {0} học kỳ.
+You can add at most {0} Terms (a stay has at most {1}). ⟶ Bạn chỉ có thể thêm tối đa {0} học kỳ (hợp đồng ở tối đa {1} học kỳ).
+Your stay already has the most Terms allowed ({0}). ⟶ Hợp đồng ở của bạn đã đạt số học kỳ tối đa ({0}).
+Students can still file next-Term requests until {0}. ⟶ Sinh viên vẫn có thể gửi yêu cầu cho học kỳ sau đến {0}.
+{0} next-Term requests are still open. Decide them first. ⟶ Còn {0} yêu cầu học kỳ sau chưa quyết định. Hãy quyết định trước.
 Reconcile the enrolled list for {0} first. ⟶ Hãy đối soát danh sách đang học của {0} trước.
 {0} reconciliation items are still open. Resolve them first. ⟶ Còn {0} mục đối soát chưa xử lý. Hãy xử lý trước.
-Continuing residents can still file next-Term requests until the request deadline. Run the assignment after it. ⟶ Cư dân ở tiếp vẫn có thể gửi yêu cầu kỳ sau đến hạn gửi yêu cầu. Hãy chạy xếp phòng sau hạn đó.
-{0} next-Term requests are still open. Decide them before the assignment. ⟶ Còn {0} yêu cầu kỳ sau chưa quyết định. Hãy quyết định trước khi xếp phòng.
-The next-Term fee is paid: move this student only to a Bed of the same price. ⟶ Tiền phòng kỳ sau đã thanh toán: chỉ chuyển sinh viên này sang giường cùng giá.
-The student said they paid the next-Term fee. Confirm or reject the payment first. ⟶ Sinh viên đã báo chuyển khoản tiền phòng kỳ sau. Hãy xác nhận hoặc từ chối khoản thanh toán trước.
+Continuing residents can still file next-Term requests until the request deadline. Run the assignment after it. ⟶ Cư dân ở tiếp vẫn có thể gửi yêu cầu học kỳ sau đến hạn gửi yêu cầu. Hãy chạy xếp phòng sau hạn đó.
+{0} next-Term requests are still open. Decide them before the assignment. ⟶ Còn {0} yêu cầu học kỳ sau chưa quyết định. Hãy quyết định trước khi xếp phòng.
+The next-Term fee is paid: move this student only to a Bed of the same price. ⟶ Tiền phòng học kỳ sau đã thanh toán: chỉ chuyển sinh viên này sang giường cùng giá.
+The student said they paid the next-Term fee. Confirm or reject the payment first. ⟶ Sinh viên đã báo chuyển khoản tiền phòng học kỳ sau. Hãy xác nhận hoặc từ chối khoản thanh toán trước.
 The requests window of {0} has not opened yet. ⟶ Thời gian gửi yêu cầu của {0} chưa mở.
 Unknown enrollment status "{0}". Use Enrolled, Suspended, Graduated, Withdrawn or Not enrolled. ⟶ Tình trạng học "{0}" không hợp lệ. Hãy dùng Enrolled, Suspended, Graduated, Withdrawn hoặc Not enrolled.
 Enter the electricity reading of Room {0}. ⟶ Hãy nhập chỉ số điện của phòng {0}.
@@ -844,7 +845,7 @@ Enter the water reading of Room {0}. ⟶ Hãy nhập chỉ số nước của ph
 Room Class change ⟶ Đổi hạng phòng
 Extension ⟶ Gia hạn
 End of stay ⟶ Kết thúc ở
-Next-Term Bed ⟶ Giường kỳ sau
+Next-Term Bed ⟶ Giường học kỳ sau
 set back ⟶ đặt lại hạng cũ
 changed ⟶ đã thay đổi
 Room unusable ⟶ Phòng không sử dụng được
@@ -852,14 +853,14 @@ Safety ⟶ An toàn
 Serious conflict ⟶ Mâu thuẫn nghiêm trọng
 Other ⟶ Lý do khác
 the stay was not extended by the request deadline ⟶ hợp đồng ở không được gia hạn trước hạn gửi yêu cầu
-the next-Term fee was not paid by its deadline ⟶ tiền phòng kỳ sau chưa được thanh toán trước hạn
-you are not enrolled for the Term ⟶ bạn không còn theo học trong kỳ
+the next-Term fee was not paid by its deadline ⟶ tiền phòng học kỳ sau chưa được thanh toán trước hạn
+you are not enrolled for the Term ⟶ bạn không còn theo học trong học kỳ
 your stay was terminated ⟶ hợp đồng ở của bạn đã bị chấm dứt
-Your stay is extended by {0} Term. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}.
-Your stay is extended by {0} Terms. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ. Giường của bạn được giữ cho {1}.
-Your stay is extended by {0} Term. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ.
-Your stay is extended by {0} Terms. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} kỳ.
-Room {0} is {1} from {2}. Your next-Term room fee uses it. ⟶ Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng kỳ sau của bạn tính theo hạng này.
+Your stay is extended by {0} Term. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} học kỳ. Giường của bạn được giữ cho {1}.
+Your stay is extended by {0} Terms. Your Bed is kept for {1}. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} học kỳ. Giường của bạn được giữ cho {1}.
+Your stay is extended by {0} Term. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} học kỳ.
+Your stay is extended by {0} Terms. ⟶ Hợp đồng ở của bạn được gia hạn thêm {0} học kỳ.
+Room {0} is {1} from {2}. Your next-Term room fee uses it. ⟶ Phòng {0} thuộc hạng {1} từ {2}. Tiền phòng học kỳ sau của bạn tính theo hạng này.
 A resident of Room {0} did not agree. ⟶ Một cư dân phòng {0} không đồng ý.
 Your Bed for {0} is now Room {1} · Bed {2}. ⟶ Giường của bạn cho {0} nay là phòng {1} · giường {2}.
 Choose an item of this Room. ⟶ Hãy chọn một đồ nội thất của phòng này.
@@ -873,9 +874,9 @@ Type RESET to confirm. ⟶ Hãy gõ RESET để xác nhận.
 The demo tools are off on this server. ⟶ Công cụ demo đang tắt trên máy chủ này.
 The demo accounts of the base data are missing. Load the base data (db/seed) first. ⟶ Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước.
 This demo file does not exist. ⟶ Không có tệp demo này.
-Load stage A, B or C first: this file lists the people of the next Term. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của kỳ sau.
-Load stage A, B or C first: Block A has no open meter period. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A chưa có kỳ ghi chỉ số nào đang mở.
-Load stage A, B or C first: no door code of Block A must change. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Block A không có mã cửa nào cần đổi.
+Load stage A, B or C first: this file lists the people of the next Term. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của học kỳ sau.
+Load stage A, B or C first: Block A has no open meter period. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Tòa A chưa có kỳ ghi chỉ số nào đang mở.
+Load stage A, B or C first: no door code of Block A must change. ⟶ Hãy nạp giai đoạn A, B hoặc C trước: Tòa A không có mã cửa nào cần đổi.
 
 # ---------- majors (V10, V61): the student list import also accepts the Vietnamese names ----------
 Artificial Intelligence ⟶ Trí tuệ nhân tạo
@@ -898,8 +899,8 @@ Korean Language ⟶ Ngôn ngữ Hàn Quốc
 Chinese Language ⟶ Ngôn ngữ Trung Quốc
 {0} is the start of the student code, not a major: write the major's code or name, for example BA or Business Administration. ⟶ {0} là phần đầu của mã sinh viên, không phải ngành: hãy ghi mã hoặc tên ngành, ví dụ BA hoặc Quản trị kinh doanh.
 # ---------- late check-in: one per Term, the Balance before check-in (28/10/2026) ----------
-This student already has a late check-in for this Term: one request per Term. ⟶ Sinh viên này đã có yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
-You already asked for a late check-in this Term: one request per Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong kỳ này: mỗi kỳ chỉ một yêu cầu.
+This student already has a late check-in for this Term: one request per Term. ⟶ Sinh viên này đã có yêu cầu nhận phòng muộn trong học kỳ này: mỗi học kỳ chỉ một yêu cầu.
+You already asked for a late check-in this Term: one request per Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong học kỳ này: mỗi học kỳ chỉ một yêu cầu.
 The Balance is paid before check-in: choose a day up to {0}. ⟶ Tiền phòng còn lại phải trả trước khi nhận phòng: hãy chọn ngày đến hết {0}.
 Choose a valid day. ⟶ Hãy chọn một ngày hợp lệ.
 # ---------- check-out: final readings Room by Room (28/10/2026) ----------
@@ -907,7 +908,7 @@ No student is waiting to check out of this Room. ⟶ Không có sinh viên nào 
 Enter both readings as numbers. ⟶ Hãy nhập cả hai chỉ số bằng số.
 Enter both readings as numbers of 0 or more. ⟶ Hãy nhập cả hai chỉ số bằng số từ 0 trở lên.
 The file needs the columns room, electricity and water. ⟶ Tệp cần có các cột phòng, điện và nước.
-A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2. ⟶ Đề xuất vòng 1 của kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2.
+A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2. ⟶ Đề xuất vòng 1 của học kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2.
 
 # ---------- staff duty, Round 2 list (A-58, A-60) ----------
 Say whether you are on duty. ⟶ Hãy cho biết bạn có đang trong ca trực không.
@@ -923,7 +924,7 @@ Attach the transfer receipt first. ⟶ Hãy đính kèm biên lai chuyển kho�
 This refund no longer waits for a transfer. ⟶ Khoản hoàn tiền này không còn chờ chuyển khoản.
 The student already entered their bank account. ⟶ Sinh viên đã nhập tài khoản ngân hàng.
 The student was reminded less than a day ago. ⟶ Sinh viên vừa được nhắc chưa đến một ngày trước.
-Ask for places only in the Room Types and Room Classes the Term offers. ⟶ Chỉ đề xuất số chỗ cho các loại phòng và hạng phòng mà kỳ mở.
+Ask for places only in the Room Types and Room Classes the Term offers. ⟶ Chỉ đề xuất số chỗ cho các loại phòng và hạng phòng mà học kỳ mở.
 Choose active Room Types only. ⟶ Chỉ chọn các loại phòng đang hoạt động.
 Choose active Room Classes only. ⟶ Chỉ chọn các hạng phòng đang hoạt động.
 Choose an active Room Type for each base price. ⟶ Hãy chọn loại phòng đang hoạt động cho từng giá cơ bản.
@@ -931,10 +932,10 @@ Enter each base price per Bed as a whole amount above 0 VND. ⟶ Hãy nhập t�
 List each Room Type once. ⟶ Mỗi loại phòng chỉ ghi một lần.
 Choose an active Room Class for each surcharge. ⟶ Hãy chọn hạng phòng đang hoạt động cho từng phụ thu.
 List each Room Class once. ⟶ Mỗi hạng phòng chỉ ghi một lần.
-Enter a price for every Room Type and Room Class the Term offers. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng mà kỳ mở.
+Enter a price for every Room Type and Room Class the Term offers. ⟶ Hãy nhập giá cho mọi loại phòng và hạng phòng mà học kỳ mở.
 Choose at least one active Room Type. ⟶ Hãy chọn ít nhất một loại phòng đang hoạt động.
 Choose at least one active Room Class. ⟶ Hãy chọn ít nhất một hạng phòng đang hoạt động.
-A published Term keeps the Room Types and Room Classes it offers. ⟶ Kỳ đã công bố giữ nguyên các loại phòng và hạng phòng đã mở.
+A published Term keeps the Room Types and Room Classes it offers. ⟶ Học kỳ đã công bố giữ nguyên các loại phòng và hạng phòng đã mở.
 
 # ---------- assistant (ADR-28) ----------
 The assistant is offline right now. Try again later. ⟶ Trợ lý đang offline. Hãy thử lại sau.
@@ -947,12 +948,12 @@ Use at most 2000 characters. ⟶ Dùng tối đa 2000 ký tự.
 The conversation is too long. Start a new one. ⟶ Cuộc trò chuyện quá dài. Hãy bắt đầu cuộc mới.
 
 # ---------- Family Day (ADR-29) ----------
-This Family Day does not exist. ⟶ Ngày gia đình này không tồn tại.
+This Family Day does not exist. ⟶ Ngày thăm thân này không tồn tại.
 This time slot does not exist. ⟶ Khung giờ này không tồn tại.
 This guest does not exist. ⟶ Khách này không tồn tại.
 This registration does not exist. ⟶ Đăng ký này không tồn tại.
 Choose one of: {0}. ⟶ Hãy chọn một trong: {0}.
-Only a Draft can be edited. Cancel this Family Day and create a new one instead. ⟶ Chỉ bản nháp mới sửa được. Hãy hủy Ngày gia đình này và tạo một sự kiện mới.
+Only a Draft can be edited. Cancel this Family Day and create a new one instead. ⟶ Chỉ bản nháp mới sửa được. Hãy hủy Ngày thăm thân này và tạo một sự kiện mới.
 Write a title of 3 to 120 characters. ⟶ Hãy nhập tiêu đề từ 3 đến 120 ký tự.
 Write where families are received (2 to 200 characters). ⟶ Hãy nhập nơi đón tiếp gia đình (2 đến 200 ký tự).
 Allow from 1 to 10 guests per student. ⟶ Mỗi sinh viên được mời từ 1 đến 10 khách.
@@ -965,20 +966,20 @@ A time slot must end after it starts. ⟶ Khung giờ phải kết thúc sau khi
 Allow from 1 to 5000 guests in a time slot. ⟶ Mỗi khung giờ nhận từ 1 đến 5000 khách.
 Registration must close before the first time slot starts. ⟶ Đăng ký phải đóng trước khi khung giờ đầu tiên bắt đầu.
 Time slots must not overlap. ⟶ Các khung giờ không được trùng nhau.
-Choose the Block that receives the families. ⟶ Hãy chọn Block đón tiếp gia đình.
-This Family Day is already published. ⟶ Ngày gia đình này đã được công bố.
+Choose the Block that receives the families. ⟶ Hãy chọn tòa đón tiếp gia đình.
+This Family Day is already published. ⟶ Ngày thăm thân này đã được công bố.
 Registration must close and the first time slot must start in the future. Edit the dates first. ⟶ Thời điểm đóng đăng ký và khung giờ đầu tiên phải ở tương lai. Hãy sửa lại thời gian trước.
-Write why the Family Day is cancelled. ⟶ Hãy ghi lý do hủy Ngày gia đình.
-This Family Day is already cancelled or completed. ⟶ Ngày gia đình này đã bị hủy hoặc đã kết thúc.
-Guests have already come in. Close the Family Day instead of cancelling it. ⟶ Đã có khách vào. Hãy kết thúc Ngày gia đình thay vì hủy.
-Only a published Family Day can be closed. ⟶ Chỉ Ngày gia đình đã công bố mới kết thúc được.
-The last time slot ends at {0}. Close the Family Day after it. ⟶ Khung giờ cuối kết thúc lúc {0}. Hãy kết thúc Ngày gia đình sau thời điểm đó.
+Write why the Family Day is cancelled. ⟶ Hãy ghi lý do hủy Ngày thăm thân.
+This Family Day is already cancelled or completed. ⟶ Ngày thăm thân này đã bị hủy hoặc đã kết thúc.
+Guests have already come in. Close the Family Day instead of cancelling it. ⟶ Đã có khách vào. Hãy kết thúc Ngày thăm thân thay vì hủy.
+Only a published Family Day can be closed. ⟶ Chỉ Ngày thăm thân đã công bố mới kết thúc được.
+The last time slot ends at {0}. Close the Family Day after it. ⟶ Khung giờ cuối kết thúc lúc {0}. Hãy kết thúc Ngày thăm thân sau thời điểm đó.
 {0} guests are still checked in. Check them out at the desk first. ⟶ Còn {0} khách chưa ra. Hãy ghi nhận khách ra tại quầy trước.
 Write why the registration is cancelled. ⟶ Hãy ghi lý do hủy đăng ký.
 This registration is already cancelled. ⟶ Đăng ký này đã bị hủy.
 A guest of this registration has already come in, so it cannot be cancelled. ⟶ Đã có khách của đăng ký này vào nên không thể hủy.
 Choose a time slot. ⟶ Hãy chọn một khung giờ.
-Choose one of this Family Day's time slots. ⟶ Hãy chọn một khung giờ của Ngày gia đình này.
+Choose one of this Family Day's time slots. ⟶ Hãy chọn một khung giờ của Ngày thăm thân này.
 Register from 1 to {0} guests. ⟶ Hãy đăng ký từ 1 đến {0} khách.
 Write the guest's full name (2 to 100 characters). ⟶ Hãy nhập họ tên khách (2 đến 100 ký tự).
 Write how the guest is related to you (up to 40 characters). ⟶ Hãy nhập quan hệ của khách với bạn (tối đa 40 ký tự).
@@ -988,18 +989,18 @@ A guest under {0} must come with an adult guest. ⟶ Khách dưới {0} tuổi p
 This time slot has already started. Choose a later one. ⟶ Khung giờ này đã bắt đầu. Hãy chọn khung giờ sau.
 This time slot is full. Choose another one. ⟶ Khung giờ này đã đủ chỗ. Hãy chọn khung giờ khác.
 Only {0} places are left in this time slot. Choose another one or register fewer guests. ⟶ Khung giờ này chỉ còn {0} chỗ. Hãy chọn khung giờ khác hoặc đăng ký ít khách hơn.
-You have already registered guests for this Family Day. ⟶ Bạn đã đăng ký khách cho Ngày gia đình này.
-You have no registration for this Family Day. ⟶ Bạn chưa đăng ký khách cho Ngày gia đình này.
+You have already registered guests for this Family Day. ⟶ Bạn đã đăng ký khách cho Ngày thăm thân này.
+You have no registration for this Family Day. ⟶ Bạn chưa đăng ký khách cho Ngày thăm thân này.
 Your time slot has already started, so the registration can no longer be cancelled. ⟶ Khung giờ của bạn đã bắt đầu nên không thể hủy đăng ký nữa.
-Only residents of this Block can register guests for its Family Day. ⟶ Chỉ sinh viên đang ở Block này mới đăng ký khách cho Ngày gia đình của Block.
+Only residents of this Block can register guests for its Family Day. ⟶ Chỉ sinh viên đang ở tòa này mới đăng ký khách cho Ngày thăm thân của tòa.
 Registration opens on {0} at {1}. ⟶ Đăng ký mở vào ngày {0} lúc {1}.
-Registration for this Family Day is closed. ⟶ Đăng ký cho Ngày gia đình này đã đóng.
-This pass is not a Family Day pass of CampusStay. ⟶ Mã này không phải mã vào Ngày gia đình của CampusStay.
+Registration for this Family Day is closed. ⟶ Đăng ký cho Ngày thăm thân này đã đóng.
+This pass is not a Family Day pass of CampusStay. ⟶ Mã này không phải mã vào Ngày thăm thân của CampusStay.
 Check the guest's identity paper against their name before letting them in. ⟶ Hãy đối chiếu giấy tờ tùy thân với tên khách trước khi cho vào.
 This guest is already checked in. ⟶ Khách này đã vào rồi.
 This guest is not checked in. ⟶ Khách này chưa vào.
 This pass was cancelled and no longer works. ⟶ Mã vào này đã bị hủy và không còn hiệu lực.
-This Family Day is over. ⟶ Ngày gia đình này đã kết thúc.
+This Family Day is over. ⟶ Ngày thăm thân này đã kết thúc.
 This pass was already used: the guest came and left. ⟶ Mã vào này đã được dùng: khách đã vào và ra.
 This guest's time slot is {0}. Check them in from {1}. ⟶ Khung giờ của khách là {0}. Hãy cho khách vào từ {1}.
 This guest's time slot ended at {0}. ⟶ Khung giờ của khách đã kết thúc lúc {0}.
@@ -1010,7 +1011,7 @@ This emergency contact does not exist. ⟶ Người liên hệ khẩn cấp này
 You already have the most emergency contacts allowed. Edit or remove one first. ⟶ Bạn đã có số người liên hệ khẩn cấp tối đa. Hãy sửa hoặc xóa bớt một người trước.
 The student has not confirmed yet that this guest is safe. Send a reminder and check the guest out once the student confirms. ⟶ Sinh viên chưa xác nhận khách này an toàn. Hãy gửi nhắc nhở và ghi nhận khách ra sau khi sinh viên xác nhận.
 Write why you check this guest out without the student's confirmation. ⟶ Hãy ghi lý do ghi nhận khách ra khi sinh viên chưa xác nhận.
-Only a published Family Day has guests inside. ⟶ Chỉ Ngày gia đình đã công bố mới có khách bên trong.
+Only a published Family Day has guests inside. ⟶ Chỉ Ngày thăm thân đã công bố mới có khách bên trong.
 No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation. ⟶ Không có khách nào cần nhắc: không ai còn ở lại quá giờ mà chưa được xác nhận.
 None of your guests is inside after their time slot, so there is nothing to confirm. ⟶ Không có người thân nào của bạn còn ở lại quá giờ nên không cần xác nhận.
-This Family Day was cancelled, so it has no statistics. ⟶ Ngày gia đình này đã bị hủy nên không có số liệu thống kê.
+This Family Day was cancelled, so it has no statistics. ⟶ Ngày thăm thân này đã bị hủy nên không có số liệu thống kê.

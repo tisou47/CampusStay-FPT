@@ -14,7 +14,7 @@ import { ErrorState, LoadingState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatVnd } from '@/lib/format'
+import { formatDate, formatDateRange, formatVnd } from '@/lib/format'
 import { DifferencesTable, ExcludedRoomsField, ReasonInput, TimelineFields, TimelineStrip, timelineBody, timelineForm } from '../registration/shared'
 import { termTone } from './Terms'
 import { t, tr } from '@/i18n'
@@ -27,13 +27,13 @@ import { t, tr } from '@/i18n'
 // PUT /admin/terms/:id/wizard/:step { …values of the step, reasons, changeReason } · POST /admin/terms/:id/publish
 
 export const STEPS = [
-  { key: 'general', label: 'General', why: 'The Term’s name and stay dates; everything else hangs on them.' },
+  { key: 'general', label: 'General', why: 'The term’s name and stay dates; everything else hangs on them.' },
   { key: 'timeline', label: 'Timeline', why: 'When registration opens and closes and when each later milestone falls; deadlines and reminders follow these dates.' },
-  { key: 'rooms', label: 'Rooms and places', why: 'Which Blocks and Rooms this Term offers; the assignment can only use these Beds.' },
-  { key: 'prices', label: 'Prices', why: 'The price of each Room Type and Room Class for this Term; fixed once published.' },
-  { key: 'rules', label: 'Rules', why: 'Who may apply, who goes first and how roommates are matched for this Term.' },
-  { key: 'information', label: 'Information', why: 'What students read about the Term on their board before they apply.' },
-  { key: 'review', label: 'Review and publish', why: 'Check what is still missing, then publish: students see the Term and Managers are told.' },
+  { key: 'rooms', label: 'Rooms and places', why: 'Which blocks and rooms this term offers; the assignment can only use these beds.' },
+  { key: 'prices', label: 'Prices', why: 'The price of each room type and room tier for this term; fixed once published.' },
+  { key: 'rules', label: 'Rules', why: 'Who may apply, who goes first and how roommates are matched for this term.' },
+  { key: 'information', label: 'Information', why: 'What students read about the term on their board before they apply.' },
+  { key: 'review', label: 'Review and publish', why: 'Check what is still missing, then publish: students see the term and managers are told.' },
 ]
 
 const GENDER = { M: 'Male', F: 'Female' }
@@ -90,7 +90,7 @@ function useStep(w, step, onSaved) {
 function ChangeReason({ w, value, onChange, error }) {
   if (!w.published) return null
   return (
-    <Field label="Why does this published Term change?" required error={error} helper="Students read it in the change announcement.">
+    <Field label="Why does this published term change?" required error={error} helper="Students read it in the change announcement.">
       {(id) => <Textarea id={id} rows={2} value={value} onChange={(e) => onChange(e.target.value)} />}
     </Field>
   )
@@ -136,7 +136,7 @@ function GeneralStep({ w, onSaved }) {
         {input('stayStart', 'Stay starts', 'date')}
         {input('stayEnd', 'Stay ends', 'date')}
       </div>
-      <p className="text-sm text-fg-tertiary">{t('Internal code {code}; Application and Invoice codes use it.', { code: w.code })}</p>
+      <p className="text-sm text-fg-tertiary">{t('Internal code {code}; application and invoice codes use it.', { code: w.code })}</p>
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
       <StepActions save={save} next disabled={!w.editable.general} onSave={() => save.run({ ...form, reasons: pick(reasons, ['name', 'stayStart', 'stayEnd']), changeReason })} />
     </>
@@ -167,7 +167,7 @@ function TimelineStep({ w, onSaved }) {
             showRenewal={renewal}
             renewalNote={
               renewal
-                ? t('For the residents of {term} (stay ends {end}) who continue into this Term. Optional until the renewal flow is in use.', {
+                ? t('For the residents of {term} (stay ends {end}) who continue into this term. Optional until the renewal flow is in use.', {
                     term: w.timeline.previousTerm,
                     end: formatDate(w.timeline.previousStayEnd),
                   })
@@ -176,14 +176,14 @@ function TimelineStep({ w, onSaved }) {
             proposed={proposed}
             reasonFor={(key) => <ReasonInput value={reasons[key]} onChange={(v) => setReasons((r) => ({ ...r, [key]: v }))} error={fields[key] && !reasons[key] ? fields[key] : undefined} />}
           />
-          {!renewal && <p className="mt-4 text-sm text-fg-tertiary">{t('No Term runs before this one, so it has no renewal milestones.')}</p>}
+          {!renewal && <p className="mt-4 text-sm text-fg-tertiary">{t('No term runs before this one, so it has no renewal milestones.')}</p>}
         </div>
         <Card className="w-80 shrink-0">
           <h3 className="mb-3 text-h3 font-semibold text-fg">{t('In time order')}</h3>
           <TimelineStrip form={form} />
           {w.timeline.previousCheckOutBy && (
             <p className="mt-3 text-sm text-fg-tertiary">
-              {t('Residents of {term} leave by {date}: Check-in starts on or after that day.', { term: w.timeline.previousTerm, date: formatDate(w.timeline.previousCheckOutBy) })}
+              {t('Residents of {term} leave by {date}: check-in starts on or after that day.', { term: w.timeline.previousTerm, date: formatDate(w.timeline.previousCheckOutBy) })}
             </p>
           )}
         </Card>
@@ -233,7 +233,7 @@ function RoomsStep({ w, onSaved }) {
               key={b.id}
               disabled={!w.editable.rooms}
               label={`${b.name} · ${t(GENDER[b.gender])}`}
-              description={t('{rooms} Rooms · {beds} Beds', { rooms: b.rooms, beds: b.beds })}
+              description={t('{rooms} rooms · {beds} beds', { rooms: b.rooms, beds: b.beds })}
               checked={used.has(b.id)}
               onChange={() =>
                 setUsed((s) => {
@@ -255,7 +255,7 @@ function RoomsStep({ w, onSaved }) {
         )}
       </section>
       <section className="flex flex-col gap-2">
-        <ExcludedRoomsField label="Rooms left out" helper="One column of Room codes in an Excel or CSV file; the assignment and Round 2 never use these Rooms." codes={excluded} disabled={!w.editable.rooms} onChange={setExcluded} error={fields.excludedRooms} />
+        <ExcludedRoomsField label="Rooms left out" helper="One column of room codes in an Excel or CSV file; the assignment and Round 2 never use these rooms." codes={excluded} disabled={!w.editable.rooms} onChange={setExcluded} error={fields.excludedRooms} />
         {roomsDiffer && (
           <>
             <p className="text-sm text-fg-tertiary">{t('The request asked to leave out {codes}.', { codes: codes(proposal.excludedRooms) })}</p>
@@ -265,7 +265,7 @@ function RoomsStep({ w, onSaved }) {
       </section>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
-          <OfferField title="Room Types offered" options={w.rooms.roomTypes} ticked={types} onChange={setTypes} disabled={offerFixed} error={fields.roomTypeIds} />
+          <OfferField title="Room types offered" options={w.rooms.roomTypes} ticked={types} onChange={setTypes} disabled={offerFixed} error={fields.roomTypeIds} />
           {typesDiffer && (
             <>
               <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomTypes, w.rooms.roomTypes) })}</p>
@@ -274,7 +274,7 @@ function RoomsStep({ w, onSaved }) {
           )}
         </div>
         <div className="flex flex-col gap-2">
-          <OfferField title="Room Classes offered" options={w.rooms.roomClasses} ticked={classes} onChange={setClasses} disabled={offerFixed} error={fields.roomClassIds} />
+          <OfferField title="Room tiers offered" options={w.rooms.roomClasses} ticked={classes} onChange={setClasses} disabled={offerFixed} error={fields.roomClassIds} />
           {classesDiffer && (
             <>
               <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomClasses, w.rooms.roomClasses) })}</p>
@@ -283,12 +283,12 @@ function RoomsStep({ w, onSaved }) {
           )}
         </div>
       </div>
-      {w.rooms.offerFixed && <p className="text-sm text-fg-tertiary">{t('A published Term keeps the Room Types and Room Classes it offers.')}</p>}
+      {w.rooms.offerFixed && <p className="text-sm text-fg-tertiary">{t('A published term keeps the room types and room tiers it offers.')}</p>}
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
           <Field
             label="Beds kept for new students (%)"
-            helper={reservedDiffers ? t('The request asked for {value}%.', { value: proposal.reservedNewPercent }) : t('{n} of {beds} Beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })}
+            helper={reservedDiffers ? t('The request asked for {value}%.', { value: proposal.reservedNewPercent }) : t('{n} of {beds} beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })}
             error={fields.reservedNewPercent}
           >
             {(id) => <Input id={id} inputMode="decimal" value={reserved} disabled={!w.editable.rooms} onChange={(e) => setReserved(e.target.value)} />}
@@ -300,14 +300,14 @@ function RoomsStep({ w, onSaved }) {
         <div className="flex items-end justify-between gap-3">
           <div className="flex flex-col gap-0.5">
             <h3 className="text-base font-medium text-fg-secondary">{t('Supply and demand')}</h3>
-            <p className="text-sm text-fg-tertiary">{t('Beds the Term offers with the Room Class of each Room in this Term (Managers set them in Room Classes by Term), next to the places asked for and the Applications so far. Saved Blocks and Rooms count.')}</p>
+            <p className="text-sm text-fg-tertiary">{t('Beds the term offers with the room tier of each room in this term (Managers set them in room tiers by term), next to the places asked for and the applications so far. Saved blocks and rooms count.')}</p>
           </div>
         </div>
         <Table>
           <THead>
             <tr>
-              <Th>Room Type</Th>
-              <Th>Room Class</Th>
+              <Th>Room type</Th>
+              <Th>Room tier</Th>
               <Th>Gender</Th>
               <Th align="right">Rooms</Th>
               <Th align="right">Beds</Th>
@@ -375,7 +375,7 @@ function PricesStep({ w, onSaved }) {
       <SaveError save={save} />
       {p.locked && (
         <Alert type="info" title="Prices are locked">
-          Invoices of this Term exist, so its prices, Deposit and Utility Deposit stay as they are.
+          Invoices of this term exist, so its prices, deposit and utility deposit stay as they are.
         </Alert>
       )}
       <div className="flex flex-wrap gap-2">
@@ -396,12 +396,12 @@ function PricesStep({ w, onSaved }) {
       <Table>
         <THead>
           <tr>
-            <Th>Room Type</Th>
-            <Th>Room Class</Th>
+            <Th>Room type</Th>
+            <Th>Room tier</Th>
             <Th align="right">Default</Th>
             {p.previousTerm && <Th align="right">{p.previousTerm}</Th>}
             {w.request && <Th align="right">Requested</Th>}
-            <Th className="w-64">This Term (VND per Bed)</Th>
+            <Th className="w-64">This term (₫ per bed)</Th>
           </tr>
         </THead>
         <TBody>
@@ -446,8 +446,8 @@ function PricesStep({ w, onSaved }) {
         </div>
         <div className="flex flex-col gap-1">
           <Field
-            label="Utility Deposit (VND)"
-            helper={utilityDiffers ? t('The request asked for {value}.', { value: formatVnd(asked.utilityDeposit) }) : t('Default {amount}, collected with the Balance.', { amount: formatVnd(p.defaultUtilityDeposit) })}
+            label="Utility deposit (₫)"
+            helper={utilityDiffers ? t('The request asked for {value}.', { value: formatVnd(asked.utilityDeposit) }) : t('Default {amount}, collected with the balance.', { amount: formatVnd(p.defaultUtilityDeposit) })}
             error={fields.utilityDeposit}
           >
             {(id) => <Input id={id} inputMode="numeric" value={utility} disabled={!editable} onChange={(e) => setUtility(e.target.value.replace(/\D/g, ''))} />}
@@ -495,8 +495,8 @@ function RulesStep({ w, onSaved }) {
   return (
     <>
       <SaveError save={save} />
-      <Alert type={r.fixed ? 'info' : 'warning'} title={r.fixed ? 'This Term keeps the rules it opened with' : 'Publishing fixes these rules for this Term'}>
-        {r.fixed ? t('Later changes of the rules apply to the Terms published after them.') : t('The rules in use now are copied into the Term when you publish it; change them first if needed.')}
+      <Alert type={r.fixed ? 'info' : 'warning'} title={r.fixed ? 'This term keeps the rules it opened with' : 'Publishing fixes these rules for this term'}>
+        {r.fixed ? t('Later changes of the rules apply to the terms published after them.') : t('The rules in use now are copied into the term when you publish it; change them first if needed.')}
       </Alert>
       <div className="grid grid-cols-2 gap-4">
         {list(
@@ -512,7 +512,7 @@ function RulesStep({ w, onSaved }) {
           '/admin/eligibility',
         )}
         {list(
-          'Who is placed first when Beds are short',
+          'Who is placed first when beds are short',
           <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-base text-fg">
             {r.priorityGroups.map((g) => (
               <li key={g}>{tr(g)}</li>
@@ -634,7 +634,7 @@ function ReviewStep({ w, goTo }) {
     invalidates: ['admin-terms', 'terms', 'term-wizard', 'term-requests'],
     onSuccess: () => {
       setConfirming(false)
-      notify({ title: t('{name} published', { name: w.name }), message: 'Every Manager is told; students read the Term announcement on their board.' })
+      notify({ title: t('{name} published', { name: w.name }), message: 'Every manager is told; students read the term announcement on their board.' })
     },
     onError: () => setConfirming(false),
   })
@@ -647,16 +647,16 @@ function ReviewStep({ w, goTo }) {
       <div className="grid grid-cols-3 gap-4">
         <Card className="flex flex-col gap-1">
           <span className="text-sm text-fg-tertiary">{t('Stay')}</span>
-          <span className="text-base font-medium text-fg">{`${formatDate(w.general.stayStart)} – ${formatDate(w.general.stayEnd)}`}</span>
+          <span className="text-base font-medium text-fg">{formatDateRange(w.general.stayStart, w.general.stayEnd)}</span>
           <span className="text-sm text-fg-secondary">{t('{n} milestones set', { n: filled })}</span>
         </Card>
         <Card className="flex flex-col gap-1">
           <span className="text-sm text-fg-tertiary">{t('Places')}</span>
-          <span className="text-base font-medium text-fg">{t('{n} Beds', { n: beds })}</span>
-          <span className="text-sm text-fg-secondary">{w.rooms.allBlocks ? t('Every Block') : w.rooms.blocks.filter((b) => b.used).map((b) => b.code).join(', ')}</span>
+          <span className="text-base font-medium text-fg">{t('{n} beds', { n: beds })}</span>
+          <span className="text-sm text-fg-secondary">{w.rooms.allBlocks ? t('Every block') : w.rooms.blocks.filter((b) => b.used).map((b) => b.code).join(', ')}</span>
         </Card>
         <Card className="flex flex-col gap-1">
-          <span className="text-sm text-fg-tertiary">{t('Prices per Bed')}</span>
+          <span className="text-sm text-fg-tertiary">{t('Prices per bed')}</span>
           <span className="text-base font-medium text-fg">{prices.length ? `${formatVnd(Math.min(...prices))} – ${formatVnd(Math.max(...prices))}` : '—'}</span>
           <span className="text-sm text-fg-secondary">{t('Deposit {n}% · Utility Deposit {amount}', { n: w.prices.depositPercent, amount: formatVnd(w.prices.utilityDeposit) })}</span>
         </Card>
@@ -692,15 +692,15 @@ function ReviewStep({ w, goTo }) {
             </ul>
           )}
           <div className="flex justify-end">
-            <Button tip="Students see the Term, its prices and its rules once it is published. Fix every check listed here first." variant="primary" icon={Rocket} disabled={w.checks.length > 0 || publish.pending} onClick={() => setConfirming(true)}>
-              Publish the Term
+            <Button tip="Students see the term, its prices and its rules once it is published. Fix every check listed here first." variant="primary" icon={Rocket} disabled={w.checks.length > 0 || publish.pending} onClick={() => setConfirming(true)}>
+              Publish the term
             </Button>
           </div>
         </Card>
       )}
       {w.published && (
         <Alert type="success" title={t('Published {date}', { date: formatDate(w.publishedAt) })}>
-          {t('Money and policy fields stay editable within the rules: a date that has passed is fixed, an open deadline can only be extended, and money is locked once an Invoice exists. Every change is announced to students.')}
+          {t('Money and policy fields stay editable within the rules: a date that has passed is fixed, an open deadline can only be extended, and money is locked once an invoice exists. Every change is announced to students.')}
         </Alert>
       )}
       <Modal
@@ -717,7 +717,7 @@ function ReviewStep({ w, goTo }) {
         }
       >
         <p className="text-base text-fg-secondary">
-          {t('Every student sees {name} on their board and every Manager is told. Its {n} prices, Deposit ({deposit}%), Utility Deposit and rules are fixed from then on.', {
+          {t('Every student sees {name} on their board and every manager is told. Its {n} prices, deposit ({deposit}%), utility deposit and rules are fixed from then on.', {
             name: w.name,
             n: prices.length,
             deposit: w.prices.depositPercent,
@@ -760,7 +760,7 @@ export default function TermWizard() {
       <PageHeader
         title={w.name}
         badge={<Tag tone={termTone[w.status] ?? 'neutral'}>{w.status}</Tag>}
-        description={`${formatDate(w.general.stayStart)} – ${formatDate(w.general.stayEnd)}${w.request ? ` · ${t('built from {code} ({manager})', { code: w.request.code, manager: w.request.requestedBy })}` : ''}`}
+        description={`${formatDateRange(w.general.stayStart, w.general.stayEnd)}${w.request ? ` · ${t('built from {code} ({manager})', { code: w.request.code, manager: w.request.requestedBy })}` : ''}`}
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
             <ArrowLeft size={14} aria-hidden="true" />

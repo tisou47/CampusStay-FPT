@@ -28,14 +28,14 @@ export default function MyApplications() {
       title="My applications"
       mobileTitle="Activity"
       phoneTop={<ActivitySwitch current="applications" />}
-      description="One Application per Term. Open an Application to see its progress."
+      description="One application per term. Open an application to see its progress."
       actions={
         <Button variant="primary" size="lg" icon={Plus} to={activeTerm ? undefined : '/student/apply/term'} disabled={Boolean(activeTerm) || !query.data}>
           New application
         </Button>
       }
     >
-      {activeTerm && <Note className="shrink-0 items-center">{t('New application is disabled while you have an active Application for {term}.', { term: activeTerm })}</Note>}
+      {activeTerm && <Note className="shrink-0 items-center">{t('New application is disabled while you have an active application for {term}.', { term: activeTerm })}</Note>}
 
       {/* Phone: MOB-APP-01 Activity › Applications — one row per Application instead of the table. */}
       <QueryState
@@ -67,14 +67,14 @@ export default function MyApplications() {
       <Table size="lg" fill className="max-lg:hidden">
         <THead>
           <tr>
-            <Th className="w-42">Application</Th>
+            <Th className="w-42">Application ID</Th>
             <Th className="w-35">Term</Th>
-            <Th className="w-28">Room Type</Th>
-            <Th className="w-32">Room Class</Th>
+            <Th className="w-28">Room type</Th>
+            <Th className="w-32">Room tier</Th>
             <Th className="w-38" align="right">
               Deposit
             </Th>
-            <Th className="w-44">Submitted</Th>
+            <Th className="w-44">Submitted on</Th>
             <Th>Status</Th>
             <Th className="w-20">
               <span className="sr-only">{t('Actions')}</span>

@@ -104,7 +104,7 @@ export default function RoutingRules() {
     <>
       <PageHeader
         title={block ? t('Routing rules · Block {code}', { code: block }) : 'Routing rules'}
-        description="Who receives each new request automatically. Unmatched requests go to the Block queue for manual assignment."
+        description="Who receives each new request automatically. Unmatched requests go to the block queue for manual assignment."
         actions={
           <>
             {picker}
@@ -171,11 +171,11 @@ export default function RoutingRules() {
       <div className="flex shrink-0 items-stretch gap-4">
         <Card className="flex min-w-0 flex-1 flex-col gap-3">
           <h2 className="text-h3 font-semibold text-fg">{t('Time limits')}</h2>
-          <p className="text-sm text-fg-tertiary">{t('Limits come from Admin; you can only make them stricter. Every request shows the time it has left.')}</p>
+          <p className="text-sm text-fg-tertiary">{t('Limits come from admin; you can only make them stricter. Every request shows the time it has left.')}</p>
           {[
-            ['urgent', 'An urgent Maintenance Request must be finished within', 'after that, every Manager sees it in Overdue requests.'],
-            ['normal', 'A normal Maintenance Request must be finished within', 'after that, every Manager sees it in Overdue requests.'],
-            ['roomChange', 'A Room-Change Request must be decided within', 'after that, it shows in Overdue requests.'],
+            ['urgent', 'An urgent maintenance request must be finished within', 'after that, every manager sees it in Overdue requests.'],
+            ['normal', 'A normal maintenance request must be finished within', 'after that, every manager sees it in Overdue requests.'],
+            ['roomChange', 'A room-change request must be decided within', 'after that, it shows in Overdue requests.'],
           ].map(([key, before, after]) => (
             <p key={key} className="flex flex-wrap items-center gap-2 text-base text-fg">
               <span>{t(before)}</span>
@@ -193,7 +193,7 @@ export default function RoutingRules() {
         </Card>
         <Card className="flex w-110 shrink-0 flex-col gap-3">
           <h2 className="text-h3 font-semibold text-fg">{t('Staff and workload')}</h2>
-          <p className="text-sm text-fg-tertiary">{t('Open work of each staff member of the Block, and what they finished in the last 7 days.')}</p>
+          <p className="text-sm text-fg-tertiary">{t('Open work of each staff member of the block, and what they finished in the last 7 days.')}</p>
           <ul className="flex flex-col divide-y divide-line">
             {(data?.staff ?? []).map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-base">
@@ -204,7 +204,7 @@ export default function RoutingRules() {
                 <span className="shrink-0 text-fg-secondary">{t('{open} open · {done} done', { open: formatNumber(s.open), done: formatNumber(s.resolvedWeek) })}</span>
               </li>
             ))}
-            {data && data.staff.length === 0 && <li className="py-2 text-base text-fg-tertiary">{t('No staff in this Block yet')}</li>}
+            {data && data.staff.length === 0 && <li className="py-2 text-base text-fg-tertiary">{t('No staff in this block yet')}</li>}
           </ul>
         </Card>
       </div>

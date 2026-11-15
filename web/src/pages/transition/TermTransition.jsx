@@ -26,9 +26,9 @@ import Turnover from './Turnover'
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'requests', label: 'Open requests' },
-  { key: 'room-classes', label: 'Room Class changes' },
+  { key: 'room-classes', label: 'Room tier changes' },
   { key: 'extensions', label: 'Extensions' },
-  { key: 'fees', label: 'Next-Term fees', manager: true },
+  { key: 'fees', label: 'Next-term fees', manager: true },
   { key: 'turnover', label: 'Turnover' },
 ]
 
@@ -61,7 +61,7 @@ export default function TermTransition() {
     <>
       <PageHeader
         title="Term transition"
-        description={current ? t('{term} · residents of {previous} continue into it', { term: current.termName, previous: current.previousTermName }) : 'Requests window, next-Term fees and turnover.'}
+        description={current ? t('{term} · residents of {previous} continue into it', { term: current.termName, previous: current.previousTermName }) : 'Requests window, next-term fees and turnover.'}
         actions={
           list.length > 1 && (
             <Select
@@ -81,8 +81,8 @@ export default function TermTransition() {
         <ErrorState error={windows.error} onRetry={windows.reload} />
       ) : !termId ? (
         <Card padding="none" className="flex min-h-0 flex-1 flex-col">
-          <EmptyBlock icon={CalendarClock} title="No Term has a requests window yet">
-            {t('The Admin sets the renewal milestones (M1–M7) of a Term in the Term wizard. Its window opens at M2.')}
+          <EmptyBlock icon={CalendarClock} title="No term has a requests window yet">
+            {t('The admin sets the renewal milestones (M1–M7) of a term in the term wizard. Its window opens at M2.')}
           </EmptyBlock>
         </Card>
       ) : (

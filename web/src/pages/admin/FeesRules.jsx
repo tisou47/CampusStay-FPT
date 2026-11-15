@@ -17,7 +17,7 @@ import { t } from '@/i18n'
 export default function FeesRules() {
   const { notify } = useToast()
   const cfg = useConfigForm('fees', api.admin.fees, {
-    onSaved: () => notify({ title: 'Deposit saved', message: 'New Terms copy it; students read the change in an announcement.' }),
+    onSaved: () => notify({ title: 'Deposit saved', message: 'New terms copy it; students read the change in an announcement.' }),
   })
   const { draft } = cfg
 
@@ -25,7 +25,7 @@ export default function FeesRules() {
     <ConfigPage
       form={cfg}
       title="Deposit"
-      description="The Deposit new Terms start with."
+      description="The deposit new terms start with."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
@@ -42,19 +42,19 @@ export default function FeesRules() {
           <div className="flex shrink-0 items-stretch gap-4">
             <Card className="flex min-w-0 flex-1 flex-col gap-4">
               <h2 className="text-h3 font-semibold text-fg">{t('Deposit')}</h2>
-              <Field label="Deposit rate (% of Term price)" helper="An Application reaches a Manager only after its Deposit is paid. Each Term can set its own rate in the wizard.">
+              <Field label="Deposit rate (% of term price)" helper="An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard.">
                 {(id) => <Input id={id} value={draft.depositPercent ?? ''} onChange={cfg.set('depositPercent')} inputMode="numeric" />}
               </Field>
             </Card>
             <Card className="flex min-w-0 flex-1 flex-col gap-2">
               <h2 className="text-h3 font-semibold text-fg">{t('Payment confirmation')}</h2>
               <p className="text-base text-fg-secondary">
-                {t('Students transfer and press I have transferred; a Manager confirms each claim against the bank statement. The door code is released only once the Balance is paid.')}
+                {t('Students transfer and press I have transferred; a manager confirms each claim against the bank statement. The door code is released only once the balance is paid.')}
               </p>
             </Card>
           </div>
           <Alert title="Where the other settings are" className="shrink-0">
-            {t('The Deposit and Balance payment windows are in Deadlines and reminders; refund rules in Refunds, penalties and terminations; the Utility Deposit in Utility.')}
+            {t('The deposit and balance payment windows are in deadlines and reminders; refund rules in refunds, penalties and terminations; the utility deposit in utility.')}
           </Alert>
         </>
       )}

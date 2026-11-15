@@ -24,7 +24,7 @@ import { t, tr } from '@/i18n'
 const STATE_LABEL = { done: 'Done', now: 'Do this now', next: 'Up next', waiting: 'Waiting', later: 'Later' }
 
 /**
- * "Set up a Term" (spec §6.3, §6.4): the five stages in the order they happen, each with its state in words,
+ * "Set up a term" (spec §6.3, §6.4): the five stages in the order they happen, each with its state in words,
  * why it matters and one way in. Only the stage to do now gets the primary button.
  */
 function TermSetupFlow({ checks }) {
@@ -37,7 +37,7 @@ function TermSetupFlow({ checks }) {
   return (
     <section aria-labelledby="term-setup" className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a Term')}</h2>
+        <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a term')}</h2>
         <span className="text-sm text-fg-tertiary">{t('In the order it happens. Each stage opens its screen.')}</span>
       </div>
       <ol className="grid grid-cols-5 gap-3">
@@ -132,20 +132,20 @@ export default function AdminDashboard() {
       <TermSetupFlow checks={d?.checks} />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Calendar} label="Current Term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
-        <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} Beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
-        <KpiTile icon={Banknote} label="Collected this Term" tip={t(COLLECTED_RULE)} value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
+        <KpiTile icon={Calendar} label="Current term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
+        <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
+        <KpiTile icon={Banknote} label="Collected this term" tip={t(COLLECTED_RULE)} value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
         <KpiTile
           icon={Users}
           label="Active users"
           value={<span className="text-h1">{formatNumber(k?.activeUsers)}</span>}
-          note={k ? t('{s} students · {st} Staff · {m} Managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) }) : null}
+          note={k ? t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) }) : null}
         />
       </div>
 
       <div className="grid min-h-72 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1fr)_auto] gap-4">
         <Card className="row-span-2 flex min-h-0 flex-col gap-2.5">
-          <Head title={d?.term ? t('{term} application funnel', { term: d.term.name }) : 'Application funnel'} note="All Blocks" />
+          <Head title={d?.term ? t('{term} application funnel', { term: d.term.name }) : 'Application funnel'} note="All blocks" />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
               {(data) => (
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
           </div>
           {d?.funnelOutside && Object.values(d.funnelOutside).some((n) => n > 0) ? (
             <p className="shrink-0 text-sm text-fg-tertiary">
-              {t('Not in the funnel: {c} continuing residents (no Application this Term) · {w} waitlisted · {r} rejected · {e} expired', {
+              {t('Not in the funnel: {c} continuing residents (no application this term) · {w} waitlisted · {r} rejected · {e} expired', {
                 c: formatNumber(d.funnelOutside.continuing),
                 w: formatNumber(d.funnelOutside.waitlisted),
                 r: formatNumber(d.funnelOutside.rejected),
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
         </Card>
 
         <Card className="flex min-h-0 flex-col gap-3">
-          <Head title="Allocated Beds by Block" />
+          <Head title="Allocated beds by block" />
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
             <QueryState query={query} compact isEmpty={(x) => !x.blocks?.length}>
               {(data) =>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                         {formatNumber(b.allocated)} / {formatNumber(b.beds)}
                       </span>
                     </div>
-                    <Meter value={b.allocated} max={b.beds} label={t('Block {code} allocated Beds', { code: b.block })} className="h-2" />
+                    <Meter value={b.allocated} max={b.beds} label={t('Block {code} allocated beds', { code: b.block })} className="h-2" />
                   </div>
                 ))
               }

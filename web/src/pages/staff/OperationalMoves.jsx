@@ -76,16 +76,16 @@ function MoveForm({ options, onDone, onLoadNext }) {
             {o.from.room} · {t('Bed {bed}', { bed: o.from.bed })} · {tr(o.from.roomTypeName)} · {tr(o.from.roomClassName)}
           </p>
         </div>
-        {o.resident ? <StatusTag status="Resident" /> : <StatusTag status={o.nextTermAllocation ? 'Moving in next Term' : 'Assigned – unpaid'} tone="info" />}
+        {o.resident ? <StatusTag status="Resident" /> : <StatusTag status={o.nextTermAllocation ? 'Moving in next term' : 'Assigned – unpaid'} tone="info" />}
       </div>
       {move.error && !move.error.details?.fields && <Alert type="error" title="Could not move the student">{move.error.message}</Alert>}
       {o.nextTermAllocation && o.feesIssued && (
-        <Alert type="warning" title="The next-Term fees are issued">
-          {t('Only a Manager moves this Bed now: an unpaid fee is issued again for the new Bed, a paid one allows only a Bed of the same price.')}
+        <Alert type="warning" title="The next-term fees are issued">
+          {t('Only a manager moves this bed now: an unpaid fee is issued again for the new bed, a paid one allows only a bed of the same price.')}
         </Alert>
       )}
       <div className="flex flex-col gap-3 lg:flex-row">
-        <Field label="New Bed" required error={fields.bedId} className="flex-1">
+        <Field label="New bed" required error={fields.bedId} className="flex-1">
           {(id) => (
             <Select
               id={id}
@@ -105,18 +105,18 @@ function MoveForm({ options, onDone, onLoadNext }) {
           {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={[{ value: '', label: 'Choose…', disabled: true }, ...o.reasons]} />}
         </Field>
       </div>
-      {bed?.termPrice != null && o.nextTermAllocation && <Note>{t('Next-Term price of this Bed: {price}', { price: formatVnd(bed.termPrice) })}</Note>}
+      {bed?.termPrice != null && o.nextTermAllocation && <Note>{t('Next-term price of this bed: {price}', { price: formatVnd(bed.termPrice) })}</Note>}
       <Field label="Note" required={reason === 'Other'} error={fields.note}>
         {(id) => <Textarea id={id} rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}
       </Field>
       {o.resident && (
         <div className="flex flex-col gap-2">
-          <p className="text-base font-medium text-fg">{t('Meter readings now (both Rooms)')}</p>
+          <p className="text-base font-medium text-fg">{t('Meter readings now (both rooms)')}</p>
           <div className="flex flex-col gap-3 lg:flex-row">
             {reading('fromElectricity', t('{room} electricity (kWh)', { room: o.from.room }))}
             {reading('fromWater', t('{room} water (m³)', { room: o.from.room }))}
-            {reading('toElectricity', t('{room} electricity (kWh)', { room: bed?.room ?? t('New Room') }))}
-            {reading('toWater', t('{room} water (m³)', { room: bed?.room ?? t('New Room') }))}
+            {reading('toElectricity', t('{room} electricity (kWh)', { room: bed?.room ?? t('New room') }))}
+            {reading('toWater', t('{room} water (m³)', { room: bed?.room ?? t('New room') }))}
           </div>
         </div>
       )}
@@ -125,10 +125,10 @@ function MoveForm({ options, onDone, onLoadNext }) {
           <legend className="mb-2 text-base font-medium text-fg">
             {t('Bed for {term}: {room} · Bed {bed}', { term: o.nextTerm.term.name, room: o.nextTerm.place.room, bed: o.nextTerm.place.bed })}
           </legend>
-          <Radio name="nextTerm" label="The next-Term Bed follows to the new Bed" checked={follow === 'follow'} onChange={() => setFollow('follow')} />
-          <Radio name="nextTerm" label="Keep the next-Term Bed where it is" checked={follow === 'keep'} onChange={() => setFollow('keep')} />
+          <Radio name="nextTerm" label="The next-term bed follows to the new bed" checked={follow === 'follow'} onChange={() => setFollow('follow')} />
+          <Radio name="nextTerm" label="Keep the next-term bed where it is" checked={follow === 'keep'} onChange={() => setFollow('keep')} />
           <Button variant="text" className="self-start" onClick={() => onLoadNext(o.nextTerm.allocationId)}>
-            Move only the next-Term Bed instead
+            Move only the next-term bed instead
           </Button>
         </fieldset>
       )}
@@ -154,7 +154,7 @@ export default function OperationalMoves() {
   const items = history.data?.items ?? []
   return (
     <>
-      <PageHeader title="Operational moves" description="Move a student to another Bed for an operational reason. Nothing is charged." />
+      <PageHeader title="Operational moves" description="Move a student to another bed for an operational reason. Nothing is charged." />
       <form
         className="flex shrink-0 items-end gap-3"
         onSubmit={(e) => {
@@ -178,7 +178,7 @@ export default function OperationalMoves() {
             <Th className="w-40">Term</Th>
             <Th className="w-48">From → To</Th>
             <Th className="w-40">Reason</Th>
-            <Th className="w-28">Next Term</Th>
+            <Th className="w-28">Next term</Th>
             <Th>By</Th>
           </tr>
         </THead>

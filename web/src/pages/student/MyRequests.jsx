@@ -32,7 +32,7 @@ function ConsentButtons({ id }) {
   const { notify, notifyError } = useToast()
   const answer = useMutation((agree) => api.roomClassChanges.consent(id, { agree }), {
     invalidates: ['requests', 'allocation'],
-    onSuccess: (_, agree) => notify(agree ? { title: 'You agreed', message: 'When everyone agrees, Staff check the furniture and decide.' } : { type: 'info', title: 'You declined', message: 'The change is cancelled; your roommates are told.' }),
+    onSuccess: (_, agree) => notify(agree ? { title: 'You agreed', message: 'When everyone agrees, staff check the furniture and decide.' } : { type: 'info', title: 'You declined', message: 'The change is cancelled; your roommates are told.' }),
     onError: (e) => notifyError(e, 'Could not send your answer'),
   })
   return (
@@ -163,7 +163,7 @@ export default function MyRequests() {
       title="Requests"
       mobileTitle="Activity"
       phoneTop={<ActivitySwitch current="requests" />}
-      description={query.data?.room ? t('Maintenance and Room-Change Requests for Room {room}.', { room: query.data.room }) : t('Maintenance and Room-Change Requests.')}
+      description={query.data?.room ? t('Maintenance and room-change requests for Room {room}.', { room: query.data.room }) : t('Maintenance and room-change requests.')}
       actions={
         tab === 'maintenance' ? (
           <Button variant="primary" size="lg" icon={Plus} to="/student/requests/maintenance/new">
@@ -172,7 +172,7 @@ export default function MyRequests() {
         ) : (
           <>
             <Button size="lg" icon={Users} to="/student/requests/swap/new">
-              Swap with a Student
+              Swap with a student
             </Button>
             <Button variant="primary" size="lg" icon={Plus} to="/student/requests/room-change/new">
               New room-change request
@@ -200,11 +200,11 @@ export default function MyRequests() {
         empty={
           tab === 'maintenance' ? (
             <EmptyBlock icon={Wrench} title="No maintenance requests" className="lg:hidden">
-              Report a problem in your Room and the maintenance staff will fix it.
+              Report a problem in your room and the maintenance staff will fix it.
             </EmptyBlock>
           ) : (
             <EmptyBlock icon={Repeat} title="No room changes yet" className="lg:hidden">
-              Ask the dormitory office to move you to another Room, or agree a swap with another Student.
+              Ask the dormitory office to move you to another room, or agree a swap with another student.
             </EmptyBlock>
           )
         }
@@ -284,7 +284,7 @@ export default function MyRequests() {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={6} emptyIcon={Wrench} emptyTitle="No maintenance requests" emptyText="Report a problem in your Room and the maintenance staff will fix it." />
+            <TableStatus query={query} colSpan={6} emptyIcon={Wrench} emptyTitle="No maintenance requests" emptyText="Report a problem in your room and the maintenance staff will fix it." />
             {items.map((r) => (
               <Tr key={r.id} onClick={() => setOpenId(r.id)} className="[&>td]:h-15">
                 <Td className="font-medium text-fg-brand">{r.id}</Td>
@@ -321,12 +321,12 @@ export default function MyRequests() {
               <Th className="w-40">Request</Th>
               <Th className="w-44">Type</Th>
               <Th>Details</Th>
-              <Th className="w-44">Submitted</Th>
+              <Th className="w-44">Submitted on</Th>
               <Th className="w-55">Status</Th>
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room changes yet" emptyText="Ask the dormitory office to move you to another Room, or agree a swap with another Student." />
+            <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room changes yet" emptyText="Ask the dormitory office to move you to another room, or agree a swap with another student." />
             {items.map((r) => (
               <Tr key={r.id} className="[&>td]:h-15">
                 <Td className="font-medium text-fg-brand">{r.id}</Td>

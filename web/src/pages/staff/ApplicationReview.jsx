@@ -65,10 +65,10 @@ function Review({ app }) {
         actions={
           <>
             <Button to={`${base}/applications`}>Back to queue</Button>
-            <Button tip="Reject the Application. The student is notified." variant="danger" icon={X} onClick={() => decide('Rejected')} disabled={decided || review.pending}>
+            <Button tip="Reject the application. The student is notified." variant="danger" icon={X} onClick={() => decide('Rejected')} disabled={decided || review.pending}>
               Reject
             </Button>
-            <Button tip="Approve the Application. The Assignment engine then proposes a Room and Bed for it." variant="primary" icon={Check} onClick={() => decide('Approved')} disabled={decided || review.pending}>
+            <Button tip="Approve the application. The assignment engine then proposes a room and bed for it." variant="primary" icon={Check} onClick={() => decide('Approved')} disabled={decided || review.pending}>
               Approve
             </Button>
           </>
@@ -107,11 +107,11 @@ function Review({ app }) {
             <Facts
               dense
               items={[
-                ['Room Type', v(tr(app.roomTypeName))],
-                ['Room Class', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
+                ['Room type', v(tr(app.roomTypeName))],
+                ['Room tier', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
                 ['Roommate', roommate],
-                ['Term price per Bed', formatVnd(app.termPrice)],
-                ['Stay length', t(app.stayTerms === 1 ? '{n} Term' : '{n} Terms', { n: app.stayTerms ?? 1 })],
+                ['Term price per bed', formatVnd(app.termPrice)],
+                ['Stay length', t(app.stayTerms === 1 ? '{n} term' : '{n} terms', { n: app.stayTerms ?? 1 })],
               ]}
             />
           </Card>
@@ -158,7 +158,7 @@ function Review({ app }) {
                 </div>
               </>
             ) : (
-              <p className="text-base text-fg-secondary">{t('No deposit Invoice yet.')}</p>
+              <p className="text-base text-fg-secondary">{t('No deposit invoice yet.')}</p>
             )}
           </Card>
 

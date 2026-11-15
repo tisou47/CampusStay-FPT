@@ -28,7 +28,7 @@ export default function NewTerm() {
   return (
     <>
       <PageHeader
-        title="New Term"
+        title="New term"
         description="Start with the name and the stay; the Draft is saved after each step."
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
@@ -39,7 +39,7 @@ export default function NewTerm() {
       />
       <Steps steps={STEPS.map((s) => s.label)} current={0} compact />
       <Card padding="lg" className="flex flex-col gap-4">
-        {create.error && !Object.keys(create.error.fields ?? {}).length && <Alert type="error" title="Could not create the Term">{create.error.message}</Alert>}
+        {create.error && !Object.keys(create.error.fields ?? {}).length && <Alert type="error" title="Could not create the term">{create.error.message}</Alert>}
         <div className="grid grid-cols-3 gap-4">
           <Field label="Name" error={fields.name} helper="e.g. Spring 2027">
             {(id) => <Input id={id} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />}
@@ -51,7 +51,7 @@ export default function NewTerm() {
             {(id) => <DateInput id={id} value={form.stayEnd} onChange={(e) => setForm((f) => ({ ...f, stayEnd: e.target.value }))} />}
           </Field>
         </div>
-        <p className="text-sm text-fg-tertiary">{t('Prices start from the Term before (or the default prices), the house rules from the Term before.')}</p>
+        <p className="text-sm text-fg-tertiary">{t('Prices start from the term before (or the default prices), the house rules from the term before.')}</p>
         <div className="flex justify-end">
           <Button variant="primary" icon={ArrowRight} disabled={!form.name.trim() || create.pending} onClick={() => create.run()}>
             Save and continue

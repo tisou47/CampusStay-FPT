@@ -81,7 +81,7 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
   const commit = useMutation(() => api.assignment.commit(runId, { block }), {
     invalidates: ['proposal', 'assignment-runs', 'dashboard'],
     onSuccess: onDone,
-    onError: (e) => notifyError(e, 'Could not commit the Block'),
+    onError: (e) => notifyError(e, 'Could not commit the block'),
   })
   const phrase = `COMMIT ${block}`
   return (
@@ -94,7 +94,7 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon={Check} disabled={typed.trim().toUpperCase() !== phrase || commit.pending} onClick={() => commit.run()}>
-            {commit.pending ? t('Committing…') : t('Commit Block')}
+            {commit.pending ? t('Committing…') : t('Commit block')}
           </Button>
         </>
       }
@@ -102,7 +102,7 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
       <div className="flex flex-col gap-2 rounded-lg border border-line bg-subtle p-4 text-base">
         {[
           ['Students allocated', formatNumber(summary?.students)],
-          ['Balance Invoices issued', summary ? `${formatNumber(summary.students)}${summary.balanceDueAt ? ` · ${t('due {date}', { date: formatDateTime(summary.balanceDueAt) })}` : ''}` : '—'],
+          ['Balance invoices issued', summary ? `${formatNumber(summary.students)}${summary.balanceDueAt ? ` · ${t('due {date}', { date: formatDateTime(summary.balanceDueAt) })}` : ''}` : '—'],
           ['Notifications', summary ? t('Push and in-app to {n} students', { n: formatNumber(summary.students) }) : '—'],
           ['Run', runId],
         ].map(([label, value]) => (
@@ -113,7 +113,7 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
         ))}
       </div>
       <Alert type="warning" title="This cannot be undone">
-        {t('Allocations, Balance Invoices and notifications are created now. Unassigned Applications move to Round 2. Other Blocks stay in review.')}
+        {t('Allocations, balance invoices and notifications are created now. Unassigned applications move to Round 2. Other blocks stay in review.')}
       </Alert>
       <Field label={t('Type {phrase} to confirm', { phrase })}>{(id) => <Input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={phrase} autoComplete="off" />}</Field>
     </Modal>
@@ -137,11 +137,11 @@ function RunDetails({ run }) {
           ['Started', formatDateTime(run.startedAt)],
           ['Finished', run.finishedAt ? formatDateTime(run.finishedAt) : '—'],
           ['Rules snapshot', run.snapshot ?? '—'],
-          ['Input', t('{n} Approved Applications', { n: formatNumber(run.input) })],
+          ['Input', t('{n} Approved applications', { n: formatNumber(run.input) })],
           ['Proposed', formatNumber(run.proposed)],
           ['Conflicts', formatNumber(run.conflicts)],
           ['Waitlisted', formatNumber(run.waitlisted)],
-          ['Average Room fit', run.averageFit != null ? `${run.averageFit} / 100` : '—'],
+          ['Average room fit', run.averageFit != null ? `${run.averageFit} / 100` : '—'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between gap-4">
             <span className="text-fg-secondary">{t(label)}</span>
@@ -179,7 +179,7 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
         <p className="text-sm font-medium text-fg-tertiary">{t('Resolve conflict')}</p>
         <p className="text-h3 font-semibold text-fg">{submitted ? t('Block {code} is committed', { code: block }) : t('No conflicts selected in Block {code}', { code: block })}</p>
         <p className="text-base text-fg-secondary">
-          {submitted ? t('Its Allocations and Balance Invoices are created.') : readyToCommit ? t('Every conflict is resolved. Commit the Block to create its Allocations.') : t('Pick a conflict in the list to resolve it.')}
+          {submitted ? t('Its allocations and balance invoices are created.') : readyToCommit ? t('Every conflict is resolved. Commit the block to create its allocations.') : t('Pick a conflict in the list to resolve it.')}
         </p>
         {!submitted && readyToCommit && (
           <Button variant="primary" icon={Check} onClick={onCommit}>
@@ -216,7 +216,7 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
             <Button variant="primary" icon={Check} onClick={() => resolve.run({ optionKey: choice })} disabled={!choice || resolve.pending}>
               Apply
             </Button>
-            <Button tip="Leave this Application without a Bed for now. It can still get one in Round 2." onClick={() => resolve.run({ waitlist: true })} disabled={resolve.pending}>
+            <Button tip="Leave this application without a bed for now. It can still get one in Round 2." onClick={() => resolve.run({ waitlist: true })} disabled={resolve.pending}>
               Move to waitlist
             </Button>
           </div>
@@ -311,7 +311,7 @@ export default function ProposalReview() {
               Export
             </Button>
             {activeBlock && !readOnly && (
-              <Button tip="Fix the proposed Beds of this Block for good. Every conflict must be resolved first." variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
+              <Button tip="Fix the proposed beds of this block for good. Every conflict must be resolved first." variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
                 {submitted ? t('Block {code} committed', { code: tab }) : t('Commit Block {code}', { code: tab })}
               </Button>
             )}
@@ -354,7 +354,7 @@ export default function ProposalReview() {
             </Chip>
           ))}
           <span className="flex-1" />
-          <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Search student or Bed" value={q} onChange={(e) => setQ(e.target.value)} />
+          <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Search student or bed" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       )}
 
@@ -388,7 +388,7 @@ export default function ProposalReview() {
                 <tr>
                   <Th className="w-48">Student</Th>
                   <Th className="w-36">Preference</Th>
-                  <Th className="w-28">Proposed Bed</Th>
+                  <Th className="w-28">Proposed bed</Th>
                   <Th className="w-20" align="right">
                     Room fit
                   </Th>
@@ -463,7 +463,7 @@ export default function ProposalReview() {
         onClose={() => setCommitting(false)}
         onDone={() => {
           setCommitting(false)
-          notify({ title: t('Block {code} committed', { code: tab }), message: t('Allocations, Balance Invoices and notifications were created.') })
+          notify({ title: t('Block {code} committed', { code: tab }), message: t('Allocations, balance invoices and notifications were created.') })
           navigate(`${base}/assignment`)
         }}
       />

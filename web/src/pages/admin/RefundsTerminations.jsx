@@ -35,7 +35,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
         </>
       }
     >
-      <Field label="When">{(id) => <Input id={id} value={form.when} onChange={set('when')} placeholder="e.g. Student cancels during the stay" />}</Field>
+      <Field label="When">{(id) => <Input id={id} value={form.when} onChange={set('when')} placeholder="e.g. student cancels during the stay" />}</Field>
       <div className="flex gap-3">
         <Field label="Refund of paid amount (%)" className="flex-1">
           {(id) => <Input id={id} value={form.refundPercent} onChange={set('refundPercent')} inputMode="numeric" />}
@@ -67,14 +67,14 @@ export default function RefundsTerminations() {
   async function save() {
     if (cfg.dirty && !(await cfg.save())) return
     if (settings.dirty && !(await settings.save())) return
-    notify({ title: 'Refunds, penalties and terminations saved', message: 'Students read the change in an announcement; it is written to the Audit Log.' })
+    notify({ title: 'Refunds, penalties and terminations saved', message: 'Students read the change in an announcement; it is written to the audit log.' })
   }
 
   return (
     <ConfigPage
       form={cfg}
       title="Refunds, penalties and terminations"
-      description="How much is refunded when a stay or an Application ends, and when Utility debt ends a stay."
+      description="How much is refunded when a stay or an application ends, and when utility debt ends a stay."
       actions={
         <>
           <Button

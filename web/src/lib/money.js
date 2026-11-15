@@ -5,14 +5,14 @@ import { t } from '@/i18n'
 export const floorPercent = (rate) => formatPercent(rate == null ? null : Math.floor(rate * 100) / 100, 0)
 
 /**
- * The note under "Collected this Term" on the Manager and Admin homes: the rate, and what is still owed whenever
+ * The note under "Collected this term" on the Manager and Admin homes: the rate, and what is still owed whenever
  * anything is (kpis.outstanding, outstandingInvoices; contract A-63).
  */
 export function collectedNote(k) {
   return k.outstanding > 0
-    ? t('{p} of invoiced · {amount} unpaid ({n} Invoices)', { p: floorPercent(k.collectionRate), amount: formatCompactVnd(k.outstanding), n: formatNumber(k.outstandingInvoices) })
+    ? t('{p} of invoiced · {amount} unpaid ({n} invoices)', { p: floorPercent(k.collectionRate), amount: formatCompactVnd(k.outstanding), n: formatNumber(k.outstandingInvoices) })
     : t('{p} of invoiced', { p: floorPercent(k.collectionRate) })
 }
 
-/** Tooltip of "Collected this Term": the rule every screen uses (backend answer Q1). */
-export const COLLECTED_RULE = 'Paid Invoices of every kind, Utility Deposit included; refunds shown apart'
+/** Tooltip of "Collected this term": the rule every screen uses (backend answer Q1). */
+export const COLLECTED_RULE = 'Paid invoices of every kind, utility deposit included; refunds shown apart'

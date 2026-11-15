@@ -96,7 +96,7 @@ export function RefundAccountCard() {
           <p className="text-sm text-fg-secondary">
             {account.has
               ? `${account.saved.holder} · ${account.saved.number} · ${account.saved.bank}`
-              : t('Not entered yet. A Manager can only transfer a refund to you once you enter it.')}
+              : t('Not entered yet. A manager can only transfer a refund to you once you enter it.')}
           </p>
           {account.has && !account.complete && <p className="text-sm text-warning-fg">{t('Choose your bank from the list again and confirm the account.')}</p>}
         </div>

@@ -8,7 +8,7 @@ import { ProgressBar } from '@/components/ui/Display'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime } from '@/lib/format'
+import { formatDate, formatDateRange, formatDateTime, formatDateTimeRange } from '@/lib/format'
 import { t } from '@/i18n'
 
 // SCR-CFG-01 Registration periods › Terms (spec §6.4): every Term with its stay, registration window and status.
@@ -28,14 +28,14 @@ export default function Terms() {
     <>
       <PageHeader
         title="Terms"
-        description="Build a Term step by step and publish it. Students see a Term, its prices and its rules once it is published."
+        description="Build a term step by step and publish it. Students see a term, its prices and its rules once it is published."
         actions={
           <>
             <Button icon={ClipboardList} to="/admin/term-requests">
-              Requests from Managers
+              Requests from managers
             </Button>
             <Button variant="primary" icon={Plus} to="/admin/terms/new">
-              New Term
+              New term
             </Button>
           </>
         }
@@ -52,7 +52,7 @@ export default function Terms() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={6} emptyIcon={Calendar} emptyTitle="No Terms yet" emptyText="Start with New Term, or build one from a Manager's request." />
+          <TableStatus query={query} colSpan={6} emptyIcon={Calendar} emptyTitle="No terms yet" emptyText="Start with New term, or build one from a manager's request." />
           {items.map((term) => {
             const draft = term.status === 'Draft'
             const steps = Math.min(term.wizardStep ?? 7, 6)
@@ -60,10 +60,10 @@ export default function Terms() {
               <Tr key={term.id} onClick={() => navigate(`/admin/terms/${term.id}`)} className="cursor-pointer">
                 <Td className="font-medium whitespace-nowrap">{term.name}</Td>
                 <Td className="whitespace-nowrap">
-                  {formatDate(term.stayStart)} – {formatDate(term.stayEnd)}
+                  {formatDateRange(term.stayStart, term.stayEnd)}
                 </Td>
                 <Td className="whitespace-nowrap">
-                  {term.registrationOpensAt ? `${formatDateTime(term.registrationOpensAt)} – ${formatDateTime(term.registrationClosesAt)}` : '—'}
+                  {term.registrationOpensAt ? formatDateTimeRange(term.registrationOpensAt, term.registrationClosesAt) : '—'}
                 </Td>
                 <Td>
                   <Tag tone={termTone[term.status] ?? 'neutral'}>{term.status}</Tag>

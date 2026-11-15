@@ -40,7 +40,7 @@ function EditModal({ person, handleOptions, onClose }) {
       onClose={onClose}
       width={560}
       title={t('Edit {name}', { name: person.name })}
-      description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and Blocks are set on Staff accounts.')}`}
+      description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and blocks are set on staff accounts.')}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -88,23 +88,23 @@ export default function BlockStaff() {
     <>
       <PageHeader
         title={block ? t('Staff · Block {code}', { code: block }) : 'Staff'}
-        description="Staff of the Blocks in your scope, the request types they handle and who is on duty. Staff start and end their own shift from the top bar; you can change it here."
+        description="Staff of the blocks in your scope, the request types they handle and who is on duty. Staff start and end their own shift from the top bar; you can change it here."
         actions={
           <>
             <Button icon={Route} to="/manager/routing-rules">
               Routing and timers
             </Button>
             <Button icon={UserPlus} onClick={() => navigate('/manager/staff-accounts?new=1')}>
-              New Staff account
+              New staff account
             </Button>
           </>
         }
       />
       <div className="grid shrink-0 grid-cols-3 gap-4">
         {[
-          { icon: Route, title: 'Who gets new requests', text: 'A new Maintenance or Room-Change Request goes to the person its routing rule names while they are on duty, else to the rule’s fallback.' },
+          { icon: Route, title: 'Who gets new requests', text: 'A new maintenance or room-change request goes to the person its routing rule names while they are on duty, else to the rule’s fallback.' },
           { icon: UserCheck, title: 'Who works on a request', text: 'Only the person in charge changes a request’s status. A colleague who covers takes it over first; the history keeps both names.' },
-          { icon: ShieldCheck, title: 'What duty does not do', text: 'Off duty is not a lock: Staff keep access to their Blocks to look things up. To stop someone working, lock the account on Staff accounts.' },
+          { icon: ShieldCheck, title: 'What duty does not do', text: 'Off duty is not a lock: staff keep access to their blocks to look things up. To stop someone working, lock the account on staff accounts.' },
         ].map((x) => (
           <div key={x.title} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3.5">
             <x.icon size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
@@ -116,8 +116,8 @@ export default function BlockStaff() {
         ))}
       </div>
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Staff" value={formatNumber(s?.total)} note={s?.shared ? t('{n} work in several Blocks', { n: s.shared }) : null} />
-        <KpiTile size="md" label="Open requests per Staff" value={s?.averageOpen != null ? s.averageOpen.toFixed(1) : '—'} note="Average this week" />
+        <KpiTile size="md" label="Staff" value={formatNumber(s?.total)} note={s?.shared ? t('{n} work in several blocks', { n: s.shared }) : null} />
+        <KpiTile size="md" label="Open requests per staff" value={s?.averageOpen != null ? s.averageOpen.toFixed(1) : '—'} note="Average this week" />
         <KpiTile size="md" label="On duty today" value={s ? t('{n} of {total}', { n: s.onDuty, total: s.total }) : '—'} note={s?.deskOnDuty != null ? t('Check-in desk: {n}', { n: s.deskOnDuty }) : null} />
       </div>
       <Table fill>
@@ -135,7 +135,7 @@ export default function BlockStaff() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={Users} emptyTitle="No Staff in these Blocks" />
+          <TableStatus query={query} colSpan={7} emptyIcon={Users} emptyTitle="No staff in these blocks" />
           {(query.data?.items ?? []).map((p) => (
             <Tr key={p.id} className="[&>td]:h-14">
               <Td>

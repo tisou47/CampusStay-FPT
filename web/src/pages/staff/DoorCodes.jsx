@@ -78,7 +78,7 @@ function SetCodeModal({ room, onClose }) {
       {proposed ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-line bg-subtle p-5">
           <CodeText code={proposed} />
-          <span className="text-sm text-fg-tertiary">{t('Shown to you only; the Audit Log records that a code was set.')}</span>
+          <span className="text-sm text-fg-tertiary">{t('Shown to you only; the audit log records that a code was set.')}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-3" role="radiogroup" aria-label={t('New door code')}>
@@ -97,7 +97,7 @@ function SetCodeModal({ room, onClose }) {
 
 function RevealModal({ codes: d, onClose }) {
   return (
-    <Modal open onClose={onClose} title={t('Door code · Room {code}', { code: d.room })} description="This view is written to the Audit Log." footer={<Button onClick={onClose}>Close</Button>}>
+    <Modal open onClose={onClose} title={t('Door code · Room {code}', { code: d.room })} description="This view is written to the audit log." footer={<Button onClick={onClose}>Close</Button>}>
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4 rounded-lg border border-line p-4">
           <span className="text-base text-fg-secondary">{t('Current code')}</span>
@@ -138,7 +138,7 @@ function ImportModal({ onClose }) {
       open
       onClose={onClose}
       title="Import door codes"
-      description="A CSV file with the columns Room and Code (6 digits), one Room per line. Every line is checked first; nothing is saved while a line has a problem."
+      description="A CSV file with the columns room and Code (6 digits), one room per line. Every line is checked first; nothing is saved while a line has a problem."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -218,7 +218,7 @@ export default function DoorCodes() {
     <>
       <PageHeader
         title="Door codes"
-        description="One 6-digit code per Room. Set the new code on the lock, then confirm it here; residents are told without the code."
+        description="One 6-digit code per room. Set the new code on the lock, then confirm it here; residents are told without the code."
         actions={
           <Button icon={Upload} onClick={() => setModal({ type: 'import' })}>
             Import codes
@@ -237,7 +237,7 @@ export default function DoorCodes() {
             { key: 'Not set', label: 'Not set', count: counts?.notSet },
             { key: 'Waiting for confirmation', label: 'Waiting for confirmation', count: counts?.proposed },
             { key: 'Active', label: 'Active', count: counts?.active },
-            { key: '', label: 'All Rooms' },
+            { key: '', label: 'All rooms' },
           ]}
         />
         <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Room code" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -258,7 +258,7 @@ export default function DoorCodes() {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={5} rows={d?.items} emptyIcon={KeyRound} emptyTitle="No Rooms here" emptyText={status === 'Change needed' ? 'No door code needs to change.' : undefined} />
+            <TableStatus query={query} colSpan={5} rows={d?.items} emptyIcon={KeyRound} emptyTitle="No rooms here" emptyText={status === 'Change needed' ? 'No door code needs to change.' : undefined} />
             {(d?.items ?? []).map((r) => (
               <Tr key={r.room} className="[&>td]:h-14">
                 <Td>
@@ -283,7 +283,7 @@ export default function DoorCodes() {
                 <Td>
                   <div className="flex justify-end gap-1">
                     {(r.status === 'Active' || r.proposed) && (
-                      <Button tip="Show the current code. Every view is written to the Audit Log." variant="text" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
+                      <Button tip="Show the current code. Every view is written to the audit log." variant="text" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
                         Show code
                       </Button>
                     )}
@@ -297,7 +297,7 @@ export default function DoorCodes() {
                         </Button>
                       </>
                     ) : (
-                      <Button tip="Generate or type a new 6-digit code for this Room." size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
+                      <Button tip="Generate or type a new 6-digit code for this room." size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
                         Set new code
                       </Button>
                     )}

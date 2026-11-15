@@ -35,11 +35,11 @@ export default function FinancialReport() {
   return (
     <>
       <PageHeader
-        title="Financial Report"
-        description={`${t('Invoiced, collected and refunded amounts (VND)')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
+        title="Financial report"
+        description={`${t('Invoiced, collected and refunded amounts (₫)')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <>
-            <Select aria-label={t('Block')} wrapperClassName="w-35" value={block} onChange={(e) => setBlock(e.target.value)} options={[{ value: '', label: 'All Blocks' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />
+            <Select aria-label={t('Block')} wrapperClassName="w-35" value={block} onChange={(e) => setBlock(e.target.value)} options={[{ value: '', label: 'All blocks' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
               Export .xlsx
             </Button>
@@ -49,7 +49,7 @@ export default function FinancialReport() {
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="Invoiced" value={formatNumber(s?.invoiced)} note="Deposits + balances + room changes + utilities" />
         <KpiTile size="md" label="Collected" value={formatNumber(s?.collected)} note={s ? rate(s) : null} />
-        <KpiTile size="md" label="Outstanding" value={formatNumber(s?.outstanding)} note={s ? t('{n} Invoices, {overdue} overdue', { n: formatNumber(s.outstandingInvoices), overdue: formatNumber(s.overdueInvoices) }) : null} />
+        <KpiTile size="md" label="Outstanding" value={formatNumber(s?.outstanding)} note={s ? t('{n} invoices, {overdue} overdue', { n: formatNumber(s.outstandingInvoices), overdue: formatNumber(s.overdueInvoices) }) : null} />
         <KpiTile size="md" label="Refunded" value={formatNumber(s?.refunded)} note={s ? t('{n} refunds', { n: formatNumber(s.refundCount) }) : null} />
       </div>
       <div className="flex min-h-0 shrink flex-col overflow-auto rounded-lg border border-line bg-surface">
@@ -95,7 +95,7 @@ export default function FinancialReport() {
       </div>
       <p className="flex shrink-0 items-start gap-2 text-sm text-fg-tertiary">
         <Info size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-        {t('Outstanding = invoiced − collected; refunds are reported separately and do not reduce outstanding. Each Block matches the Manager finance view.')}
+        {t('Outstanding = invoiced − collected; refunds are reported separately and do not reduce outstanding. Each block matches the manager finance view.')}
       </p>
     </>
   )

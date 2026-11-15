@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { Radio } from '@/components/ui/Choice'
 import { QueryState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
@@ -75,7 +75,7 @@ function RegisterForm({ day }) {
             checked={slotId === s.id}
             disabled={s.remaining === 0}
             onChange={() => setSlotId(s.id)}
-            label={`${formatDateTime(s.startsAt)} – ${formatTime(s.endsAt)}`}
+            label={formatDateTimeRange(s.startsAt, s.endsAt)}
             description={s.remaining === 0 ? t('Full') : t('{n} places left', { n: s.remaining })}
           />
         ))}
@@ -189,7 +189,7 @@ function MyRegistration({ day, registration }) {
         <div className="flex flex-col gap-0.5">
           <h2 className="text-h3 font-semibold text-fg">{t('Your guests')}</h2>
           <span className="text-sm text-fg-secondary">
-            {t('Time slot {slot}', { slot: `${formatDateTime(registration.slotStartsAt)} – ${formatTime(registration.slotEndsAt)}` })}
+            {t('Time slot {slot}', { slot: formatDateTimeRange(registration.slotStartsAt, registration.slotEndsAt) })}
           </span>
         </div>
         <StatusTag status={registration.status} />
@@ -260,13 +260,13 @@ export default function FamilyDayDetail() {
           <div className="flex flex-col gap-4">
             <Card className="flex flex-col gap-2">
               <p className="text-base text-fg">
-                {t('{date}, {from}–{to}', { date: formatDateTime(d.startsAt), from: formatTime(d.startsAt), to: formatTime(d.endsAt) })}
+                {formatDateTimeRange(d.startsAt, d.endsAt)}
               </p>
               <p className="text-sm text-fg-secondary">
                 {t('Registration: {opens} – {closes}', { opens: formatDateTime(d.registrationOpensAt), closes: formatDateTime(d.registrationClosesAt) })}
               </p>
               {d.description && <p className="whitespace-pre-line text-base text-fg-secondary">{d.description}</p>}
-              <Note>{t('Guests stay in the common area of the Block. They may not enter the Rooms or stay overnight.')}</Note>
+              <Note>{t('Guests stay in the common area of the block. They may not enter the rooms or stay overnight.')}</Note>
             </Card>
             {d.registration && <OverdueGuests day={d} registration={d.registration} />}
             {d.registration && <MyRegistration day={d} registration={d.registration} />}

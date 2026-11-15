@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { CapacityRows, Journey, Panel, WorkList } from '@/components/ui/Work'
-import { formatDate, formatNumber, formatRelative } from '@/lib/format'
+import { formatDate, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
 import { termJourney } from '@/lib/termJourney'
 import { t, tr } from '@/i18n'
@@ -19,28 +19,18 @@ import { t, tr } from '@/i18n'
 // /door-codes (counts), /meter-periods + readings summary, /inspection-runs/current.
 
 function greeting(name) {
-  const hour = new Date().getHours()
-  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const first = name?.trim().split(/\s+/).at(-1)
-  return first ? t(`${part}, {name}`, { name: first }) : t(part)
+  return first ? `${greet()}, ${first}` : greet()
 }
 
 const severityTone = { error: 'error', warning: 'warning', info: 'info', neutral: undefined }
 const attentionIcon = { room: Building, maintenance: Wrench, 'check-out': LogOut, 'meter-period': Gauge }
 const STAFF_KINDS = new Set(Object.keys(attentionIcon))
 
-function span(ms) {
-  const hours = Math.round(ms / 3600000)
-  if (hours < 1) return t('{n} min', { n: Math.max(1, Math.round(ms / 60000)) })
-  if (hours < 48) return t('{n} h', { n: hours })
-  return t('{n} days', { n: Math.round(hours / 24) })
-}
-
 /** How soon a request is due, for its line. */
 function due(r) {
   if (!r.slaDueAt) return t('Reported {when}', { when: formatRelative(r.reportedAt) })
-  const left = new Date(r.slaDueAt) - new Date()
-  return left < 0 ? t('Overdue by {time}', { time: span(-left) }) : t('{time} left', { time: span(left) })
+  return formatTimeLeft(r.slaDueAt)
 }
 
 export default function StaffDashboard() {
@@ -86,7 +76,7 @@ export default function StaffDashboard() {
     meta: `${r.id} · ${t('Nobody is in charge')} · ${due(r)}`,
     badge: r.priority === 'High' ? { label: 'Urgent', tone: 'error' } : null,
     secondary: { label: 'View', to: `/staff/maintenance/${r.id}` },
-    action: { label: 'Take it', onClick: () => take.run(r.id), disabled: take.pending || !me.data },
+    action: { label: 'Assign to me', onClick: () => take.run(r.id), disabled: take.pending || !me.data },
   }))
 
   const ci = checkIns.data
@@ -118,7 +108,7 @@ export default function StaffDashboard() {
       id: 'door-codes',
       icon: KeyRound,
       tone: dc.toChange ? 'warning' : 'info',
-      title: t('{n} Rooms need a door code', { n: formatNumber(dc.toChange + dc.notSet) }),
+      title: t('{n} rooms need a door code', { n: formatNumber(dc.toChange + dc.notSet) }),
       meta: t('{c} to change after a resident left · {s} never set', { c: dc.toChange, s: dc.notSet }),
       action: { label: 'Set codes', to: '/staff/door-codes' },
     },
@@ -126,7 +116,7 @@ export default function StaffDashboard() {
       id: 'meters',
       icon: Gauge,
       tone: 'info',
-      title: t('{n} Rooms without a meter reading for {period}', { n: formatNumber(ms.missing), period: tr(period?.label) }),
+      title: t('{n} rooms without a meter reading for {period}', { n: formatNumber(ms.missing), period: tr(period?.label) }),
       meta: t('{entered} of {due} entered · download the template to fill them in Excel', { entered: ms.entered, due: ms.roomsDue }),
       action: { label: 'Enter readings', to: '/staff/meter-readings' },
     },
@@ -134,7 +124,7 @@ export default function StaffDashboard() {
       id: 'inspection',
       icon: ClipboardCheck,
       tone: run.dueAt && new Date(run.dueAt) < new Date() ? 'error' : 'info',
-      title: t('Inspection {name}: {done} of {n} Rooms', { name: tr(run.scheduleName), done: run.inspected, n: run.rooms }),
+      title: t('Inspection {name}: {done} of {n} rooms', { name: tr(run.scheduleName), done: run.inspected, n: run.rooms }),
       meta: run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null,
       action: { label: 'Continue', to: '/staff/inspections' },
     },
@@ -181,15 +171,15 @@ export default function StaffDashboard() {
       <StaleNotice query={dash} />
 
       {term && (
-        <Panel title={t('Term {name}', { name: term.name })} subtitle="Where the Term stands. The highlighted stage is now." className="shrink-0" bodyClassName="overflow-visible pt-1">
+        <Panel title={t('Term {name}', { name: term.name })} subtitle="Where the term stands. The highlighted stage is now." className="shrink-0" bodyClassName="overflow-visible pt-1">
           <Journey steps={journey} />
           <StageNow role="staff" term={term} />
         </Panel>
       )}
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Wrench} label="In your charge" value={formatNumber(myOpen)} note={late ? t('{n} past the time limit', { n: late }) : me.data ? t('{n} resolved in 7 days', { n: me.data.resolved7d }) : null} noteTone={late ? 'error' : 'secondary'} />
-        <KpiTile icon={Hand} label="Nobody in charge" value={formatNumber(unassigned.data?.total)} note={unassigned.data?.summary?.urgentUnassigned ? t('{n} urgent', { n: unassigned.data.summary.urgentUnassigned }) : 'Requests waiting for someone'} noteTone={unassigned.data?.summary?.urgentUnassigned ? 'error' : 'secondary'} />
+        <KpiTile icon={Wrench} label="In your charge" value={formatNumber(myOpen)} note={late ? t('{n} overdue', { n: late }) : me.data ? t('{n} resolved in 7 days', { n: me.data.resolved7d }) : null} noteTone={late ? 'error' : 'secondary'} />
+        <KpiTile icon={Hand} label="Unassigned" value={formatNumber(unassigned.data?.total)} note={unassigned.data?.summary?.urgentUnassigned ? t('{n} urgent', { n: unassigned.data.summary.urgentUnassigned }) : 'Requests waiting for someone'} noteTone={unassigned.data?.summary?.urgentUnassigned ? 'error' : 'secondary'} />
         <KpiTile
           icon={LogIn}
           label="Check-ins today"
@@ -215,7 +205,7 @@ export default function StaffDashboard() {
                 <WorkList items={myItems} empty={<EmptyBlock icon={Wrench} title="Nothing in your charge">Take a request below, or wait for routing to give you one while you are on duty.</EmptyBlock>} />
                 {freeItems.length > 0 && (
                   <>
-                    <p className="pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">{t('Nobody in charge yet')}</p>
+                    <p className="pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">{t('Unassigned')}</p>
                     <WorkList items={freeItems} />
                   </>
                 )}
@@ -224,13 +214,13 @@ export default function StaffDashboard() {
           </QueryState>
         </Panel>
 
-        <Panel title="Your Block today" subtitle="Desk, door codes, readings, inspections and Rooms">
+        <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms">
           <QueryState query={dash} compact isEmpty={() => false}>
-            {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your Block needs nothing right now" />} />}
+            {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your block needs nothing right now" />} />}
           </QueryState>
         </Panel>
 
-        <Panel title="Beds" subtitle="Taken and held Beds against the Block's capacity">
+        <Panel title="Beds" subtitle="Taken and held beds against the block's capacity">
           <QueryState query={dash} compact isEmpty={(x) => !x.bedsByBlock?.length}>
             {(data) => (
               <CapacityRows
@@ -238,7 +228,7 @@ export default function StaffDashboard() {
                   name: t('Block {code}', { code: b.block }),
                   used: b.proposed,
                   total: b.capacity,
-                  detail: d?.kpis?.roomsOutOfService ? t('{n} Rooms out of service', { n: d.kpis.roomsOutOfService }) : null,
+                  detail: d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null,
                 }))}
               />
             )}

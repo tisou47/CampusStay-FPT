@@ -73,7 +73,7 @@ export function tabGroupFor(role, pathname) {
 export const studentNav = [
   { label: 'Home', to: '/student', end: true },
   { label: 'Registration', to: '/student/applications', match: ['/student/apply', '/student/roommate-invitation', '/student/round-2-offer'] },
-  { label: 'My Room', to: '/student/room' },
+  { label: 'My room', to: '/student/room' },
   { label: 'Payments', to: '/student/invoices' },
   { label: 'Requests', to: '/student/requests' },
   { label: 'Family Day', to: '/student/family-days' },
@@ -82,7 +82,7 @@ export const studentNav = [
 // Phone width: Home, My Room, Payments, Activity (Registration and Requests), as on Android.
 export const studentTabs = [
   { label: 'Home', icon: House, to: '/student', end: true },
-  { label: 'My Room', icon: Bed, to: '/student/room' },
+  { label: 'My room', icon: Bed, to: '/student/room' },
   { label: 'Payments', icon: CreditCard, to: '/student/invoices' },
   {
     label: 'Activity',
@@ -95,7 +95,7 @@ export const studentTabs = [
 export const backOffice = {
   staff: {
     portal: 'Staff portal',
-    roleTitle: 'Block Staff',
+    roleTitle: 'Block staff',
     sections: [
       { items: [{ label: 'Today', icon: LayoutDashboard, to: '/staff', end: true }] },
       {
@@ -116,7 +116,7 @@ export const backOffice = {
       {
         title: 'Rooms',
         items: [
-          { label: 'Rooms and Beds', icon: Building, to: '/staff/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory' },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
           { label: 'Operational moves', icon: ArrowRightLeft, to: '/staff/moves' },
@@ -196,7 +196,7 @@ export const backOffice = {
               { label: 'Collections and refunds', to: '/manager/finance' },
             ],
           },
-          { label: 'Next-Term fees', icon: Banknote, to: '/manager/next-term/fees' },
+          { label: 'Next-term fees', icon: Banknote, to: '/manager/next-term/fees' },
         ],
       },
       {
@@ -220,8 +220,8 @@ export const backOffice = {
       {
         title: 'Inventory',
         items: [
-          { label: 'Rooms and Beds', icon: Building, to: '/manager/inventory' },
-          { label: 'Room Classes by Term', icon: Layers, to: '/manager/room-classes' },
+          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Room tiers by term', icon: Layers, to: '/manager/room-classes' },
           { label: 'Furniture', icon: Package, to: '/manager/furniture' },
           { label: 'Door codes', icon: KeyRound, to: '/manager/door-codes' },
         ],
@@ -265,8 +265,8 @@ export const backOffice = {
       {
         title: 'Prices and fees',
         items: [
-          { label: 'Room Types', icon: Bed, to: '/admin/room-types' },
-          { label: 'Room Classes', icon: Layers, to: '/admin/room-classes' },
+          { label: 'Room types', icon: Bed, to: '/admin/room-types' },
+          { label: 'Room tiers', icon: Layers, to: '/admin/room-classes' },
           { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
           { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
@@ -293,14 +293,14 @@ export const backOffice = {
       {
         title: 'System',
         items: [
-          { label: 'Buildings and Rooms', icon: Building, to: '/admin/buildings' },
+          { label: 'Buildings and rooms', icon: Building, to: '/admin/buildings' },
           { label: 'Furniture types', icon: Package, to: '/admin/furniture-types' },
           { label: 'Users and roles', icon: User, to: '/admin/users' },
           { label: 'Students', icon: GraduationCap, to: '/admin/students' },
           { label: 'Import student list', icon: Upload, to: '/admin/student-import' },
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
-          { label: 'Audit Log', icon: ScrollText, to: '/admin/audit-log' },
+          { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
         ],
       },
       {

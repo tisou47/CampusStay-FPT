@@ -84,9 +84,9 @@ export default function Turnover({ termId }) {
           </p>
           <div className="flex shrink-0 flex-wrap gap-4">
             <KpiTile size="md" icon={LogOut} label="Leavers" value={`${formatNumber(d.counts.checkedOut)} / ${formatNumber(d.counts.leavers)}`} note="Checked out / all" valueTone={d.counts.overdue ? 'error' : undefined} />
-            <KpiTile size="md" icon={ArrowRightLeft} label="Movers" value={formatNumber(d.counts.movers)} note={t('{n} stay in their Room', { n: formatNumber(d.counts.staying) })} />
-            <KpiTile size="md" icon={DoorOpen} label="Arriving" value={formatNumber(d.counts.arriving)} note="New students of the next Term" />
-            <KpiTile size="md" icon={KeyRound} label="Codes to set" value={formatNumber(d.counts.codesToSet)} note={t('{n} Rooms to prepare', { n: formatNumber(d.counts.rooms) })} valueTone={d.counts.codesToSet ? 'warning' : undefined} />
+            <KpiTile size="md" icon={ArrowRightLeft} label="Movers" value={formatNumber(d.counts.movers)} note={t('{n} stay in their room', { n: formatNumber(d.counts.staying) })} />
+            <KpiTile size="md" icon={DoorOpen} label="Arriving" value={formatNumber(d.counts.arriving)} note="New students of the next term" />
+            <KpiTile size="md" icon={KeyRound} label="Codes to set" value={formatNumber(d.counts.codesToSet)} note={t('{n} rooms to prepare', { n: formatNumber(d.counts.rooms) })} valueTone={d.counts.codesToSet ? 'warning' : undefined} />
             <KpiTile size="md" icon={Sofa} label="Furniture to fix" value={formatNumber(d.counts.notMatching)} note="Rooms not matching their class" valueTone={d.counts.notMatching ? 'warning' : undefined} />
           </div>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
@@ -136,14 +136,14 @@ export default function Turnover({ termId }) {
                   <tr>
                     <Th>Student</Th>
                     <Th className="w-48">From → To</Th>
-                    <Th className="w-36">Next-Term fee</Th>
+                    <Th className="w-36">Next-term fee</Th>
                   </tr>
                 </THead>
                 <TBody>
                   {d.movers.length === 0 && (
                     <Tr>
                       <Td colSpan={3} className="text-fg-secondary">
-                        {t('Nobody changes Room.')}
+                        {t('Nobody changes room.')}
                       </Td>
                     </Tr>
                   )}
@@ -174,7 +174,7 @@ export default function Turnover({ termId }) {
                   <Th className="w-28">Leaving</Th>
                   <Th className="w-28">Arriving</Th>
                   <Th className="w-36">Door code</Th>
-                  <Th>Room Class next Term</Th>
+                  <Th>Room tier next term</Th>
                   <Th className="w-56">Meter reading</Th>
                 </tr>
               </THead>
@@ -182,7 +182,7 @@ export default function Turnover({ termId }) {
                 {d.rooms.length === 0 && (
                   <Tr>
                     <Td colSpan={6} className="text-fg-secondary">
-                      {t('No Room changes residents or class.')}
+                      {t('No room changes residents or class.')}
                     </Td>
                   </Tr>
                 )}

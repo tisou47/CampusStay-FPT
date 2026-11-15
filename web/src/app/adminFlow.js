@@ -4,48 +4,50 @@
  * The Overview shows the stages with their state; every screen of the flow shows where it sits (FlowTrail).
  */
 
+import { campusToday } from '@/lib/format'
+
 export const ADMIN_STAGES = [
   {
     key: 'ready',
     label: 'Get the dormitory ready',
-    why: 'Every new Term starts from these values; a gap here stops the desk or payments later.',
+    why: 'Every new term starts from these values; a gap here stops the desk or payments later.',
   },
   {
     key: 'request',
-    label: "Take a Manager's request",
-    why: 'Managers decide dates, Rooms, places and prices; the wizard copies their request so nothing is typed twice.',
+    label: "Take a manager's request",
+    why: 'Managers decide dates, rooms, places and prices; the wizard copies their request so nothing is typed twice.',
   },
   {
     key: 'build',
-    label: 'Build the Term',
-    why: 'Six steps fix what students will be offered: dates, Rooms, prices, rules and the information they read.',
+    label: 'Build the term',
+    why: 'Six steps fix what students will be offered: dates, rooms, prices, rules and the information they read.',
   },
   {
     key: 'publish',
     label: 'Publish',
-    why: 'Publishing fixes prices and rules for the Term and puts its announcement on every student’s board.',
+    why: 'Publishing fixes prices and rules for the term and puts its announcement on every student’s board.',
   },
   {
     key: 'open',
     label: 'Registration opens',
-    why: 'From here Managers run the Term: Applications, assignment and payments.',
+    why: 'From here managers run the term: applications, assignment and payments.',
   },
 ]
 
 /** Screens of the "ready" stage, in the order to go through them. */
 export const READY_SCREENS = [
-  { to: '/admin/buildings', label: 'Buildings and Rooms', why: 'The Blocks, Floors and Rooms whose Beds a Term offers.' },
-  { to: '/admin/room-types', label: 'Room Types', why: 'Beds per Room and the base price every Term starts from.' },
-  { to: '/admin/room-classes', label: 'Room Classes', why: 'Basic, Standard or Premium: the surcharge and the furniture each class needs.' },
+  { to: '/admin/buildings', label: 'Buildings and rooms', why: 'The blocks, floors and rooms whose beds a term offers.' },
+  { to: '/admin/room-types', label: 'Room types', why: 'Beds per room and the base price every term starts from.' },
+  { to: '/admin/room-classes', label: 'Room tiers', why: 'Basic, Standard or Premium: the surcharge and the furniture each class needs.' },
   { to: '/admin/fees', label: 'Deposit', why: 'What a student pays to hold a place, and when it is refunded.' },
-  { to: '/admin/utility', label: 'Utility', why: 'Electricity and water prices and the Utility Deposit.' },
+  { to: '/admin/utility', label: 'Utility', why: 'Electricity and water prices and the utility deposit.' },
   { to: '/admin/eligibility', label: 'Who may apply', why: 'Who can apply and who goes first.' },
   { to: '/admin/matching', label: 'Roommate matching', why: 'How the assignment puts students together.' },
   { to: '/admin/deadlines', label: 'Deadlines and reminders', why: 'How long students have to pay or answer, and when they are reminded.' },
   { to: '/admin/refunds', label: 'Refunds, penalties and terminations', why: 'What is returned or kept when a stay ends early.' },
-  { to: '/admin/stay', label: 'Stay and renewal', why: 'Stay length and how residents continue into the next Term.' },
-  { to: '/admin/inspection-checklists', label: 'Inspection checklists', why: 'What Staff check in a Room at check-in, inspections and check-out.' },
-  { to: '/admin/users', label: 'Users and roles', why: 'Managers and Staff for every Block, so requests reach someone.' },
+  { to: '/admin/stay', label: 'Stay and renewal', why: 'Stay length and how residents continue into the next term.' },
+  { to: '/admin/inspection-checklists', label: 'Inspection checklists', why: 'What staff check in a room at check-in, inspections and check-out.' },
+  { to: '/admin/users', label: 'Users and roles', why: 'Managers and staff for every block, so requests reach someone.' },
 ]
 
 /** Where a path sits in the flow, or null when it is not part of it. */
@@ -69,7 +71,7 @@ export function stageStates({ checks = [], requestCounts = {}, terms = [], now =
   const openRequests = (requestCounts.Submitted ?? 0) + (requestCounts['In progress'] ?? 0) + (requestCounts['Needs changes'] ?? 0)
   const newest = (list) => [...list].sort((a, b) => String(b.stayStart).localeCompare(String(a.stayStart)))[0]
   const draft = newest(terms.filter((x) => x.status === 'Draft'))
-  const published = newest(terms.filter((x) => x.status !== 'Draft' && new Date(x.stayEnd) >= now))
+  const published = newest(terms.filter((x) => x.status !== 'Draft' && x.stayEnd >= campusToday(now)))
   const draftSteps = draft ? Math.min(draft.wizardStep ?? 0, 6) : 0
   const opened = published?.registrationOpensAt && new Date(published.registrationOpensAt) <= now
 
@@ -93,7 +95,7 @@ export function stageStates({ checks = [], requestCounts = {}, terms = [], now =
       detail: openRequests
         ? { text: '{n} open', vars: { n: openRequests } }
         : cycle === 'empty'
-          ? { text: 'Waiting for a Manager · you can also start without one' }
+          ? { text: 'Waiting for a manager · you can also start without one' }
           : { text: 'Built from a request or by hand' },
       action: { to: '/admin/term-requests', label: openRequests ? 'Open the requests' : 'See the requests' },
     },
@@ -102,16 +104,16 @@ export function stageStates({ checks = [], requestCounts = {}, terms = [], now =
         ? { text: '{name}: {n} of {total} steps', vars: { name: draft.name, n: draftSteps, total: 6 } }
         : cycle === 'published'
           ? { text: '{name} is built', vars: { name: published.name } }
-          : { text: 'No Term in progress' },
-      action: draft ? { to: `/admin/terms/${draft.id}`, label: 'Continue the wizard' } : { to: '/admin/terms/new', label: 'Start a new Term' },
+          : { text: 'No term in progress' },
+      action: draft ? { to: `/admin/terms/${draft.id}`, label: 'Continue the wizard' } : { to: '/admin/terms/new', label: 'Start a new term' },
     },
     publish: {
       detail: cycle === 'published' ? { text: '{name} is published', vars: { name: published.name } } : draft && draftSteps >= 6 ? { text: 'Ready to check and publish' } : { text: 'After the six steps' },
-      action: draft ? { to: `/admin/terms/${draft.id}?step=review`, label: 'Check and publish' } : { to: '/admin/terms', label: 'See the Terms' },
+      action: draft ? { to: `/admin/terms/${draft.id}?step=review`, label: 'Check and publish' } : { to: '/admin/terms', label: 'See the terms' },
     },
     open: {
       detail: cycle === 'published' && published.registrationOpensAt ? { text: opened ? 'Opened {date}' : 'Opens {date}', vars: { date: published.registrationOpensAt }, date: true } : { text: 'After publishing' },
-      action: { to: '/admin/terms', label: 'See the Terms' },
+      action: { to: '/admin/terms', label: 'See the terms' },
     },
   }
   return ADMIN_STAGES.map((stage) => ({ ...stage, state: state[stage.key], ...facts[stage.key] }))

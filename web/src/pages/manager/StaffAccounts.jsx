@@ -50,7 +50,7 @@ function StaffModal({ person, blocks, onClose }) {
         notify(
           isNew
             ? { title: t('Invitation sent'), message: t('{email} sets a password from the email link (valid 72 hours).', { email: form.email.trim() }) }
-            : { title: t('{name} updated', { name: form.name.trim() }), message: 'The change is written to the Audit Log.' },
+            : { title: t('{name} updated', { name: form.name.trim() }), message: 'The change is written to the audit log.' },
         )
         onClose()
       },
@@ -62,8 +62,8 @@ function StaffModal({ person, blocks, onClose }) {
       open
       onClose={onClose}
       width={560}
-      title={isNew ? 'New Staff account' : t('Edit {name}', { name: person.name })}
-      description={isNew ? 'The person gets an email to set a password. What they handle is set on Staff and workload.' : undefined}
+      title={isNew ? 'New staff account' : t('Edit {name}', { name: person.name })}
+      description={isNew ? 'The person gets an email to set a password. What they handle is set on staff and workload.' : undefined}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -142,7 +142,7 @@ export default function StaffAccounts() {
   const request = { q: search, block, status, page, pageSize }
   const query = useQuery(['staff-accounts', request], ({ signal }) => api.staffAccounts.list(request, { signal }))
   const d = query.data
-  // Block staff › "New Staff account" opens the form here (?new=1).
+  // Block staff › "New staff account" opens the form here (?new=1).
   useEffect(() => {
     if (params.get('new') && d) {
       setEditing({})
@@ -158,10 +158,10 @@ export default function StaffAccounts() {
     <>
       <PageHeader
         title="Staff accounts"
-        description="Staff of the dormitory and the Blocks they work in. Managers and Admins are managed by the Admin."
+        description="Staff of the dormitory and the blocks they work in. Managers and admins are managed by the admin."
         actions={
           <Button variant="primary" icon={Plus} disabled={!d} onClick={() => setEditing({})}>
-            New Staff account
+            New staff account
           </Button>
         }
       />
@@ -185,7 +185,7 @@ export default function StaffAccounts() {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={6} emptyIcon={UserCog} emptyTitle="No Staff accounts match these filters" />
+            <TableStatus query={query} colSpan={6} emptyIcon={UserCog} emptyTitle="No staff accounts match these filters" />
             {(d?.items ?? []).map((p) => (
               <Tr key={p.id} className="[&>td]:h-14">
                 <Td>

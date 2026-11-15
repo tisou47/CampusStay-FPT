@@ -14,7 +14,7 @@ import { Drawer, Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, LoadingState, ErrorState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
-import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateRange, formatDateTime, formatVnd } from '@/lib/format'
 import { DifferencesTable, ExcludedRoomsField, MILESTONES, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
 import { t, tr } from '@/i18n'
 import { DateInput } from '@/components/ui/DatePicker'
@@ -136,7 +136,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
       onClose={onClose}
       width={880}
       title={request?.id ? t('Change {code}', { code: request.code }) : 'Request a registration period'}
-      description="The Admin and the other Managers are told. The Admin builds the Term from it and tells you every value that changes."
+      description="The admin and the other managers are told. The admin builds the term from it and tells you every value that changes."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -148,7 +148,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
     >
       {save.error && !Object.keys(save.error.fields ?? {}).length && <Alert type="error" title="Could not send the request">{save.error.message}</Alert>}
       {request?.decisionNote && request.status === 'Needs changes' && (
-        <Alert type="warning" title="The Admin asked for changes">{request.decisionNote}</Alert>
+        <Alert type="warning" title="The admin asked for changes">{request.decisionNote}</Alert>
       )}
       <div className="grid grid-cols-3 gap-4">
         <Field label="Term" required error={fields.termName} helper="e.g. Spring 2027">
@@ -166,20 +166,20 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
         onChange={(timeline) => set('timeline', timeline)}
         errors={fields}
         showRenewal
-        renewalNote="Fill these in when residents of the Term before continue into this one; leave them empty otherwise."
+        renewalNote="Fill these in when residents of the term before continue into this one; leave them empty otherwise."
       />
       <section className="flex flex-col gap-3">
-        <h3 className="text-base font-medium text-fg-secondary">{t('What the Term offers')}</h3>
+        <h3 className="text-base font-medium text-fg-secondary">{t('What the term offers')}</h3>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {blocks.map((b) => (
             <Checkbox key={b} label={t('Block {code}', { code: b })} checked={form.blocks.has(b)} onChange={() => toggle('blocks', b)} />
           ))}
         </div>
-        <p className="text-sm text-fg-tertiary">{t('No Block ticked: every Block.')}</p>
+        <p className="text-sm text-fg-tertiary">{t('No block ticked: every block.')}</p>
         {fieldError('blocks')}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-fg-secondary">{t('Room Types offered')}</span>
+            <span className="text-sm font-medium text-fg-secondary">{t('Room types offered')}</span>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {types.map((x) => (
                 <Checkbox key={x.id} label={tr(x.name)} checked={form.roomTypes.has(x.id)} onChange={() => toggle('roomTypes', x.id)} />
@@ -188,7 +188,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
             {fieldError('roomTypes')}
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-fg-secondary">{t('Room Classes offered')}</span>
+            <span className="text-sm font-medium text-fg-secondary">{t('Room tiers offered')}</span>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {classes.map((x) => (
                 <Checkbox key={x.id} label={tr(x.name)} checked={form.roomClasses.has(x.id)} onChange={() => toggle('roomClasses', x.id)} />
@@ -197,7 +197,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
             {fieldError('roomClasses')}
           </div>
         </div>
-        <ExcludedRoomsField label="Rooms to leave out" helper="One column of Room codes in an Excel or CSV file; the assignment and Round 2 never use these Rooms." codes={form.excludedRooms} onChange={(v) => set('excludedRooms', v)} error={fields.excludedRooms} />
+        <ExcludedRoomsField label="Rooms to leave out" helper="One column of room codes in an Excel or CSV file; the assignment and Round 2 never use these rooms." codes={form.excludedRooms} onChange={(v) => set('excludedRooms', v)} error={fields.excludedRooms} />
       </section>
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -211,11 +211,11 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
             Add line
           </Button>
         </div>
-        {form.places.length === 0 && <p className="text-sm text-fg-tertiary">{t('Optional: the places you want per Room Type, Room Class and gender.')}</p>}
+        {form.places.length === 0 && <p className="text-sm text-fg-tertiary">{t('Optional: the places you want per room type, room tier and gender.')}</p>}
         {form.places.map((p, i) => (
           <div key={i} className="flex items-end gap-3">
-            <Select wrapperClassName="flex-1" aria-label={t('Room Type')} value={p.roomTypeId} options={offeredTypes.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomTypeId: e.target.value } : x)))} />
-            <Select wrapperClassName="flex-1" aria-label={t('Room Class')} value={p.roomClassId} options={offeredClasses.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomClassId: e.target.value } : x)))} />
+            <Select wrapperClassName="flex-1" aria-label={t('Room type')} value={p.roomTypeId} options={offeredTypes.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomTypeId: e.target.value } : x)))} />
+            <Select wrapperClassName="flex-1" aria-label={t('Room tier')} value={p.roomClassId} options={offeredClasses.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, roomClassId: e.target.value } : x)))} />
             <Select wrapperClassName="w-32" aria-label={t('Gender')} value={p.gender} options={GENDERS} onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, gender: e.target.value } : x)))} />
             <div className="w-28 shrink-0">
               <Input aria-label={t('Places')} inputMode="numeric" value={p.places} placeholder="Places" onChange={(e) => set('places', form.places.map((x, j) => (j === i ? { ...x, places: digits(e.target.value) } : x)))} />
@@ -228,12 +228,12 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <h3 className="text-base font-medium text-fg-secondary">{t('Proposed prices')}</h3>
-          <p className="text-sm text-fg-tertiary">{t('A base price per Bed for each Room Type and a surcharge for each Room Class; the price per Bed is base × (1 + surcharge), rounded up to {step}. Filled with today’s values.', { step: formatVnd(defaults.priceStep) })}</p>
+          <p className="text-sm text-fg-tertiary">{t('A base price per bed for each room type and a surcharge for each room tier; the price per bed is base × (1 + surcharge), rounded up to {step}. Filled with today’s values.', { step: formatVnd(defaults.priceStep) })}</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             {offeredTypes.map((x) => (
-              <Field key={x.id} label={t('Base price · {name} (VND)', { name: tr(x.name) })} helper={Number(form.basePrices[x.id]) !== x.basePrice ? t('Today {amount}', { amount: formatVnd(x.basePrice) }) : undefined}>
+              <Field key={x.id} label={t('Base price · {name} (₫)', { name: tr(x.name) })} helper={Number(form.basePrices[x.id]) !== x.basePrice ? t('Today {amount}', { amount: formatVnd(x.basePrice) }) : undefined}>
                 {(id) => <Input id={id} inputMode="numeric" value={form.basePrices[x.id]} onChange={(e) => set('basePrices', { ...form.basePrices, [x.id]: digits(e.target.value) })} />}
               </Field>
             ))}
@@ -252,7 +252,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
           <Table>
             <THead>
               <tr>
-                <Th>Price per Bed</Th>
+                <Th>Price per bed</Th>
                 {offeredClasses.map((c) => (
                   <Th key={c.id} align="right">
                     {`${tr(c.name)} (+${form.surcharges[c.id] || 0}%)`}
@@ -282,7 +282,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
           <Field label="Deposit (% of the price)" error={fields.depositPercent} helper={t('Today {n}%', { n: defaults.depositPercent })}>
             {(id) => <Input id={id} inputMode="decimal" value={form.depositPercent} onChange={(e) => set('depositPercent', decimal(e.target.value))} />}
           </Field>
-          <Field label="Utility Deposit (VND)" error={fields.utilityDeposit} helper={t('Today {amount}', { amount: formatVnd(defaults.utilityDeposit) })}>
+          <Field label="Utility deposit (₫)" error={fields.utilityDeposit} helper={t('Today {amount}', { amount: formatVnd(defaults.utilityDeposit) })}>
             {(id) => <Input id={id} inputMode="numeric" value={form.utilityDeposit} onChange={(e) => set('utilityDeposit', digits(e.target.value))} />}
           </Field>
           <Field label="Beds kept for new students (%)" error={fields.reservedNewPercent} helper={t('Today {n}%', { n: defaults.reservedNewPercent })}>
@@ -292,7 +292,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="text-base font-medium text-fg-secondary">{t('Information for students')}</h3>
-        <Field label="House rules" error={fields.houseRules} helper="Filled with the latest Term’s rules; students read them before they apply.">
+        <Field label="House rules" error={fields.houseRules} helper="Filled with the latest term’s rules; students read them before they apply.">
           {(id) => <Textarea id={id} rows={4} value={form.houseRules} onChange={(e) => set('houseRules', e.target.value)} />}
         </Field>
         <div className="flex items-center justify-between">
@@ -310,7 +310,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
         ))}
         {fieldError('faq')}
       </section>
-      <Field label="Notes for the Admin" error={fields.notes}>
+      <Field label="Notes for the admin" error={fields.notes}>
         {(id) => <Textarea id={id} rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />}
       </Field>
     </Drawer>
@@ -324,7 +324,7 @@ function DecisionModal({ request, status, onClose }) {
   const decide = useMutation(() => api.termRequests.decide(request.id, { status, note: note.trim() }), {
     invalidates: ['term-requests', 'term-request'],
     onSuccess: () => {
-      notify({ title: t('{code}: {status}', { code: request.code, status: t(status) }), message: 'The Manager who sent it is told.' })
+      notify({ title: t('{code}: {status}', { code: request.code, status: t(status) }), message: 'The manager who sent it is told.' })
       onClose()
     },
     onError: () => {},
@@ -392,7 +392,7 @@ function PricesCard({ r }) {
   if (!r.prices?.length) {
     return (
       <Card className="flex flex-col gap-2">
-        <h3 className="text-h3 font-semibold text-fg">{t('Prices per Bed')}</h3>
+        <h3 className="text-h3 font-semibold text-fg">{t('Prices per bed')}</h3>
         <p className="text-sm text-fg-tertiary">{t('No prices proposed.')}</p>
       </Card>
     )
@@ -404,12 +404,12 @@ function PricesCard({ r }) {
   const surcharge = (cls) => r.surcharges?.find((c) => c.roomClassId === cls)
   return (
     <Card className="flex flex-col gap-2">
-      <h3 className="text-h3 font-semibold text-fg">{t('Prices per Bed')}</h3>
-      {r.basePrices?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Price per Bed = base price × (1 + Room Class surcharge), rounded up. Today’s values in grey.')}</p>}
+      <h3 className="text-h3 font-semibold text-fg">{t('Prices per bed')}</h3>
+      {r.basePrices?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Price per bed = base price × (1 + room tier surcharge), rounded up. Today’s values in grey.')}</p>}
       <Table>
         <THead>
           <tr>
-            <Th>Room Type</Th>
+            <Th>Room type</Th>
             {classes.map(([id, name]) => {
               const c = surcharge(id)
               return (
@@ -469,7 +469,7 @@ function RequestDetail({ id, onEdit }) {
   })
   const progress = useMutation(() => api.termRequests.decide(id, { status: 'In progress' }), {
     invalidates: ['term-request', 'term-requests'],
-    onSuccess: () => notify({ title: 'Taken in progress', message: 'The Manager is told that you are working on it.' }),
+    onSuccess: () => notify({ title: 'Taken in progress', message: 'The manager is told that you are working on it.' }),
     onError: () => {},
   })
   const build = useMutation(() => api.admin.terms.createDraft({ requestId: id }), {
@@ -513,7 +513,7 @@ function RequestDetail({ id, onEdit }) {
           )}
           {r.actions.build && (
             <Button variant="primary" icon={Hammer} onClick={() => (r.term ? navigate(`/admin/terms/${r.term.id}`) : build.run())} disabled={build.pending}>
-              {r.term ? t('Open the Term') : t('Build the Term from this request')}
+              {r.term ? t('Open the term') : t('Build the term from this request')}
             </Button>
           )}
         </div>
@@ -526,14 +526,14 @@ function RequestDetail({ id, onEdit }) {
       )}
       {r.term && (
         <Alert type={r.term.status === 'Published' ? 'success' : 'info'} title={r.term.status === 'Published' ? t('{name} is published', { name: r.term.name }) : t('Draft built: {name}', { name: r.term.name })}>
-          {r.term.status === 'Published' ? t('The Term opened with the values below; differences from this request are listed with their reasons.') : t('The Admin is building the Term; differences from this request appear below.')}
+          {r.term.status === 'Published' ? t('The term opened with the values below; differences from this request are listed with their reasons.') : t('The admin is building the term; differences from this request appear below.')}
         </Alert>
       )}
       <DescriptionList
         columns={2}
         items={[
-          ['Stay', `${formatDate(r.stayStart)} – ${formatDate(r.stayEnd)}`],
-          ['Blocks', r.blocks?.length ? r.blocks.map((b) => t('Block {code}', { code: b })).join(', ') : t('Every Block')],
+          ['Stay', formatDateRange(r.stayStart, r.stayEnd)],
+          ['Blocks', r.blocks?.length ? r.blocks.map((b) => t('Block {code}', { code: b })).join(', ') : t('Every block')],
           ['Rooms left out', r.excludedRooms?.length ? r.excludedRooms.join(', ') : '—'],
           ['Notes', r.notes || '—'],
         ]}
@@ -574,7 +574,7 @@ function RequestDetail({ id, onEdit }) {
       <PricesCard r={r} />
       {r.term && (
         <Card className="flex flex-col gap-2">
-          <h3 className="text-h3 font-semibold text-fg">{t('What the Admin changed')}</h3>
+          <h3 className="text-h3 font-semibold text-fg">{t('What the admin changed')}</h3>
           <DifferencesTable differences={r.differences} />
         </Card>
       )}
@@ -628,7 +628,7 @@ export default function TermRequests() {
     <>
       <PageHeader
         title="Registration-period requests"
-        description={manager ? 'Ask the Admin to open a Term with its dates, Rooms, places and prices; follow every answer here.' : 'Requests from Managers to open a Term. Build the Term from one in the wizard.'}
+        description={manager ? 'Ask the admin to open a term with its dates, rooms, places and prices; follow every answer here.' : 'Requests from managers to open a term. Build the term from one in the wizard.'}
         actions={
           manager && (
             <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
@@ -660,7 +660,7 @@ export default function TermRequests() {
                   <Td>
                     <TwoLine
                       primary={`${r.code} · ${r.termName}`}
-                      secondary={`${formatDate(r.stayStart)} – ${formatDate(r.stayEnd)} · ${r.requestedBy ?? ''}${r.comments ? ` · ${t(r.comments === 1 ? '{n} comment' : '{n} comments', { n: r.comments })}` : ''}`}
+                      secondary={`${formatDateRange(r.stayStart, r.stayEnd)} · ${r.requestedBy ?? ''}${r.comments ? ` · ${t(r.comments === 1 ? '{n} comment' : '{n} comments', { n: r.comments })}` : ''}`}
                     />
                   </Td>
                   <Td>
@@ -680,7 +680,7 @@ export default function TermRequests() {
           request={editing.id ? editing : null}
           onClose={() => setEditing(null)}
           onSaved={(id) => {
-            notify({ title: editing.id ? t('Request updated') : t('Request sent'), message: 'The Admin and the other Managers are told.' })
+            notify({ title: editing.id ? t('Request updated') : t('Request sent'), message: 'The admin and the other managers are told.' })
             setEditing(null)
             setParams({ id })
           }}

@@ -46,7 +46,7 @@ export function MeterRows({ rows, max, labelWidth = 'w-24', trackWidth = 'w-45',
         <li key={r.label} className="flex items-center gap-3">
           <span className={cx('shrink-0 text-base text-fg-secondary', labelWidth)}>{tx(r.label)}</span>
           <Meter value={r.value} max={top} tone={r.tone} label={r.label} className={cx('shrink-0', trackWidth)} />
-          <span className="text-base font-medium text-fg tabular">{r.value.toLocaleString('en-US')}</span>
+          <span className="text-base font-medium text-fg tabular">{formatNumber(r.value)}</span>
         </li>
       ))}
     </ul>

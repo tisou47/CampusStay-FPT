@@ -44,7 +44,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
     {
       invalidates: ['admin-room-types', 'admin-room-classes', 'catalog'],
       onSuccess: () => {
-        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'New prices apply to Terms that have not opened registration yet.' })
+        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'New prices apply to terms that have not opened registration yet.' })
         onClose()
       },
       onError: () => {},
@@ -54,7 +54,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
     <Drawer
       open
       onClose={onClose}
-      title={isNew ? 'New Room Type' : t('Edit Room Type · {name}', { name: type.name })}
+      title={isNew ? 'New room type' : t('Edit room type · {name}', { name: type.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -67,16 +67,16 @@ function EditDrawer({ type, roomClasses, onClose }) {
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. 8-bed" />}</Field>
       {isNew ? (
-        <Field label="Beds per Room" helper="Set once, when the type is created.">
+        <Field label="Beds per room" helper="Set once, when the type is created.">
           {(id) => <Input id={id} value={form.beds} onChange={set('beds')} inputMode="numeric" />}
         </Field>
       ) : (
-        <p className="text-base text-fg-secondary">{t('{n} Beds per Room (set when the type was created).', { n: type.beds })}</p>
+        <p className="text-base text-fg-secondary">{t('{n} beds per room (set when the type was created).', { n: type.beds })}</p>
       )}
-      <Field label="Base price per Bed / Term (VND)">
+      <Field label="Base price per bed / term (₫)">
         {(id) => <Input id={id} value={form.basePrice} onChange={set('basePrice')} onBlur={() => setForm((f) => ({ ...f, basePrice: f.basePrice ? formatNumber(parse(f.basePrice)) : '' }))} inputMode="numeric" />}
       </Field>
-      <Field label="Roommate selection" helper="Only Room Types with 2 Beds can allow mutual invite.">
+      <Field label="Roommate selection" helper="Only room types with 2 beds can allow mutual invite.">
         {(id) => (
           <Select
             id={id}
@@ -92,7 +92,7 @@ function EditDrawer({ type, roomClasses, onClose }) {
       <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}</Field>
       {roomClasses.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-subtle p-4 text-base">
-          <p className="font-medium text-fg">{t('Term price per Bed with Room Class')}</p>
+          <p className="font-medium text-fg">{t('Term price per bed with room tier')}</p>
           {roomClasses.map((c) => (
             <div key={c.id} className="flex justify-between">
               <span className="text-fg-secondary">
@@ -117,20 +117,20 @@ export default function RoomTypes() {
   return (
     <>
       <PageHeader
-        title="Room Types"
-        description="Number of Beds per Room and the base price per Bed for one Term. Room Class surcharges are added on top."
+        title="Room types"
+        description="Number of beds per room and the base price per bed for one term. Room tier surcharges are added on top."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setParams({ edit: 'new' })}>
-            New Room Type
+            New room type
           </Button>
         }
       />
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-40">Room Type</Th>
+            <Th className="w-40">Room type</Th>
             <Th className="w-50" align="right">
-              Base price per Bed / Term
+              Base price per bed / term
             </Th>
             <Th className="w-50">Roommate selection</Th>
             <Th className="w-24" align="right">
@@ -146,7 +146,7 @@ export default function RoomTypes() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={Bed} emptyTitle="No Room Types yet" />
+          <TableStatus query={query} colSpan={7} emptyIcon={Bed} emptyTitle="No room types yet" />
           {items.map((t) => (
             <Tr key={t.id}>
               <Td className="font-medium">{tr(t.name)}</Td>
@@ -176,12 +176,12 @@ export default function RoomTypes() {
         <p className="flex shrink-0 gap-2 text-base">
           <span className="text-fg-secondary">{t('Total capacity')}</span>
           <span className="font-medium text-fg">
-            {t('{rooms} Rooms · {beds} Beds', { rooms: formatNumber(query.data.totals.rooms), beds: formatNumber(query.data.totals.beds) })}
+            {t('{rooms} rooms · {beds} beds', { rooms: formatNumber(query.data.totals.rooms), beds: formatNumber(query.data.totals.beds) })}
           </span>
         </p>
       )}
-      <Alert title="Price changes apply to future Terms" className="shrink-0">
-        A Term that has opened registration keeps the prices it opened with, so issued Invoices never change.
+      <Alert title="Price changes apply to future terms" className="shrink-0">
+        A term that has opened registration keeps the prices it opened with, so issued invoices never change.
       </Alert>
       {editing && <EditDrawer key={editId} type={editing} roomClasses={query.data?.roomClasses ?? []} onClose={() => setParams({})} />}
     </>

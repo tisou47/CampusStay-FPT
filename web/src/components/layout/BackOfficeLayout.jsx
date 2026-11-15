@@ -17,6 +17,7 @@ import { SectionTabs } from './SectionTabs'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
+import { campusToday } from '@/lib/format'
 
 // Back-office shell (Change Specification v2 §11): the FPT-orange band across the top carries the logo, the Term
 // and Block scope, search (pages and records), language and notifications; below it a 248 px menu grouped by the
@@ -108,11 +109,11 @@ function Sidebar({ role }) {
 
 /** Where a Term stands today, next to its name in the picker (GET /terms: current, registrationOpen, stay dates). */
 function termWhen(term) {
-  const now = new Date()
+  const today = campusToday()
   if (term.current) return 'Current'
   if (term.registrationOpen) return 'Registration open'
-  if (term.stayStart && new Date(term.stayStart) > now) return 'Next'
-  if (term.stayEnd && new Date(term.stayEnd) < now) return 'Ended'
+  if (term.stayStart && term.stayStart > today) return 'Next'
+  if (term.stayEnd && term.stayEnd < today) return 'Ended'
   return null
 }
 
@@ -262,7 +263,7 @@ function QuickSearch({ role }) {
           type="button"
           onClick={toggle}
           aria-keyshortcuts="/"
-          title={t('Search pages, students, Rooms, codes…')}
+          title={t('Search pages, students, rooms, codes…')}
           className="flex h-9 w-72 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-surface hover:text-fg-secondary"
           {...props}
         >
@@ -279,7 +280,7 @@ function QuickSearch({ role }) {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('Student code or name, Room, MR-…, INV-…')}
+              placeholder={t('Student code or name, room, MR-…, INV-…')}
               aria-label={t('Search')}
               className="h-8 w-full rounded-md px-2 text-base outline-none placeholder:text-fg-tertiary"
             />
@@ -374,7 +375,7 @@ function BackOfficeTopBar({ role }) {
   const { terms, term, setTermId, blocks, block, setBlock } = useSession()
   const termOptions = terms.map((x) => ({ value: x.id, label: t('Term: {name}', { name: x.name }), note: termWhen(x) }))
   const blockOptions = [
-    ...(blocks.length > 1 ? [{ value: null, label: role === 'manager' ? t('All Blocks') : t('Blocks: {list}', { list: blocks.join(', ') }) }] : []),
+    ...(blocks.length > 1 ? [{ value: null, label: role === 'manager' ? t('All blocks') : t('Blocks: {list}', { list: blocks.join(', ') }) }] : []),
     ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) })),
   ]
   const fixedBlock = role === 'staff' && blocks.length === 1
@@ -387,7 +388,7 @@ function BackOfficeTopBar({ role }) {
         <SelectorButton icon={Calendar} label={t('Term')} value={term?.id} options={termOptions} onChange={setTermId} disabled={!termOptions.length} />
         {fixedBlock ? (
           <span
-            title={t('Your Block. A Manager sets the Blocks of your account.')}
+            title={t('Your block. A manager sets the blocks of your account.')}
             className="flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
           >
             <Building size={16} aria-hidden="true" className="text-fg-brand" />

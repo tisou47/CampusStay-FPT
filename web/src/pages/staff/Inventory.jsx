@@ -43,8 +43,8 @@ const bedLabel = {
   unpaid: 'Assigned – unpaid',
   paid: 'Paid – waiting for the door code',
   resident: 'Resident',
-  leaving: 'Leaving at the end of the Term',
-  next_term: 'Moving in next Term',
+  leaving: 'Leaving at the end of the term',
+  next_term: 'Moving in next term',
   available: 'Available',
   oos: 'Out of service',
 }
@@ -112,23 +112,23 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
   const { notify, notifyError } = useToast()
   const back = useMutation(() => api.inventory.backInService(room.code), {
     invalidates: ['inventory', 'dashboard'],
-    onSuccess: () => notify({ title: t('Room {code} is back in service', { code: room.code }), message: t('{n} Beds can be allocated again.', { n: room.capacity }) }),
-    onError: (e) => notifyError(e, 'Could not update the Room'),
+    onSuccess: () => notify({ title: t('Room {code} is back in service', { code: room.code }), message: t('{n} beds can be allocated again.', { n: room.capacity }) }),
+    onError: (e) => notifyError(e, 'Could not update the room'),
   })
   const allocated = allocatedOf(room)
   const free = room.beds.filter((b) => b.state === 'available').length
   const oos = room.outOfService
   const rows = oos
     ? [
-        ['Room Type', tr(room.roomTypeName)],
-        ['Room Class', tr(room.roomClassName)],
+        ['Room type', tr(room.roomTypeName)],
+        ['Room tier', tr(room.roomClassName)],
         ['Since', formatDateTime(oos.since)],
         ['Reason', tr(oos.reason)],
         ['Set by', oos.by],
       ]
     : [
-        ['Room Type', tr(room.roomTypeName)],
-        ['Room Class', tr(room.roomClassName)],
+        ['Room type', tr(room.roomTypeName)],
+        ['Room tier', tr(room.roomClassName)],
         ['Location', t('Block {code} · Floor {n}', { code: room.block, n: room.floor })],
         ['Allocated', `${allocated} / ${room.capacity}`],
         ['Residents', `${room.beds.filter((b) => b.state === 'resident' || b.state === 'leaving').length} / ${room.capacity}`],
@@ -138,7 +138,7 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
     <Card className="flex min-h-0 w-90 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Room {code} details', { code: room.code })}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-h2 font-semibold text-fg">{t('Room {code}', { code: room.code })}</h2>
-        {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{t(free === 1 ? '{n} free Bed' : '{n} free Beds', { n: free })}</Tag>}
+        {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{t(free === 1 ? '{n} free bed' : '{n} free beds', { n: free })}</Tag>}
       </div>
       <dl className="flex flex-col gap-3.5">
         {rows.map(([label, value]) => (
@@ -176,7 +176,7 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
       </div>
       {!oos && allocated > 0 && (
         <Note>
-          {t('Move the {n} residents before you set this Room out of service.', { n: allocated })}
+          {t('Move the {n} residents before you set this room out of service.', { n: allocated })}
         </Note>
       )}
       <RoomExtras room={room} termId={termId} />
@@ -196,7 +196,7 @@ function RoomExtras({ room, termId }) {
     <>
       <dl className="flex flex-col gap-3.5 border-t border-line pt-3.5">
         {d.next && (
-          <Row label="Next Term">
+          <Row label="Next term">
             {t('{term}: {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}
           </Row>
         )}
@@ -222,7 +222,7 @@ function RoomExtras({ room, termId }) {
             <StatusTag status={f.status} className="ml-auto" />
           </li>
         ))}
-        {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this Room.')}</li>}
+        {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</li>}
       </ul>
       <div className="flex flex-wrap gap-2">
         <Button variant="primary" onClick={() => navigate(`${base}/rooms/${room.code}`)}>
@@ -248,7 +248,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
   const save = useMutation(() => api.inventory.setOutOfService(room.code, { reason, note: note.trim() || undefined }), {
     invalidates: ['inventory', 'dashboard'],
     onSuccess: () => {
-      notify({ type: 'warning', title: t('Room {code} is out of service', { code: room.code }), message: 'Its Beds are skipped by the next assignment run.' })
+      notify({ type: 'warning', title: t('Room {code} is out of service', { code: room.code }), message: 'Its beds are skipped by the next assignment run.' })
       onClose()
     },
     onError: () => {},
@@ -258,7 +258,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
       open
       onClose={onClose}
       title={t('Set Room {code} out of service', { code: room.code })}
-      description="The assignment engine skips this Room and its Beds until it is back in service."
+      description="The assignment engine skips this room and its beds until it is back in service."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -268,11 +268,11 @@ function OutOfServiceModal({ room, reasons, onClose }) {
         </>
       }
     >
-      {save.error && <Alert type="error" title="Could not update the Room">{save.error.message}</Alert>}
+      {save.error && <Alert type="error" title="Could not update the room">{save.error.message}</Alert>}
       <Field label="Reason" required>
         {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={reasons} />}
       </Field>
-      <Field label="Note" helper="Shown to Staff and Managers.">
+      <Field label="Note" helper="Shown to staff and managers.">
         {(id) => <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What happened and what is needed to fix it" />}
       </Field>
     </Modal>
@@ -316,8 +316,8 @@ export default function Inventory() {
   return (
     <>
       <PageHeader
-        title="Rooms and Beds"
-        description="Rooms and Beds in your scope. Click a Room for details."
+        title="Rooms and beds"
+        description="Rooms and beds in your scope. Click a room for details."
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!block || exporting.pending}>
             Export
@@ -366,10 +366,10 @@ export default function Inventory() {
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <div className="flex shrink-0 items-center justify-between gap-4 whitespace-nowrap">
-            <h2 className="text-h3 font-semibold text-fg">{block ? [t('Block {code}', { code: block }), floor != null && t('Floor {n}', { n: floor }), tr(floorQuery.data?.roomClassName)].filter(Boolean).join(' · ') : t('Rooms and Beds')}</h2>
+            <h2 className="text-h3 font-semibold text-fg">{block ? [t('Block {code}', { code: block }), floor != null && t('Floor {n}', { n: floor }), tr(floorQuery.data?.roomClassName)].filter(Boolean).join(' · ') : t('Rooms and beds')}</h2>
             {summary && (
               <p className="text-sm text-fg-secondary">
-                {t('{beds} Beds · {allocated} allocated · {available} available', { beds: formatNumber(summary.beds), allocated: formatNumber(summary.allocated), available: formatNumber(summary.available) })}
+                {t('{beds} beds · {allocated} allocated · {available} available', { beds: formatNumber(summary.beds), allocated: formatNumber(summary.allocated), available: formatNumber(summary.available) })}
                 {summary.outOfService > 0 && ` · ${t('{n} out of service', { n: formatNumber(summary.outOfService) })}`}
               </p>
             )}
@@ -378,7 +378,7 @@ export default function Inventory() {
             <QueryState
               query={block ? floorQuery : structure}
               isEmpty={(d) => (block ? !d.rooms?.length : !d.blocks?.length)}
-              empty={<EmptyBlock icon={Building} title={block ? 'No Rooms on this floor' : 'No Blocks in your scope'} />}
+              empty={<EmptyBlock icon={Building} title={block ? 'No rooms on this floor' : 'No blocks in your scope'} />}
             >
               {() => (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">

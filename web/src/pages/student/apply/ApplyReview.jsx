@@ -89,7 +89,7 @@ export default function ApplyReview() {
       }
     >
       {submit.error && (
-        <Alert type="error" title="Could not submit the Application" className="shrink-0">
+        <Alert type="error" title="Could not submit the application" className="shrink-0">
           {submit.error.message}
         </Alert>
       )}
@@ -100,14 +100,14 @@ export default function ApplyReview() {
       )}
 
       <Card className="flex shrink-0 flex-col gap-3">
-        <SectionHead title="Term and Room preference" editTo={stepPaths.room} />
+        <SectionHead title="Term and room preference" editTo={stepPaths.room} />
         <Facts
           items={[
             ['Term', term?.name ?? '—'],
-            ['Room Type', roomType?.name ?? '—'],
-            ['Room Class', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
+            ['Room type', roomType?.name ?? '—'],
+            ['Room tier', classLabel(helpers.roomClass(draft.roomClassId)) ?? '—'],
             ['Roommate', roommateLabel(draft, roomType) ?? '—'],
-            ['Stay length', t((draft.stayTerms ?? 1) === 1 ? '{n} Term' : '{n} Terms', { n: draft.stayTerms ?? 1 })],
+            ['Stay length', t((draft.stayTerms ?? 1) === 1 ? '{n} term' : '{n} terms', { n: draft.stayTerms ?? 1 })],
           ]}
         />
         {usePrefs && (
@@ -142,15 +142,15 @@ export default function ApplyReview() {
           )}
         </div>
         <p className="text-base text-fg-secondary">
-          {t('Your Application reaches the dormitory office only after the deposit is paid. Unpaid Applications expire at the deadline.')}
+          {t('Your application reaches the dormitory office only after the deposit is paid. Unpaid applications expire at the deadline.')}
         </p>
         <Checkbox label="I confirm the information above is correct." checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
       </section>
 
-      <Alert type="warning" title="Room Type and Room Class are locked after submit" className="shrink-0">
+      <Alert type="warning" title="Room type and room tier are locked after submit" className="shrink-0">
         {term?.registrationClosesAt
-          ? t('To change them, cancel this Application and apply again before {date}.', { date: formatDateTime(term.registrationClosesAt) })
-          : t('To change them, cancel this Application and apply again while registration is open.')}
+          ? t('To change them, cancel this application and apply again before {date}.', { date: formatDateTime(term.registrationClosesAt) })
+          : t('To change them, cancel this application and apply again while registration is open.')}
       </Alert>
     </WizardLayout>
   )

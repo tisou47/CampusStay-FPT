@@ -120,12 +120,12 @@ export default function MyInvoices() {
           className="shrink-0"
         >
           {summary.warning.level === 'Final warning'
-            ? t('You owe {debt} for Utility. Pay everything before {date}, or your stay will be terminated.', { debt: formatVnd(summary.warning.debt), date: formatDate(summary.warning.terminateOn) })
-            : t('You owe {debt} for Utility. Pay it now: unpaid Utility can end your stay.', { debt: formatVnd(summary.warning.debt) })}
+            ? t('You owe {debt} for utility. Pay everything before {date}, or your stay will be terminated.', { debt: formatVnd(summary.warning.debt), date: formatDate(summary.warning.terminateOn) })
+            : t('You owe {debt} for utility. Pay it now: unpaid utility can end your stay.', { debt: formatVnd(summary.warning.debt) })}
         </Alert>
       )}
       {summary?.awaitingCount > 0 && (
-        <Alert type="info" title="Transfers waiting for a Manager" className="shrink-0">
+        <Alert type="info" title="Transfers waiting for a manager" className="shrink-0">
           {t('{n} of your transfers wait for confirmation. Their deadlines are paused.', { n: summary.awaitingCount })}
         </Alert>
       )}
@@ -133,9 +133,9 @@ export default function MyInvoices() {
         <StatTile
           icon={Banknote}
           label="Outstanding"
-          tip="Total of your Invoices that are not paid yet."
+          tip="Total of your invoices that are not paid yet."
           value={summary ? formatVnd(summary.outstanding) : '—'}
-          note={summary?.dueCount ? t(summary.dueCount === 1 ? '{n} Invoice due · next {date}' : '{n} Invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) }) : t('Nothing to pay right now')}
+          note={summary?.dueCount ? t(summary.dueCount === 1 ? '{n} invoice due · next {date}' : '{n} invoices due · next {date}', { n: summary.dueCount, date: formatDate(summary.nextDueAt) }) : t('Nothing to pay right now')}
         />
         <StatTile
           icon={CreditCard}
@@ -147,10 +147,10 @@ export default function MyInvoices() {
         <StatTile
           icon={Calendar}
           className="max-lg:hidden"
-          label="Next Invoice"
-          tip="The next Invoice the dormitory will issue to you, and its amount."
+          label="Next invoice"
+          tip="The next invoice the dormitory will issue to you, and its amount."
           value={summary?.upcoming ? formatVnd(summary.upcoming.amount) : '—'}
-          note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming Invoice this Term')}
+          note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming invoice this term')}
         />
       </div>
 
@@ -159,7 +159,7 @@ export default function MyInvoices() {
       {/* Phone: MOB-BIL-01 Invoices (Figma 56:203) — one row per Invoice instead of the table. */}
       <section className="flex flex-col gap-3 lg:hidden">
         <h2 className="text-sm font-medium text-fg-tertiary">{t('Invoices')}</h2>
-        <QueryState query={query} compact empty={<EmptyBlock icon={ReceiptText} title="No invoices">The deposit Invoice is issued when you submit an Application.</EmptyBlock>}>
+        <QueryState query={query} compact empty={<EmptyBlock icon={ReceiptText} title="No invoices">The deposit invoice is issued when you submit an application.</EmptyBlock>}>
           {(data) => (
             <StatusList>
               {data.items.map((inv) => (
@@ -194,7 +194,7 @@ export default function MyInvoices() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={ReceiptText} emptyTitle="No invoices" emptyText="The deposit Invoice is issued when you submit an Application." />
+          <TableStatus query={query} colSpan={7} emptyIcon={ReceiptText} emptyTitle="No invoices" emptyText="The deposit invoice is issued when you submit an application." />
           {items.map((inv) => (
             <Tr key={inv.id} onClick={() => navigate(invoicePath(inv))}>
               <Td className="font-medium text-fg-brand">{inv.id}</Td>

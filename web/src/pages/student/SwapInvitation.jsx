@@ -23,7 +23,7 @@ function RoomBox({ label, room }) {
         {t('{room} · Bed {bed}', { room: room.room, bed: room.bed })}
       </p>
       <p className="text-base text-fg-secondary">{[tr(room.roomTypeName), tr(room.roomClassName), room.block && t('Block {code}', { code: room.block })].filter(Boolean).join(' · ')}</p>
-      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} next Term', { price: formatVnd(room.termPrice) })}</p>}
+      {room.termPrice != null && <p className="text-sm text-fg-tertiary">{t('{price} next term', { price: formatVnd(room.termPrice) })}</p>}
     </div>
   )
 }
@@ -36,8 +36,8 @@ function Invitation({ inv }) {
     onSuccess: (_, accept) => {
       notify(
         accept
-          ? { title: 'Swap accepted', message: inv.crossBlock ? 'A Manager reviews the cross-Block swap.' : 'Staff review the swap and set the move date.' }
-          : { type: 'info', title: 'Swap declined', message: 'The other Student only sees that the invitation was not accepted.' },
+          ? { title: 'Swap accepted', message: inv.crossBlock ? 'A manager reviews the cross-block swap.' : 'Staff review the swap and set the move date.' }
+          : { type: 'info', title: 'Swap declined', message: 'The other student only sees that the invitation was not accepted.' },
       )
       navigate('/student/requests?tab=swaps')
     },
@@ -56,7 +56,7 @@ function Invitation({ inv }) {
       )}
       <Card padding="lg" className="flex shrink-0 flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">{t('A Student wants to swap next-Term Beds with you')}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('A student wants to swap next-term beds with you')}</h2>
           <p className="text-base text-fg-secondary">{t('Their name and code stay private until the swap is approved.')}</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
@@ -64,7 +64,7 @@ function Invitation({ inv }) {
           <RoomBox label="You get" room={inv.get} />
         </div>
         <p className="text-sm text-fg-tertiary">
-          {t('No price difference: each of you pays the next-Term fee of the Bed you get. After approval you move at the start of {term}.', { term: inv.termName ?? t('the next Term') })}
+          {t('No price difference: each of you pays the next-term fee of the bed you get. After approval you move at the start of {term}.', { term: inv.termName ?? t('the next term') })}
         </p>
       </Card>
       {open && (
@@ -72,7 +72,7 @@ function Invitation({ inv }) {
           <Button size="lg" onClick={() => respond.run(false)} disabled={respond.pending}>
             Decline
           </Button>
-          <Button tip="You and the other student exchange Beds for next Term, after approval. No price difference is charged." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={respond.pending}>
+          <Button tip="You and the other student exchange beds for next term, after approval. No price difference is charged." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={respond.pending}>
             Accept swap
           </Button>
         </div>
@@ -89,7 +89,7 @@ export default function SwapInvitation() {
       {query.data === undefined && query.loading ? (
         <LoadingState />
       ) : query.error?.status === 404 ? (
-        <EmptyBlock icon={Repeat} title="Invitation not found" action={<Button to="/student/requests">Back to Requests</Button>} />
+        <EmptyBlock icon={Repeat} title="Invitation not found" action={<Button to="/student/requests">Back to requests</Button>} />
       ) : query.data === undefined ? (
         <ErrorState error={query.error} onRetry={query.reload} />
       ) : (

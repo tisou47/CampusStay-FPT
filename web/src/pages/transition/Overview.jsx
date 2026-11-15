@@ -34,14 +34,14 @@ export default function Overview({ termId }) {
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             {!o.opened && (
               <Alert type="info" title="The requests window has not opened yet">
-                {t('At M2 every resident of {previous} gets a Bed kept for {term}: continuing, or awaiting extension in the last Term of their stay.', { previous: o.previousTerm.name, term: o.term.name })}
+                {t('At M2 every resident of {previous} gets a bed kept for {term}: continuing, or awaiting extension in the last term of their stay.', { previous: o.previousTerm.name, term: o.term.name })}
               </Alert>
             )}
             <div className="flex shrink-0 flex-wrap gap-4">
-              <KpiTile size="md" icon={UserCheck} label="Continuing" value={formatNumber(o.counts.continuing)} note="Bed kept for the next Term" />
-              <KpiTile size="md" icon={UserMinus} label="Awaiting extension" value={formatNumber(o.counts.awaitingExtension)} note="Last Term of the stay" valueTone={o.counts.awaitingExtension ? 'warning' : undefined} />
+              <KpiTile size="md" icon={UserCheck} label="Continuing" value={formatNumber(o.counts.continuing)} note="Bed kept for the next term" />
+              <KpiTile size="md" icon={UserMinus} label="Awaiting extension" value={formatNumber(o.counts.awaitingExtension)} note="Last term of the stay" valueTone={o.counts.awaitingExtension ? 'warning' : undefined} />
               <KpiTile size="md" icon={ClipboardList} label="Open requests" value={formatNumber(open)} note={o.filing ? 'Students can still file' : 'Filing closed'} valueTone={open ? 'warning' : undefined} />
-              <KpiTile size="md" icon={CreditCard} label="Next-Term fees" value={`${formatNumber(o.counts.feesPaid)} / ${formatNumber(o.counts.feesIssued)}`} note="Paid / issued" />
+              <KpiTile size="md" icon={CreditCard} label="Next-term fees" value={`${formatNumber(o.counts.feesPaid)} / ${formatNumber(o.counts.feesIssued)}`} note="Paid / issued" />
               {manager && (
                 <KpiTile size="md" icon={FileCheck} label="Reconciliation" value={formatNumber(o.reconciliation.openItems)} note={o.reconciliation.runs ? t('Open items · {n} files', { n: o.reconciliation.runs }) : 'No enrolled list yet'} valueTone={!o.reconciliation.runs || o.reconciliation.openItems ? 'warning' : undefined} />
               )}
@@ -63,7 +63,7 @@ export default function Overview({ termId }) {
                 </ul>
               </Card>
               <Card padding="lg" className="flex flex-1 flex-col gap-3">
-                <h2 className="text-h3 font-semibold text-fg">{t('Open next-Term requests')}</h2>
+                <h2 className="text-h3 font-semibold text-fg">{t('Open next-term requests')}</h2>
                 <ul className="flex flex-col gap-2">
                   {kinds.map(([key, label]) => (
                     <li key={key} className="flex justify-between text-base">

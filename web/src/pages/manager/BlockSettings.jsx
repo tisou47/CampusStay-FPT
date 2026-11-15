@@ -35,7 +35,7 @@ function Form({ saved, block, picker }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const save = useMutation(() => api.blockSettings.save({ block, ...form }), {
     invalidates: ['block-settings'],
-    onSuccess: () => notify({ title: 'House rules saved', message: 'Residents see the new hours and house rules in My Room on web and Android.' }),
+    onSuccess: () => notify({ title: 'House rules saved', message: 'Residents see the new hours and house rules in My room on web and Android.' }),
     onError: () => {},
   })
   const withCurrent = (list, value) => (value && !list.includes(value) ? [value, ...list] : list)
@@ -44,7 +44,7 @@ function Form({ saved, block, picker }) {
     <>
       <PageHeader
         title={block ? t('House rules · Block {code}', { code: block }) : 'Block house rules'}
-        description="Visiting hours, quiet hours and the rules residents of this Block follow, inside the limits set by Admin."
+        description="Visiting hours, quiet hours and the rules residents of this block follow, inside the limits set by admin."
         actions={
           <>
             {picker}
@@ -78,12 +78,12 @@ function Form({ saved, block, picker }) {
           {(id) => <Textarea id={id} rows={8} value={form.houseRules} onChange={set('houseRules')} className="min-h-0 flex-1" />}
         </Field>
         <p className="text-sm text-fg-tertiary">
-          {t('Shown in My Room (web and Android).')}
+          {t('Shown in My room (web and Android).')}
           {saved.editedAt ? ` ${saved.editedBy ? t('Last edited {date} by {name}.', { date: formatDate(saved.editedAt), name: saved.editedBy }) : t('Last edited {date}.', { date: formatDate(saved.editedAt) })}` : ''}
         </p>
       </Card>
       <Alert title="What you cannot change here" className="shrink-0">
-        Prices, Room Types, Room Classes, refund rules and check-in windows are set by Admin for all Blocks.
+        Prices, room types, room tiers, refund rules and check-in windows are set by admin for all blocks.
       </Alert>
     </>
   )

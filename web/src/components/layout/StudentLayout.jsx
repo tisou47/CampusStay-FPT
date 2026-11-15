@@ -123,7 +123,7 @@ function VerificationBanner() {
     <div className="shrink-0 border-b border-orange-200 bg-warning-bg">
       <StudentContainer className="flex items-center gap-2 py-2 text-sm text-warning-fg">
         <ShieldAlert size={16} aria-hidden="true" className="shrink-0" />
-        <span className="min-w-0 flex-1">{t('Your account is waiting for a Manager to verify it. You can look around; you can apply once it is verified.')}</span>
+        <span className="min-w-0 flex-1">{t('Your account is waiting for a manager to verify it. You can look around; you can apply once it is verified.')}</span>
         <Link to="/student/verification" className="shrink-0 font-semibold underline">
           {t('See my details')}
         </Link>

@@ -16,7 +16,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { typeName } from '@/lib/furniture'
-import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { DeskModeSwitch } from './CheckInDesk'
 import { t, tr } from '@/i18n'
 
@@ -62,7 +62,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
     setProblems(res.problems ?? [])
     notify({
       type: res.problems?.length ? 'warning' : 'success',
-      title: t('Readings saved for {n} Rooms', { n: formatNumber(res.rooms) }),
+      title: t('Readings saved for {n} rooms', { n: formatNumber(res.rooms) }),
       message: res.problems?.length ? t('{n} lines were not saved: see the list.', { n: formatNumber(res.problems.length) }) : t('{n} leavers will see them at check-out.', { n: formatNumber(res.students) }),
     })
   }
@@ -90,13 +90,13 @@ function RoomReadingsModal({ open, onClose, scope }) {
       open={open}
       onClose={onClose}
       width={720}
-      title="Final meter readings by Room"
-      description="Fill in each Room once: the reading goes to the check-out of every leaver in that Room. Rooms left empty are filled in later."
+      title="Final meter readings by room"
+      description="Fill in each room once: the reading goes to the check-out of every leaver in that room. Rooms left empty are filled in later."
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
           <Button variant="primary" icon={Save} disabled={!changed.length || save.pending} onClick={() => save.run()}>
-            {t('Save {n} Rooms', { n: formatNumber(changed.length) })}
+            {t('Save {n} rooms', { n: formatNumber(changed.length) })}
           </Button>
         </>
       }
@@ -143,7 +143,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
             </tr>
           </THead>
           <TBody>
-            <TableStatus query={query} colSpan={4} emptyIcon={LogOut} emptyTitle="No Room has leavers waiting" />
+            <TableStatus query={query} colSpan={4} emptyIcon={LogOut} emptyTitle="No room has leavers waiting" />
             {(query.data?.items ?? []).map((r) => (
               <Tr key={r.room}>
                 <Td className="font-medium">{r.room}</Td>
@@ -204,7 +204,7 @@ function CheckOutPanel({ d }) {
           return
         }
         const r = res?.refund ?? refund
-        notify({ title: t('{name} checked out', { name: d.name }), message: r >= 0 ? t('Refund of {amount} VND sent to a Manager for approval.', { amount: formatNumber(r) }) : t('{amount} VND was invoiced to the student.', { amount: formatNumber(-r) }) })
+        notify({ title: t('{name} checked out', { name: d.name }), message: r >= 0 ? t('Refund of {amount} sent to a manager for approval.', { amount: formatVnd(r) }) : t('{amount} was invoiced to the student.', { amount: formatVnd(-r) }) })
       },
       onError: (e) => notifyError(e, 'Could not save the check-out'),
     },
@@ -237,7 +237,7 @@ function CheckOutPanel({ d }) {
       <Checkbox label="Damage found (adds a charge)" checked={damaged || (done && (s.damage ?? 0) > 0)} disabled={done} onChange={(e) => setDamaged(e.target.checked)} />
       {(damaged || done) && (d.furniture ?? []).length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-fg-secondary">{t('Damage per item (VND): deducted from the Utility Deposit; anything above it is invoiced. A damaged item becomes Broken.')}</p>
+          <p className="text-sm text-fg-secondary">{t('Damage per item (₫): deducted from the utility deposit; anything above it is invoiced. A damaged item becomes Broken.')}</p>
           {d.furniture.map((f) => {
             const v = damages[f.itemId] ?? { amount: '', note: '' }
             return (
@@ -254,35 +254,35 @@ function CheckOutPanel({ d }) {
       )}
       <Divider />
 
-      <p className="text-base font-medium text-fg">{t('3. Utility Deposit settlement')}</p>
+      <p className="text-base font-medium text-fg">{t('3. Utility deposit settlement')}</p>
       <dl className="flex flex-col gap-3">
-        <Row label="Utility Deposit held">{formatNumber(s.held)}</Row>
+        <Row label="Utility deposit held">{formatNumber(s.held)}</Row>
         <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatNumber(s.share)}</Row>
-        <Row label="Unpaid utility Invoices">− {formatNumber(s.unpaid)}</Row>
+        <Row label="Unpaid utility invoices">− {formatNumber(s.unpaid)}</Row>
         {damageAmount > 0 && <Row label="Damage charge">− {formatNumber(damageAmount)}</Row>}
-        <Row label={refund >= 0 ? 'Refund to Student' : 'Student still owes'} strong tone={refund >= 0 ? 'text-fg-brand' : 'text-error-fg'}>
+        <Row label={refund >= 0 ? 'Refund to student' : 'Student still owes'} strong tone={refund >= 0 ? 'text-fg-brand' : 'text-error-fg'}>
           {formatNumber(Math.abs(refund))}
         </Row>
       </dl>
 
       {done ? (
         <Alert type="success" title={t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}>
-          {d.refundStatus === 'Approved' ? t('A Manager approved the refund.') : t('The refund is waiting for a Manager’s approval.')} {t('The Bed is free again.')}
+          {d.refundStatus === 'Approved' ? t('A manager approved the refund.') : t('The refund is waiting for a manager’s approval.')} {t('The bed is free again.')}
         </Alert>
       ) : (
         <>
-          <Alert title={refund >= 0 ? 'Refund goes to the Manager for approval' : 'The balance is invoiced to the student'}>
-            The share is estimated from the last reading; the final amounts are calculated when you confirm. The Bed becomes available once check-out is confirmed.
+          <Alert title={refund >= 0 ? 'Refund goes to the manager for approval' : 'The balance is invoiced to the student'}>
+            The share is estimated from the last reading; the final amounts are calculated when you confirm. The bed becomes available once check-out is confirmed.
           </Alert>
           <div className="flex justify-end gap-2">
             <Button tip="Keep what you entered and finish the check-out later." onClick={() => submit.run(true)} disabled={submit.pending}>
               Save draft
             </Button>
-            <Button tip="Ends the student’s stay and frees the Bed. A meter reading is taken." variant="primary" disabled={!key || submit.pending} onClick={() => submit.run(false)}>
+            <Button tip="Ends the student’s stay and frees the bed. A meter reading is taken." variant="primary" disabled={!key || submit.pending} onClick={() => submit.run(false)}>
               Confirm check-out
             </Button>
           </div>
-          {!key && <p className="text-right text-sm text-error-fg">{t('Collect the Room key before you confirm.')}</p>}
+          {!key && <p className="text-right text-sm text-error-fg">{t('Collect the room key before you confirm.')}</p>}
         </>
       )}
     </Card>
@@ -322,7 +322,7 @@ export default function CheckOutDesk() {
           list.data
             ? [
                 list.data.date && formatDate(list.data.date),
-                t('{n} Allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
+                t('{n} allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
                 list.data.checkOutBy && t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }),
               ]
                 .filter(Boolean)
@@ -332,7 +332,7 @@ export default function CheckOutDesk() {
         actions={
           <>
             <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>
-              Readings by Room
+              Readings by room
             </Button>
             <DeskModeSwitch mode="out" />
           </>
@@ -341,7 +341,7 @@ export default function CheckOutDesk() {
       <RoomReadingsModal open={readingsOpen} onClose={() => setReadingsOpen(false)} scope={scope} />
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search Student code or Room" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search student code or room" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-60"
           aria-label={t('Reason')}
@@ -356,7 +356,7 @@ export default function CheckOutDesk() {
 
       {list.data?.overdueCount > 0 && (
         <Alert type="error" title={t('{n} leavers are past the check-out date', { n: formatNumber(list.data.overdueCount) })} className="shrink-0">
-          They still hold their Bed. Managers see them on their dashboard.
+          They still hold their bed. Managers see them on their dashboard.
         </Alert>
       )}
 
@@ -366,13 +366,13 @@ export default function CheckOutDesk() {
             <THead>
               <tr>
                 <Th className="w-48">Student</Th>
-                <Th>Room / Bed</Th>
+                <Th>Room / bed</Th>
                 <Th>Reason</Th>
                 <Th className="w-38">Status</Th>
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={list} colSpan={4} emptyIcon={LogOut} emptyTitle="No Allocations match these filters" />
+              <TableStatus query={list} colSpan={4} emptyIcon={LogOut} emptyTitle="No allocations match these filters" />
               {items.map((r) => (
                 <Tr key={r.allocationId} selected={r.allocationId === allocationId} onClick={() => setSelectedId(r.allocationId)} className="[&>td]:h-15.5">
                   <Td>

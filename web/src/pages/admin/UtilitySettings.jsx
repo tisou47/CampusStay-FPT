@@ -28,7 +28,7 @@ function Head({ title, children }) {
 export default function UtilitySettings() {
   const { notify } = useToast()
   const cfg = useConfigForm('utility', api.admin.utility, {
-    onSaved: () => notify({ title: 'Utility settings saved', message: 'Meter Readings use the new values from the next billing period.' }),
+    onSaved: () => notify({ title: 'Utility settings saved', message: 'Meter readings use the new values from the next billing period.' }),
   })
   const { draft } = cfg
   const o = draft?.options ?? {}
@@ -59,7 +59,7 @@ export default function UtilitySettings() {
     <ConfigPage
       form={cfg}
       title="Utility"
-      description="Rules for monthly utility Invoices and the Utility Deposit. Changes apply from the next billing period."
+      description="Rules for monthly utility invoices and the utility deposit. Changes apply from the next billing period."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
@@ -74,10 +74,10 @@ export default function UtilitySettings() {
       {draft && (
         <div className="flex min-h-0 items-stretch gap-4">
           <Card className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-            <Head title="Utility billing">One meter per Room. Each segment is split equally among its residents.</Head>
+            <Head title="Utility billing">One meter per room. Each segment is split equally among its residents.</Head>
             <div className="grid grid-cols-2 gap-4">
-              {amount('priceKwh', 'Electricity price (VND/kWh)')}
-              {amount('priceM3', 'Water price (VND/m³)')}
+              {amount('priceKwh', 'Electricity price (₫/kWh)')}
+              {amount('priceM3', 'Water price (₫/m³)')}
             </div>
             <div className="grid grid-cols-2 gap-4">
               {select('readingDay', 'Monthly reading day', o.readingDays)}
@@ -89,17 +89,17 @@ export default function UtilitySettings() {
             </div>
           </Card>
           <Card className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-            <Head title="Utility Deposit">A guarantee held until check-out. It never pays monthly Invoices.</Head>
+            <Head title="Utility deposit">A guarantee held until check-out. It never pays monthly invoices.</Head>
             <div className="grid grid-cols-2 gap-4">
-              {amount('estimateMonthly', 'Estimated monthly utility per Student')}
+              {amount('estimateMonthly', 'Estimated monthly utility per student')}
               {amount('monthsHeld', 'Months held (minimum 2)', 2)}
             </div>
             <div className="flex items-start justify-between text-base">
-              <span className="text-fg-secondary">{t('Utility Deposit per Student')}</span>
+              <span className="text-fg-secondary">{t('Utility deposit per student')}</span>
               <span className="font-medium text-fg-brand tabular">{invalid ? '—' : formatVnd(toNumber(draft.estimateMonthly) * toNumber(draft.monthsHeld))}</span>
             </div>
             <Checkbox
-              label="Block room changes and swaps while a utility Invoice is overdue"
+              label="Block room changes and swaps while a utility invoice is overdue"
               checked={Boolean(draft.blockChangesWhenOverdue)}
               onChange={(e) => cfg.setValue('blockChangesWhenOverdue', e.target.checked)}
             />

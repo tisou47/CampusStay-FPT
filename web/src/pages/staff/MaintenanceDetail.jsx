@@ -13,7 +13,7 @@ import { DateInput, HourSelect } from '@/components/ui/DatePicker'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDateTime } from '@/lib/format'
+import { campusToday, formatDateTime } from '@/lib/format'
 import { typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
@@ -124,7 +124,7 @@ function RequestDetail({ r, staff, priorities }) {
     ...options,
     onSuccess: () => {
       setMessage('')
-      notify({ title: internal ? 'Internal note added' : 'Update posted', message: internal ? 'Only Staff and Managers can see it.' : t('{name} was notified.', { name: r.reporter?.name ?? t('The reporter') }) })
+      notify({ title: internal ? 'Internal note added' : 'Update posted', message: internal ? 'Only staff and managers can see it.' : t('{name} was notified.', { name: r.reporter?.name ?? t('The reporter') }) })
     },
     onError: (e) => notifyError(e, 'Could not post the update'),
   })
@@ -236,7 +236,7 @@ function RequestDetail({ r, staff, priorities }) {
               rows={2}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={internal || !studentRequest ? 'Write an internal note for Staff…' : 'Write an update for the student…'}
+              placeholder={internal || !studentRequest ? 'Write an internal note for staff…' : 'Write an update for the student…'}
               className="shrink-0"
             />
             <div className="flex shrink-0 items-center justify-between gap-4">
@@ -275,13 +275,13 @@ function RequestDetail({ r, staff, priorities }) {
                 {t('Room {code}', { code: r.room })}
               </p>
               <Button variant="text" to={`${base}/inventory?room=${r.room}`}>
-                Open Room
+                Open room
               </Button>
             </div>
             <dl className="flex flex-col gap-2.5">
               <Row label="Residents">{r.roomSummary ? t('{n} of {total}', { n: r.roomSummary.residents, total: r.roomSummary.capacity }) : '—'}</Row>
               <Row label="Other open requests">{r.roomSummary?.otherOpen ?? '—'}</Row>
-              <Row label="Past requests (this Term)">{r.roomSummary?.pastThisTerm ?? '—'}</Row>
+              <Row label="Past requests (this term)">{r.roomSummary?.pastThisTerm ?? '—'}</Row>
             </dl>
           </Card>
         </div>
@@ -304,8 +304,7 @@ function VisitWindowField({ value, onChange }) {
     const end = b && b > start ? b : `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:00`
     onChange(`${dd}/${mo}/${y} ${start} – ${end}`)
   }
-  const today = new Date()
-  const min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const min = campusToday()
   return (
     <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
       {(id) => (
@@ -336,7 +335,7 @@ export default function MaintenanceDetail() {
         <LoadingState />
       ) : query.error?.status === 404 ? (
         <EmptyBlock icon={SearchX} title={t('{id} was not found', { id })} action={<Button to={`${base}/maintenance`}>Back to queue</Button>}>
-          The request may belong to another Block.
+          The request may belong to another block.
         </EmptyBlock>
       ) : (
         <ErrorState error={query.error} onRetry={query.reload} />

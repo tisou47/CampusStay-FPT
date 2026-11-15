@@ -40,7 +40,7 @@ export default function SwapBoard() {
   })
   const request = useMutation((post) => api.swaps.requestPost(post.id), {
     invalidates: ['swap-board', 'requests'],
-    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'If they request you back, a Manager approves the cross-Block swap.' : 'If they request you back, Staff approve the swap.' }),
+    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'If they request you back, a manager approves the cross-block swap.' : 'If they request you back, staff approve the swap.' }),
     onError: (e) => notifyError(e, 'Could not request this swap'),
   })
 
@@ -57,9 +57,9 @@ export default function SwapBoard() {
             <SwapModePicker value="board" />
             <div className="flex items-end gap-4">
               <Field label="Block I want" className="flex-1">
-                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any Block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
+                {(id) => <Select id={id} size="lg" value={want.block} onChange={set('block')} options={[{ value: '', label: 'Any block' }, ...blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />}
               </Field>
-              <Field label="Room Type" className="flex-1">
+              <Field label="Room type" className="flex-1">
                 {(id) => (
                   <Select
                     id={id}
@@ -70,7 +70,7 @@ export default function SwapBoard() {
                   />
                 )}
               </Field>
-              <Field label="Room Class" className="flex-1">
+              <Field label="Room tier" className="flex-1">
                 {(id) => (
                   <Select
                     id={id}
@@ -95,22 +95,22 @@ export default function SwapBoard() {
           <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="flex shrink-0 flex-col gap-1">
               <h2 className="text-h3 font-semibold text-fg">{t('Compatible posts')}{board.data ? ` (${items.length})` : ''}</h2>
-              <p className="text-base text-fg-secondary">{t('Posts that want your Room and offer what you want. No names or Student codes are shown.')}</p>
+              <p className="text-base text-fg-secondary">{t('Posts that want your room and offer what you want. No names or student codes are shown.')}</p>
             </div>
             <Table fill>
               <THead>
                 <tr>
-                  <Th>Offered Room</Th>
+                  <Th>Offered room</Th>
                   <Th className="w-18">Block</Th>
                   <Th className="w-50">Wants</Th>
-                  <Th className="w-36">Next-Term price</Th>
+                  <Th className="w-36">Next-term price</Th>
                   <Th className="w-35">
                     <span className="sr-only">{t('Actions')}</span>
                   </Th>
                 </tr>
               </THead>
               <TBody>
-                <TableStatus query={board} colSpan={5} emptyIcon={Repeat} emptyTitle={myPost ? 'No compatible posts yet' : 'Post what you want first'} emptyText={myPost ? 'We notify you when a matching post appears.' : 'Choose the Room you want and press Post.'} />
+                <TableStatus query={board} colSpan={5} emptyIcon={Repeat} emptyTitle={myPost ? 'No compatible posts yet' : 'Post what you want first'} emptyText={myPost ? 'We notify you when a matching post appears.' : 'Choose the room you want and press Post.'} />
                 {items.map((p) => (
                   <Tr key={p.id}>
                     <Td className="py-2.5">
@@ -133,7 +133,7 @@ export default function SwapBoard() {
                 ))}
               </TBody>
             </Table>
-            <p className="shrink-0 text-sm text-fg-tertiary">{t('When both sides request each other, the swap goes to Staff (same Block) or a Manager (cross-Block) for approval.')}</p>
+            <p className="shrink-0 text-sm text-fg-tertiary">{t('When both sides request each other, the swap goes to staff (same block) or a manager (cross-block) for approval.')}</p>
           </Card>
         </div>
         <YourRoomNow />

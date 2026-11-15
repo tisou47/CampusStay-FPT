@@ -39,7 +39,7 @@ function EditDrawer({ item, onClose }) {
     {
       invalidates: ['admin-room-classes', 'admin-room-types', 'catalog'],
       onSuccess: () => {
-        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'Prices for Terms that already opened registration do not change.' })
+        notify({ title: t('{name} saved', { name: form.name.trim() }), message: 'Prices for terms that already opened registration do not change.' })
         onClose()
       },
       onError: () => {},
@@ -49,7 +49,7 @@ function EditDrawer({ item, onClose }) {
     <Drawer
       open
       onClose={onClose}
-      title={isNew ? 'New Room Class' : t('Edit Room Class · {name}', { name: item.name })}
+      title={isNew ? 'New room tier' : t('Edit room tier · {name}', { name: item.name })}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -61,7 +61,7 @@ function EditDrawer({ item, onClose }) {
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} disabled={!isNew} placeholder="e.g. Deluxe" />}</Field>
-      <Field label="Surcharge (%)" helper="Added to every Room Type base price for this class.">
+      <Field label="Surcharge (%)" helper="Added to every room type base price for this class.">
         {(id) => <Input id={id} value={form.surcharge} onChange={set('surcharge')} inputMode="numeric" />}
       </Field>
       <p className="text-sm text-fg-tertiary">{t('Students see the furniture the class requires (Furniture in the list).')}</p>
@@ -88,7 +88,7 @@ function RequirementsDrawer({ roomClass, current, types, onClose }) {
       open
       onClose={onClose}
       title={t('Required furniture · {name}', { name: tr(roomClass.name) })}
-      description="Every Room of this class must have these items; class-defining items beyond them are to be removed."
+      description="Every room of this class must have these items; class-defining items beyond them are to be removed."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -110,11 +110,11 @@ function RequirementsDrawer({ roomClass, current, types, onClose }) {
           <Button variant="danger-text" icon={Trash2} aria-label={t('Remove')} onClick={() => setRows((list) => list.filter((_, k) => k !== i))} />
         </div>
       ))}
-      {!rows.length && <p className="text-base text-fg-tertiary">{t('No furniture required: any Room can have this class.')}</p>}
+      {!rows.length && <p className="text-base text-fg-tertiary">{t('No furniture required: any room can have this class.')}</p>}
       <Button icon={Plus} onClick={() => setRows((list) => [...list, { typeId: unused[0].id, quantity: '1' }])} disabled={!unused.length} className="self-start">
         Add furniture
       </Button>
-      <p className="text-sm text-fg-tertiary">{t('Only furniture types that define the Room Class are listed (Furniture types).')}</p>
+      <p className="text-sm text-fg-tertiary">{t('Only furniture types that define the room tier are listed (Furniture types).')}</p>
     </Drawer>
   )
 }
@@ -132,24 +132,24 @@ export default function RoomClasses() {
   return (
     <>
       <PageHeader
-        title="Room Classes"
-        description="Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the Room Type base price; each Room has its class per Term."
+        title="Room tiers"
+        description="Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
-            New Room Class
+            New room tier
           </Button>
         }
       />
       <Table className="max-h-[45%] shrink-0">
         <THead>
           <tr>
-            <Th className="w-35">Room Class</Th>
+            <Th className="w-35">Room tier</Th>
             <Th className="w-28" align="right">
               Surcharge
             </Th>
             <Th>Required furniture</Th>
             <Th className="w-44" align="right">
-              Rooms this Term
+              Rooms this term
             </Th>
             <Th className="w-24">Status</Th>
             <Th className="w-48">
@@ -158,7 +158,7 @@ export default function RoomClasses() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={6} emptyIcon={Layers} emptyTitle="No Room Classes yet" />
+          <TableStatus query={query} colSpan={6} emptyIcon={Layers} emptyTitle="No room tiers yet" />
           {items.map((c) => (
             <Tr key={c.id}>
               <Td className="font-medium">{tr(c.name)}</Td>
@@ -190,15 +190,15 @@ export default function RoomClasses() {
 
       <Card className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 items-center justify-between gap-4">
-          <h2 className="text-h3 font-semibold text-fg">{t('Price preview · Term price per Bed (deposit {p}%)', { p: Math.round(rate * 100) })}</h2>
-          <span className="text-sm text-fg-tertiary">{t('Computed from Room Types × Room Classes × deposit rate. Read-only.')}</span>
+          <h2 className="text-h3 font-semibold text-fg">{t('Price preview · Term price per bed (deposit {p}%)', { p: Math.round(rate * 100) })}</h2>
+          <span className="text-sm text-fg-tertiary">{t('Computed from room types × room tiers × deposit rate. Read-only.')}</span>
         </div>
         <QueryState query={query} compact isEmpty={(d) => !d.roomTypes?.length || !active.length}>
           {(data) => (
             <Table fill>
               <THead>
                 <tr>
-                  <Th>Room Type</Th>
+                  <Th>Room type</Th>
                   {active.map((c) => (
                     <Th key={c.id} align="right">
                       {tr(c.name)} (+{Math.round(c.surchargeRate * 100)}%)

@@ -87,8 +87,8 @@ export function AppliesFrom({ appliesFrom }) {
   return (
     <Alert title="When changes apply" className="shrink-0">
       {appliesFrom
-        ? t('A Term keeps the values it opened with; a change applies from {term}, the next Term to open, and to work started from now on. Students read it in an announcement.', { term: appliesFrom })
-        : t('A Term keeps the values it opened with; a change applies to the next Term you publish and to work started from now on. Students read it in an announcement.')}
+        ? t('A term keeps the values it opened with; a change applies from {term}, the next term to open, and to work started from now on. Students read it in an announcement.', { term: appliesFrom })
+        : t('A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.')}
     </Alert>
   )
 }

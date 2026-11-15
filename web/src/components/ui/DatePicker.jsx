@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { campusToday, formatDate, formatMonthYear } from '@/lib/format'
 import { controlClasses } from './Field'
 import { Popover } from './Popover'
 
@@ -17,10 +18,7 @@ const parse = (s) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s ?? '')
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null
 }
-const show = (s) => {
-  const d = parse(s)
-  return d ? `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}` : ''
-}
+const show = (s) => (parse(s) ? formatDate(s.slice(0, 10)) : '')
 const mondayOf = (d) => {
   const m = new Date(d)
   m.setDate(m.getDate() - ((m.getDay() + 6) % 7))
@@ -38,10 +36,10 @@ const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 function Calendar({ value, min, max, onPick }) {
   const selected = parse(value)
   const [month, setMonth] = useState(() => {
-    const d = selected ?? new Date()
+    const d = selected ?? parse(campusToday())
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
-  const today = iso(new Date())
+  const today = campusToday()
   const allowed = (d) => (!min || iso(d) >= min.slice(0, 10)) && (!max || iso(d) <= max.slice(0, 10))
   const weeks = []
   for (let start = mondayOf(month); start.getMonth() === month.getMonth() || start < month; start.setDate(start.getDate() + 7)) {
@@ -49,7 +47,7 @@ function Calendar({ value, min, max, onPick }) {
   }
   const selectedWeek = selected ? iso(mondayOf(selected)) : null
   const step = (n) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
-  const label = month.toLocaleDateString(document.documentElement.lang === 'vi' ? 'vi-VN' : 'en-GB', { month: 'long', year: 'numeric' })
+  const label = formatMonthYear(iso(month))
   return (
     <div className="flex flex-col gap-2 p-3">
       <div className="flex items-center justify-between">
@@ -114,7 +112,7 @@ function Calendar({ value, min, max, onPick }) {
           type="button"
           className="font-medium text-fg-brand hover:underline"
           onClick={() => {
-            const now = new Date()
+            const now = parse(campusToday())
             setMonth(new Date(now.getFullYear(), now.getMonth(), 1))
             if (allowed(now)) onPick(iso(now))
           }}

@@ -22,9 +22,9 @@ import { t, tr } from '@/i18n'
 // the new Bed with the next-Term fee. Nothing is charged or refunded now.
 
 const changeTypes = [
-  ['same', 'Same Room Type and Room Class, different Room'],
-  ['class', 'Different Room Class'],
-  ['type', 'Different Room Type'],
+  ['same', 'Same room type and room tier, different room'],
+  ['class', 'Different room tier'],
+  ['type', 'Different room type'],
 ]
 
 function Form({ opts }) {
@@ -50,7 +50,7 @@ function Form({ opts }) {
     {
       invalidates: ['requests', 'home', 'allocation'],
       onSuccess: (r) => {
-        notify({ title: 'Room-change request submitted', message: t('{id} · it is approved only if a Bed is free.', { id: r?.id ?? t('Your request') }) })
+        notify({ title: 'Room-change request submitted', message: t('{id} · it is approved only if a bed is free.', { id: r?.id ?? t('Your request') }) })
         navigate('/student/requests?tab=room-changes')
       },
       onError: () => {},
@@ -71,21 +71,21 @@ function Form({ opts }) {
               {tr(opts.unavailable)}
             </Alert>
           )}
-          <Field label="Your Bed next Term">
+          <Field label="Your bed next term">
             <StaticField size="lg" className="text-fg-disabled">
               {t('{room} · Bed {bed}', { room: cur.room, bed: cur.bed })} · {tr(cur.roomTypeName)} · {tr(cur.roomClassName)}
             </StaticField>
           </Field>
 
           <fieldset className="flex flex-col gap-2.5">
-            <legend className="mb-3 text-base font-medium text-fg">{t('What do you want next Term?')}</legend>
+            <legend className="mb-3 text-base font-medium text-fg">{t('What do you want next term?')}</legend>
             {changeTypes.map(([value, label]) => (
               <Radio key={value} name="changeType" label={label} checked={kind === value} onChange={() => setKind(value)} />
             ))}
           </fieldset>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-            <Field label={kind === 'type' ? 'New Room Type' : 'Room Type'} className="flex-1">
+            <Field label={kind === 'type' ? 'New room type' : 'Room Type'} className="flex-1">
               {(id) => (
                 <Select
                   id={id}
@@ -97,7 +97,7 @@ function Form({ opts }) {
                 />
               )}
             </Field>
-            <Field label={kind === 'class' ? 'New Room Class' : 'Room Class'} className="flex-1">
+            <Field label={kind === 'class' ? 'New room tier' : 'Room Class'} className="flex-1">
               {(id) => (
                 <Select
                   id={id}
@@ -116,7 +116,7 @@ function Form({ opts }) {
           </Field>
           <Field label="Details (optional)">{(id) => <Textarea id={id} size="lg" rows={2} value={details} onChange={(e) => setDetails(e.target.value)} />}</Field>
 
-          <Checkbox label="I understand the change takes effect next Term: I keep my Room until then and pay the next Term's price of the new Bed." checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+          <Checkbox label="I understand the change takes effect next term: I keep my room until then and pay the next term's price of the new bed." checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
         </div>
 
         <div className="flex shrink-0 justify-end gap-3">
@@ -131,19 +131,19 @@ function Form({ opts }) {
 
       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
         <Card padding="lg" className="flex shrink-0 flex-col gap-2.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Next-Term fee')}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{t('Next-term fee')}</h2>
           <div className="flex justify-between text-base">
-            <span className="text-fg-secondary">{t('Your Bed now · {cls}', { cls: tr(cur.roomClassName) })}</span>
+            <span className="text-fg-secondary">{t('Your bed now · {cls}', { cls: tr(cur.roomClassName) })}</span>
             <span className="text-fg">{formatVnd(current)}</span>
           </div>
           <div className="flex justify-between text-base">
             <span className="text-fg-secondary">{t('New · {cls}', { cls: kind === 'type' ? `${name(opts.roomTypes, targetType)} ${name(opts.roomClasses, targetClass)}` : name(opts.roomClasses, targetClass) })}</span>
             <span className="font-medium text-fg-brand">{formatVnd(next)}</span>
           </div>
-          <p className="text-sm text-fg-tertiary">{t('The price per Bed in {term}. Nothing is charged or refunded now: the next-Term fee is issued for the Bed you hold next Term.', { term: opts.window?.termName ?? t('the next Term') })}</p>
+          <p className="text-sm text-fg-tertiary">{t('The price per bed in {term}. Nothing is charged or refunded now: the next-term fee is issued for the bed you hold next term.', { term: opts.window?.termName ?? t('the next term') })}</p>
         </Card>
         <Alert type="info" title="How room changes work" className="shrink-0">
-          {t('One open request at a time, until {date}. Staff decide by {due} and pick a free Bed; you move at the start of the next Term.', {
+          {t('One open request at a time, until {date}. Staff decide by {due} and pick a free bed; you move at the start of the next term.', {
             date: formatDateTime(opts.window?.closesAt),
             due: formatDateTime(opts.window?.decisionsDueAt),
           })}
@@ -162,7 +162,7 @@ export default function NewRoomChangeRequest() {
   }, [query.data])
 
   return (
-    <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Room change' }]} title="Request a room change for next Term">
+    <StudentPage breadcrumb={[{ label: 'Requests', to: '/student/requests' }, { label: 'Room change' }]} title="Request a room change for next term">
       {!opts && query.loading ? (
         <LoadingState />
       ) : !opts ? (
