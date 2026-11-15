@@ -16,7 +16,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-REQ-11 Check-in Desk (Figma 60:3026)
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
@@ -88,7 +88,7 @@ function LateCheckInModal({ person, termId, onClose }) {
     >
       {record.error && <p className="rounded-md bg-error-bg px-3 py-2 text-base text-error-fg">{record.error.message}</p>}
       <Field label="Arrives on" required>
-        {(id) => <DateInput id={id} min={today} value={requestedFor} onChange={(e) => setRequestedFor(e.target.value)} />}
+        {(id) => <DatePicker id={id} min={today} value={requestedFor} required onChange={setRequestedFor} />}
       </Field>
       <Field label="Reason" required hint={`${reason.length}/500`}>
         {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why the student arrives after the check-in window" />}

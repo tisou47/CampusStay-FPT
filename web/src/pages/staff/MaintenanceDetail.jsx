@@ -9,11 +9,12 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Breadcrumb, Card, Facts } from '@/components/ui/Display'
-import { DateInput, HourSelect } from '@/components/ui/DatePicker'
+import { DateTimeRangePicker } from '@/components/ui/date-time'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
-import { campusToday, formatDateTime } from '@/lib/format'
+import { formatDateTime } from '@/lib/format'
+import { toLocal } from '@/lib/datetime'
 import { typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
@@ -290,33 +291,20 @@ function RequestDetail({ r, staff, priorities }) {
   )
 }
 
-// The visit window stays the text "dd/mm/yyyy hh:mm – hh:mm" the API stores; it is picked as a day and two whole
-// hours. A window written another way is kept until a new day is chosen.
+// The visit window stays the text "dd/mm/yyyy hh:mm – hh:mm" the API stores; it is picked as a time slot of one
+// day (DateTimeRangePicker). A window written another way is kept until a new one is chosen.
 const WINDOW = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}) – (\d{2}:\d{2})$/
 function VisitWindowField({ value, onChange }) {
   const m = WINDOW.exec(value ?? '')
-  const day = m ? `${m[3]}-${m[2]}-${m[1]}` : ''
-  const [from, to] = m ? [m[4], m[5]] : ['', '']
-  const write = (d, a, b) => {
-    if (!d) return onChange('')
-    const [y, mo, dd] = d.split('-')
-    const start = a || '08:00'
-    const end = b && b > start ? b : `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:00`
-    onChange(`${dd}/${mo}/${y} ${start} – ${end}`)
+  const slot = m ? { start: `${m[3]}-${m[2]}-${m[1]}T${m[4]}`, end: `${m[3]}-${m[2]}-${m[1]}T${m[5]}` } : { start: '', end: '' }
+  const write = ({ start, end }) => {
+    if (!start || !end) return onChange('')
+    const [a, b] = [toLocal(start), toLocal(end)]
+    onChange(`${a.slice(8, 10)}/${a.slice(5, 7)}/${a.slice(0, 4)} ${a.slice(11, 16)} – ${b.slice(11, 16)}`)
   }
-  const min = campusToday()
   return (
     <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
-      {(id) => (
-        <div className="flex flex-col gap-2">
-          <DateInput id={id} value={day} min={min} onChange={(e) => write(e.target.value, from, to)} />
-          <div className="flex items-center gap-2">
-            <HourSelect value={from} disabled={!day} onChange={(h) => write(day, h, to)} />
-            <span className="text-fg-tertiary">–</span>
-            <HourSelect value={to} disabled={!day} onChange={(h) => write(day, from, h)} />
-          </div>
-        </div>
-      )}
+      {(id) => <DateTimeRangePicker id={id} value={slot} disablePast minTime="07:00" maxTime="21:00" onChange={write} />}
     </Field>
   )
 }

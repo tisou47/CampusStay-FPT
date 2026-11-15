@@ -17,7 +17,7 @@ import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { accountTone, verificationTone } from './Students'
 import { t, tr } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-AUTH-14 Student hub (spec §11.3): profile and verification, account, Bed, Applications, Allocations, Invoices,
 // requests and history, with the actions a Manager may take in place.
@@ -127,7 +127,7 @@ function EditModal({ hub, onClose }) {
           {(id) => <Select id={id} value={form.gender} onChange={set('gender')} options={[{ value: 'M', label: 'Male' }, { value: 'F', label: 'Female' }]} />}
         </Field>
         <Field label="Date of birth" error={fields.dateOfBirth}>
-          {(id) => <DateInput id={id} value={form.dateOfBirth} onChange={set('dateOfBirth')} />}
+          {(id) => <DatePicker id={id} value={form.dateOfBirth} disableFuture quickOptions={false} onChange={(v) => set('dateOfBirth')({ target: { value: v } })} />}
         </Field>
         <Field label="Major" error={fields.major} helper="Code or name, e.g. SE.">
           {(id) => <Input id={id} value={form.major} onChange={set('major')} />}

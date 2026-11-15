@@ -9,7 +9,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd, fromDateTimeInput, toDateInput, toDateTimeInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateInput, DateTimeInput } from '@/components/ui/DatePicker'
+import { DatePicker, DateTimePicker } from '@/components/ui/date-time'
 
 /*
  * Registration periods (Change Specification v2 §5, §6.3, §6.4): what a Manager's request proposes and what the
@@ -119,9 +119,17 @@ export function TimelineFields({ form, onChange, errors = {}, fixed = [], extend
         >
           {(id) => (
             m.type === 'datetime' ? (
-              <DateTimeInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+              <DateTimePicker
+                id={id}
+                value={form[m.key] ?? ''}
+                disabled={locked}
+                minTime="00:00"
+                maxTime="23:30"
+                invalid={Boolean(errors[m.key])}
+                onChange={(v) => onChange({ ...form, [m.key]: v ? toDateTimeInput(v) : '' })}
+              />
             ) : m.type === 'date' ? (
-              <DateInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+              <DatePicker id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(v) => onChange({ ...form, [m.key]: v })} />
             ) : (
               <Input
                 id={id}

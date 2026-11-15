@@ -15,7 +15,7 @@ import { countLines, typeName } from '@/lib/furniture'
 import { formatDate, formatDateRange, formatDateTime, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr, tx } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-ASG-01 My Room (Figma 39:1535)
 // GET /students/me/allocation?termId → {
@@ -138,7 +138,7 @@ function LateCheckInCard() {
               {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
             </Field>
             <Field label="Day you will arrive" required error={fields.requestedFor} helper={d.latestDay ? t('Up to {date}', { date: formatDate(d.latestDay) }) : undefined}>
-              {(id) => <DateInput id={id} value={day} max={d.latestDay ?? undefined} onChange={(e) => setDay(e.target.value)} />}
+              {(id) => <DatePicker id={id} value={day} disablePast max={d.latestDay ?? undefined} required size="lg" onChange={setDay} />}
             </Field>
             <Field label="Document (ticket, letter …)" required error={fields.evidence}>
               {(id) => <input id={id} type="file" accept="image/*,application/pdf" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}

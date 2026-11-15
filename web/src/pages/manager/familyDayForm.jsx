@@ -3,10 +3,11 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useSession } from '@/app/session'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Display'
-import { DatePickerField, DateTimePickerField, HourPickerField } from '@/components/ui/DateTimePicker'
+import { DateTimePicker, DateTimeRangePicker } from '@/components/ui/date-time'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { campusToday, fromDateTimeInput, toDateTimeInput } from '@/lib/format'
+import { slotErrors } from '@/lib/datetime'
 import { t } from '@/i18n'
 
 // The Family Day form (ADR-29): create a Draft or edit it. Times are whole hours in the browser's zone and go to the
@@ -78,6 +79,14 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
   const setSlot = (i, patch) => setForm((f) => ({ ...f, slots: f.slots.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
   const fields = error?.details?.fields ?? {}
   const today = campusToday()
+  // Checked while typing: an end after its start, and slots of a day that do not overlap (the server checks again).
+  const slotProblems = slotErrors(form.slots.map((s) => ({ start: at(s.date, s.start), end: at(s.date, s.end) })))
+  const slotProblem = (i) => {
+    const p = slotProblems[i]
+    if (!p || p.code === 'incomplete') return undefined
+    return p.code === 'overlap' ? t('Overlaps time slot {n}', { n: p.with + 1 }) : t('The end time must be after the start time')
+  }
+  const local = (v) => (v ? toDateTimeInput(v) : '')
 
   // A new time slot follows the last one: same day, starting when it ends, two hours long.
   const addSlot = () =>
@@ -152,16 +161,17 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Registration opens" required error={fields.registrationOpensAt}>
-          {(id) => <DateTimePickerField id={id} value={form.opens} min={today} invalid={!!fields.registrationOpensAt} onChange={(e) => set('opens', e.target.value)} />}
+          {(id) => <DateTimePicker id={id} value={form.opens} disablePast invalid={!!fields.registrationOpensAt} onChange={(v) => set('opens', local(v))} />}
         </Field>
         <Field label="Registration closes" required error={fields.registrationClosesAt}>
           {(id) => (
-            <DateTimePickerField
+            <DateTimePicker
               id={id}
               value={form.closes}
-              min={form.opens || today}
+              min={form.opens || undefined}
+              disablePast
               invalid={!!fields.registrationClosesAt}
-              onChange={(e) => set('closes', e.target.value)}
+              onChange={(v) => set('closes', local(v))}
             />
           )}
         </Field>
@@ -176,37 +186,18 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
         </div>
         {fields.slots && <p className="text-sm text-error-fg">{fields.slots}</p>}
         {form.slots.map((s, i) => (
-          <div key={i} className="grid items-start gap-3 rounded-lg border border-line p-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_5.5rem_auto]">
-            <Field label="Day" required error={fields[`slots[${i}].startsAt`]}>
+          <div key={i} className="grid items-start gap-3 rounded-lg border border-line p-3 sm:grid-cols-[minmax(0,1fr)_5.5rem_auto]">
+            <Field label="Time slot" required error={slotProblem(i) ?? fields[`slots[${i}].startsAt`] ?? fields[`slots[${i}].endsAt`]}>
               {(id) => (
-                <DatePickerField
+                <DateTimeRangePicker
                   id={id}
-                  value={s.date}
-                  min={form.closes?.slice(0, 10) || today}
-                  invalid={!!fields[`slots[${i}].startsAt`]}
-                  onChange={(date) => setSlot(i, { date })}
-                />
-              )}
-            </Field>
-            <Field label="From">
-              {(id) => (
-                <HourPickerField
-                  id={id}
-                  value={s.start}
-                  placeholder="--:--"
-                  onChange={(start) => setSlot(i, { start, end: s.end && s.end > start ? s.end : plusHours(start, 2) })}
-                />
-              )}
-            </Field>
-            <Field label="To" error={fields[`slots[${i}].endsAt`]}>
-              {(id) => (
-                <HourPickerField
-                  id={id}
-                  value={s.end}
-                  after={s.start || null}
-                  placeholder="--:--"
-                  invalid={!!fields[`slots[${i}].endsAt`]}
-                  onChange={(end) => setSlot(i, { end })}
+                  value={{ start: at(s.date, s.start), end: at(s.date, s.end) }}
+                  min={form.closes || today}
+                  invalid={!!(slotProblem(i) || fields[`slots[${i}].startsAt`] || fields[`slots[${i}].endsAt`])}
+                  onChange={({ start, end }) => {
+                    const [a, b] = [local(start), local(end)]
+                    setSlot(i, { date: a.slice(0, 10), start: a.slice(11, 16), end: b.slice(11, 16) })
+                  }}
                 />
               )}
             </Field>

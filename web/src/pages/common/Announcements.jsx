@@ -13,9 +13,9 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDateTime, fromDateTimeInput } from '@/lib/format'
+import { formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateTimeInput } from '@/components/ui/DatePicker'
+import { DateTimePicker } from '@/components/ui/date-time'
 
 // SCR-NTF-22 Announcements (spec §6.5, D-08): news on the students' board. Staff write to the residents of their
 // Blocks; Managers and the Admin to any audience. The system writes one for every published Term and every money or
@@ -53,7 +53,7 @@ function NewAnnouncement({ options, onClose }) {
         title: form.title.trim(),
         body: form.body.trim(),
         pinned: form.pinned,
-        shownUntil: form.shownUntil ? fromDateTimeInput(form.shownUntil) : null,
+        shownUntil: form.shownUntil || null, // already a UTC instant (DateTimePicker)
       }),
     {
       invalidates: ['announcements'],
@@ -123,7 +123,7 @@ function NewAnnouncement({ options, onClose }) {
       </Field>
       <div className="grid grid-cols-2 items-end gap-4">
         <Field label="Shown until" helper="Empty: until you end it." error={fields.shownUntil}>
-          {(id) => <DateTimeInput id={id} value={form.shownUntil} onChange={(e) => set('shownUntil', e.target.value)} />}
+          {(id) => <DateTimePicker id={id} value={form.shownUntil} disablePast invalid={!!fields.shownUntil} onChange={(v) => set('shownUntil', v)} />}
         </Field>
         <div className="flex items-center gap-3 pb-1.5">
           <Switch aria-label={t('Pin at the top of the board')} checked={form.pinned} onChange={(v) => set('pinned', v)} />

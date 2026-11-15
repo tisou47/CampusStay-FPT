@@ -118,6 +118,9 @@ const OccupancyReport = () => import('@/pages/admin/OccupancyReport')
 const FinancialReport = () => import('@/pages/admin/FinancialReport')
 const AuditLog = () => import('@/pages/admin/AuditLog')
 
+// Development only: every variant of the date and time pickers.
+const DevPickers = () => import('@/dev/Pickers')
+
 function RootLayout() {
   return (
     <>
@@ -176,6 +179,7 @@ export const router = createBrowserRouter([
       { path: 'set-password', element: <ResetPassword mode="invite" /> },
       // Signed in, before any portal: the first password of an account from Google sign-up (ADR-26).
       { path: 'account/password', element: <FirstPassword /> },
+      ...(import.meta.env.DEV ? [{ path: 'dev/pickers', ...page(DevPickers) }] : []),
 
       portal('student', <StudentLayout />, [
         { index: true, ...page(StudentHome) },
