@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/students/me/contacts/emergency/{id}'
+method: DELETE
+url: '{{baseUrl}}/students/me/contacts/emergency/:id'
+order: 7000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `remove` of `student-contact-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

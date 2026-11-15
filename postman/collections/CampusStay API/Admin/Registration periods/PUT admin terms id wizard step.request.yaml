@@ -44,6 +44,8 @@ body:
       "blockIds": [],
       "excludedRooms": [],
       "reservedNewPercent": 0,
+      "roomTypeIds": [],
+      "roomClassIds": [],
       "prices": [
         {
           "roomTypeId": "",

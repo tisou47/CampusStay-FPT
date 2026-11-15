@@ -1,0 +1,19 @@
+$kind: http-request
+name: '/family-days'
+method: GET
+url: '{{baseUrl}}/family-days?block={{block}}'
+order: 2000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `list_7` of `family-day-controller`). Add it to the contract or remove it from the backend.
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: status
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

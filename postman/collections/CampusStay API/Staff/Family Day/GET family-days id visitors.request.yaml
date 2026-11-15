@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/family-days/{id}/visitors'
+method: GET
+url: '{{baseUrl}}/family-days/:id/visitors'
+order: 7000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `visitors` of `visitor-desk-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+queryParams:
+  - key: slotId
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    disabled: true
+  - key: q
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

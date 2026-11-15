@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/refunds/{id}/account-reminder'
+method: POST
+url: '{{baseUrl}}/refunds/:id/account-reminder'
+order: 8000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `remindAccount` of `finance-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

@@ -52,5 +52,29 @@ body:
           "price": 0
         }
       ],
+      "basePrices": [
+        {
+          "roomTypeId": "",
+          "price": 0
+        }
+      ],
+      "surcharges": [
+        {
+          "roomClassId": "",
+          "percent": 0
+        }
+      ],
+      "roomTypes": [],
+      "roomClasses": [],
+      "reservedNewPercent": 0,
+      "depositPercent": 0,
+      "utilityDeposit": 0,
+      "houseRules": "",
+      "faq": [
+        {
+          "question": "",
+          "answer": ""
+        }
+      ],
       "notes": ""
     }

@@ -1,0 +1,27 @@
+$kind: http-request
+name: '/students/me/family-days/{id}/registration'
+method: POST
+url: '{{baseUrl}}/students/me/family-days/:id/registration'
+order: 1000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `register` of `student-family-day-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "slotId": "",
+      "guests": [
+        {
+          "fullName": "",
+          "relationship": "",
+          "birthYear": 0
+        }
+      ]
+    }

@@ -1,0 +1,17 @@
+$kind: http-request
+name: '/payment-claims/{invoiceId}/receipt'
+method: POST
+url: '{{baseUrl}}/payment-claims/:invoiceId/receipt'
+order: 10000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `attachReceipt` of `payment-claim-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: invoiceId
+    value: ''
+    description: 'Invoice code, e.g. INV-SP27-000123'
+body:
+  type: formdata
+  content:
+    - key: receipt
+      type: file
+      src: ''

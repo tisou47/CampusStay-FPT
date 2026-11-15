@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/dashboards/admin?termId={{termId}}'
 order: 1000
 description: |-
-  `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }`
+  `GET /dashboards/admin?termId` → `{ term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null, kpis: { residents, allocated, beds, invoiced, collected, outstanding, outstandingInvoices, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }], funnelNote, funnelOutside: { waitlisted, rejected, expired, continuing }, blocks: [{ block, gender, allocated, beds }], checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }` (A-63)
 
   Contract: `docs/api-contract.md` › Admin › Dashboard
 queryParams:

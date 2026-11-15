@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/students/me/contacts/emergency'
+method: POST
+url: '{{baseUrl}}/students/me/contacts/emergency'
+order: 3000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `add` of `student-contact-controller`). Add it to the contract or remove it from the backend.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "relationship": "",
+      "phone": ""
+    }

@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/students/me/family-days/{id}/registration/cancel'
+method: POST
+url: '{{baseUrl}}/students/me/family-days/:id/registration/cancel'
+order: 3000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `cancel_1` of `student-family-day-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

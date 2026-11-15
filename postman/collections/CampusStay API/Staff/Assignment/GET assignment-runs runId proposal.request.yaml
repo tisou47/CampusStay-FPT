@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/assignment-runs/:runId/proposal?block={{block}}'
 order: 3000
 description: |-
-  `GET /assignment-runs/{runId}/proposal?block&view=conflicts|proposed|all&q&page&pageSize` → `{ run: { id, status, snapshot }, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount, items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total, commitSummary: { students, balanceDueAt } }`. `block=waitlisted` lists waitlisted Applications.
+  `GET /assignment-runs/{runId}/proposal?block&view=conflicts|proposed|all&q&page&pageSize` → `{ run: { id, kind, status, statusTone, stage, startedAt, finishedAt, startedBy, snapshot, input, proposed, conflicts, waitlisted, averageFit }, editable, blocks: [{ block, total, conflicts, status: 'review'|'submitted'|'approved' }], waitlistedCount, items: [{ applicationId, studentName, studentCode, pair, preference, bed, fit, issue: { label, tone } | null, resolved, reason }], total, commitSummary: { students, balanceDueAt } }`. `block=waitlisted` lists waitlisted Applications.
 
   Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
 pathVariables:

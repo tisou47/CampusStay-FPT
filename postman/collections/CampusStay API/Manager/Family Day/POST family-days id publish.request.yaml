@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/family-days/{id}/publish'
+method: POST
+url: '{{baseUrl}}/family-days/:id/publish'
+order: 1000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `publish_1` of `family-day-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

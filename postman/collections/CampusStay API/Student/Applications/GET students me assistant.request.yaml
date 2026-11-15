@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/students/me/assistant'
+method: GET
+url: '{{baseUrl}}/students/me/assistant'
+order: 12000
+description: |-
+  `GET /students/me/assistant` → `{ enabled }`
+
+  Contract: `docs/api-contract.md` › Student › Applications

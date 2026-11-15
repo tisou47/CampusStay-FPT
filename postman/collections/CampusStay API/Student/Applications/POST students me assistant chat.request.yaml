@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/students/me/assistant/chat'
+method: POST
+url: '{{baseUrl}}/students/me/assistant/chat'
+order: 11000
+description: |-
+  `POST /students/me/assistant/chat` `{ messages: [{ role: user|assistant, content }] }` (1–40 messages, ending with the question, each ≤ 2000 characters) → `{ reply }`; `429 ASSISTANT_LIMIT` over the hourly limit, `503 ASSISTANT_OFFLINE` without a model server (A-68)
+
+  Contract: `docs/api-contract.md` › Student › Applications
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "messages": [
+        {
+          "role": "",
+          "content": ""
+        }
+      ]
+    }

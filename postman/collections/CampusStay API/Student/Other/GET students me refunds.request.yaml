@@ -1,0 +1,14 @@
+$kind: http-request
+name: '/students/me/refunds'
+method: GET
+url: '{{baseUrl}}/students/me/refunds'
+order: 5000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `myRefunds` of `finance-controller`). Add it to the contract or remove it from the backend.
+queryParams:
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

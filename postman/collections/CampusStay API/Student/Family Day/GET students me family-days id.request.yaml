@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/students/me/family-days/{id}'
+method: GET
+url: '{{baseUrl}}/students/me/family-days/:id'
+order: 5000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `detail_3` of `student-family-day-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

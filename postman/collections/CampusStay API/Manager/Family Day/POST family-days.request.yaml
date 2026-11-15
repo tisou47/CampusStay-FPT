@@ -1,0 +1,29 @@
+$kind: http-request
+name: '/family-days'
+method: POST
+url: '{{baseUrl}}/family-days'
+order: 6000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `create_5` of `family-day-controller`). Add it to the contract or remove it from the backend.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}",
+      "title": "",
+      "description": "",
+      "area": "",
+      "registrationOpensAt": "2026-12-01T00:00:00Z",
+      "registrationClosesAt": "2026-12-01T00:00:00Z",
+      "maxGuests": 0,
+      "slots": [
+        {
+          "startsAt": "2026-12-01T00:00:00Z",
+          "endsAt": "2026-12-01T00:00:00Z",
+          "capacity": 0
+        }
+      ]
+    }

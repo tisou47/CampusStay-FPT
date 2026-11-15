@@ -1,0 +1,11 @@
+$kind: http-request
+name: '/family-days/{id}/overdue-reminders'
+method: POST
+url: '{{baseUrl}}/family-days/:id/overdue-reminders'
+order: 3000
+description: |-
+  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `remindOverdue` of `visitor-desk-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'

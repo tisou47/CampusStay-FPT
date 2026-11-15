@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/registration-periods/:termId'
 order: 14000
 description: |-
-  GET `/registration-periods/{termId}` — request: — — response: A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit }], depositPercent, utilityDeposit, rooms: [{ roomType, roomClass, gender, rooms, beds }], houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `404` for a Draft (A-29)
+  GET `/registration-periods/{termId}` — request: — — response: A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit, places, furniture: [{ name, nameVi, quantity }] }], depositPercent, utilityDeposit, houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `places`: Beds of the reader's gender for a student; `404` for a Draft (A-29, B-14)
 
   Contract: `docs/api-contract.md` › Session and shared
 pathVariables:

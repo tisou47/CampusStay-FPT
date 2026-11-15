@@ -16,5 +16,6 @@ body:
     {
       "holder": "",
       "number": "",
-      "bank": ""
+      "bankCode": "",
+      "accepted": false
     }
