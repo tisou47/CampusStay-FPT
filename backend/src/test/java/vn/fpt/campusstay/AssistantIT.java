@@ -151,6 +151,31 @@ class AssistantIT {
     }
 
     /**
+     * TC-AST-009: the assistant answers in the language the student writes in: a question with Vietnamese letters gets the
+     * Vietnamese guide and reminder even on an English screen; a question without them follows the screen's language.
+     */
+    @Test
+    void answersInTheLanguageTheStudentWrites() throws Exception {
+        answers("ok");
+        String student = bearer(mvc, StayFlow.student(49));
+
+        mvc.perform(post("/students/me/assistant/chat").header(HttpHeaders.AUTHORIZATION, student)
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "en").contentType(MediaType.APPLICATION_JSON)
+                .content(question("phản hồi bằng tiếng việt đi"))).andExpect(status().isOk());
+        assertThat(seen.getLast().get(seen.getLast().size() - 2).content()).contains("tiếng Việt");
+
+        mvc.perform(post("/students/me/assistant/chat").header(HttpHeaders.AUTHORIZATION, student)
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "en").contentType(MediaType.APPLICATION_JSON)
+                .content(question("Which invoices do I still have to pay?"))).andExpect(status().isOk());
+        assertThat(seen.getLast().get(seen.getLast().size() - 2).content()).contains("in English");
+
+        mvc.perform(post("/students/me/assistant/chat").header(HttpHeaders.AUTHORIZATION, student)
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "vi").contentType(MediaType.APPLICATION_JSON)
+                .content(question("cho minh xem hoa don"))).andExpect(status().isOk());
+        assertThat(seen.getLast().get(seen.getLast().size() - 2).content()).contains("tiếng Việt");
+    }
+
+    /**
      * TC-AST-008: an answer with Chinese characters is never shown: the model is asked once more with its answer and a
      * request to write it in the student's language; if it still has them, the student gets 503 ASSISTANT_NO_ANSWER.
      */

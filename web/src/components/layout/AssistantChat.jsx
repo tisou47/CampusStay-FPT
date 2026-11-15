@@ -4,29 +4,31 @@ import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { IconButton } from '@/components/ui/Button'
 import { t } from '@/i18n'
+import { assistantKey } from '@/lib/assistantHistory'
 import { cx } from '@/lib/cx'
 
 /*
  * The students' AI assistant (ADR-28): a chat button on every student page, shown only when the server has a model
- * (GET /students/me/assistant). The conversation stays in this browser tab (sessionStorage); each question sends the
- * recent turns and the server answers from the user guide and the student's own data.
+ * (GET /students/me/assistant). The conversation stays in this browser tab (sessionStorage) under the student's own
+ * key and is cleared on sign-out (lib/assistantHistory), so the next person signing in on the same computer never
+ * sees it nor sends it to the model with their own data; each question sends the recent turns and the server answers
+ * from the user guide and the student's own data.
  */
 
-const STORAGE_KEY = 'campusstay-assistant'
 const SENT_TURNS = 20
 
-function load() {
+function load(userId) {
   try {
-    const value = JSON.parse(sessionStorage.getItem(STORAGE_KEY))
+    const value = JSON.parse(sessionStorage.getItem(assistantKey(userId)))
     return Array.isArray(value) ? value : []
   } catch {
     return []
   }
 }
 
-function save(messages) {
+function save(userId, messages) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    sessionStorage.setItem(assistantKey(userId), JSON.stringify(messages))
   } catch {
     // Private windows may refuse storage: the conversation then lasts until the page reloads.
   }
@@ -62,16 +64,17 @@ function Bubble({ message }) {
 
 const SUGGESTIONS = ['When is the registration deadline?', 'Which invoices do I still have to pay?', 'How do I report a broken item in my room?']
 
-export function AssistantChat() {
+/** @param userId the signed-in student; StudentLayout keys the chat by it, so another account starts empty */
+export function AssistantChat({ userId }) {
   const status = useQuery(['assistant'], ({ signal }) => api.me.assistant(null, { signal }))
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState(load)
+  const [messages, setMessages] = useState(() => load(userId))
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
   const end = useRef(null)
   const input = useRef(null)
 
-  useEffect(() => save(messages), [messages])
+  useEffect(() => save(userId, messages), [userId, messages])
   useEffect(() => {
     if (open) end.current?.scrollIntoView({ block: 'end' })
   }, [open, messages, pending])

@@ -145,7 +145,7 @@ export function StudentLayout() {
           <Outlet />
         </main>
         <MobileBottomNav />
-        <AssistantChat />
+        {user && <AssistantChat key={user.id} userId={user.id} />}
       </div>
     </MobileBarProvider>
   )

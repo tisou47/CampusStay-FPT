@@ -111,8 +111,8 @@ public class AssistantService {
         }
         take(user.userId());
 
-        String locale = locale(user);
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
+        String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
             return new Reply(DOOR_CODE_ANSWERS.get(locale));
         }
@@ -152,11 +152,22 @@ public class AssistantService {
         }
     }
 
-    /** The language on screen first (the web sends it with every request), else the account's. */
-    private static String locale(AuthenticatedUser user) {
+    /**
+     * The language the student writes in: a question with Vietnamese letters is answered in Vietnamese even on an English
+     * screen (asked to answer in English, a small model mixed the two and wrote Chinese, so the student got no answer);
+     * otherwise the language on screen (the web sends it with every request), else the account's.
+     */
+    private static String locale(AuthenticatedUser user, String question) {
+        if (VIETNAMESE.matcher(question).find()) {
+            return Locales.VI;
+        }
         String asked = Locales.requested();
         return Locales.VI.equals(asked != null ? asked : user.locale()) ? Locales.VI : Locales.EN;
     }
+
+    /** Letters only Vietnamese uses among the two languages (NFC, lower case). */
+    private static final Pattern VIETNAMESE = Pattern.compile(
+            "[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]");
 
     private String systemPrompt(AuthenticatedUser user, String locale) {
         LocalDate today = LocalDate.ofInstant(Instant.now(clock), TimeConfig.CAMPUS_ZONE);
