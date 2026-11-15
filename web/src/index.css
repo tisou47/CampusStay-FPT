@@ -58,12 +58,13 @@
   --color-gray-800: #2a221d;
   --color-gray-900: #1d1714;
 
-  /* The band: FPT orange across the top of every shell. Everything on it is ink or a white control
-     (white text on FPT orange fails contrast). */
-  --color-band: #f37021;
+  /* The band: a soft FPT-orange gradient across the top of every shell (band → band-to). Everything on it
+     is ink or a white control (white text on orange fails contrast). */
+  --color-band: #fa9452;
+  --color-band-to: #fdb88a;
   --color-band-fg: #1d1714;
-  --color-band-line: #d9600f;
-  --color-band-hover: #fb9a5c;
+  --color-band-line: #f5a26c;
+  --color-band-hover: #fdc7a2;
 
   /* Brand and action */
   --color-primary: #c64f0e;        /* the only action colour: buttons, selection */
@@ -220,6 +221,21 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* The top band of every shell: soft orange, lighter towards the right. */
+@utility bg-band-gradient {
+  background-color: var(--color-band);
+  background-image: linear-gradient(90deg, var(--color-band) 0%, var(--color-band-to) 100%);
+}
+
+/* Scrolls without showing a scrollbar (dropdown lists, the side menu): wheel, touch and keys still work. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Printing QR labels of furniture (FurnitureLabels): only the labels go on paper. */

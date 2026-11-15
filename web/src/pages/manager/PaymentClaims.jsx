@@ -163,10 +163,10 @@ export default function PaymentClaims() {
         description="Students said they transferred. Find each amount and transfer content on the bank statement, then confirm or reject."
         actions={
           <>
-            <Button icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
+            <Button tip="Send the ticked claims back to the students with your reason. Their Invoices stay unpaid." icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
               {t('Reject ({n})', { n: chosen.length })}
             </Button>
-            <Button variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDialog('confirm')}>
+            <Button tip="Mark the ticked Invoices as paid, only after you found each amount and transfer content on the bank statement." variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDialog('confirm')}>
               {t('Confirm ({n})', { n: chosen.length })}
             </Button>
           </>

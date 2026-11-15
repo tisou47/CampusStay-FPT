@@ -30,7 +30,7 @@ import vn.fpt.campusstay.service.visitor.FamilyDays.Slot;
 import vn.fpt.campusstay.service.visitor.FamilyDays.Visitor;
 
 /**
- * Family Day statistics for Staff (their Blocks), Managers and the Admin (contract A-70): how many registrations there
+ * Family Day statistics for Staff (their Blocks), Managers and the Admin (contract A-71): how many registrations there
  * were, how many guests were registered and how many came, and how each time slot went. The overview lists Family Days
  * that are over (Completed, or published with every time slot ended); a Family Day's own figures can be read at any
  * time after it is published and are final once a Manager closes it.
@@ -224,7 +224,7 @@ public class FamilyDayStatsService {
         long studentsReminded = reminded.stream().map(g -> byId.get(g.v().registrationId()).studentId()).distinct()
                 .count();
         long confirmed = all.stream().filter(g -> g.v().safetyConfirmedAt() != null).count();
-        // Checked out after the time slot, by a Manager, without the student's confirmation (contract A-70).
+        // Checked out after the time slot, by a Manager, without the student's confirmation (contract A-71).
         long forced = all.stream().filter(g -> overstayed(g, now) && g.v().status().equals("CHECKED_OUT")
                 && g.v().safetyConfirmedAt() == null && g.v().checkOutNote() != null).count();
         OverdueFigures of = new OverdueFigures(gf.overstayed(), reminded.size(), studentsReminded, confirmed, forced);

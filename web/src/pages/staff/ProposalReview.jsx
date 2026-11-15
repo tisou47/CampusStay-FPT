@@ -216,7 +216,7 @@ function ConflictPanel({ runId, applicationId, block, submitted, onResolved, onC
             <Button variant="primary" icon={Check} onClick={() => resolve.run({ optionKey: choice })} disabled={!choice || resolve.pending}>
               Apply
             </Button>
-            <Button onClick={() => resolve.run({ waitlist: true })} disabled={resolve.pending}>
+            <Button tip="Leave this Application without a Bed for now. It can still get one in Round 2." onClick={() => resolve.run({ waitlist: true })} disabled={resolve.pending}>
               Move to waitlist
             </Button>
           </div>
@@ -311,7 +311,7 @@ export default function ProposalReview() {
               Export
             </Button>
             {activeBlock && !readOnly && (
-              <Button variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
+              <Button tip="Fix the proposed Beds of this Block for good. Every conflict must be resolved first." variant="primary" icon={Check} disabled={!ready} onClick={() => setCommitting(true)}>
                 {submitted ? t('Block {code} committed', { code: tab }) : t('Commit Block {code}', { code: tab })}
               </Button>
             )}

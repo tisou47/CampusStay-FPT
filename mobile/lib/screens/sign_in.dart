@@ -42,8 +42,12 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _finish(Json result) async {
     final user = result.obj('user') ?? {};
     if (user['role'] != 'student') {
-      setState(() => _error = t('This app is for students. Staff and Managers use the web.',
-          'Ứng dụng dành cho sinh viên. Nhân viên và Quản lý dùng bản web.'));
+      setState(
+        () => _error = t(
+          'This app is for students. Staff and Managers use the web.',
+          'Ứng dụng dành cho sinh viên. Nhân viên và Quản lý dùng bản web.',
+        ),
+      );
       return;
     }
     await widget.onSignedIn(result.text('token'), user);
@@ -60,20 +64,24 @@ class _SignInScreenState extends State<SignInScreen> {
       _error = e.message;
     } on GoogleSignInException catch (e) {
       if (e.code != GoogleSignInExceptionCode.canceled) {
-        _error = t('Google sign-in is not available on this phone: ', 'Không đăng nhập Google được trên máy này: ') +
+        _error =
+            t('Google sign-in is not available on this phone: ', 'Không đăng nhập Google được trên máy này: ') +
             (e.description ?? e.code.name);
       }
     }
     if (mounted) setState(() => _busy = false);
   }
 
-  Future<void> _signIn() => _run(() async => _finish(await Api.post('/auth/sign-in',
-      {'email': _email.text.trim(), 'password': _password.text, 'remember': true})));
+  Future<void> _signIn() => _run(
+    () async => _finish(
+      await Api.post('/auth/sign-in', {'email': _email.text.trim(), 'password': _password.text, 'remember': true}),
+    ),
+  );
 
   Future<void> _google() => _run(() async {
-        final idToken = await googleIdToken();
-        if (idToken != null) await _finish(await Api.post('/auth/google', {'credential': idToken, 'remember': true}));
-      });
+    final idToken = await googleIdToken();
+    if (idToken != null) await _finish(await Api.post('/auth/google', {'credential': idToken, 'remember': true}));
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -83,39 +91,50 @@ class _SignInScreenState extends State<SignInScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, spacing: 16, children: [
-              Text('CampusStay FPT',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 16,
+              children: [
+                Text(
+                  'CampusStay FPT',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium
-                      ?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-              Text(t('Dormitory of FPT University, Tân Uyên Campus', 'Ký túc xá Đại học FPT, cơ sở Tân Uyên'),
-                  textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-              ),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                autofillHints: const [AutofillHints.password],
-                onSubmitted: (_) => _signIn(),
-                decoration: InputDecoration(labelText: t('Password', 'Mật khẩu'), border: const OutlineInputBorder()),
-              ),
-              if (_error != null) Note(_error!, error: true),
-              FilledButton(
-                onPressed: _busy || _email.text.trim().isEmpty || _password.text.isEmpty ? null : _signIn,
-                child: _busy
-                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(t('Sign in', 'Đăng nhập')),
-              ),
-              if (googleClientId.isNotEmpty)
-                OutlinedButton(
-                  onPressed: _busy ? null : _google,
-                  child: Text(t('Sign in with Google (@fpt.edu.vn)', 'Đăng nhập bằng Google (@fpt.edu.vn)')),
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-            ]),
+                Text(
+                  t('Dormitory of FPT University, Tân Uyên Campus', 'Ký túc xá Đại học FPT, cơ sở Tân Uyên'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                TextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                ),
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.password],
+                  onSubmitted: (_) => _signIn(),
+                  decoration: InputDecoration(labelText: t('Password', 'Mật khẩu'), border: const OutlineInputBorder()),
+                ),
+                if (_error != null) Note(_error!, error: true),
+                FilledButton(
+                  onPressed: _busy || _email.text.trim().isEmpty || _password.text.isEmpty ? null : _signIn,
+                  child: _busy
+                      ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(t('Sign in', 'Đăng nhập')),
+                ),
+                if (googleClientId.isNotEmpty)
+                  OutlinedButton(
+                    onPressed: _busy ? null : _google,
+                    child: Text(t('Sign in with Google (@fpt.edu.vn)', 'Đăng nhập bằng Google (@fpt.edu.vn)')),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -192,27 +211,41 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, spacing: 16, children: [
-              Text(t('Set your CampusStay password', 'Đặt mật khẩu CampusStay'),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-              Text(t('You signed up with Google as ${widget.email}. Choose a password to use CampusStay.',
-                  'Bạn đã đăng ký bằng Google với ${widget.email}. Hãy chọn mật khẩu để dùng CampusStay.')),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration:
-                    InputDecoration(labelText: t('New password', 'Mật khẩu mới'), border: const OutlineInputBorder()),
-              ),
-              TextField(
-                controller: _again,
-                obscureText: true,
-                decoration: InputDecoration(
-                    labelText: t('Repeat the password', 'Nhập lại mật khẩu'), border: const OutlineInputBorder()),
-              ),
-              if (_error != null) Note(_error!, error: true),
-              FilledButton(onPressed: _busy ? null : _save, child: Text(t('Save the password', 'Lưu mật khẩu'))),
-              OutlinedButton(onPressed: widget.onSignOut, child: Text(t('Sign out', 'Đăng xuất'))),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 16,
+              children: [
+                Text(
+                  t('Set your CampusStay password', 'Đặt mật khẩu CampusStay'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  t(
+                    'You signed up with Google as ${widget.email}. Choose a password to use CampusStay.',
+                    'Bạn đã đăng ký bằng Google với ${widget.email}. Hãy chọn mật khẩu để dùng CampusStay.',
+                  ),
+                ),
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: t('New password', 'Mật khẩu mới'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                TextField(
+                  controller: _again,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: t('Repeat the password', 'Nhập lại mật khẩu'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                if (_error != null) Note(_error!, error: true),
+                FilledButton(onPressed: _busy ? null : _save, child: Text(t('Save the password', 'Lưu mật khẩu'))),
+                OutlinedButton(onPressed: widget.onSignOut, child: Text(t('Sign out', 'Đăng xuất'))),
+              ],
+            ),
           ),
         ),
       ),

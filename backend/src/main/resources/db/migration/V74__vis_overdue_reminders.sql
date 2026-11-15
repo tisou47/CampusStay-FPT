@@ -1,6 +1,6 @@
 -- =====================================================================
--- CampusStay FPT — V72: Family Day guests who stay past their time slot
--- (ADR-29, contract A-70). The desk reminds, in one batch, every student
+-- CampusStay FPT — V74: Family Day guests who stay past their time slot
+-- (ADR-29, contract A-71). The desk reminds, in one batch, every student
 -- whose guests are still inside after their time slot; the student asks
 -- their family to leave and confirms that they are safe; only then do
 -- Staff close the visit (a Manager may close it without the confirmation,

@@ -101,7 +101,7 @@ function Round2Tab({ term }) {
             {t('Waitlisted students without an open offer get up to three held Beds of other kinds, nearest price first, in partly filled Rooms first. They choose one or decline on their offer page; an unanswered offer expires and the Application is cancelled with its Deposit refunded.')}
           </p>
         </div>
-        <Button variant="primary" icon={Repeat2} disabled={!term || !s?.waitlisted || !s?.freeBeds || run.pending} onClick={() => setConfirming(true)}>
+        <Button tip="Offer the free Beds to waitlisted students. Needs waitlisted students and free Beds in this Term." variant="primary" icon={Repeat2} disabled={!term || !s?.waitlisted || !s?.freeBeds || run.pending} onClick={() => setConfirming(true)}>
           Send Round 2 offers
         </Button>
       </Card>
@@ -373,10 +373,10 @@ export default function AssignmentRuns() {
         actions={
           tab === 'runs' && (
             <>
-              <Button icon={Eye} onClick={() => setStarting('dry')} disabled={!term}>
+              <Button tip="Try the engine without saving anything, to preview its proposals before a real run." icon={Eye} onClick={() => setStarting('dry')} disabled={!term}>
                 Dry run
               </Button>
-              <Button icon={Plus} onClick={() => setStarting('final')} disabled={!term}>
+              <Button tip="Run the engine for real. Its proposals are then reviewed and committed Block by Block." icon={Plus} onClick={() => setStarting('final')} disabled={!term}>
                 Start new run
               </Button>
             </>

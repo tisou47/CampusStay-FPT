@@ -28,13 +28,25 @@ class SessionStore {
   Session? load() {
     final token = _prefs.getString('token');
     if (token == null) return null;
-    return Session(token, _prefs.getString('name') ?? '', _prefs.getString('email') ?? '',
-        _prefs.getString('studentCode'), _prefs.getBool('passwordSet') ?? true, _prefs.getString('verification'));
+    return Session(
+      token,
+      _prefs.getString('name') ?? '',
+      _prefs.getString('email') ?? '',
+      _prefs.getString('studentCode'),
+      _prefs.getBool('passwordSet') ?? true,
+      _prefs.getString('verification'),
+    );
   }
 
   Future<Session> save(String token, Json user) async {
-    final session = Session(token, user.text('name'), user.text('email'), user.str('studentCode'),
-        user['passwordSet'] != false, user.str('verification'));
+    final session = Session(
+      token,
+      user.text('name'),
+      user.text('email'),
+      user.str('studentCode'),
+      user['passwordSet'] != false,
+      user.str('verification'),
+    );
     await _prefs.setString('token', token);
     await _prefs.setString('name', session.name);
     await _prefs.setString('email', session.email);

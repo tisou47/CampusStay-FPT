@@ -1,6 +1,6 @@
 # Kịch bản test thủ công: Family Day
 
-Nhánh `dev` (Family Day, ADR-29, contract A-69; khách quá giờ và thống kê, A-70). Ngày soạn: 10/11/2026, bổ sung 13/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
+Nhánh `dev` (Family Day, ADR-29, contract A-69; khách quá giờ và thống kê, A-71). Ngày soạn: 10/11/2026, bổ sung 13/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
 
 ## 0. Chuẩn bị
 

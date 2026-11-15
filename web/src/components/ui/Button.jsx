@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { Tooltip } from './Tooltip'
 
 // Figma: 02 Components › Button (maps to Ant Design <Button>).
 // Type: Primary (one per view), Default, Text (link-style), Danger (destructive).
@@ -19,7 +20,21 @@ const sizes = {
   lg: 'h-10 gap-2 px-5',
 }
 
-export function Button({
+/**
+ * tip: optional tooltip explaining what the button does (a string, or { title, label, side, align }).
+ * A disabled button still shows it, so the reason it is off can be read there.
+ */
+export function Button({ tip, ...props }) {
+  if (!tip) return <BaseButton {...props} />
+  const o = typeof tip === 'object' && (tip.label !== undefined || tip.title !== undefined) ? tip : { label: tip }
+  return (
+    <Tooltip label={o.label} title={o.title} side={o.side} align={o.align} className={props.block ? 'w-full' : undefined}>
+      <BaseButton {...props} />
+    </Tooltip>
+  )
+}
+
+function BaseButton({
   variant = 'default',
   size = 'md',
   icon: IconBefore,
@@ -78,8 +93,21 @@ export function Button({
   )
 }
 
-/** Square icon-only button (row actions, close buttons). Always pass an aria-label. */
-export function IconButton({ icon: Glyph, size = 'md', iconSize, variant = 'ghost', className, ...props }) {
+/**
+ * Square icon-only button (row actions, close buttons). Always pass an aria-label: it is also shown as the
+ * tooltip, unless tip gives another text or tip={false} turns it off.
+ */
+export function IconButton({ tip, tipSide = 'top', tipAlign = 'center', ...props }) {
+  const label = tip === false ? null : (tip ?? props['aria-label'])
+  if (!label) return <BaseIconButton {...props} />
+  return (
+    <Tooltip label={label} side={tipSide} align={tipAlign}>
+      <BaseIconButton {...props} />
+    </Tooltip>
+  )
+}
+
+function BaseIconButton({ icon: Glyph, size = 'md', iconSize, variant = 'ghost', className, ...props }) {
   const box = { sm: 'size-7', md: 'size-8', lg: 'size-10' }[size]
   const look = {
     ghost: 'text-fg-secondary hover:bg-subtle hover:text-fg',

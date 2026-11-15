@@ -38,7 +38,7 @@ export function MobileAppBar() {
   const { unread } = useNotifications()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
-    <header data-band className="z-30 flex h-16 shrink-0 items-center gap-4 border-b border-band-line bg-band px-4 lg:hidden">
+    <header data-band className="z-30 flex h-16 shrink-0 items-center gap-4 border-b border-band-line bg-band-gradient px-4 lg:hidden">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       {bar?.back && (
         <Link to={bar.back} aria-label={t('Back')} className="-ml-1 rounded-md p-1 text-band-fg hover:bg-band-hover">

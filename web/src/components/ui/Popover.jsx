@@ -5,7 +5,7 @@ import { cx } from '@/lib/cx'
 /**
  * Minimal anchored popover (Elevation/2 Dropdown). `trigger` receives { open, toggle, props }.
  */
-export function Popover({ trigger, children, align = 'end', width = 320, className }) {
+export function Popover({ trigger, children, align = 'end', width = 320, minWidth, className }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -27,9 +27,9 @@ export function Popover({ trigger, children, align = 'end', width = 320, classNa
       {trigger({ open, toggle: () => setOpen((o) => !o), props: { 'aria-expanded': open, 'aria-haspopup': 'true' } })}
       {open && (
         <div
-          style={{ width }}
+          style={{ width, minWidth }}
           className={cx(
-            'absolute top-full z-40 mt-2 animate-pop-in rounded-lg border border-line bg-surface shadow-dropdown',
+            'absolute top-full z-40 mt-2 animate-pop-in rounded-xl border border-line bg-surface shadow-dropdown',
             align === 'end' ? 'right-0' : 'left-0',
             className,
           )}

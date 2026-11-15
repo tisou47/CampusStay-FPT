@@ -241,7 +241,7 @@ export default function MeterReadings() {
                 e.target.value = ''
               }}
             />
-            <Button variant="primary" onClick={() => setClosing(true)} disabled={closed || !activePeriod}>
+            <Button tip="Close the reading period and bill Utility to the residents. Readings can no longer change afterwards." variant="primary" onClick={() => setClosing(true)} disabled={closed || !activePeriod}>
               {closed ? t('Period closed') : t('Close period and bill')}
             </Button>
           </>

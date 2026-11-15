@@ -30,7 +30,7 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 //   checkedOutAt, checkedOutBy, checkOutNote }], total, counts: { notArrived, inside, overdue, checkedOut, noShow },
 //   statuses }
 // POST /family-day-visitors/:id/check-in { identityChecked } · POST /family-day-visitors/:id/check-out { note }
-// A-70: overdue guests wait for their student's safety confirmation (remindedAt, reminders, safetyConfirmedAt,
+// A-71: overdue guests wait for their student's safety confirmation (remindedAt, reminders, safetyConfirmedAt,
 // safetyNote; counts.awaitingSafety, counts.safetyConfirmed) before Staff check them out; a Manager may do it with a
 // note. POST /family-days/:id/overdue-reminders → { students, guests } reminds every student concerned at once.
 
@@ -167,7 +167,7 @@ function CheckInModal({ visitor, onClose }) {
   )
 }
 
-/** A-70: an overdue guest whose student has not confirmed they are safe; only a Manager may check them out, with a note. */
+/** A-71: an overdue guest whose student has not confirmed they are safe; only a Manager may check them out, with a note. */
 const awaitingSafety = (v) => v.overdue && !v.safetyConfirmedAt
 
 /** What the desk knows about an overdue guest: reminders sent, the student's confirmation. */
@@ -216,7 +216,7 @@ function CheckOutModal({ visitor, manager, onClose }) {
   const { notify } = useToast()
   const [unseen, setUnseen] = useState(false)
   const [note, setNote] = useState('')
-  // A Manager checking out a guest the student has not confirmed safe must say why (A-70).
+  // A Manager checking out a guest the student has not confirmed safe must say why (A-71).
   const override = awaitingSafety(visitor)
   const needsNote = unseen || override
   const run = useMutation(() => api.familyDays.checkOut(visitor.id, { note: needsNote ? note.trim() : null }), {

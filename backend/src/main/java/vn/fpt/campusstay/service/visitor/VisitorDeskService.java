@@ -222,7 +222,7 @@ public class VisitorDeskService {
     /**
      * Records that a guest left. A guest who left without passing the desk is closed with a note saying so: the time
      * recorded is when the desk closes the visit, never a guessed one. A guest still inside after their time slot
-     * (Overdue) is checked out only once their student has confirmed they are safe (contract A-70); a Manager may do it
+     * (Overdue) is checked out only once their student has confirmed they are safe (contract A-71); a Manager may do it
      * without that confirmation, writing why in the note.
      */
     @Transactional

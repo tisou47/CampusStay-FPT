@@ -28,7 +28,7 @@ import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 //   checkedInAt, checkedOutAt }] } | null }
 // POST /students/me/family-days/:id/registration { slotId, guests: [{ fullName, relationship, birthYear }] }
 // POST /students/me/family-days/:id/registration/cancel
-// A-70: guests still inside after the time slot are `overdue`; the student confirms they are safe:
+// A-71: guests still inside after the time slot are `overdue`; the student confirms they are safe:
 // POST /students/me/family-days/:id/registration/safety-confirmation { note? }
 
 const RELATIONSHIPS = ['Father', 'Mother', 'Brother', 'Sister', 'Grandparent', 'Guardian', 'Relative']
@@ -115,7 +115,7 @@ function RegisterForm({ day }) {
 }
 
 /**
- * Guests still inside after the time slot (A-70): the desk reminds the student, who asks their family to leave through
+ * Guests still inside after the time slot (A-71): the desk reminds the student, who asks their family to leave through
  * the desk and confirms here that they are safe; the desk checks them out only after that.
  */
 function OverdueGuests({ day, registration }) {

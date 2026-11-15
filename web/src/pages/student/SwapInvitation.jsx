@@ -72,7 +72,7 @@ function Invitation({ inv }) {
           <Button size="lg" onClick={() => respond.run(false)} disabled={respond.pending}>
             Decline
           </Button>
-          <Button variant="primary" size="lg" onClick={() => respond.run(true)} disabled={respond.pending}>
+          <Button tip="You and the other student exchange Beds for next Term, after approval. No price difference is charged." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={respond.pending}>
             Accept swap
           </Button>
         </div>

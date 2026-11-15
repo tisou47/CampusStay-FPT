@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.visitor.FamilyDayStatsService;
 
-/** Family Day statistics for Staff, Managers and the Admin: contract A-70. */
+/** Family Day statistics for Staff, Managers and the Admin: contract A-71. */
 @RestController
 class FamilyDayStatsController {
 

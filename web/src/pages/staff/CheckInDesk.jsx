@@ -159,7 +159,7 @@ function StudentPanel({ person, onDone }) {
           type="warning"
           title={t('Check-in window closed on {date}', { date: formatDate(term.checkInEnd) })}
           action={
-            <Button icon={CalendarClock} onClick={() => setLate(true)}>
+            <Button tip="For a student who cannot come on the check-in day: record the reason and the planned date. A Manager decides." icon={CalendarClock} onClick={() => setLate(true)}>
               Record late check-in
             </Button>
           }
@@ -213,7 +213,7 @@ function StudentPanel({ person, onDone }) {
           </Field>
           <div className="flex justify-end gap-2">
             <Button onClick={onDone}>Cancel</Button>
-            <Button variant="primary" icon={Check} disabled={!all || confirm.pending} onClick={() => confirm.run()}>
+            <Button tip="Tick every item of the checklist first. The stay starts and a meter reading is taken." variant="primary" icon={Check} disabled={!all || confirm.pending} onClick={() => confirm.run()}>
               Confirm check-in
             </Button>
           </div>

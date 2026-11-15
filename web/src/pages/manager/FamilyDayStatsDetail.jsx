@@ -14,7 +14,7 @@ import { t, tr } from '@/i18n'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 import { statsBase } from './FamilyDayStats'
 
-// SCR-VIS-07 Statistics of one Family Day — Staff of the Block, Managers, the Admin (contract A-70): registrations,
+// SCR-VIS-07 Statistics of one Family Day — Staff of the Block, Managers, the Admin (contract A-71): registrations,
 // guests registered and arrived, each time slot (places, arrivals, No-shows, guests who stayed late), when families
 // came, the overdue procedure (reminders, students' confirmations). Final once a Manager closed the Family Day.
 // GET /family-days/:id/stats → { id, block, title, area, status, complete, startsAt, endsAt, closedAt, capacity, booked,

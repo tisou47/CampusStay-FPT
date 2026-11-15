@@ -488,7 +488,7 @@ class FamilyDayIT {
     }
 
     /**
-     * TC-VIS-009 (contract A-70): guests still inside after their time slot. The desk reminds every student concerned in
+     * TC-VIS-009 (contract A-71): guests still inside after their time slot. The desk reminds every student concerned in
      * one batch (one notification each, sent again while guests stay); a student confirms their guests are safe; Staff
      * check out a confirmed guest and must wait for the others; nothing to remind or confirm before the slot ends.
      */
@@ -557,7 +557,7 @@ class FamilyDayIT {
     }
 
     /**
-     * TC-VIS-010 (contract A-70): Family Day statistics. The Block's Staff, Managers and the Admin read the figures of a
+     * TC-VIS-010 (contract A-71): Family Day statistics. The Block's Staff, Managers and the Admin read the figures of a
      * Family Day (registrations, guests registered and arrived, time slots, the overdue procedure) and the overview of
      * the Family Days that are over; Staff of another Block and students cannot; a Draft has none.
      */

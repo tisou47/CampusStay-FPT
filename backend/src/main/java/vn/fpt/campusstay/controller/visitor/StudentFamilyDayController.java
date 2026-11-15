@@ -43,7 +43,7 @@ class StudentFamilyDayController {
     record SafetyRequest(@Size(max = 500, message = "Keep the note under 500 characters.") String note) {
     }
 
-    /** The student confirms their guests still inside after the time slot are safe (contract A-70). */
+    /** The student confirms their guests still inside after the time slot are safe (contract A-71). */
     @PostMapping("/students/me/family-days/{id}/registration/safety-confirmation")
     StudentFamilyDayService.MyFamilyDay confirmSafety(@PathVariable String id,
             @Valid @RequestBody(required = false) SafetyRequest body) {

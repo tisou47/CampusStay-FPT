@@ -12,7 +12,7 @@ import { formatDateTime, formatNumber, formatTime } from '@/lib/format'
 import { t } from '@/i18n'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 
-// SCR-VIS-06 Family Day statistics — Staff (their Blocks), Managers and the Admin (contract A-70). The Family Days that
+// SCR-VIS-06 Family Day statistics — Staff (their Blocks), Managers and the Admin (contract A-71). The Family Days that
 // are over (Completed, or every time slot ended) with their figures and the totals; a row opens SCR-VIS-07.
 // GET /family-day-stats?block → { totals: { familyDays, registrations, guestsRegistered, guestsArrived, noShow,
 //   overstayed, attendanceRate }, items: [{ id, block, title, area, status, startsAt, endsAt, capacity, registrations,

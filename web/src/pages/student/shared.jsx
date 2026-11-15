@@ -22,7 +22,7 @@ import { countLines } from '@/lib/furniture'
  * On a phone the title moves to the App Bar (the h1 stays for screen readers), the page
  * scrolls as a whole, and a breadcrumb's parent becomes the App Bar's back target.
  */
-export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, badgeOnPhone = true, description, actions, width, className, children }) {
+export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, badgeOnPhone = true, description, actions, width, className, headerless = false, children }) {
   const back = breadcrumb?.length > 1 ? breadcrumb[breadcrumb.length - 2].to : undefined
   useMobileBar(mobileTitle ?? title, back)
   const phoneHeader = (badge && badgeOnPhone) || actions
@@ -30,7 +30,7 @@ export function StudentPage({ breadcrumb, title, mobileTitle, phoneTop, badge, b
     <StudentContainer className="flex flex-col pt-2 pb-4 lg:h-full lg:min-h-0 lg:py-6">
       <div className={cx('mx-auto flex w-full flex-col gap-3 lg:min-h-0 lg:flex-1 lg:gap-4', width, className)}>
         {phoneTop}
-        <header className={cx('flex flex-col gap-3 lg:shrink-0 lg:flex-row lg:items-end lg:justify-between lg:gap-6', !phoneHeader && 'max-lg:sr-only')}>
+        <header className={cx('flex flex-col gap-3 lg:shrink-0 lg:flex-row lg:items-end lg:justify-between lg:gap-6', (headerless || !phoneHeader) && 'max-lg:sr-only', headerless && 'lg:sr-only')}>
           <div className="flex min-w-0 flex-col gap-1">
             {breadcrumb && <Breadcrumb items={breadcrumb} className="max-lg:hidden" />}
             <div className="flex items-center gap-3">

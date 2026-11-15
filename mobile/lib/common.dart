@@ -1,11 +1,11 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+
+export 'ui.dart';
 
 // ---------------------------------------------------------------- language (spec §11.6)
 
 /// The app follows the phone's language: Vietnamese, else English.
-bool isVietnamese() => PlatformDispatcher.instance.locale.languageCode == 'vi';
+bool isVietnamese() => WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'vi';
 
 /// The text in the phone's language.
 String t(String en, String vi) => isVietnamese() ? vi : en;
@@ -18,17 +18,71 @@ String label(String? text) {
 }
 
 const _labels = {
-  'Unpaid': 'Chưa thanh toán', 'Paid': 'Đã thanh toán', 'Overdue': 'Quá hạn',
-  'Awaiting confirmation': 'Chờ xác nhận', 'Refunded': 'Đã hoàn tiền', 'Void': 'Đã huỷ', 'Upcoming': 'Sắp tới',
-  'Assigned – unpaid': 'Đã xếp – chưa thanh toán', 'Paid – waiting for the door code': 'Đã thanh toán – chờ mã cửa',
-  'Resident': 'Đang ở', 'Submitted': 'Đã gửi', 'Assigned': 'Đã giao', 'In progress': 'Đang xử lý',
-  'Resolved': 'Đã xử lý', 'Closed': 'Đã đóng', 'Pending': 'Đang chờ', 'Approved': 'Đã duyệt',
-  'Rejected': 'Bị từ chối', 'Cancelled': 'Đã huỷ', 'Continuing': 'Tiếp tục ở', 'Awaiting extension': 'Chờ gia hạn',
-  'Not continuing': 'Không tiếp tục', 'Awaiting consent': 'Chờ đồng ý', 'Waiting for Staff': 'Chờ nhân viên',
-  'Ready': 'Sẵn sàng', 'Not ready': 'Chưa sẵn sàng', 'Not set': 'Chưa đặt', 'In use': 'Đang dùng',
-  'Broken': 'Hỏng', 'In repair': 'Đang sửa', 'Normal': 'Bình thường', 'Urgent': 'Khẩn cấp',
-  'Deposit': 'Tiền cọc', 'Balance': 'Tiền phòng', 'Utility': 'Điện nước', 'Room fee': 'Phí phòng',
-  'Damage': 'Bồi thường', 'Notice sent': 'Đã gửi thông báo', 'Checked out': 'Đã trả phòng',
+  'Unpaid': 'Chưa thanh toán',
+  'Paid': 'Đã thanh toán',
+  'Overdue': 'Quá hạn',
+  'Awaiting confirmation': 'Chờ xác nhận',
+  'Refunded': 'Đã hoàn tiền',
+  'Void': 'Đã huỷ',
+  'Upcoming': 'Sắp tới',
+  'Assigned – unpaid': 'Đã xếp – chưa thanh toán',
+  'Paid – waiting for the door code': 'Đã thanh toán – chờ mã cửa',
+  'Resident': 'Đang ở',
+  'Submitted': 'Đã gửi',
+  'Assigned': 'Đã giao',
+  'In progress': 'Đang xử lý',
+  'Resolved': 'Đã xử lý',
+  'Closed': 'Đã đóng',
+  'Pending': 'Đang chờ',
+  'Approved': 'Đã duyệt',
+  'Rejected': 'Bị từ chối',
+  'Cancelled': 'Đã huỷ',
+  'Continuing': 'Tiếp tục ở',
+  'Awaiting extension': 'Chờ gia hạn',
+  'Not continuing': 'Không tiếp tục',
+  'Awaiting consent': 'Chờ đồng ý',
+  'Waiting for Staff': 'Chờ nhân viên',
+  'Ready': 'Sẵn sàng',
+  'Not ready': 'Chưa sẵn sàng',
+  'Not set': 'Chưa đặt',
+  'In use': 'Đang dùng',
+  'Broken': 'Hỏng',
+  'In repair': 'Đang sửa',
+  'Normal': 'Bình thường',
+  'Urgent': 'Khẩn cấp',
+  'Deposit': 'Tiền cọc',
+  'Balance': 'Tiền phòng',
+  'Utility': 'Điện nước',
+  'Room fee': 'Phí phòng',
+  'Damage': 'Bồi thường',
+  'Notice sent': 'Đã gửi thông báo',
+  'Checked out': 'Đã trả phòng',
+  'Awaiting Deposit': 'Chờ đặt cọc',
+  'Awaiting Roommate': 'Chờ bạn cùng phòng',
+  'Under Review': 'Đang xét duyệt',
+  'Waitlisted': 'Danh sách chờ',
+  'Allocated': 'Đã xếp phòng',
+  'Forfeited': 'Mất cọc',
+  'Expired': 'Hết hạn',
+  'Invited': 'Đã mời',
+  'Accepted': 'Đã chấp nhận',
+  'Declined': 'Đã từ chối',
+  'Agreed': 'Đã đồng ý',
+  'Opens soon': 'Sắp mở',
+  'Open': 'Đang mở',
+  'Verified': 'Đã xác minh',
+  'Pending verification': 'Chờ xác minh',
+  'Profile needed': 'Cần bổ sung hồ sơ',
+  'Claimed': 'Đã báo chuyển khoản',
+  'Warning': 'Cảnh báo',
+  'Final warning': 'Cảnh báo cuối',
+  'Terminated': 'Chấm dứt',
+  'Registration': 'Đăng ký',
+  'Finance': 'Tài chính',
+  'Rules': 'Nội quy',
+  'Operations': 'Vận hành',
+  'Male': 'Nam',
+  'Female': 'Nữ',
 };
 
 // ---------------------------------------------------------------- formats
@@ -165,113 +219,20 @@ class ErrorBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(message, style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
-        if (retry != null) ...[
-          const SizedBox(height: 12),
-          FilledButton(onPressed: retry, child: Text(t('Retry', 'Thử lại'))),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+            textAlign: TextAlign.center,
+          ),
+          if (retry != null) ...[
+            const SizedBox(height: 12),
+            FilledButton(onPressed: retry, child: Text(t('Retry', 'Thử lại'))),
+          ],
         ],
-      ]),
-    );
-  }
-}
-
-// ---------------------------------------------------------------- pieces
-
-/// A list of cards with the screens' spacing.
-class Cards extends StatelessWidget {
-  const Cards({super.key, required this.children, this.bottom = 16});
-
-  final List<Widget> children;
-  final double bottom;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16, 16, 16, bottom),
-      itemCount: children.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (_, i) => children[i],
-    );
-  }
-}
-
-class Section extends StatelessWidget {
-  const Section({super.key, required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-          for (final child in children) Padding(padding: const EdgeInsets.only(top: 8), child: child),
-        ]),
       ),
     );
-  }
-}
-
-class Line extends StatelessWidget {
-  const Line(this.name, this.value, {super.key});
-
-  final String name;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: Text(name, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
-      const SizedBox(width: 12),
-      Flexible(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w500))),
-    ]);
-  }
-}
-
-/// A status as a coloured chip: green when done or paid, amber when waiting, red when late or refused.
-class StatusChip extends StatelessWidget {
-  const StatusChip(this.status, {super.key});
-
-  final String? status;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = status;
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    final color = switch (value) {
-      'Paid' || 'Resident' || 'Resolved' || 'Closed' || 'Approved' || 'Continuing' || 'Ready' || 'Checked out' =>
-        const Color(0xFF1E8E3E),
-      'Overdue' || 'Rejected' || 'Void' || 'Cancelled' || 'Not continuing' || 'Notice sent' => const Color(0xFFC5221F),
-      _ => const Color(0xFFB06000),
-    };
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.5)), borderRadius: BorderRadius.circular(8)),
-        child: Text(label(value), style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 13)),
-      ),
-    );
-  }
-}
-
-/// A short message under an action, in the brand colour.
-class Note extends StatelessWidget {
-  const Note(this.text, {super.key, this.error = false});
-
-  final String text;
-  final bool error;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Text(text, style: TextStyle(color: error ? scheme.error : scheme.primary));
   }
 }

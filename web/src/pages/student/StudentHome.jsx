@@ -82,7 +82,7 @@ function HomeContent({ home }) {
         title={term ? t('Apply for a dormitory Bed for {term}', { term: term.name }) : t('Apply for a dormitory Bed')}
         deadline={left != null && left >= 0 ? t(left === 1 ? 'Registration closes in {n} day' : 'Registration closes in {n} days', { n: left }) : null}
         action={
-          <Button variant="primary" size="lg" to="/student/apply/term" disabled={!term?.registrationOpen}>
+          <Button tip="Available while the registration period of a Term is open." variant="primary" size="lg" to="/student/apply/term" disabled={!term?.registrationOpen}>
             Start application
           </Button>
         }

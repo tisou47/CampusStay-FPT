@@ -226,7 +226,7 @@ function Payment({ data, reload }) {
                   <Field label="Bank reference (optional)" className="sm:flex-1">
                     <Input value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />
                   </Field>
-                  <Button variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
+                  <Button tip="Tell the dormitory you paid. A Manager checks it against the bank statement, then the Invoice shows as paid." variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
                     {sendClaim.pending ? t('Sending…') : t('I have transferred')}
                   </Button>
                 </div>

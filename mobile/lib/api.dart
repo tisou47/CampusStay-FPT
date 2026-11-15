@@ -9,8 +9,10 @@ import 'common.dart';
 
 /// The API the app talks to; production by default. For a local backend on the emulator:
 /// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api`
-const apiBaseUrl = String.fromEnvironment('API_BASE_URL',
-    defaultValue: 'https://campusstay-api.eastasia.cloudapp.azure.com/api');
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'https://campusstay-api.eastasia.cloudapp.azure.com/api',
+);
 
 /// An error answer of the API (`{ message, code?, details? }`, contract "Errors"): [message] is written for the user
 /// and shown as is; [fields] are the messages of `details.fields`.
@@ -31,7 +33,8 @@ class ApiException implements Exception {
 class Api {
   Api._();
 
-  static final _client = http.Client();
+  /// The HTTP client; tests put a `MockClient` here.
+  static http.Client client = http.Client();
 
   /// The signed-in student's token; null when signed out.
   static String? token;
@@ -46,15 +49,56 @@ class Api {
 
   static Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) => _call('PUT', path, body);
 
-  /// A `multipart/form-data` POST of text fields (contract "Uploads").
-  static Future<Map<String, dynamic>> multipart(String path, Map<String, String> fields) {
+  /// The query string of [params] (nulls and blanks left out), with the leading `?`.
+  static String query(Map<String, Object?> params) {
+    final kept = {
+      for (final e in params.entries)
+        if (e.value != null && '${e.value}'.isNotEmpty) e.key: '${e.value}',
+    };
+    return kept.isEmpty ? '' : '?${Uri(queryParameters: kept).query}';
+  }
+
+  /// A `multipart/form-data` POST of text fields and files (contract "Uploads"): [files] are `(field, file path)`.
+  static Future<Map<String, dynamic>> multipart(
+    String path,
+    Map<String, String> fields, [
+    List<(String, String)> files = const [],
+  ]) async {
     final request = http.MultipartRequest('POST', _url(path))..fields.addAll(fields);
+    for (final (field, file) in files) {
+      request.files.add(await http.MultipartFile.fromPath(field, file));
+    }
     return _send(request);
+  }
+
+  /// A file of the API (a receipt PDF), with the bearer token.
+  static Future<Uint8List> download(String path) async {
+    final request = http.Request('GET', _url(path));
+    request.headers['Accept-Language'] = isVietnamese() ? 'vi' : 'en';
+    final bearer = token;
+    if (bearer != null) request.headers['Authorization'] = 'Bearer $bearer';
+    final http.Response response;
+    try {
+      response = await http.Response.fromStream(await client.send(request).timeout(const Duration(seconds: 60)));
+    } on Exception {
+      throw ApiException(
+        0,
+        'NETWORK',
+        t(
+          'Cannot reach the server. Check your connection and try again.',
+          'Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.',
+        ),
+      );
+    }
+    if (response.statusCode >= 300) {
+      throw ApiException(response.statusCode, null, t('Could not download the file.', 'Không tải được tệp.'));
+    }
+    return response.bodyBytes;
   }
 
   /// The bytes of an image the API links to (the VietQR image of a payment).
   static Future<Uint8List> bytes(String absoluteUrl) async {
-    final response = await _client.get(Uri.parse(absoluteUrl)).timeout(const Duration(seconds: 30));
+    final response = await client.get(Uri.parse(absoluteUrl)).timeout(const Duration(seconds: 30));
     if (response.statusCode >= 300) throw HttpException('HTTP ${response.statusCode}');
     return response.bodyBytes;
   }
@@ -76,10 +120,16 @@ class Api {
     if (bearer != null) request.headers['Authorization'] = 'Bearer $bearer';
     final http.Response response;
     try {
-      response = await http.Response.fromStream(await _client.send(request).timeout(const Duration(seconds: 30)));
+      response = await http.Response.fromStream(await client.send(request).timeout(const Duration(seconds: 30)));
     } on Exception {
-      throw ApiException(0, 'NETWORK', t('Cannot reach the server. Check your connection and try again.',
-          'Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.'));
+      throw ApiException(
+        0,
+        'NETWORK',
+        t(
+          'Cannot reach the server. Check your connection and try again.',
+          'Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.',
+        ),
+      );
     }
     Map<String, dynamic> json = {};
     final text = utf8.decode(response.bodyBytes, allowMalformed: true);
@@ -87,6 +137,8 @@ class Api {
       try {
         final decoded = jsonDecode(text);
         if (decoded is Map<String, dynamic>) json = decoded;
+        // A list answer (`GET /banks`) reads as `{ items }`.
+        if (decoded is List) json = {'items': decoded};
       } on FormatException {
         // not JSON: keep the empty body
       }
@@ -103,7 +155,11 @@ class Api {
     }
     final code = json['code'];
     final message = json['message'];
-    throw ApiException(response.statusCode, code is String && code.isNotEmpty ? code : null,
-        message is String && message.isNotEmpty ? message : 'HTTP ${response.statusCode}', fields);
+    throw ApiException(
+      response.statusCode,
+      code is String && code.isNotEmpty ? code : null,
+      message is String && message.isNotEmpty ? message : 'HTTP ${response.statusCode}',
+      fields,
+    );
   }
 }

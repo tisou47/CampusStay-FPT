@@ -188,6 +188,12 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
 | AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
 | AUTH | PUT | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058, TC-APP-025 |
+| AUTH | GET | `/students/me/contacts` | Should | Verified | A-70; TC-AUTH-060 |
+| AUTH | PUT | `/students/me/contacts` | Should | Verified | A-70; TC-AUTH-060 |
+| AUTH | POST | `/students/me/contacts/emergency` | Should | Verified | A-70; TC-AUTH-060 |
+| AUTH | PUT | `/students/me/contacts/emergency/{id}` | Should | Verified | A-70; TC-AUTH-060 |
+| AUTH | POST | `/students/me/contacts/emergency/{id}/primary` | Should | Verified | A-70; TC-AUTH-060 |
+| AUTH | DELETE | `/students/me/contacts/emergency/{id}` | Should | Verified | A-70; TC-AUTH-060 |
 | AST | GET | `/students/me/assistant` | Could | Verified | A-68; TC-AST-001, 005 |
 | AST | POST | `/students/me/assistant/chat` | Could | Verified | A-68; TC-AST-001…007 |
 | VIS | GET | `/family-days` | Could | Verified | A-69; TC-VIS-001 |
@@ -202,15 +208,15 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | VIS | GET | `/family-days/{id}/visitors` | Could | Verified | A-69; TC-VIS-004, 006 |
 | VIS | POST | `/family-day-visitors/verify` | Could | Verified | A-69; TC-VIS-004, 007 |
 | VIS | POST | `/family-day-visitors/{id}/check-in` | Could | Verified | A-69; TC-VIS-004, 005 |
-| VIS | POST | `/family-day-visitors/{id}/check-out` | Could | Verified | A-69, A-70; TC-VIS-004, 006, 009 |
-| VIS | POST | `/family-days/{id}/overdue-reminders` | Could | Verified | A-70; TC-VIS-009 |
-| VIS | GET | `/family-day-stats` | Could | Verified | A-70; TC-VIS-010 |
-| VIS | GET | `/family-days/{id}/stats` | Could | Verified | A-70; TC-VIS-010 |
+| VIS | POST | `/family-day-visitors/{id}/check-out` | Could | Verified | A-69, A-71; TC-VIS-004, 006, 009 |
+| VIS | POST | `/family-days/{id}/overdue-reminders` | Could | Verified | A-71; TC-VIS-009 |
+| VIS | GET | `/family-day-stats` | Could | Verified | A-71; TC-VIS-010 |
+| VIS | GET | `/family-days/{id}/stats` | Could | Verified | A-71; TC-VIS-010 |
 | VIS | GET | `/students/me/family-days` | Could | Verified | A-69; TC-VIS-002 |
 | VIS | GET | `/students/me/family-days/{id}` | Could | Verified | A-69; TC-VIS-002, 008 |
 | VIS | POST | `/students/me/family-days/{id}/registration` | Could | Verified | A-69; TC-VIS-002, 003, 008 |
 | VIS | POST | `/students/me/family-days/{id}/registration/cancel` | Could | Verified | A-69; TC-VIS-007 |
-| VIS | POST | `/students/me/family-days/{id}/registration/safety-confirmation` | Could | Verified | A-70; TC-VIS-009 |
+| VIS | POST | `/students/me/family-days/{id}/registration/safety-confirmation` | Could | Verified | A-71; TC-VIS-009 |
 | AUTH | GET | `/banks` | Must | Verified | A-66 (R-22); TC-AUTH-058 |
 | AUTH | POST | `/staff-account-requests` | Should | Verified | A-13, C-32; TC-AUTH-021 |
 | BIL | GET | `/meter-periods` | Should | Verified | C-29; TC-BIL-023 |

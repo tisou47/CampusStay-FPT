@@ -4,6 +4,7 @@ import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { Popover } from '@/components/ui/Popover'
 import { QueryState } from '@/components/ui/States'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
 import { formatRelative } from '@/lib/format'
 import { t } from '@/i18n'
@@ -25,11 +26,39 @@ export function NotificationsButton({ onBand = false }) {
   return (
     <Popover
       width={360}
-      trigger={({ toggle, props }) => (
-        <button type="button" onClick={toggle} aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')} className={cx('relative size-8 shrink-0 rounded-md', onBand ? 'text-band-fg hover:bg-band-hover' : 'text-fg-secondary hover:bg-subtle')} {...props}>
-          <Bell size={20} aria-hidden="true" className="absolute top-1.5 left-1.5" />
-          {unread > 0 && <span aria-hidden="true" className={cx('absolute top-1 left-5 size-2.5 rounded-full border-[1.5px] bg-error', onBand ? 'border-surface' : 'border-white')} />}
-        </button>
+      trigger={({ open, toggle, props }) => (
+        <Tooltip label={open ? null : t('Notifications')} side="bottom" align="end">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')}
+            className={cx(
+              'group/bell relative flex size-9 shrink-0 items-center justify-center rounded-full transition-colors',
+              onBand ? 'text-band-fg/80 hover:text-orange-900' : 'text-fg-secondary hover:text-fg-brand',
+              open && (onBand ? 'text-orange-900' : 'text-fg-brand'),
+            )}
+            {...props}
+          >
+            <Bell
+              size={22}
+              aria-hidden="true"
+              strokeWidth={2.25}
+              fill={open ? 'currentColor' : 'none'}
+              className="origin-top transition-transform duration-200 group-hover/bell:-rotate-12"
+            />
+            {unread > 0 && (
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'absolute top-0.5 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] leading-none font-bold text-white ring-2',
+                  onBand ? 'ring-band-to' : 'ring-surface',
+                )}
+              >
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
+        </Tooltip>
       )}
     >
       {({ close }) => (
@@ -44,7 +73,7 @@ export function NotificationsButton({ onBand = false }) {
               <span className="text-sm text-fg-tertiary">{t('No unread')}</span>
             )}
           </div>
-          <div className="flex min-h-0 flex-col overflow-y-auto">
+          <div className="scrollbar-none flex min-h-0 flex-col overflow-y-auto">
             <QueryState query={query} compact empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">{t('You have no notifications.')}</p>}>
               {(data) => (
                 <ul className="flex flex-col py-1">

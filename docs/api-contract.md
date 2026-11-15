@@ -268,16 +268,16 @@ Inspections (checklists, schedules, runs): C-34.
 
 ---
 
-## Family Day (ADR-29, A-69, A-70)
+## Family Day (ADR-29, A-69, A-71)
 
 Managers organise a Family Day for one Block; residents of that Block register guests for one time slot; the Block's Staff and Managers run the visitor desk. Guests have no account: name, relationship and year of birth only.
 
 - Manager: `GET /family-days?block&status&page&pageSize` · `POST /family-days` `{ block, title, description?, area, registrationOpensAt, registrationClosesAt, maxGuests, slots: [{ startsAt, endsAt, capacity }] }` · `GET|PUT /family-days/{id}` · `POST /family-days/{id}/publish` · `POST /family-days/{id}/cancel` `{ reason }` · `POST /family-days/{id}/close` `{ note? }` · `GET /family-days/{id}/registrations?slotId&q&page&pageSize` · `POST /family-day-registrations/{id}/cancel` `{ reason }`
-- Desk: `GET /family-days/{id}/visitors?slotId&status&q&page&pageSize` · `POST /family-day-visitors/verify` `{ token }` · `POST /family-day-visitors/{id}/check-in` `{ identityChecked: true }` · `POST /family-day-visitors/{id}/check-out` `{ note? }` · `POST /family-days/{id}/overdue-reminders` (A-70: one notification to every student whose guests stay past their time slot; Staff check an overdue guest out only after the student confirms they are safe)
-- Student: `GET /students/me/family-days` · `GET /students/me/family-days/{id}` · `POST /students/me/family-days/{id}/registration` `{ slotId, guests: [{ fullName, relationship, birthYear }] }` · `POST /students/me/family-days/{id}/registration/cancel` · `POST /students/me/family-days/{id}/registration/safety-confirmation` `{ note? }` (A-70)
-- Statistics (Staff of the Block, Managers, Admin; A-70): `GET /family-day-stats?block` · `GET /family-days/{id}/stats`
+- Desk: `GET /family-days/{id}/visitors?slotId&status&q&page&pageSize` · `POST /family-day-visitors/verify` `{ token }` · `POST /family-day-visitors/{id}/check-in` `{ identityChecked: true }` · `POST /family-day-visitors/{id}/check-out` `{ note? }` · `POST /family-days/{id}/overdue-reminders` (A-71: one notification to every student whose guests stay past their time slot; Staff check an overdue guest out only after the student confirms they are safe)
+- Student: `GET /students/me/family-days` · `GET /students/me/family-days/{id}` · `POST /students/me/family-days/{id}/registration` `{ slotId, guests: [{ fullName, relationship, birthYear }] }` · `POST /students/me/family-days/{id}/registration/cancel` · `POST /students/me/family-days/{id}/registration/safety-confirmation` `{ note? }` (A-71)
+- Statistics (Staff of the Block, Managers, Admin; A-71): `GET /family-day-stats?block` · `GET /family-days/{id}/stats`
 
-Shapes, statuses and error codes: A-69, A-70.
+Shapes, statuses and error codes: A-69, A-71.
 
 ---
 
