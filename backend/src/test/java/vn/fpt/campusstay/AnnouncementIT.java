@@ -157,8 +157,8 @@ class AnnouncementIT {
                 .andExpect(jsonPath("$.items[0].changes[0].before").value("20"))
                 .andExpect(jsonPath("$.items[0].changes[0].after").value("25"));
         mvc.perform(get("/students/me/board").header(HttpHeaders.AUTHORIZATION, student).header("Accept-Language", "vi"))
-                .andExpect(jsonPath("$.items[0].title").value("Thay đổi: Tiền cọc và hoàn tiền"))
-                .andExpect(jsonPath("$.items[0].body").value("Tiền cọc và hoàn tiền đã thay đổi:\n• Tiền cọc: 20% → 25%"));
+                .andExpect(jsonPath("$.items[0].title").value("Thay đổi: Tiền đặt cọc và hoàn tiền"))
+                .andExpect(jsonPath("$.items[0].body").value("Tiền đặt cọc và hoàn tiền đã thay đổi:\n• Tiền đặt cọc: 20% → 25%"));
 
         livesIn(13, "A-103");
         send("PUT", "/block-settings", bearer(mvc, MANAGER_A), """
