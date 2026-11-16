@@ -16,7 +16,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-REQ-20 Decisions (Figma 99:2192): late check-ins, cross-Block swaps and refunds waiting for a Manager.
 // The assignment is committed on the proposal itself (ADR-19), so it has no tab here.
@@ -106,7 +106,7 @@ function LateDecision({ req }) {
         </Alert>
       ) : (
         <>
-          <Field label="New check-in deadline">{(id) => <DateInput id={id} value={deadline} onChange={(e) => setDeadline(e.target.value)} />}</Field>
+          <Field label="New check-in deadline">{(id) => <DatePicker id={id} clearable value={deadline} onChange={setDeadline} />}</Field>
           {!req.paid && (
             <Field
               label="Balance deadline"
@@ -118,13 +118,14 @@ function LateDecision({ req }) {
               }
             >
               {(id) => (
-                <DateInput
+                <DatePicker
                   id={id}
+                  clearable
                   value={balanceDue}
-                  min={toDateInput(req.balanceDueAt) || undefined}
-                  max={deadline || undefined}
-                  invalid={balanceTooLate}
-                  onChange={(e) => setBalanceDue(e.target.value)}
+                  minDate={toDateInput(req.balanceDueAt) || undefined}
+                  maxDate={deadline || undefined}
+                  error={balanceTooLate}
+                  onChange={setBalanceDue}
                 />
               )}
             </Field>
