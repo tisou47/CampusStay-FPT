@@ -55,7 +55,7 @@ export function RefundAccountFields({ draft, setDraft, error, disabled, unchange
         <Field label="Account number" error={fields.number}>
           {(id) => <Input id={id} value={draft.number} onChange={set('number')} inputMode="numeric" />}
         </Field>
-        <Field label="Bank" error={fields.bankCode}>
+        <Field label="Bank" error={fields.bankCode ?? (banks.error ? t('Could not load this data') : undefined)}>
           {(id) => (
             <Select
               id={id}

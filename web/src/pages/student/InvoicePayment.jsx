@@ -77,7 +77,7 @@ function CopyValue({ value, display, className }) {
   return (
     <span className="inline-flex items-center gap-2">
       <span className={className}>{display ?? value}</span>
-      <button type="button" onClick={() => copy(value)} aria-label={t('Copy {value}', { value })} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
+      <button type="button" onClick={() => copy(value)} aria-label={t('Copy {value}', { value })} className="-my-1 rounded-md p-1.5 text-fg-secondary transition-colors hover:bg-subtle hover:text-fg">
         <Copy size={16} aria-hidden="true" />
       </button>
     </span>
@@ -141,7 +141,7 @@ function Payment({ data, reload }) {
             </span>
           )}
           {(paid || waiting) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/90">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-surface/90">
               {paid ? <CircleCheck size={48} aria-hidden="true" className="text-success" /> : <Hourglass size={48} aria-hidden="true" className="text-info" />}
               <p className={paid ? 'text-base font-medium text-success-fg' : 'px-4 text-center text-base font-medium text-info-fg'}>
                 {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}

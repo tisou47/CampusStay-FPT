@@ -3281,6 +3281,7 @@ const money = {
   'Why do you arrive late?': 'Vì sao bạn đến muộn?',
   'Day you will arrive': 'Ngày bạn sẽ đến',
   'Document (ticket, letter …)': 'Giấy tờ (vé, thư …)',
+  'Choose a photo or PDF': 'Chọn ảnh hoặc tệp PDF',
   'Pay the balance to keep your bed': 'Hãy thanh toán tiền phòng còn lại để giữ chỗ',
   'Late check-in requested': 'Đã gửi yêu cầu nhận phòng muộn',
   'Stay length': 'Gia hạn',

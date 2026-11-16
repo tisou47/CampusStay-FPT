@@ -108,7 +108,7 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
         })}
       </ol>
       {todayIn && (
-        <p className="flex items-center gap-2 text-xs text-fg-tertiary">
+        <p className="flex items-center gap-2 text-sm text-fg-tertiary">
           <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-fg" />
           {t('Today, {date}', { date: formatDate(new Date(now)) })}
         </p>

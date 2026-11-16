@@ -123,16 +123,18 @@ export function SearchInput({ size = 'md', className, wrapperClassName, placehol
  * Attach-a-file row (receipts, evidence): a dashed box with an upload glyph that names the chosen file.
  * The hidden file input sits beside the button, not inside it. onChange receives the File (or null).
  */
-export function FilePicker({ file, onChange, accept, placeholder, disabled, className }) {
+export function FilePicker({ file, onChange, accept, placeholder, disabled, size = 'md', className, ...props }) {
   const input = useRef(null)
   return (
     <>
       <button
+        {...props}
         type="button"
         disabled={disabled}
         onClick={() => input.current?.click()}
         className={cx(
-          'flex min-w-0 items-center gap-2 rounded-md border border-dashed border-line-strong bg-surface px-3 py-2.5 text-left transition-colors',
+          'flex min-w-0 items-center gap-2 rounded-md border border-dashed border-line-strong bg-surface px-3 text-left transition-colors',
+          size === 'lg' ? 'min-h-12 py-3' : 'py-2.5',
           'hover:border-primary hover:bg-primary-subtle/40 disabled:pointer-events-none disabled:opacity-45',
           className,
         )}

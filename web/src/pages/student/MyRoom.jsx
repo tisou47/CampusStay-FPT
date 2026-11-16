@@ -7,7 +7,7 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilePicker, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
@@ -141,7 +141,7 @@ function LateCheckInCard() {
               {(id) => <DatePicker id={id} clearable value={day} maxDate={d.latestDay ?? undefined} onChange={setDay} />}
             </Field>
             <Field label="Document (ticket, letter …)" required error={fields.evidence}>
-              {(id) => <input id={id} type="file" accept="image/*,application/pdf" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}
+              {(id) => <FilePicker id={id} size="lg" file={file} onChange={setFile} accept="image/*,application/pdf" placeholder="Choose a photo or PDF" />}
             </Field>
             <div className="flex gap-2">
               <Button onClick={() => setOpen(false)}>Cancel</Button>

@@ -3,7 +3,7 @@ import { Bell } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
-import { QueryState } from '@/components/ui/States'
+import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { formatDateTime } from '@/lib/format'
 import { StudentPage } from './shared'
@@ -37,7 +37,7 @@ export default function Notifications() {
         )
       }
     >
-      <QueryState query={query} empty={<p className="px-4 py-8 text-center text-base text-fg-secondary">{t('You have no notifications.')}</p>} isEmpty={(d) => !d?.items?.length}>
+      <QueryState query={query} empty={<EmptyBlock icon={Bell} title={t('You have no notifications.')} className="flex-none rounded-xl border border-line bg-surface lg:rounded-lg" />} isEmpty={(d) => !d?.items?.length}>
         {(data) => (
           <ul className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface lg:min-h-0 lg:overflow-y-auto lg:rounded-lg">
             {data.items.map((n) => (
