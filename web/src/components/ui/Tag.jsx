@@ -18,7 +18,7 @@ export function Tag({ tone = 'neutral', dot = true, className, children }) {
   return (
     <span
       className={cx(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-full py-0.5 text-sm font-medium whitespace-nowrap',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/15 py-0.5 text-sm font-medium whitespace-nowrap',
         dot ? 'pr-2.5 pl-2' : 'px-2.5',
         t.box,
         className,

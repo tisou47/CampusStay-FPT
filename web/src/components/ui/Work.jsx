@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { Link } from 'react-router'
-import { ArrowRight, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { formatNumber } from '@/lib/format'
@@ -62,6 +62,7 @@ function LinkRow({ item }) {
   const metaRef = useRef(null)
   const cut = useCallback(() => isTruncated(titleRef.current) || isTruncated(metaRef.current), [])
   const tip = item.details ?? <DetailTip title={item.title} rows={item.meta ? [{ label: '', value: item.meta }] : []} />
+  const hasBadges = Boolean(item.status || (item.flags && item.flags.length > 0))
   return (
     <li className={cx('group/row -mx-2 flex items-center gap-2 rounded-md px-2 transition-colors hover:bg-primary-subtle/70', item.fresh && 'animate-row-in')}>
       <Tooltip label={tip} when={cut} delay={300} touch action={{ to: item.to, label: t('Open details') }} align="start" block className="min-w-0 flex-1">
@@ -73,30 +74,25 @@ function LinkRow({ item }) {
           >
             <RowIcon icon={item.icon} tone={item.tone} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="flex min-w-0 items-center gap-2">
-                <span ref={titleRef} className="min-w-0 flex-1 truncate text-base font-medium text-fg decoration-1 underline-offset-2 group-hover/row:text-fg-brand group-hover/row:underline">
-                  {tx(item.title)}
-                </span>
-                {item.status && <StatusBadge status={item.status} variant={item.statusVariant}>{item.statusLabel}</StatusBadge>}
+              <span ref={titleRef} className="truncate text-base font-medium text-fg decoration-1 underline-offset-2 group-hover/row:text-fg-brand group-hover/row:underline">
+                {tx(item.title)}
               </span>
-              {(item.meta || item.flags?.length > 0) && (
-                <span className="flex min-w-0 items-center gap-2">
-                  <span ref={metaRef} className="min-w-0 flex-1 truncate text-sm text-fg-secondary">
-                    {tx(item.meta)}
-                  </span>
-                  {item.flags?.map((f) => (
-                    <StatusBadge key={f.label} variant={f.variant} dot={false} title={f.title}>
-                      {f.label}
-                    </StatusBadge>
-                  ))}
+              {item.meta && (
+                <span ref={metaRef} className="truncate text-sm text-fg-secondary">
+                  {tx(item.meta)}
                 </span>
               )}
             </span>
-            <ArrowRight
-              size={14}
-              aria-hidden="true"
-              className="shrink-0 text-fg-brand opacity-0 transition-[opacity,translate] group-focus-within/row:opacity-100 group-hover/row:translate-x-0.5 group-hover/row:opacity-100"
-            />
+            {hasBadges && (
+              <span className="flex shrink-0 flex-col items-end justify-center gap-1 pl-2">
+                {item.status && <StatusBadge status={item.status} variant={item.statusVariant}>{item.statusLabel}</StatusBadge>}
+                {item.flags?.map((f) => (
+                  <StatusBadge key={f.label} variant={f.variant} dot={false} title={f.title}>
+                    {f.label}
+                  </StatusBadge>
+                ))}
+              </span>
+            )}
           </Link>
         )}
       </Tooltip>
@@ -210,19 +206,21 @@ export function Journey({ steps, className }) {
 }
 
 /** Fill level of a share: the label and colour say it, not the colour alone. */
-function level(pct) {
+function level(pct, free) {
+  if (free === 0) return { label: 'Full', tone: 'error', bar: 'error' }
   if (pct >= 95) return { label: 'Nearly full', tone: 'error', bar: 'error' }
   if (pct >= 85) return { label: 'Filling up', tone: 'warning', bar: 'warning' }
   return { label: 'Space left', tone: 'success', bar: 'success' }
 }
 
-/** Rows of used / total with a level tag, the free count and a detail line. Row: { name, note, used, total, detail, to }. */
+/** Rows of used / total with a unified status tag and a detail line. Row: { name, note, used, total, detail, to }. */
 export function CapacityRows({ rows, className }) {
   return (
     <ul className={cx('flex flex-col gap-3.5', className)}>
       {rows.map((r) => {
+        const free = Math.max(0, r.total - r.used)
         const pct = r.total ? (r.used / r.total) * 100 : 0
-        const l = level(pct)
+        const l = level(pct, free)
         return (
           <li key={r.name} className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
@@ -230,14 +228,11 @@ export function CapacityRows({ rows, className }) {
                 {tx(r.name)}
                 {r.note && <span className="font-normal text-fg-secondary"> · {tx(r.note)}</span>}
               </span>
-              <span className="flex shrink-0 items-center gap-2">
-                {r.total > 0 && (
-                  <Tag tone={l.tone} dot={false}>
-                    {l.label}
-                  </Tag>
-                )}
-                <span className="text-base font-semibold text-fg tabular">{t('{n} free', { n: formatNumber(Math.max(0, r.total - r.used)) })}</span>
-              </span>
+              {r.total > 0 && (
+                <Tag tone={l.tone} dot={true}>
+                  {free === 0 ? t('Full') : t('{n} free', { n: formatNumber(free) })}
+                </Tag>
+              )}
             </div>
             <Meter value={r.used} max={r.total} tone={l.bar} label={t('{name}: {used} of {total} beds taken', { name: tx(r.name), used: r.used, total: r.total })} />
             <span className="text-sm text-fg-tertiary">
