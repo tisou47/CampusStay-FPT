@@ -219,7 +219,11 @@ export default function ManagerDashboard() {
                           <span className="truncate text-sm text-fg-tertiary">{p.handles.map((h) => tr(h)).join(', ') || tr(p.title)}</span>
                         </div>
                         <span className="shrink-0 text-sm text-fg-secondary tabular">{t('{n} open', { n: p.open })}</span>
-                        <span title={t(p.onDuty ? 'On duty' : 'Off duty')} className={cx('size-2 shrink-0 rounded-full', p.onDuty ? 'bg-success' : 'bg-gray-300')} />
+                        {/* On duty: filled green dot; off duty: hollow ring (shape, not colour alone); the word is read out. */}
+                        <span title={t(p.onDuty ? 'On duty' : 'Off duty')} className="flex shrink-0 items-center">
+                          <span aria-hidden="true" className={cx('size-2 rounded-full', p.onDuty ? 'bg-success' : 'border-[1.5px] border-line-strong bg-surface')} />
+                          <span className="sr-only">{t(p.onDuty ? 'On duty' : 'Off duty')}</span>
+                        </span>
                       </li>
                     ))}
                 </ul>
