@@ -9,7 +9,7 @@ const one = {
   "{n} days ago": "{n} day ago",
   "{n} days left": "{n} day left",
   "{n} days overlap": "{n} day overlap",
-  "{n} new students arriving": "{n} new student arriving",
+  "{n} rooms to prepare": "{n} room to prepare",
   "{n} conflicts in the allocation proposal": "{n} conflict in the allocation proposal",
   "{n} deposits expired this week": "{n} deposit expired this week",
   "{p} of invoiced · {amount} unpaid ({n} invoices)": "{p} of invoiced · {amount} unpaid ({n} invoice)",

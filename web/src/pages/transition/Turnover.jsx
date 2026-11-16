@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router'
-import { CalendarClock, Check, ChevronDown, DoorOpen, Gauge, KeyRound, LogOut, Sofa, TriangleAlert } from 'lucide-react'
+import { ArrowRightLeft, Check, ChevronDown, DoorOpen, Gauge, KeyRound, LogOut, Sofa, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { QueryState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { InfoTip, Tooltip } from '@/components/ui/Tooltip'
+import { InfoTip, Tooltip, Truncate } from '@/components/ui/Tooltip'
 import { SetCodeModal } from '@/pages/staff/DoorCodes'
 import { formatDate, formatNumber } from '@/lib/format'
 import { cx } from '@/lib/cx'
@@ -114,28 +114,35 @@ function DateChips({ checkOutBy, checkInStart }) {
   )
 }
 
-/* ---------------------------------------------------------------- filter chips */
+/* ---------------------------------------------------------------- totals (the former KPI cards, clickable) */
 
-function FilterChip({ active, count, label, onClick }) {
-  const none = count === 0
+function StatTile({ icon: Glyph, label, value, note, tone, active, onClick, tip }) {
+  const valueTone = tone === 'error' ? 'text-error-fg' : tone === 'warning' ? 'text-warning-fg' : tone === 'success' ? 'text-success-fg' : 'text-fg'
+  const body = (
+    <>
+      <span className="flex min-w-0 items-center gap-1.5 text-sm text-fg-secondary">
+        <Glyph size={14} aria-hidden="true" className="shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+      <span className={cx('text-h3 font-semibold whitespace-nowrap tabular', valueTone)}>{value}</span>
+      <span className="truncate text-sm leading-4 text-fg-tertiary" title={note}>
+        {note}
+      </span>
+    </>
+  )
+  const box = 'flex min-w-0 flex-col rounded-lg border px-3 py-1.5 text-left transition-colors'
+  if (!onClick) return <div className={cx(box, 'border-line bg-surface')}>{body}</div>
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cx(
-        'flex h-8 items-center gap-1.5 rounded-full border px-3 text-base whitespace-nowrap transition-colors',
-        active
-          ? 'border-primary bg-primary-subtle font-medium text-fg-brand'
-          : none
-            ? 'border-line bg-subtle text-fg-tertiary hover:text-fg-secondary'
-            : 'border-line-strong bg-surface text-fg hover:border-primary hover:text-fg-brand',
-      )}
-    >
-      {label}
-      <span className={cx('font-semibold tabular', !active && !none && 'text-fg')}>{formatNumber(count)}</span>
-      {none && <Check size={13} strokeWidth={3} aria-hidden="true" className="text-success" />}
-    </button>
+    <Tooltip label={tip} block>
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={onClick}
+        className={cx(box, 'w-full', active ? 'border-primary bg-primary-subtle' : 'border-line bg-surface hover:border-primary')}
+      >
+        {body}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -179,14 +186,14 @@ const doneCount = (r) => tasksOf(r).filter(Boolean).length
 
 /* ---------------------------------------------------------------- folded sections */
 
-function Fold({ title, open, onToggle, children }) {
+function Fold({ id, title, open, onToggle, children }) {
   return (
-    <section className="flex min-h-10 flex-initial flex-col overflow-hidden rounded-lg border border-line bg-surface">
+    <section id={id} className="flex shrink-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
       <button type="button" aria-expanded={open} onClick={onToggle} className="flex h-10 shrink-0 items-center gap-2 px-4 text-left hover:bg-subtle">
         <ChevronDown size={16} aria-hidden="true" className={cx('shrink-0 text-fg-tertiary transition-transform', !open && '-rotate-90')} />
         {title}
       </button>
-      {open && <div className="max-h-56 min-h-0 overflow-y-auto border-t border-line">{children}</div>}
+      {open && <div className="max-h-60 overflow-y-auto border-t border-line">{children}</div>}
     </section>
   )
 }
@@ -219,40 +226,111 @@ export default function Turnover({ termId, headerSlot }) {
           furniture: (r) => !r.matches,
           meter: (r) => !r.lastMeterCut,
         }
+        const filterLabels = {
+          checkOut: t('Leavers'),
+          code: t('Codes to set'),
+          furniture: t('Furniture to fix'),
+          meter: t('Meter readings to record'),
+        }
         // Rooms with the most left to do first, rooms with nothing left last (the API's order otherwise).
         const rooms = d.rooms
           .map((r, i) => ({ r, i }))
           .filter(({ r }) => (tests[filter] ?? tests.all)(r))
           .sort((a, b) => doneCount(a.r) - doneCount(b.r) || a.i - b.i)
           .map(({ r }) => r)
-        const chips = [
-          { key: 'all', label: t('All'), count: d.counts.rooms },
-          { key: 'checkOut', label: t('Not checked out'), count: d.rooms.filter(notCheckedOut).length },
-          { key: 'code', label: t('Door code to change'), count: d.counts.codesToSet },
-          { key: 'furniture', label: t('Furniture not matching'), count: d.counts.notMatching },
-          { key: 'meter', label: t('No meter reading'), count: d.rooms.filter((r) => !r.lastMeterCut).length },
-        ]
+        const toggle = (key) => setFilter(filter === key ? 'all' : key)
+        const meterMissing = d.rooms.filter((r) => !r.lastMeterCut).length
         const leftToCheckOut = d.counts.leavers - d.counts.checkedOut
         const showLeavers = leaversOpen ?? d.counts.overdue > 0
+        const onlyThese = t('Click to show only these rooms; click again to show every room.')
         return (
-          <div className="flex min-h-0 flex-1 flex-col gap-3">
+          // One scroll for the whole tab, only when the window is too short: the rooms table keeps at least five rows
+          // and scrolls inside when it is longer; leavers and movers are never cut.
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
             {headerSlot && createPortal(<DateChips checkOutBy={d.checkOutBy} checkInStart={d.checkInStart} />, headerSlot)}
 
-            <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-2">
-              {chips.map((c) => (
-                <FilterChip key={c.key} label={c.label} count={c.count} active={filter === c.key} onClick={() => setFilter(filter === c.key && c.key !== 'all' ? 'all' : c.key)} />
-              ))}
-              <span className="ml-auto flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-tertiary">
-                <CalendarClock size={14} aria-hidden="true" />
-                {t('{n} new students arriving', { n: formatNumber(d.counts.arriving) })}
-              </span>
+            <div className="grid shrink-0 grid-cols-3 gap-2 xl:grid-cols-6">
+              <StatTile
+                icon={LogOut}
+                label={t('Leavers')}
+                value={`${formatNumber(d.counts.checkedOut)} / ${formatNumber(d.counts.leavers)}`}
+                note={t('Checked out / all')}
+                tone={d.counts.overdue ? 'error' : undefined}
+                active={filter === 'checkOut'}
+                tip={t('Click to show the rooms where someone has not checked out yet, and the list of leavers.')}
+                onClick={() => {
+                  toggle('checkOut')
+                  setLeaversOpen(true)
+                }}
+              />
+              <StatTile
+                icon={ArrowRightLeft}
+                label={t('Movers')}
+                value={formatNumber(d.counts.movers)}
+                note={t('{n} stay in their room', { n: formatNumber(d.counts.staying) })}
+                tip={t('Click to open the list of movers.')}
+                onClick={
+                  d.movers.length
+                    ? () => {
+                        setMoversOpen(true)
+                        setTimeout(() => document.getElementById('turnover-movers')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 0)
+                      }
+                    : undefined
+                }
+              />
+              <StatTile icon={DoorOpen} label={t('Arriving')} value={formatNumber(d.counts.arriving)} note={t('New students of the next term')} />
+              <StatTile
+                icon={KeyRound}
+                label={t('Codes to set')}
+                value={formatNumber(d.counts.codesToSet)}
+                note={t('{n} rooms to prepare', { n: formatNumber(d.counts.rooms) })}
+                tone={d.counts.codesToSet ? 'warning' : 'success'}
+                active={filter === 'code'}
+                tip={onlyThese}
+                onClick={() => toggle('code')}
+              />
+              <StatTile
+                icon={Sofa}
+                label={t('Furniture to fix')}
+                value={formatNumber(d.counts.notMatching)}
+                note={t('Rooms not matching their class')}
+                tone={d.counts.notMatching ? 'warning' : 'success'}
+                active={filter === 'furniture'}
+                tip={onlyThese}
+                onClick={() => toggle('furniture')}
+              />
+              <StatTile
+                icon={Gauge}
+                label={t('Meter readings to record')}
+                value={formatNumber(meterMissing)}
+                note={t('Rooms with no meter reading yet')}
+                tone={meterMissing ? 'warning' : 'success'}
+                active={filter === 'meter'}
+                tip={onlyThese}
+                onClick={() => toggle('meter')}
+              />
             </div>
 
-            <section className="flex min-h-[322px] flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface">
-              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
+            <section className={cx('flex flex-initial flex-col overflow-hidden rounded-lg border border-line bg-surface', rooms.length > 5 ? 'min-h-[332px] [@media(min-height:1000px)]:min-h-[476px]' : 'shrink-0')}>
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4 whitespace-nowrap">
                 <h2 className="text-h3 font-semibold text-fg">{t('Rooms to hand over')}</h2>
                 <InfoTip label={t('Rooms whose residents or class change')} />
                 <span className="text-sm text-fg-tertiary tabular">· {t('{n} rooms', { n: formatNumber(rooms.length) })}</span>
+                {filter !== 'all' && (
+                  <span className="flex items-center gap-1.5">
+                    <Tag tone="brand" dot={false}>
+                      {t('Filter: {label}', { label: filterLabels[filter] })}
+                    </Tag>
+                    <Button size="sm" variant="text" onClick={() => setFilter('all')}>
+                      Show all rooms
+                    </Button>
+                  </span>
+                )}
+                <span className="ml-auto flex min-w-0 flex-1 justify-end">
+                  <Truncate className="text-sm text-fg-tertiary" align="end">
+                    {t('Each room has 3 tasks. Orange: click it to do it. Green: done. 3/3: ready to hand over.')}
+                  </Truncate>
+                </span>
               </div>
               {d.rooms.length === 0 ? (
                 <p className="px-4 py-3 text-base text-fg-tertiary">{t('No room changes residents or class.')}</p>
@@ -261,10 +339,10 @@ export default function Turnover({ termId, headerSlot }) {
                   <THead>
                     <tr>
                       <Th className="w-28">Room</Th>
-                      <Th className="w-56">Residents change</Th>
+                      <Th className="w-44">Residents change</Th>
                       <Th>Room tier next term</Th>
                       <Th className="w-[340px]">Tasks to do</Th>
-                      <Th className="w-36">Progress</Th>
+                      <Th className="w-44">Progress</Th>
                     </tr>
                   </THead>
                   <TBody>
@@ -278,8 +356,9 @@ export default function Turnover({ termId, headerSlot }) {
                     {rooms.map((r) => {
                       const done = doneCount(r)
                       const finished = done === 3
+                      const tier = tr(r.roomClass)
                       return (
-                        <Tr key={`${r.block}-${r.room}`} className={cx('[&>td]:h-12 [&>td]:py-1.5', finished && 'opacity-55')}>
+                        <Tr key={`${r.block}-${r.room}`} className={cx('[&>td]:h-12 [&>td]:py-1.5', finished && 'bg-success-bg/30')}>
                           <Td>
                             <TwoLine primary={r.room} secondary={scope.block ? null : t('Block {code}', { code: r.block })} />
                           </Td>
@@ -289,17 +368,9 @@ export default function Turnover({ termId, headerSlot }) {
                             </span>
                           </Td>
                           <Td>
-                            <span className="flex items-center gap-2">
-                              {tr(r.roomClass)}
-                              {r.matches ? (
-                                <StatusTag status="Matches" />
-                              ) : (
-                                <Tooltip label={t('The furniture does not match this room tier yet. The Furniture page lists what is missing.')}>
-                                  <span tabIndex={0} className="cursor-help">
-                                    <StatusTag status="Does not match" />
-                                  </span>
-                                </Tooltip>
-                              )}
+                            <span className="flex items-center gap-2 whitespace-nowrap">
+                              {tier}
+                              <StatusTag status={r.matches ? 'Matches' : 'Does not match'} />
                             </span>
                           </Td>
                           <Td>
@@ -308,30 +379,48 @@ export default function Turnover({ termId, headerSlot }) {
                                 done={r.doorCodeReady}
                                 icon={KeyRound}
                                 label={t('Door code')}
-                                tip={r.doorCodeReady ? t('Ready') : t('Change needed')}
+                                tip={
+                                  r.doorCodeReady
+                                    ? t('Door code ready: confirmed, with no change waiting.')
+                                    : t('Residents change, so the door code must change. Click to set a new code, then confirm it once the lock uses it.')
+                                }
                                 onClick={r.doorCodeReady ? undefined : () => setCoding(r)}
                               />
                               <TaskChip
                                 done={r.matches}
                                 icon={Sofa}
                                 label={t('Furniture')}
-                                tip={r.matches ? t('Matches') : t('Does not match')}
+                                tip={
+                                  r.matches
+                                    ? t('The furniture matches the {tier} tier of next term.', { tier })
+                                    : t('The furniture does not match the {tier} tier of next term. Click to open this room on the Furniture page and move the missing items in (or the extra ones out); a manager can also set the room tier back.', { tier })
+                                }
                                 to={r.matches ? undefined : `${base}/furniture?room=${encodeURIComponent(r.room)}`}
                               />
                               <TaskChip
                                 done={Boolean(r.lastMeterCut)}
                                 icon={Gauge}
                                 label={r.lastMeterCut ? formatDate(r.lastMeterCut) : t('Meter')}
-                                tip={`${t('Meter reading')}: ${r.lastMeterCut ? formatDate(r.lastMeterCut) : t('None yet')} · ${t('Record reading')}`}
+                                tip={
+                                  r.lastMeterCut
+                                    ? t('Last meter reading {date}. Click to record a new one.', { date: formatDate(r.lastMeterCut) })
+                                    : t('No meter reading yet. Click to record electricity and water, so the month is split between those who leave and those who arrive.')
+                                }
                                 onClick={() => setReading(r)}
                               />
                             </span>
                           </Td>
                           <Td>
-                            <span className="flex items-center gap-2">
-                              <span className="w-7 text-sm font-medium text-fg tabular">{done}/3</span>
-                              <ProgressBar value={done} max={3} tone={finished ? 'success' : 'warning'} className="w-16" />
-                            </span>
+                            <Tooltip label={finished ? t('Ready to hand over: the door code, the furniture and the meter reading are done.') : t('{done} of 3 tasks done', { done })}>
+                              <span tabIndex={0} className="flex items-center gap-2">
+                                <span className="w-7 text-sm font-medium text-fg tabular">{done}/3</span>
+                                {finished ? (
+                                  <Tag tone="success">{t('Ready to hand over')}</Tag>
+                                ) : (
+                                  <ProgressBar value={done} max={3} tone="warning" className="w-16" />
+                                )}
+                              </span>
+                            </Tooltip>
                           </Td>
                         </Tr>
                       )
@@ -401,6 +490,7 @@ export default function Turnover({ termId, headerSlot }) {
               </EmptyLine>
             ) : (
               <Fold
+                id="turnover-movers"
                 open={moversOpen}
                 onToggle={() => setMoversOpen(!moversOpen)}
                 title={
