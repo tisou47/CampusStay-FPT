@@ -31,7 +31,7 @@ function CodeText({ code }) {
   return <span className="font-mono text-h1 font-semibold tracking-[0.3em] text-fg tabular">{code}</span>
 }
 
-function SetCodeModal({ room, onClose }) {
+export function SetCodeModal({ room, onClose }) {
   const { notify } = useToast()
   const [mode, setMode] = useState('random')
   const [code, setCode] = useState('')

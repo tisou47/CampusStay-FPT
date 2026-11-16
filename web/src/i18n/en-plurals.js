@@ -7,6 +7,9 @@
 const one = {
   "{n} items left": "{n} item left",
   "{n} days ago": "{n} day ago",
+  "{n} days left": "{n} day left",
+  "{n} days overlap": "{n} day overlap",
+  "{n} new students arriving": "{n} new student arriving",
   "{n} conflicts in the allocation proposal": "{n} conflict in the allocation proposal",
   "{n} deposits expired this week": "{n} deposit expired this week",
   "{p} of invoiced · {amount} unpaid ({n} invoices)": "{p} of invoiced · {amount} unpaid ({n} invoice)",
@@ -100,7 +103,6 @@ const one = {
   "Issue {n} next-term fees, {total}": "Issue {n} next-term fee, {total}",
   "{n} invoices, {total}. {notices} leavers were told when to check out.": "{n} invoice, {total}. {notices} leavers were told when to check out.",
   "{n} reconciliation items are still open. Resolve them first.": "{n} reconciliation item is still open. Resolve it first.",
-  "{n} rooms to prepare": "{n} room to prepare",
   "Open items · {n} files": "Open items · {n} file",
   "{n} continuing residents of the room must agree. Staff then check the furniture: an upgrade needs the missing items in the block store; they move at the turnover.": "{n} continuing resident of the room must agree. Staff then check the furniture: an upgrade needs the missing items in the block store; they move at the turnover.",
   "QR labels of {n} items": "QR labels of {n} item",

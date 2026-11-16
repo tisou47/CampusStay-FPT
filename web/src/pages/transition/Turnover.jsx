@@ -1,18 +1,22 @@
 import { useState } from 'react'
-import { ArrowRightLeft, DoorOpen, Gauge, KeyRound, LogOut, Sofa } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Link } from 'react-router'
+import { CalendarClock, Check, ChevronDown, DoorOpen, Gauge, KeyRound, LogOut, Sofa, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
-import { Alert, Card } from '@/components/ui/Display'
+import { Alert, ProgressBar } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { QueryState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
+import { InfoTip, Tooltip } from '@/components/ui/Tooltip'
+import { SetCodeModal } from '@/pages/staff/DoorCodes'
 import { formatDate, formatNumber } from '@/lib/format'
+import { cx } from '@/lib/cx'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
@@ -26,6 +30,9 @@ import { t, tr } from '@/i18n'
 //   room, bed, block, status (To check out, Checked out, Overdue) }], movers: [{ student, from, to, fee, moved }],
 //   rooms: [{ room, block, leaving, arriving, doorCodeReady, roomClass, matches, lastMeterCut }] }
 // POST /turnover/meter-cuts { room, electricity, water } → 204
+//
+// Layout: the rooms to hand over are the screen (filter chips above, one "To do" cell with the door code, furniture
+// and meter tasks); leavers and movers fold under it. Filtering and ordering only use the rows already loaded.
 
 function MeterCut({ room, onClose }) {
   const { notify } = useToast()
@@ -64,158 +71,386 @@ function MeterCut({ room, onClose }) {
   )
 }
 
-export default function Turnover({ termId }) {
+/* ---------------------------------------------------------------- dates in the page header */
+
+const DAY = 86400000
+const dayOf = (iso) => {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  return Date.UTC(y, m - 1, d)
+}
+const today = () => {
+  const n = new Date()
+  return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())
+}
+const daysLeftText = (days) => (days > 0 ? t('{n} days left', { n: days }) : days === 0 ? t('today') : t('{n} days ago', { n: -days }))
+
+function DateChips({ checkOutBy, checkInStart }) {
+  const now = today()
+  const out = Math.round((dayOf(checkOutBy) - now) / DAY)
+  const into = Math.round((dayOf(checkInStart) - now) / DAY)
+  const overlap = Math.round((dayOf(checkOutBy) - dayOf(checkInStart)) / DAY)
+  const chip = 'flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-sm whitespace-nowrap'
+  return (
+    <>
+      <span className={cx(chip, 'border-line bg-surface text-fg-secondary')}>
+        <LogOut size={14} aria-hidden="true" className="text-fg-tertiary max-[1439px]:hidden" />
+        {t('Check out by {date}', { date: formatDate(checkOutBy) })}
+        <span className="text-fg-tertiary">· {daysLeftText(out)}</span>
+      </span>
+      <span className={cx(chip, 'border-line bg-surface text-fg-secondary')}>
+        <DoorOpen size={14} aria-hidden="true" className="text-fg-tertiary max-[1439px]:hidden" />
+        {t('Check-in from {date}', { date: formatDate(checkInStart) })}
+        <span className="text-fg-tertiary">· {daysLeftText(into)}</span>
+      </span>
+      {overlap > 0 && (
+        <Tooltip label={t('A room with residents leaving and new residents arriving must be checked out before the new residents check in.')} side="bottom" align="end">
+          <span tabIndex={0} className={cx(chip, 'cursor-help border-warning/30 bg-warning-bg font-medium text-warning-fg')}>
+            <TriangleAlert size={14} aria-hidden="true" />
+            {t('{n} days overlap', { n: overlap })}
+          </span>
+        </Tooltip>
+      )}
+    </>
+  )
+}
+
+/* ---------------------------------------------------------------- filter chips */
+
+function FilterChip({ active, count, label, onClick }) {
+  const none = count === 0
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cx(
+        'flex h-8 items-center gap-1.5 rounded-full border px-3 text-base whitespace-nowrap transition-colors',
+        active
+          ? 'border-primary bg-primary-subtle font-medium text-fg-brand'
+          : none
+            ? 'border-line bg-subtle text-fg-tertiary hover:text-fg-secondary'
+            : 'border-line-strong bg-surface text-fg hover:border-primary hover:text-fg-brand',
+      )}
+    >
+      {label}
+      <span className={cx('font-semibold tabular', !active && !none && 'text-fg')}>{formatNumber(count)}</span>
+      {none && <Check size={13} strokeWidth={3} aria-hidden="true" className="text-success" />}
+    </button>
+  )
+}
+
+/* ---------------------------------------------------------------- the "To do" cell */
+
+function TaskChip({ done, icon: Glyph, label, tip, onClick, to }) {
+  const look = cx(
+    'inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+    done ? 'border-success/25 bg-success-bg text-success-fg' : 'border-warning/30 bg-warning-bg text-warning-fg',
+    !done && (onClick || to) && 'hover:border-warning',
+    done && onClick && 'hover:border-success/60',
+  )
+  const body = (
+    <>
+      {done ? <Check size={13} strokeWidth={3} aria-hidden="true" /> : <Glyph size={13} aria-hidden="true" />}
+      {label}
+    </>
+  )
+  const name = `${label}: ${tip}`
+  return (
+    <Tooltip label={tip}>
+      {to ? (
+        <Link to={to} aria-label={name} className={look}>
+          {body}
+        </Link>
+      ) : onClick ? (
+        <button type="button" aria-label={name} onClick={onClick} className={look}>
+          {body}
+        </button>
+      ) : (
+        <span tabIndex={0} aria-label={name} className={look}>
+          {body}
+        </span>
+      )}
+    </Tooltip>
+  )
+}
+
+const tasksOf = (r) => [r.doorCodeReady, r.matches, Boolean(r.lastMeterCut)]
+const doneCount = (r) => tasksOf(r).filter(Boolean).length
+
+/* ---------------------------------------------------------------- folded sections */
+
+function Fold({ title, open, onToggle, children }) {
+  return (
+    <section className="flex min-h-10 flex-initial flex-col overflow-hidden rounded-lg border border-line bg-surface">
+      <button type="button" aria-expanded={open} onClick={onToggle} className="flex h-10 shrink-0 items-center gap-2 px-4 text-left hover:bg-subtle">
+        <ChevronDown size={16} aria-hidden="true" className={cx('shrink-0 text-fg-tertiary transition-transform', !open && '-rotate-90')} />
+        {title}
+      </button>
+      {open && <div className="max-h-56 min-h-0 overflow-y-auto border-t border-line">{children}</div>}
+    </section>
+  )
+}
+
+function EmptyLine({ children }) {
+  return <p className="shrink-0 px-1 text-base text-fg-tertiary">{children}</p>
+}
+
+/* ---------------------------------------------------------------- screen */
+
+export default function Turnover({ termId, headerSlot }) {
   const base = useRoleBase()
   const scope = useScopeQuery()
   const [reading, setReading] = useState(null)
+  const [coding, setCoding] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [leaversOpen, setLeaversOpen] = useState(null) // null: open only when someone is overdue
+  const [moversOpen, setMoversOpen] = useState(false)
   const filters = { termId, block: scope.block }
   const query = useQuery(['turnover', filters], ({ signal }) => api.renewals.turnover(filters, { signal }))
   return (
     <QueryState query={query} isEmpty={() => false}>
-      {(d) => (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          <p className="shrink-0 text-base text-fg-secondary">
-            {t('Leavers of {previous} check out by {checkOut}; {term} check-in starts on {checkIn}.', {
-              previous: d.previousTerm.name,
-              checkOut: formatDate(d.checkOutBy),
-              term: d.term.name,
-              checkIn: formatDate(d.checkInStart),
-            })}
-          </p>
-          <div className="flex shrink-0 flex-wrap gap-4">
-            <KpiTile size="md" icon={LogOut} label="Leavers" value={`${formatNumber(d.counts.checkedOut)} / ${formatNumber(d.counts.leavers)}`} note="Checked out / all" valueTone={d.counts.overdue ? 'error' : undefined} />
-            <KpiTile size="md" icon={ArrowRightLeft} label="Movers" value={formatNumber(d.counts.movers)} note={t('{n} stay in their room', { n: formatNumber(d.counts.staying) })} />
-            <KpiTile size="md" icon={DoorOpen} label="Arriving" value={formatNumber(d.counts.arriving)} note="New students of the next term" />
-            <KpiTile size="md" icon={KeyRound} label="Codes to set" value={formatNumber(d.counts.codesToSet)} note={t('{n} rooms to prepare', { n: formatNumber(d.counts.rooms) })} valueTone={d.counts.codesToSet ? 'warning' : undefined} />
-            <KpiTile size="md" icon={Sofa} label="Furniture to fix" value={formatNumber(d.counts.notMatching)} note="Rooms not matching their class" valueTone={d.counts.notMatching ? 'warning' : undefined} />
-          </div>
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
-            <Card padding="none" className="flex min-w-0 flex-1 flex-col">
-              <div className="flex items-center justify-between px-4 pt-3">
-                <h2 className="text-h3 font-semibold text-fg">{t('Leavers')}</h2>
-                <Button variant="text" to={`${base}/check-out`}>
-                  Open the check-out desk
-                </Button>
+      {(d) => {
+        const pending = new Set(d.leavers.filter((l) => l.status !== 'Checked out').map((l) => `${l.block}|${l.room}`))
+        const notCheckedOut = (r) => pending.has(`${r.block}|${r.room}`)
+        const tests = {
+          all: () => true,
+          checkOut: notCheckedOut,
+          code: (r) => !r.doorCodeReady,
+          furniture: (r) => !r.matches,
+          meter: (r) => !r.lastMeterCut,
+        }
+        // Rooms with the most left to do first, rooms with nothing left last (the API's order otherwise).
+        const rooms = d.rooms
+          .map((r, i) => ({ r, i }))
+          .filter(({ r }) => (tests[filter] ?? tests.all)(r))
+          .sort((a, b) => doneCount(a.r) - doneCount(b.r) || a.i - b.i)
+          .map(({ r }) => r)
+        const chips = [
+          { key: 'all', label: t('All'), count: d.counts.rooms },
+          { key: 'checkOut', label: t('Not checked out'), count: d.rooms.filter(notCheckedOut).length },
+          { key: 'code', label: t('Door code to change'), count: d.counts.codesToSet },
+          { key: 'furniture', label: t('Furniture not matching'), count: d.counts.notMatching },
+          { key: 'meter', label: t('No meter reading'), count: d.rooms.filter((r) => !r.lastMeterCut).length },
+        ]
+        const leftToCheckOut = d.counts.leavers - d.counts.checkedOut
+        const showLeavers = leaversOpen ?? d.counts.overdue > 0
+        return (
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {headerSlot && createPortal(<DateChips checkOutBy={d.checkOutBy} checkInStart={d.checkInStart} />, headerSlot)}
+
+            <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-2">
+              {chips.map((c) => (
+                <FilterChip key={c.key} label={c.label} count={c.count} active={filter === c.key} onClick={() => setFilter(filter === c.key && c.key !== 'all' ? 'all' : c.key)} />
+              ))}
+              <span className="ml-auto flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-tertiary">
+                <CalendarClock size={14} aria-hidden="true" />
+                {t('{n} new students arriving', { n: formatNumber(d.counts.arriving) })}
+              </span>
+            </div>
+
+            <section className="flex min-h-[322px] flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface">
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
+                <h2 className="text-h3 font-semibold text-fg">{t('Rooms to hand over')}</h2>
+                <InfoTip label={t('Rooms whose residents or class change')} />
+                <span className="text-sm text-fg-tertiary tabular">· {t('{n} rooms', { n: formatNumber(rooms.length) })}</span>
               </div>
-              <Table>
-                <THead>
-                  <tr>
-                    <Th>Student</Th>
-                    <Th className="w-32">Bed</Th>
-                    <Th className="w-36">Status</Th>
-                  </tr>
-                </THead>
-                <TBody>
-                  {d.leavers.length === 0 && (
-                    <Tr>
-                      <Td colSpan={3} className="text-fg-secondary">
-                        {t('Nobody leaves.')}
-                      </Td>
-                    </Tr>
-                  )}
-                  {d.leavers.map((l) => (
-                    <Tr key={l.allocationId}>
-                      <Td>
-                        <TwoLine primary={l.student.name} secondary={l.student.studentCode} />
-                      </Td>
-                      <Td>
-                        {l.room}-{l.bed}
-                      </Td>
-                      <Td>
-                        <StatusTag status={l.status} tone={l.status === 'To check out' ? 'warning' : undefined} />
-                      </Td>
-                    </Tr>
-                  ))}
-                </TBody>
-              </Table>
-            </Card>
-            <Card padding="none" className="flex min-w-0 flex-1 flex-col">
-              <h2 className="px-4 pt-3 text-h3 font-semibold text-fg">{t('Movers')}</h2>
-              <Table>
-                <THead>
-                  <tr>
-                    <Th>Student</Th>
-                    <Th className="w-48">From → To</Th>
-                    <Th className="w-36">Next-term fee</Th>
-                  </tr>
-                </THead>
-                <TBody>
-                  {d.movers.length === 0 && (
-                    <Tr>
-                      <Td colSpan={3} className="text-fg-secondary">
-                        {t('Nobody changes room.')}
-                      </Td>
-                    </Tr>
-                  )}
-                  {d.movers.map((m) => (
-                    <Tr key={`${m.student.studentCode}-${m.to}`}>
-                      <Td>
-                        <TwoLine primary={m.student.name} secondary={m.student.studentCode} />
-                      </Td>
-                      <Td>
-                        <span className="flex items-center gap-2">
-                          {m.from} → {m.to}
-                          {m.moved && <Tag tone="success">Moved</Tag>}
-                        </span>
-                      </Td>
-                      <Td>{m.fee ? <StatusTag status={m.fee} /> : <span className="text-fg-tertiary">{t('Not issued')}</span>}</Td>
-                    </Tr>
-                  ))}
-                </TBody>
-              </Table>
-            </Card>
+              {d.rooms.length === 0 ? (
+                <p className="px-4 py-3 text-base text-fg-tertiary">{t('No room changes residents or class.')}</p>
+              ) : (
+                <Table fill bare>
+                  <THead>
+                    <tr>
+                      <Th className="w-28">Room</Th>
+                      <Th className="w-56">Residents change</Th>
+                      <Th>Room tier next term</Th>
+                      <Th className="w-[340px]">Tasks to do</Th>
+                      <Th className="w-36">Progress</Th>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {rooms.length === 0 && (
+                      <Tr>
+                        <Td colSpan={5} className="text-fg-tertiary">
+                          {t('No room matches this filter.')}
+                        </Td>
+                      </Tr>
+                    )}
+                    {rooms.map((r) => {
+                      const done = doneCount(r)
+                      const finished = done === 3
+                      return (
+                        <Tr key={`${r.block}-${r.room}`} className={cx('[&>td]:h-12 [&>td]:py-1.5', finished && 'opacity-55')}>
+                          <Td>
+                            <TwoLine primary={r.room} secondary={scope.block ? null : t('Block {code}', { code: r.block })} />
+                          </Td>
+                          <Td>
+                            <span className="tabular">
+                              {t('{leaving} leaving → {arriving} arriving', { leaving: formatNumber(r.leaving), arriving: formatNumber(r.arriving) })}
+                            </span>
+                          </Td>
+                          <Td>
+                            <span className="flex items-center gap-2">
+                              {tr(r.roomClass)}
+                              {r.matches ? (
+                                <StatusTag status="Matches" />
+                              ) : (
+                                <Tooltip label={t('The furniture does not match this room tier yet. The Furniture page lists what is missing.')}>
+                                  <span tabIndex={0} className="cursor-help">
+                                    <StatusTag status="Does not match" />
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </span>
+                          </Td>
+                          <Td>
+                            <span className="flex items-center gap-1.5">
+                              <TaskChip
+                                done={r.doorCodeReady}
+                                icon={KeyRound}
+                                label={t('Door code')}
+                                tip={r.doorCodeReady ? t('Ready') : t('Change needed')}
+                                onClick={r.doorCodeReady ? undefined : () => setCoding(r)}
+                              />
+                              <TaskChip
+                                done={r.matches}
+                                icon={Sofa}
+                                label={t('Furniture')}
+                                tip={r.matches ? t('Matches') : t('Does not match')}
+                                to={r.matches ? undefined : `${base}/furniture?room=${encodeURIComponent(r.room)}`}
+                              />
+                              <TaskChip
+                                done={Boolean(r.lastMeterCut)}
+                                icon={Gauge}
+                                label={r.lastMeterCut ? formatDate(r.lastMeterCut) : t('Meter')}
+                                tip={`${t('Meter reading')}: ${r.lastMeterCut ? formatDate(r.lastMeterCut) : t('None yet')} · ${t('Record reading')}`}
+                                onClick={() => setReading(r)}
+                              />
+                            </span>
+                          </Td>
+                          <Td>
+                            <span className="flex items-center gap-2">
+                              <span className="w-7 text-sm font-medium text-fg tabular">{done}/3</span>
+                              <ProgressBar value={done} max={3} tone={finished ? 'success' : 'warning'} className="w-16" />
+                            </span>
+                          </Td>
+                        </Tr>
+                      )
+                    })}
+                  </TBody>
+                </Table>
+              )}
+            </section>
+
+            {d.leavers.length === 0 ? (
+              <EmptyLine>{t('Nobody leaves.')}</EmptyLine>
+            ) : (
+              <Fold
+                open={showLeavers}
+                onToggle={() => setLeaversOpen(!showLeavers)}
+                title={
+                  <span className="flex min-w-0 items-center gap-2 text-base">
+                    <span className="font-semibold text-fg">{t('Leavers')}</span>
+                    <span className="text-fg-secondary tabular">
+                      ({t('{done}/{n} checked out', { done: formatNumber(d.counts.checkedOut), n: formatNumber(d.counts.leavers) })}
+                      {leftToCheckOut > 0 ? ` · ${t('{n} to check out', { n: formatNumber(leftToCheckOut) })}` : ''})
+                    </span>
+                    {d.counts.overdue > 0 && <Tag tone="error">{t('{n} overdue', { n: formatNumber(d.counts.overdue) })}</Tag>}
+                  </span>
+                }
+              >
+                <Table bare size="md">
+                  <THead>
+                    <tr>
+                      <Th>Student</Th>
+                      <Th className="w-32">Bed</Th>
+                      <Th className="w-36">Status</Th>
+                      <Th className="w-36">
+                        <span className="sr-only">{t('Check-out desk')}</span>
+                      </Th>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {d.leavers.map((l) => (
+                      <Tr key={l.allocationId} className="[&>td]:h-11 [&>td]:py-1">
+                        <Td>
+                          <TwoLine primary={l.student.name} secondary={l.student.studentCode} />
+                        </Td>
+                        <Td>
+                          {l.room}-{l.bed}
+                        </Td>
+                        <Td>
+                          <StatusTag status={l.status} tone={l.status === 'To check out' ? 'warning' : undefined} />
+                        </Td>
+                        <Td align="right">
+                          {l.status !== 'Checked out' && (
+                            <Button size="sm" icon={LogOut} iconSize={14} to={`${base}/check-out`} tip="Open the check-out desk">
+                              Check out at the desk
+                            </Button>
+                          )}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </TBody>
+                </Table>
+              </Fold>
+            )}
+
+            {d.movers.length === 0 ? (
+              <EmptyLine>{t('No student changes room')}</EmptyLine>
+            ) : (
+              <Fold
+                open={moversOpen}
+                onToggle={() => setMoversOpen(!moversOpen)}
+                title={
+                  <span className="flex min-w-0 items-center gap-2 text-base">
+                    <span className="font-semibold text-fg">{t('Movers')}</span>
+                    <span className="text-fg-secondary tabular">
+                      ({formatNumber(d.counts.movers)} · {t('{n} stay in their room', { n: formatNumber(d.counts.staying) })})
+                    </span>
+                  </span>
+                }
+              >
+                <Table bare>
+                  <THead>
+                    <tr>
+                      <Th>Student</Th>
+                      <Th className="w-48">From → To</Th>
+                      <Th className="w-36">Next-term fee</Th>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {d.movers.map((m) => (
+                      <Tr key={`${m.student.studentCode}-${m.to}`} className="[&>td]:h-11 [&>td]:py-1">
+                        <Td>
+                          <TwoLine primary={m.student.name} secondary={m.student.studentCode} />
+                        </Td>
+                        <Td>
+                          <span className="flex items-center gap-2">
+                            {m.from} → {m.to}
+                            {m.moved && <Tag tone="success">Moved</Tag>}
+                          </span>
+                        </Td>
+                        <Td>{m.fee ? <StatusTag status={m.fee} /> : <span className="text-fg-tertiary">{t('Not issued')}</span>}</Td>
+                      </Tr>
+                    ))}
+                  </TBody>
+                </Table>
+              </Fold>
+            )}
+
+            {reading && <MeterCut room={reading} onClose={() => setReading(null)} />}
+            {coding && (
+              <SetCodeModal
+                room={coding}
+                onClose={() => {
+                  setCoding(null)
+                  query.reload()
+                }}
+              />
+            )}
           </div>
-          <Card padding="none" className="flex shrink-0 flex-col">
-            <h2 className="px-4 pt-3 text-h3 font-semibold text-fg">{t('Rooms whose residents or class change')}</h2>
-            <Table>
-              <THead>
-                <tr>
-                  <Th className="w-24">Room</Th>
-                  <Th className="w-28">Leaving</Th>
-                  <Th className="w-28">Arriving</Th>
-                  <Th className="w-36">Door code</Th>
-                  <Th>Room tier next term</Th>
-                  <Th className="w-56">Meter reading</Th>
-                </tr>
-              </THead>
-              <TBody>
-                {d.rooms.length === 0 && (
-                  <Tr>
-                    <Td colSpan={6} className="text-fg-secondary">
-                      {t('No room changes residents or class.')}
-                    </Td>
-                  </Tr>
-                )}
-                {d.rooms.map((r) => (
-                  <Tr key={r.room}>
-                    <Td className="font-medium">{r.room}</Td>
-                    <Td>{formatNumber(r.leaving)}</Td>
-                    <Td>{formatNumber(r.arriving)}</Td>
-                    <Td>
-                      <StatusTag status={r.doorCodeReady ? 'Ready' : 'Change needed'} />
-                    </Td>
-                    <Td>
-                      <span className="flex items-center gap-2">
-                        {tr(r.roomClass)}
-                        <StatusTag status={r.matches ? 'Matches' : 'Does not match'} />
-                      </span>
-                    </Td>
-                    <Td>
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm text-fg-secondary">{r.lastMeterCut ? formatDate(r.lastMeterCut) : t('None yet')}</span>
-                        <Button size="sm" icon={Gauge} onClick={() => setReading(r)}>
-                          Record reading
-                        </Button>
-                      </span>
-                    </Td>
-                  </Tr>
-                ))}
-              </TBody>
-            </Table>
-          </Card>
-          {reading && <MeterCut room={reading} onClose={() => setReading(null)} />}
-        </div>
-      )}
+        )
+      }}
     </QueryState>
   )
 }
