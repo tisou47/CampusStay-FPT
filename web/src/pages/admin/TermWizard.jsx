@@ -791,7 +791,7 @@ export default function TermWizard() {
                     s.key === step ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-primary',
                   )}
                 >
-                  <span className={cx('flex size-5 items-center justify-center rounded-full text-sm', saved ? 'bg-success text-white' : 'bg-subtle text-fg-secondary')}>
+                  <span className={cx('flex size-5 items-center justify-center rounded-full text-sm', saved ? 'bg-success text-fg-on-brand' : 'bg-subtle text-fg-secondary')}>
                     {saved ? <Check size={12} aria-hidden="true" /> : i + 1}
                   </span>
                   {t(s.label)}

@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { QueryState } from '@/components/ui/States'
+import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { formatDateTime, formatNumber, formatPercent } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -51,48 +52,42 @@ export default function OccupancyReport() {
       <div className="flex min-h-0 flex-1 flex-col overflow-auto rounded-lg border border-line bg-surface">
         <QueryState query={query} isEmpty={(x) => !x.blocks?.length}>
           {(data) => (
-            <table className="w-full border-separate border-spacing-0 text-base">
-              <thead className="sticky top-0 z-10 bg-subtle">
-                <tr className="text-sm text-fg-secondary">
-                  <th scope="col" className="w-30 border-b border-line px-4 py-2 text-left font-medium">
-                    {t('Block')}
-                  </th>
-                  <th scope="col" className="w-28 border-b border-line px-3 py-2 text-left font-medium">
-                    {t('Room type')}
-                  </th>
+            <Table size="sm" bare fill>
+              <THead>
+                <tr>
+                  <Th className="w-30">Block</Th>
+                  <Th className="w-28">Room type</Th>
                   {data.roomClasses.map((c) => (
-                    <th key={c} scope="col" className="border-b border-line px-3 py-2 text-right font-medium">
-                      {tr(c)}
-                    </th>
+                    <Th key={c} align="right">
+                      {c}
+                    </Th>
                   ))}
-                  <th scope="col" className="w-35 border-b border-line px-4 py-2 text-right font-medium">
-                    {t('Total')}
-                  </th>
+                  <Th align="right" className="w-35">
+                    Total
+                  </Th>
                 </tr>
-              </thead>
-              <tbody className="[&>tr:last-child>*]:border-b-0">
+              </THead>
+              <TBody>
                 {data.blocks.map((b) => (
                   <Fragment key={b.block}>
                     {b.rows.map((row, i) => (
-                      <tr key={row.roomTypeName} className="*:border-b *:border-line">
-                        <th scope="row" className="px-4 py-1.75 text-left font-medium text-fg">
-                          {i === 0 ? t('Block {code}', { code: b.block }) : <span className="sr-only">{t('Block {code}', { code: b.block })}</span>}
-                        </th>
-                        <td className="px-3 py-1.75 text-fg">{tr(row.roomTypeName)}</td>
+                      <Tr key={row.roomTypeName}>
+                        <Td rowHeader>{i === 0 ? t('Block {code}', { code: b.block }) : <span className="sr-only">{t('Block {code}', { code: b.block })}</span>}</Td>
+                        <Td>{tr(row.roomTypeName)}</Td>
                         {row.cells.map((c, j) => (
-                          <td key={data.roomClasses[j]} className="px-3 py-1.75 text-right text-fg tabular" title={c.capacity ? t('{p} allocated', { p: formatPercent(c.allocated / c.capacity, 0) }) : undefined}>
+                          <Td key={data.roomClasses[j]} align="right" title={c.capacity ? t('{p} allocated', { p: formatPercent(c.allocated / c.capacity, 0) }) : undefined}>
                             {formatNumber(c.allocated)} / {formatNumber(c.capacity)}
-                          </td>
+                          </Td>
                         ))}
-                        <td className="px-4 py-1.75 text-right text-fg tabular">
+                        <Td align="right">
                           {formatNumber(sum(row.cells, 'allocated'))} / {formatNumber(sum(row.cells, 'capacity'))}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </Fragment>
                 ))}
-              </tbody>
-            </table>
+              </TBody>
+            </Table>
           )}
         </QueryState>
       </div>

@@ -14,7 +14,9 @@ const SizeContext = createContext({ size: 'md', inset: 'md' })
 
 const insets = { md: 'first:pl-4 last:pr-4', lg: 'first:pl-5 last:pr-5' }
 
+// sm: dense report grids (Occupancy, Financial) where many short numeric rows must fit one screen: 36 px header and rows.
 const sizes = {
+  sm: { th: 'h-9 px-3 py-1.5', td: 'h-9 px-3 py-1.5' },
   md: { th: 'h-10 px-3 py-2', td: 'h-13 px-3 py-2.5' },
   lg: { th: 'h-11 px-4 py-2.5', td: 'h-14 px-4 py-3' },
 }
@@ -38,7 +40,7 @@ export function THead({ children }) {
 }
 
 export function TBody({ children }) {
-  return <tbody className="[&>tr:last-child>td]:border-b-0">{children}</tbody>
+  return <tbody className="[&>tr:last-child>:is(td,th[scope=row])]:border-b-0">{children}</tbody>
 }
 
 export function Th({ className, align = 'left', children, ...props }) {
@@ -79,9 +81,9 @@ export function Tr({ selected, onClick, className, children, ...props }) {
       {...props}
       onKeyDown={onKeyDown}
       className={cx(
-        'transition-colors [&>td]:border-b [&>td]:border-line',
+        'transition-colors [&>:is(td,th[scope=row])]:border-b [&>:is(td,th[scope=row])]:border-line',
         selected ? 'bg-brand-subtle' : onClick && 'hover:bg-primary-subtle/60',
-        onClick && 'cursor-pointer outline-none focus-visible:bg-primary-subtle/60 focus-visible:[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-focus)]',
+        onClick && 'cursor-pointer outline-none focus-visible:bg-primary-subtle/60 focus-visible:[&>:first-child]:shadow-[inset_3px_0_0_var(--color-focus)]',
         className,
       )}
     >
@@ -102,15 +104,21 @@ function textOf(children) {
   return text
 }
 
-/** wrap: true lets a cell wrap even when its text is short; false keeps any cell on one line. */
-export function Td({ className, align = 'left', wrap, children, ...props }) {
+/**
+ * wrap: true lets a cell wrap even when its text is short; false keeps any cell on one line.
+ * rowHeader: the cell names its row (a Block in a report) and is read out with each value: <th scope="row">, medium weight.
+ */
+export function Td({ className, align = 'left', wrap, rowHeader = false, children, ...props }) {
   const { size, inset } = useContext(SizeContext)
   const text = textOf(children)
   const oneLine = wrap === false || (wrap !== true && (align === 'right' || (text != null && (text.length <= SHORT || !/\s/.test(text)))))
+  const Cell = rowHeader ? 'th' : 'td'
   return (
-    <td
+    <Cell
+      scope={rowHeader ? 'row' : undefined}
       className={cx(
         'align-middle text-fg [text-wrap:pretty]',
+        rowHeader && 'text-left font-medium',
         oneLine && 'whitespace-nowrap',
         align === 'right' && 'tabular',
         insets[inset] ?? insets.md,
@@ -122,7 +130,7 @@ export function Td({ className, align = 'left', wrap, children, ...props }) {
       {...props}
     >
       {children}
-    </td>
+    </Cell>
   )
 }
 
