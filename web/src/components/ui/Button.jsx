@@ -116,7 +116,7 @@ function BaseIconButton({ icon: Glyph, size = 'md', iconSize, variant = 'ghost',
   return (
     <button
       type="button"
-      className={cx('inline-flex shrink-0 items-center justify-center rounded-md transition-colors', box, look, className)}
+      className={cx('inline-flex shrink-0 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-45', box, look, className)}
       {...props}
     >
       <Glyph size={iconSize ?? (size === 'sm' ? 16 : 20)} aria-hidden="true" />

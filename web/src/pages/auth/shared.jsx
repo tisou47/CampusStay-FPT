@@ -12,9 +12,6 @@ import { cx } from '@/lib/cx'
 export const cardClasses =
   'flex w-full flex-col gap-4 rounded-[20px] border border-white/18 bg-white/96 p-5 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.12),0px_20px_60px_0px_rgba(0,0,0,0.3)]'
 
-export const primaryButtonClasses =
-  'flex h-10 w-full items-center justify-center rounded-lg bg-primary px-2 text-base leading-5 font-semibold text-fg-on-brand shadow-card transition-colors hover:bg-primary-hover disabled:opacity-60'
-
 export const textLinkClasses = 'text-base leading-5 font-semibold text-fg-link hover:underline'
 
 /** Campus photo, FPT badge and the CampusStay title above the page's card. */
@@ -61,8 +58,11 @@ export function LoginField({ label, error, helper, ...props }) {
       </label>
       <div
         className={cx(
-          'flex h-10 w-full items-center gap-2 rounded-lg border bg-surface px-3 transition-[border-color,box-shadow] focus-within:shadow-focus',
-          error ? 'border-error focus-within:border-error' : 'border-line focus-within:border-focus',
+          'flex h-10 w-full items-center gap-2 rounded-lg border bg-surface px-3 transition-[border-color,box-shadow]',
+          // An error keeps its red border and a red halo on focus (as the shared Field does), not the blue one.
+          error
+            ? 'border-error focus-within:border-error focus-within:shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-error)_15%,transparent)]'
+            : 'border-line focus-within:border-focus focus-within:shadow-focus',
         )}
       >
         <Glyph size={16} aria-hidden="true" className="shrink-0 text-fg-tertiary" />

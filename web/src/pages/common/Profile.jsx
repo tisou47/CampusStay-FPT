@@ -93,7 +93,7 @@ function Hero({ name, status, subline, stats }) {
         <div className="flex min-w-0 flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
           <span
             aria-hidden="true"
-            className="flex size-18 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-orange-100 to-orange-200 text-[26px] font-bold tracking-tight text-fg-brand shadow-card ring-4 ring-surface"
+            className="flex size-18 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-orange-100 to-orange-200 text-h1 font-bold tracking-tight text-fg-brand shadow-card ring-4 ring-surface"
           >
             {initialsOf(name)}
           </span>
@@ -121,7 +121,7 @@ function Hero({ name, status, subline, stats }) {
 }
 
 const statTones = {
-  brand: 'bg-orange-100 text-fg-brand',
+  brand: 'bg-primary-subtle text-fg-brand',
   success: 'bg-success-bg text-success',
   warning: 'bg-warning-bg text-warning-fg',
   info: 'bg-info-bg text-info',
@@ -137,7 +137,7 @@ function StatCard({ icon: Glyph, value, label, note, tone = 'brand' }) {
       <div className="flex min-w-0 flex-col">
         <dd className="truncate text-h3 leading-tight font-bold text-fg tabular">{value}</dd>
         <dt className="text-sm text-fg-tertiary sm:whitespace-nowrap">{tx(label)}</dt>
-        {note && <span className="truncate text-xs text-fg-tertiary/80 max-sm:hidden">{note}</span>}
+        {note && <span className="truncate text-sm text-fg-tertiary max-sm:hidden">{note}</span>}
       </div>
     </div>
   )

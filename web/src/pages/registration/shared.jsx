@@ -168,7 +168,7 @@ export function TimelineStrip({ form, className }) {
     <ol className={cx('flex flex-col gap-2', className)}>
       {points.map((p) => (
         <li key={p.key} className="flex items-center gap-3 text-base">
-          <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-white')} />
+          <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-surface')} />
           <span className="flex-1 text-fg">{t(p.label)}</span>
           <span className="text-fg-secondary tabular">{showValue(p.type, fromInput(p.type, form[p.key]))}</span>
         </li>
@@ -297,7 +297,7 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
               <button
                 type="button"
                 aria-label={t('Remove {code}', { code })}
-                className="rounded-full p-0.5 text-fg-tertiary hover:bg-line hover:text-fg"
+                className="-my-0.5 rounded-full p-1 text-fg-tertiary transition-colors hover:bg-line hover:text-fg"
                 onClick={() => onChange(codes.filter((c) => c !== code))}
               >
                 <X size={14} aria-hidden="true" />

@@ -5,7 +5,8 @@ import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { Alert } from '@/components/ui/Display'
 import { PASSWORD_RULE, newPasswordErrors } from '@/lib/password'
-import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses, primaryButtonClasses, textLinkClasses } from './shared'
+import { Button } from '@/components/ui/Button'
+import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses, textLinkClasses } from './shared'
 import { t } from '@/i18n'
 
 // SCR-AUTH-03 Reset password (/reset-password?token=…, 30 minutes) and
@@ -118,9 +119,9 @@ export default function ResetPassword({ mode = 'reset' }) {
             setErrors((f) => ({ ...f, confirm: undefined }))
           }}
         />
-        <button type="submit" disabled={save.pending} className={primaryButtonClasses}>
+        <Button variant="primary" size="lg" block type="submit" disabled={save.pending} className="rounded-lg!">
           {save.pending ? t('Saving…') : t(text.button)}
-        </button>
+        </Button>
         <BackToSignIn />
       </form>
     </AuthShell>
