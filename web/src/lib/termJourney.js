@@ -35,6 +35,7 @@ export function termJourney(term, notes = {}, now = new Date()) {
       const days = Math.max(0, Math.ceil(((before ? s.from : s.to) - now) / DAY))
       note = before ? t('Starts in {n} days', { n: days }) : days <= 1 ? t('Ends today') : t('{n} days left', { n: days })
     }
-    return { key: s.key, label: s.label, date: range, state, note }
+    // from / to (end excluded) and custom are for display only: the progress bars and tooltips of SemesterProgress.
+    return { key: s.key, label: s.label, date: range, state, note, custom: Boolean(notes[s.key]), from: s.from, to: s.to }
   })
 }

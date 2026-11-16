@@ -52,8 +52,8 @@ export function DetailTip({ title, rows }) {
 
 /**
  * A row that is a link as a whole (a request, a ticket): no "Open" button, the row opens it. Hover tints it and
- * shows an arrow; Tab reaches it with a focus ring and Enter opens it. Its title and meta stay on one line each and
- * are cut with "…"; when they are, hovering (300 ms), focusing or tapping the row shows `details` (or the full
+ * shows an arrow; Tab reaches it with a focus ring and Enter opens it. Its title wraps over two lines at most, its
+ * meta stays on one, and each is cut with "…"; when they are, hovering (300 ms), focusing or tapping the row shows `details` (or the full
  * text). A tap on a phone then shows the details first, with an "Open details" button.
  * `action` is a button of its own beside the link (e.g. "Take it"), never a part of it.
  */
@@ -74,7 +74,7 @@ function LinkRow({ item }) {
           >
             <RowIcon icon={item.icon} tone={item.tone} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span ref={titleRef} className="truncate text-base font-medium text-fg decoration-1 underline-offset-2 group-hover/row:text-fg-brand group-hover/row:underline">
+              <span ref={titleRef} className="line-clamp-2 text-base leading-snug font-medium break-words text-fg decoration-1 underline-offset-2 group-hover/row:text-fg-brand group-hover/row:underline">
                 {tx(item.title)}
               </span>
               {item.meta && (
@@ -122,7 +122,7 @@ function ActionRow({ item }) {
       <RowIcon icon={item.icon} tone={item.tone} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-center gap-2">
-          <Truncate as="p" className="text-base font-medium text-fg">
+          <Truncate as="p" lines={2} className="text-base leading-snug font-medium text-fg">
             {item.title}
           </Truncate>
           {item.badge && (
@@ -135,6 +135,14 @@ function ActionRow({ item }) {
           <Truncate as="p" className="text-sm text-fg-secondary">
             {item.meta}
           </Truncate>
+        )}
+        {item.progress && item.progress.max > 0 && (
+          <div className="flex items-center gap-2 pt-0.5">
+            <Meter value={item.progress.value} max={item.progress.max} label={item.progress.label} className="h-1.5 w-32 shrink-0" />
+            <span className="text-sm font-medium text-fg-secondary tabular">
+              {formatNumber(item.progress.value)}/{formatNumber(item.progress.max)}
+            </span>
+          </div>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -154,8 +162,8 @@ function ActionRow({ item }) {
 }
 
 /**
- * A list of things to do. Item: { id, icon, tone, title, meta, badge: { label, tone }, action: { label, to | onClick,
- * primary }, secondary: { label, to | onClick } }. `tone` colours the icon (error, warning, info, success).
+ * A list of things to do. Item: { id, icon, tone, title, meta, badge: { label, tone }, progress: { value, max, label }
+ * (a mini bar under the meta), action: { label, to | onClick, primary }, secondary: { label, to | onClick } }. `tone` colours the icon (error, warning, info, success).
  * A record (request, ticket) passes `to` instead: the row is then a link (see LinkRow) with `status` (StatusBadge),
  * `flags` ([{ label, variant }] after the meta, e.g. "2d overdue") and `details` (its tooltip); `fresh` animates a
  * row that just arrived.
@@ -234,7 +242,12 @@ export function CapacityRows({ rows, className }) {
                 </Tag>
               )}
             </div>
-            <Meter value={r.used} max={r.total} tone={l.bar} label={t('{name}: {used} of {total} beds taken', { name: tx(r.name), used: r.used, total: r.total })} />
+            <Tooltip label={t('{used} taken · {free} free · {total} capacity', { used: formatNumber(r.used), free: formatNumber(free), total: formatNumber(r.total) })} delay={150} block>
+              <div tabIndex={0} className="flex w-full items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                <Meter value={r.used} max={r.total} tone={l.bar} label={t('{name}: {used} of {total} beds taken', { name: tx(r.name), used: r.used, total: r.total })} className="min-w-0 flex-1" />
+                {r.total > 0 && <span className="shrink-0 text-sm font-semibold text-fg tabular">{Math.round(pct)}%</span>}
+              </div>
+            </Tooltip>
             <span className="text-sm text-fg-tertiary">
               {t('{used} of {total} beds taken', { used: formatNumber(r.used), total: formatNumber(r.total) })}
               {r.detail ? ` · ${tx(r.detail)}` : ''}
@@ -246,8 +259,8 @@ export function CapacityRows({ rows, className }) {
   )
 }
 
-/** A card section with a title, a one-line subtitle and an action on the right. */
-export function Panel({ title, tip, subtitle, action, className, bodyClassName, children }) {
+/** A card section with a title (and an optional badge beside it), a one-line subtitle and an action on the right. */
+export function Panel({ title, tip, badge, subtitle, action, className, bodyClassName, children }) {
   return (
     <section className={cx('flex min-h-0 flex-col rounded-lg border border-line bg-surface', className)}>
       <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4 pb-2">
@@ -255,6 +268,7 @@ export function Panel({ title, tip, subtitle, action, className, bodyClassName, 
           <h2 className="flex items-center gap-1.5 text-h3 font-semibold text-fg">
             {tx(title)}
             {tip && <InfoTip label={tip} />}
+            {badge}
           </h2>
           {subtitle && (
             <Truncate as="p" className="text-sm text-fg-tertiary">

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router'
-import { AlertTriangle, ArrowRight, CalendarDays, Check, Info } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, Info } from 'lucide-react'
+import { SemesterProgress } from '@/components/ui/SemesterProgress'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { ADMIN_STAGES, READY_SCREENS, flowPosition } from '@/app/adminFlow'
 import { MANAGER_STAGES, STAFF_STAGES, stagePosition } from '@/app/managerFlow'
@@ -30,57 +31,8 @@ export function FlowTrail({ role }) {
       </Link>
       <span aria-hidden="true" className="h-4 w-px shrink-0 bg-line" />
 
-      {/* Stages: this screen's stage spelled out, the others as numbered dots; each tells its name and purpose on hover. */}
-      <ol className="flex shrink-0 items-center">
-        {flow.stages.map((stage, i) => {
-          const here = i === flow.at
-          const live = i === flow.live
-          const done = i < flow.at
-          const tip = (
-            <span className="flex flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 font-semibold">
-                {t('Stage {n}', { n: i + 1 })}: {t(stage.label)}
-                {live && <span className="rounded-full bg-green-500/25 px-1.5 text-green-100">{t('now')}</span>}
-              </span>
-              {stage.why && <span className="font-normal text-white/75">{t(stage.why)}</span>}
-            </span>
-          )
-          return (
-            <li key={stage.key} className="flex items-center">
-              {i > 0 && <span aria-hidden="true" className={cx('h-px w-3', i <= flow.at ? 'bg-primary/40' : 'bg-line-strong')} />}
-              <Tooltip label={tip} side="bottom" align={i === 0 ? 'start' : 'center'}>
-                <span
-                  tabIndex={0}
-                  aria-current={here ? 'step' : undefined}
-                  aria-label={`${t('Stage {n}', { n: i + 1 })}: ${t(stage.label)}${live ? ` (${t('now')})` : ''}`}
-                  className={cx(
-                    'relative flex h-5 cursor-default items-center justify-center rounded-full font-semibold tabular transition-colors',
-                    here
-                      ? 'gap-1.5 bg-primary-subtle pr-2 pl-0.5 text-fg-brand'
-                      : done
-                        ? 'size-5 bg-primary-subtle text-fg-brand hover:bg-orange-100'
-                        : 'size-5 border border-line-strong text-xs text-fg-tertiary hover:border-fg-tertiary hover:text-fg-secondary',
-                  )}
-                >
-                  {here ? (
-                    <>
-                      <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[11px] text-fg-on-brand">{i + 1}</span>
-                      <span className="whitespace-nowrap">{t(stage.label)}</span>
-                    </>
-                  ) : done ? (
-                    <Check size={12} strokeWidth={3} aria-hidden="true" />
-                  ) : (
-                    i + 1
-                  )}
-                  {live && (
-                    <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-success ring-2 ring-surface" />
-                  )}
-                </span>
-              </Tooltip>
-            </li>
-          )
-        })}
-      </ol>
+      {/* Stages: done ones as ticks, this screen's stage spelled out, the others as numbers; each explains itself on hover. */}
+      <SemesterProgress variant="compact" steps={flow.steps} aria-label={t('Stages')} />
       <span aria-hidden="true" className="h-4 w-px shrink-0 bg-line" />
 
       {/* This screen: its place in the stage, with why it matters (and any timing warning) on hover. */}
@@ -130,9 +82,7 @@ function adminTrail(pathname) {
   return {
     title: t('Set up a term'),
     home: '/admin',
-    stages: ADMIN_STAGES,
-    at: at.stage,
-    live: -1,
+    steps: ADMIN_STAGES.map((st, i) => ({ key: st.key, label: st.label, why: st.why, state: stateAt(i, at.stage) })),
     screen: at.current ? t('{label} · {n} of {total}', { label: t(at.current.label), n: at.screen + 1, total: READY_SCREENS.length }) : null,
     why: at.current?.why ?? ADMIN_STAGES[at.stage].why,
     next: at.next,
@@ -140,6 +90,30 @@ function adminTrail(pathname) {
 }
 
 const STAGES = { manager: MANAGER_STAGES, staff: STAFF_STAGES }
+
+const stateAt = (i, at) => (i < at ? 'done' : i === at ? 'current' : 'todo')
+
+/**
+ * A role's stages as SemesterProgress steps: the Term's dates and where each stage is in time, what it is for and
+ * its first screen. stateOf(i) says how the stage is drawn (by default where it is in time).
+ */
+export function stageSteps(STAGES_OF_ROLE, term, stateOf, notes) {
+  const journey = termJourney(term, notes)
+  return STAGES_OF_ROLE.map((st, i) => {
+    const j = journey[i] ?? {}
+    const time = j.state
+    return {
+      ...j,
+      key: st.key,
+      label: st.label,
+      why: st.why,
+      state: stateOf ? stateOf(i) : (time ?? 'todo'),
+      time,
+      live: time === 'current',
+      link: st.screens?.[0] ? { to: st.screens[0].to, label: st.screens[0].label } : null,
+    }
+  })
+}
 
 /** The stage the Term is in now, as an index of the role's stages (-1 when there is no Term). */
 const liveIndex = (term) => termJourney(term).findIndex((s) => s.state === 'current')
@@ -187,12 +161,54 @@ function termTrail(STAGES_OF_ROLE, home, pathname, term) {
   return {
     title: term ? t('Term {name}', { name: term.name }) : t('Term'),
     home,
-    stages: STAGES_OF_ROLE,
-    at: at.stage,
-    live,
+    steps: stageSteps(STAGES_OF_ROLE, term, (i) => stateAt(i, at.stage)),
     screen: t('{label} · {n} of {total}', { label: t(screen.label), n: at.screen + 1, total: stage.screens.length }),
     why: screen.why,
     notice: live >= 0 && live !== at.stage && !screen.daily ? t('The term is in {stage} now.', { stage: t(STAGES_OF_ROLE[live].label) }) : null,
     next,
   }
+}
+
+const badgeTone = {
+  error: 'bg-error-bg text-error-fg',
+  warning: 'bg-warning-bg text-warning-fg',
+  info: 'bg-info-bg text-info-fg',
+  success: 'bg-success-bg text-success-fg',
+  neutral: 'bg-subtle text-fg-secondary',
+}
+
+/**
+ * The current stage's screens as a row of chips on a role's home (Staff Today), each with what is still open there
+ * when the page knows it. counts: { [screen path]: { label, tone, title } }; a screen without a count shows its name.
+ */
+export function StageWork({ role, term, counts = {}, className }) {
+  const stage = STAGES[role]?.[liveIndex(term)]
+  if (!stage) return null
+  return (
+    <div className={cx('flex flex-wrap items-center gap-x-2 gap-y-1.5', className)}>
+      <span className="text-sm font-medium text-fg-secondary">{t('Work of this stage:')}</span>
+      <ul className="contents">
+        {stage.screens.map((sc) => {
+          const c = counts[sc.to]
+          return (
+            <li key={sc.to}>
+              <Tooltip label={c?.title ? `${t(sc.why)} ${c.title}` : t(sc.why)} delay={150} side="bottom">
+                <Link
+                  to={sc.to}
+                  className="flex h-7 items-center gap-1.5 rounded-full border border-line bg-canvas pr-1 pl-3 text-sm text-fg transition-colors hover:border-primary hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+                >
+                  {t(sc.label)}
+                  {c ? (
+                    <span className={cx('rounded-full px-1.5 text-xs leading-5 font-semibold whitespace-nowrap tabular', badgeTone[c.tone ?? 'neutral'])}>{c.label}</span>
+                  ) : (
+                    <span aria-hidden="true" className="w-2" />
+                  )}
+                </Link>
+              </Tooltip>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }

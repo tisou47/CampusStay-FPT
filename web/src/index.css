@@ -152,6 +152,13 @@
   --animate-pop-in: pop-in 160ms ease-out;
   --animate-toast-in: toast-in 200ms ease-out;
   --animate-row-in: row-in 1200ms ease-out;
+  --animate-halo: halo 2.4s ease-in-out infinite;
+
+  /* The current stage of SemesterProgress: its light halo breathes gently (off with prefers-reduced-motion). */
+  @keyframes halo {
+    0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 22%, transparent); }
+    50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 10%, transparent); }
+  }
 
   /* A row that just moved into a list (a request taken): it slides in, then its highlight fades. */
   @keyframes row-in {
