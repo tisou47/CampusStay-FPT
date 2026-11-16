@@ -6,21 +6,26 @@ import '../links.dart';
 import '../session.dart';
 import 'applications.dart';
 import 'apply.dart';
+import 'family_day.dart';
 import 'notifications.dart';
 import 'payments.dart';
 import 'registration.dart';
 
-/// Student Home (web SCR-HOME-01, phone MOB-HOME-01, R-12), kept short for a phone: a greeting, the one thing to do
-/// now, shortcuts with their counts, the newest notifications, the registration period in one line and the two newest
-/// announcements. Details live on the screens the shortcuts open.
-/// `GET /students/me/home`, `/notifications`, `/students/me/board`, `/registration-periods/current`, `/students/me/roommate-invitation`.
+//// Student Home (web SCR-HOME-01, phone MOB-HOME-01, R-12), laid out as the phone's menu: the one thing to do now,
+/// then the app's features as tiles in groups (notifications and registration; room life; payments), each with its
+/// count. Every list opens on a page of its own.
+/// `GET /students/me/home`, `/notifications`, `/students/me/board`, `/registration-periods/current`,
+/// `/students/me/roommate-invitation`.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.session, required this.openTab});
+  const HomeScreen({super.key, required this.session, required this.openTab, this.unread = 0});
 
   final Session session;
 
-  /// Opens a tab of the shell: 1 My Room, 2 Payments, 3 Activity (with its segment: applications, requests).
+  /// Opens a part of the shell: 1 My Room, 2 Payments, 3 Activity (with its segment: applications, requests).
   final void Function(int tab, [String? segment]) openTab;
+
+  /// Unread notifications (the shell's count).
+  final int unread;
 
   static Future<Json?> _optional(String path) async {
     try {
@@ -35,7 +40,7 @@ class HomeScreen extends StatelessWidget {
     _optional('/students/me/board'),
     _optional('/registration-periods/current'),
     _optional('/students/me/roommate-invitation'),
-    _optional('/notifications?limit=3'),
+    _optional('/notifications?limit=1'),
   ]);
 
   @override
@@ -47,22 +52,24 @@ class HomeScreen extends StatelessWidget {
         final board = data[1];
         final card = data[2]?.obj('card');
         final invitation = data[3]?.obj('invitation');
-        final notifications = data[4];
+        final notifications = (data[4]?.number('unread') ?? unread).toInt();
+        final boardUnread = (board?.objects('items') ?? const <Json>[]).where((i) => !i.flag('read')).length;
+        final due = (home.obj('invoices')?.number('due') ?? 0).toInt();
+        final requests = (home.number('openRequests') ?? 0).toInt();
+        final left = timeLeft(card?.str('countdownTo'));
+        final app = home.obj('application');
 
         Future<void> open(Widget page) async {
           await push(context, page);
           await reload();
         }
 
-        final left = timeLeft(card?.str('countdownTo'));
+        Future<void> tab(int index, [String? segment]) async {
+          openTab(index, segment);
+        }
+
         return Cards(
           children: [
-            _Hero(
-              home: home,
-              name: _greeting(home.str('firstName') ?? session.name),
-              session: session,
-              openTab: openTab,
-            ),
             if (invitation != null)
               LinkBar(
                 icon: Icons.group_add_outlined,
@@ -74,35 +81,79 @@ class HomeScreen extends StatelessWidget {
                 note: t('Answer', 'Trả lời'),
                 onTap: () => open(const RoommateInvitationScreen()),
               ),
-            // Home keeps its own work: what to do now, the notifications, the registration period and the board.
-            // Room, Payments and Activity are the tabs below; their screens are not repeated here.
             ?_next(home, open),
-            if (notifications != null)
-              NotificationsCard(data: notifications, reload: reload, seeAll: () => open(const NotificationsScreen())),
-            if (card != null)
-              LinkBar(
-                icon: Icons.event_outlined,
-                text: '${t('Registration', 'Đăng ký')} ${card.text('name')} · ${label(card.str('status'))}',
-                note: left == null
-                    ? null
-                    : card.str('status') == 'Open'
-                    ? t('closes in $left', 'còn $left')
-                    : t('opens in $left', 'mở sau $left'),
-                onTap: () => open(RegistrationPeriodScreen(termId: card.text('termId'))),
-              ),
-            if (board != null && board.objects('items').isNotEmpty) _Board(board: board, reload: reload),
+            FeatureSection(
+              title: t('Notifications and applications', 'Thông báo và đơn đăng ký'),
+              tiles: [
+                FeatureTile(
+                  icon: Icons.notifications_rounded,
+                  color: const Color(0xFFF59E0B),
+                  label: t('Notifications', 'Thông báo'),
+                  badge: notifications,
+                  onTap: () => open(const NotificationsScreen()),
+                ),
+                FeatureTile(
+                  icon: Icons.assignment_ind_rounded,
+                  color: Tokens.link,
+                  label: t('Applications', 'Đơn đăng ký'),
+                  note: app == null ? null : label(app.str('status')),
+                  onTap: () => tab(3, 'applications'),
+                ),
+                if (card != null)
+                  FeatureTile(
+                    icon: Icons.event_available_rounded,
+                    color: const Color(0xFF0EA5E9),
+                    label: t('Registration period', 'Đợt đăng ký'),
+                    note: left == null
+                        ? label(card.str('status'))
+                        : card.str('status') == 'Open'
+                        ? t('closes in $left', 'còn $left')
+                        : t('opens in $left', 'mở sau $left'),
+                    onTap: () => open(RegistrationPeriodScreen(termId: card.text('termId'))),
+                  ),
+                FeatureTile(
+                  icon: Icons.campaign_rounded,
+                  color: const Color(0xFF8B5CF6),
+                  label: t('Dormitory board', 'Bảng tin KTX'),
+                  badge: boardUnread,
+                  onTap: () => open(const BoardScreen()),
+                ),
+              ],
+            ),
+            FeatureSection(
+              title: t('Dormitory life', 'Sinh hoạt KTX'),
+              tiles: [
+                FeatureTile(
+                  icon: Icons.build_rounded,
+                  color: const Color(0xFF10B981),
+                  label: t('Requests', 'Yêu cầu'),
+                  badge: requests,
+                  onTap: () => tab(3, 'requests'),
+                ),
+                FeatureTile(
+                  icon: Icons.family_restroom_rounded,
+                  color: const Color(0xFFEC4899),
+                  label: t('Family Days', 'Ngày gia đình'),
+                  onTap: () => open(const FamilyDaysScreen()),
+                ),
+              ],
+            ),
+            FeatureSection(
+              title: t('Finance', 'Tài chính'),
+              tiles: [
+                FeatureTile(
+                  icon: Icons.payments_rounded,
+                  color: Tone.error.mark,
+                  label: t('Payments', 'Thanh toán'),
+                  badge: due,
+                  onTap: () => tab(2),
+                ),
+              ],
+            ),
           ],
         );
       },
     );
-  }
-
-  static String _greeting(String name) {
-    final h = DateTime.now().hour;
-    final first = name.trim().split(RegExp(r'\s+')).last;
-    if (h < 12) return t('Good morning, $first', 'Chào buổi sáng, $first');
-    if (h < 18) return t('Good afternoon, $first', 'Chào buổi chiều, $first');
-    return t('Good evening, $first', 'Chào buổi tối, $first');
   }
 
   static String _stage(Json home) {
@@ -206,17 +257,20 @@ class HomeScreen extends StatelessWidget {
 // The dormitory board (spec §6.5, A-30): pinned and recent announcements, one compact row each; tapping one opens it
 /// in a sheet and marks it read; a change announcement lists its old → new values.
 class _Board extends StatefulWidget {
-  const _Board({required this.board, required this.reload});
+  const _Board({required this.board, required this.reload, this.all = false});
 
   final Json board;
   final Future<void> Function() reload;
+
+  /// Every announcement (the board's page) instead of the newest two.
+  final bool all;
 
   @override
   State<_Board> createState() => _BoardState();
 }
 
 class _BoardState extends State<_Board> {
-  bool _all = false;
+  late bool _all = widget.all;
   final Set<String> _read = {};
 
   /// Web `categoryTone`.
@@ -235,75 +289,7 @@ class _BoardState extends State<_Board> {
       setState(() => _read.add(id));
       Api.post('/notifications/${Uri.encodeComponent(id)}/read').ignore();
     }
-    final link = item.str('link');
-    final changes = item.objects('changes');
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheet) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 10,
-            children: [
-              Wrap(
-                spacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (item.flag('pinned')) const Icon(Icons.push_pin, size: 16, color: Tokens.fgBrand),
-                  if (item.str('category') != null)
-                    Tag(label(item.str('category')), tone: _tone(item.str('category')), dot: false),
-                  Text(
-                    moment(item.str('shownFrom') ?? item.str('createdAt')),
-                    style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
-                  ),
-                ],
-              ),
-              Text(item.text('title'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-              for (final c in changes)
-                Panel(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 4,
-                    children: [
-                      Text(label(c.str('field')), style: const TextStyle(color: Tokens.fgTertiary)),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: _value(c.str('type'), c['before']),
-                              style: const TextStyle(decoration: TextDecoration.lineThrough, color: Tokens.fgSecondary),
-                            ),
-                            const TextSpan(text: '  →  '),
-                            TextSpan(
-                              text: _value(c.str('type'), c['after']),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (changes.isEmpty)
-                Text(item.text('body'), style: const TextStyle(color: Tokens.fgSecondary, fontSize: 15)),
-              if (link != null && link != '/student')
-                BusyButton(
-                  label: t('Open', 'Mở'),
-                  onPressed: () async {
-                    Navigator.pop(sheet);
-                    await openLink(context, link);
-                    await widget.reload();
-                  },
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
+    await showAnnouncement(context, item, reload: widget.reload);
   }
 
   @override
@@ -421,93 +407,101 @@ class _BoardState extends State<_Board> {
   }
 }
 
-/// The top of Home: the greeting and today's date on the brand gradient, and three facts at a glance (the Room, what
-/// is due, open requests); tapping one opens its tab.
-class _Hero extends StatelessWidget {
-  const _Hero({required this.home, required this.name, required this.session, required this.openTab});
-
-  final Json home;
-  final String name;
-  final Session session;
-  final void Function(int tab, [String? segment]) openTab;
-
-  static String _today() {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
-    const vi = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
-    const en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    final date = day('${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}');
-    return '${t(en[now.weekday - 1], vi[now.weekday - 1])}, $date';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final allocation = home.obj('allocation');
-    final due = (home.obj('invoices')?.number('due') ?? 0).toInt();
-    final requests = (home.number('openRequests') ?? 0).toInt();
-    return HeroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 4,
-        children: [
-          Text(_today(), style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
-          Text(
-            name,
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          if (session.studentCode != null)
-            Text(
-              session.studentCode!.toUpperCase(),
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
-            ),
-          const SizedBox(height: 10),
-          Row(
-            spacing: 8,
-            children: [
-              _fact(
-                Icons.bed_outlined,
-                allocation == null ? t('Not yet', 'Chưa xếp') : allocation.text('room'),
-                t('Room', 'Phòng'),
-                () => openTab(1),
-              ),
-              _fact(Icons.credit_card, '$due', t('To pay', 'Cần trả'), () => openTab(2)),
-              _fact(Icons.build_outlined, '$requests', t('Open requests', 'Yêu cầu mở'), () => openTab(3, 'requests')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fact(IconData icon, String value, String text, VoidCallback onTap) {
-    return Expanded(
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 2,
+/// Opens an announcement of the dormitory board in a sheet (the board's rows and the notifications that are
+/// announcements): its category, date and title, the old → new values of a change announcement or its text, and
+/// "Open" when it links to another screen. [reload] runs after that screen is closed.
+Future<void> showAnnouncement(BuildContext context, Json item, {Future<void> Function()? reload}) async {
+  final link = item.str('link');
+  final changes = item.objects('changes');
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (sheet) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 10,
+          children: [
+            Wrap(
+              spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(icon, size: 18, color: Colors.white),
+                if (item.flag('pinned')) const Icon(Icons.push_pin, size: 16, color: Tokens.fgBrand),
+                if (item.str('category') != null)
+                  Tag(label(item.str('category')), tone: _BoardState._tone(item.str('category')), dot: false),
                 Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
+                  moment(item.str('shownFrom') ?? item.str('createdAt')),
+                  style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
                 ),
               ],
             ),
-          ),
+            Text(item.text('title'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+            for (final c in changes)
+              Panel(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 4,
+                  children: [
+                    Text(label(c.str('field')), style: const TextStyle(color: Tokens.fgTertiary)),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: _BoardState._value(c.str('type'), c['before']),
+                            style: const TextStyle(decoration: TextDecoration.lineThrough, color: Tokens.fgSecondary),
+                          ),
+                          const TextSpan(text: '  →  '),
+                          TextSpan(
+                            text: _BoardState._value(c.str('type'), c['after']),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (changes.isEmpty)
+              Text(item.text('body'), style: const TextStyle(color: Tokens.fgSecondary, fontSize: 15)),
+            if (link != null && link != '/student')
+              BusyButton(
+                label: t('Open', 'Mở'),
+                onPressed: () async {
+                  Navigator.pop(sheet);
+                  await openLink(context, link);
+                  await reload?.call();
+                },
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// The dormitory board on a page of its own (Home's "Dormitory board" tile): every announcement, newest first.
+class BoardScreen extends StatelessWidget {
+  const BoardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SubPage(
+      title: t('Dormitory board', 'Bảng tin KTX'),
+      body: Loader<Json>(
+        fetch: () => Api.get('/students/me/board'),
+        builder: (context, board, reload) => Cards(
+          children: [
+            if (board.objects('items').isEmpty)
+              EmptyState(
+                icon: Icons.campaign_outlined,
+                title: t('No announcements right now.', 'Hiện chưa có thông báo.'),
+              )
+            else
+              _Board(board: board, reload: reload, all: true),
+          ],
         ),
       ),
     );

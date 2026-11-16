@@ -114,10 +114,10 @@ void main() {
     await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
     expect(find.text('Apply for a Bed for Spring 2027'), findsOneWidget);
     expect(find.text('Start application'), findsOneWidget);
-    expect(find.text('Dormitory board'), findsOneWidget);
-    expect(find.text('Spring registration opens'), findsOneWidget);
-    expect(find.text('Family Days'), findsNothing);
-    expect(find.textContaining('Registration Spring 2027'), findsOneWidget);
+    // The features as tiles: notifications, applications, registration period, board, requests, Family Days, payments.
+    for (final tile in ['Notifications', 'Applications', 'Registration period', 'Dormitory board', 'Requests', 'Family Days', 'Payments']) {
+      expect(find.text(tile), findsOneWidget, reason: tile);
+    }
   });
 
   testWidgets('Payments: outstanding, the invoices and an Invoice opening its detail', (tester) async {
@@ -223,19 +223,16 @@ void main() {
       },
       '/notifications': {'items': [{'id': 'n1', 'title': 'Deposit due', 'body': 'Pay by Friday.', 'createdAt': _past, 'read': false, 'link': '/student/invoices'}], 'unread': 1},
     });
-    await show(tester, const ActivityScreen(segment: 'applications'));
+    await show(tester, const ApplicationsPage());
     expect(find.text('Spring 2027'), findsOneWidget);
     expect(find.textContaining('One Application per Term'), findsOneWidget);
 
-    await tester.tap(find.text('Requests'));
-    await tester.pumpAndSettle();
+    await show(tester, const RequestsPage());
     await tester.tap(find.text('Room changes (1)'));
     await tester.pumpAndSettle();
     expect(find.text('Room Class change'), findsOneWidget);
     expect(find.text('Agree'), findsOneWidget);
     expect(find.text('New request'), findsOneWidget);
-
-    expect(find.text('Notifications'), findsNothing);
   });
 
   testWidgets('Notifications: a page grouped by day, with mark all as read', (tester) async {
@@ -246,6 +243,22 @@ void main() {
     expect(find.text('Earlier'), findsOneWidget);
     expect(find.text('Deposit due'), findsOneWidget);
     expect(find.text('Mark all as read'), findsOneWidget);
+  });
+
+  testWidgets('Notifications: an announcement opens in a sheet and the page stays', (tester) async {
+    useApi({
+      '/notifications': {'items': [{'id': 'a1', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': false, 'link': '/student', 'kind': 'announcement'}], 'unread': 1},
+      'POST /notifications/a1/read': <String, Object>{},
+      '/students/me/board': {'items': [{'id': 'a1', 'category': 'Finance', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': true, 'changes': [{'field': 'Price', 'type': 'MONEY', 'before': 9000000, 'after': 9450000}]}]},
+    });
+    await show(tester, const NotificationsScreen());
+    await tester.tap(find.text('Room prices of Spring'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /notifications/a1/read'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.textContaining('450', findRichText: true), findsOneWidget);
+    // the notifications page is still under the sheet
+    expect(find.text('Notifications'), findsOneWidget);
   });
 
   testWidgets('Application detail: an Application awaiting its deposit can be paid or cancelled', (tester) async {

@@ -185,6 +185,8 @@ class _LoaderState<T> extends State<Loader<T>> {
   }
 
   Future<void> _reload() async {
+    // a screen may close before its reload runs (a link that went back to a tab)
+    if (!mounted) return;
     setState(() => _error = null);
     try {
       final data = await widget.fetch();

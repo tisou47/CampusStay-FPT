@@ -8,7 +8,6 @@ import '../common.dart';
 import '../files.dart';
 import 'applications.dart';
 import 'apply.dart';
-import 'family_day.dart';
 import 'payments.dart';
 import 'requests.dart';
 
@@ -267,11 +266,6 @@ class _Room extends StatelessWidget {
                 trailing: const Icon(Icons.open_in_new, size: 18, color: Tokens.fgSecondary),
                 onTap: () => openUrl(data.text('rulesUrl')),
               ),
-            StatusRow(
-              icon: Icons.family_restroom,
-              title: t('Family Days', 'Ngày gia đình'),
-              onTap: () => open(const FamilyDaysScreen()),
-            ),
           ],
         ),
       ],
