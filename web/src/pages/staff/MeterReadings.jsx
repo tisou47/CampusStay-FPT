@@ -515,7 +515,11 @@ export default function MeterReadings() {
   const periods = useQuery(['meters', 'periods', block], ({ signal }) => api.meters.periods({ block }, { signal }), { enabled: Boolean(block) })
   const [periodId, setPeriodId] = useState(null)
   const activePeriod = periodId ?? periods.data?.items?.[0]?.id
-  const [status, setStatus] = useState('Missing')
+  // The status filter starts on Missing for a period still open (the rooms left to read) and on every room for a
+  // closed one (nothing is missing there); choosing another period goes back to that default.
+  const [chosenStatus, setStatus] = useState(null)
+  const periodClosed = Boolean(periods.data?.items?.find((p) => p.id === activePeriod)?.closed)
+  const status = chosenStatus ?? (periodClosed ? '' : 'Missing')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [openRoom, setOpenRoom] = useState(null)
@@ -623,6 +627,7 @@ export default function MeterReadings() {
                 onChange={(e) => {
                   setBlock(e.target.value)
                   setPeriodId(null)
+                  setStatus(null)
                   setPage(1)
                 }}
                 options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))}
@@ -634,6 +639,7 @@ export default function MeterReadings() {
               value={activePeriod ?? ''}
               onChange={(e) => {
                 setPeriodId(e.target.value)
+                setStatus(null)
                 setPage(1)
               }}
               options={(periods.data?.items ?? []).map((p) => ({ value: p.id, label: t('Period: {label}', { label: tr(p.label) }) }))}
