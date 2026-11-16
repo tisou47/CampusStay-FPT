@@ -396,7 +396,9 @@ export default function Turnover({ termId, headerSlot }) {
             )}
 
             {d.movers.length === 0 ? (
-              <EmptyLine>{t('No student changes room')}</EmptyLine>
+              <EmptyLine>
+                {t('No student changes room')} · {t('{n} stay in their room', { n: formatNumber(d.counts.staying) })}
+              </EmptyLine>
             ) : (
               <Fold
                 open={moversOpen}
