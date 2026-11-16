@@ -76,7 +76,7 @@ export function Alert({ type = 'info', title, children, action, onClose, classNa
       </div>
       {action && <div className="shrink-0 self-center">{action}</div>}
       {onClose && (
-        <button type="button" onClick={onClose} aria-label={t('Dismiss')} className="shrink-0 rounded text-fg-tertiary hover:text-fg">
+        <button type="button" onClick={onClose} aria-label={t('Dismiss')} className="-m-1 shrink-0 rounded-md p-1 text-fg-tertiary transition-colors hover:bg-surface/60 hover:text-fg">
           <X size={16} aria-hidden="true" />
         </button>
       )}

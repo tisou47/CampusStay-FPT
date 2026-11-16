@@ -69,6 +69,7 @@ export function LoginField({ label, error, helper, ...props }) {
         <input
           id={id}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error || helper ? `${id}-message` : undefined}
           className="h-full min-w-0 flex-1 bg-transparent text-base leading-5 text-fg outline-none placeholder:text-fg-tertiary"
           {...props}
           type={password && shown ? 'text' : props.type}
@@ -85,7 +86,11 @@ export function LoginField({ label, error, helper, ...props }) {
           </button>
         )}
       </div>
-      {error ? <p className="text-sm text-error-fg">{tx(error)}</p> : helper ? <p className="text-sm text-fg-tertiary">{tx(helper)}</p> : null}
+      {error ? (
+        <p id={`${id}-message`} className="text-sm text-error-fg">{tx(error)}</p>
+      ) : helper ? (
+        <p id={`${id}-message`} className="text-sm text-fg-tertiary">{tx(helper)}</p>
+      ) : null}
     </div>
   )
 }

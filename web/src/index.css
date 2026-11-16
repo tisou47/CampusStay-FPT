@@ -102,6 +102,7 @@
   --color-warning-bg: #fffbeb;
   --color-warning-fg: #92400e;
   --color-error: #c81e1e;
+  --color-error-hover: #a61b1b;    /* danger button hover */
   --color-error-bg: #fef2f2;
   --color-error-fg: #a61b1b;
   --color-info: #0a5da8;
@@ -242,7 +243,10 @@
     *,
     *::before,
     *::after {
+      /* One short run, not an endless 1 ms loop: looping animations (spinner, on-duty ping, stage halo) would
+         otherwise flicker between random frames. They settle on their last frame instead. */
       animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 1ms !important;
     }
   }
