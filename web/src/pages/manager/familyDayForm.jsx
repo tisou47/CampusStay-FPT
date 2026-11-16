@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useSession } from '@/app/session'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Display'
-import { DatePickerField, DateTimePickerField, HourPickerField } from '@/components/ui/DateTimePicker'
+import { DatePicker, DateTimePicker, TimePicker } from '@/components/ui/date-time'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { campusToday, fromDateTimeInput, toDateTimeInput } from '@/lib/format'
@@ -152,16 +152,19 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Registration opens" required error={fields.registrationOpensAt}>
-          {(id) => <DateTimePickerField id={id} value={form.opens} min={today} invalid={!!fields.registrationOpensAt} onChange={(e) => set('opens', e.target.value)} />}
+          {(id) => <DateTimePicker id={id} value={form.opens} minDate={today} minTime="00:00" maxTime="23:00" placeholder="Choose a day and time" error={!!fields.registrationOpensAt} onChange={(v) => set('opens', v)} />}
         </Field>
         <Field label="Registration closes" required error={fields.registrationClosesAt}>
           {(id) => (
-            <DateTimePickerField
+            <DateTimePicker
               id={id}
               value={form.closes}
-              min={form.opens || today}
-              invalid={!!fields.registrationClosesAt}
-              onChange={(e) => set('closes', e.target.value)}
+              minDate={form.opens || today}
+              minTime="00:00"
+              maxTime="23:00"
+              placeholder="Choose a day and time"
+              error={!!fields.registrationClosesAt}
+              onChange={(v) => set('closes', v)}
             />
           )}
         </Field>
@@ -179,20 +182,23 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
           <div key={i} className="grid items-start gap-3 rounded-lg border border-line p-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_5.5rem_auto]">
             <Field label="Day" required error={fields[`slots[${i}].startsAt`]}>
               {(id) => (
-                <DatePickerField
+                <DatePicker
                   id={id}
                   value={s.date}
-                  min={form.closes?.slice(0, 10) || today}
-                  invalid={!!fields[`slots[${i}].startsAt`]}
+                  minDate={form.closes?.slice(0, 10) || today}
+                  placeholder="Choose a day"
+                  error={!!fields[`slots[${i}].startsAt`]}
                   onChange={(date) => setSlot(i, { date })}
                 />
               )}
             </Field>
             <Field label="From">
               {(id) => (
-                <HourPickerField
+                <TimePicker
                   id={id}
                   value={s.start}
+                  minTime="06:00"
+                  maxTime="22:00"
                   placeholder="--:--"
                   onChange={(start) => setSlot(i, { start, end: s.end && s.end > start ? s.end : plusHours(start, 2) })}
                 />
@@ -200,12 +206,14 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
             </Field>
             <Field label="To" error={fields[`slots[${i}].endsAt`]}>
               {(id) => (
-                <HourPickerField
+                <TimePicker
                   id={id}
                   value={s.end}
-                  after={s.start || null}
+                  minTime="06:00"
+                  maxTime="22:00"
+                  disabledTimes={(h) => !!s.start && h <= s.start}
                   placeholder="--:--"
-                  invalid={!!fields[`slots[${i}].endsAt`]}
+                  error={!!fields[`slots[${i}].endsAt`]}
                   onChange={(end) => setSlot(i, { end })}
                 />
               )}

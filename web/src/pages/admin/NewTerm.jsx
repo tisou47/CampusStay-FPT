@@ -9,7 +9,7 @@ import { Alert, Card, Steps } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { STEPS } from './TermWizard'
 import { t } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-CFG-23 New Term (spec §6.4): the General step of the wizard creates the Draft, then the wizard goes on with the
 // Timeline. A Term from a Manager's request starts from Requests instead (Build the Term from this request).
@@ -45,10 +45,10 @@ export default function NewTerm() {
             {(id) => <Input id={id} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />}
           </Field>
           <Field label="Stay starts" error={fields.stayStart}>
-            {(id) => <DateInput id={id} value={form.stayStart} onChange={(e) => setForm((f) => ({ ...f, stayStart: e.target.value }))} />}
+            {(id) => <DatePicker id={id} clearable value={form.stayStart} onChange={(v) => setForm((f) => ({ ...f, stayStart: v }))} />}
           </Field>
           <Field label="Stay ends" error={fields.stayEnd}>
-            {(id) => <DateInput id={id} value={form.stayEnd} onChange={(e) => setForm((f) => ({ ...f, stayEnd: e.target.value }))} />}
+            {(id) => <DatePicker id={id} clearable value={form.stayEnd} onChange={(v) => setForm((f) => ({ ...f, stayEnd: v }))} />}
           </Field>
         </div>
         <p className="text-sm text-fg-tertiary">{t('Prices start from the term before (or the default prices), the house rules from the term before.')}</p>

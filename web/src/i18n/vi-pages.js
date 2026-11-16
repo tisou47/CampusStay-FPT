@@ -3518,7 +3518,6 @@ const transition = {
   "Nobody leaves.": "Không ai rời đi.",
   "Nobody changes room.": "Không ai đổi phòng.",
   "Rooms whose residents or class change": "Phòng thay đổi người ở hoặc hạng phòng",
-  "{n} days left": "còn {n} ngày",
   "today": "hôm nay",
   "Check out by {date}": "Trả phòng trước {date}",
   "Check-in from {date}": "Nhận phòng từ {date}",
