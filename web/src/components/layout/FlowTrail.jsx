@@ -22,13 +22,13 @@ export function FlowTrail({ role }) {
   return (
     <nav
       aria-label={flow.title}
-      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm"
+      className="-mb-1 flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-[13px] leading-5"
     >
-      <Link to={flow.home} className="flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-1 font-semibold text-fg-link transition-colors hover:bg-info-bg">
-        <CalendarDays size={15} aria-hidden="true" />
+      <Link to={flow.home} className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 font-semibold text-fg-link transition-colors hover:bg-info-bg">
+        <CalendarDays size={14} aria-hidden="true" />
         {flow.title}
       </Link>
-      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-line" />
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-line" />
 
       {/* Stages: this screen's stage spelled out, the others as numbered dots; each tells its name and purpose on hover. */}
       <ol className="flex shrink-0 items-center">
@@ -47,28 +47,28 @@ export function FlowTrail({ role }) {
           )
           return (
             <li key={stage.key} className="flex items-center">
-              {i > 0 && <span aria-hidden="true" className={cx('h-px w-2.5', i <= flow.at ? 'bg-primary/40' : 'bg-line-strong')} />}
+              {i > 0 && <span aria-hidden="true" className={cx('h-px w-3', i <= flow.at ? 'bg-primary/40' : 'bg-line-strong')} />}
               <Tooltip label={tip} side="bottom" align={i === 0 ? 'start' : 'center'}>
                 <span
                   tabIndex={0}
                   aria-current={here ? 'step' : undefined}
                   aria-label={`${t('Stage {n}', { n: i + 1 })}: ${t(stage.label)}${live ? ` (${t('now')})` : ''}`}
                   className={cx(
-                    'relative flex h-6 cursor-default items-center justify-center rounded-full font-semibold tabular transition-colors',
+                    'relative flex h-5 cursor-default items-center justify-center rounded-full font-semibold tabular transition-colors',
                     here
-                      ? 'gap-1.5 bg-primary-subtle pr-2.5 pl-1 text-fg-brand'
+                      ? 'gap-1.5 bg-primary-subtle pr-2 pl-0.5 text-fg-brand'
                       : done
-                        ? 'size-6 bg-primary-subtle text-fg-brand hover:bg-orange-100'
-                        : 'size-6 border border-line-strong text-fg-tertiary hover:border-fg-tertiary hover:text-fg-secondary',
+                        ? 'size-5 bg-primary-subtle text-fg-brand hover:bg-orange-100'
+                        : 'size-5 border border-line-strong text-xs text-fg-tertiary hover:border-fg-tertiary hover:text-fg-secondary',
                   )}
                 >
                   {here ? (
                     <>
-                      <span className="flex size-4.5 items-center justify-center rounded-full bg-primary text-xs text-fg-on-brand">{i + 1}</span>
+                      <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[11px] text-fg-on-brand">{i + 1}</span>
                       <span className="whitespace-nowrap">{t(stage.label)}</span>
                     </>
                   ) : done ? (
-                    <Check size={13} strokeWidth={3} aria-hidden="true" />
+                    <Check size={12} strokeWidth={3} aria-hidden="true" />
                   ) : (
                     i + 1
                   )}
@@ -81,7 +81,7 @@ export function FlowTrail({ role }) {
           )
         })}
       </ol>
-      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-line" />
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-line" />
 
       {/* This screen: its place in the stage, with why it matters (and any timing warning) on hover. */}
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -100,11 +100,11 @@ export function FlowTrail({ role }) {
             type="button"
             aria-label={`${t(flow.why)}${flow.notice ? ` ${flow.notice}` : ''}`}
             className={cx(
-              'flex size-6 shrink-0 cursor-help items-center justify-center rounded-full transition-colors',
+              'flex size-5 shrink-0 cursor-help items-center justify-center rounded-full transition-colors',
               flow.notice ? 'text-warning hover:bg-warning-bg' : 'text-fg-tertiary hover:bg-subtle hover:text-fg-secondary',
             )}
           >
-            <InfoGlyph size={15} aria-hidden="true" />
+            <InfoGlyph size={14} aria-hidden="true" />
           </button>
         </Tooltip>
       </div>
@@ -113,7 +113,7 @@ export function FlowTrail({ role }) {
         <Tooltip label={flow.next.why ? t(flow.next.why) : null} side="bottom" align="end">
           <Link
             to={flow.next.to}
-            className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 font-medium whitespace-nowrap text-fg-link transition-colors hover:bg-info-bg"
+            className="flex shrink-0 items-center gap-1 rounded-md px-1.5 font-medium whitespace-nowrap text-fg-link transition-colors hover:bg-info-bg"
           >
             {t('Next: {label}', { label: t(flow.next.label) })}
             <ArrowRight size={14} aria-hidden="true" />
