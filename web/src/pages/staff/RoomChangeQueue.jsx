@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Check, Download, Maximize2, Repeat, Search, X } from 'lucide-react'
+import { Check, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Radio } from '@/components/ui/Choice'
 import { Card, Note } from '@/components/ui/Display'
-import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
@@ -91,6 +91,23 @@ function RejectModal({ request, reasons, onClose }) {
   )
 }
 
+// Floor filter chip in the bed list: pressed = orange wash with brand ink, like the floor buttons of the room map.
+function FloorChip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cx(
+        'h-7 shrink-0 rounded-full border px-3 text-sm font-medium whitespace-nowrap transition-colors',
+        active ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request }) {
   const [search, setSearch] = useState('')
   const [floorFilter, setFloorFilter] = useState(null)
@@ -143,40 +160,22 @@ function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request
     >
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative min-w-0 flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-tertiary" />
-            <input
-              type="search"
-              placeholder={t('Search by bed, room or floor...')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-base text-fg placeholder:text-fg-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+          <SearchInput
+            aria-label={t('Search by bed, room or floor...')}
+            placeholder={t('Search by bed, room or floor...')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+          />
           {floors.length > 1 && (
-            <div className="flex shrink-0 items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-              <button
-                type="button"
-                onClick={() => setFloorFilter(null)}
-                className={cx(
-                  'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                  floorFilter === null ? 'bg-primary text-fg-on-brand' : 'bg-subtle text-fg-secondary hover:text-fg',
-                )}
-              >
+            <div role="group" aria-label={t('Floor')} className="flex shrink-0 items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              <FloorChip active={floorFilter === null} onClick={() => setFloorFilter(null)}>
                 {t('All')}
-              </button>
+              </FloorChip>
               {floors.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFloorFilter(floorFilter === f ? null : f)}
-                  className={cx(
-                    'rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors',
-                    floorFilter === f ? 'bg-primary text-fg-on-brand' : 'bg-subtle text-fg-secondary hover:text-fg',
-                  )}
-                >
+                <FloorChip key={f} active={floorFilter === f} onClick={() => setFloorFilter(floorFilter === f ? null : f)}>
                   {t('Floor {n}', { n: f })}
-                </button>
+                </FloorChip>
               ))}
             </div>
           )}
@@ -184,9 +183,7 @@ function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request
 
         <div className="grid max-h-[360px] grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-2">
           {filtered.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-sm text-fg-secondary">
-              {t('No beds match your search')}
-            </div>
+            <EmptyBlock icon={SearchX} title={t('No beds match your search')} className="col-span-full" />
           ) : (
             filtered.map((b) => {
               const active = selected === b.bedId

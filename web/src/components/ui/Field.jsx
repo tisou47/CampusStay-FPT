@@ -1,5 +1,5 @@
-import { Fragment, cloneElement, isValidElement, useId } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { Fragment, cloneElement, isValidElement, useId, useRef } from 'react'
+import { ChevronDown, Search, Upload } from 'lucide-react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { InfoTip } from './Tooltip'
@@ -116,6 +116,32 @@ export function SearchInput({ size = 'md', className, wrapperClassName, placehol
       />
       <input type="search" className={cx(controlClasses({ size }), 'pl-9', className)} placeholder={tx(placeholder)} {...props} />
     </div>
+  )
+}
+
+/**
+ * Attach-a-file row (receipts, evidence): a dashed box with an upload glyph that names the chosen file.
+ * The hidden file input sits beside the button, not inside it. onChange receives the File (or null).
+ */
+export function FilePicker({ file, onChange, accept, placeholder, disabled, className }) {
+  const input = useRef(null)
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => input.current?.click()}
+        className={cx(
+          'flex min-w-0 items-center gap-2 rounded-md border border-dashed border-line-strong bg-surface px-3 py-2.5 text-left transition-colors',
+          'hover:border-primary hover:bg-primary-subtle/40 disabled:pointer-events-none disabled:opacity-45',
+          className,
+        )}
+      >
+        <Upload size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
+        <span className={cx('min-w-0 truncate text-base', file ? 'font-medium text-fg' : 'text-fg-secondary')}>{file ? file.name : tx(placeholder)}</span>
+      </button>
+      <input ref={input} type="file" accept={accept} hidden onChange={(e) => onChange?.(e.target.files?.[0] ?? null)} />
+    </>
   )
 }
 

@@ -136,10 +136,11 @@ function SummaryStrip({ block, s, status, onMissing }) {
 
 /* ---------------------------------------------------------------- one row, typed in place */
 
-const numberInput = cx(
-  controlClasses().replace('w-full ', ''),
-  'w-24 shrink-0 text-right tabular [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-)
+const numberInput = (invalid) =>
+  cx(
+    controlClasses({ invalid }).replace('w-full ', ''),
+    'w-24 shrink-0 text-right tabular [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+  )
 
 function MeterInput({ meter, value, onChange, low, failed, field, label, closed, onKeyDown }) {
   const draft = parse(value)
@@ -159,7 +160,7 @@ function MeterInput({ meter, value, onChange, low, failed, field, label, closed,
         onKeyDown={onKeyDown}
         onFocus={(e) => e.target.select()}
         disabled={closed}
-        className={cx(numberInput, (low || failed) && 'border-error focus:border-error focus:shadow-[0_0_0_2px_#c81e1e26]')}
+        className={numberInput(Boolean(low || failed))}
       />
       <div className="flex max-w-40 min-w-0 flex-col text-sm leading-4 whitespace-nowrap">
         <span className="truncate text-fg-tertiary tabular">{t('previous: {n}', { n: meter?.previous == null ? '—' : formatNumber(meter.previous) })}</span>

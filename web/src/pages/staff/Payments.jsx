@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Banknote, Check, Clock, CreditCard, Download, ReceiptText, TriangleAlert, Upload } from 'lucide-react'
+import { Banknote, Check, Clock, CreditCard, Download, ReceiptText, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { DetailRows } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
+import { Field, FilePicker, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -36,7 +36,6 @@ const AWAITING = 'Awaiting confirmation'
  */
 export function ConfirmPaymentModal({ payment, onClose }) {
   const { notify } = useToast()
-  const fileInput = useRef(null)
   const [reference, setReference] = useState('')
   const [file, setFile] = useState(null)
   const [matched, setMatched] = useState(false)
@@ -100,11 +99,7 @@ export function ConfirmPaymentModal({ payment, onClose }) {
           {payment.receipt.size && <span className="text-sm text-fg-tertiary">· {payment.receipt.size}</span>}
         </a>
       ) : (
-        <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
-          <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-          <span className="text-base text-fg">{file ? file.name : t('Attach transfer receipt (required)')}</span>
-          <input ref={fileInput} type="file" accept="image/*,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        </button>
+        <FilePicker file={file} onChange={setFile} accept="image/*,application/pdf" placeholder="Attach transfer receipt (required)" />
       )}
       <Checkbox label="I found exactly this amount with this transfer content on the bank statement." checked={matched} onChange={(e) => setMatched(e.target.checked)} />
     </Modal>

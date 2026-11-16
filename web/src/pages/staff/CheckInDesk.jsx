@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarClock, Check, CircleCheck, CircleX, Clock, ScanLine, Upload, UserX } from 'lucide-react'
+import { CalendarClock, Check, CircleCheck, CircleX, Clock, ScanLine, UserX } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Card, ProgressBar } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
+import { Field, FilePicker, Input, SearchInput, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
@@ -46,7 +46,6 @@ function CheckItem({ ok, children }) {
 
 function LateCheckInModal({ person, termId, onClose }) {
   const { notify } = useToast()
-  const fileInput = useRef(null)
   const today = toDateInput(new Date())
   const [requestedFor, setRequestedFor] = useState(today)
   const [reason, setReason] = useState('')
@@ -93,11 +92,7 @@ function LateCheckInModal({ person, termId, onClose }) {
       <Field label="Reason" required hint={`${reason.length}/500`}>
         {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why the student arrives after the check-in window" />}
       </Field>
-      <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
-        <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-        <span className="text-base text-fg">{file ? file.name : t('Attach evidence (JPEG, PNG or PDF, optional)')}</span>
-        <input ref={fileInput} type="file" accept="image/jpeg,image/png,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </button>
+      <FilePicker file={file} onChange={setFile} accept="image/jpeg,image/png,application/pdf" placeholder="Attach evidence (JPEG, PNG or PDF, optional)" />
     </Modal>
   )
 }

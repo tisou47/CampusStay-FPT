@@ -31,7 +31,7 @@ import { t, tr } from '@/i18n'
 // POST /inventory/rooms/:code/out-of-service { reason, note } · POST /inventory/rooms/:code/back-in-service
 
 const bedLook = {
-  unpaid: 'bg-yellow-400',
+  unpaid: 'bg-warning',
   paid: 'border-[1.5px] border-accent bg-orange-100',
   resident: 'bg-accent',
   leaving: 'border-2 border-dashed border-accent bg-surface',
