@@ -60,7 +60,7 @@ export function Radio({ label, description, className, disabled, ...props }) {
         <input
           type="radio"
           disabled={disabled}
-          className="size-4 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface transition-[border] checked:border-[5px] checked:border-primary"
+          className="size-4 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface transition-colors checked:border-[5px] checked:border-primary"
           {...props}
         />
       </span>

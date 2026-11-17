@@ -47,7 +47,7 @@
   --color-red-700: #a61b1b;
   --color-gray-0: #ffffff;
   --color-gray-25: #fffcfa;
-  --color-gray-50: #fbf8f5;
+  --color-gray-50: #f9f8f7;
   --color-gray-100: #f5f0eb;
   --color-gray-200: #ebe3db;
   --color-gray-300: #d9cec4;
@@ -75,7 +75,7 @@
   --color-focus: #0a5da8;
 
   /* Surfaces */
-  --color-canvas: #fbf8f5;
+  --color-canvas: #f9f8f7;
   --color-surface: #ffffff;
   --color-subtle: #f5f0eb;
   --color-brand-subtle: #fff1e6;

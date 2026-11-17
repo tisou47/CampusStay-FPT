@@ -16,8 +16,8 @@ const insets = { md: 'first:pl-4 last:pr-4', lg: 'first:pl-5 last:pr-5' }
 
 // sm: dense report grids (Occupancy, Financial) where many short numeric rows must fit one screen: 36 px header and rows.
 const sizes = {
-  sm: { th: 'h-9 px-3 py-1.5', td: 'h-9 px-3 py-1.5' },
-  md: { th: 'h-10 px-3 py-2', td: 'h-13 px-3 py-2.5' },
+  sm: { th: 'h-9 px-3 py-2', td: 'h-9 px-3 py-2' },
+  md: { th: 'h-10 px-3.5 py-2.5', td: 'h-13 px-3.5 py-3' },
   lg: { th: 'h-11 px-4 py-2.5', td: 'h-14 px-4 py-3' },
 }
 
@@ -26,10 +26,18 @@ export function Table({ size = 'md', inset = 'md', bare = false, fill = false, c
   return (
     <SizeContext.Provider value={{ size, inset }}>
       <div
-        className={cx('overflow-auto bg-surface', fill && 'min-h-0 flex-1', !bare && 'rounded-lg border border-line', className)}
+        className={cx('overflow-auto', fill && 'min-h-0 flex-1', className)}
         {...props}
       >
-        <table className={cx('cs-table w-full border-separate border-spacing-0 text-left text-base', tableClassName)}>{children}</table>
+        <table
+          className={cx(
+            'cs-table w-full border-separate border-spacing-0 bg-surface text-left text-base',
+            !bare && 'overflow-hidden rounded-lg border border-line',
+            tableClassName,
+          )}
+        >
+          {children}
+        </table>
       </div>
     </SizeContext.Provider>
   )

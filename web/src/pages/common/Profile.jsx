@@ -295,7 +295,7 @@ function CompletenessPanel({ items }) {
           <span className="text-sm text-fg-tertiary">{done === items.length ? t('All done') : t('{n} items left', { n: items.length - done })}</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-subtle">
-          <div className={cx('h-full rounded-full transition-[width]', percent === 100 ? 'bg-success' : 'bg-accent')} style={{ width: `${percent}%` }} />
+          <div className={cx('h-full rounded-full transition-colors', percent === 100 ? 'bg-success' : 'bg-accent')} style={{ width: `${percent}%` }} />
         </div>
         <ul className="flex flex-col gap-2.5">
           {items.map((i) => (

@@ -31,13 +31,13 @@ import { t, tr } from '@/i18n'
 // POST /inventory/rooms/:code/out-of-service { reason, note } · POST /inventory/rooms/:code/back-in-service
 
 const bedLook = {
-  unpaid: 'bg-warning',
-  paid: 'border-[1.5px] border-accent bg-orange-100',
-  resident: 'bg-accent',
+  unpaid: 'border-warning bg-warning',
+  paid: 'border-primary bg-primary-subtle',
+  resident: 'border-accent bg-accent',
   leaving: 'border-2 border-dashed border-accent bg-surface',
-  next_term: 'bg-info',
-  available: 'border-[1.5px] border-success bg-surface',
-  oos: 'bg-line-strong',
+  next_term: 'border-info bg-info',
+  available: 'border-success bg-surface',
+  oos: 'border-line-strong bg-subtle',
 }
 const bedLabel = {
   unpaid: 'Assigned – unpaid',
@@ -51,16 +51,16 @@ const bedLabel = {
 const HELD = ['unpaid', 'paid', 'resident', 'leaving', 'next_term']
 
 function BedMark({ state }) {
-  return <span aria-hidden="true" className={cx('inline-block size-3.5 shrink-0 rounded-sm', bedLook[state])} />
+  return <span aria-hidden="true" className={cx('inline-block size-3.5 shrink-0 rounded-sm border', bedLook[state])} />
 }
 
 function Legend() {
   return (
-    <ul aria-label={t('Legend')} className="flex items-center gap-4">
+    <ul aria-label={t('Legend')} className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
       {Object.keys(bedLook).map((s) => (
         <li key={s} className="flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-secondary">
           <BedMark state={s} />
-          {t(bedLabel[s])}
+          <span>{t(bedLabel[s])}</span>
         </li>
       ))}
     </ul>
@@ -79,31 +79,31 @@ function RoomCard({ room, selected, onSelect }) {
       aria-pressed={selected}
       aria-label={t('Room {code}, {type}, {caption}', { code: room.code, type: tr(room.roomTypeName), caption })}
       className={cx(
-        'flex min-w-0 flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-colors',
-        selected ? 'border-primary bg-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong',
+        'flex min-w-0 flex-col items-start justify-between gap-2.5 rounded-lg border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
+        selected ? 'border-primary bg-primary-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong hover:bg-subtle/60',
       )}
     >
       <span className="flex w-full items-center justify-between gap-2 whitespace-nowrap">
-        <span className="text-base font-medium text-fg">{room.code}</span>
-        <span className="text-sm text-fg-tertiary">{tr(room.roomTypeName)}</span>
+        <span className="text-base font-semibold text-fg tabular">{room.code}</span>
+        <span className="text-sm text-fg-secondary">{tr(room.roomTypeName)}</span>
       </span>
-      <span className="flex flex-wrap gap-1">
+      <span className="flex flex-wrap items-center gap-1.5 py-0.5">
         {room.beds.map((b) => (
-          <span key={b.id} title={`${b.id} · ${t(bedLabel[b.state] ?? b.state)}${b.occupant ? ` · ${b.occupant.name}` : ''}`}>
+          <span key={b.id} title={`${b.id} · ${t(bedLabel[b.state] ?? b.state)}${b.occupant ? ` · ${b.occupant.name}` : ''}`} className="inline-flex">
             <BedMark state={b.state} />
           </span>
         ))}
       </span>
-      <span className={cx('text-sm whitespace-nowrap', room.outOfService ? 'text-error-fg' : 'text-fg-secondary')}>{caption}</span>
+      <span className={cx('text-sm font-medium whitespace-nowrap tabular', room.outOfService ? 'text-error-fg' : 'text-fg-secondary')}>{caption}</span>
     </button>
   )
 }
 
 function Row({ label, children }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-base">
+    <div className="flex items-center justify-between gap-4 text-base">
       <dt className="shrink-0 text-fg-secondary">{t(label)}</dt>
-      <dd className="min-w-0 text-right font-medium text-fg">{children}</dd>
+      <dd className="min-w-0 text-right font-medium text-fg tabular">{children}</dd>
     </div>
   )
 }
@@ -135,51 +135,55 @@ function RoomDetail({ room, termId, onSetOutOfService, onMaintenance }) {
       ]
 
   return (
-    <Card className="flex min-h-0 w-90 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Room {code} details', { code: room.code })}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h2 font-semibold text-fg">{t('Room {code}', { code: room.code })}</h2>
+    <Card padding="none" className="flex min-h-0 w-96 shrink-0 flex-col overflow-hidden" aria-label={t('Room {code} details', { code: room.code })}>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <h2 className="text-h2 font-semibold text-fg tabular">{t('Room {code}', { code: room.code })}</h2>
         {oos ? <Tag tone="error">Out of service</Tag> : free === 0 ? <Tag tone="info">Full</Tag> : <Tag tone="success">{t(free === 1 ? '{n} free bed' : '{n} free beds', { n: free })}</Tag>}
       </div>
-      <dl className="flex flex-col gap-3.5">
-        {rows.map(([label, value]) => (
-          <Row key={label} label={label}>
-            {value ?? '—'}
-          </Row>
-        ))}
-      </dl>
-      {oos?.note && <Alert title="Note">{oos.note}</Alert>}
-      <p className="text-base font-medium text-fg">{t('Beds')}</p>
-      <ul className="flex flex-col gap-3">
-        {room.beds.map((bed) => (
-          <li key={bed.id} className="flex items-center gap-2.5">
-            <BedMark state={bed.state} />
-            <span className="text-base whitespace-nowrap text-fg">{bed.id}</span>
-            <span className={cx('ml-auto min-w-0 truncate text-sm', bed.occupant ? 'text-fg-secondary' : 'text-fg-tertiary')}>
-              {bed.occupant ? `${bed.occupant.name} · ${bed.occupant.studentCode}` : oos ? t('No occupant') : t('Available')}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="flex gap-2">
-        {oos ? (
-          <Button variant="primary" icon={Check} onClick={() => back.run()} disabled={back.pending}>
-            Back in service
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+        <dl className="flex flex-col gap-2.5">
+          {rows.map(([label, value]) => (
+            <Row key={label} label={label}>
+              {value ?? '—'}
+            </Row>
+          ))}
+        </dl>
+        {oos?.note && <Alert title="Note">{oos.note}</Alert>}
+        <div className="flex flex-col gap-2">
+          <p className="text-base font-semibold text-fg">{t('Beds')}</p>
+          <ul className="flex flex-col divide-y divide-line border-y border-line" aria-label={t('Beds')}>
+            {room.beds.map((bed) => (
+              <li key={bed.id} className="flex items-center gap-2.5 py-2">
+                <BedMark state={bed.state} />
+                <span className="text-base font-medium whitespace-nowrap text-fg tabular">{bed.id}</span>
+                <span className={cx('ml-auto min-w-0 truncate text-sm tabular', bed.occupant ? 'text-fg-secondary' : 'text-fg-tertiary')}>
+                  {bed.occupant ? `${bed.occupant.name} · ${bed.occupant.studentCode}` : oos ? t('No occupant') : t('Available')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {oos ? (
+            <Button variant="primary" icon={Check} onClick={() => back.run()} disabled={back.pending}>
+              Back in service
+            </Button>
+          ) : (
+            <Button icon={Ban} onClick={onSetOutOfService} disabled={allocated > 0}>
+              Set out of service
+            </Button>
+          )}
+          <Button icon={Wrench} onClick={onMaintenance}>
+            Maintenance
           </Button>
-        ) : (
-          <Button icon={Ban} onClick={onSetOutOfService} disabled={allocated > 0}>
-            Set out of service
-          </Button>
+        </div>
+        {!oos && allocated > 0 && (
+          <Note>
+            {t('Move the {n} residents before you set this room out of service.', { n: allocated })}
+          </Note>
         )}
-        <Button icon={Wrench} onClick={onMaintenance}>
-          Maintenance
-        </Button>
+        <RoomExtras room={room} termId={termId} />
       </div>
-      {!oos && allocated > 0 && (
-        <Note>
-          {t('Move the {n} residents before you set this room out of service.', { n: allocated })}
-        </Note>
-      )}
-      <RoomExtras room={room} termId={termId} />
     </Card>
   )
 }
@@ -193,8 +197,8 @@ function RoomExtras({ room, termId }) {
   if (!d) return null
   const c = d.conformance
   return (
-    <>
-      <dl className="flex flex-col gap-3.5 border-t border-line pt-3.5">
+    <div className="flex flex-col gap-4 border-t border-line pt-4">
+      <dl className="flex flex-col gap-2.5">
         {d.next && (
           <Row label="Next term">
             {t('{term}: {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}
@@ -212,17 +216,21 @@ function RoomExtras({ room, termId }) {
           <StatusTag status={c.status} />
         </Row>
       </dl>
-      {c.missing.length > 0 && <p className="text-sm text-fg-secondary">{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
-      {c.extra.length > 0 && <p className="text-sm text-fg-secondary">{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
-      <ul className="flex flex-col gap-2" aria-label={t('Furniture')}>
+      {(c.missing.length > 0 || c.extra.length > 0) && (
+        <div className="flex flex-col gap-1 text-sm text-fg-secondary">
+          {c.missing.length > 0 && <p>{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
+          {c.extra.length > 0 && <p>{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
+        </div>
+      )}
+      <ul className="flex flex-col divide-y divide-line border-y border-line" aria-label={t('Furniture')}>
         {d.furniture.map((f) => (
-          <li key={f.id} className="flex items-center gap-2 text-sm">
-            <span className="font-medium text-fg">{f.assetCode}</span>
-            <span className="min-w-0 truncate text-fg-secondary">{typeName(f)}</span>
-            <StatusTag status={f.status} className="ml-auto" />
+          <li key={f.id} className="flex items-center gap-2.5 py-2 text-sm">
+            <span className="shrink-0 font-medium text-fg tabular">{f.assetCode}</span>
+            <span className="min-w-0 flex-1 truncate text-fg-secondary">{typeName(f)}</span>
+            <StatusTag status={f.status} className="shrink-0" />
           </li>
         ))}
-        {!d.furniture.length && <li className="text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</li>}
+        {!d.furniture.length && <li className="py-2 text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</li>}
       </ul>
       <div className="flex flex-wrap gap-2">
         <Button variant="primary" onClick={() => navigate(`${base}/rooms/${room.code}`)}>
@@ -237,7 +245,7 @@ function RoomExtras({ room, termId }) {
           </Button>
         )}
       </div>
-    </>
+    </div>
   )
 }
 
@@ -325,50 +333,51 @@ export default function Inventory() {
         }
       />
 
-      <div className="flex shrink-0 items-center gap-2">
-        <Select
-          aria-label={t('Block')}
-          wrapperClassName="w-30 shrink-0"
-          value={block ?? ''}
-          onChange={(e) => {
-            const b = blocks.find((x) => x.block === e.target.value)
-            setBlock(b.block)
-            setFloor(b.floors[0])
-            setSelected(null)
-          }}
-          options={blocks.map((b) => ({ value: b.block, label: t('Block {code}', { code: b.block }) }))}
-          disabled={!blocks.length}
-        />
-        <div role="group" aria-label={t('Floor')} className="flex min-w-0 items-center gap-1 overflow-x-auto">
-          {floors.map((f) => (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={f === floor}
-              aria-label={t('Floor {n}', { n: f })}
-              onClick={() => {
-                setFloor(f)
-                setSelected(null)
-              }}
-              className={cx(
-                'flex h-8 w-9 shrink-0 items-center justify-center rounded-md border text-base transition-colors',
-                f === floor ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
-              )}
-            >
-              {f}
-            </button>
-          ))}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <Select
+            aria-label={t('Block')}
+            wrapperClassName="w-32 shrink-0"
+            value={block ?? ''}
+            onChange={(e) => {
+              const b = blocks.find((x) => x.block === e.target.value)
+              setBlock(b.block)
+              setFloor(b.floors[0])
+              setSelected(null)
+            }}
+            options={blocks.map((b) => ({ value: b.block, label: t('Block {code}', { code: b.block }) }))}
+            disabled={!blocks.length}
+          />
+          <div role="group" aria-label={t('Floor')} className="flex flex-wrap items-center gap-1.5">
+            {floors.map((f) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={f === floor}
+                aria-label={t('Floor {n}', { n: f })}
+                onClick={() => {
+                  setFloor(f)
+                  setSelected(null)
+                }}
+                className={cx(
+                  'flex h-8 w-9 shrink-0 items-center justify-center rounded-md border text-base tabular transition-colors',
+                  f === floor ? 'border-primary bg-primary-subtle font-semibold text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
-        <span className="flex-1" />
         <Legend />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <div className="flex shrink-0 items-center justify-between gap-4 whitespace-nowrap">
+        <section aria-label={t('Rooms and beds')} className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface px-4 py-3">
             <h2 className="text-h3 font-semibold text-fg">{block ? [t('Block {code}', { code: block }), floor != null && t('Floor {n}', { n: floor }), tr(floorQuery.data?.roomClassName)].filter(Boolean).join(' · ') : t('Rooms and beds')}</h2>
             {summary && (
-              <p className="text-sm text-fg-secondary">
+              <p className="text-sm font-medium text-fg-secondary tabular">
                 {t('{beds} beds · {allocated} allocated · {available} available', { beds: formatNumber(summary.beds), allocated: formatNumber(summary.allocated), available: formatNumber(summary.available) })}
                 {summary.outOfService > 0 && ` · ${t('{n} out of service', { n: formatNumber(summary.outOfService) })}`}
               </p>
@@ -381,7 +390,7 @@ export default function Inventory() {
               empty={<EmptyBlock icon={Building} title={block ? 'No rooms on this floor' : 'No blocks in your scope'} />}
             >
               {() => (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                   {rooms.map((r) => (
                     <RoomCard key={r.code} room={r} selected={r.code === room?.code} onSelect={() => setSelected(r.code)} />
                   ))}
@@ -389,7 +398,7 @@ export default function Inventory() {
               )}
             </QueryState>
           </div>
-        </Card>
+        </section>
 
         {room && <RoomDetail room={room} termId={term?.id} onSetOutOfService={() => setSettingOos(true)} onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}`)} />}
       </div>

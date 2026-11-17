@@ -31,33 +31,32 @@ function StudentTopBar() {
   return (
     <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band-gradient lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
-      {/* Full width like the back-office band: the logo sits at the left edge, the account at the right edge. */}
-      <div className="flex h-16 items-center justify-between gap-6 pr-6 pl-4">
-        <div className="flex items-center gap-10">
-          <Link to="/student" aria-label={t('Home')}>
-            <Logo tone="band" />
-          </Link>
-          <nav aria-label={t('Main')} className="flex items-center gap-1">
-            {studentNav.map((item) => {
-              const active = isNavActive(item, pathname)
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-current={active ? 'page' : undefined}
-                  className={cx(
-                    'flex h-9 items-center rounded-md px-3 text-base font-semibold whitespace-nowrap transition-colors',
-                    active ? 'bg-surface text-fg-brand shadow-card' : 'text-band-fg hover:bg-band-hover',
-                  )}
-                >
-                  {t(item.label)}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
+      {/* Same column as the page content: the logo lines up with the page title, the account with the page actions,
+          and the menu sits in the middle of the bar. */}
+      <StudentContainer className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-6">
+        <Link to="/student" aria-label={t('Home')} className="justify-self-start">
+          <Logo tone="band" />
+        </Link>
+        <nav aria-label={t('Main')} className="flex items-center gap-1">
+          {studentNav.map((item) => {
+            const active = isNavActive(item, pathname)
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={active ? 'page' : undefined}
+                className={cx(
+                  'flex h-9 items-center rounded-md px-3 text-base font-semibold whitespace-nowrap transition-colors',
+                  active ? 'bg-surface text-fg-brand shadow-card' : 'text-band-fg hover:bg-band-hover',
+                )}
+              >
+                {t(item.label)}
+              </Link>
+            )
+          })}
+        </nav>
         {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 justify-self-end">
           {term && (
             <span className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-sm font-medium whitespace-nowrap text-fg shadow-card xl:flex">
               <Calendar size={16} aria-hidden="true" />
@@ -109,7 +108,7 @@ function StudentTopBar() {
             )}
           </Popover>
         </div>
-      </div>
+      </StudentContainer>
     </header>
   )
 }

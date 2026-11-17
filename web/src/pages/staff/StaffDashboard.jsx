@@ -253,7 +253,7 @@ export default function StaffDashboard() {
         </section>
       )}
 
-      <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <Panel
           title="My work"
           badge={
@@ -294,11 +294,11 @@ export default function StaffDashboard() {
           </QueryState>
         </Panel>
 
-        <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {ciOpen && (
             <KpiTile icon={LogIn} label="Check-ins today" value={`${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}`} note={t('{n} waiting at the desk', { n: ci.waiting })} className="flex-none" />
           )}
-          <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms" className="min-h-40 flex-1">
+          <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms" className="shrink-0" bodyClassName="overflow-visible">
             <QueryState query={dash} compact isEmpty={() => false}>
               {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your block needs nothing right now" />} />}
             </QueryState>

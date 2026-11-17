@@ -159,14 +159,14 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
           aria-label={label}
           disabled={disabled}
           className={cx(
-            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
+            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
             open && 'bg-surface ring-2 ring-white/60',
           )}
           {...props}
         >
           <Glyph size={16} aria-hidden="true" className="text-fg-brand" />
           {current?.label ?? label}
-          {current?.note && <span className="rounded-full bg-primary-subtle px-2 text-sm font-medium text-fg-brand">{t(current.note)}</span>}
+          {current?.note ? ` · ${t(current.note)}` : ''}
           <ChevronDown size={16} aria-hidden="true" className={cx('text-fg-tertiary transition-transform', open && 'rotate-180')} />
         </button>
       )}
@@ -470,7 +470,7 @@ export function PageHeader({ title, tip, description, actions, badge, breadcrumb
           {tip && <InfoTip label={tip} size={16} side="bottom" align="start" />}
           {badge}
         </div>
-        {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}
+        {description && <p className="max-w-[460px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>

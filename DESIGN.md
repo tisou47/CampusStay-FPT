@@ -11,7 +11,7 @@ colors:
   primary-subtle: "#fff1e6"
   fg-brand: "#b8490d"
   secondary: "#0a5da8"
-  canvas: "#fbf8f5"
+  canvas: "#f9f8f7"
   surface: "#ffffff"
   subtle: "#f5f0eb"
   fg: "#1d1714"

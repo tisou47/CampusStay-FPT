@@ -181,9 +181,9 @@ function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request
           )}
         </div>
 
-        <div className="grid max-h-[360px] grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-2">
+        <div role="radiogroup" aria-label={t('Free beds that match')} className="flex h-72 flex-col divide-y divide-line overflow-y-auto border-y border-line">
           {filtered.length === 0 ? (
-            <EmptyBlock icon={SearchX} title={t('No beds match your search')} className="col-span-full" />
+            <EmptyBlock icon={SearchX} title={t('No beds match your search')} />
           ) : (
             filtered.map((b) => {
               const active = selected === b.bedId
@@ -197,29 +197,14 @@ function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request
                     onClose()
                   }}
                   className={cx(
-                    'flex cursor-pointer flex-col gap-1 rounded-lg border p-3 transition-colors',
-                    active
-                      ? 'border-primary bg-brand-subtle inset-ring inset-ring-primary'
-                      : 'border-line bg-surface hover:border-line-strong hover:bg-subtle/50',
+                    'flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 transition-colors',
+                    active ? 'bg-primary-subtle' : 'hover:bg-subtle',
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-fg">{b.bedId}</span>
-                    <span
-                      aria-hidden="true"
-                      className={cx(
-                        'flex size-4 items-center justify-center rounded-full border',
-                        active ? 'border-primary bg-primary text-fg-on-brand' : 'border-line-strong',
-                      )}
-                    >
-                      {active && <Check size={10} strokeWidth={3} />}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm text-fg-secondary">
-                    <span>{t('Floor {n}', { n: b.floor })}</span>
-                    <span>·</span>
-                    <span>{t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}</span>
-                  </div>
+                  <Radio name={`modal-bed-${request.id}`} label={b.bedId} checked={active} onChange={() => setSelected(b.bedId)} />
+                  <span className="shrink-0 text-sm text-fg-secondary tabular">
+                    {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
+                  </span>
                 </div>
               )
             })
@@ -281,10 +266,10 @@ function Review({ request: r, onReject }) {
             {bedItems.length > 0 && (
               <Button
                 variant="text"
-                size="xs"
+                size="sm"
                 icon={Maximize2}
                 onClick={() => setModalOpen(true)}
-                className="-mr-1 text-xs text-fg-brand hover:text-fg-brand"
+                className="-mr-2"
               >
                 {t('View all ({n})', { n: bedItems.length })}
               </Button>
@@ -292,18 +277,18 @@ function Review({ request: r, onReject }) {
           </div>
           <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
             {() => (
-              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-44 flex-col gap-2 overflow-y-auto pr-1">
+              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-48 flex-col divide-y divide-line overflow-y-auto border-y border-line">
                 {bedItems.map((b) => (
                   <div
                     key={b.bedId}
                     onClick={() => setBed(b.bedId)}
                     className={cx(
-                      'flex cursor-pointer flex-col gap-0.5 rounded-lg border p-2.5 transition-colors',
-                      bed === b.bedId ? 'border-primary bg-brand-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong',
+                      'flex cursor-pointer items-center justify-between gap-3 px-2.5 py-2 transition-colors',
+                      bed === b.bedId ? 'bg-primary-subtle' : 'hover:bg-subtle',
                     )}
                   >
                     <Radio name={`bed-${r.id}`} label={b.bedId} checked={bed === b.bedId} onChange={() => setBed(b.bedId)} />
-                    <span className="pl-6 text-sm text-fg-secondary">
+                    <span className="shrink-0 text-sm text-fg-secondary tabular">
                       {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
                     </span>
                   </div>
@@ -395,7 +380,7 @@ export default function RoomChangeQueue() {
             <TBody>
               <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
               {items.map((r) => (
-                <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)} className="[&>td]:h-14">
+                <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)}>
                   <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
                   <Td>
                     <TwoLine primary={r.studentName} secondary={r.studentCode} />
