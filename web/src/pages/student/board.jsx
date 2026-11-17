@@ -201,7 +201,7 @@ function HorizontalRegistrationStepper({ timeline, now = Date.now() }) {
                 inspectedState === 'current'
                   ? 'bg-primary text-white'
                   : inspectedState === 'done'
-                    ? 'bg-success-subtle text-success-fg'
+                    ? 'border border-success/30 bg-success-bg text-success-fg'
                     : 'bg-surface text-fg-secondary',
               )}
             >

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, Gauge, LogOut, Save, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Gauge, LogOut, Receipt, Save, Upload, Zap } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { Checkbox } from '@/components/ui/Choice'
-import { Alert, Card, Divider } from '@/components/ui/Display'
+import { Checkbox, Radio } from '@/components/ui/Choice'
+import { Alert, Card } from '@/components/ui/Display'
 import { Modal } from '@/components/ui/Overlay'
 import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
@@ -21,7 +21,7 @@ import { DeskModeSwitch } from './CheckInDesk'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
-// GET /check-out?termId&block&q&reason&page&pageSize → { date, pendingCount, reasons, checkOutBy, overdueCount,
+// GET /check-out?termId&block&reason&q&page&pageSize → { date, pendingCount, reasons, checkOutBy, overdueCount,
 //   items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt,
 //   overdue }], total }
 // GET /check-out/:allocationId → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund },
@@ -34,9 +34,9 @@ const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
 
 function Row({ label, children, strong, tone }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-base">
+    <div className="flex items-center justify-between gap-3 text-xs">
       <dt className="text-fg-secondary">{t(label)}</dt>
-      <dd className={cx('tabular', strong ? 'font-medium' : '', tone ?? 'text-fg')}>{children}</dd>
+      <dd className={cx('tabular', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>{children}</dd>
     </div>
   )
 }
@@ -168,13 +168,18 @@ function CheckOutPanel({ d }) {
   const done = d.status === 'Checked out'
   const [electricity, setElectricity] = useState(formatNumber(d.reading?.electricity))
   const [water, setWater] = useState(formatNumber(d.reading?.water))
-  const [good, setGood] = useState(true)
-  const [key, setKey] = useState(true)
+  // Key returned is false by default; staff must collect key and check
+  const [key, setKey] = useState(done ? Boolean(d.keyReturned) : false)
   // Damage per furniture item of the Room: { [itemId]: { amount, note } }; a damaged item becomes Broken.
-  const [damages, setDamages] = useState(() =>
-    Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }])),
-  )
-  const [damaged, setDamaged] = useState(Object.keys(damages).length > 0)
+  const initialDamages = () =>
+    Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }]))
+  const [damages, setDamages] = useState(initialDamages)
+  // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)
+  const [condition, setCondition] = useState(() => {
+    if (done) return (d.settlement?.damage ?? 0) > 0 || (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : 'good'
+    return (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : ''
+  })
+  const [showSummary, setShowSummary] = useState(false)
   const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { amount: '', note: '', ...all[itemId], ...patch } }))
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
@@ -182,7 +187,7 @@ function CheckOutPanel({ d }) {
   }, [d])
 
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
-  const lines = damaged ? Object.entries(damages).filter(([, v]) => toNumber(v.amount) > 0 || v.note.trim()) : []
+  const lines = condition === 'damaged' ? Object.entries(damages).filter(([, v]) => toNumber(v.amount) > 0 || v.note.trim()) : []
   const damageAmount = done ? s.damage ?? 0 : lines.reduce((sum, [, v]) => sum + toNumber(v.amount), 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
 
@@ -191,7 +196,7 @@ function CheckOutPanel({ d }) {
       api.desk.checkOut(d.allocationId, {
         electricity: toNumber(electricity),
         water: toNumber(water),
-        conditionGood: good,
+        conditionGood: condition === 'good',
         keyReturned: key,
         damages: lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
         draft,
@@ -203,6 +208,7 @@ function CheckOutPanel({ d }) {
           notify({ type: 'info', title: 'Draft saved', message: t('Readings and condition for {name} are saved.', { name: d.name }) })
           return
         }
+        setShowSummary(false)
         const r = res?.refund ?? refund
         notify({ title: t('{name} checked out', { name: d.name }), message: r >= 0 ? t('Refund of {amount} sent to a manager for approval.', { amount: formatVnd(r) }) : t('{amount} was invoiced to the student.', { amount: formatVnd(-r) }) })
       },
@@ -211,79 +217,335 @@ function CheckOutPanel({ d }) {
   )
 
   return (
-    <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-3 overflow-y-auto" aria-label={t('Check-out {name}', { name: d.name })}>
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">
-          {d.name} · {d.studentCode}
-        </h2>
-        <p className="text-sm text-fg-secondary">
-          {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })} · {tr(d.roomTypeName)} {tr(d.roomClassName)} · {tr(d.reason)}
-        </p>
-      </div>
-
-      <p className="text-base font-medium text-fg">{t('1. Final meter reading')}</p>
-      <div className="flex gap-3">
-        <Field label="Electricity (kWh)" className="flex-1">
-          {(id) => <Input id={id} value={electricity} onChange={(e) => setElectricity(e.target.value)} disabled={done} inputMode="numeric" />}
-        </Field>
-        <Field label="Water (m³)" className="flex-1">
-          {(id) => <Input id={id} value={water} onChange={(e) => setWater(e.target.value)} disabled={done} inputMode="numeric" />}
-        </Field>
-      </div>
-
-      <p className="text-base font-medium text-fg">{t('2. Room condition')}</p>
-      <Checkbox label="Bed, mattress and locker in good condition" checked={good} disabled={done} onChange={(e) => setGood(e.target.checked)} />
-      <Checkbox label="Key returned" checked={key} disabled={done} onChange={(e) => setKey(e.target.checked)} />
-      <Checkbox label="Damage found (adds a charge)" checked={damaged || (done && (s.damage ?? 0) > 0)} disabled={done} onChange={(e) => setDamaged(e.target.checked)} />
-      {(damaged || done) && (d.furniture ?? []).length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-fg-secondary">{t('Damage per item (₫): deducted from the utility deposit; anything above it is invoiced. A damaged item becomes Broken.')}</p>
-          {d.furniture.map((f) => {
-            const v = damages[f.itemId] ?? { amount: '', note: '' }
-            return (
-              <div key={f.itemId} className="flex items-center gap-2">
-                <span className="w-40 shrink-0 truncate text-sm text-fg">
-                  {typeName(f)} · {f.assetCode}
-                </span>
-                <Input aria-label={t('Damage for {item}', { item: f.assetCode })} value={v.amount} disabled={done} onChange={(e) => setDamage(f.itemId, { amount: e.target.value })} inputMode="numeric" placeholder="0" className="w-28" />
-                <Input aria-label={t('Damage note for {item}', { item: f.assetCode })} value={v.note} disabled={done} onChange={(e) => setDamage(f.itemId, { note: e.target.value })} placeholder={t('What is damaged?')} maxLength={300} />
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <Divider />
-
-      <p className="text-base font-medium text-fg">{t('3. Utility deposit settlement')}</p>
-      <dl className="flex flex-col gap-3">
-        <Row label="Utility deposit held">{formatNumber(s.held)}</Row>
-        <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatNumber(s.share)}</Row>
-        <Row label="Unpaid utility invoices">− {formatNumber(s.unpaid)}</Row>
-        {damageAmount > 0 && <Row label="Damage charge">− {formatNumber(damageAmount)}</Row>}
-        <Row label={refund >= 0 ? 'Refund to student' : 'Student still owes'} strong tone={refund >= 0 ? 'text-fg-brand' : 'text-error-fg'}>
-          {formatNumber(Math.abs(refund))}
-        </Row>
-      </dl>
-
-      {done ? (
-        <Alert type="success" title={t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}>
-          {d.refundStatus === 'Approved' ? t('A manager approved the refund.') : t('The refund is waiting for a manager’s approval.')} {t('The bed is free again.')}
-        </Alert>
-      ) : (
-        <>
-          <Alert title={refund >= 0 ? 'Refund goes to the manager for approval' : 'The balance is invoiced to the student'}>
-            The share is estimated from the last reading; the final amounts are calculated when you confirm. The bed becomes available once check-out is confirmed.
-          </Alert>
-          <div className="flex justify-end gap-2">
-            <Button tip="Keep what you entered and finish the check-out later." onClick={() => submit.run(true)} disabled={submit.pending}>
-              Save draft
-            </Button>
-            <Button tip="Ends the student’s stay and frees the bed. A meter reading is taken." variant="primary" disabled={!key || submit.pending} onClick={() => submit.run(false)}>
-              Confirm check-out
-            </Button>
+    <Card
+      padding="none"
+      className="flex h-full min-h-0 w-110 shrink-0 flex-col overflow-hidden xl:w-120"
+      aria-label={t('Check-out {name}', { name: d.name })}
+    >
+      {/* 1. PINNED HEADER: Student Identity & Room Badge */}
+      <div className="flex shrink-0 flex-col gap-1.5 border-b border-line bg-surface px-5 py-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-col">
+            <h2 className="truncate text-h3 font-semibold text-fg">{d.name}</h2>
+            <span className="font-mono text-xs text-fg-tertiary">{d.studentCode}</span>
           </div>
-          {!key && <p className="text-right text-sm text-error-fg">{t('Collect the room key before you confirm.')}</p>}
-        </>
+          <StatusTag status={d.status} tone={tones[d.status]} />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-fg-secondary">
+          <span className="rounded-md bg-brand-subtle px-2 py-0.5 font-semibold text-fg-brand">
+            {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
+          </span>
+          <span>·</span>
+          <span>
+            {tr(d.roomTypeName)} {tr(d.roomClassName)}
+          </span>
+          <span>·</span>
+          <span className="font-medium text-fg">{tr(d.reason)}</span>
+        </div>
+      </div>
+
+      {/* 2. SCROLLABLE INSPECTION BODY: Meter Readings & Compact Damage Audit */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-3.5">
+        {/* Step 1: Final Meter Reading */}
+        <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
+          <div className="flex items-center gap-2">
+            <Zap size={15} aria-hidden="true" className="text-fg-brand" />
+            <p className="text-sm font-semibold text-fg">{t('1. Final meter reading')}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Electricity (kWh)">
+              {(id) => (
+                <Input
+                  id={id}
+                  value={electricity}
+                  onChange={(e) => setElectricity(e.target.value)}
+                  disabled={done}
+                  inputMode="numeric"
+                  className="font-semibold tabular"
+                />
+              )}
+            </Field>
+            <Field label="Water (m³)">
+              {(id) => (
+                <Input
+                  id={id}
+                  value={water}
+                  onChange={(e) => setWater(e.target.value)}
+                  disabled={done}
+                  inputMode="numeric"
+                  className="font-semibold tabular"
+                />
+              )}
+            </Field>
+          </div>
+        </section>
+
+        {/* Step 2: Room Condition & Compact Damage Table */}
+        <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck size={15} aria-hidden="true" className="text-fg-brand" />
+              <p className="text-sm font-semibold text-fg">{t('2. Room condition')}</p>
+            </div>
+            {lines.length > 0 && (
+              <span className="rounded-full bg-warning-bg px-2 py-0.5 text-xs font-semibold text-warning-fg tabular">
+                − {formatVnd(damageAmount)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Checkbox
+              label="Key returned"
+              checked={key}
+              disabled={done}
+              onChange={(e) => setKey(e.target.checked)}
+            />
+            <div className="flex flex-col gap-1.5 border-t border-line/60 pt-2">
+              <span className="text-xs font-semibold text-fg-secondary">{t('Room condition')}</span>
+              <Radio
+                name="room-condition"
+                label="Bed, mattress and locker in good condition"
+                checked={condition === 'good'}
+                disabled={done}
+                onChange={() => setCondition('good')}
+              />
+              <Radio
+                name="room-condition"
+                label="Damage found (adds a charge)"
+                checked={condition === 'damaged'}
+                disabled={done}
+                onChange={() => setCondition('damaged')}
+              />
+            </div>
+          </div>
+
+          {condition === 'damaged' && (d.furniture ?? []).length > 0 && (
+            <div className="mt-1 flex flex-col gap-2 border-t border-line pt-2.5">
+              <p className="text-xs text-fg-secondary">
+                {t('Damage per item (₫): deducted from the utility deposit; anything above it is invoiced. A damaged item becomes Broken.')}
+              </p>
+
+              {/* Compact Mini-Table for Damage Audit */}
+              <div className="overflow-hidden rounded-lg bg-surface">
+                <div className="grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
+                  <span>{t('Furniture')}</span>
+                  <span className="text-right">{t('Amount')} (₫)</span>
+                  <span>{t('Note')}</span>
+                </div>
+                <div className="flex max-h-48 flex-col divide-y divide-line/60 overflow-y-auto">
+                  {d.furniture.map((f) => {
+                    const v = damages[f.itemId] ?? { amount: '', note: '' }
+                    const hasCharge = toNumber(v.amount) > 0 || Boolean(v.note?.trim())
+                    return (
+                      <div
+                        key={f.itemId}
+                        className={cx(
+                          'grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 px-2.5 py-1.5 transition-colors',
+                          hasCharge ? 'bg-brand-subtle/40' : 'hover:bg-subtle/40',
+                        )}
+                      >
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-xs font-medium text-fg">{typeName(f)}</span>
+                          <span className="truncate font-mono text-[11px] text-fg-tertiary">{f.assetCode}</span>
+                        </div>
+                        <input
+                          type="text"
+                          aria-label={t('Damage for {item}', { item: f.assetCode })}
+                          value={v.amount}
+                          disabled={done}
+                          onChange={(e) => setDamage(f.itemId, { amount: e.target.value })}
+                          inputMode="numeric"
+                          placeholder="0"
+                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-right font-mono text-xs font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
+                        />
+                        <input
+                          type="text"
+                          aria-label={t('Damage note for {item}', { item: f.assetCode })}
+                          value={v.note}
+                          disabled={done}
+                          onChange={(e) => setDamage(f.itemId, { note: e.target.value })}
+                          placeholder={t('What is damaged?')}
+                          maxLength={300}
+                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-xs text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* 3. STICKY SETTLEMENT FOOTER: Realtime Calculation & Primary Actions */}
+      <div className="flex shrink-0 flex-col gap-2.5 border-t border-line bg-surface px-5 py-3.5 shadow-card">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Receipt size={14} aria-hidden="true" className="text-fg-brand" />
+            <p className="text-xs font-semibold tracking-wide text-fg-tertiary uppercase">
+              {t('3. Utility deposit settlement')}
+            </p>
+          </div>
+          <span className="text-[11px] text-fg-tertiary">
+            {refund >= 0 ? t('Refund goes to the manager for approval') : t('The balance is invoiced to the student')}
+          </span>
+        </div>
+
+        <dl className="flex flex-col gap-1">
+          <Row label="Utility deposit held">{formatVnd(s.held)}</Row>
+          <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
+          <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
+          {damageAmount > 0 && (
+            <Row label="Damage charge" tone="text-warning-fg">
+              − {formatVnd(damageAmount)}
+            </Row>
+          )}
+        </dl>
+
+        {/* Realtime Net Settlement Highlight Box */}
+        <div
+          className={cx(
+            'flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5',
+            refund >= 0 ? 'bg-brand-subtle' : 'bg-error-bg',
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {refund >= 0 ? (
+              <CheckCircle2 size={18} aria-hidden="true" className="shrink-0 text-fg-brand" />
+            ) : (
+              <AlertTriangle size={18} aria-hidden="true" className="shrink-0 text-error-fg" />
+            )}
+            <span className="text-sm font-semibold text-fg">
+              {t(refund >= 0 ? 'Refund to student' : 'Student still owes')}
+            </span>
+          </div>
+          <span
+            className={cx(
+              'text-xl font-bold whitespace-nowrap tabular',
+              refund >= 0 ? 'text-fg-brand' : 'text-error-fg',
+            )}
+          >
+            {formatVnd(Math.abs(refund))}
+          </span>
+        </div>
+
+        {done ? (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3 py-2 text-xs font-medium text-success-fg">
+            <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
+            <span>
+              {d.refundStatus === 'Approved' ? t('A manager approved the refund.') : t('The refund is waiting for a manager’s approval.')}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 pt-0.5">
+            {!key && (
+              <p className="text-right text-xs font-medium text-error-fg">
+                {t('Collect the room key before you confirm.')}
+              </p>
+            )}
+            {key && !condition && (
+              <p className="text-right text-xs font-medium text-warning-fg">
+                {t('Please select the room condition before you confirm.')}
+              </p>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                tip="Keep what you entered and finish the check-out later."
+                size="sm"
+                onClick={() => submit.run(true)}
+                disabled={submit.pending}
+              >
+                Save draft
+              </Button>
+              <Button
+                tip="Ends the student’s stay and frees the bed. A meter reading is taken."
+                variant="primary"
+                disabled={!key || !condition || submit.pending}
+                onClick={() => setShowSummary(true)}
+              >
+                Confirm check-out
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showSummary && (
+        <Modal
+          open={showSummary}
+          onClose={() => setShowSummary(false)}
+          title={t('Settlement summary · {name}', { name: d.name })}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button onClick={() => setShowSummary(false)} disabled={submit.pending}>
+                {t('Go back')}
+              </Button>
+              <Button
+                variant="primary"
+                loading={submit.pending}
+                onClick={() => submit.run(false)}
+              >
+                {t('Confirm and complete')}
+              </Button>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-fg-secondary">
+              {t('Please read this settlement breakdown aloud to the student before finalizing:')}
+            </p>
+
+            <div className="rounded-xl border border-line bg-subtle/50 p-4">
+              <div className="mb-3 flex items-center justify-between border-b border-line pb-2.5">
+                <span className="font-semibold text-fg">{d.name} ({d.studentCode})</span>
+                <span className="text-xs text-fg-secondary">{t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}</span>
+              </div>
+              <dl className="flex flex-col gap-2">
+                <Row label="Utility deposit held" strong>{formatVnd(s.held)}</Row>
+                <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
+                <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
+                {damageAmount > 0 && (
+                  <Row label="Damage charge" tone="text-warning-fg" strong>
+                    − {formatVnd(damageAmount)}
+                  </Row>
+                )}
+              </dl>
+            </div>
+
+            <div
+              className={cx(
+                'flex items-center justify-between gap-3 rounded-xl p-4',
+                refund >= 0 ? 'border border-success/30 bg-success-bg' : 'border border-error/30 bg-error-bg',
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                {refund >= 0 ? (
+                  <CheckCircle2 size={24} aria-hidden="true" className="shrink-0 text-success-fg" />
+                ) : (
+                  <AlertTriangle size={24} aria-hidden="true" className="shrink-0 text-error-fg" />
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-fg">
+                    {t(refund >= 0 ? 'Refund to student' : 'Student still owes')}
+                  </p>
+                  <p className="text-xs text-fg-tertiary">
+                    {t(refund >= 0 ? 'Refund goes to the manager for approval' : 'The balance will be invoiced to the student')}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={cx(
+                  'text-2xl font-bold tabular',
+                  refund >= 0 ? 'text-success-fg' : 'text-error-fg',
+                )}
+              >
+                {formatVnd(Math.abs(refund))}
+              </span>
+            </div>
+          </div>
+        </Modal>
       )}
     </Card>
   )
@@ -407,11 +669,11 @@ export default function CheckOutDesk() {
         </div>
 
         {allocationId ? (
-          <QueryState query={detail} className="w-105 shrink-0 rounded-lg border border-line bg-surface">
+          <QueryState query={detail} className="w-110 shrink-0 rounded-lg border border-line bg-surface xl:w-120">
             {(d) => <CheckOutPanel key={`${d.allocationId}-${d.status}`} d={d} />}
           </QueryState>
         ) : (
-          <Card className="flex w-105 shrink-0 flex-col">
+          <Card className="flex w-110 shrink-0 flex-col xl:w-120">
             <EmptyBlock icon={LogOut} title="Select a student" />
           </Card>
         )}

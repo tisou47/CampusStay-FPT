@@ -360,7 +360,7 @@ function Detail({ app }) {
                       key={inv.id}
                       className={cx(
                         'flex flex-col gap-2 rounded-xl px-3.5 py-3 transition-colors',
-                        isPaid ? 'bg-success-subtle/40' : isDue ? 'bg-brand-subtle/50' : 'bg-subtle/60',
+                        isPaid ? 'border border-success/30 bg-success-bg' : isDue ? 'bg-brand-subtle/50' : 'bg-subtle/60',
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">

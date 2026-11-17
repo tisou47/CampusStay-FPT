@@ -20,6 +20,7 @@ import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, DetailRows, Note } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
@@ -110,6 +111,7 @@ function Payment({ data, reload }) {
   const waiting = invoice.status === 'Awaiting confirmation'
   const left = useSecondsLeft(qr?.expiresAt)
   const [reference, setReference] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
   const refresh = useMutation(() => api.invoices.refreshQr(invoice.id), { onSuccess: reload, onError: (e) => notifyError(e, 'Could not refresh the QR code') })
   const sendClaim = useMutation(() => api.invoices.claim(invoice.id, reference.trim() ? { reference: reference.trim() } : {}), {
     invalidates: ['invoices', 'home'],
@@ -323,7 +325,7 @@ function Payment({ data, reload }) {
               </Alert>
             )}
 
-            {/* Primary Action & Verification Hub ("Tôi đã chuyển khoản") */}
+            {/* Primary Action & Verification Hub (I have transferred) */}
             <Card padding="lg" className="flex shrink-0 flex-col gap-4 rounded-xl border-orange-200 shadow-xs lg:p-6">
               <div className="flex items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-fg-brand">
@@ -355,7 +357,7 @@ function Payment({ data, reload }) {
                     variant="primary"
                     size="lg"
                     icon={Send}
-                    onClick={() => sendClaim.run()}
+                    onClick={() => setShowConfirm(true)}
                     disabled={sendClaim.pending}
                   >
                     {sendClaim.pending ? t('Sending…') : t('I have transferred')}
@@ -374,6 +376,57 @@ function Payment({ data, reload }) {
                   })}
                 </Note>
               )}
+
+              <Modal
+                open={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                title={t('Confirm transfer submission')}
+                footer={
+                  <>
+                    <Button variant="default" onClick={() => setShowConfirm(false)}>
+                      {t('Check again')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      icon={Send}
+                      disabled={sendClaim.pending}
+                      onClick={() => {
+                        setShowConfirm(false)
+                        sendClaim.run()
+                      }}
+                    >
+                      {sendClaim.pending ? t('Sending…') : t('Yes, I have transferred')}
+                    </Button>
+                  </>
+                }
+              >
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-fg">
+                    {t('Did you transfer exactly this amount and transfer content?')}
+                  </p>
+
+                  <div className="flex flex-col gap-2 rounded-xl bg-subtle/80 p-3.5 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-secondary">{t('Amount')}:</span>
+                      <span className="font-bold text-fg tabular">{formatVnd(invoice.amount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-secondary">{t('Transfer content')}:</span>
+                      <span className="font-mono font-semibold text-fg-brand">{transferContent}</span>
+                    </div>
+                    {reference.trim() && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-fg-secondary">{t('Bank reference')}:</span>
+                        <span className="font-mono font-medium text-fg">{reference.trim()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Alert type="warning" title={t('Important note')}>
+                    {t('Reporting a transfer before paying or with incorrect content may lead to rejection and losing your bed reservation.')}
+                  </Alert>
+                </div>
+              </Modal>
             </Card>
           </>
         )}

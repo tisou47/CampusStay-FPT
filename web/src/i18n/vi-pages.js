@@ -739,6 +739,18 @@ const student = {
   "No places for you": "Không có chỗ cho bạn",
   "Places are the beds this term offers to students of your gender. These prices stay the same for the whole term.": "Số chỗ là số giường học kỳ này dành cho sinh viên cùng giới tính với bạn. Giá giữ nguyên trong suốt học kỳ.",
   "After you submit, pay the deposit within {n} hours.": "Sau khi nộp đơn, hãy đóng tiền đặt cọc trong vòng {n} giờ.",
+  "Confirm your transfer": "Xác nhận đã chuyển khoản",
+  "Please double-check your bank transfer details before submitting:": "Vui lòng kiểm tra kỹ thông tin chuyển khoản trước khi gửi xác nhận:",
+  "Exact amount": "Số tiền chính xác",
+  "Transfer content": "Nội dung chuyển khoản",
+  "If you submit confirmation without actually transferring, your room reservation might be canceled during audit.": "Nếu bạn xác nhận nhưng thực tế chưa chuyển khoản chính xác, phòng của bạn có thể bị hủy trong quá trình đối soát.",
+  "I confirm transfer": "Tôi xác nhận đã chuyển khoản",
+  "Confirm transfer submission": "Xác nhận đã chuyển khoản",
+  "Check again": "Kiểm tra lại",
+  "Yes, I have transferred": "Đúng, tôi đã chuyển khoản",
+  "Did you transfer exactly this amount and transfer content?": "Bạn đã chuyển khoản chính xác số tiền và nội dung chuyển khoản dưới đây chưa?",
+  "Important note": "Lưu ý quan trọng",
+  "Reporting a transfer before paying or with incorrect content may lead to rejection and losing your bed reservation.": "Khai báo đã chuyển khoản khi chưa thực hiện hoặc sai nội dung có thể khiến yêu cầu bị từ chối và mất giữ chỗ phòng.",
 }
 const staff = {
   "Check-in desk": "Quầy nhận phòng",
@@ -789,6 +801,7 @@ const staff = {
   "Export failed": "Xuất dữ liệu thất bại",
   "Approve selected ({n})": "Duyệt các đơn đã chọn ({n})",
   "Select all": "Chọn tất cả",
+  "Deselect all": "Bỏ chọn tất cả",
   "Select {id}": "Chọn {id}",
   "pair": "ghép đôi",
   "Deposit paid": "Đã đóng cọc",
@@ -1386,7 +1399,13 @@ const staff = {
   "Both students still hold their Beds": "Cả hai sinh viên vẫn giữ giường",
   "Both students are checked in": "Cả hai sinh viên đã nhận phòng",
   "No overdue Invoice": "Không có hóa đơn quá hạn",
-
+  "Room condition": "Tình trạng phòng & tài sản",
+  "Please select the room condition before you confirm.": "Vui lòng chọn tình trạng phòng trước khi xác nhận.",
+  "Settlement summary · {name}": "Tóm tắt quyết toán · {name}",
+  "Please read this settlement breakdown aloud to the student before finalizing:": "Vui lòng đọc to chi tiết quyết toán này cho sinh viên nghe trước khi bấm xác nhận:",
+  "The balance will be invoiced to the student": "Số tiền thiếu sẽ được lập hóa đơn cho sinh viên",
+  "Confirm and complete": "Xác nhận và hoàn tất",
+  "Go back": "Quay lại",
 }
 const manager = {
   "Late check-in approved": "Đã duyệt nhận phòng muộn",
@@ -1636,6 +1655,9 @@ const manager = {
   "{name} is off duty today and so is the fallback.": "{name} nghỉ hôm nay và người dự phòng cũng nghỉ.",
   "New maintenance requests without a matching rule wait unassigned in the queue.": "Yêu cầu bảo trì mới không khớp quy tắc sẽ chờ chưa giao trong hàng chờ.",
   "New room change requests without a matching rule wait unassigned in the queue.": "Yêu cầu đổi phòng mới không khớp quy tắc sẽ chờ chưa giao trong hàng chờ.",
+  "Reject claim #{id}": "Từ chối xác nhận #{id}",
+  "Reason for rejecting {code}'s payment claim": "Lý do từ chối xác nhận thanh toán của {code}",
+  "Confirm rejection": "Xác nhận từ chối",
 }
 const admin = {
   "Move {item} up": "Đưa {item} lên",
@@ -2128,6 +2150,24 @@ const admin = {
   "the Block A desk": "quầy Tòa A",
   "The water will be off on Saturday morning.": "Sáng thứ Bảy sẽ tạm ngưng cấp nước.",
   "Please bring your student card.": "Vui lòng mang theo thẻ sinh viên.",
+  "Previous": "Quay lại",
+  "First step": "Bước đầu tiên",
+  "Step {step} of {total}": "Bước {step} trên {total}",
+  "Term identification": "Định danh học kỳ",
+  "Internal code:": "Mã nội bộ:",
+  "Used for student application IDs and invoice prefixes.": "Dùng cho mã đơn sinh viên và tiền tố hóa đơn.",
+  "Stay duration": "Thời gian lưu trú",
+  "Total period:": "Toàn bộ thời gian:",
+  "Select the dormitory buildings available for this term.": "Chọn các tòa ký túc xá khả dụng cho học kỳ này.",
+  "{n} of {total} blocks selected": "Đã chọn {n}/{total} tòa",
+  "New student reservation": "Giữ chỗ tân sinh viên",
+  "Quick price presets:": "Mức giá gợi ý nhanh:",
+  "No FAQ entries added yet.": "Chưa có câu hỏi thường gặp nào.",
+  "No documents attached yet.": "Chưa có tài liệu đính kèm nào.",
+  "Ready to publish": "Sẵn sàng công bố",
+  "{n} issues to resolve": "Còn {n} vấn đề cần xử lý",
+  "Everything is ready. All configuration requirements have been met.": "Tất cả đã sẵn sàng. Toàn bộ yêu cầu cấu hình đã hoàn tất.",
+  "House rules content": "Nội dung nội quy ký túc xá",
 }
 
 // Accounts (Change Spec v2 phase 2): Google sign-up, the first password, verification, the student list and hub,
@@ -4399,4 +4439,29 @@ const tooltips = {
   "The next invoice the dormitory will issue to you, and its amount.": "Hóa đơn tiếp theo ký túc xá sẽ phát hành cho bạn và số tiền.",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips }
+// Manager Overview fit-to-screen polish
+const managerOverview = {
+  "Collected {col} · Outstanding {out}": "Đã thu {col} · Còn thiếu {out}",
+  "Collected {col}": "Đã thu {col}",
+  "{col} collected of {inv} invoiced": "Đã thu {col} trên tổng {inv} đã lập hóa đơn",
+  "Resolved in last 30 days · target {p}": "Phiếu đã xử lý trong 30 ngày · mục tiêu {p}",
+  "Rate of maintenance requests resolved on time (≤ {n} hours) in the last 30 days. Does not include open overdue requests.": "Tỷ lệ phiếu bảo trì đã xử lý đúng hạn (≤ {n} giờ) trong 30 ngày qua. Chưa tính phiếu đang mở quá hạn.",
+  "More ▾": "Thêm ▾",
+  "Click to resolve": "Bấm để xử lý",
+  "Target {p}": "Mục tiêu {p}",
+  "Action required": "Cần xử lý",
+  "Nothing needs handling": "Không có việc cần xử lý",
+  "{used} of {total} allocated or proposed": "{used}/{total} giường đã xếp hoặc đề xuất",
+  "Blocks without on-duty staff: {list}": "Tòa chưa có nhân sự trực: {list}",
+  "All blocks have staff on duty": "Tất cả các tòa đều có nhân sự trực",
+  "{n} open requests": "{n} việc đang mở",
+  "View workload": "Khối lượng việc",
+  "No routing rules for Blocks {list}": "Thiếu quy tắc điều phối cho Tòa {list}",
+  "{n} routing rules missing; new requests stay unassigned until set up": "Thiếu {n} quy tắc điều phối; yêu cầu mới sẽ không có người nhận cho đến khi thiết lập",
+  "Allocated and proposed beds against capacity": "Giường đã xếp hoặc đang đề xuất so với sức chứa",
+  "Every decision that needs a manager, the most urgent first": "Mọi quyết định cần quản lý, việc khẩn cấp nhất ở trước",
+  "{stage} · {n} days left": "{stage} · còn {n} ngày",
+  "{n}/{total} beds": "{n}/{total} giường",
+}
+
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview }

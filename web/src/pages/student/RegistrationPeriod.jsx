@@ -172,7 +172,7 @@ function PricesExplorer({ d }) {
                                 <span
                                   className={cx(
                                     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                                    p.places > 0 ? 'bg-success-subtle text-success-fg' : 'bg-subtle text-fg-tertiary',
+                                    p.places > 0 ? 'border border-success/30 bg-success-bg text-success-fg' : 'bg-subtle text-fg-tertiary',
                                   )}
                                 >
                                   <Users size={11} aria-hidden="true" />

@@ -47,9 +47,9 @@ const offerKey = (options, ticked) => (ticked.size === options.length ? '' : [..
 /** Room Types or Room Classes the Term offers (review R-03). */
 function OfferField({ title, options, ticked, onChange, disabled, error }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-base font-medium text-fg-secondary">{t(title)}</h3>
-      <div className="flex flex-wrap gap-x-6 gap-y-2">
+    <section className="flex flex-col gap-2.5">
+      <h3 className="text-base font-semibold text-fg">{t(title)}</h3>
+      <div className="flex flex-wrap gap-x-6 gap-y-2.5">
         {options.map((o) => (
           <Checkbox
             key={o.id}
@@ -90,18 +90,50 @@ function useStep(w, step, onSaved) {
 function ChangeReason({ w, value, onChange, error }) {
   if (!w.published) return null
   return (
-    <Field label="Why does this published term change?" required error={error} helper="Students read it in the change announcement.">
-      {(id) => <Textarea id={id} rows={2} value={value} onChange={(e) => onChange(e.target.value)} />}
-    </Field>
+    <div className="rounded-xl border border-warning/30 bg-warning-bg p-4">
+      <Field label="Why does this published term change?" required error={error} helper="Students read it in the change announcement.">
+        {(id) => <Textarea id={id} rows={2} value={value} onChange={(e) => onChange(e.target.value)} />}
+      </Field>
+    </div>
   )
 }
 
-function StepActions({ save, onSave, next, disabled }) {
+/** Sticky navigation footer with Back, Step Indicator, and Save/Continue. */
+function StepActions({ save, onSave, next, onPrev, stepIndex, disabled, customAction }) {
   return (
-    <div className="flex justify-end gap-2">
-      <Button variant="primary" icon={next ? ArrowRight : Check} disabled={disabled || save.pending} onClick={onSave}>
-        {next ? t('Save and continue') : t('Save')}
-      </Button>
+    <div className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-surface/95 px-6 py-3.5 shadow-card backdrop-blur-md lg:-mx-6 lg:-mb-6">
+      <div className="flex items-center gap-3">
+        {onPrev ? (
+          <Button
+            variant="default"
+            icon={ArrowLeft}
+            disabled={save?.pending}
+            onClick={onPrev}
+          >
+            {t('Previous')}
+          </Button>
+        ) : (
+          <span className="text-sm text-fg-tertiary">{t('First step')}</span>
+        )}
+        {stepIndex != null && (
+          <span className="hidden sm:inline-block text-sm font-medium text-fg-secondary">
+            {t('Step {step} of {total}', { step: stepIndex + 1, total: STEPS.length })} · <strong className="text-fg">{t(STEPS[stepIndex]?.label)}</strong>
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2.5">
+        {customAction}
+        {onSave && (
+          <Button
+            variant="primary"
+            icon={next ? ArrowRight : Check}
+            disabled={disabled || save?.pending}
+            onClick={onSave}
+          >
+            {next ? t('Save and continue') : t('Save')}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -113,7 +145,7 @@ function SaveError({ save }) {
 
 /* ---------------------------------------------------------------- 1 General */
 
-function GeneralStep({ w, onSaved }) {
+function GeneralStep({ w, onSaved, onPrev, stepIndex }) {
   const { save, fields } = useStep(w, 'general', onSaved)
   const [form, setForm] = useState({ name: w.general.name, stayStart: w.general.stayStart, stayEnd: w.general.stayEnd })
   const [reasons, setReasons] = useState(reasonsOf(w))
@@ -131,21 +163,46 @@ function GeneralStep({ w, onSaved }) {
   return (
     <>
       <SaveError save={save} />
-      <div className="grid grid-cols-3 gap-4">
-        {input('name', 'Name')}
-        {input('stayStart', 'Stay starts', 'date')}
-        {input('stayEnd', 'Stay ends', 'date')}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4">
+          <h3 className="text-base font-semibold text-fg">{t('Term identification')}</h3>
+          {input('name', 'Name')}
+          <div className="rounded-lg bg-subtle p-3 text-sm text-fg-secondary">
+            <span className="font-medium text-fg">{t('Internal code:')}</span>{' '}
+            <code className="rounded bg-canvas px-1.5 py-0.5 font-mono font-semibold text-fg-brand">{w.code}</code>
+            <p className="mt-1 text-xs text-fg-tertiary">{t('Used for student application IDs and invoice prefixes.')}</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4">
+          <h3 className="text-base font-semibold text-fg">{t('Stay duration')}</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {input('stayStart', 'Stay starts', 'date')}
+            {input('stayEnd', 'Stay ends', 'date')}
+          </div>
+          {form.stayStart && form.stayEnd && (
+            <div className="rounded-lg bg-subtle p-3 text-sm text-fg-secondary">
+              <span className="font-medium text-fg">{t('Total period:')}</span>{' '}
+              <span className="font-semibold text-fg">{formatDateRange(form.stayStart, form.stayEnd)}</span>
+            </div>
+          )}
+        </div>
       </div>
-      <p className="text-sm text-fg-tertiary">{t('Internal code {code}; application and invoice codes use it.', { code: w.code })}</p>
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
-      <StepActions save={save} next disabled={!w.editable.general} onSave={() => save.run({ ...form, reasons: pick(reasons, ['name', 'stayStart', 'stayEnd']), changeReason })} />
+      <StepActions
+        save={save}
+        next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
+        disabled={!w.editable.general}
+        onSave={() => save.run({ ...form, reasons: pick(reasons, ['name', 'stayStart', 'stayEnd']), changeReason })}
+      />
     </>
   )
 }
 
 /* ---------------------------------------------------------------- 2 Timeline */
 
-function TimelineStep({ w, onSaved }) {
+function TimelineStep({ w, onSaved, onPrev, stepIndex }) {
   const { save, fields } = useStep(w, 'timeline', onSaved)
   const [form, setForm] = useState(() => timelineForm(w.timeline.values))
   const [reasons, setReasons] = useState(reasonsOf(w))
@@ -155,8 +212,8 @@ function TimelineStep({ w, onSaved }) {
   return (
     <>
       <SaveError save={save} />
-      <div className="flex items-start gap-6">
-        <div className="min-w-0 flex-1">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-8">
           <TimelineFields
             form={form}
             onChange={setForm}
@@ -178,20 +235,24 @@ function TimelineStep({ w, onSaved }) {
           />
           {!renewal && <p className="mt-4 text-sm text-fg-tertiary">{t('No term runs before this one, so it has no renewal milestones.')}</p>}
         </div>
-        <Card className="w-80 shrink-0">
-          <h3 className="mb-3 text-h3 font-semibold text-fg">{t('In time order')}</h3>
-          <TimelineStrip form={form} />
-          {w.timeline.previousCheckOutBy && (
-            <p className="mt-3 text-sm text-fg-tertiary">
-              {t('Residents of {term} leave by {date}: check-in starts on or after that day.', { term: w.timeline.previousTerm, date: formatDate(w.timeline.previousCheckOutBy) })}
-            </p>
-          )}
-        </Card>
+        <div className="lg:col-span-4 lg:sticky lg:top-24">
+          <Card className="flex flex-col gap-3">
+            <h3 className="text-h3 font-semibold text-fg">{t('In time order')}</h3>
+            <TimelineStrip form={form} />
+            {w.timeline.previousCheckOutBy && (
+              <p className="mt-2 text-xs text-fg-tertiary">
+                {t('Residents of {term} leave by {date}: check-in starts on or after that day.', { term: w.timeline.previousTerm, date: formatDate(w.timeline.previousCheckOutBy) })}
+              </p>
+            )}
+          </Card>
+        </div>
       </div>
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
       <StepActions
         save={save}
         next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
         disabled={!w.editable.timeline}
         onSave={() => save.run({ timeline: timelineBody(form), reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => !k.startsWith('price:') && !NOT_TIMELINE.includes(k))), changeReason })}
       />
@@ -201,7 +262,7 @@ function TimelineStep({ w, onSaved }) {
 
 /* ---------------------------------------------------------------- 3 Rooms and places */
 
-function RoomsStep({ w, onSaved }) {
+function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
   const { save, fields } = useStep(w, 'rooms', onSaved)
   const [used, setUsed] = useState(() => new Set(w.rooms.blocks.filter((b) => b.used).map((b) => b.id)))
   const [excluded, setExcluded] = useState(w.rooms.excludedRooms)
@@ -222,70 +283,89 @@ function RoomsStep({ w, onSaved }) {
   const blocksDiffer = proposal?.blocks?.length > 0 && codes(proposal.blocks) !== (used.size === w.rooms.blocks.length ? codes(w.rooms.blocks.map((b) => b.code)) : codes(chosenCodes))
   const roomsDiffer = proposal?.excludedRooms?.length > 0 && codes(proposal.excludedRooms) !== codes(excluded)
   const supply = w.rooms.supply
+
   return (
     <>
       <SaveError save={save} />
-      <section className="flex flex-col gap-2">
-        <h3 className="text-base font-medium text-fg-secondary">{t('Blocks used')}</h3>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-semibold text-fg">{t('Blocks used')}</h3>
+            <p className="text-sm text-fg-tertiary">{t('Select the dormitory buildings available for this term.')}</p>
+          </div>
+          <Tag tone={used.size > 0 ? 'brand' : 'warning'}>
+            {t('{n} of {total} blocks selected', { n: used.size, total: w.rooms.blocks.length })}
+          </Tag>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {w.rooms.blocks.map((b) => (
-            <Checkbox
+            <div
               key={b.id}
-              disabled={!w.editable.rooms}
-              label={`${b.name} · ${t(GENDER[b.gender])}`}
-              description={t('{rooms} rooms · {beds} beds', { rooms: b.rooms, beds: b.beds })}
-              checked={used.has(b.id)}
-              onChange={() =>
-                setUsed((s) => {
-                  const next = new Set(s)
-                  if (next.has(b.id)) next.delete(b.id)
-                  else next.add(b.id)
-                  return next
-                })
-              }
-            />
+              className={cx(
+                'rounded-lg border p-3 transition-colors',
+                used.has(b.id) ? 'border-primary/50 bg-brand-subtle/30' : 'border-line bg-canvas/50',
+              )}
+            >
+              <Checkbox
+                disabled={!w.editable.rooms}
+                label={`${b.name} · ${t(GENDER[b.gender])}`}
+                description={t('{rooms} rooms · {beds} beds', { rooms: b.rooms, beds: b.beds })}
+                checked={used.has(b.id)}
+                onChange={() =>
+                  setUsed((s) => {
+                    const next = new Set(s)
+                    if (next.has(b.id)) next.delete(b.id)
+                    else next.add(b.id)
+                    return next
+                  })
+                }
+              />
+            </div>
           ))}
         </div>
         {fields.blockIds && <p className="text-sm text-error-fg">{tr(fields.blockIds)}</p>}
         {blocksDiffer && (
-          <>
+          <div className="mt-2 rounded-lg border border-warning/20 bg-warning-bg p-3">
             <p className="text-sm text-fg-tertiary">{t('The request asked for Blocks {codes}.', { codes: codes(proposal.blocks) })}</p>
             <ReasonInput value={reasons.blocks} onChange={(v) => setReasons((r) => ({ ...r, blocks: v }))} error={fields.blocks} />
-          </>
+          </div>
         )}
       </section>
-      <section className="flex flex-col gap-2">
-        <ExcludedRoomsField label="Rooms left out" helper="One column of room codes in an Excel or CSV file; the assignment and Round 2 never use these rooms." codes={excluded} disabled={!w.editable.rooms} onChange={setExcluded} error={fields.excludedRooms} />
-        {roomsDiffer && (
-          <>
-            <p className="text-sm text-fg-tertiary">{t('The request asked to leave out {codes}.', { codes: codes(proposal.excludedRooms) })}</p>
-            <ReasonInput value={reasons.excludedRooms} onChange={(v) => setReasons((r) => ({ ...r, excludedRooms: v }))} error={fields.excludedRooms} />
-          </>
-        )}
-      </section>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
           <OfferField title="Room types offered" options={w.rooms.roomTypes} ticked={types} onChange={setTypes} disabled={offerFixed} error={fields.roomTypeIds} />
           {typesDiffer && (
-            <>
+            <div className="rounded-lg border border-warning/20 bg-warning-bg p-3">
               <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomTypes, w.rooms.roomTypes) })}</p>
               <ReasonInput value={reasons.roomTypes} onChange={(v) => setReasons((r) => ({ ...r, roomTypes: v }))} error={fields.roomTypes} />
-            </>
+            </div>
           )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
           <OfferField title="Room tiers offered" options={w.rooms.roomClasses} ticked={classes} onChange={setClasses} disabled={offerFixed} error={fields.roomClassIds} />
           {classesDiffer && (
-            <>
+            <div className="rounded-lg border border-warning/20 bg-warning-bg p-3">
               <p className="text-sm text-fg-tertiary">{t('The request asked for {names}.', { names: names(proposal.roomClasses, w.rooms.roomClasses) })}</p>
               <ReasonInput value={reasons.roomClasses} onChange={(v) => setReasons((r) => ({ ...r, roomClasses: v }))} error={fields.roomClasses} />
-            </>
+            </div>
           )}
         </div>
       </div>
       {w.rooms.offerFixed && <p className="text-sm text-fg-tertiary">{t('A published term keeps the room types and room tiers it offers.')}</p>}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+          <ExcludedRoomsField label="Rooms left out" helper="One column of room codes in an Excel or CSV file; the assignment and Round 2 never use these rooms." codes={excluded} disabled={!w.editable.rooms} onChange={setExcluded} error={fields.excludedRooms} />
+          {roomsDiffer && (
+            <div className="rounded-lg border border-warning/20 bg-warning-bg p-3">
+              <p className="text-sm text-fg-tertiary">{t('The request asked to leave out {codes}.', { codes: codes(proposal.excludedRooms) })}</p>
+              <ReasonInput value={reasons.excludedRooms} onChange={(v) => setReasons((r) => ({ ...r, excludedRooms: v }))} error={fields.excludedRooms} />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+          <h3 className="text-base font-semibold text-fg">{t('New student reservation')}</h3>
           <Field
             label="Beds kept for new students (%)"
             helper={reservedDiffers ? t('The request asked for {value}%.', { value: proposal.reservedNewPercent }) : t('{n} of {beds} beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })}
@@ -296,48 +376,54 @@ function RoomsStep({ w, onSaved }) {
           {reservedDiffers && <ReasonInput value={reasons.reservedNewPercent} onChange={(v) => setReasons((r) => ({ ...r, reservedNewPercent: v }))} />}
         </div>
       </div>
-      <section className="flex flex-col gap-2">
+
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
         <div className="flex items-end justify-between gap-3">
           <div className="flex flex-col gap-0.5">
-            <h3 className="text-base font-medium text-fg-secondary">{t('Supply and demand')}</h3>
+            <h3 className="text-base font-semibold text-fg">{t('Supply and demand')}</h3>
             <p className="text-sm text-fg-tertiary">{t('Beds the term offers with the room tier of each room in this term (Managers set them in room tiers by term), next to the places asked for and the applications so far. Saved blocks and rooms count.')}</p>
           </div>
         </div>
-        <Table>
-          <THead>
-            <tr>
-              <Th>Room type</Th>
-              <Th>Room tier</Th>
-              <Th>Gender</Th>
-              <Th align="right">Rooms</Th>
-              <Th align="right">Beds</Th>
-              <Th align="right">Not matching their class</Th>
-              <Th align="right">Places asked</Th>
-              <Th align="right">Applications</Th>
-            </tr>
-          </THead>
-          <TBody>
-            {supply.map((r) => (
-              <Tr key={`${r.roomTypeId}:${r.roomClassId}:${r.gender}`}>
-                <Td>{tr(r.roomType)}</Td>
-                <Td>{tr(r.roomClass)}</Td>
-                <Td>{t(GENDER[r.gender])}</Td>
-                <Td align="right">{r.rooms}</Td>
-                <Td align="right" className={cx(r.requested != null && r.beds < r.requested && 'font-medium text-error-fg')}>
-                  {r.beds}
-                </Td>
-                <Td align="right">{r.roomsNotMatching ? <Tag tone="warning">{r.roomsNotMatching}</Tag> : 0}</Td>
-                <Td align="right">{r.requested ?? '—'}</Td>
-                <Td align="right">{r.applications}</Td>
-              </Tr>
-            ))}
-          </TBody>
-        </Table>
+        <div className="overflow-x-auto">
+          <Table>
+            <THead>
+              <tr>
+                <Th>Room type</Th>
+                <Th>Room tier</Th>
+                <Th>Gender</Th>
+                <Th align="right">Rooms</Th>
+                <Th align="right">Beds</Th>
+                <Th align="right">Not matching their class</Th>
+                <Th align="right">Places asked</Th>
+                <Th align="right">Applications</Th>
+              </tr>
+            </THead>
+            <TBody>
+              {supply.map((r) => (
+                <Tr key={`${r.roomTypeId}:${r.roomClassId}:${r.gender}`}>
+                  <Td>{tr(r.roomType)}</Td>
+                  <Td>{tr(r.roomClass)}</Td>
+                  <Td>{t(GENDER[r.gender])}</Td>
+                  <Td align="right">{r.rooms}</Td>
+                  <Td align="right" className={cx(r.requested != null && r.beds < r.requested && 'font-medium text-error-fg')}>
+                    {r.beds}
+                  </Td>
+                  <Td align="right">{r.roomsNotMatching ? <Tag tone="warning">{r.roomsNotMatching}</Tag> : 0}</Td>
+                  <Td align="right">{r.requested ?? '—'}</Td>
+                  <Td align="right">{r.applications}</Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </div>
       </section>
+
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
       <StepActions
         save={save}
         next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
         disabled={!w.editable.rooms}
         onSave={() =>
           save.run({
@@ -357,7 +443,7 @@ function RoomsStep({ w, onSaved }) {
 
 /* ---------------------------------------------------------------- 4 Prices */
 
-function PricesStep({ w, onSaved }) {
+function PricesStep({ w, onSaved, onPrev, stepIndex }) {
   const { save, fields } = useStep(w, 'prices', onSaved)
   const p = w.prices
   const [rows, setRows] = useState(() => p.rows.map((r) => ({ ...r, value: String(r.price) })))
@@ -370,6 +456,7 @@ function PricesStep({ w, onSaved }) {
   const depositDiffers = asked?.depositPercent != null && Number(asked.depositPercent) !== Number(deposit || 0)
   const utilityDiffers = asked?.utilityDeposit != null && Number(asked.utilityDeposit) !== Number(utility || 0)
   const fill = (source) => setRows((list) => list.map((r) => (r[source] != null ? { ...r, value: String(r[source]) } : r)))
+
   return (
     <>
       <SaveError save={save} />
@@ -378,63 +465,71 @@ function PricesStep({ w, onSaved }) {
           Invoices of this term exist, so its prices, deposit and utility deposit stay as they are.
         </Alert>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button disabled={!editable} onClick={() => fill('defaultPrice')}>
-          Use the default prices
-        </Button>
-        {p.previousTerm && (
-          <Button disabled={!editable} onClick={() => fill('previousPrice')}>
-            {t("Use {term}'s prices", { term: p.previousTerm })}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-3.5">
+        <span className="text-sm font-medium text-fg-secondary">{t('Quick price presets:')}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" disabled={!editable} onClick={() => fill('defaultPrice')}>
+            {t('Use the default prices')}
           </Button>
-        )}
-        {w.request && (
-          <Button disabled={!editable} onClick={() => fill('requested')}>
-            Use the requested prices
-          </Button>
-        )}
+          {p.previousTerm && (
+            <Button size="sm" disabled={!editable} onClick={() => fill('previousPrice')}>
+              {t("Use {term}'s prices", { term: p.previousTerm })}
+            </Button>
+          )}
+          {w.request && (
+            <Button size="sm" disabled={!editable} onClick={() => fill('requested')}>
+              {t('Use the requested prices')}
+            </Button>
+          )}
+        </div>
       </div>
-      <Table>
-        <THead>
-          <tr>
-            <Th>Room type</Th>
-            <Th>Room tier</Th>
-            <Th align="right">Default</Th>
-            {p.previousTerm && <Th align="right">{p.previousTerm}</Th>}
-            {w.request && <Th align="right">Requested</Th>}
-            <Th className="w-64">This term (₫ per bed)</Th>
-          </tr>
-        </THead>
-        <TBody>
-          {rows.map((r, i) => {
-            const field = `price:${r.roomTypeId}:${r.roomClassId}`
-            const differs = r.requested != null && String(r.requested) !== r.value
-            return (
-              <Tr key={field}>
-                <Td>{tr(r.roomType)}</Td>
-                <Td>{tr(r.roomClass)}</Td>
-                <Td align="right">{formatVnd(r.defaultPrice)}</Td>
-                {p.previousTerm && <Td align="right">{r.previousPrice != null ? formatVnd(r.previousPrice) : '—'}</Td>}
-                {w.request && <Td align="right">{r.requested != null ? formatVnd(r.requested) : '—'}</Td>}
-                <Td>
-                  <div className="flex flex-col gap-1 py-1">
-                    <Input
-                      aria-label={t('Price of {type} · {class}', { type: tr(r.roomType), class: tr(r.roomClass) })}
-                      inputMode="numeric"
-                      value={r.value}
-                      disabled={!editable}
-                      onChange={(e) => setRows((list) => list.map((x, j) => (j === i ? { ...x, value: e.target.value.replace(/\D/g, '') } : x)))}
-                    />
-                    {differs && <ReasonInput value={reasons[field]} onChange={(v) => setReasons((x) => ({ ...x, [field]: v }))} error={fields[field]} />}
-                  </div>
-                </Td>
-              </Tr>
-            )
-          })}
-        </TBody>
-      </Table>
+
+      <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+        <Table>
+          <THead>
+            <tr>
+              <Th>Room type</Th>
+              <Th>Room tier</Th>
+              <Th align="right">Default</Th>
+              {p.previousTerm && <Th align="right">{p.previousTerm}</Th>}
+              {w.request && <Th align="right">Requested</Th>}
+              <Th className="w-64">This term (₫ per bed)</Th>
+            </tr>
+          </THead>
+          <TBody>
+            {rows.map((r, i) => {
+              const field = `price:${r.roomTypeId}:${r.roomClassId}`
+              const differs = r.requested != null && String(r.requested) !== r.value
+              return (
+                <Tr key={field}>
+                  <Td>{tr(r.roomType)}</Td>
+                  <Td>{tr(r.roomClass)}</Td>
+                  <Td align="right">{formatVnd(r.defaultPrice)}</Td>
+                  {p.previousTerm && <Td align="right">{r.previousPrice != null ? formatVnd(r.previousPrice) : '—'}</Td>}
+                  {w.request && <Td align="right">{r.requested != null ? formatVnd(r.requested) : '—'}</Td>}
+                  <Td>
+                    <div className="flex flex-col gap-1 py-1">
+                      <Input
+                        aria-label={t('Price of {type} · {class}', { type: tr(r.roomType), class: tr(r.roomClass) })}
+                        inputMode="numeric"
+                        value={r.value}
+                        disabled={!editable}
+                        onChange={(e) => setRows((list) => list.map((x, j) => (j === i ? { ...x, value: e.target.value.replace(/\D/g, '') } : x)))}
+                      />
+                      {differs && <ReasonInput value={reasons[field]} onChange={(v) => setReasons((x) => ({ ...x, [field]: v }))} error={fields[field]} />}
+                    </div>
+                  </Td>
+                </Tr>
+              )
+            })}
+          </TBody>
+        </Table>
+      </div>
       {fields.prices && <p className="text-sm text-error-fg">{tr(fields.prices)}</p>}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
           <Field
             label="Deposit (% of the price)"
             helper={depositDiffers ? t('The request asked for {value}%.', { value: asked.depositPercent }) : t('Default {n}%.', { n: p.defaultDepositPercent })}
@@ -444,7 +539,7 @@ function PricesStep({ w, onSaved }) {
           </Field>
           {depositDiffers && <ReasonInput value={reasons.depositPercent} onChange={(v) => setReasons((x) => ({ ...x, depositPercent: v }))} />}
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
           <Field
             label="Utility deposit (₫)"
             helper={utilityDiffers ? t('The request asked for {value}.', { value: formatVnd(asked.utilityDeposit) }) : t('Default {amount}, collected with the balance.', { amount: formatVnd(p.defaultUtilityDeposit) })}
@@ -455,10 +550,13 @@ function PricesStep({ w, onSaved }) {
           {utilityDiffers && <ReasonInput value={reasons.utilityDeposit} onChange={(v) => setReasons((x) => ({ ...x, utilityDeposit: v }))} />}
         </div>
       </div>
+
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
       <StepActions
         save={save}
         next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
         disabled={!editable}
         onSave={() =>
           save.run({
@@ -476,15 +574,15 @@ function PricesStep({ w, onSaved }) {
 
 /* ---------------------------------------------------------------- 5 Rules */
 
-function RulesStep({ w, onSaved }) {
+function RulesStep({ w, onSaved, onPrev, stepIndex }) {
   const { save } = useStep(w, 'rules', onSaved)
   const r = w.rules
   const list = (title, items, link) => (
-    <Card className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <Card className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between border-b border-line pb-2.5">
         <h3 className="text-h3 font-semibold text-fg">{t(title)}</h3>
         {!r.fixed && link && (
-          <Button variant="text" iconAfter={ExternalLink} to={link}>
+          <Button variant="text" size="sm" iconAfter={ExternalLink} to={link}>
             Change these rules
           </Button>
         )}
@@ -498,14 +596,14 @@ function RulesStep({ w, onSaved }) {
       <Alert type={r.fixed ? 'info' : 'warning'} title={r.fixed ? 'This term keeps the rules it opened with' : 'Publishing fixes these rules for this term'}>
         {r.fixed ? t('Later changes of the rules apply to the terms published after them.') : t('The rules in use now are copied into the term when you publish it; change them first if needed.')}
       </Alert>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {list(
           'Who may apply',
-          <ul className="flex flex-col gap-1.5 text-base text-fg">
+          <ul className="flex flex-col gap-2 text-base text-fg">
             {r.eligibility.map((e) => (
               <li key={e} className="flex items-center gap-2">
                 <CircleCheck size={16} aria-hidden="true" className="shrink-0 text-success" />
-                {tr(e)}
+                <span>{tr(e)}</span>
               </li>
             ))}
           </ul>,
@@ -513,7 +611,7 @@ function RulesStep({ w, onSaved }) {
         )}
         {list(
           'Who is placed first when beds are short',
-          <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-base text-fg">
+          <ol className="flex list-decimal flex-col gap-2 pl-5 text-base text-fg">
             {r.priorityGroups.map((g) => (
               <li key={g}>{tr(g)}</li>
             ))}
@@ -522,42 +620,49 @@ function RulesStep({ w, onSaved }) {
         )}
         {list(
           'How roommates are matched',
-          <ul className="flex flex-col gap-1.5 text-base">
-            <li className="text-sm text-fg-tertiary">{t('Snapshot {label}', { label: r.matching })}</li>
+          <ul className="flex flex-col gap-2 text-base">
+            <li className="text-sm font-medium text-fg-tertiary">{t('Snapshot {label}', { label: r.matching })}</li>
             {r.weights.map((x) => (
               <li key={x.label} className="flex justify-between">
                 <span className="text-fg">{tr(x.label)}</span>
-                <span className="text-fg-secondary">{tr(x.level)}</span>
+                <span className="font-medium text-fg-secondary">{tr(x.level)}</span>
               </li>
             ))}
-            <li className="flex justify-between">
-              <span className="text-fg">{t('Roommate-preference boost')}</span>
-              <span className="text-fg-secondary">{Number(r.boost) > 1 ? `×${r.boost}` : t('Off')}</span>
+            <li className="flex justify-between border-t border-line pt-2">
+              <span className="font-medium text-fg">{t('Roommate-preference boost')}</span>
+              <span className="font-semibold text-fg-brand">{Number(r.boost) > 1 ? `×${r.boost}` : t('Off')}</span>
             </li>
           </ul>,
           '/admin/matching',
         )}
         {list(
           'Refunds',
-          <ul className="flex flex-col gap-1.5 text-base">
+          <ul className="flex flex-col gap-2 text-base">
             {r.refundRules.map((x) => (
               <li key={x.when} className="flex justify-between gap-3">
                 <span className="text-fg">{tr(x.when)}</span>
-                <span className="shrink-0 text-fg-secondary">{`${x.refundPercent}% · ${tr(x.approver)}`}</span>
+                <span className="shrink-0 font-medium text-fg-secondary">{`${x.refundPercent}% · ${tr(x.approver)}`}</span>
               </li>
             ))}
           </ul>,
           '/admin/refunds',
         )}
       </div>
-      {!r.fixed && <StepActions save={save} next onSave={() => save.run({})} />}
+      <StepActions
+        save={save}
+        next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
+        disabled={false}
+        onSave={r.fixed ? () => onSaved() : () => save.run({})}
+      />
     </>
   )
 }
 
 /* ---------------------------------------------------------------- 6 Information */
 
-function InformationStep({ w, onSaved }) {
+function InformationStep({ w, onSaved, onPrev, stepIndex }) {
   const { save, fields } = useStep(w, 'information', onSaved)
   const [rules, setRules] = useState(w.information.houseRules ?? '')
   const [faq, setFaq] = useState(w.information.faq ?? [])
@@ -569,65 +674,95 @@ function InformationStep({ w, onSaved }) {
   const rulesDiffer = asked?.houseRules != null && asked.houseRules !== rules.trim()
   const lines = (list) => JSON.stringify(list.map((f) => ({ question: f.question.trim(), answer: f.answer.trim() })).filter((f) => f.question || f.answer))
   const faqDiffers = asked?.faq != null && lines(asked.faq) !== lines(faq)
+
   return (
     <>
       <SaveError save={save} />
-      <Field label="House rules" helper="Students read them on Registration period details." error={fields.houseRules}>
-        {(id) => <Textarea id={id} rows={8} value={rules} disabled={!editable} onChange={(e) => setRules(e.target.value)} />}
-      </Field>
-      {rulesDiffer && (
-        <>
-          <p className="text-sm text-fg-tertiary">{t('The request proposed other house rules.')}</p>
-          <ReasonInput value={reasons.houseRules} onChange={(v) => setReasons((x) => ({ ...x, houseRules: v }))} error={fields.houseRules} />
-        </>
-      )}
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium text-fg-secondary">{t('Questions and answers')}</h3>
-          <Button size="sm" icon={Plus} disabled={!editable} onClick={() => setFaq((f) => [...f, { question: '', answer: '' }])}>
-            Add question
-          </Button>
-        </div>
-        {faq.map((f, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Input aria-label={t('Question')} className="flex-1" placeholder="Question" value={f.question} disabled={!editable} onChange={(e) => setFaq((list) => list.map((x, j) => (j === i ? { ...x, question: e.target.value } : x)))} />
-            <Textarea aria-label={t('Answer')} className="flex-[2]" rows={2} placeholder="Answer" value={f.answer} disabled={!editable} onChange={(e) => setFaq((list) => list.map((x, j) => (j === i ? { ...x, answer: e.target.value } : x)))} />
-            <IconButton icon={Trash2} aria-label={t('Remove question')} disabled={!editable} onClick={() => setFaq((list) => list.filter((_, j) => j !== i))} />
+      <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+        <h3 className="text-base font-semibold text-fg">{t('House rules')}</h3>
+        <Field label="House rules content" helper="Students read them on Registration period details." error={fields.houseRules}>
+          {(id) => <Textarea id={id} rows={7} value={rules} disabled={!editable} onChange={(e) => setRules(e.target.value)} />}
+        </Field>
+        {rulesDiffer && (
+          <div className="rounded-lg border border-warning/20 bg-warning-bg p-3">
+            <p className="text-sm text-fg-tertiary">{t('The request proposed other house rules.')}</p>
+            <ReasonInput value={reasons.houseRules} onChange={(v) => setReasons((x) => ({ ...x, houseRules: v }))} error={fields.houseRules} />
           </div>
-        ))}
-        {fields.faq && <p className="text-sm text-error-fg">{tr(fields.faq)}</p>}
-        {faqDiffers && (
-          <>
-            <p className="text-sm text-fg-tertiary">{t('The request proposed other questions and answers.')}</p>
-            <ReasonInput value={reasons.faq} onChange={(v) => setReasons((x) => ({ ...x, faq: v }))} />
-          </>
         )}
-      </section>
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium text-fg-secondary">{t('Documents')}</h3>
-          <Button size="sm" icon={Plus} disabled={!editable} onClick={() => setDocs((d) => [...d, { title: '', url: '' }])}>
-            Add document
-          </Button>
-        </div>
-        {docs.map((d, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Input aria-label={t('Title')} className="flex-1" placeholder="Title" value={d.title} disabled={!editable} onChange={(e) => setDocs((list) => list.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
-            <Input aria-label={t('Link')} className="flex-[2]" placeholder="https://…" value={d.url} disabled={!editable} onChange={(e) => setDocs((list) => list.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
-            <IconButton icon={Trash2} aria-label={t('Remove document')} disabled={!editable} onClick={() => setDocs((list) => list.filter((_, j) => j !== i))} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between border-b border-line pb-2.5">
+            <h3 className="text-base font-semibold text-fg">{t('Questions and answers')}</h3>
+            <Button size="sm" icon={Plus} disabled={!editable} onClick={() => setFaq((f) => [...f, { question: '', answer: '' }])}>
+              {t('Add question')}
+            </Button>
           </div>
-        ))}
-        {fields.documents && <p className="text-sm text-error-fg">{tr(fields.documents)}</p>}
-      </section>
+          {faq.length === 0 ? (
+            <p className="py-4 text-center text-sm text-fg-tertiary">{t('No FAQ entries added yet.')}</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {faq.map((f, i) => (
+                <div key={i} className="flex items-start gap-2.5 rounded-lg border border-line bg-canvas/60 p-2.5">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Input aria-label={t('Question')} placeholder={t('Question')} value={f.question} disabled={!editable} onChange={(e) => setFaq((list) => list.map((x, j) => (j === i ? { ...x, question: e.target.value } : x)))} />
+                    <Textarea aria-label={t('Answer')} rows={2} placeholder={t('Answer')} value={f.answer} disabled={!editable} onChange={(e) => setFaq((list) => list.map((x, j) => (j === i ? { ...x, answer: e.target.value } : x)))} />
+                  </div>
+                  <IconButton icon={Trash2} aria-label={t('Remove question')} disabled={!editable} onClick={() => setFaq((list) => list.filter((_, j) => j !== i))} />
+                </div>
+              ))}
+            </div>
+          )}
+          {fields.faq && <p className="text-sm text-error-fg">{tr(fields.faq)}</p>}
+          {faqDiffers && (
+            <div className="rounded-lg border border-warning/20 bg-warning-bg p-3">
+              <p className="text-sm text-fg-tertiary">{t('The request proposed other questions and answers.')}</p>
+              <ReasonInput value={reasons.faq} onChange={(v) => setReasons((x) => ({ ...x, faq: v }))} />
+            </div>
+          )}
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between border-b border-line pb-2.5">
+            <h3 className="text-base font-semibold text-fg">{t('Documents')}</h3>
+            <Button size="sm" icon={Plus} disabled={!editable} onClick={() => setDocs((d) => [...d, { title: '', url: '' }])}>
+              {t('Add document')}
+            </Button>
+          </div>
+          {docs.length === 0 ? (
+            <p className="py-4 text-center text-sm text-fg-tertiary">{t('No documents attached yet.')}</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {docs.map((d, i) => (
+                <div key={i} className="flex items-center gap-2.5 rounded-lg border border-line bg-canvas/60 p-2.5">
+                  <Input aria-label={t('Title')} className="flex-1" placeholder={t('Title')} value={d.title} disabled={!editable} onChange={(e) => setDocs((list) => list.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
+                  <Input aria-label={t('Link')} className="flex-[2]" placeholder="https://…" value={d.url} disabled={!editable} onChange={(e) => setDocs((list) => list.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
+                  <IconButton icon={Trash2} aria-label={t('Remove document')} disabled={!editable} onClick={() => setDocs((list) => list.filter((_, j) => j !== i))} />
+                </div>
+              ))}
+            </div>
+          )}
+          {fields.documents && <p className="text-sm text-error-fg">{tr(fields.documents)}</p>}
+        </section>
+      </div>
+
       <ChangeReason w={w} value={changeReason} onChange={setChangeReason} error={fields.changeReason} />
-      <StepActions save={save} next disabled={!editable} onSave={() => save.run({ houseRules: rules, faq, documents: docs, reasons: pick(reasons, ['houseRules', 'faq']), changeReason })} />
+      <StepActions
+        save={save}
+        next
+        onPrev={onPrev}
+        stepIndex={stepIndex}
+        disabled={!editable}
+        onSave={() => save.run({ houseRules: rules, faq, documents: docs, reasons: pick(reasons, ['houseRules', 'faq']), changeReason })}
+      />
     </>
   )
 }
 
 /* ---------------------------------------------------------------- 7 Review and publish */
 
-function ReviewStep({ w, goTo }) {
+function ReviewStep({ w, goTo, onPrev, stepIndex }) {
   const { notify } = useToast()
   const [confirming, setConfirming] = useState(false)
   const publish = useMutation(() => api.admin.terms.publish(w.id), {
@@ -641,49 +776,61 @@ function ReviewStep({ w, goTo }) {
   const prices = w.prices.rows.map((r) => r.price)
   const beds = w.rooms.beds
   const filled = Object.values(timelineForm(w.timeline.values)).filter(Boolean).length
+
   return (
     <>
       {publish.error && <Alert type="error" title="Could not publish">{publish.error.message}</Alert>}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="flex flex-col gap-1">
-          <span className="text-sm text-fg-tertiary">{t('Stay')}</span>
-          <span className="text-base font-medium text-fg">{formatDateRange(w.general.stayStart, w.general.stayEnd)}</span>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="flex flex-col gap-1.5 p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Stay')}</span>
+          <span className="text-base font-bold text-fg">{formatDateRange(w.general.stayStart, w.general.stayEnd)}</span>
           <span className="text-sm text-fg-secondary">{t('{n} milestones set', { n: filled })}</span>
         </Card>
-        <Card className="flex flex-col gap-1">
-          <span className="text-sm text-fg-tertiary">{t('Places')}</span>
-          <span className="text-base font-medium text-fg">{t('{n} beds', { n: beds })}</span>
+        <Card className="flex flex-col gap-1.5 p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Places')}</span>
+          <span className="text-base font-bold text-fg">{t('{n} beds', { n: beds })}</span>
           <span className="text-sm text-fg-secondary">{w.rooms.allBlocks ? t('Every block') : w.rooms.blocks.filter((b) => b.used).map((b) => b.code).join(', ')}</span>
         </Card>
-        <Card className="flex flex-col gap-1">
-          <span className="text-sm text-fg-tertiary">{t('Prices per bed')}</span>
-          <span className="text-base font-medium text-fg">{prices.length ? `${formatVnd(Math.min(...prices))} – ${formatVnd(Math.max(...prices))}` : '—'}</span>
+        <Card className="flex flex-col gap-1.5 p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Prices per bed')}</span>
+          <span className="text-base font-bold text-fg">{prices.length ? `${formatVnd(Math.min(...prices))} – ${formatVnd(Math.max(...prices))}` : '—'}</span>
           <span className="text-sm text-fg-secondary">{t('Deposit {n}% · Utility Deposit {amount}', { n: w.prices.depositPercent, amount: formatVnd(w.prices.utilityDeposit) })}</span>
         </Card>
       </div>
-      <Card className="flex flex-col gap-2">
+
+      <Card className="flex flex-col gap-3 p-4">
         <h3 className="text-h3 font-semibold text-fg">{t('Timeline')}</h3>
         <TimelineStrip form={timelineForm(w.timeline.values)} />
       </Card>
+
       {w.request && (
-        <Card className="flex flex-col gap-2">
+        <Card className="flex flex-col gap-3 p-4">
           <h3 className="text-h3 font-semibold text-fg">{t('Differences from {code}', { code: w.request.code })}</h3>
           <DifferencesTable differences={w.differences} />
         </Card>
       )}
+
       {!w.published && (
-        <Card className="flex flex-col gap-3">
-          <h3 className="text-h3 font-semibold text-fg">{t('Before publishing')}</h3>
+        <Card className="flex flex-col gap-4 p-4">
+          <div className="flex items-center justify-between border-b border-line pb-3">
+            <h3 className="text-h3 font-semibold text-fg">{t('Before publishing')}</h3>
+            <Tag tone={w.checks.length === 0 ? 'success' : 'warning'}>
+              {w.checks.length === 0 ? t('Ready to publish') : t('{n} issues to resolve', { n: w.checks.length })}
+            </Tag>
+          </div>
           {w.checks.length === 0 ? (
-            <p className="flex items-center gap-2 text-base text-success-fg">
-              <CircleCheck size={16} aria-hidden="true" />
-              {t('Everything is ready.')}
-            </p>
+            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-bg p-3 text-base font-medium text-success-fg">
+              <CircleCheck size={18} aria-hidden="true" />
+              <span>{t('Everything is ready. All configuration requirements have been met.')}</span>
+            </div>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-2.5">
               {w.checks.map((c, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 rounded-md bg-warning-bg px-3 py-2">
-                  <span className="text-base text-warning-fg">{c.message}</span>
+                <li key={i} className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <TriangleAlert size={16} className="shrink-0 text-warning-fg" aria-hidden="true" />
+                    <span className="text-sm font-medium text-warning-fg">{c.message}</span>
+                  </div>
                   <Button size="sm" onClick={() => goTo(c.step)}>
                     {t('Go to {step}', { step: t(STEPS.find((s) => s.key === c.step)?.label ?? c.step) })}
                   </Button>
@@ -691,18 +838,46 @@ function ReviewStep({ w, goTo }) {
               ))}
             </ul>
           )}
-          <div className="flex justify-end">
-            <Button tip="Students see the term, its prices and its rules once it is published. Fix every check listed here first." variant="primary" icon={Rocket} disabled={w.checks.length > 0 || publish.pending} onClick={() => setConfirming(true)}>
-              Publish the term
-            </Button>
-          </div>
         </Card>
       )}
+
       {w.published && (
         <Alert type="success" title={t('Published {date}', { date: formatDate(w.publishedAt) })}>
           {t('Money and policy fields stay editable within the rules: a date that has passed is fixed, an open deadline can only be extended, and money is locked once an invoice exists. Every change is announced to students.')}
         </Alert>
       )}
+
+      {/* Sticky footer for review & publish */}
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-surface/95 px-6 py-3.5 shadow-card backdrop-blur-md lg:-mx-6 lg:-mb-6">
+        <div className="flex items-center gap-3">
+          {onPrev && (
+            <Button
+              variant="default"
+              icon={ArrowLeft}
+              onClick={onPrev}
+            >
+              {t('Previous')}
+            </Button>
+          )}
+          <span className="hidden sm:inline-block text-sm font-medium text-fg-secondary">
+            {t('Step {step} of {total}', { step: stepIndex + 1, total: STEPS.length })} · <strong className="text-fg">{t(STEPS[stepIndex]?.label)}</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          {!w.published && (
+            <Button
+              tip="Students see the term, its prices and its rules once it is published. Fix every check listed here first."
+              variant="primary"
+              icon={Rocket}
+              disabled={w.checks.length > 0 || publish.pending}
+              onClick={() => setConfirming(true)}
+            >
+              {t('Publish the term')}
+            </Button>
+          )}
+        </div>
+      </div>
+
       <Modal
         open={confirming}
         onClose={() => setConfirming(false)}
@@ -753,7 +928,15 @@ export default function TermWizard() {
     invalidate('term-wizard')
     if (index < STEPS.length - 1) goTo(STEPS[index + 1].key)
   }
-  const props = { w, onSaved: next }
+  const prev = () => {
+    if (index > 0) goTo(STEPS[index - 1].key)
+  }
+  const props = {
+    w,
+    onSaved: next,
+    onPrev: index > 0 ? prev : undefined,
+    stepIndex: index,
+  }
 
   return (
     <>
@@ -775,44 +958,81 @@ export default function TermWizard() {
           )
         }
       />
-      <nav aria-label={t('Wizard steps')} className="shrink-0">
-        <ol className="flex flex-wrap gap-2">
-          {STEPS.map((s, i) => {
-            const saved = w.published || i < (w.step ?? 1)
-            const open = s.key === 'review' ? 0 : (w.checks ?? []).filter((c) => c.step === s.key).length
-            return (
-              <li key={s.key}>
-                <button
-                  type="button"
-                  onClick={() => goTo(s.key)}
-                  aria-current={s.key === step ? 'step' : undefined}
-                  className={cx(
-                    'flex items-center gap-2 rounded-full border px-3 py-1.5 text-base',
-                    s.key === step ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-primary',
-                  )}
-                >
-                  <span className={cx('flex size-5 items-center justify-center rounded-full text-sm', saved ? 'bg-success text-fg-on-brand' : 'bg-subtle text-fg-secondary')}>
-                    {saved ? <Check size={12} aria-hidden="true" /> : i + 1}
-                  </span>
-                  {t(s.label)}
-                  {open > 0 && (
-                    <span className="flex items-center gap-1 rounded-full bg-warning-bg px-1.5 text-sm font-medium text-warning-fg" title={t('{n} to fix in this step', { n: open })}>
-                      <TriangleAlert size={12} aria-hidden="true" />
-                      <span className="tabular">{open}</span>
-                      <span className="sr-only">{t('{n} to fix in this step', { n: open })}</span>
-                    </span>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </nav>
-      <Card padding="lg" className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-h2 font-semibold text-fg">{t(STEPS[index]?.label ?? '')}</h2>
-          {STEPS[index]?.why && <p className="text-base text-fg-secondary">{t(STEPS[index].why)}</p>}
+
+      {/* Sticky Stepper Bar */}
+      <div className="sticky top-0 z-20 -mt-2 bg-canvas/95 py-2 backdrop-blur-md">
+        <nav aria-label={t('Wizard steps')} className="rounded-xl border border-line bg-surface p-2 shadow-xs">
+          <ol className="flex flex-wrap items-center gap-2">
+            {STEPS.map((s, i) => {
+              const saved = w.published || i < (w.step ?? 1)
+              const current = s.key === step
+              const open = s.key === 'review' ? 0 : (w.checks ?? []).filter((c) => c.step === s.key).length
+              return (
+                <li key={s.key} className="flex-1 min-w-[130px]">
+                  <button
+                    type="button"
+                    onClick={() => goTo(s.key)}
+                    aria-current={current ? 'step' : undefined}
+                    className={cx(
+                      'flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-all',
+                      current
+                        ? 'border-primary bg-primary-subtle font-semibold text-fg-brand shadow-xs ring-1 ring-primary/20'
+                        : saved
+                          ? 'border-line/70 bg-surface text-fg hover:border-primary/50 hover:bg-subtle'
+                          : 'border-transparent bg-subtle/50 text-fg-secondary hover:border-line hover:text-fg',
+                    )}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={cx(
+                          'flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
+                          current
+                            ? 'bg-primary text-white'
+                            : saved
+                              ? 'bg-success text-white'
+                              : 'bg-subtle text-fg-secondary',
+                        )}
+                      >
+                        {saved && !current ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : i + 1}
+                      </span>
+                      <span className="truncate">{t(s.label)}</span>
+                    </div>
+                    {open > 0 && (
+                      <span
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-warning-bg px-1.5 py-0.5 text-xs font-semibold text-warning-fg"
+                        title={t('{n} to fix in this step', { n: open })}
+                      >
+                        <TriangleAlert size={12} aria-hidden="true" />
+                        <span className="tabular">{open}</span>
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+      </div>
+
+      {/* Main Wizard Form Card */}
+      <Card padding="lg" className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-xs font-bold text-fg-brand">
+                {index + 1}
+              </span>
+              <h2 className="text-h2 font-bold tracking-tight text-fg">{t(STEPS[index]?.label ?? '')}</h2>
+            </div>
+            {STEPS[index]?.why && <p className="text-sm text-fg-secondary">{t(STEPS[index].why)}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Tag tone={w.published ? 'success' : 'neutral'}>
+              {w.published ? t('Published') : t('Draft')}
+            </Tag>
+          </div>
         </div>
+
         {step !== 'review' && !w.published && (w.checks ?? []).some((c) => c.step === step) && (
           <Alert type="warning" title={t('Still to fix in this step')}>
             <ul className="list-disc pl-4">
@@ -822,13 +1042,14 @@ export default function TermWizard() {
             </ul>
           </Alert>
         )}
+
         {step === 'general' && <GeneralStep key={`g${w.id}`} {...props} />}
         {step === 'timeline' && <TimelineStep key={`t${w.id}`} {...props} />}
         {step === 'rooms' && <RoomsStep key={`r${w.id}`} {...props} />}
         {step === 'prices' && <PricesStep key={`p${w.id}`} {...props} />}
         {step === 'rules' && <RulesStep key={`u${w.id}`} {...props} />}
         {step === 'information' && <InformationStep key={`i${w.id}`} {...props} />}
-        {step === 'review' && <ReviewStep w={w} goTo={goTo} />}
+        {step === 'review' && <ReviewStep w={w} goTo={goTo} onPrev={index > 0 ? prev : undefined} stepIndex={index} />}
       </Card>
     </>
   )

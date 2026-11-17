@@ -55,7 +55,7 @@ export function MeterRows({ rows, max, labelWidth = 'w-24', trackWidth = 'w-45',
 
 /** Small KPI tile used on back-office dashboards (16/14 px padding, Display/KPI value). */
 // size "lg" = Display/KPI value (dashboards); "md" = Heading/H2 value with 16 px padding (Payments, Finance…).
-export function KpiTile({ icon: Glyph, label, tip, value, note, noteTone = 'secondary', valueTone, size = 'lg', className, children }) {
+export function KpiTile({ icon: Glyph, label, tip, value, note, noteTone = 'secondary', noteClassName, valueTone, size = 'lg', className, children }) {
   const tone = { secondary: 'text-fg-secondary', warning: 'text-warning-fg', error: 'text-error-fg', success: 'text-success-fg', brand: 'text-fg-brand', tertiary: 'text-fg-tertiary' }
   return (
     <div className={cx('flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-line bg-surface', size === 'lg' ? 'px-4 py-3.5' : 'p-4', className)}>
@@ -65,7 +65,7 @@ export function KpiTile({ icon: Glyph, label, tip, value, note, noteTone = 'seco
         {tip && <InfoTip label={tip} />}
       </div>
       <p className={cx('font-semibold whitespace-nowrap tabular', size === 'lg' ? 'text-kpi' : 'text-h2', valueTone ? tone[valueTone] : 'text-fg')}>{value}</p>
-      {note && <p className={cx('truncate text-sm', tone[noteTone])}>{tx(note)}</p>}
+      {note && <p className={cx('truncate text-sm', tone[noteTone], noteClassName)}>{tx(note)}</p>}
       {children}
     </div>
   )

@@ -102,6 +102,7 @@ function LinkRow({ item }) {
           size="sm"
           to={item.action.to}
           disabled={item.action.disabled}
+          className={cx('min-w-24 justify-center', item.action.className)}
           onClick={(e) => {
             e.stopPropagation()
             if (!item.action.to) e.preventDefault()
@@ -152,7 +153,14 @@ function ActionRow({ item }) {
           </Button>
         )}
         {item.action && (
-          <Button variant={item.action.primary ? 'primary' : 'default'} size="sm" to={item.action.to} onClick={item.action.onClick} disabled={item.action.disabled}>
+          <Button
+            variant={item.action.primary ? 'primary' : 'default'}
+            size="sm"
+            to={item.action.to}
+            onClick={item.action.onClick}
+            disabled={item.action.disabled}
+            className={cx('min-w-24 justify-center', item.action.className)}
+          >
             {item.action.label}
           </Button>
         )}
