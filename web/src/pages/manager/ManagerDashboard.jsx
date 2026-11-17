@@ -229,18 +229,16 @@ export default function ManagerDashboard() {
     [allBlocks, blocksWithDutyStaff],
   )
 
-  // Filtered and sorted staff (offline first, then p.open descending)
+  // Sorted staff (on-duty first, then p.open descending, followed by off-duty)
   const sortedStaff = useMemo(() => {
-    return [...people]
-      .filter((p) => p.open > 0 || p.onDuty)
-      .sort((x, y) => {
-        if (x.onDuty !== y.onDuty) return x.onDuty ? 1 : -1
-        return y.open - x.open
-      })
+    return [...people].sort((x, y) => {
+      if (x.onDuty !== y.onDuty) return x.onDuty ? -1 : 1
+      return y.open - x.open
+    })
   }, [people])
 
   return (
-    <div className="flex flex-col gap-3.5 xl:min-h-0">
+    <div className="flex flex-col gap-3.5 pb-6">
       {/* Row 1: Header */}
       <PageHeader
         compact
@@ -383,9 +381,9 @@ export default function ManagerDashboard() {
       </div>
 
       {/* Row 4: Main Balanced 2-Column Bento Grid (Left 7/12, Right 5/12) */}
-      <div className="grid grid-cols-1 items-start gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-12 xl:gap-5">
+      <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-12 xl:gap-5">
         {/* Left Column: Action Required */}
-        <div className="flex flex-col xl:max-h-full xl:min-h-0 xl:col-span-7">
+        <div className="flex h-full flex-col xl:col-span-7">
           <Panel
             title={t('Action required')}
             badge={
@@ -396,8 +394,8 @@ export default function ManagerDashboard() {
               ) : null
             }
             subtitle={t('Every decision that needs a manager, the most urgent first')}
-            className="shadow-xs xl:max-h-full xl:min-h-0"
-            bodyClassName="min-h-0 max-h-[460px] overflow-y-auto pr-1"
+            className="h-full shadow-xs"
+            bodyClassName="flex-1 overflow-y-auto pr-1"
           >
             <QueryState query={query} compact isEmpty={() => false}>
               {() => (
@@ -415,8 +413,8 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Right Column: Operations Card with Tabs [Blocks | Staff] */}
-        <div className="flex flex-col xl:h-full xl:min-h-0 xl:col-span-5">
-          <section className="flex flex-1 flex-col rounded-lg border border-line bg-surface shadow-xs xl:h-full xl:min-h-0">
+        <div className="flex h-full flex-col xl:col-span-5">
+          <section className="flex h-full flex-col rounded-lg border border-line bg-surface shadow-xs">
             {/* Tab Navigation Header */}
             <div className="flex shrink-0 items-center justify-between border-b border-line px-4 pt-3 pb-2.5">
               <div className="flex items-center gap-1 rounded-lg bg-subtle p-1" role="tablist">
@@ -462,54 +460,56 @@ export default function ManagerDashboard() {
 
             {/* Tab 1: Blocks */}
             {activeTab === 'blocks' && (
-              <div className="flex min-h-0 flex-1 flex-col justify-between overflow-y-auto p-4">
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs text-fg-tertiary">
-                    {t('Allocated and proposed beds against capacity')}
+              <div className="flex flex-1 flex-col gap-3 p-4">
+                <p className="shrink-0 text-xs text-fg-tertiary">
+                  {t('Allocated and proposed beds against capacity')}
+                </p>
+                <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
+                  {(data) => (
+                    <ul className="flex max-h-80 xl:max-h-96 flex-col gap-2 overflow-y-auto pr-1">
+                      {data.bedsByBlock.map((b) => {
+                        const free = Math.max(0, b.capacity - b.proposed)
+                        const pct = b.capacity ? Math.round((b.proposed / b.capacity) * 100) : 0
+                        const meterTone = pct > HIGH_OCCUPANCY ? 'error' : pct < LOW_OCCUPANCY ? 'warning' : 'accent'
+                        return (
+                          <li key={b.block} className="flex items-center gap-3 rounded-lg border border-line bg-subtle/30 px-3 py-2 text-xs transition-colors hover:bg-subtle/60">
+                            <span className="w-16 shrink-0 font-medium text-fg">
+                              {t('Block {code}', { code: b.block })}
+                            </span>
+                            <Tooltip
+                              label={t('{used} of {total} allocated or proposed', { used: formatNumber(b.proposed), total: formatNumber(b.capacity) })}
+                              delay={150}
+                              className="min-w-0 flex-1"
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                <Meter value={b.proposed} max={b.capacity} tone={meterTone} className="h-2 min-w-0 flex-1" />
+                                <span className="w-10 shrink-0 text-right text-xs font-semibold text-fg tabular">
+                                  {pct}%
+                                </span>
+                              </div>
+                            </Tooltip>
+                            <span className="w-20 shrink-0 text-right text-xs text-fg-secondary tabular">
+                              {free === 0 ? t('Full') : t('{n} free', { n: formatNumber(free) })}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </QueryState>
+                {d?.floorNote && (
+                  <p className="mt-auto shrink-0 border-t border-line pt-2 text-xs text-fg-tertiary">
+                    {tr(d.floorNote)}
                   </p>
-                  <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>
-                    {(data) => (
-                      <ul className="flex flex-col gap-1.5">
-                        {data.bedsByBlock.map((b) => {
-                          const free = Math.max(0, b.capacity - b.proposed)
-                          const pct = b.capacity ? Math.round((b.proposed / b.capacity) * 100) : 0
-                          const meterTone = pct > HIGH_OCCUPANCY ? 'error' : pct < LOW_OCCUPANCY ? 'warning' : 'accent'
-                          return (
-                            <li key={b.block} className="flex h-8 items-center gap-3 text-sm">
-                              <span className="w-16 shrink-0 font-medium text-fg">
-                                {t('Block {code}', { code: b.block })}
-                              </span>
-                              <Tooltip
-                                label={t('{used} of {total} allocated or proposed', { used: formatNumber(b.proposed), total: formatNumber(b.capacity) })}
-                                delay={150}
-                                className="min-w-0 flex-1"
-                              >
-                                <div className="flex w-full items-center gap-2">
-                                  <Meter value={b.proposed} max={b.capacity} tone={meterTone} className="h-2 min-w-0 flex-1" />
-                                  <span className="w-10 shrink-0 text-right text-xs font-semibold text-fg tabular">
-                                    {pct}%
-                                  </span>
-                                </div>
-                              </Tooltip>
-                              <span className="w-20 shrink-0 text-right text-xs text-fg-secondary tabular">
-                                {free === 0 ? t('Full') : t('{n} free', { n: formatNumber(free) })}
-                              </span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </QueryState>
-                </div>
-                {d?.floorNote && <p className="pt-2 text-xs text-fg-tertiary border-t border-line mt-2">{tr(d.floorNote)}</p>}
+                )}
               </div>
             )}
 
             {/* Tab 2: Staff */}
             {activeTab === 'staff' && (
-              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+              <div className="flex flex-1 flex-col gap-3 p-4">
                 {/* On-duty summary & Block coverage alert */}
-                <div className="flex flex-col gap-2">
+                <div className="flex shrink-0 flex-col gap-2">
                   <div className="flex items-center justify-between text-xs text-fg-secondary">
                     <span>{s ? t('{n} of {total} on duty · new requests go to them', { n: s.onDuty, total: s.total }) : null}</span>
                   </div>
@@ -529,7 +529,7 @@ export default function ManagerDashboard() {
                 {/* Staff member list */}
                 <QueryState query={staff} compact isEmpty={(x) => !x.items?.length}>
                   {() => (
-                    <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+                    <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto pr-1 sm:max-h-80 xl:max-h-96">
                       {sortedStaff.map((p) => (
                         <li
                           key={p.id}

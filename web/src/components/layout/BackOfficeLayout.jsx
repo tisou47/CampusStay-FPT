@@ -440,7 +440,7 @@ function BackOfficeTopBar({ role }) {
 // <main> only scrolls as a fallback when the window is smaller than the layout needs.
 export function BackOfficeLayout({ role }) {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
       <BackOfficeTopBar role={role} />
       <div className="flex min-h-0 flex-1">
         <Sidebar role={role} />

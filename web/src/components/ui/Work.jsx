@@ -286,7 +286,7 @@ export function Panel({ title, tip, badge, subtitle, action, className, bodyClas
         </div>
         {action}
       </div>
-      <div className={cx('min-h-0 flex-1 overflow-y-auto px-5 pb-4', bodyClassName)}>{children}</div>
+      <div className={cx('min-h-0 flex-1 px-5 pb-4', bodyClassName ?? 'overflow-y-auto')}>{children}</div>
     </section>
   )
 }
