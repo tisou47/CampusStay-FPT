@@ -1,9 +1,10 @@
+import { Check } from 'lucide-react'
 import { cx } from '@/lib/cx'
 import { campusDayStart, campusNextMonth, formatDate, formatDateRange, formatDateTime, formatMonthShort } from '@/lib/format'
 import { t } from '@/i18n'
 
-// The Term schedule graph (R-10): one row per milestone or window on a shared date axis, windows as bars and moments
-// as diamonds, "today" marked on every row. Rows keep their text (label and dates) so the graph itself is decoration.
+// The Term schedule graph (R-10): combines a numbered step-by-step milestone list on the left with a visual
+// shared-axis timeline on the right, marking windows as bars, single moments as diamonds, and "today" across all rows.
 // Reads the `timeline` of GET /registration-periods/:termId: [{ key, label, at, date, until, done }].
 
 const DAY = 86_400_000
@@ -54,7 +55,7 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
   if (rows.length === 0) return <p className="text-base text-fg-tertiary">{t('The dates of this term are not published yet.')}</p>
   const first = Math.min(...rows.map((r) => r.start))
   const last = Math.max(...rows.map((r) => r.end ?? r.start))
-  const pad = Math.max((last - first) * 0.03, DAY)
+  const pad = Math.max((last - first) * 0.04, DAY * 2)
   const from = first - pad
   const to = last + pad
   const pct = (ms) => ((ms - from) / (to - from)) * 100
@@ -65,54 +66,124 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
   const current = rows.findIndex((r) => (r.end ?? r.start) > now)
 
   return (
-    <div className={cx('flex flex-col gap-2', className)}>
-      <div aria-hidden="true" className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-x-4">
-        <span className="hidden lg:block" />
-        <div className="relative h-5 text-xs text-fg-tertiary">
-          {/* A month's label starts at its first day; one too close to the end would leave the card. */}
+    <div className={cx('flex flex-col gap-2.5', className)}>
+      {/* Month Axis Header */}
+      <div aria-hidden="true" className="hidden lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:gap-x-5 lg:px-3">
+        <span className="text-xs font-medium tracking-wider text-fg-tertiary uppercase">{t('Timeline')}</span>
+        <div className="relative h-5 text-xs font-medium text-fg-tertiary">
           {ticks
-            .filter((tick) => pct(tick.at) < 90)
+            .filter((tick) => pct(tick.at) < 92)
             .map((tick) => (
-              <span key={tick.at} className="absolute top-0 pl-1 whitespace-nowrap" style={{ left: pos(tick.at) }}>
+              <span key={tick.at} className="absolute top-0 -translate-x-1/2 whitespace-nowrap" style={{ left: pos(tick.at) }}>
                 {tick.label}
               </span>
             ))}
         </div>
       </div>
-      <ol className="flex flex-col gap-3 lg:gap-2.5">
+
+      {/* Step-by-step Milestone Rows + Shared Gantt Track */}
+      <ol className="flex flex-col gap-1.5">
         {rows.map((r, i) => {
           const state = i === current ? 'current' : (r.end ?? r.start) <= now ? 'done' : 'upcoming'
-          const tone = state === 'current' ? 'bg-primary' : state === 'done' ? 'bg-success' : 'bg-line-strong'
+          const tone = state === 'current' ? 'bg-primary' : state === 'done' ? 'bg-success' : 'bg-fg-tertiary/45'
           return (
-            <li key={r.key} className="grid grid-cols-1 gap-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:items-center lg:gap-x-4">
-              <div className="flex items-baseline justify-between gap-3 lg:flex-col lg:items-start lg:gap-0">
-                <span className={cx('text-sm', state === 'current' ? 'font-medium text-fg' : state === 'done' ? 'text-fg-secondary' : 'text-fg')}>{t(r.label)}</span>
-                <span className={cx('text-sm whitespace-nowrap', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-tertiary')}>{r.text}</span>
+            <li
+              key={r.key}
+              className={cx(
+                'grid grid-cols-1 gap-2 rounded-xl px-3 py-2.5 transition-colors lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-center lg:gap-x-5',
+                state === 'current' ? 'bg-brand-subtle/55' : 'hover:bg-subtle/60',
+              )}
+            >
+              {/* Left: Step Badge + Label + Exact Date */}
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className={cx(
+                    'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                    state === 'done' && 'bg-success text-white',
+                    state === 'current' && 'border-2 border-primary bg-surface text-fg-brand ring-3 ring-orange-500/15',
+                    state === 'upcoming' && 'bg-subtle text-fg-tertiary',
+                  )}
+                >
+                  {state === 'done' ? <Check size={13} strokeWidth={2.5} /> : i + 1}
+                </span>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cx(
+                        'text-sm',
+                        state === 'current' ? 'font-semibold text-fg' : state === 'done' ? 'font-medium text-fg' : 'font-medium text-fg-secondary',
+                      )}
+                    >
+                      {t(r.label)}
+                    </span>
+                    {state === 'current' && (
+                      <span className="rounded-full bg-primary px-2 py-0.2 text-[11px] font-semibold text-white">
+                        {t('In progress')}
+                      </span>
+                    )}
+                  </div>
+                  <span className={cx('text-xs tabular', state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-tertiary')}>
+                    {r.text}
+                  </span>
+                </div>
               </div>
-              <div aria-hidden="true" className="relative h-3 rounded-full bg-subtle">
+
+              {/* Right: Visual Date Track */}
+              <div aria-hidden="true" className="relative h-3.5 rounded-full bg-subtle">
                 {ticks.map((tick) => (
-                  <span key={tick.at} className="absolute inset-y-0 w-px bg-line" style={{ left: pos(tick.at) }} />
+                  <span key={tick.at} className="absolute inset-y-0 w-px bg-line/80" style={{ left: pos(tick.at) }} />
                 ))}
                 {r.end ? (
                   <span
-                    className={cx('absolute inset-y-0 min-w-1.5 rounded-full', tone)}
+                    className={cx('absolute inset-y-0.5 min-w-2 rounded-full', tone)}
                     style={{ left: pos(r.start), width: `calc(${pos(r.end)} - ${pos(r.start)})` }}
                   />
                 ) : (
-                  <span className={cx('absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px]', tone)} style={{ left: pos(r.start) }} />
+                  <span
+                    className={cx(
+                      'absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ring-2 ring-surface',
+                      tone,
+                    )}
+                    style={{ left: pos(r.start) }}
+                  />
                 )}
-                {todayIn && <span className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-fg" style={{ left: pos(now) }} />}
+                {todayIn && (
+                  <span
+                    className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-fg"
+                    style={{ left: pos(now) }}
+                  />
+                )}
               </div>
             </li>
           )
         })}
       </ol>
-      {todayIn && (
-        <p className="flex items-center gap-2 text-sm text-fg-tertiary">
-          <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-fg" />
-          {t('Today, {date}', { date: formatDate(new Date(now)) })}
-        </p>
-      )}
+
+      {/* Clear Legend Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-2.5 px-1 text-xs text-fg-tertiary">
+        <div className="flex flex-wrap items-center gap-4">
+          {todayIn && (
+            <span className="inline-flex items-center gap-1.5 font-medium text-fg-secondary">
+              <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-fg" />
+              {t('Today, {date}', { date: formatDate(new Date(now)) })}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="h-2.5 w-5 rounded-full bg-primary" />
+            {t('In progress')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="h-2.5 w-5 rounded-full bg-fg-tertiary/45" />
+            {t('Window')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="size-2.5 rotate-45 rounded-[2px] bg-fg-tertiary/45" />
+            {t('Deadline / milestone')}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

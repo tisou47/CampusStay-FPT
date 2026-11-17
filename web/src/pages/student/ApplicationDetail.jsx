@@ -1,19 +1,32 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { FileText } from 'lucide-react'
+import {
+  ArrowRight,
+  Bed,
+  CalendarRange,
+  Check,
+  Clock,
+  CreditCard,
+  FileText,
+  HelpCircle,
+  MapPin,
+  Sparkles,
+  Users,
+} from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Alert, Card, DetailRows, ProgressTimeline } from '@/components/ui/Display'
+import { Alert, Card } from '@/components/ui/Display'
 import { Field, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format'
 import { RefundAccountFields, useRefundAccount } from './refundAccount'
 import { StudentPage } from './shared'
-import { t, tr } from '@/i18n'
+import { t, tr, tx } from '@/i18n'
 
 // SCR-APP-03 Application Detail (Figma 17:888).
 // GET /applications/:id → {
@@ -71,6 +84,181 @@ function roommateText(app) {
   return `${app.roommate.studentCode}${app.roommate.status ? ` · ${tr(app.roommate.status)}` : ''}`
 }
 
+/** Clean, non-scrolling vertical milestone list with semantic status icons and aligned timestamps. */
+function ApplicationMilestoneList({ events }) {
+  if (!events?.length) {
+    return <p className="text-base text-fg-secondary">{t('No events yet.')}</p>
+  }
+  return (
+    <ol className="flex flex-col">
+      {events.map((event, i) => {
+        const last = i === events.length - 1
+        const timeText = event.note ?? (event.at ? formatDateTime(event.at) : null)
+        return (
+          <li key={`${event.title}-${i}`} className="relative flex items-start gap-3">
+            {/* Vertical connecting rail */}
+            {!last && (
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'absolute top-6 bottom-0 left-3 w-0.5 -translate-x-1/2',
+                  event.state === 'done' ? 'bg-success' : 'bg-line',
+                )}
+              />
+            )}
+
+            {/* Status node */}
+            <span
+              aria-hidden="true"
+              className={cx(
+                'relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors',
+                event.state === 'done' && 'bg-success text-white',
+                event.state === 'current' && 'border-2 border-primary bg-brand-subtle text-fg-brand ring-4 ring-orange-500/15',
+                event.state === 'upcoming' && 'border border-line-strong bg-subtle text-fg-tertiary',
+              )}
+            >
+              {event.state === 'done' ? (
+                <Check size={13} strokeWidth={2.5} />
+              ) : event.state === 'current' ? (
+                <span className="size-2 rounded-full bg-primary" />
+              ) : (
+                <span>{i + 1}</span>
+              )}
+            </span>
+
+            {/* Milestone content */}
+            <div
+              className={cx(
+                'flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4',
+                !last && 'pb-3',
+              )}
+            >
+              <p
+                className={cx(
+                  'text-sm',
+                  event.state === 'current'
+                    ? 'font-semibold text-fg-brand'
+                    : event.state === 'done'
+                      ? 'font-medium text-fg'
+                      : 'text-fg-secondary',
+                )}
+              >
+                {tx(event.title)}
+              </p>
+              {timeText && (
+                <span
+                  className={cx(
+                    'shrink-0 text-xs tabular',
+                    event.state === 'current' ? 'font-medium text-fg-brand' : 'text-fg-tertiary',
+                  )}
+                >
+                  {tx(timeText)}
+                </span>
+              )}
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/** Modern icon-based room configuration grid with highlighted allocation tile. */
+function RoomConfigurationCard({ app }) {
+  const surchargePct = app.surchargeRate != null ? Math.round(app.surchargeRate * 100) : null
+  const specs = [
+    {
+      icon: Bed,
+      label: t('Room type'),
+      value: tr(app.roomTypeName) || '—',
+    },
+    {
+      icon: Sparkles,
+      label: t('Room tier'),
+      value: app.roomClassName ? tr(app.roomClassName) : '—',
+      badge: surchargePct != null ? `+${surchargePct}%` : null,
+    },
+    {
+      icon: CalendarRange,
+      label: t('Stay length'),
+      value: t(app.stayTerms === 1 ? '{n} term' : '{n} terms', { n: app.stayTerms ?? 1 }),
+    },
+    {
+      icon: Users,
+      label: t('Roommate'),
+      value: roommateText(app),
+    },
+  ]
+
+  return (
+    <Card padding="md" className="flex flex-col gap-3 rounded-xl shadow-xs lg:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-h3 font-semibold text-fg">{t('Room preference')}</h2>
+        {app.termName && <Tag tone="neutral" dot={false}>{app.termName}</Tag>}
+      </div>
+
+      <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        {specs.map(({ icon: Glyph, label, value, badge }) => (
+          <div key={label} className="flex items-center gap-3 rounded-xl bg-subtle/60 px-3 py-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-fg-brand">
+              <Glyph size={16} aria-hidden="true" />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <dt className="text-xs font-medium text-fg-tertiary">{label}</dt>
+              <dd className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-fg">
+                <span className="truncate">{value}</span>
+                {badge && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-fg-secondary">
+                    {badge}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+
+      {/* Assigned Room & Bed highlight strip */}
+      <div
+        className={cx(
+          'flex flex-wrap items-center justify-between gap-3 rounded-xl px-3.5 py-2.5',
+          app.allocation ? 'bg-brand-subtle/70' : 'bg-subtle/60',
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className={cx(
+              'flex size-8 shrink-0 items-center justify-center rounded-lg',
+              app.allocation ? 'bg-primary text-white' : 'bg-surface text-fg-tertiary',
+            )}
+          >
+            <MapPin size={16} aria-hidden="true" />
+          </span>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-fg-tertiary">{t('Room and bed')}</span>
+            {app.allocation ? (
+              <span className="text-sm font-semibold text-fg">
+                {t('{room} · Bed {bed} · {block}', {
+                  room: app.allocation.room,
+                  bed: app.allocation.bed,
+                  block: tr(app.allocation.block),
+                })}
+              </span>
+            ) : (
+              <span className="text-sm text-fg-secondary">{t('Assigned after review')}</span>
+            )}
+          </div>
+        </div>
+        {app.allocation && (
+          <Button variant="secondary" size="sm" to="/student/room">
+            {t('View My room')}
+          </Button>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 function Detail({ app }) {
   const navigate = useNavigate()
   const { notify, notifyError } = useToast()
@@ -103,20 +291,22 @@ function Detail({ app }) {
   const allocated = app.status === 'Allocated'
   // A paid Invoice is refunded by the rules when the Application is cancelled: the account comes first (R-19).
   const refundable = app.invoices?.some((i) => i.status === 'Paid')
+  const eventsCount = app.events?.length ?? 0
+  const doneEventsCount = (app.events ?? []).filter((e) => e.state === 'done').length
 
   return (
     <>
       <Alert
         type={alertType}
         title={alertTitle}
-        className="shrink-0"
+        className="shrink-0 py-2.5"
         action={
           waitlist?.offer ? (
-            <Button variant="primary" to="/student/round-2-offer">
+            <Button variant="primary" size="sm" to="/student/round-2-offer">
               See the options
             </Button>
           ) : unpaid ? (
-            <Button variant="primary" to={`/student/invoices/${unpaid.id}/pay`}>
+            <Button variant="primary" size="sm" to={`/student/invoices/${unpaid.id}/pay`}>
               {unpaid.type === 'deposit' ? t('Pay deposit') : t('Pay now')}
             </Button>
           ) : null
@@ -125,78 +315,109 @@ function Detail({ app }) {
         {alertBody}
       </Alert>
 
-      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Progress')}</h2>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {app.events?.length ? (
-                <ProgressTimeline events={app.events.map((e) => ({ title: e.title, time: e.note ?? (e.at ? formatDateTime(e.at) : null), state: e.state }))} />
-              ) : (
-                <p className="text-base text-fg-secondary">{t('No events yet.')}</p>
+      {/* Balanced 2-Column Layout fitting inside 1 viewport without nested scrollbars */}
+      <div className="grid grid-cols-1 gap-3.5 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-5">
+        {/* Left Column (7/12): Progress & Room Configuration */}
+        <div className="flex min-w-0 flex-col gap-3.5 lg:col-span-7">
+          <Card padding="md" className="flex flex-col gap-3 rounded-xl shadow-xs lg:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-h3 font-semibold text-fg">{t('Progress')}</h2>
+              {eventsCount > 0 && (
+                <span className="rounded-full bg-subtle px-2.5 py-0.5 text-xs font-medium text-fg-secondary">
+                  {doneEventsCount}/{eventsCount}
+                </span>
               )}
             </div>
+            <ApplicationMilestoneList events={app.events} />
           </Card>
 
-          <Card padding="lg" className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Room preference')}</h2>
-            <DetailRows
-              className="mt-2"
-              rows={[
-                ['Room type', tr(app.roomTypeName) || '—'],
-                ['Room tier', app.roomClassName ? `${tr(app.roomClassName)}${app.surchargeRate != null ? ` (+${Math.round(app.surchargeRate * 100)}%)` : ''}` : '—'],
-                ['Roommate', roommateText(app)],
-                ['Stay length', t(app.stayTerms === 1 ? '{n} term' : '{n} terms', { n: app.stayTerms ?? 1 })],
-                ['Room and bed', app.allocation ? t('{room} · Bed {bed} · {block}', { room: app.allocation.room, bed: app.allocation.bed, block: tr(app.allocation.block) }) : <span className="text-fg-tertiary">{t('Assigned after review')}</span>],
-              ]}
-            />
-          </Card>
+          <RoomConfigurationCard app={app} />
         </div>
 
-        <div className="flex w-full shrink-0 flex-col gap-3 lg:w-90 lg:gap-4 lg:overflow-y-auto">
-          <Card padding="lg" className="flex flex-col items-start gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('Payments')}</h2>
-            {(app.invoices ?? []).length === 0 && <p className="text-base text-fg-secondary">{t('No invoices yet.')}</p>}
-            {(app.invoices ?? []).map((inv) => (
-              <div key={inv.id} className="flex w-full items-start gap-3">
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="text-base font-medium text-fg">{tr(inv.title)}</p>
-                  <p className="text-sm text-fg-tertiary">
-                    {inv.id}
-                    {inv.paidAt ? ` · ${t('paid {date}', { date: formatDate(inv.paidAt) })}` : inv.dueAt ? ` · ${t('due {date}', { date: formatDateTime(inv.dueAt) })}` : ''}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <p className="text-base font-medium whitespace-nowrap text-fg">{formatVnd(inv.amount)}</p>
-                  {inv.status ? <StatusTag status={inv.status} /> : <Tag>Not issued</Tag>}
-                </div>
+        {/* Right Column (5/12): Financial Transactions & Support Actions */}
+        <div className="flex min-w-0 flex-col gap-3.5 lg:col-span-5">
+          <Card padding="md" className="flex flex-col gap-3 rounded-xl shadow-xs lg:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
+                <CreditCard size={18} aria-hidden="true" className="text-fg-brand" />
+                {t('Payments')}
+              </h2>
+              <Button variant="text" size="sm" to="/student/invoices">
+                {t('View invoices')}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Button>
+            </div>
+
+            {(app.invoices ?? []).length === 0 ? (
+              <p className="text-sm text-fg-secondary">{t('No invoices yet.')}</p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {(app.invoices ?? []).map((inv) => {
+                  const isPaid = inv.status === 'Paid'
+                  const isDue = inv.status === 'Unpaid' || inv.status === 'Overdue'
+                  return (
+                    <div
+                      key={inv.id}
+                      className={cx(
+                        'flex flex-col gap-2 rounded-xl px-3.5 py-3 transition-colors',
+                        isPaid ? 'bg-success-subtle/40' : isDue ? 'bg-brand-subtle/50' : 'bg-subtle/60',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 flex-col">
+                          <p className="text-sm font-semibold text-fg">{tr(inv.title)}</p>
+                          <p className="font-mono text-xs text-fg-tertiary">{inv.id}</p>
+                        </div>
+                        <p className="text-base font-semibold whitespace-nowrap text-fg tabular">
+                          {formatVnd(inv.amount)}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2">
+                        <span className="flex items-center gap-1.5 text-xs text-fg-secondary">
+                          <Clock size={12} aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+                          {inv.paidAt
+                            ? t('paid {date}', { date: formatDate(inv.paidAt) })
+                            : inv.dueAt
+                              ? t('due {date}', { date: formatDateTime(inv.dueAt) })
+                              : '—'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {inv.status ? <StatusTag status={inv.status} /> : <Tag>Not issued</Tag>}
+                          {isDue && (
+                            <Button variant="primary" size="sm" to={`/student/invoices/${inv.id}/pay`}>
+                              {t('Pay now')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-            <Button variant="text" to="/student/invoices">
-              View invoices
-            </Button>
+            )}
           </Card>
 
           {waitlist && (
-            <Card padding="lg" className="flex flex-col gap-3">
+            <Card padding="md" className="flex flex-col gap-3 rounded-xl shadow-xs lg:p-5">
               <h2 className="text-h3 font-semibold text-fg">{t('What would you like to do?')}</h2>
-              <div className="flex flex-col gap-1 rounded-lg border border-line p-3">
-                <p className="text-base font-medium text-fg">{t(waitlist.offer ? 'Take a Round 2 bed' : 'Keep waiting')}</p>
-                <p className="text-sm text-fg-secondary">
+              <div className="flex flex-col gap-1 rounded-xl bg-brand-subtle/50 p-3.5">
+                <p className="text-sm font-semibold text-fg">{t(waitlist.offer ? 'Take a Round 2 bed' : 'Keep waiting')}</p>
+                <p className="text-xs text-fg-secondary">
                   {waitlist.offer
                     ? t('Choose one of the held beds before {date}. The price difference is added to or taken from your balance.', { date: formatDateTime(waitlist.offer.expiresAt) })
                     : t('Nothing to do: we notify you when a bed is held for you.')}
                 </p>
                 {waitlist.offer && (
-                  <Button variant="primary" className="mt-1 self-start" to="/student/round-2-offer">
+                  <Button variant="primary" size="sm" className="mt-1 self-start" to="/student/round-2-offer">
                     Choose a room
                   </Button>
                 )}
               </div>
-              <div className="flex flex-col gap-1 rounded-lg border border-line p-3">
-                <p className="text-base font-medium text-fg">{t('Withdraw and get the deposit back')}</p>
-                <p className="text-sm text-fg-secondary">{t('{amount} is refunded in full to your bank account after a manager approves.', { amount: formatVnd(waitlist.refund) })}</p>
-                <Button variant="danger-text" className="mt-1 self-start" onClick={() => setWithdrawing(true)}>
+              <div className="flex flex-col gap-1 rounded-xl bg-subtle/60 p-3.5">
+                <p className="text-sm font-semibold text-fg">{t('Withdraw and get the deposit back')}</p>
+                <p className="text-xs text-fg-secondary">{t('{amount} is refunded in full to your bank account after a manager approves.', { amount: formatVnd(waitlist.refund) })}</p>
+                <Button variant="danger-text" size="sm" className="mt-1 self-start" onClick={() => setWithdrawing(true)}>
                   Withdraw
                 </Button>
               </div>
@@ -204,20 +425,36 @@ function Detail({ app }) {
           )}
 
           {allocated ? (
-            <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Need a different room?')}</h2>
-              <p className="text-sm text-fg-secondary">{t('Room type and room tier are locked for this term. After check-in you can ask for a room change or swap with another student.')}</p>
-              <Button to="/student/requests/room-change/new">New room-change request</Button>
+            <Card padding="md" className="flex flex-col items-start gap-2.5 rounded-xl shadow-xs lg:p-5">
+              <div className="flex items-center gap-2">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-fg-brand">
+                  <HelpCircle size={15} aria-hidden="true" />
+                </span>
+                <h2 className="text-h3 font-semibold text-fg">{t('Need a different room?')}</h2>
+              </div>
+              <p className="text-sm text-fg-secondary">
+                {t('Room type and room tier are locked for this term. After check-in you can ask for a room change or swap with another student.')}
+              </p>
+              <Button variant="secondary" size="sm" to="/student/requests/room-change/new">
+                New room-change request
+              </Button>
             </Card>
           ) : app.canCancel ? (
-            <Card padding="lg" className="flex flex-col items-start gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Need to change something?')}</h2>
+            <Card padding="md" className="flex flex-col items-start gap-2.5 rounded-xl shadow-xs lg:p-5">
+              <div className="flex items-center gap-2">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-fg-brand">
+                  <HelpCircle size={15} aria-hidden="true" />
+                </span>
+                <h2 className="text-h3 font-semibold text-fg">{t('Need to change something?')}</h2>
+              </div>
               <p className="text-sm text-fg-secondary">
                 {app.registrationClosesAt
                   ? t('Room type and room tier are locked. Cancel to apply again before {date}; the deposit refund follows the dormitory refund rules.', { date: formatDateTime(app.registrationClosesAt) })
                   : t('Room type and room tier are locked. Cancel to apply again; the deposit refund follows the dormitory refund rules.')}
               </p>
-              <Button onClick={() => setConfirmCancel(true)}>Cancel application</Button>
+              <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(true)}>
+                Cancel application
+              </Button>
             </Card>
           ) : null}
         </div>
@@ -294,6 +531,7 @@ export default function ApplicationDetail() {
       breadcrumb={[{ label: 'Application', to: '/student/applications' }, { label: id }]}
       title={t('Application {id}', { id: app?.id ?? id })}
       badge={app && <StatusTag status={app.status} />}
+      className="lg:gap-3"
     >
       {app === undefined && query.loading ? (
         <LoadingState />
