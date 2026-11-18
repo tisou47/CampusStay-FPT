@@ -1,3 +1,4 @@
+import roomHandover from './vi-handover.js'
 /*
  * Vietnamese texts of the screens (ADR-25), grouped by portal. Keys are the English texts of the code and of the
  * API's display labels; {name} marks a value. See ./vi.js for the glossary.
@@ -4464,4 +4465,4 @@ const managerOverview = {
   "{n}/{total} beds": "{n}/{total} giường",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview }
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

@@ -145,7 +145,7 @@ export function FurnitureConditions({ allocationId, query, done }) {
       >
         {claim && (
           <div className="flex flex-col gap-3">
-            <Field label="Condition">
+            <Field label="Condition of the item">
               <Select value={claim.condition} onChange={(e) => setClaim({ ...claim, condition: e.target.value })} options={['Damaged', 'Missing']} />
             </Field>
             <Field label="What happened">

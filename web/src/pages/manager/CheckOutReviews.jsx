@@ -65,10 +65,10 @@ export default function CheckOutReviews() {
                 <Td>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" onClick={() => setDecision({ row: r, keep: false, note: '' })}>
-                      Drop
+                      Drop charge
                     </Button>
                     <Button size="sm" variant="primary" onClick={() => setDecision({ row: r, keep: true, note: '' })}>
-                      Keep
+                      Keep charge
                     </Button>
                   </div>
                 </Td>
