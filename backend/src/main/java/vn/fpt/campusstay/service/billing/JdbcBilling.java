@@ -500,6 +500,27 @@ class JdbcBilling implements Billing {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<MeterValue> lastReading(long roomId) {
+        return settlements.lastMeter(roomId);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordMeterCutOn(long roomId, String room, LocalDate day, BigDecimal electricity, BigDecimal water,
+            String reason, Long allocationId, long recordedBy) {
+        settlements.checkReading(roomId, room, electricity, water, "");
+        jdbc.sql("""
+                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason, allocation_id, recorded_by)
+                VALUES (:room, :day, :electricity, :water, :reason, :allocation, :by)
+                """)
+                .param("room", roomId).param("day", day).param("electricity", electricity).param("water", water)
+                .param("reason", reason).param("allocation", allocationId).param("by", recordedBy).update();
+        audit.record("METER_CUT", AuditLog.Tone.INFO, "Room", roomId, "Room " + room,
+                Map.of("reason", reason, "electricity", electricity, "water", water));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<String> readingProblem(long roomId, BigDecimal electricity, BigDecimal water) {
         return settlements.readingProblem(roomId, electricity, water);
     }

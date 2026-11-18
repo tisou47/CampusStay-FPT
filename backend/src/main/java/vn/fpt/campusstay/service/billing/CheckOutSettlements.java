@@ -158,6 +158,11 @@ class CheckOutSettlements {
     }
 
     /** The Room's latest reading: a reading taken at a resident change, or a monthly reading. */
+    /** The latest reading for other features ({@link Billing#lastReading}). */
+    Optional<Billing.MeterValue> lastMeter(long roomId) {
+        return lastReading(roomId).map(r -> new Billing.MeterValue(r.date(), r.electricity(), r.water()));
+    }
+
     private Optional<Reading> lastReading(long roomId) {
         return jdbc.sql("""
                 SELECT day, electricity, water FROM (
