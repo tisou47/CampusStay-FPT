@@ -42,11 +42,13 @@ class JdbcRoomStays implements RoomStays {
             return List.of();
         }
         return jdbc.sql("""
-                SELECT id, student_id, term_id, bed_id, greatest(resident_at, allocated_at) AS since, ended_at,
-                       end_reason
-                FROM asg_allocation
-                WHERE bed_id IN (:beds) AND resident_at IS NOT NULL
-                  AND greatest(resident_at, allocated_at) < :to AND (ended_at IS NULL OR ended_at > :from)
+                SELECT id, student_id, term_id, bed_id, greatest(counted, allocated_at) AS since, ended_at, end_reason
+                FROM (SELECT a.*, coalesce(a.utility_from, CASE WHEN a.handover_needed THEN NULL ELSE a.resident_at END)
+                             AS counted
+                      FROM asg_allocation a WHERE a.bed_id IN (:beds)) a
+                -- A resident who files a check-in inventory pays Utility from its meter reading (utility_from).
+                WHERE counted IS NOT NULL
+                  AND greatest(counted, allocated_at) < :to AND (ended_at IS NULL OR ended_at > :from)
                 ORDER BY since, id
                 """)
                 .param("beds", List.copyOf(roomOfBed.keySet())).param("from", Timestamp.from(from))

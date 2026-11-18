@@ -229,3 +229,7 @@ UPDATE auth_user SET locale = 'en' WHERE locale <> 'en' AND email LIKE '%campuss
 
 -- ---------- the seed accounts are fictional (O-3: their emails may go to the demo mailbox) ----------
 UPDATE auth_user SET demo = TRUE WHERE NOT demo AND email LIKE '%campusstay.test';
+
+-- The check-in inventory gate (V77) is off in the tests that do not exercise it: residents receive their door code
+-- when they pay, as before. HandoverIT turns it on for its own tests.
+UPDATE cfg_parameter SET value = 'false' WHERE key = 'handover.required';
