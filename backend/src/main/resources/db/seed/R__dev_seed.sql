@@ -99,6 +99,12 @@ CROSS JOIN inv_furniture_type t
 WHERE b.code BETWEEN 'A' AND 'H' AND t.code IN ('BED', 'WRD', 'DESK')
 ON CONFLICT (asset_code) DO NOTHING;
 
+-- Personal items belong to their Bed (V76): the Bed is the last letter of the asset code.
+UPDATE inv_furniture_item f SET bed_id = bd.id
+FROM inv_bed bd JOIN inv_room r ON r.id = bd.room_id, inv_furniture_type t
+WHERE t.id = f.furniture_type_id AND t.code IN ('BED', 'WRD', 'DESK') AND f.room_id = r.id AND f.bed_id IS NULL
+  AND f.asset_code = t.code || '-' || replace(r.code, '-', '') || bd.label;
+
 INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id)
 SELECT t.code || '-' || replace(r.code, '-', '') || '-' || n.n, t.id, 'IN_USE', r.id
 FROM inv_room r JOIN inv_building b ON b.id = r.building_id
