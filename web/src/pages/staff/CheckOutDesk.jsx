@@ -18,6 +18,7 @@ import { cx } from '@/lib/cx'
 import { typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { DeskModeSwitch } from './CheckInDesk'
+import { FurnitureConditions } from './check-out/FurnitureConditions'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
@@ -180,6 +181,9 @@ function CheckOutPanel({ d }) {
     return (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : ''
   })
   const [showSummary, setShowSummary] = useState(false)
+  // Furniture recorded by condition (V78): when saved, its total is the damage charge unless items are charged by hand.
+  const furnitureQuery = useQuery(['check-out-furniture', d.allocationId], ({ signal }) => api.checkOutFurniture.view(d.allocationId, { signal }))
+  const byCondition = Boolean(furnitureQuery.data?.saved)
   const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { amount: '', note: '', ...all[itemId], ...patch } }))
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
@@ -188,7 +192,7 @@ function CheckOutPanel({ d }) {
 
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
   const lines = condition === 'damaged' ? Object.entries(damages).filter(([, v]) => toNumber(v.amount) > 0 || v.note.trim()) : []
-  const damageAmount = done ? s.damage ?? 0 : lines.reduce((sum, [, v]) => sum + toNumber(v.amount), 0)
+  const damageAmount = done ? s.damage ?? 0 : byCondition && !lines.length ? furnitureQuery.data.total : lines.reduce((sum, [, v]) => sum + toNumber(v.amount), 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
 
   const submit = useMutation(
@@ -198,7 +202,7 @@ function CheckOutPanel({ d }) {
         water: toNumber(water),
         conditionGood: condition === 'good',
         keyReturned: key,
-        damages: lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
+        damages: byCondition && !lines.length ? undefined : lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
         draft,
       }),
     {
@@ -377,6 +381,8 @@ function CheckOutPanel({ d }) {
             </div>
           )}
         </section>
+
+        <FurnitureConditions allocationId={d.allocationId} query={furnitureQuery} done={done} />
       </div>
 
       {/* 3. STICKY SETTLEMENT FOOTER: Realtime Calculation & Primary Actions */}
