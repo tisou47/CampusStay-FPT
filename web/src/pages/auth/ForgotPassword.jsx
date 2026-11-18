@@ -3,7 +3,8 @@ import { useLocation } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { Alert } from '@/components/ui/Display'
-import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses, primaryButtonClasses } from './shared'
+import { Button } from '@/components/ui/Button'
+import { AuthShell, BackToSignIn, CardTitle, LoginField, cardClasses } from './shared'
 import { t } from '@/i18n'
 
 // SCR-AUTH-02 Forgot password (contract change A-02).
@@ -70,9 +71,9 @@ export default function ForgotPassword() {
             setFieldError(null)
           }}
         />
-        <button type="submit" disabled={send.pending} className={primaryButtonClasses}>
+        <Button variant="primary" size="lg" block type="submit" disabled={send.pending} className="rounded-lg!">
           {send.pending ? t('Sending…') : t('Send link')}
-        </button>
+        </Button>
         <BackToSignIn />
       </form>
     </AuthShell>

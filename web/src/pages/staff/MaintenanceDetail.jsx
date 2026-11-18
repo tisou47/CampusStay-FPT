@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Breadcrumb, Card, Facts } from '@/components/ui/Display'
-import { DateInput, HourSelect } from '@/components/ui/DatePicker'
+import { DatePicker, TimeRangePicker } from '@/components/ui/date-time'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
@@ -309,12 +309,14 @@ function VisitWindowField({ value, onChange }) {
     <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
       {(id) => (
         <div className="flex flex-col gap-2">
-          <DateInput id={id} value={day} min={min} onChange={(e) => write(e.target.value, from, to)} />
-          <div className="flex items-center gap-2">
-            <HourSelect value={from} disabled={!day} onChange={(h) => write(day, h, to)} />
-            <span className="text-fg-tertiary">–</span>
-            <HourSelect value={to} disabled={!day} onChange={(h) => write(day, from, h)} />
-          </div>
+          <DatePicker id={id} clearable value={day} minDate={min} onChange={(d) => write(d, from, to)} />
+          <TimeRangePicker
+            value={{ start: from, end: to }}
+            disabled={!day}
+            minTime="00:00"
+            maxTime="23:00"
+            onChange={({ start, end }) => write(day, start, end)}
+          />
         </div>
       )}
     </Field>

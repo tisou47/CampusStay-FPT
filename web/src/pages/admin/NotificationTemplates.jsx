@@ -66,7 +66,7 @@ function Editor({ template, sample }) {
             type="button"
             title={t('Add to the message')}
             onClick={() => setForm((f) => (vi ? { ...f, bodyVi: `${f.bodyVi ?? ''} {{${v}}}` } : { ...f, body: `${f.body} {{${v}}}` }))}
-            className="rounded-sm bg-subtle px-2 py-0.5 text-sm font-medium text-fg-secondary hover:bg-gray-200"
+            className="rounded-sm bg-subtle px-2 py-0.5 text-sm font-medium text-fg-secondary transition-colors hover:bg-line hover:text-fg"
           >{`{{${v}}}`}</button>
         ))}
       </div>

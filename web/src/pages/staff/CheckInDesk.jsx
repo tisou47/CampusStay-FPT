@@ -1,22 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarClock, Check, CircleCheck, CircleX, Clock, ScanLine, Upload, UserX } from 'lucide-react'
+import {
+  Bed,
+  CalendarClock,
+  Check,
+  CircleCheck,
+  CircleX,
+  Clock,
+  PackageCheck,
+  ScanLine,
+  UserX,
+} from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar, Card, ProgressBar } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
+import { Field, FilePicker, SearchInput, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateInput } from '@/components/ui/DatePicker'
+import { DatePicker } from '@/components/ui/date-time'
 
 // SCR-REQ-11 Check-in Desk (Figma 60:3026)
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
@@ -34,19 +43,31 @@ const statusTag = {
   'not-allocated': <Tag tone="neutral">No bed yet</Tag>,
 }
 
-function CheckItem({ ok, children }) {
+/** Visual green/red status tile for each check-in eligibility prerequisite. */
+function EligibilityCheckTile({ ok, label }) {
   const Glyph = ok ? CircleCheck : CircleX
   return (
-    <p className="flex items-center gap-2 text-base whitespace-nowrap text-fg">
-      <Glyph size={16} aria-hidden="true" className={cx('shrink-0', ok ? 'text-success' : 'text-error')} />
-      {tr(children)}
-    </p>
+    <div
+      className={cx(
+        'flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors',
+        ok ? 'border-success/20 bg-success-bg text-success-fg' : 'border-error/20 bg-error-bg text-error-fg',
+      )}
+    >
+      <span
+        className={cx(
+          'flex size-8 shrink-0 items-center justify-center rounded-lg',
+          ok ? 'bg-success text-white' : 'bg-error text-white',
+        )}
+      >
+        <Glyph size={17} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1 text-sm leading-snug font-semibold text-fg">{tr(label)}</span>
+    </div>
   )
 }
 
 function LateCheckInModal({ person, termId, onClose }) {
   const { notify } = useToast()
-  const fileInput = useRef(null)
   const today = toDateInput(new Date())
   const [requestedFor, setRequestedFor] = useState(today)
   const [reason, setReason] = useState('')
@@ -88,16 +109,12 @@ function LateCheckInModal({ person, termId, onClose }) {
     >
       {record.error && <p className="rounded-md bg-error-bg px-3 py-2 text-base text-error-fg">{record.error.message}</p>}
       <Field label="Arrives on" required>
-        {(id) => <DateInput id={id} min={today} value={requestedFor} onChange={(e) => setRequestedFor(e.target.value)} />}
+        {(id) => <DatePicker id={id} clearable minDate={today} value={requestedFor} onChange={setRequestedFor} />}
       </Field>
       <Field label="Reason" required hint={`${reason.length}/500`}>
         {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why the student arrives after the check-in window" />}
       </Field>
-      <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-2.5 text-left hover:border-primary">
-        <Upload size={16} aria-hidden="true" className="text-fg-secondary" />
-        <span className="text-base text-fg">{file ? file.name : t('Attach evidence (JPEG, PNG or PDF, optional)')}</span>
-        <input ref={fileInput} type="file" accept="image/jpeg,image/png,application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </button>
+      <FilePicker file={file} onChange={setFile} accept="image/jpeg,image/png,application/pdf" placeholder="Attach evidence (JPEG, PNG or PDF, optional)" />
     </Modal>
   )
 }
@@ -106,9 +123,14 @@ function StudentPanel({ person, onDone }) {
   const { notify, notifyError } = useToast()
   const { term } = useSession()
   const items = person.handOverItems ?? []
-  const [checked, setChecked] = useState(() => new Set(items))
+  const [checked, setChecked] = useState(() => new Set())
   const [note, setNote] = useState('')
   const [late, setLate] = useState(false)
+
+  useEffect(() => {
+    setChecked(new Set())
+  }, [person.studentCode])
+
   const ready = person.status === 'ready'
   const all = checked.size === items.length
   const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
@@ -119,105 +141,207 @@ function StudentPanel({ person, onDone }) {
     person.status === 'blocked' && (person.checks ?? []).filter((c) => !c.passed).length > owing && Boolean(term?.checkInEnd) && toDateInput(new Date()) > term.checkInEnd
   const confirm = useMutation(() => api.desk.checkIn({ studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
-    onSuccess: () => notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed }) }),
+    onSuccess: () => {
+      notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed }) })
+      onDone?.()
+    },
     onError: (e) => notifyError(e, 'Could not check in'),
   })
 
+  const toggleItem = (item) =>
+    setChecked((s) => {
+      const next = new Set(s)
+      if (next.has(item)) next.delete(item)
+      else next.add(item)
+      return next
+    })
+
   return (
-    <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-      <div className="flex items-center gap-3">
-        <Avatar name={person.name} size={48} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="truncate text-h2 font-semibold text-fg">
-            {person.name} · {person.studentCode}
-          </h2>
-          {person.room && (
-            <p className="text-lg text-fg-secondary">
-              {t('{room} · Bed {bed}', { room: person.room, bed: person.bed })} · {[person.block && tr(person.block), person.floor != null && t('Floor {n}', { n: person.floor })].filter(Boolean).join(', ')}
-            </p>
-          )}
+    <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      {/* 1. Pinned Student Identity Header */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-line bg-surface px-6 py-4">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <Avatar name={person.name} size={48} />
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="truncate text-h2 font-semibold text-fg">{person.name}</h2>
+              <span className="rounded-md bg-subtle px-2 py-0.5 font-mono text-sm font-semibold text-fg-secondary">
+                {person.studentCode}
+              </span>
+            </div>
+            {person.room && (
+              <div className="flex flex-wrap items-center gap-2 text-sm text-fg-secondary">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-subtle px-2.5 py-0.5 font-semibold text-fg-brand">
+                  <Bed size={14} aria-hidden="true" />
+                  {t('{room} · Bed {bed}', { room: person.room, bed: person.bed })}
+                </span>
+                <span>
+                  {[person.block && tr(person.block), person.floor != null && t('Floor {n}', { n: person.floor })]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        {statusTag[person.status]}
+        <div className="shrink-0">{statusTag[person.status]}</div>
       </div>
 
-      {person.status === 'not-allocated' ? (
-        <Alert type="warning" title="No room and bed for this term yet">
-          {t('This student has no confirmed allocation. Check-in opens after the assignment is committed and the balance is paid.')}
-        </Alert>
-      ) : (
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {(person.checks ?? []).map((c) => (
-            <CheckItem key={c.label} ok={c.passed}>
-              {c.label}
-            </CheckItem>
-          ))}
-        </div>
-      )}
+      {/* 2. Scrollable Body: Visual Eligibility Checks & Large Hit-Target Asset Handover */}
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+        {person.status === 'not-allocated' ? (
+          <Alert type="warning" title="No room and bed for this term yet">
+            {t('This student has no confirmed allocation. Check-in opens after the assignment is committed and the balance is paid.')}
+          </Alert>
+        ) : (
+          <section className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">
+                {t('Eligibility checks')}
+              </span>
+              <span className="text-xs font-medium text-fg-secondary">
+                {t('{n} of {total} passed', {
+                  n: (person.checks ?? []).filter((c) => c.passed).length,
+                  total: (person.checks ?? []).length,
+                })}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+              {(person.checks ?? []).map((c) => (
+                <EligibilityCheckTile key={c.label} ok={c.passed} label={c.label} />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {windowClosed && (
-        <Alert
-          type="warning"
-          title={t('Check-in window closed on {date}', { date: formatDate(term.checkInEnd) })}
-          action={
-            <Button tip="For a student who cannot come on the check-in day: record the reason and the planned date. A manager decides." icon={CalendarClock} onClick={() => setLate(true)}>
-              Record late check-in
-            </Button>
-          }
-        >
-          {t('Record when {name} will arrive. Once a manager approves it, check-in opens here until the approved day.', { name: person.name })}
-        </Alert>
-      )}
-      {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
+        {windowClosed && (
+          <Alert
+            type="warning"
+            title={t('Check-in window closed on {date}', { date: formatDate(term.checkInEnd) })}
+            action={
+              <Button tip="For a student who cannot come on the check-in day: record the reason and the planned date. A manager decides." icon={CalendarClock} onClick={() => setLate(true)}>
+                Record late check-in
+              </Button>
+            }
+          >
+            {t('Record when {name} will arrive. Once a manager approves it, check-in opens here until the approved day.', { name: person.name })}
+          </Alert>
+        )}
+        {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
 
-      {person.status === 'blocked' && owing > 0 && (
-        <Alert type="error" title="Check-in blocked">
-          {t('{name} ({code}) still owes {what}. Ask the student to pay before check-in.', {
-            name: person.name,
-            code: person.studentCode,
-            what: [
-              person.owes?.balance ? t('the balance of {amount}', { amount: formatVnd(person.owes.balance) }) : null,
-              person.owes?.utilityDeposit ? t('the utility deposit of {amount}', { amount: formatVnd(person.owes.utilityDeposit) }) : null,
-            ].filter(Boolean).join(t(' and ')),
-          })}
-        </Alert>
-      )}
+        {person.status === 'blocked' && owing > 0 && (
+          <Alert type="error" title="Check-in blocked">
+            {t('{name} ({code}) still owes {what}. Ask the student to pay before check-in.', {
+              name: person.name,
+              code: person.studentCode,
+              what: [
+                person.owes?.balance ? t('the balance of {amount}', { amount: formatVnd(person.owes.balance) }) : null,
+                person.owes?.utilityDeposit ? t('the utility deposit of {amount}', { amount: formatVnd(person.owes.utilityDeposit) }) : null,
+              ].filter(Boolean).join(t(' and ')),
+            })}
+          </Alert>
+        )}
 
-      {person.status === 'checked-in' && (
-        <Alert type="success" title={t('Checked in at {time}', { time: formatTime(person.checkedInAt) })}>
-          {t('Assets were handed over and the student’s QR pass now opens the block gates.')}
-        </Alert>
-      )}
+        {person.status === 'checked-in' && (
+          <Alert type="success" title={t('Checked in at {time}', { time: formatTime(person.checkedInAt) })}>
+            {t('Assets were handed over and the student’s QR pass now opens the block gates.')}
+          </Alert>
+        )}
 
+        {ready && (
+          <section className="flex flex-col gap-3.5 rounded-xl bg-subtle/40 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <PackageCheck size={18} aria-hidden="true" className="text-fg-brand" />
+                <p className="text-base font-semibold text-fg">
+                  {t('Asset hand-over · Bed {bed}', { bed: person.bed })}
+                </p>
+                <span
+                  className={cx(
+                    'rounded-full px-2.5 py-0.5 text-xs font-semibold tabular',
+                    all ? 'bg-success-bg text-success-fg' : 'bg-warning-bg text-warning-fg',
+                  )}
+                >
+                  {checked.size}/{items.length}
+                </span>
+              </div>
+              {items.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="text"
+                  onClick={() => setChecked(all ? new Set() : new Set(items))}
+                >
+                  {all ? t('Deselect all') : t('Select all')}
+                </Button>
+              )}
+            </div>
+
+            {/* Large Hit-Target Asset Handover Tiles */}
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {items.map((item) => {
+                const isSelected = checked.has(item)
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    onClick={() => toggleItem(item)}
+                    className={cx(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors',
+                      isSelected
+                        ? 'bg-brand-subtle text-fg'
+                        : 'bg-surface text-fg-secondary hover:bg-subtle',
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cx(
+                        'flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors',
+                        isSelected
+                          ? 'bg-primary text-white'
+                          : 'border-2 border-line-strong bg-surface',
+                      )}
+                    >
+                      {isSelected && <Check size={14} strokeWidth={2.5} />}
+                    </span>
+                    <span className={cx('text-sm font-medium', isSelected ? 'font-semibold text-fg' : 'text-fg-secondary')}>
+                      {tr(item)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <Field label="Condition notes" helper={all ? undefined : 'Tick every item the student received before you confirm.'}>
+              {(id) => <Textarea id={id} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Scratches, stains or missing items" />}
+            </Field>
+          </section>
+        )}
+      </div>
+
+      {/* 3. Sticky Check-In Confirmation Footer */}
       {ready && (
-        <>
-          <p className="text-base font-medium text-fg">{t('Asset hand-over · Bed {bed}', { bed: person.bed })}</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {items.map((item) => (
-              <Checkbox
-                key={item}
-                label={item}
-                checked={checked.has(item)}
-                onChange={() =>
-                  setChecked((s) => {
-                    const next = new Set(s)
-                    if (next.has(item)) next.delete(item)
-                    else next.add(item)
-                    return next
-                  })
-                }
-              />
-            ))}
-          </div>
-          <Field label="Condition notes" helper={all ? undefined : 'Tick every item the student received before you confirm.'}>
-            {(id) => <Textarea id={id} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Scratches, stains or missing items" />}
-          </Field>
-          <div className="flex justify-end gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-6 py-3.5 shadow-card">
+          <p className="text-sm text-fg-secondary">
+            {all
+              ? t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed })
+              : t('Tick every item the student received before you confirm.')}
+          </p>
+          <div className="flex items-center gap-2.5">
             <Button onClick={onDone}>Cancel</Button>
-            <Button tip="Tick every item of the checklist first. The stay starts and a meter reading is taken." variant="primary" icon={Check} disabled={!all || confirm.pending} onClick={() => confirm.run()}>
+            <Button
+              tip="Tick every item of the checklist first. The stay starts and a meter reading is taken."
+              variant="primary"
+              size="lg"
+              icon={Check}
+              disabled={!all || confirm.pending}
+              onClick={() => confirm.run()}
+            >
               Confirm check-in
             </Button>
           </div>
-        </>
+        </div>
       )}
     </Card>
   )
@@ -291,7 +415,15 @@ export default function CheckInDesk() {
             <ErrorState error={lookup.error} onRetry={lookup.reload} />
           </Card>
         ) : person ? (
-          <StudentPanel key={`${person.studentCode}-${person.status}`} person={person} onDone={() => setQ('')} />
+          <StudentPanel
+            key={`${person.studentCode}-${person.status}`}
+            person={person}
+            onDone={() => {
+              setQ('')
+              setSearch('')
+              setTimeout(() => input.current?.focus(), 50)
+            }}
+          />
         ) : (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={UserX} title={t('No student matches “{q}”', { q: search })}>
@@ -301,25 +433,25 @@ export default function CheckInDesk() {
         )}
 
         <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
-          <Card className="flex shrink-0 flex-col gap-2.5">
+          <Card className="flex shrink-0 flex-col gap-3">
             <h2 className="text-h3 font-semibold text-fg">{t('Today')}{d0?.block ? ` · ${t('Block {code}', { code: d0.block })}` : ''}</h2>
             <QueryState query={today} compact>
               {(d) => (
                 <>
-                  <dl className="flex flex-col gap-2.5 text-base">
-                    <div className="flex justify-between">
+                  <dl className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center justify-between rounded-lg bg-subtle/60 px-3 py-2">
                       <dt className="text-fg-secondary">{t('Checked in')}</dt>
-                      <dd className="text-fg tabular">
+                      <dd className="font-semibold text-fg tabular">
                         {t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })}
                       </dd>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-center justify-between rounded-lg bg-subtle/60 px-3 py-2">
                       <dt className="text-fg-secondary">{t('Waiting at desk')}</dt>
-                      <dd className="text-fg tabular">{formatNumber(d.waiting)}</dd>
+                      <dd className="font-semibold text-fg tabular">{formatNumber(d.waiting)}</dd>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-center justify-between rounded-lg bg-error-bg/60 px-3 py-2">
                       <dt className="text-fg-secondary">{t('Blocked (unpaid)')}</dt>
-                      <dd className="text-error-fg tabular">{formatNumber(d.blocked)}</dd>
+                      <dd className="font-semibold text-error-fg tabular">{formatNumber(d.blocked)}</dd>
                     </div>
                   </dl>
                   <ProgressBar value={d.checkedIn} max={d.expected || 1} tone="success" />
@@ -328,19 +460,19 @@ export default function CheckInDesk() {
             </QueryState>
           </Card>
 
-          <Card className="flex min-h-40 flex-1 flex-col gap-2">
+          <Card className="flex min-h-40 flex-1 flex-col gap-2.5">
             <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Recent check-ins')}</h2>
-            <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
               {(d0?.recent ?? []).map((r) => (
-                <li key={`${r.bed}-${r.at}`} className="flex items-center gap-2">
-                  <Clock size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
-                  <span className="min-w-0 flex-1 truncate text-base text-fg">
+                <li key={`${r.bed}-${r.at}`} className="flex items-center gap-2.5 rounded-lg bg-subtle/40 px-3 py-2">
+                  <Clock size={15} aria-hidden="true" className="shrink-0 text-fg-brand" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">
                     {r.name} · {r.bed}
                   </span>
-                  <span className="text-sm text-fg-tertiary tabular">{formatTime(r.at)}</span>
+                  <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>
                 </li>
               ))}
-              {d0 && !d0.recent?.length && <li className="text-base text-fg-secondary">{t('No check-ins yet today.')}</li>}
+              {d0 && !d0.recent?.length && <li className="text-sm text-fg-secondary">{t('No check-ins yet today.')}</li>}
             </ul>
           </Card>
         </div>

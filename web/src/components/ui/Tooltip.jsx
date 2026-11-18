@@ -9,8 +9,8 @@ const GAP = 8 // between the anchor and the bubble
 const EDGE = 8 // kept free at the window's edges
 const SHOW_DELAY = 120
 
-/** True when an element's text is cut by its width (text-overflow: ellipsis). */
-export const isTruncated = (el) => Boolean(el) && el.scrollWidth > el.clientWidth + 1
+/** True when an element's text is cut: by its width (text-overflow: ellipsis) or by its lines (line-clamp). */
+export const isTruncated = (el) => Boolean(el) && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)
 
 /**
  * Small dark tooltip shown on hover and keyboard focus of its child.
@@ -166,15 +166,16 @@ export function Tooltip({ label, title, children, side = 'top', align = 'center'
 
 /**
  * One line of text cut with "…" when it does not fit; hovering it for 300 ms, focusing it or tapping it shows the
- * whole text (or `tip`), and only when it really is cut. `as` picks the element (span by default).
+ * whole text (or `tip`), and only when it really is cut. `as` picks the element (span by default); lines={2} wraps
+ * the text over two lines before cutting it.
  */
-export function Truncate({ children, tip, as: Tag = 'span', side = 'top', align = 'start', className, tipClassName }) {
+export function Truncate({ children, tip, as: Tag = 'span', side = 'top', align = 'start', lines = 1, className, tipClassName }) {
   const ref = useRef(null)
   const when = useCallback(() => isTruncated(ref.current), [])
   const content = tip ?? children
   return (
     <Tooltip label={content} when={when} delay={300} touch side={side} align={align} block className={tipClassName}>
-      <Tag ref={ref} className={cx('min-w-0 truncate', className)}>
+      <Tag ref={ref} className={cx('min-w-0', lines === 2 ? 'line-clamp-2 break-words' : 'truncate', className)}>
         {tx(children)}
       </Tag>
     </Tooltip>

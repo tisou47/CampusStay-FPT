@@ -141,7 +141,7 @@ export function StatusBadge({ status, variant, dot = true, className, children, 
     <span
       title={title}
       className={cx(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-sm leading-4 font-medium whitespace-nowrap',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-current/15 px-2.5 py-0.5 text-sm leading-4 font-medium whitespace-nowrap',
         v.box,
         className,
       )}

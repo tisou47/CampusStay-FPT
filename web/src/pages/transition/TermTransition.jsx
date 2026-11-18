@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { CalendarClock } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -42,6 +42,8 @@ export default function TermTransition() {
   const list = windows.data ?? []
   const termId = params.get('termId') ?? (list.find((w) => w.opened) ?? list[0])?.termId
   const current = list.find((w) => w.termId === termId)
+  // The turnover tab puts its check-out and check-in dates here, beside the term picker.
+  const [headerSlot, setHeaderSlot] = useState(null)
 
   useEffect(() => {
     if (!manager && tab === 'fees') navigate(`${base}/next-term`, { replace: true })
@@ -54,16 +56,29 @@ export default function TermTransition() {
     'room-classes': <RoomClassChanges termId={termId} />,
     extensions: <StayRequests termId={termId} />,
     fees: <NextTermFees termId={termId} />,
-    turnover: <Turnover termId={termId} />,
+    turnover: <Turnover termId={termId} headerSlot={headerSlot} />,
   }[tab]
 
   return (
     <>
       <PageHeader
-        title="Term transition"
-        description={current ? t('{term} · residents of {previous} continue into it', { term: current.termName, previous: current.previousTermName }) : 'Requests window, next-term fees and turnover.'}
+        compact
+        title={
+          <>
+            {t('Term transition')}
+            {current && (
+              <span className="font-semibold text-fg-secondary">
+                {' · '}
+                {current.previousTermName} → {current.termName}
+              </span>
+            )}
+          </>
+        }
+        tip={current ? t('{term} · residents of {previous} continue into it', { term: current.termName, previous: current.previousTermName }) : 'Requests window, next-term fees and turnover.'}
         actions={
-          list.length > 1 && (
+          <>
+            <div ref={setHeaderSlot} className="flex flex-wrap items-center gap-2 empty:hidden" />
+            {list.length > 1 && (
             <Select
               wrapperClassName="w-60"
               aria-label={t('Term')}
@@ -71,7 +86,8 @@ export default function TermTransition() {
               onChange={(e) => setParams({ termId: e.target.value })}
               options={list.map((w) => ({ value: w.termId, label: w.termName }))}
             />
-          )
+            )}
+          </>
         }
       />
       <Tabs className="shrink-0" value={tab} items={shown.map((x) => ({ key: x.key, label: x.label, to: `${base}/next-term/${x.key}${termId ? `?termId=${termId}` : ''}` }))} />

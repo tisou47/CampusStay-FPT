@@ -9,7 +9,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatVnd, fromDateTimeInput, toDateInput, toDateTimeInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DateInput, DateTimeInput } from '@/components/ui/DatePicker'
+import { DatePicker, DateTimePicker } from '@/components/ui/date-time'
 
 /*
  * Registration periods (Change Specification v2 §5, §6.3, §6.4): what a Manager's request proposes and what the
@@ -119,9 +119,9 @@ export function TimelineFields({ form, onChange, errors = {}, fixed = [], extend
         >
           {(id) => (
             m.type === 'datetime' ? (
-              <DateTimeInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+              <DateTimePicker id={id} clearable minTime="00:00" maxTime="23:00" value={form[m.key] ?? ''} disabled={locked} error={Boolean(errors[m.key])} onChange={(v) => onChange({ ...form, [m.key]: v })} />
             ) : m.type === 'date' ? (
-              <DateInput id={id} value={form[m.key] ?? ''} disabled={locked} invalid={Boolean(errors[m.key])} onChange={(e) => onChange({ ...form, [m.key]: e.target.value })} />
+              <DatePicker id={id} clearable value={form[m.key] ?? ''} disabled={locked} error={Boolean(errors[m.key])} onChange={(v) => onChange({ ...form, [m.key]: v })} />
             ) : (
               <Input
                 id={id}
@@ -168,7 +168,7 @@ export function TimelineStrip({ form, className }) {
     <ol className={cx('flex flex-col gap-2', className)}>
       {points.map((p) => (
         <li key={p.key} className="flex items-center gap-3 text-base">
-          <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-white')} />
+          <span aria-hidden="true" className={cx('inline-block size-2.5 shrink-0 rounded-full', p.at <= now ? 'bg-success' : 'border-[1.5px] border-line-strong bg-surface')} />
           <span className="flex-1 text-fg">{t(p.label)}</span>
           <span className="text-fg-secondary tabular">{showValue(p.type, fromInput(p.type, form[p.key]))}</span>
         </li>
@@ -297,7 +297,7 @@ export function ExcludedRoomsField({ label, helper, codes, onChange, disabled, e
               <button
                 type="button"
                 aria-label={t('Remove {code}', { code })}
-                className="rounded-full p-0.5 text-fg-tertiary hover:bg-line hover:text-fg"
+                className="-my-0.5 rounded-full p-1 text-fg-tertiary transition-colors hover:bg-line hover:text-fg"
                 onClick={() => onChange(codes.filter((c) => c !== code))}
               >
                 <X size={14} aria-hidden="true" />

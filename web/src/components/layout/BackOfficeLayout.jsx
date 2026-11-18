@@ -159,14 +159,14 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
           aria-label={label}
           disabled={disabled}
           className={cx(
-            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
+            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
             open && 'bg-surface ring-2 ring-white/60',
           )}
           {...props}
         >
           <Glyph size={16} aria-hidden="true" className="text-fg-brand" />
           {current?.label ?? label}
-          {current?.note && <span className="rounded-full bg-primary-subtle px-2 text-sm font-medium text-fg-brand">{t(current.note)}</span>}
+          {current?.note ? ` · ${t(current.note)}` : ''}
           <ChevronDown size={16} aria-hidden="true" className={cx('text-fg-tertiary transition-transform', open && 'rotate-180')} />
         </button>
       )}
@@ -440,7 +440,7 @@ function BackOfficeTopBar({ role }) {
 // <main> only scrolls as a fallback when the window is smaller than the layout needs.
 export function BackOfficeLayout({ role }) {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
       <BackOfficeTopBar role={role} />
       <div className="flex min-h-0 flex-1">
         <Sidebar role={role} />
@@ -459,17 +459,18 @@ export function BackOfficeLayout({ role }) {
  * on the left (2 px apart), actions bottom-aligned on the right.
  */
 /** tip: a "?" after the title explaining what the screen is for and when to use it. */
-export function PageHeader({ title, tip, description, actions, badge, breadcrumb, className }) {
+/** compact: one row, a 22 px title and the actions centred beside it (screens where the table needs the height). */
+export function PageHeader({ title, tip, description, actions, badge, breadcrumb, compact = false, className }) {
   return (
-    <div className={cx('flex shrink-0 items-end justify-between gap-4', className)}>
+    <div className={cx('flex shrink-0 justify-between gap-4', compact ? 'flex-wrap items-center gap-y-2' : 'items-end', className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
         {breadcrumb}
-        <div className="flex items-center gap-3">
-          <h1 className="text-h1 font-bold tracking-tight text-fg">{tx(title)}</h1>
+        <div className={cx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
+          <h1 className={cx('font-bold tracking-tight text-fg', compact ? 'text-[22px] leading-8 whitespace-nowrap' : 'text-h1')}>{tx(title)}</h1>
           {tip && <InfoTip label={tip} size={16} side="bottom" align="start" />}
           {badge}
         </div>
-        {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}
+        {description && <p className="max-w-[460px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>

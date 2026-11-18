@@ -1,27 +1,56 @@
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 
-function useOverlayBehaviour(open, onClose) {
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Escape closes, the page behind stops scrolling, and keyboard focus moves into the dialog, stays there while
+ * Tab cycles, and goes back to the control that opened it on close. A field that focuses itself (autoFocus) keeps it.
+ */
+function useOverlayBehaviour(open, onClose, panelRef) {
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   useEffect(() => {
     if (!open) return undefined
-    const onKey = (e) => e.key === 'Escape' && onClose?.()
+    const opener = document.activeElement
+    const panel = panelRef.current
+    if (panel && !panel.contains(document.activeElement)) panel.focus({ preventScroll: true })
+    const onKey = (e) => {
+      if (e.key === 'Escape') onCloseRef.current?.()
+      // Tab wraps inside the dialog; a layer opened above it (a date picker) handles its own focus.
+      if (e.key !== 'Tab' || !panel || !panel.contains(document.activeElement)) return
+      const items = [...panel.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null)
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
     document.addEventListener('keydown', onKey)
     const { overflow } = document.body.style
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = overflow
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true })
     }
-  }, [open, onClose])
+  }, [open, panelRef])
 }
 
-// Scrim (#101828 at 45%) + Elevation/3 Modal card: 12 px radius, 24 px padding, 16 px between
+// Scrim (gray-900 at 45%) + Elevation/3 Modal card: 12 px radius, 24 px padding, 16 px between
 // sections, H2 title with a 20 px close glyph, right-aligned footer (Payments – Confirm manual payment).
+// On a phone the footer buttons stack full width, the main action on top, instead of running past the card.
 export function Modal({ open, onClose, title, description, icon, children, footer, width = 480, className }) {
-  useOverlayBehaviour(open, onClose)
+  const panelRef = useRef(null)
+  useOverlayBehaviour(open, onClose, panelRef)
   const titleId = useId()
   if (!open) return null
   return createPortal(
@@ -31,8 +60,10 @@ export function Modal({ open, onClose, title, description, icon, children, foote
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        ref={panelRef}
+        tabIndex={-1}
         style={{ maxWidth: width }}
-        className={cx('relative flex max-h-[calc(100vh-32px)] w-full animate-pop-in flex-col gap-4 rounded-xl bg-surface p-6 shadow-modal', className)}
+        className={cx('relative flex max-h-[calc(100dvh-32px)] w-full animate-pop-in flex-col gap-4 rounded-xl bg-surface p-6 shadow-modal outline-none max-sm:p-5', className)}
       >
         <div className="flex items-start gap-4">
           {icon}
@@ -47,7 +78,11 @@ export function Modal({ open, onClose, title, description, icon, children, foote
           </button>
         </div>
         <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-2">{footer}</div>}
+        {footer && (
+          <div className="flex flex-wrap items-center justify-end gap-2 max-sm:flex-col-reverse max-sm:items-stretch max-sm:[&_button]:h-auto max-sm:[&_button]:min-h-10 max-sm:[&_button]:py-2 max-sm:[&_button]:text-center max-sm:[&_button]:whitespace-normal">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body,
@@ -56,7 +91,8 @@ export function Modal({ open, onClose, title, description, icon, children, foote
 
 // Right-hand drawer (480 px), as in "Room Types – Edit drawer".
 export function Drawer({ open, onClose, title, description, children, footer, width = 480 }) {
-  useOverlayBehaviour(open, onClose)
+  const panelRef = useRef(null)
+  useOverlayBehaviour(open, onClose, panelRef)
   const titleId = useId()
   if (!open) return null
   return createPortal(
@@ -66,8 +102,10 @@ export function Drawer({ open, onClose, title, description, children, footer, wi
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        ref={panelRef}
+        tabIndex={-1}
         style={{ width }}
-        className="absolute inset-y-0 right-0 flex max-w-full animate-slide-in-right flex-col bg-surface shadow-modal"
+        className="absolute inset-y-0 right-0 flex max-w-full animate-slide-in-right flex-col bg-surface shadow-modal outline-none"
       >
         <div className="flex items-start gap-4 px-6 pt-6 pb-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -81,7 +119,7 @@ export function Drawer({ open, onClose, title, description, children, footer, wi
           </button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-2 border-t border-line p-4">{footer}</div>}
+        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line p-4">{footer}</div>}
       </aside>
     </div>,
     document.body,

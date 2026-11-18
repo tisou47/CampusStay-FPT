@@ -1,5 +1,5 @@
-import { useId } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { Fragment, cloneElement, isValidElement, useId, useRef } from 'react'
+import { ChevronDown, Search, Upload } from 'lucide-react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { InfoTip } from './Tooltip'
@@ -18,7 +18,7 @@ export function controlClasses({ size = 'md', invalid = false } = {}) {
     'placeholder:text-fg-tertiary',
     'disabled:cursor-not-allowed disabled:border-line disabled:bg-subtle disabled:text-fg-disabled',
     invalid
-      ? 'border-error focus:border-error focus:shadow-[0_0_0_2px_#c81e1e26]'
+      ? 'border-error focus:border-error focus:shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-error)_15%,transparent)]'
       : 'border-line-strong focus:border-focus focus:shadow-focus',
     sizes[size],
   )
@@ -29,6 +29,13 @@ export function controlClasses({ size = 'md', invalid = false } = {}) {
 export function Field({ label, hint, tip, helper, error, required, className, children, id: idProp }) {
   const autoId = useId()
   const id = idProp ?? autoId
+  // The helper or error under the field is read out with the control (aria-describedby on the element the
+  // render function returns), so a screen reader hears "Lower than previous" when it lands on the input.
+  const messageId = error || helper ? `${id}-message` : undefined
+  let control = typeof children === 'function' ? children(id) : children
+  if (messageId && typeof children === 'function' && isValidElement(control) && control.type !== Fragment && !control.props['aria-describedby']) {
+    control = cloneElement(control, { 'aria-describedby': messageId })
+  }
   return (
     <div className={cx('flex min-w-0 flex-col gap-1', className)}>
       {label && (
@@ -39,11 +46,11 @@ export function Field({ label, hint, tip, helper, error, required, className, ch
           {hint && <span className="ml-auto text-sm font-normal text-fg-tertiary">{tx(hint)}</span>}
         </label>
       )}
-      {typeof children === 'function' ? children(id) : children}
+      {control}
       {error ? (
-        <p className="text-sm text-error-fg">{tx(error)}</p>
+        <p id={messageId} className="text-sm text-error-fg">{tx(error)}</p>
       ) : helper ? (
-        <p className="text-sm text-fg-tertiary">{tx(helper)}</p>
+        <p id={messageId} className="text-sm text-fg-tertiary">{tx(helper)}</p>
       ) : null}
     </div>
   )
@@ -109,6 +116,34 @@ export function SearchInput({ size = 'md', className, wrapperClassName, placehol
       />
       <input type="search" className={cx(controlClasses({ size }), 'pl-9', className)} placeholder={tx(placeholder)} {...props} />
     </div>
+  )
+}
+
+/**
+ * Attach-a-file row (receipts, evidence): a dashed box with an upload glyph that names the chosen file.
+ * The hidden file input sits beside the button, not inside it. onChange receives the File (or null).
+ */
+export function FilePicker({ file, onChange, accept, placeholder, disabled, size = 'md', className, ...props }) {
+  const input = useRef(null)
+  return (
+    <>
+      <button
+        {...props}
+        type="button"
+        disabled={disabled}
+        onClick={() => input.current?.click()}
+        className={cx(
+          'flex min-w-0 items-center gap-2 rounded-md border border-dashed border-line-strong bg-surface px-3 text-left transition-colors',
+          size === 'lg' ? 'min-h-12 py-3' : 'py-2.5',
+          'hover:border-primary hover:bg-primary-subtle/40 disabled:pointer-events-none disabled:opacity-45',
+          className,
+        )}
+      >
+        <Upload size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
+        <span className={cx('min-w-0 truncate text-base', file ? 'font-medium text-fg' : 'text-fg-secondary')}>{file ? file.name : tx(placeholder)}</span>
+      </button>
+      <input ref={input} type="file" accept={accept} hidden onChange={(e) => onChange?.(e.target.files?.[0] ?? null)} />
+    </>
   )
 }
 

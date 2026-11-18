@@ -14,7 +14,7 @@ function pageList(page, pages) {
 
 const box = 'flex size-8 shrink-0 items-center justify-center rounded-md bg-surface text-base transition-colors'
 
-export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPageSizeChange, showSizeChanger = true, noun = ['item', 'items'], className }) {
+export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPageSizeChange, showSizeChanger = true, sizes = [10, 20, 50, 100], noun = ['item', 'items'], className }) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const go = (p) => onChange?.(Math.min(pages, Math.max(1, p)))
   return (
@@ -61,7 +61,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
           value={pageSize}
           onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
           wrapperClassName="w-32 max-lg:hidden"
-          options={[10, 20, 50, 100].map((n) => ({ value: n, label: t('{n} / page', { n }) }))}
+          options={sizes.map((n) => ({ value: n, label: t('{n} / page', { n }) }))}
         />
       )}
     </nav>

@@ -35,7 +35,8 @@ export default function NewMaintenanceRequest() {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const titleError = touched && !form.title.trim() ? t('Enter a short title.') : undefined
   const descriptionError = touched && !form.description.trim() ? t('Describe the problem.') : undefined
-  const categoryError = touched && !form.category ? t('Choose a category.') : undefined
+  // The lists could not load: say so on the field instead of leaving an empty dropdown.
+  const categoryError = options.error ? t('Could not load this data') : touched && !form.category ? t('Choose a category.') : undefined
 
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos])
 
@@ -144,16 +145,18 @@ export default function NewMaintenanceRequest() {
               <p className="text-base font-medium text-fg">{t('Photos (optional, up to {n})', { n: MAX_PHOTOS })}</p>
               <div className="flex items-start gap-3">
                 {photos.map((p) => (
+                  // The remove mark is always shown (a phone has no hover), in the corner so the photo stays visible.
                   <button
                     key={p.url}
                     type="button"
                     title={t('Remove {name}', { name: p.file.name })}
+                    aria-label={t('Remove {name}', { name: p.file.name })}
                     onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
                     className="group relative size-20 overflow-hidden rounded-md border border-line bg-subtle"
                   >
-                    <img src={p.url} alt={p.file.name} className="size-full object-cover" />
-                    <span className="absolute inset-0 hidden items-center justify-center bg-gray-900/45 text-white group-hover:flex">
-                      <X size={20} aria-hidden="true" />
+                    <img src={p.url} alt="" className="size-full object-cover" />
+                    <span className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-fg/70 text-fg-on-brand transition-colors group-hover:bg-error">
+                      <X size={14} aria-hidden="true" />
                     </span>
                   </button>
                 ))}

@@ -1,14 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { CircleCheck, Clock, Copy, Download, Hourglass, ReceiptText, Send } from 'lucide-react'
+import {
+  Building2,
+  CircleCheck,
+  Clock,
+  Copy,
+  CreditCard,
+  Download,
+  Hourglass,
+  QrCode,
+  ReceiptText,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+} from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, DetailRows, Note } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatTimeLeft, formatVnd } from '@/lib/format'
 import { StudentPage } from './shared'
 import { t, tr } from '@/i18n'
@@ -75,10 +90,15 @@ function useSaveQr() {
 function CopyValue({ value, display, className }) {
   const copy = useCopy()
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-1.5">
       <span className={className}>{display ?? value}</span>
-      <button type="button" onClick={() => copy(value)} aria-label={t('Copy {value}', { value })} className="rounded p-0.5 text-fg-secondary hover:bg-subtle hover:text-fg">
-        <Copy size={16} aria-hidden="true" />
+      <button
+        type="button"
+        onClick={() => copy(value)}
+        aria-label={t('Copy {value}', { value })}
+        className="-my-1 rounded-md p-1 text-fg-secondary transition-colors hover:bg-subtle hover:text-fg-brand"
+      >
+        <Copy size={15} aria-hidden="true" />
       </button>
     </span>
   )
@@ -91,6 +111,7 @@ function Payment({ data, reload }) {
   const waiting = invoice.status === 'Awaiting confirmation'
   const left = useSecondsLeft(qr?.expiresAt)
   const [reference, setReference] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
   const refresh = useMutation(() => api.invoices.refreshQr(invoice.id), { onSuccess: reload, onError: (e) => notifyError(e, 'Could not refresh the QR code') })
   const sendClaim = useMutation(() => api.invoices.claim(invoice.id, reference.trim() ? { reference: reference.trim() } : {}), {
     invalidates: ['invoices', 'home'],
@@ -125,108 +146,220 @@ function Payment({ data, reload }) {
   const qrFile = `vietqr-${invoice.id}.png`
   const rejection = !paid && !waiting && claim?.status === 'Rejected' ? claim.lastRejection : null
 
-  // Phone: MOB-BIL-02 Invoice Payment (Figma 56:292) — QR card, Save and Copy buttons, details, "I have transferred".
   return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-6">
-      <Card padding="lg" className="flex w-full shrink-0 flex-col items-center gap-2.5 lg:w-100 lg:gap-4 lg:overflow-y-auto">
-        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">
-          {paid ? t('Payment confirmed') : waiting ? t('Transfer reported') : qr ? t('Scan with any banking app') : t('Transfer to the dormitory')}
-        </h2>
-        <div className="relative flex size-52 shrink-0 items-center justify-center rounded-lg border border-line lg:size-66">
-          {qr?.image ? (
-            <img src={qr.image} alt={t('VietQR code for {id}, {amount}', { id: invoice.id, amount: formatVnd(invoice.amount) })} className="block size-50 lg:size-64" />
-          ) : paid || waiting ? null : (
-            <span className="px-6 text-center text-sm text-fg-tertiary">
-              {bank ? t('QR code unavailable') : t('Ask the dormitory office for the bank account to transfer to.')}
+    <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6">
+      {/* LEFT COLUMN (5/12): Fintech Payment Details & VietQR Hub */}
+      <Card padding="lg" className="flex flex-col gap-4 rounded-xl shadow-xs lg:col-span-5 lg:p-6">
+        {/* Card Header + Urgent QR Countdown Badge */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-fg-brand">
+              <QrCode size={17} aria-hidden="true" />
+            </span>
+            <h2 className="text-h3 font-semibold text-fg">
+              {paid
+                ? t('Payment confirmed')
+                : waiting
+                  ? t('Transfer reported')
+                  : qr
+                    ? t('Scan with any banking app')
+                    : t('Transfer to the dormitory')}
+            </h2>
+          </div>
+
+          {!paid && !waiting && mmss && (
+            <span
+              className={cx(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold tabular',
+                left > 60
+                  ? 'border-orange-200 bg-brand-subtle text-fg-brand'
+                  : 'border-red-200 bg-error-bg text-error-fg',
+              )}
+            >
+              <Clock size={14} aria-hidden="true" />
+              {left > 0 ? t('QR expires in {time}', { time: mmss }) : t('QR expired')}
             </span>
           )}
-          {(paid || waiting) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/90">
-              {paid ? <CircleCheck size={48} aria-hidden="true" className="text-success" /> : <Hourglass size={48} aria-hidden="true" className="text-info" />}
-              <p className={paid ? 'text-base font-medium text-success-fg' : 'px-4 text-center text-base font-medium text-info-fg'}>
-                {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}
-              </p>
+        </div>
+
+        {/* Centered VietQR Frame + Prominent KPI Amount */}
+        <div className="flex flex-col items-center gap-3 rounded-xl bg-subtle/50 p-4">
+          <div className="relative flex size-48 shrink-0 items-center justify-center rounded-xl bg-surface p-2 ring-1 ring-line lg:size-52">
+            {qr?.image ? (
+              <img
+                src={qr.image}
+                alt={t('VietQR code for {id}, {amount}', { id: invoice.id, amount: formatVnd(invoice.amount) })}
+                className="block size-44 object-contain lg:size-48"
+              />
+            ) : paid || waiting ? null : (
+              <span className="px-4 text-center text-sm text-fg-tertiary">
+                {bank ? t('QR code unavailable') : t('Ask the dormitory office for the bank account to transfer to.')}
+              </span>
+            )}
+            {(paid || waiting) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-surface/95">
+                {paid ? (
+                  <CircleCheck size={44} aria-hidden="true" className="text-success" />
+                ) : (
+                  <Hourglass size={44} aria-hidden="true" className="text-info" />
+                )}
+                <p className={paid ? 'text-base font-semibold text-success-fg' : 'px-4 text-center text-base font-semibold text-info-fg'}>
+                  {paid ? t('Paid {date}', { date: formatDate(invoice.paidAt) }) : t('Waiting for confirmation')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* KPI Amount + VietQR / Download Controls */}
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <CopyValue
+              value={String(invoice.amount)}
+              display={formatVnd(invoice.amount)}
+              className="text-kpi font-semibold text-fg tabular"
+            />
+            {qr && (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Tag tone="info">VietQR</Tag>
+                <span className="text-xs text-fg-tertiary">{t('Bank transfer · NAPAS 247')}</span>
+              </div>
+            )}
+          </div>
+
+          {!waiting && !paid && (
+            <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-0.5">
+              {expired ? (
+                <Button size="sm" icon={RefreshCw} onClick={() => refresh.run()} disabled={refresh.pending}>
+                  {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
+                </Button>
+              ) : (
+                qr?.image && (
+                  <Button variant="secondary" size="sm" icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
+                    {t('Download QR')}
+                  </Button>
+                )
+              )}
             </div>
           )}
         </div>
-        <p className="text-h1 font-semibold text-fg lg:hidden">{formatVnd(invoice.amount)}</p>
-        {qr && (
-          <div className="flex items-center gap-2 max-lg:hidden">
-            <Tag tone="info">VietQR</Tag>
-            <span className="text-sm text-fg-tertiary">{t('Bank transfer · NAPAS 247')}</span>
-          </div>
-        )}
-        {!paid && !waiting && mmss && (
-          <p className="flex items-center gap-2 text-base font-medium text-warning-fg">
-            <Clock size={16} aria-hidden="true" className="text-warning" />
-            {left > 0 ? t('QR expires in {time}', { time: mmss }) : t('QR expired')}
-          </p>
-        )}
-        {!waiting && (
-          <div className="max-lg:hidden">
-            {expired ? (
-              <Button size="lg" onClick={() => refresh.run()} disabled={refresh.pending}>
-                {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
-              </Button>
-            ) : (
-              qr?.image && (
-                <Button size="lg" icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
-                  Download QR
+
+        {/* Manual Bank Transfer Details & Highlighted Transfer Content Box */}
+        {!paid && !waiting && bank && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Building2 size={15} aria-hidden="true" className="text-fg-tertiary" />
+              <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">
+                {t('Or transfer manually')}
+              </span>
+            </div>
+
+            <dl className="flex flex-col divide-y divide-line text-sm">
+              <div className="flex items-center justify-between gap-3 py-2">
+                <dt className="text-fg-secondary">{t('Bank')}</dt>
+                <dd className="font-medium text-fg">{bank.name}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2">
+                <dt className="text-fg-secondary">{t('Account number')}</dt>
+                <dd>
+                  <CopyValue value={bank.accountNumber} className="font-mono font-semibold text-fg" />
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2">
+                <dt className="text-fg-secondary">{t('Account name')}</dt>
+                <dd>
+                  <CopyValue value={bank.accountName} className="font-medium text-fg" />
+                </dd>
+              </div>
+            </dl>
+
+            {/* Dedicated Highlight Box for Transfer Content with 1-tap Copy */}
+            {transferContent && (
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-subtle px-4 py-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-xs font-medium text-fg-secondary">{t('Transfer content')}</span>
+                  <span className="truncate font-mono text-base font-bold text-fg-brand">{transferContent}</span>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Copy}
+                  onClick={() => copy(transferContent)}
+                  aria-label={t('Copy {value}', { value: transferContent })}
+                >
+                  {t('Copy')}
                 </Button>
-              )
+              </div>
             )}
+            <Note>{t('Enter the transfer content exactly. It links your payment to this invoice.')}</Note>
           </div>
         )}
       </Card>
 
-      {!paid && !waiting && (
-        <div className="flex flex-col gap-2 lg:hidden">
-          {expired ? (
-            <Button size="lg" block onClick={() => refresh.run()} disabled={refresh.pending}>
-              {refresh.pending ? t('Refreshing…') : t('Refresh QR')}
-            </Button>
-          ) : (
-            qr?.image && (
-              <Button size="lg" block icon={Download} onClick={() => saveQr(qr.image, qrFile)}>
-                Save QR to gallery
-              </Button>
-            )
-          )}
-          {transferContent && (
-            <Button size="lg" block icon={Copy} onClick={() => copy(transferContent)}>
-              Copy transfer content
-            </Button>
-          )}
-        </div>
-      )}
-
-      <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4 lg:overflow-y-auto">
+      {/* RIGHT COLUMN (7/12): Action & Verification Hub + Invoice Summary */}
+      <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
         {paid ? (
-          <Alert type="success" title="Payment received" className="shrink-0" action={<Button to="/student/invoices">Back to payments</Button>}>
-            {t('This payment was confirmed on {date}. A receipt is available under payments.', { date: formatDateTime(invoice.paidAt) })}
+          <Alert
+            type="success"
+            title="Payment received"
+            className="shrink-0"
+            action={<Button to="/student/invoices">Back to payments</Button>}
+          >
+            {t('This payment was confirmed on {date}. A receipt is available under payments.', {
+              date: formatDateTime(invoice.paidAt),
+            })}
           </Alert>
         ) : waiting ? (
           <Alert type="info" title="Waiting for a manager" className="shrink-0">
-            {t('You reported the transfer on {date}. The deadline is paused until a manager confirms or rejects it; you will be notified.', { date: formatDateTime(claim?.claimedAt) })}
+            {t(
+              'You reported the transfer on {date}. The deadline is paused until a manager confirms or rejects it; you will be notified.',
+              { date: formatDateTime(claim?.claimedAt) },
+            )}
           </Alert>
         ) : (
           <>
             {rejection && (
               <Alert type="warning" title="Transfer not confirmed" className="shrink-0">
-                {t('A manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.', { reason: rejection.reason })}
+                {t(
+                  'A manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.',
+                  { reason: rejection.reason },
+                )}
               </Alert>
             )}
-            <Card className="flex shrink-0 flex-col gap-3">
-              <h2 className="text-h3 font-semibold text-fg">{t('Paid already? Tell the dormitory')}</h2>
-              <p className="text-sm text-fg-secondary">
-                {t('Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A manager checks the bank account and confirms it.', { amount: formatVnd(invoice.amount), content: transferContent })}
-              </p>
+
+            {/* Primary Action & Verification Hub (I have transferred) */}
+            <Card padding="lg" className="flex shrink-0 flex-col gap-4 rounded-xl border-orange-200 shadow-xs lg:p-6">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-fg-brand">
+                  <ShieldCheck size={20} aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <h2 className="text-h3 font-semibold text-fg">{t('Paid already? Tell the dormitory')}</h2>
+                  <p className="text-sm text-fg-secondary">
+                    {t(
+                      'Transfer exactly {amount} with the transfer content {content}, then press I have transferred. A manager checks the bank account and confirms it.',
+                      { amount: formatVnd(invoice.amount), content: transferContent },
+                    )}
+                  </p>
+                </div>
+              </div>
+
               {canClaim ? (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex flex-col gap-3 rounded-xl bg-subtle/60 p-4 sm:flex-row sm:items-end">
                   <Field label="Bank reference (optional)" className="sm:flex-1">
-                    <Input value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />
+                    <Input
+                      value={reference}
+                      maxLength={60}
+                      onChange={(e) => setReference(e.target.value)}
+                      placeholder="FT26300012345"
+                    />
                   </Field>
-                  <Button tip="Tell the dormitory you paid. A manager checks it against the bank statement, then the invoice shows as paid." variant="primary" size="lg" icon={Send} onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
+                  <Button
+                    tip="Tell the dormitory you paid. A manager checks it against the bank statement, then the invoice shows as paid."
+                    variant="primary"
+                    size="lg"
+                    icon={Send}
+                    onClick={() => setShowConfirm(true)}
+                    disabled={sendClaim.pending}
+                  >
                     {sendClaim.pending ? t('Sending…') : t('I have transferred')}
                   </Button>
                 </div>
@@ -235,40 +368,98 @@ function Payment({ data, reload }) {
                   {t('This invoice can no longer be paid by transfer. Contact the dormitory office.')}
                 </Alert>
               )}
+
               {claim?.rejected > 0 && (
-                <Note>{t('Transfers rejected so far: {n}. Two rejections cancel a deposit or a balance.', { n: claim.rejected })}</Note>
+                <Note>
+                  {t('Transfers rejected so far: {n}. Two rejections cancel a deposit or a balance.', {
+                    n: claim.rejected,
+                  })}
+                </Note>
               )}
+
+              <Modal
+                open={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                title={t('Confirm transfer submission')}
+                footer={
+                  <>
+                    <Button variant="default" onClick={() => setShowConfirm(false)}>
+                      {t('Check again')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      icon={Send}
+                      disabled={sendClaim.pending}
+                      onClick={() => {
+                        setShowConfirm(false)
+                        sendClaim.run()
+                      }}
+                    >
+                      {sendClaim.pending ? t('Sending…') : t('Yes, I have transferred')}
+                    </Button>
+                  </>
+                }
+              >
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-fg">
+                    {t('Did you transfer exactly this amount and transfer content?')}
+                  </p>
+
+                  <div className="flex flex-col gap-2 rounded-xl bg-subtle/80 p-3.5 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-secondary">{t('Amount')}:</span>
+                      <span className="font-bold text-fg tabular">{formatVnd(invoice.amount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-secondary">{t('Transfer content')}:</span>
+                      <span className="font-mono font-semibold text-fg-brand">{transferContent}</span>
+                    </div>
+                    {reference.trim() && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-fg-secondary">{t('Bank reference')}:</span>
+                        <span className="font-mono font-medium text-fg">{reference.trim()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Alert type="warning" title={t('Important note')}>
+                    {t('Reporting a transfer before paying or with incorrect content may lead to rejection and losing your bed reservation.')}
+                  </Alert>
+                </div>
+              </Modal>
             </Card>
           </>
         )}
 
-        {!paid && !waiting && bank && (
-          <Card className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Or transfer manually')}</h2>
-            <DetailRows
-              className="mt-1"
-              rows={[
-                ['Bank', bank.name],
-                ['Account name', <CopyValue value={bank.accountName} />],
-                ['Account number', <CopyValue value={bank.accountNumber} />],
-                ['Amount', <CopyValue value={String(invoice.amount)} display={formatVnd(invoice.amount)} className="font-medium" />],
-                ['Transfer content', <CopyValue value={transferContent} className="font-medium text-fg-brand" />],
-              ]}
-            />
-            <Note className="pt-1">{t('Enter the transfer content exactly. It links your payment to this invoice.')}</Note>
-          </Card>
-        )}
+        {/* Invoice Summary Card below Confirmation Hub */}
+        <Card padding="lg" className="flex shrink-0 flex-col gap-3 rounded-xl shadow-xs lg:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-fg-secondary">
+                <CreditCard size={16} aria-hidden="true" />
+              </span>
+              <h2 className="text-h3 font-semibold text-fg">{t('Invoice')}</h2>
+            </div>
+            <StatusTag status={invoice.status} />
+          </div>
 
-        <Card className="flex shrink-0 flex-col gap-1">
-          <h2 className="text-h3 font-semibold text-fg">{t('Invoice')}</h2>
           <DetailRows
             className="mt-1"
             rows={[
-              ['Invoice', `${invoice.id} · ${tr(invoice.typeLabel ?? invoice.title)}`],
+              ['Invoice', <span className="font-medium text-fg">{`${invoice.id} · ${tr(invoice.typeLabel ?? invoice.title)}`}</span>],
               ...(invoice.reference ? [['For', tr(invoice.reference)]] : []),
-              ['Due', <span>{formatDateTime(invoice.dueAt)}{!paid && !waiting && <TimeLeft at={invoice.dueAt} />}</span>],
-              ['Total', <span className="font-medium">{formatVnd(invoice.amount)}</span>],
-              ...(claim?.reference ? [['Bank reference', claim.reference]] : []),
+              [
+                'Due',
+                <span>
+                  {formatDateTime(invoice.dueAt)}
+                  {!paid && !waiting && <TimeLeft at={invoice.dueAt} />}
+                </span>,
+              ],
+              [
+                'Total',
+                <span className="text-lg font-semibold text-fg-brand tabular">{formatVnd(invoice.amount)}</span>,
+              ],
+              ...(claim?.reference ? [['Bank reference', <span className="font-mono">{claim.reference}</span>]] : []),
             ]}
           />
         </Card>
@@ -294,6 +485,7 @@ export default function InvoicePayment() {
       breadcrumb={[{ label: 'Payments', to: '/student/invoices' }, { label: id }]}
       title={tr(invoice?.title) || t('Pay invoice')}
       badge={invoice && <StatusTag status={invoice.status} />}
+      className="lg:gap-3"
     >
       {query.data === undefined && query.loading ? (
         <LoadingState />

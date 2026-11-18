@@ -31,36 +31,33 @@ function StudentTopBar() {
   return (
     <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band-gradient lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
-      {/* Full width like the back-office band: the logo sits at the left edge, the account at the right edge. */}
-      <div className="flex h-16 items-center justify-between gap-6 pr-6 pl-4">
-        <div className="flex items-center gap-10">
-          <Link to="/student" aria-label={t('Home')}>
-            <Logo tone="band" />
-          </Link>
-          <nav aria-label={t('Main')} className="flex items-center gap-1">
-            {studentNav.map((item) => {
-              const active = isNavActive(item, pathname)
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-current={active ? 'page' : undefined}
-                  className={cx(
-                    'flex h-9 items-center rounded-md px-3 text-base font-semibold whitespace-nowrap transition-colors',
-                    active ? 'bg-surface text-fg-brand shadow-card' : 'text-band-fg hover:bg-band-hover',
-                  )}
-                >
-                  {t(item.label)}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-        {/* Term chip, language and the name next to the avatar need 1280 px; the avatar menu still names the user. */}
-        <div className="flex items-center gap-4">
+      {/* Full-width top bar: flex layout prevents 1fr column inflation so the student name never overflows the right edge. */}
+      <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:px-6">
+        <Link to="/student" aria-label={t('Home')} className="shrink-0">
+          <Logo tone="band" />
+        </Link>
+        <nav aria-label={t('Main')} className="flex min-w-0 flex-1 items-center justify-center gap-0.5 xl:gap-1">
+          {studentNav.map((item) => {
+            const active = isNavActive(item, pathname)
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={active ? 'page' : undefined}
+                className={cx(
+                  'flex h-9 items-center rounded-md px-2.5 text-sm font-semibold whitespace-nowrap transition-colors xl:px-3 xl:text-base',
+                  active ? 'bg-surface text-fg-brand shadow-card' : 'text-band-fg hover:bg-band-hover',
+                )}
+              >
+                {t(item.label)}
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="flex shrink-0 items-center gap-2.5 xl:gap-3.5">
           {term && (
-            <span className="hidden items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-sm font-medium whitespace-nowrap text-fg shadow-card xl:flex">
-              <Calendar size={16} aria-hidden="true" />
+            <span className="hidden items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-xs font-medium whitespace-nowrap text-fg shadow-card xl:flex xl:px-3 xl:text-sm">
+              <Calendar size={15} aria-hidden="true" />
               {term.name}
             </span>
           )}
@@ -70,13 +67,22 @@ function StudentTopBar() {
           <Popover
             width={220}
             trigger={({ toggle, props }) => (
-              <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-md text-left" {...props}>
+              <button
+                type="button"
+                onClick={toggle}
+                className="flex shrink-0 items-center gap-2 rounded-md py-1 pr-1 text-left transition-colors hover:bg-band-hover"
+                {...props}
+              >
                 <Avatar name={user?.name} />
-                <span className="hidden flex-col whitespace-nowrap xl:flex">
-                  <span className="text-base font-semibold text-band-fg">{user?.name ?? t('Not signed in')}</span>
-                  {user?.studentCode && <span className="text-sm text-band-fg">{user.studentCode}</span>}
+                <span className="hidden min-w-0 flex-col xl:flex">
+                  <span className="max-w-36 truncate text-sm leading-tight font-semibold text-band-fg 2xl:max-w-44">
+                    {user?.name ?? t('Not signed in')}
+                  </span>
+                  {user?.studentCode && (
+                    <span className="truncate text-xs leading-tight text-band-fg/90">{user.studentCode}</span>
+                  )}
                 </span>
-                <ChevronDown size={16} aria-hidden="true" className="text-band-fg" />
+                <ChevronDown size={16} aria-hidden="true" className="shrink-0 text-band-fg" />
               </button>
             )}
           >
@@ -138,7 +144,7 @@ export function StudentLayout() {
   const { user } = useSession()
   return (
     <MobileBarProvider>
-      <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
         <StudentTopBar />
         <MobileAppBar />
         <VerificationBanner />

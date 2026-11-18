@@ -7,8 +7,11 @@ import { cx } from '@/lib/cx'
  * Label/Base text, border/default baseline. Items: { key, label, count?, to? }.
  */
 export function Tabs({ items, value, onChange, className }) {
+  // Tabs that are links go to other pages: they are navigation (the active one is the current page), not a tablist.
+  const isNav = items.some((item) => item.to)
+  const Box = isNav ? 'nav' : 'div'
   return (
-    <div role="tablist" className={cx('flex items-start gap-6 border-b border-line', className)}>
+    <Box role={isNav ? undefined : 'tablist'} className={cx('flex items-start gap-6 border-b border-line', className)}>
       {items.map((item) => {
         const active = item.key === value
         const label = item.count != null ? `${tx(item.label)} · ${item.count}` : tx(item.label)
@@ -17,16 +20,22 @@ export function Tabs({ items, value, onChange, className }) {
           active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:text-fg',
         )
         return item.to ? (
-          <Link key={item.key} to={item.to} role="tab" aria-selected={active} className={classes}>
+          <Link key={item.key} to={item.to} aria-current={active ? 'page' : undefined} className={classes}>
             {label}
           </Link>
         ) : (
-          <button key={item.key} type="button" role="tab" aria-selected={active} onClick={() => onChange?.(item.key)} className={classes}>
+          <button
+            key={item.key}
+            type="button"
+            role={isNav ? undefined : 'tab'}
+            aria-selected={isNav ? undefined : active}
+            aria-current={isNav && active ? 'true' : undefined}
+            onClick={() => onChange?.(item.key)} className={classes}>
             {label}
           </button>
         )
       })}
-    </div>
+    </Box>
   )
 }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../common.dart';
 import '../links.dart';
+import 'home.dart' show showAnnouncement;
 
 /// Whether an instant falls on today in campus time (UTC+7).
 bool isToday(String? iso) {
@@ -132,6 +133,19 @@ class NotificationsCard extends StatelessWidget {
   }
 }
 
+/// Shows the board announcement a notification stands for: the board's entry when it is still there (category,
+/// old → new values), otherwise the notification's own title and text.
+Future<void> _openAnnouncement(BuildContext context, Json n, Future<void> Function() reload) async {
+  Json item = n;
+  try {
+    final board = await Api.get('/students/me/board');
+    item = board.objects('items').firstWhere((a) => a.str('id') == n.str('id'), orElse: () => n);
+  } on ApiException {
+    // the notification's own text is enough
+  }
+  if (context.mounted) await showAnnouncement(context, item, reload: reload);
+}
+
 /// One notification: an icon for what it is about (an unread dot on it), the title, the text and the time.
 class NotificationRow extends StatelessWidget {
   const NotificationRow({super.key, required this.n, required this.reload, this.compact = false});
@@ -163,7 +177,14 @@ class NotificationRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       onTap: () async {
         if (!read) await attempt(() => Api.post('/notifications/${Uri.encodeComponent(n.text('id'))}/read'));
-        if (context.mounted && n.str('link') != null) await openLink(context, n.str('link'));
+        if (!context.mounted) return;
+        if (n.str('kind') == 'announcement') {
+          // An announcement of the board opens here, in its sheet; its link is Home (`/student`), and following it would
+          // close this page and rebuild Home.
+          await _openAnnouncement(context, n, reload);
+        } else if (n.str('link') != null) {
+          await openLink(context, n.str('link'));
+        }
         await reload();
       },
       child: Padding(

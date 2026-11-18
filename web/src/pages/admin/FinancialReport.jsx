@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Select } from '@/components/ui/Field'
 import { QueryState } from '@/components/ui/States'
+import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber, formatPercent } from '@/lib/format'
 import { t, tr } from '@/i18n'
@@ -57,38 +58,34 @@ export default function FinancialReport() {
           {(data) => {
             const rows = data.rows.length > 1 ? [...data.rows, { block: 'Total', ...data.summary, isTotal: true }] : data.rows
             return (
-              <table className="w-full border-separate border-spacing-0 text-base">
-                <thead className="sticky top-0 z-10 bg-subtle">
-                  <tr className="text-sm text-fg-secondary">
-                    <th scope="col" className="w-40 border-b border-line px-4 py-2.5 text-left font-medium">
-                      {t('Block')}
-                    </th>
+              <Table bare fill>
+                <THead>
+                  <tr>
+                    <Th className="w-40">Block</Th>
                     {['Invoiced', 'Collected', 'Outstanding', 'Refunded'].map((h) => (
-                      <th key={h} scope="col" className="border-b border-line px-3 py-2.5 text-right font-medium">
-                        {t(h)}
-                      </th>
+                      <Th key={h} align="right">
+                        {h}
+                      </Th>
                     ))}
-                    <th scope="col" className="w-35 border-b border-line px-4 py-2.5 text-right font-medium">
-                      {t('Collection rate')}
-                    </th>
+                    <Th align="right" className="w-35">
+                      Collection rate
+                    </Th>
                   </tr>
-                </thead>
-                <tbody className="[&>tr:last-child>*]:border-b-0">
+                </THead>
+                <TBody>
                   {rows.map((r) => (
-                    <tr key={r.block} className={cx('*:border-b *:border-line', r.isTotal && 'bg-subtle font-medium')}>
-                      <th scope="row" className="px-4 py-3 text-left font-medium text-fg">
-                        {r.isTotal ? t('Total') : data.blocks?.includes(r.block) ? t('Block {code}', { code: r.block }) : tr(r.block)}
-                      </th>
+                    <Tr key={r.block} className={cx(r.isTotal && 'bg-subtle font-medium')}>
+                      <Td rowHeader>{r.isTotal ? t('Total') : data.blocks?.includes(r.block) ? t('Block {code}', { code: r.block }) : tr(r.block)}</Td>
                       {columns.map((c) => (
-                        <td key={c} className="px-3 py-3 text-right text-fg tabular">
+                        <Td key={c} align="right">
                           {formatNumber(r[c])}
-                        </td>
+                        </Td>
                       ))}
-                      <td className="px-4 py-3 text-right text-fg tabular">{rate(r)}</td>
-                    </tr>
+                      <Td align="right">{rate(r)}</Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )
           }}
         </QueryState>

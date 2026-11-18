@@ -4,7 +4,13 @@ import { cx } from '@/lib/cx'
 
 // Figma: 02 Components › Checkbox and Radio. 16 px control in a 22 px row, Body/Base label.
 
-export function Checkbox({ label, description, indeterminate = false, className, disabled, ...props }) {
+export function Checkbox({ label, description, indeterminate = false, className, disabled, ref, ...props }) {
+  // The native mixed state, so assistive technology reads "partially checked" (a select-all box), not "not checked".
+  const setRef = (el) => {
+    if (el) el.indeterminate = indeterminate
+    if (typeof ref === 'function') ref(el)
+    else if (ref) ref.current = el
+  }
   return (
     <label
       className={cx(
@@ -16,6 +22,7 @@ export function Checkbox({ label, description, indeterminate = false, className,
       <span className="relative flex h-[22px] w-4 shrink-0 items-center">
         <input
           type="checkbox"
+          ref={setRef}
           disabled={disabled}
           className={cx(
             'peer size-4 cursor-[inherit] appearance-none rounded-sm border border-line-strong bg-surface transition-colors',
@@ -53,7 +60,7 @@ export function Radio({ label, description, className, disabled, ...props }) {
         <input
           type="radio"
           disabled={disabled}
-          className="size-4 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface transition-[border] checked:border-[5px] checked:border-primary"
+          className="size-4 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface transition-colors checked:border-[5px] checked:border-primary"
           {...props}
         />
       </span>

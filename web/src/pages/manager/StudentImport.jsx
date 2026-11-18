@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Breadcrumb, Card, CardHeader } from '@/components/ui/Display'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
-import { QueryState, TableStatus } from '@/components/ui/States'
+import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag } from '@/components/ui/Tag'
@@ -284,12 +284,12 @@ export default function StudentImport() {
         </div>
         <Card className="flex min-h-0 w-80 shrink-0 flex-col gap-2.5 overflow-y-auto">
           <CardHeader title="Recent imports" />
-          <QueryState query={history} compact isEmpty={(h) => !h.items?.length} empty={<p className="text-base text-fg-tertiary">{t('No file imported yet.')}</p>}>
+          <QueryState query={history} compact isEmpty={(h) => !h.items?.length} empty={<EmptyBlock icon={FileSpreadsheet} title={t('No file imported yet.')} className="py-6" />}>
             {(h) => (
               <ul className="flex flex-col divide-y divide-line">
                 {h.items.map((item) => (
                   <li key={item.id}>
-                    <button type="button" className="flex w-full flex-col gap-0.5 py-2 text-left hover:bg-subtle" onClick={() => setParams({ id: item.id })}>
+                    <button type="button" className="-mx-2 flex w-[calc(100%+1rem)] flex-col gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-subtle" onClick={() => setParams({ id: item.id })}>
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate text-base font-medium text-fg">{item.fileName}</span>
                         <StatusTag status={item.status} />

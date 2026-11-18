@@ -245,6 +245,22 @@ void main() {
     expect(find.text('Mark all as read'), findsOneWidget);
   });
 
+  testWidgets('Notifications: an announcement opens in a sheet and the page stays', (tester) async {
+    useApi({
+      '/notifications': {'items': [{'id': 'a1', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': false, 'link': '/student', 'kind': 'announcement'}], 'unread': 1},
+      'POST /notifications/a1/read': <String, Object>{},
+      '/students/me/board': {'items': [{'id': 'a1', 'category': 'Finance', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': true, 'changes': [{'field': 'Price', 'type': 'MONEY', 'before': 9000000, 'after': 9450000}]}]},
+    });
+    await show(tester, const NotificationsScreen());
+    await tester.tap(find.text('Room prices of Spring'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /notifications/a1/read'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.textContaining('450', findRichText: true), findsOneWidget);
+    // the notifications page is still under the sheet
+    expect(find.text('Notifications'), findsOneWidget);
+  });
+
   testWidgets('Application detail: an Application awaiting its deposit can be paid or cancelled', (tester) async {
     useApi({
       '/applications/APP-1': {

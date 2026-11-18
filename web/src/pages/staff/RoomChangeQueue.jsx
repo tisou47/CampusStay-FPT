@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Check, Download, Repeat, X } from 'lucide-react'
+import { Check, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Radio } from '@/components/ui/Choice'
 import { Card, Note } from '@/components/ui/Display'
-import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
@@ -91,11 +91,136 @@ function RejectModal({ request, reasons, onClose }) {
   )
 }
 
+// Floor filter chip in the bed list: pressed = orange wash with brand ink, like the floor buttons of the room map.
+function FloorChip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cx(
+        'h-7 shrink-0 rounded-full border px-3 text-sm font-medium whitespace-nowrap transition-colors',
+        active ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request }) {
+  const [search, setSearch] = useState('')
+  const [floorFilter, setFloorFilter] = useState(null)
+  const [selected, setSelected] = useState(selectedBed)
+
+  useEffect(() => {
+    if (open) {
+      setSelected(selectedBed)
+      setSearch('')
+      setFloorFilter(null)
+    }
+  }, [open, selectedBed])
+
+  const floors = Array.from(new Set(beds.map((b) => b.floor))).sort((a, b) => a - b)
+
+  const filtered = (beds ?? []).filter((b) => {
+    if (floorFilter !== null && b.floor !== floorFilter) return false
+    if (!search.trim()) return true
+    const q = search.trim().toLowerCase()
+    return (
+      b.bedId.toLowerCase().includes(q) ||
+      `tầng ${b.floor}`.toLowerCase().includes(q) ||
+      `floor ${b.floor}`.toLowerCase().includes(q)
+    )
+  })
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      width={600}
+      title={t('Free beds that match')}
+      description={t('Choose a bed for {name} ({target})', { name: request.studentName, target: target(request) })}
+      footer={
+        <>
+          <Button onClick={onClose}>{t('Cancel')}</Button>
+          <Button
+            variant="primary"
+            icon={Check}
+            disabled={!selected}
+            onClick={() => {
+              onSelect(selected)
+              onClose()
+            }}
+          >
+            {t('Confirm selection')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <SearchInput
+            aria-label={t('Search by bed, room or floor...')}
+            placeholder={t('Search by bed, room or floor...')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+          />
+          {floors.length > 1 && (
+            <div role="group" aria-label={t('Floor')} className="flex shrink-0 items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              <FloorChip active={floorFilter === null} onClick={() => setFloorFilter(null)}>
+                {t('All')}
+              </FloorChip>
+              {floors.map((f) => (
+                <FloorChip key={f} active={floorFilter === f} onClick={() => setFloorFilter(floorFilter === f ? null : f)}>
+                  {t('Floor {n}', { n: f })}
+                </FloorChip>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div role="radiogroup" aria-label={t('Free beds that match')} className="flex h-72 flex-col divide-y divide-line overflow-y-auto border-y border-line">
+          {filtered.length === 0 ? (
+            <EmptyBlock icon={SearchX} title={t('No beds match your search')} />
+          ) : (
+            filtered.map((b) => {
+              const active = selected === b.bedId
+              return (
+                <div
+                  key={b.bedId}
+                  onClick={() => setSelected(b.bedId)}
+                  onDoubleClick={() => {
+                    setSelected(b.bedId)
+                    onSelect(b.bedId)
+                    onClose()
+                  }}
+                  className={cx(
+                    'flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 transition-colors',
+                    active ? 'bg-primary-subtle' : 'hover:bg-subtle',
+                  )}
+                >
+                  <Radio name={`modal-bed-${request.id}`} label={b.bedId} checked={active} onChange={() => setSelected(b.bedId)} />
+                  <span className="shrink-0 text-sm text-fg-secondary tabular">
+                    {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
+                  </span>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function Review({ request: r, onReject }) {
   const { notify, notifyError } = useToast()
   const pending = r.status === 'Pending'
   const beds = useQuery(['room-changes', 'beds', r.id], ({ signal }) => api.roomChanges.matchingBeds(r.id, { signal }), { enabled: pending, keepPrevious: false })
   const [bed, setBed] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
   useEffect(() => setBed(beds.data?.items?.[0]?.bedId ?? null), [beds.data])
   const approve = useMutation(() => api.roomChanges.decide(r.id, { decision: 'Approved', bedId: bed }), {
     invalidates: ['room-changes'],
@@ -103,8 +228,10 @@ function Review({ request: r, onReject }) {
     onError: (e) => notifyError(e, 'Could not approve'),
   })
 
+  const bedItems = beds.data?.items ?? []
+
   return (
-    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3.5 overflow-y-auto" aria-label={t('Review {id}', { id: r.id })}>
+    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto" aria-label={t('Review {id}', { id: r.id })}>
       <div className="flex flex-col gap-0.5">
         <p className="text-sm font-medium text-fg-tertiary">{r.id}</p>
         <div className="flex items-center justify-between gap-3">
@@ -112,7 +239,7 @@ function Review({ request: r, onReject }) {
           {!pending && <ChangeStatus status={r.status} />}
         </div>
       </div>
-      <dl className="flex flex-col gap-3.5">
+      <dl className="flex flex-col gap-2.5">
         <Row label="From">
           {r.from.room} · {r.from.bed} · {tr(r.from.roomClassName)}
         </Row>
@@ -134,21 +261,34 @@ function Review({ request: r, onReject }) {
         r.decision?.note && <Note>{tr(r.decision.note)}</Note>
       ) : (
         <>
-          <p className="text-base font-medium text-fg">{t('Free beds that match')}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-base font-medium text-fg">{t('Free beds that match')}</p>
+            {bedItems.length > 0 && (
+              <Button
+                variant="text"
+                size="sm"
+                icon={Maximize2}
+                onClick={() => setModalOpen(true)}
+                className="-mr-2"
+              >
+                {t('View all ({n})', { n: bedItems.length })}
+              </Button>
+            )}
+          </div>
           <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
-            {(data) => (
-              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex flex-col gap-3">
-                {data.items.map((b) => (
+            {() => (
+              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-48 flex-col divide-y divide-line overflow-y-auto border-y border-line">
+                {bedItems.map((b) => (
                   <div
                     key={b.bedId}
                     onClick={() => setBed(b.bedId)}
                     className={cx(
-                      'flex cursor-pointer flex-col gap-0.5 rounded-lg border p-3 transition-colors',
-                      bed === b.bedId ? 'border-primary bg-brand-subtle inset-ring inset-ring-primary' : 'border-line bg-surface hover:border-line-strong',
+                      'flex cursor-pointer items-center justify-between gap-3 px-2.5 py-2 transition-colors',
+                      bed === b.bedId ? 'bg-primary-subtle' : 'hover:bg-subtle',
                     )}
                   >
                     <Radio name={`bed-${r.id}`} label={b.bedId} checked={bed === b.bedId} onChange={() => setBed(b.bedId)} />
-                    <span className="pl-6 text-sm text-fg-secondary">
+                    <span className="shrink-0 text-sm text-fg-secondary tabular">
                       {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
                     </span>
                   </div>
@@ -168,6 +308,17 @@ function Review({ request: r, onReject }) {
             {t('The student moves to this bed at the start of the next term and pays its next-term price with the next-term fee; nothing is invoiced or refunded now.')}
           </p>
         </>
+      )}
+
+      {modalOpen && (
+        <BedSelectionModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          beds={bedItems}
+          selectedBed={bed}
+          onSelect={setBed}
+          request={r}
+        />
       )}
     </Card>
   )
@@ -229,7 +380,7 @@ export default function RoomChangeQueue() {
             <TBody>
               <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
               {items.map((r) => (
-                <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)} className="[&>td]:h-14">
+                <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)}>
                   <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
                   <Td>
                     <TwoLine primary={r.studentName} secondary={r.studentCode} />

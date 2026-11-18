@@ -5,7 +5,8 @@ import googleLogo from '@/assets/signin/google-logo.png'
 import { homeFor, landingFor, setupPath, useSession } from '@/app/session'
 import { Alert } from '@/components/ui/Display'
 import { googleConfigured, loadGoogle, requestGoogleCode, takeGoogleRedirect } from '@/lib/googleSignIn'
-import { AuthShell, LoginField, cardClasses, primaryButtonClasses, textLinkClasses } from './shared'
+import { Button } from '@/components/ui/Button'
+import { AuthShell, LoginField, cardClasses, textLinkClasses } from './shared'
 import { t } from '@/i18n'
 
 // SCR-AUTH-01 Sign In (Figma 128:58 "dormitory-login").
@@ -152,7 +153,7 @@ export default function SignIn() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="peer absolute inset-0 cursor-pointer appearance-none rounded-sm border border-line bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                  className="peer absolute inset-0 cursor-pointer appearance-none rounded-sm border border-line bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 />
                 <span aria-hidden="true" className="pointer-events-none relative size-2 rounded-xs bg-accent opacity-0 peer-checked:opacity-100" />
               </span>
@@ -164,9 +165,9 @@ export default function SignIn() {
           </div>
         </div>
 
-        <button type="submit" disabled={Boolean(pending)} className={primaryButtonClasses}>
+        <Button variant="primary" size="lg" block type="submit" disabled={Boolean(pending)} className="rounded-lg!">
           {pending === 'password' ? t('Signing in…') : t('Sign in')}
-        </button>
+        </Button>
 
         <div className="flex w-full items-center gap-2 pt-1">
           <DividerLine />
@@ -179,7 +180,7 @@ export default function SignIn() {
             type="button"
             onClick={google}
             disabled={Boolean(pending)}
-            className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-line bg-white px-4 text-base leading-5 font-semibold text-fg transition-colors hover:bg-subtle disabled:opacity-60"
+            className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-line bg-surface px-4 text-base leading-5 font-semibold text-fg transition-colors hover:bg-subtle disabled:opacity-60"
           >
             <img src={googleLogo} alt="" className="size-5 shrink-0 object-cover" />
             {pending === 'google' ? t('Waiting for Google…') : t('Sign in with Google')}

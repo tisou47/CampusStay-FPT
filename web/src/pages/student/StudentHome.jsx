@@ -80,7 +80,7 @@ function HomeContent({ home }) {
         title={term ? t('Apply for a dormitory bed for {term}', { term: term.name }) : t('Apply for a dormitory bed')}
         deadline={left != null && left >= 0 ? t(left === 1 ? 'Registration closes in {n} day' : 'Registration closes in {n} days', { n: left }) : null}
         action={
-          <Button tip="Available while the registration period of a term is open." variant="primary" size="lg" to="/student/apply/term" disabled={!term?.registrationOpen}>
+          <Button tip="Available while the registration period of a term is open." variant="primary" to="/student/apply/term" disabled={!term?.registrationOpen}>
             Start application
           </Button>
         }
@@ -95,7 +95,7 @@ function HomeContent({ home }) {
         title={`${tr(dueInvoice.title) || t('Pay your invoice')} · ${formatVnd(dueInvoice.amount)}`}
         deadline={dueIn(dueInvoice.dueAt)}
         action={
-          <Button variant="primary" size="lg" to={payLink}>
+          <Button variant="primary" to={payLink}>
             Pay now
           </Button>
         }
@@ -111,7 +111,7 @@ function HomeContent({ home }) {
         icon={Clock}
         title="Your deposit transfer is being confirmed"
         action={
-          <Button variant="primary" size="lg" to={`/student/applications/${app.id}`}>
+          <Button variant="primary" to={`/student/applications/${app.id}`}>
             View application
           </Button>
         }
@@ -127,7 +127,7 @@ function HomeContent({ home }) {
         deadline={term?.resultsPublishedAt ? t('Assignment results on {date}', { date: formatDate(term.resultsPublishedAt) }) : null}
         deadlineIcon={CalendarCheck}
         action={
-          <Button variant="primary" size="lg" to={`/student/applications/${app.id}`}>
+          <Button variant="primary" to={`/student/applications/${app.id}`}>
             View application
           </Button>
         }
@@ -143,7 +143,7 @@ function HomeContent({ home }) {
         deadline={home.checkedIn ? null : term?.checkInStart ? t('Check-in {dates}', { dates: range(term.checkInStart, term.checkInEnd) }) : null}
         deadlineIcon={CalendarCheck}
         action={
-          <Button variant="primary" size="lg" to="/student/room">
+          <Button variant="primary" to="/student/room">
             View My room
           </Button>
         }
@@ -170,23 +170,21 @@ function HomeContent({ home }) {
 
   return (
     <>
-      <div className="flex shrink-0 flex-col gap-1 max-lg:sr-only">
+      <div className="flex shrink-0 flex-col gap-0.5 max-lg:sr-only lg:flex-row lg:items-baseline lg:justify-between lg:gap-4">
         <h1 className="sr-only text-h1 font-semibold text-fg lg:not-sr-only">{greeting(home.firstName)}</h1>
-        <p className="text-lg text-fg-secondary">{subtitle}</p>
+        <p className="text-base text-fg-secondary">{subtitle}</p>
       </div>
 
       {next}
 
-      <DormitoryBoard />
-
-      <div className="hidden shrink-0 items-stretch gap-6 lg:flex">
+      <section aria-label={t('Overview')} className="hidden shrink-0 grid-cols-2 gap-3 sm:grid lg:grid-cols-4 lg:gap-4">
         <StatusCard icon={FileText} label="Application" {...cards.application} />
         <StatusCard icon={Bed} label="My room" {...cards.room} />
         <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
         <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and room-change requests" to="/student/requests" />
-      </div>
+      </section>
 
-      <StatusList className="lg:hidden">
+      <StatusList className="sm:hidden">
         <StatusRow icon={Bed} value={cards.room.value} note={cards.room.note} to={cards.room.to} />
         {app ? (
           <StatusRow
@@ -205,6 +203,8 @@ function HomeContent({ home }) {
         <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
         <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and room-change requests" to="/student/requests" />
       </StatusList>
+
+      <DormitoryBoard />
 
       <LatestNotification />
     </>
@@ -230,7 +230,7 @@ export default function StudentHome() {
   const home = useQuery(['home', term?.id], ({ signal }) => api.me.home({ termId: term?.id }, { signal }))
   useMobileBar(home.data?.firstName ? t('Hi, {name}', { name: home.data.firstName }) : t('Home'))
   return (
-    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:gap-4 lg:py-5">
+    <StudentContainer className="flex flex-col gap-3 pt-2 pb-4 lg:h-full lg:min-h-0 lg:gap-4 lg:py-4">
       {home.data === undefined && <h1 className="sr-only">{t('Home')}</h1>}
       {home.data === undefined && home.loading ? (
         <LoadingState />

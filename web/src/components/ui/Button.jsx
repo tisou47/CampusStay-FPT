@@ -10,7 +10,7 @@ const variants = {
   primary: 'bg-primary font-semibold text-fg-on-brand shadow-card hover:bg-primary-hover',
   default: 'border border-line-strong bg-surface text-fg hover:border-primary hover:text-fg-brand',
   text: 'text-fg-brand hover:bg-primary-subtle',
-  danger: 'bg-error text-fg-on-brand hover:bg-red-700',
+  danger: 'bg-error text-fg-on-brand hover:bg-error-hover',
   'danger-text': 'text-error-fg hover:bg-error-bg',
 }
 
@@ -116,7 +116,7 @@ function BaseIconButton({ icon: Glyph, size = 'md', iconSize, variant = 'ghost',
   return (
     <button
       type="button"
-      className={cx('inline-flex shrink-0 items-center justify-center rounded-md transition-colors', box, look, className)}
+      className={cx('inline-flex shrink-0 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-45', box, look, className)}
       {...props}
     >
       <Glyph size={iconSize ?? (size === 'sm' ? 16 : 20)} aria-hidden="true" />

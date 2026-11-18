@@ -341,10 +341,12 @@ const vi = {
   'Occupied': 'Có người ở',
   'Final run': 'Lượt chính thức',
   'Dry run': 'Chạy thử',
-  // date picker (components/ui/DatePicker.jsx)
-  'Week': 'Tuần',
+  // date and time pickers (components/ui/date-time)
   'Mo': 'T2', 'Tu': 'T3', 'We': 'T4', 'Th': 'T5', 'Fr': 'T6', 'Sa': 'T7', 'Su': 'CN',
-  'This week': 'Tuần này',
+  'Hour': 'Giờ',
+  'Choose the hours': 'Chọn khung giờ',
+  'dd/mm/yyyy': 'dd/mm/yyyy',
+  'dd/mm/yyyy · --:--': 'dd/mm/yyyy · --:--',
   'Clear': 'Xóa',
   'Previous month': 'Tháng trước',
   'Next month': 'Tháng sau',

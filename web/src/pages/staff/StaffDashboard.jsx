@@ -1,17 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Building, CircleCheck, ClipboardCheck, Gauge, Hand, KeyRound, LogIn, LogOut, TriangleAlert, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
-import { StageNow } from '@/components/layout/FlowTrail'
+import { StageWork, stageSteps } from '@/components/layout/FlowTrail'
+import { STAFF_STAGES } from '@/app/managerFlow'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
-import { CapacityRows, DetailTip, Journey, Panel, WorkList } from '@/components/ui/Work'
+import { SemesterProgress, stageTiming } from '@/components/ui/SemesterProgress'
+import { Tag } from '@/components/ui/Tag'
+import { CapacityRows, DetailTip, Panel, WorkList } from '@/components/ui/Work'
 import { formatDate, formatDateTime, formatDuration, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
-import { termJourney } from '@/lib/termJourney'
 import { t, tr } from '@/i18n'
 
 // SCR-HOME-02 Staff home "Today" (Change Spec v2 §11.2), rebuilt around the person's work: their shift, the
@@ -33,6 +35,16 @@ const DAY = 86_400_000
 function overdueShort(ms) {
   const late = -ms
   return t('{time} overdue', { time: formatDuration(late >= DAY ? Math.floor(late / DAY) * DAY : late) })
+}
+
+/** The time now, moved on every minute, so "5 h 54 min overdue" counts on without a reload (display only). */
+function useMinuteClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  return now
 }
 
 export default function StaffDashboard() {
@@ -63,7 +75,7 @@ export default function StaffDashboard() {
   })
 
   const d = dash.data
-  const now = new Date()
+  const now = useMinuteClock()
   /** One request as a row: the row opens it; status, deadline and the whole record are on the row and its tooltip. */
   const requestItem = (r, mine) => {
     const left = r.slaDueAt ? new Date(r.slaDueAt) - now : null
@@ -82,7 +94,7 @@ export default function StaffDashboard() {
       status: mine ? status : null,
       flags: [
         !mine && r.priority === 'High' && { label: t('Urgent'), variant: 'overdue' },
-        (late || soon) && { label: late ? overdueShort(left) : formatTimeLeft(r.slaDueAt), variant: late ? 'overdue' : 'pending', title: formatDateTime(r.slaDueAt) },
+        (late || soon) && { label: late ? overdueShort(left) : formatTimeLeft(r.slaDueAt, now), variant: late ? 'overdue' : 'pending', title: formatDateTime(r.slaDueAt) },
       ].filter(Boolean),
       details: (
         <DetailTip
@@ -95,7 +107,7 @@ export default function StaffDashboard() {
             { label: t('Status'), value: t(status) },
             { label: t('In charge'), value: mine ? (r.assignee?.name ?? user?.name) : t('Nobody is in charge') },
             { label: t('Reported'), value: formatDateTime(r.reportedAt) },
-            { label: t('Due'), value: r.slaDueAt ? `${formatDateTime(r.slaDueAt)} · ${formatTimeLeft(r.slaDueAt)}` : null },
+            { label: t('Due'), value: r.slaDueAt ? `${formatDateTime(r.slaDueAt)} · ${formatTimeLeft(r.slaDueAt, now)}` : null },
           ]}
         />
       ),
@@ -149,6 +161,7 @@ export default function StaffDashboard() {
       tone: 'info',
       title: t('{n} rooms without a meter reading for {period}', { n: formatNumber(ms.missing), period: tr(period?.label) }),
       meta: t('{entered} of {due} entered · download the template to fill them in Excel', { entered: ms.entered, due: ms.roomsDue }),
+      progress: { value: ms.entered, max: ms.roomsDue, label: t('Meter readings') },
       action: { label: 'Enter readings', to: '/staff/meter-readings' },
     },
     run && run.inspected < run.rooms && {
@@ -172,11 +185,39 @@ export default function StaffDashboard() {
       })),
   ].filter(Boolean)
 
-  const journey = termJourney(term, {
+  const journey = stageSteps(STAFF_STAGES, term, undefined, {
     checkin: ci && ci.expected && !ciClosed ? (ciUpcoming ? t('Opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: ci.expected }) : t('{done} of {n} checked in today', { done: ci.checkedIn, n: ci.expected })) : undefined,
   })
   const myOpen = me.data?.open
   const late = myItems.filter((i) => i.tone === 'error').length
+  const unassignedTotal = unassigned.data?.total
+  const urgentFree = unassigned.data?.summary?.urgentUnassigned
+  // Check-in figures belong to the check-in days only; out of them the tile is hidden (its data is still read).
+  const ciOpen = Boolean(ci) && !ciUpcoming && !ciClosed
+
+  // The Term card's one-line summary: the stage now and its days left.
+  const nowStep = journey.find((x) => x.state === 'current')
+  const nowTiming = nowStep ? stageTiming(nowStep, now) : null
+  const termSummary = nowStep
+    ? nowTiming && !nowTiming.before && !nowTiming.after
+      ? t('{stage} · {n} days left', { stage: t(nowStep.label), n: nowTiming.left })
+      : [t(nowStep.label), nowStep.note && tr(nowStep.note)].filter(Boolean).join(' · ')
+    : null
+
+  // What is still open on each screen of the stage, from the figures this page already reads.
+  const stageCounts = {
+    '/staff/maintenance': late
+      ? { label: t('{n} overdue', { n: late }), tone: 'error' }
+      : myOpen
+        ? { label: formatNumber(myOpen), tone: 'info', title: t('{n} in your charge', { n: myOpen }) }
+        : undefined,
+    '/staff/inspections': run && run.inspected < run.rooms ? { label: `${run.inspected}/${run.rooms}`, tone: 'info' } : undefined,
+    '/staff/meter-readings': ms
+      ? { label: `${formatNumber(ms.entered)}/${formatNumber(ms.roomsDue)}`, tone: ms.missing > 0 ? 'warning' : 'success', title: period ? t('Period {label}', { label: tr(period.label) }) : undefined }
+      : undefined,
+    '/staff/door-codes': dc && dc.toChange + dc.notSet > 0 ? { label: formatNumber(dc.toChange + dc.notSet), tone: dc.toChange ? 'warning' : 'info' } : undefined,
+    '/staff/check-in': ciOpen && ci.expected ? { label: `${formatNumber(ci.checkedIn)}/${formatNumber(ci.expected)}`, tone: ci.waiting ? 'info' : 'success' } : undefined,
+  }
 
   return (
     <>
@@ -202,28 +243,27 @@ export default function StaffDashboard() {
       <StaleNotice query={dash} />
 
       {term && (
-        <Panel title={t('Term {name}', { name: term.name })} subtitle="Where the term stands. The highlighted stage is now." className="shrink-0" bodyClassName="overflow-visible pt-1">
-          <Journey steps={journey} />
-          <StageNow role="staff" term={term} />
-        </Panel>
+        <section aria-label={t('Term {name}', { name: term.name })} className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface px-5 py-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="text-h3 font-semibold text-fg">{t('Term {name}', { name: term.name })}</h2>
+            {termSummary && <p className="truncate text-base font-medium text-fg-brand">{termSummary}</p>}
+          </div>
+          <SemesterProgress steps={journey} now={now} aria-label={t('Stages of the term')} />
+          <StageWork role="staff" term={term} counts={stageCounts} className="border-t border-line pt-3" />
+        </section>
       )}
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Wrench} label="In your charge" value={formatNumber(myOpen)} note={late ? t('{n} overdue', { n: late }) : me.data ? t('{n} resolved in 7 days', { n: me.data.resolved7d }) : null} noteTone={late ? 'error' : 'secondary'} />
-        <KpiTile icon={Hand} label="Unassigned" value={formatNumber(unassigned.data?.total)} note={unassigned.data?.summary?.urgentUnassigned ? t('{n} urgent', { n: unassigned.data.summary.urgentUnassigned }) : 'Requests waiting for someone'} noteTone={unassigned.data?.summary?.urgentUnassigned ? 'error' : 'secondary'} />
-        <KpiTile
-          icon={LogIn}
-          label="Check-ins today"
-          value={ci && !ciUpcoming && !ciClosed ? `${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}` : '—'}
-          note={ciUpcoming ? t('Opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: formatNumber(ci.expected) }) : ciClosed ? t('Check-in closed on {date}', { date: formatDate(ci.checkInEnd) }) : ci ? t('{n} waiting at the desk', { n: ci.waiting }) : 'No check-in window today'}
-        />
-        <KpiTile icon={Gauge} label="Meter readings" value={ms ? `${formatNumber(ms.entered)} / ${formatNumber(ms.roomsDue)}` : '—'} note={period ? t('Period {label}', { label: tr(period.label) }) : null} />
-      </div>
-
-      <div className="grid min-h-80 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_280px] min-[1440px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_320px] gap-4">
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <Panel
           title="My work"
-          subtitle={me.data ? t('{n} requests · most urgent first', { n: myItems.length }) : 'Requests in your charge'}
+          badge={
+            me.data ? (
+              <Tag tone={late ? 'error' : 'info'} dot={false}>
+                {[t('{n} in your charge', { n: formatNumber(myOpen) }), late ? t('{n} overdue', { n: late }) : null].filter(Boolean).join(' · ')}
+              </Tag>
+            ) : null
+          }
+          subtitle={me.data ? `${t('{n} requests · most urgent first', { n: myItems.length })} · ${t('{n} resolved in 7 days', { n: me.data.resolved7d })}` : 'Requests in your charge'}
           action={
             <Button variant="text" size="sm" to="/staff/maintenance">
               All requests
@@ -234,10 +274,19 @@ export default function StaffDashboard() {
             {() => (
               <>
                 <WorkList items={myItems} empty={<EmptyBlock icon={CircleCheck} title="You have nothing to do. Nice work!" className="py-6">Take a request below, or wait for routing to give you one while you are on duty.</EmptyBlock>} />
-                {freeItems.length > 0 && (
+                {(freeItems.length > 0 || unassignedTotal > 0) && (
                   <>
-                    <p className="pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">{t('Unassigned')}</p>
-                    <WorkList items={freeItems} />
+                    <p className="flex items-center gap-2 pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">
+                      {t('Unassigned')}
+                      {unassignedTotal != null && (
+                        <span className="normal-case">
+                          <Tag tone={urgentFree ? 'error' : 'neutral'} dot={false}>
+                            {[formatNumber(unassignedTotal), urgentFree ? t('{n} urgent', { n: urgentFree }) : null].filter(Boolean).join(' · ')}
+                          </Tag>
+                        </span>
+                      )}
+                    </p>
+                    {freeItems.length > 0 ? <WorkList items={freeItems} /> : <p className="py-2 text-sm text-fg-secondary">{t('Requests waiting for someone')}</p>}
                   </>
                 )}
               </>
@@ -245,26 +294,31 @@ export default function StaffDashboard() {
           </QueryState>
         </Panel>
 
-        <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms">
-          <QueryState query={dash} compact isEmpty={() => false}>
-            {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your block needs nothing right now" />} />}
-          </QueryState>
-        </Panel>
+        <div className="flex flex-col gap-4">
+          {ciOpen && (
+            <KpiTile icon={LogIn} label="Check-ins today" value={`${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}`} note={t('{n} waiting at the desk', { n: ci.waiting })} className="flex-none" />
+          )}
+          <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms" className="shrink-0" bodyClassName="overflow-visible">
+            <QueryState query={dash} compact isEmpty={() => false}>
+              {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your block needs nothing right now" />} />}
+            </QueryState>
+          </Panel>
 
-        <Panel title="Beds" subtitle="Taken and held beds against the block's capacity">
-          <QueryState query={dash} compact isEmpty={(x) => !x.bedsByBlock?.length}>
-            {(data) => (
-              <CapacityRows
-                rows={data.bedsByBlock.map((b) => ({
-                  name: t('Block {code}', { code: b.block }),
-                  used: b.proposed,
-                  total: b.capacity,
-                  detail: d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null,
-                }))}
-              />
-            )}
-          </QueryState>
-        </Panel>
+          <Panel title="Beds" subtitle="Taken and held beds against the block's capacity" className="shrink-0" bodyClassName="overflow-visible">
+            <QueryState query={dash} compact isEmpty={(x) => !x.bedsByBlock?.length}>
+              {(data) => (
+                <CapacityRows
+                  rows={data.bedsByBlock.map((b) => ({
+                    name: t('Block {code}', { code: b.block }),
+                    used: b.proposed,
+                    total: b.capacity,
+                    detail: d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null,
+                  }))}
+                />
+              )}
+            </QueryState>
+          </Panel>
+        </div>
       </div>
     </>
   )
