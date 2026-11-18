@@ -1,5 +1,8 @@
 # Each app keeps its own ignore file too: backend/.gitignore, web/.gitignore.
 
+# Dependencies
+node_modules/
+
 # OS and editors
 .DS_Store
 Thumbs.db
