@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 16/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 18/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -17,6 +17,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-03 | Reset password (from the email link) (`mode="reset"`) | `/reset-password` | — | `POST /auth/password/reset` | [auth/ResetPassword.jsx](../../web/src/pages/auth/ResetPassword.jsx) |
 | SCR-AUTH-04 | Set password (invitation link) (`mode="invite"`) | `/set-password` | — | `POST /auth/password/reset` | [auth/ResetPassword.jsx](../../web/src/pages/auth/ResetPassword.jsx) |
 | SCR-AUTH-05 | Set a password (first Google sign-in) | `/account/password` | — | `POST /auth/password/set`<br>`GET /auth/me` | [auth/FirstPassword.jsx](../../web/src/pages/auth/FirstPassword.jsx) |
+| — | DevPickers | `/dev/pickers` | — | — | — |
 
 ## Student — Figma page 05 Web – Student (phones and tablets: 09 Android – Student)
 
@@ -35,7 +36,8 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-BIL-01 | My Invoices | `/student/invoices` | 19:1051 | `GET /students/me/invoices`<br>`GET /students/me/refunds` | [student/MyInvoices.jsx](../../web/src/pages/student/MyInvoices.jsx) |
 | SCR-BIL-03 | Utility Invoice | `/student/invoices/:id` | 102:2263 | `GET /invoices/:id` | [student/InvoiceDetail.jsx](../../web/src/pages/student/InvoiceDetail.jsx) |
 | SCR-BIL-02 | Invoice Payment | `/student/invoices/:id/pay` | 17:701 | `GET /invoices/:id/payment`<br>`POST /invoices/:id/claim`<br>`POST /invoices/:id/payment/refresh` | [student/InvoicePayment.jsx](../../web/src/pages/student/InvoicePayment.jsx) |
-| SCR-ASG-01 | My room | `/student/room` | 39:1535 | `GET /students/me/allocation`<br>`POST /students/me/stay/extension`<br>`POST /students/me/stay/end`<br>`GET /students/me/late-check-in`<br>`POST /students/me/late-check-in`<br>`GET /students/me/door-code`<br>`POST /students/me/door-code/reveal`<br>`GET /students/me/furniture` | [student/MyRoom.jsx](../../web/src/pages/student/MyRoom.jsx) |
+| SCR-ASG-01 | My room | `/student/room` | — | — | [student/MyRoom.jsx](../../web/src/pages/student/MyRoom.jsx) |
+| — | Student › My room › Check-in inventory. The student never sees what the dormitory recorded about the Room. | `/student/room/inventory` | — | `GET /students/me/handover`<br>`POST /students/me/handover/start`<br>`PUT /students/me/handover`<br>`GET /students/me/check-out`<br>`POST /students/me/damage-claims/:id` | [student/CheckInInventory.jsx](../../web/src/pages/student/CheckInInventory.jsx) |
 | SCR-MNT-01 | My Requests | `/student/requests` | 41:1522 | `GET /students/me/requests`<br>`POST /room-class-changes/:id/consent`<br>`GET /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/confirm` | [student/MyRequests.jsx](../../web/src/pages/student/MyRequests.jsx) |
 | SCR-MNT-02 | New Maintenance Request | `/student/requests/maintenance/new` | 41:1719 | `GET /maintenance-requests/options`<br>`POST /maintenance-requests` | [student/NewMaintenanceRequest.jsx](../../web/src/pages/student/NewMaintenanceRequest.jsx) |
 | SCR-REQ-02 | New Room-Change Request (next Term) | `/student/requests/room-change/new` | 59:1743 | `GET /room-changes/options`<br>`POST /room-changes` | [student/NewRoomChangeRequest.jsx](../../web/src/pages/student/NewRoomChangeRequest.jsx) |
@@ -69,6 +71,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-ASG-20 | Term transition | `/staff/next-term/:tab` | — | `GET /renewals` | [transition/TermTransition.jsx](../../web/src/pages/transition/TermTransition.jsx) |
 | SCR-ASG-21 | Operational moves | `/staff/moves` | — | `GET /operational-moves/options`<br>`POST /operational-moves`<br>`GET /operational-moves` | [staff/OperationalMoves.jsx](../../web/src/pages/staff/OperationalMoves.jsx) |
 | SCR-REQ-11 | Check-in Desk | `/staff/check-in` | 60:3026 | `GET /check-in/today`<br>`GET /check-in/lookup`<br>`POST /check-in`<br>`POST /late-check-ins` | [staff/CheckInDesk.jsx](../../web/src/pages/staff/CheckInDesk.jsx) |
+| — | Staff › Check-in › Inventories: the students' check-in inventories of the Blocks. | `/staff/check-in/inventories` | — | `GET /handovers`<br>`GET /handovers/:id` | [staff/HandoverReview.jsx](../../web/src/pages/staff/HandoverReview.jsx) |
 | SCR-REQ-12 | Check-out Desk | `/staff/check-out` | 95:3876 | `GET /check-out`<br>`GET /check-out/:allocationId`<br>`POST /check-out/:allocationId` | [staff/CheckOutDesk.jsx](../../web/src/pages/staff/CheckOutDesk.jsx) |
 | SCR-AUTH-13 | Students | `/staff/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
 | SCR-AUTH-14 | Student hub | `/staff/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
@@ -84,9 +87,10 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 
 | Code | Screen | Route | Figma | API calls | Page |
 |---|---|---|---|---|---|
-| SCR-HOME-03 | Manager Dashboard | `/manager` | — | `GET /dashboards/manager` | [manager/ManagerDashboard.jsx](../../web/src/pages/manager/ManagerDashboard.jsx) |
+| SCR-HOME-03 | Manager Dashboard | `/manager` | — | — | [manager/ManagerDashboard.jsx](../../web/src/pages/manager/ManagerDashboard.jsx) |
 | SCR-REQ-20 | Decisions (late check-in, swaps, refunds) (`tab="late-check-in"`) | `/manager/approvals` | 99:2192 | `GET /approvals/summary`<br>`GET /late-check-ins`<br>`POST /late-check-ins/:id/decision`<br>`GET /swaps`<br>`POST /swaps/:id/decision.`<br>`GET /refunds` | [manager/Approvals.jsx](../../web/src/pages/manager/Approvals.jsx) |
 | SCR-REQ-20 | Decisions (`tab="late-check-in"`) | `/manager/approvals/late-check-in` | 99:2192 | `GET /approvals/summary`<br>`GET /late-check-ins`<br>`POST /late-check-ins/:id/decision`<br>`GET /swaps`<br>`POST /swaps/:id/decision.`<br>`GET /refunds` | [manager/Approvals.jsx](../../web/src/pages/manager/Approvals.jsx) |
+| — | Manager › Approvals › Check-out charges: furniture charges a student did not accept at the desk. | `/manager/approvals/check-out-charges` | — | `GET /check-out-reviews`<br>`POST /check-out-reviews/:allocationId/:itemId` | [manager/CheckOutReviews.jsx](../../web/src/pages/manager/CheckOutReviews.jsx) |
 | SCR-APP-10 | Application Queue | `/manager/applications` | 22:2 | `GET /applications`<br>`POST /applications/bulk-review` | [staff/ApplicationQueue.jsx](../../web/src/pages/staff/ApplicationQueue.jsx) |
 | SCR-APP-11 | Application Review | `/manager/applications/:id` | 22:732 | `GET /applications/:id`<br>`POST /applications/:id/review` | [staff/ApplicationReview.jsx](../../web/src/pages/staff/ApplicationReview.jsx) |
 | SCR-ASG-10 | Assignment Runs | `/manager/assignment` | 35:1357 | `GET /assignment-runs`<br>`POST /assignment-runs`<br>`GET /round2`<br>`POST /round2/run`<br>`GET /round2/offers` | [staff/AssignmentRuns.jsx](../../web/src/pages/staff/AssignmentRuns.jsx) |
@@ -113,6 +117,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-MNT-10 | Maintenance Queue | `/manager/maintenance` | 42:2251 | `GET /maintenance-requests`<br>`GET /maintenance-requests/options` | [staff/MaintenanceQueue.jsx](../../web/src/pages/staff/MaintenanceQueue.jsx) |
 | SCR-MNT-11 | Maintenance Detail | `/manager/maintenance/:id` | 42:2739 | `GET /maintenance-requests/:id`<br>`PATCH /maintenance-requests/:id`<br>`POST /maintenance-requests/:id/updates` | [staff/MaintenanceDetail.jsx](../../web/src/pages/staff/MaintenanceDetail.jsx) |
 | SCR-MNT-20 | Inspection Schedule | `/manager/inspections` | 99:2569 | `GET /inspection-schedules`<br>`POST /inspection-schedules`<br>`PUT /inspection-schedules/:id` | [manager/InspectionSchedule.jsx](../../web/src/pages/manager/InspectionSchedule.jsx) |
+| — | Staff › Check-in › Inventories: the students' check-in inventories of the Blocks. | `/manager/check-in/inventories` | — | `GET /handovers`<br>`GET /handovers/:id` | [staff/HandoverReview.jsx](../../web/src/pages/staff/HandoverReview.jsx) |
 | SCR-BIL-20 | Block Finance | `/manager/finance` | 61:707 | `GET /finance/summary`<br>`GET /refunds`<br>`POST /refunds/:id/decision`<br>`POST /refunds/:id/account-reminder`<br>`GET /finance/overdue`<br>`POST /finance/reminders`<br>`GET /invoices` | [manager/BlockFinance.jsx](../../web/src/pages/manager/BlockFinance.jsx) |
 | SCR-AUTH-10 | Block staff | `/manager/staff` | 69:554 | `GET /block-staff`<br>`PUT /block-staff/:id` | [manager/BlockStaff.jsx](../../web/src/pages/manager/BlockStaff.jsx) |
 | SCR-REQ-20 | Request Routing Rules | `/manager/routing-rules` | 69:949 | `GET /routing-rules`<br>`POST /routing-rules`<br>`PUT /routing-rules/:id`<br>`PUT /routing-rules/timers` | [manager/RoutingRules.jsx](../../web/src/pages/manager/RoutingRules.jsx) |
@@ -156,6 +161,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-CFG-27 | Demo data | `/admin/demo` | — | `GET /admin/demo`<br>`POST /admin/demo/reset`<br>`GET /admin/demo/files/:kind` | [admin/DemoData.jsx](../../web/src/pages/admin/DemoData.jsx) |
 | SCR-INV-01 | Buildings and Structure | `/admin/buildings` | 25:1593 | `GET /admin/buildings`<br>`POST /admin/buildings`<br>`PUT /admin/buildings/:id`<br>`POST /admin/buildings/:id/rooms/bulk`<br>`GET /admin/buildings/:id/floors/:floor/rooms` | [admin/Buildings.jsx](../../web/src/pages/admin/Buildings.jsx) |
 | SCR-INV-14 | Furniture types | `/admin/furniture-types` | — | `GET /admin/furniture-types`<br>`POST /admin/furniture-types`<br>`PUT /admin/furniture-types/:id` | [admin/FurnitureTypes.jsx](../../web/src/pages/admin/FurnitureTypes.jsx) |
+| — | Admin › Furniture types › Prices: what each furniture type costs to replace in each Room Class | `/admin/furniture-prices` | — | `GET /admin/furniture-prices`<br>`PUT /admin/furniture-prices` | [admin/FurniturePrices.jsx](../../web/src/pages/admin/FurniturePrices.jsx) |
 | SCR-AUTH-11 | Users and Roles | `/admin/users` | 63:2150 | `GET /admin/users`<br>`POST /admin/users`<br>`PUT /admin/users/:id`<br>`GET /admin/permissions` | [admin/UsersRoles.jsx](../../web/src/pages/admin/UsersRoles.jsx) |
 | SCR-RPT-01 | Occupancy report | `/admin/reports/occupancy` | 72:2988 | `GET /reports/occupancy`<br>`GET /exports/occupancy` | [admin/OccupancyReport.jsx](../../web/src/pages/admin/OccupancyReport.jsx) |
 | SCR-RPT-02 | Financial report | `/admin/reports/financial` | 72:3428 | `GET /reports/financial`<br>`GET /exports/financial` | [admin/FinancialReport.jsx](../../web/src/pages/admin/FinancialReport.jsx) |
