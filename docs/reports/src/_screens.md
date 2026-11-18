@@ -130,8 +130,8 @@
 | 21 | SCR-INV-01 Buildings and Structure | /admin/buildings | GET /admin/buildings<br>POST /admin/buildings<br>PUT /admin/buildings/:id<br>POST /admin/buildings/:id/rooms/bulk<br>(+1 more) |
 | 22 | SCR-INV-14 Furniture types | /admin/furniture-types | GET /admin/furniture-types<br>POST /admin/furniture-types<br>PUT /admin/furniture-types/:id |
 | 23 | SCR-AUTH-11 Users and Roles | /admin/users | GET /admin/users<br>POST /admin/users<br>PUT /admin/users/:id<br>GET /admin/permissions |
-| 24 | SCR-RPT-01 Occupancy Report | /admin/reports/occupancy | GET /reports/occupancy<br>GET /exports/occupancy |
-| 25 | SCR-RPT-02 Financial Report | /admin/reports/financial | GET /reports/financial<br>GET /exports/financial |
+| 24 | SCR-RPT-01 Occupancy Report | /manager/reports/occupancy | GET /reports/occupancy<br>GET /exports/occupancy |
+| 25 | SCR-RPT-02 Financial Report | /manager/reports/financial | GET /reports/financial<br>GET /exports/financial |
 | 26 | SCR-AUTH-12 Audit Log | /admin/audit-log | GET /admin/audit-log<br>GET /exports/audit-log |
 | 27 | SCR-AUTH-13 Students | /admin/students | GET /student-accounts |
 | 28 | SCR-AUTH-14 Student hub | /admin/students/:id | GET /student-accounts/:id<br>PUT /student-accounts/:id<br>POST /student-accounts/:id/verify<br>POST /student-accounts/:id/reject<br>(+2 more) |

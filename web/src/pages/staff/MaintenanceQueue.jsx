@@ -13,13 +13,14 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { SlaBadge, StatusTag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-10 Maintenance Queue (Figma 42:2251). Shared with the Manager portal.
 // GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize → {
-//   items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status, slaDueAt }], total,
+//   items: [{ id, room, title (shown on hover), category, priority, reportedAt, assignee: { id, name } | null, status, slaDueAt }], total,
 //   summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }
 // GET /maintenance-requests/options → { categories, priorities, staff: [{ id, name }] }
 
@@ -28,6 +29,15 @@ const statusFilters = [
   { value: 'open', label: 'Status: Open' },
   ...['Submitted', 'Assigned', 'In progress', 'Resolved', 'Closed'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) })),
 ]
+
+// A KPI tile that filters the queue: a second click clears the filter.
+function FilterTile({ active, onClick, ...tile }) {
+  return (
+    <button type="button" aria-pressed={active} onClick={onClick} className="group flex min-w-0 flex-1 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      <KpiTile size="md" {...tile} className={cx('h-full transition-colors group-hover:border-primary', active && 'border-primary bg-primary-subtle')} />
+    </button>
+  )
+}
 
 export default function MaintenanceQueue() {
   const navigate = useNavigate()
@@ -77,21 +87,29 @@ export default function MaintenanceQueue() {
       />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Wrench} label="Open" value={formatNumber(s?.open)} note="Submitted, Assigned or In progress" />
+        <FilterTile
+          icon={Wrench}
+          label="Open"
+          value={formatNumber(s?.open)}
+          note="Submitted, Assigned or In progress"
+          active={status === 'open'}
+          onClick={() => filter(setStatus)({ target: { value: status === 'open' ? '' : 'open' } })}
+        />
         <KpiTile size="md" icon={TriangleAlert} label="Urgent" value={formatNumber(s?.urgent)} valueTone={s?.urgent ? 'error' : undefined} note={s ? t('{n} unassigned', { n: formatNumber(s.urgentUnassigned) }) : null} />
-        <KpiTile
-          size="md"
+        <FilterTile
           icon={User}
           label="Unassigned"
           value={formatNumber(s?.unassigned)}
           valueTone={s?.unassigned ? 'warning' : undefined}
           note={s?.oldestUnassignedAt ? t('Oldest {date}', { date: formatDateTime(s.oldestUnassignedAt) }) : s ? 'None waiting' : null}
+          active={assigneeId === 'none'}
+          onClick={() => filter(setAssigneeId)({ target: { value: assigneeId === 'none' ? '' : 'none' } })}
         />
         <KpiTile size="md" icon={CircleCheck} label="Resolved this week" value={formatNumber(s?.resolvedThisWeek)} note={s ? t('{n} waiting for student confirmation', { n: formatNumber(s.waitingConfirmation) }) : null} />
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID, room or title" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID or room" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select wrapperClassName="w-40" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
           wrapperClassName="w-36"
@@ -119,35 +137,35 @@ export default function MaintenanceQueue() {
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-36">Request</Th>
-            <Th className="w-20">Room</Th>
-            <Th>Title</Th>
-            <Th className="w-32">Category</Th>
-            <Th className="w-24">Priority</Th>
-            <Th className="w-40">Reported</Th>
-            <Th className="w-36">Assignee</Th>
-            <Th className="w-28">Status</Th>
-            <Th className="w-28">Time left</Th>
+            <Th className="w-[13%]">Request</Th>
+            <Th className="w-[9%]">Room</Th>
+            <Th className="w-[13%]">Category</Th>
+            <Th className="w-[11%]">Priority</Th>
+            <Th className="w-[15%]">Reported</Th>
+            <Th>Assignee</Th>
+            <Th className="w-[12%]">Status</Th>
+            <Th className="w-[12%]">Time left</Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyIcon={Wrench} emptyTitle="No maintenance requests match these filters" />
+          <TableStatus query={query} colSpan={8} emptyIcon={Wrench} emptyTitle="No maintenance requests match these filters" />
           {items.map((r) => (
-            <Tr key={r.id} onClick={() => navigate(`${base}/maintenance/${r.id}`)} className="[&>td]:h-11.5">
-              <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
-              <Td>{r.room}</Td>
-              <Td className="max-w-0 truncate">{r.title}</Td>
+            <Tr key={r.id} onClick={() => navigate(`${base}/maintenance/${r.id}`)} className="[&>td]:h-12">
+              <Td className="font-medium whitespace-nowrap text-fg-brand">
+                <span title={r.title}>{r.id}</span>
+              </Td>
+              <Td className="font-medium whitespace-nowrap">{r.room}</Td>
               <Td className="whitespace-nowrap">{tr(r.category)}</Td>
               <Td>
                 <StatusTag status={r.priority} />
               </Td>
-              <Td className="whitespace-nowrap">{formatDateTime(r.reportedAt)}</Td>
-              <Td className={r.assignee ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{r.assignee?.name ?? '—'}</Td>
+              <Td className="whitespace-nowrap text-fg-secondary tabular">{formatDateTime(r.reportedAt)}</Td>
+              <Td className={cx('max-w-0 truncate', !r.assignee && 'text-fg-tertiary')}>{r.assignee?.name ?? t('Unassigned')}</Td>
               <Td>
                 <StatusTag status={r.status} />
               </Td>
               <Td>
-                <SlaBadge dueAt={r.slaDueAt} done={r.status === 'Resolved' || r.status === 'Closed'} />
+                {r.status === 'Resolved' || r.status === 'Closed' ? <span className="text-fg-tertiary">—</span> : <SlaBadge dueAt={r.slaDueAt} />}
               </Td>
             </Tr>
           ))}

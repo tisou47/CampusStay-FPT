@@ -1,13 +1,11 @@
-import { useState } from 'react'
 import { Download, Info } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
+import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
-import { Select } from '@/components/ui/Field'
 import { QueryState } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { cx } from '@/lib/cx'
@@ -26,8 +24,8 @@ const rate = (r) => (r.invoiced ? formatPercent(r.collected / r.invoiced) : '—
 export default function FinancialReport() {
   const { term } = useSession()
   const { notifyError } = useToast()
-  const [block, setBlock] = useState('')
-  const params = { termId: term?.id, block: block || undefined }
+  // The Manager's Term and Block selectors (top bar) choose what the report covers.
+  const params = useScopeQuery()
   const query = useQuery(['reports', 'financial', params], ({ signal }) => api.finance.report(params, { signal }))
   const d = query.data
   const s = d?.summary
@@ -40,7 +38,6 @@ export default function FinancialReport() {
         description={`${t('Invoiced, collected and refunded amounts (₫)')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <>
-            <Select aria-label={t('Block')} wrapperClassName="w-35" value={block} onChange={(e) => setBlock(e.target.value)} options={[{ value: '', label: 'All blocks' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]} />
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
               Export .xlsx
             </Button>

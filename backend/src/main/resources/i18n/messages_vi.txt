@@ -653,6 +653,7 @@ Write the announcement in at most 4,000 characters. ⟶ Hãy viết nội dung t
 End it after it starts and after now. ⟶ Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại.
 Choose at least one Block. ⟶ Hãy chọn ít nhất một tòa.
 Choose a published Term. ⟶ Hãy chọn một học kỳ đã công bố.
+Choose a page of the student portal. ⟶ Hãy chọn một trang của cổng sinh viên.
 Staff write to the residents of their Blocks only. ⟶ Nhân viên chỉ gửi thông báo cho sinh viên đang ở các tòa của mình.
 
 # Names of values in change announcements (the announcement's Vietnamese text)

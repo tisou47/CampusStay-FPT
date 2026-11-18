@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -71,9 +72,12 @@ public class AnnouncementService {
     public record Options(List<String> categories, List<String> audiences, List<String> blocks, List<TermOption> terms) {
     }
 
-    /** {@code audience}: All students, All residents, Residents of Blocks (with {@code blocks}), Applicants of a Term. */
+    /**
+     * {@code audience}: All students, All residents, Residents of Blocks (with {@code blocks}), Applicants of a Term.
+     * {@code link}: optional, a page of the student portal the board opens ("Open"), e.g. {@code /student/requests}.
+     */
     public record NewAnnouncement(String category, String audience, List<String> blocks, String termId, String title,
-            String body, Boolean pinned, Instant shownFrom, Instant shownUntil) {
+            String body, Boolean pinned, Instant shownFrom, Instant shownUntil, String link) {
     }
 
     /** Pin or unpin, or end it now ({@code end}) or at {@code shownUntil}. */
@@ -104,6 +108,9 @@ public class AnnouncementService {
     }
 
     private static final int BOARD_SIZE = 20;
+
+    /** A link written by hand stays inside the student portal: "/student" and up to five plain path segments. */
+    private static final Pattern STUDENT_PAGE = Pattern.compile("/student(/[A-Za-z0-9-]{1,60}){0,5}");
 
     private final JdbcClient jdbc;
     private final JsonMapper json;
@@ -300,6 +307,8 @@ public class AnnouncementService {
         String text = body == null || body.body() == null ? "" : body.body().trim();
         errors.check(!title.isEmpty() && title.length() <= 200, "title", "Write a title of at most 200 characters.");
         errors.check(!text.isEmpty() && text.length() <= 4000, "body", "Write the announcement in at most 4,000 characters.");
+        String link = body == null || body.link() == null || body.link().isBlank() ? null : body.link().trim();
+        errors.check(link == null || STUDENT_PAGE.matcher(link).matches(), "link", "Choose a page of the student portal.");
         Instant now = Instant.now(clock);
         Instant from = body == null || body.shownFrom() == null ? now : body.shownFrom();
         Instant until = body == null ? null : body.shownUntil();
@@ -325,7 +334,7 @@ public class AnnouncementService {
                     "Staff write to the residents of their Blocks only.");
         }
         errors.throwIfAny();
-        long id = insert(new SystemAnnouncement(category, audience, termId, blocks, title, title, text, text, null, null,
+        long id = insert(new SystemAnnouncement(category, audience, termId, blocks, title, title, text, text, null, link,
                 Boolean.TRUE.equals(body.pinned()), until, "MANUAL"), from, me.userId());
         audit.record("ANNOUNCEMENT_CREATED", AuditLog.Tone.INFO, "Announcement", id, title,
                 Map.of("audience", AUDIENCES.get(audience)));
