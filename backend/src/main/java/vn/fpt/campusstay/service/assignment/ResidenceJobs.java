@@ -8,7 +8,8 @@ import org.springframework.stereotype.Component;
 /**
  * Residence jobs (spec §6.6, §6.8, §6.15): every 5 minutes Allocations whose Balance passed its deadline are
  * forfeited; every 15 minutes door codes are released to paid residents whose check-in start has come, and
- * terminations past their move-out date become overdue. All idempotent.
+ * terminations past their move-out date become overdue, check-in inventories past their deadline close and their
+ * students are reminded before it. All idempotent.
  */
 @Component
 class ResidenceJobs {
@@ -18,8 +19,11 @@ class ResidenceJobs {
     private final ForfeitService forfeits;
     private final DoorCodeRelease release;
     private final TerminationService terminations;
+    private final HandoverJobService handovers;
 
-    ResidenceJobs(ForfeitService forfeits, DoorCodeRelease release, TerminationService terminations) {
+    ResidenceJobs(ForfeitService forfeits, DoorCodeRelease release, TerminationService terminations,
+            HandoverJobService handovers) {
+        this.handovers = handovers;
         this.forfeits = forfeits;
         this.release = release;
         this.terminations = terminations;
@@ -41,6 +45,11 @@ class ResidenceJobs {
         if (released > 0) {
             log.info("{} door codes released", released);
         }
+        int closed = handovers.closeDue();
+        if (closed > 0) {
+            log.info("{} check-in inventories closed by their deadline", closed);
+        }
+        handovers.remind();
         int overdue = terminations.markOverdue();
         if (overdue > 0) {
             log.info("{} terminations overdue", overdue);
