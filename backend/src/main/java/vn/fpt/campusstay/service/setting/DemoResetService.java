@@ -157,7 +157,30 @@ public class DemoResetService {
                 .query((rs, i) -> new LastReset(rs.getString("stage"), rs.getTimestamp("at").toInstant(),
                         rs.getString("actor_label")))
                 .optional().orElse(null);
-        return new Status(true, STAGES, scenarios(), FILES, last);
+        return new Status(true, STAGES, withAccounts(scenarios()), FILES, last);
+    }
+
+    /**
+     * The students of the check-in inventory scenarios (S40–S45) are chosen by db/demo/plan.sql (the first K21
+     * students of Block A's gender not used elsewhere): their accounts replace {S40} … {S45} in scenarios.csv.
+     */
+    private List<Scenario> withAccounts(List<Scenario> scenarios) {
+        List<String> codes = jdbc.sql("""
+                SELECT s.student_code FROM auth_student s JOIN auth_user u ON u.id = s.user_id
+                WHERE u.demo AND u.status = 'ACTIVE' AND s.cohort = 'K21'
+                  AND s.gender = (SELECT trim(gender) FROM inv_building WHERE code = 'A')
+                  AND s.student_code NOT IN (:reserved)
+                ORDER BY s.student_code LIMIT 6
+                """).param("reserved", SCENARIO_CODES).query(String.class).list();
+        java.util.function.UnaryOperator<String> fill = text -> {
+            String out = text;
+            for (int i = 0; i < codes.size(); i++) {
+                out = out.replace("{S4" + i + "}", codes.get(i).toLowerCase(java.util.Locale.ROOT));
+            }
+            return out;
+        };
+        return scenarios.stream().map(s -> new Scenario(s.id(), s.stages(), fill.apply(s.account()), s.role(),
+                fill.apply(s.scenario()), s.where(), fill.apply(s.scenarioVi()), s.whereVi())).toList();
     }
 
     @Transactional

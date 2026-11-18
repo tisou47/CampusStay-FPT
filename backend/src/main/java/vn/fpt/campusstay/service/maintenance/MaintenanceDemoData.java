@@ -29,6 +29,9 @@ class MaintenanceDemoData implements DemoData {
         jdbc.execute("DELETE FROM mnt_inspection_room_check");
         jdbc.execute("DELETE FROM mnt_inspection_room");
         jdbc.execute("DELETE FROM mnt_inspection_run");
+        jdbc.execute("DELETE FROM mnt_inspection_schedule WHERE name LIKE '% (demo)'");
+        jdbc.execute("DELETE FROM mnt_checklist_item WHERE checklist_id IN (SELECT id FROM mnt_checklist WHERE family_key = 'DEMO_TURNOVER')");
+        jdbc.execute("DELETE FROM mnt_checklist WHERE family_key = 'DEMO_TURNOVER'");
         jdbc.execute("DELETE FROM mnt_request_photo");
         jdbc.execute("DELETE FROM mnt_request_event");
         jdbc.execute("DELETE FROM mnt_request");

@@ -151,3 +151,98 @@ SELECT DISTINCT p.run_id, p.building_id, 'COMMITTED', ru.started_by, ru.finished
        ru.finished_at, ru.finished_at
 FROM asg_proposal_item p JOIN asg_run ru ON ru.id = p.run_id
 WHERE p.building_id IS NOT NULL;
+
+-- ---------- check-in inventories (S40–S45, every stage) ----------
+-- Term N places on floor 9 of Block A. S40 paid and has an approved late arrival: they may start the inventory
+-- (staffa01 has still to inspect A-901). S41 started it 6 hours ago; S42 filed it with a missing wardrobe and a
+-- meter far above the Room's record (Major difference, for Staff to review); S43 is S42's roommate whose
+-- inventory is final (it prefills S42's shared items); S44's inventory waits for Staff's visit today; S45 has lived
+-- in A-905 since the start of the Term and is asked to confirm damage to a shared item.
+INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, started_at)
+SELECT h.student_id, t.n_id, t.n_id, 1, 1, t.now - interval '20 days' FROM demo_handover h CROSS JOIN demo_t t;
+
+INSERT INTO asg_allocation (term_id, student_id, bed_id, status, source, allocated_at, allocated_by, resident_at,
+                            code_released_at, eligible_at, handover_needed, utility_from, checked_in_at, stay_id)
+SELECT t.n_id, h.student_id, h.bed_id, 'ACTIVE', 'MANUAL', t.now - interval '20 days',
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), w.since, w.since,
+       coalesce(w.since, t.now - interval '2 hours'), TRUE, w.final, w.final, s.id
+FROM demo_handover h CROSS JOIN demo_t t
+JOIN asg_stay s ON s.student_id = h.student_id AND s.first_term_id = t.n_id
+JOIN (SELECT d.student_id,
+             CASE d.scenario WHEN 'S40' THEN NULL WHEN 'S41' THEN t2.now - interval '6 hours'
+                             WHEN 'S42' THEN t2.now - interval '30 hours' WHEN 'S43' THEN t2.now - interval '10 days'
+                             WHEN 'S44' THEN t2.now - interval '2 days'
+                             ELSE ((t2.n_start - 2) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS since,
+             CASE d.scenario WHEN 'S43' THEN t2.now - interval '10 days' + interval '1 hour'
+                             WHEN 'S45' THEN ((t2.n_start - 2) + TIME '11:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS final
+      FROM demo_handover d CROSS JOIN demo_t t2) w ON w.student_id = h.student_id;
+
+-- S40 asked online for a late arrival; a Manager approved it until the day after tomorrow.
+INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, window_closed_at, suggested_deadline, status,
+                               deadline, decided_by, decided_at, created_at, source)
+SELECT al.id, 'Given a place after the check-in period: arriving from Can Tho this week.', t.today + 1,
+       ((t.n_start + 4) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh', t.today + 2, 'APPROVED', t.today + 2,
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), t.now - interval '1 day', t.now - interval '2 days',
+       'ONLINE'
+FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id = h.student_id AND al.term_id = t.n_id
+WHERE h.scenario = 'S40';
+
+INSERT INTO asg_handover (allocation_id, room_id, status, source, opened_at, due_at, submitted_at, electricity, water,
+                          baseline_electricity, baseline_water, baseline_at, comparison, comparison_note,
+                          verify_requested_at, verify_requested_by, visit_at, verified_electricity, verified_water,
+                          finalized_at, utility_from, reminders_sent)
+SELECT al.id, h.room_id,
+       CASE h.scenario WHEN 'S41' THEN 'DRAFT' WHEN 'S42' THEN 'SUBMITTED' WHEN 'S44' THEN 'VERIFYING' ELSE 'FINAL' END,
+       CASE WHEN h.scenario IN ('S43', 'S45') THEN 'STUDENT' END,
+       al.code_released_at, al.code_released_at + interval '48 hours',
+       CASE h.scenario WHEN 'S42' THEN t.now - interval '3 hours' WHEN 'S44' THEN t.now - interval '1 day'
+                       WHEN 'S41' THEN NULL ELSE al.utility_from END,
+       CASE h.scenario WHEN 'S41' THEN NULL WHEN 'S42' THEN h.meter_e + 43.5 ELSE h.meter_e + 0.8 END,
+       CASE h.scenario WHEN 'S41' THEN NULL ELSE h.meter_w + 0.1 END,
+       h.meter_e, h.meter_w,
+       CASE WHEN h.scenario = 'S45' THEN al.utility_from - interval '1 day' ELSE t.now - interval '3 days' END,
+       CASE h.scenario WHEN 'S42' THEN 'MAJOR' WHEN 'S44' THEN 'MINOR' WHEN 'S43' THEN 'MATCHED'
+                       WHEN 'S45' THEN 'MATCHED' END,
+       CASE h.scenario WHEN 'S42' THEN 'Wardrobe: Good → Missing' || chr(10) || 'Electricity +43.5 kWh (allowed 13.5 kWh)'
+                       WHEN 'S44' THEN 'Desk: Good → Damaged' END,
+       CASE WHEN h.scenario = 'S44' THEN t.now - interval '20 hours' END,
+       CASE WHEN h.scenario = 'S44' THEN (SELECT id FROM demo_staff WHERE account = 'staffa01') END,
+       CASE WHEN h.scenario = 'S44' THEN (t.today + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
+       CASE WHEN h.scenario = 'S44' THEN h.meter_e + 0.8 END, CASE WHEN h.scenario = 'S44' THEN h.meter_w + 0.1 END,
+       al.utility_from, al.utility_from, CASE WHEN h.scenario = 'S41' THEN 0 ELSE 2 END
+FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id = h.student_id AND al.term_id = t.n_id
+WHERE h.scenario <> 'S40';
+
+-- The items each student answers for: their Bed's and the Room's shared items, inspected Good before.
+INSERT INTO asg_handover_item (handover_id, furniture_item_id, condition, note, baseline_condition, baseline_source,
+                               verified_condition, pre_existing)
+SELECT ho.id, i.id,
+       CASE h.scenario
+            WHEN 'S41' THEN CASE WHEN i.bed_id IS NOT NULL AND ft.code <> 'DESK' THEN 'GOOD' END
+            WHEN 'S42' THEN CASE WHEN ft.code = 'WRD' THEN 'MISSING' WHEN i.bed_id IS NULL THEN 'WORN' ELSE 'GOOD' END
+            WHEN 'S44' THEN CASE WHEN ft.code = 'DESK' THEN 'DAMAGED' ELSE 'GOOD' END
+            ELSE 'GOOD' END,
+       CASE WHEN h.scenario = 'S42' AND ft.code = 'WRD' THEN 'There is no wardrobe next to my bed.'
+            WHEN h.scenario = 'S44' AND ft.code = 'DESK' THEN 'The drawer of the desk is broken.' END,
+       'GOOD', 'INSPECTION',
+       CASE WHEN h.scenario = 'S44' THEN CASE WHEN ft.code = 'DESK' THEN 'DAMAGED' ELSE 'GOOD' END END, FALSE
+FROM asg_handover ho JOIN asg_allocation al ON al.id = ho.allocation_id
+JOIN demo_handover h ON h.student_id = al.student_id
+JOIN inv_furniture_item i ON i.room_id = h.room_id AND i.status <> 'DISPOSED'
+                         AND (i.bed_id IS NULL OR i.bed_id = h.bed_id)
+JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id;
+
+-- S45: staffa01 records that S45 broke a shared appliance of A-905; S45 has two days to confirm it (then it is
+-- charged at check-out) or decline it (nobody is charged).
+INSERT INTO asg_damage_claim (allocation_id, furniture_item_id, condition, note, status, amount, created_by, created_at,
+                              due_at)
+SELECT al.id, i.id, 'DAMAGED', 'Cracked casing after it was knocked over.', 'PENDING',
+       coalesce((SELECT p.price FROM inv_furniture_price p
+                 WHERE p.furniture_type_id = i.furniture_type_id
+                   AND p.room_class_id = inv_room_class_in(h.room_id, t.n_id)), 0)
+           * (SELECT CAST(value AS INT) FROM cfg_parameter WHERE key = 'compensation.damaged_percent') / 100,
+       (SELECT id FROM demo_staff WHERE account = 'staffa01'), t.now - interval '4 hours', t.now + interval '44 hours'
+FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id = h.student_id AND al.term_id = t.n_id
+JOIN LATERAL (SELECT f.* FROM inv_furniture_item f WHERE f.room_id = h.room_id AND f.bed_id IS NULL
+              AND f.status = 'IN_USE' ORDER BY f.asset_code LIMIT 1) i ON TRUE
+WHERE h.scenario = 'S45';

@@ -68,3 +68,58 @@ SELECT r.id, r.assignee_id, 'STAFF', 'Status: Resolved', FALSE, r.resolved_at FR
 INSERT INTO mnt_request_event (request_id, actor_id, actor_role, text, message, internal, at)
 SELECT r.id, r.reporter_id, 'STUDENT', 'Status: Closed', 'Fixed, thank you!', FALSE, r.closed_at
 FROM mnt_request r WHERE r.closed_at IS NOT NULL;
+
+-- ---------- pre-arrival inspection of Block A, floor 9 (S40–S45) ----------
+-- A published turnover checklist and a pre-arrival schedule of manager01 for Block A; its run is assigned to
+-- staffa01: A-902 … A-905 were inspected three days ago (every item Good, meters read), A-901 (S40's Room) is still
+-- to do. The meters are the record the students' inventories are compared with.
+INSERT INTO mnt_checklist (family_key, name, version, status, published_at, updated_at)
+SELECT 'DEMO_TURNOVER', 'Room turnover check', 1, 'PUBLISHED', t.now - interval '30 days', t.now - interval '30 days'
+FROM demo_t t;
+
+INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
+SELECT c.id, v.label, v.category, v.severity, v.n
+FROM mnt_checklist c
+CROSS JOIN (VALUES (1, 'Lights and sockets work', 'ELECTRICAL', 'MAJOR'),
+                   (2, 'Taps, shower and toilet work without leaks', 'PLUMBING', 'MAJOR'),
+                   (3, 'Door lock and windows close properly', 'OTHER', 'MINOR')) v (n, label, category, severity)
+WHERE c.family_key = 'DEMO_TURNOVER';
+
+INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
+                                     create_requests, notify_residents, next_run_at, status, created_at, kind)
+SELECT b.id, 'Pre-arrival check (demo)', 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
+       (SELECT id FROM demo_staff WHERE account = 'staffa01'), 4, TRUE, FALSE, NULL, 'ACTIVE', t.now - interval '3 days',
+       'PRE_ARRIVAL'
+FROM inv_building b CROSS JOIN demo_t t WHERE b.code = 'A';
+
+INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
+                                created_at)
+SELECT s.id, s.building_id, c.id, t.today - 3, ((t.today + 2) + TIME '00:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       s.assignee_id, 'IN_PROGRESS', t.now - interval '3 days'
+FROM mnt_inspection_schedule s CROSS JOIN demo_t t
+JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
+WHERE s.name = 'Pre-arrival check (demo)';
+
+INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
+SELECT ru.id, r.room_id, CASE WHEN r.code = 'A-901' THEN 'PENDING' ELSE 'INSPECTED' END,
+       CASE WHEN r.code <> 'A-901' THEN t.now - interval '3 days' END,
+       CASE WHEN r.code <> 'A-901' THEN h.meter_e END, CASE WHEN r.code <> 'A-901' THEN h.meter_w END,
+       CASE WHEN r.code <> 'A-901' THEN ru.inspector_id END
+FROM mnt_inspection_run ru JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+CROSS JOIN demo_t t
+JOIN demo_rooms r ON r.code IN ('A-901', 'A-902', 'A-903', 'A-904', 'A-905')
+JOIN (SELECT DISTINCT room_id, meter_e, meter_w FROM demo_handover) h ON h.room_id = r.room_id
+WHERE s.name = 'Pre-arrival check (demo)';
+
+INSERT INTO mnt_inspection_result (inspection_room_id, item_id, result)
+SELECT ir.id, ci.id, 'PASS'
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_checklist_item ci ON ci.checklist_id = ru.checklist_id
+WHERE ir.status = 'INSPECTED';
+
+INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition)
+SELECT ir.id, 'PEOPLE', 'PASS', NULL FROM mnt_inspection_room ir WHERE ir.status = 'INSPECTED'
+UNION ALL
+SELECT ir.id, 'FURNITURE:' || i.id, 'PASS', 'GOOD'
+FROM mnt_inspection_room ir JOIN inv_furniture_item i ON i.room_id = ir.room_id AND i.status <> 'DISPOSED'
+WHERE ir.status = 'INSPECTED';

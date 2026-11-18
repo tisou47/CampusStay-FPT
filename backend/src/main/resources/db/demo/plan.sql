@@ -79,6 +79,32 @@ SELECT r.id AS room_id, r.code FROM inv_room r
 WHERE r.code IN ('A-501', 'A-502', 'A-503', 'A-505', 'A-506', 'A-507', 'A-508', 'A-509', 'A-603', 'A-605', 'A-701',
                  'A-702', 'A-703', 'A-704', 'A-705', 'A-801', 'A-802', 'A-803', 'E-501');
 
+
+-- ---------- check-in inventory, inspections and furniture charges (S40–S45) ----------
+-- Floor 9 of Block A, in every stage: Term N students who receive their Room during the Term (a late arrival or a
+-- place given by a Manager), a pre-arrival inspection by staffa01, inventories in each state and a resident asked
+-- to confirm damage to a shared item. The students are the first K21 students of Block A's gender not used by
+-- another scenario (their codes show on Staff › Check-in › Inventories and on the Demo data page).
+INSERT INTO demo_rooms SELECT r.id, r.code FROM inv_room r
+WHERE r.code IN ('A-901', 'A-902', 'A-903', 'A-904', 'A-905');
+
+CREATE TEMP TABLE demo_handover ON COMMIT DROP AS
+WITH pick AS (
+    SELECT s.user_id AS student_id, s.student_code AS code, row_number() OVER (ORDER BY s.student_code) AS n
+    FROM auth_student s JOIN auth_user u ON u.id = s.user_id
+    WHERE u.demo AND u.status = 'ACTIVE' AND s.cohort = 'K21'
+      AND s.gender = (SELECT trim(gender) FROM inv_building WHERE code = 'A')
+      AND s.user_id NOT IN (SELECT student_id FROM demo_reserved))
+-- S40 ready to start (approved late arrival), S41 inventory started, S42 filed with a major difference,
+-- S43 final (S42's roommate), S44 Staff visit the Room, S45 resident with shared damage to confirm.
+SELECT p.student_id, p.code, v.scenario, b.id AS bed_id, r.id AS room_id, r.code AS room_code, r.building_id,
+       (1000 + (r.id % 97) * 7 + 80)::numeric(10,1) AS meter_e, (30 + r.id % 40 + 6)::numeric(10,1) AS meter_w
+FROM pick p
+JOIN (VALUES (1, 'S40', 'A-901', 'A'), (2, 'S41', 'A-902', 'A'), (3, 'S42', 'A-903', 'A'), (4, 'S43', 'A-903', 'B'),
+             (5, 'S44', 'A-904', 'A'), (6, 'S45', 'A-905', 'A')) v (n, scenario, room, bed) ON v.n = p.n
+JOIN inv_room r ON r.code = v.room JOIN inv_bed b ON b.room_id = r.id AND b.label = v.bed;
+
+INSERT INTO demo_reserved SELECT student_id, code FROM demo_handover;
 -- ---------- residents of Term N ----------
 -- fate at the start of the requests window: CONTINUING (stay length left), LAST (last Term of the Stay), NONE.
 CREATE TEMP TABLE demo_res ON COMMIT DROP AS
