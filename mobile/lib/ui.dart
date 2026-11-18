@@ -354,7 +354,8 @@ class SubPage extends StatelessWidget {
   final Widget body;
   final List<Widget>? actions;
 
-  /// Buttons pinned under the content (web wizard actions).
+  /// Buttons or a message field pinned under the content (web wizard actions, the assistant's question); it rises
+  /// above the keyboard while one is open.
   final Widget? bottom;
 
   @override
@@ -363,14 +364,18 @@ class SubPage extends StatelessWidget {
     body: SafeArea(top: false, child: body),
     bottomNavigationBar: bottom == null
         ? null
-        : SafeArea(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Tokens.surface,
-                border: Border(top: BorderSide(color: Tokens.line)),
+        : Padding(
+            // The Scaffold shrinks only its body for the keyboard; the bottom bar would stay under it.
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            child: SafeArea(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Tokens.surface,
+                  border: Border(top: BorderSide(color: Tokens.line)),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                child: bottom,
               ),
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: bottom,
             ),
           ),
   );
