@@ -31,15 +31,23 @@ import vn.fpt.campusstay.service.setting.Catalog;
 public class AdminFurnitureService {
 
     /** @param items items of the type that are not disposed */
+    /** @param scope Personal (one per Bed, charged to its student) or Shared (the Room's) */
     public record TypeItem(String id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status, long items) {
+            String status, long items, String scope) {
     }
 
     public record TypePage(List<TypeItem> items, List<String> categories) {
     }
 
     public record TypeValues(String code, String name, String nameVi, String category, Boolean definesClass,
-            String status) {
+            String status, String scope) {
+    }
+
+    /** A replacement price of a furniture type in a Room Class (VND). */
+    public record Price(String typeId, String roomClassId, long price) {
+    }
+
+    public record PricePage(List<TypeOption> types, List<TypeOption> roomClasses, List<Price> items) {
     }
 
     public record Requirement(String typeId, String type, String typeVi, int quantity) {
@@ -61,7 +69,7 @@ public class AdminFurnitureService {
     private static final int MAX_QUANTITY = 20;
 
     private record Type(long id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status) {
+            String status, String scope) {
     }
 
     private final JdbcClient jdbc;
@@ -85,7 +93,8 @@ public class AdminFurnitureService {
                 .forEach(e -> counts.put(e.getKey(), e.getValue()));
         List<TypeItem> items = allTypes().stream()
                 .map(t -> new TypeItem(String.valueOf(t.id()), t.code(), t.name(), t.nameVi(), CATEGORIES.get(t.category()),
-                        t.definesClass(), statusLabel(t.status()), counts.getOrDefault(t.id(), 0L)))
+                        t.definesClass(), statusLabel(t.status()), counts.getOrDefault(t.id(), 0L),
+                        "PERSONAL".equals(t.scope()) ? "Personal" : "Shared"))
                 .toList();
         return new TypePage(items, List.copyOf(CATEGORIES.values()));
     }
@@ -95,14 +104,14 @@ public class AdminFurnitureService {
         currentUser.require(Permission.MANAGE_BUILDINGS);
         Valid v = validate(values, null);
         long id = jdbc.sql("""
-                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, sort_order)
+                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, sort_order, scope)
                 VALUES (:code, :name, :nameVi, :category, :defines, :status,
-                        (SELECT coalesce(max(sort_order), 0) + 1 FROM inv_furniture_type))
+                        (SELECT coalesce(max(sort_order), 0) + 1 FROM inv_furniture_type), :scope)
                 RETURNING id
                 """)
                 .param("code", v.code()).param("name", v.name()).param("nameVi", v.nameVi())
                 .param("category", v.category()).param("defines", v.definesClass()).param("status", v.status())
-                .query(Long.class).single();
+                .param("scope", v.scope()).query(Long.class).single();
         audit.record("FURNITURE_TYPE_CREATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(),
                 Map.of("code", v.code(), "definesClass", v.definesClass()));
         return id;
@@ -127,14 +136,16 @@ public class AdminFurnitureService {
         put(change, "category", CATEGORIES.get(before.category()), CATEGORIES.get(v.category()));
         put(change, "definesClass", before.definesClass(), v.definesClass());
         put(change, "status", statusLabel(before.status()), statusLabel(v.status()));
+        put(change, "scope", before.scope(), v.scope());
         if (!change.isEmpty()) {
             jdbc.sql("""
                     UPDATE inv_furniture_type SET name = :name, name_vi = :nameVi, category = :category,
-                           defines_class = :defines, status = :status, updated_at = now(), version = version + 1
+                           defines_class = :defines, status = :status, scope = :scope, updated_at = now(),
+                           version = version + 1
                     WHERE id = :id
                     """)
                     .param("name", v.name()).param("nameVi", v.nameVi()).param("category", v.category())
-                    .param("defines", v.definesClass()).param("status", v.status()).param("id", id)
+                    .param("defines", v.definesClass()).param("status", v.status()).param("scope", v.scope()).param("id", id)
                     .update();
             audit.record("FURNITURE_TYPE_UPDATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), change);
         }
@@ -198,9 +209,62 @@ public class AdminFurnitureService {
                 Map.of("requirements", described.isEmpty() ? "None" : described));
     }
 
+
+    /** Admin › Furniture › Prices: the replacement price of each type in each Room Class (check-out charges). */
+    @Transactional(readOnly = true)
+    public PricePage prices() {
+        currentUser.require(Permission.MANAGE_BUILDINGS);
+        List<TypeOption> types = allTypes().stream().filter(t -> "ACTIVE".equals(t.status()))
+                .map(t -> new TypeOption(String.valueOf(t.id()), t.name(), t.nameVi())).toList();
+        List<TypeOption> classes = catalog.roomClasses().stream()
+                .map(c -> new TypeOption(String.valueOf(c.id()), c.name(), c.name())).toList();
+        List<Price> items = jdbc.sql("SELECT furniture_type_id, room_class_id, price FROM inv_furniture_price")
+                .query((rs, i) -> new Price(String.valueOf(rs.getLong(1)), String.valueOf(rs.getLong(2)), rs.getLong(3)))
+                .list();
+        return new PricePage(types, classes, items);
+    }
+
+    /** Sets prices (each type and Room Class once); prices not sent stay as they are. */
+    @Transactional
+    public void setPrices(List<Price> prices) {
+        currentUser.require(Permission.MANAGE_BUILDINGS);
+        if (prices == null || prices.isEmpty()) {
+            throw FieldErrors.single("items", "Send at least one price.");
+        }
+        java.util.Set<Long> types = new java.util.HashSet<>(allTypes().stream().map(Type::id).toList());
+        java.util.Set<Long> classes = new java.util.HashSet<>(catalog.roomClasses().stream()
+                .map(Catalog.RoomClassInfo::id).toList());
+        Map<String, Object> change = new LinkedHashMap<>();
+        for (Price p : prices) {
+            long type;
+            long roomClass;
+            try {
+                type = Long.parseLong(p.typeId().trim());
+                roomClass = Long.parseLong(p.roomClassId().trim());
+            } catch (RuntimeException e) {
+                throw FieldErrors.single("items", "Choose a furniture type and a Room Class for each price.");
+            }
+            if (!types.contains(type) || !classes.contains(roomClass)) {
+                throw FieldErrors.single("items", "Choose a furniture type and a Room Class for each price.");
+            }
+            if (p.price() < 0 || p.price() > 1_000_000_000) {
+                throw FieldErrors.single("items", "Enter a price of 0 or more.");
+            }
+            jdbc.sql("""
+                    INSERT INTO inv_furniture_price (furniture_type_id, room_class_id, price, updated_at, updated_by)
+                    VALUES (:t, :c, :p, now(), :by)
+                    ON CONFLICT (furniture_type_id, room_class_id)
+                    DO UPDATE SET price = EXCLUDED.price, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by
+                    """).param("t", type).param("c", roomClass).param("p", p.price()).param("by", currentUser.id())
+                    .update();
+            change.put(type + "/" + roomClass, p.price());
+        }
+        audit.record("FURNITURE_PRICES_UPDATED", AuditLog.Tone.INFO, "Furniture prices", null, "Furniture prices", change);
+    }
     // ---------------------------------------------------------------- helpers
 
-    private record Valid(String code, String name, String nameVi, String category, boolean definesClass, String status) {
+    private record Valid(String code, String name, String nameVi, String category, boolean definesClass, String status,
+            String scope) {
     }
 
     private Valid validate(TypeValues values, Type before) {
@@ -233,8 +297,11 @@ public class AdminFurnitureService {
         String status = values.status() == null || values.status().isBlank() ? "ACTIVE"
                 : values.status().trim().toUpperCase(Locale.ROOT);
         errors.check(status.equals("ACTIVE") || status.equals("INACTIVE"), "status", "Choose Active or Inactive.");
+        String scope = values.scope() == null || values.scope().isBlank()
+                ? (before == null ? "SHARED" : before.scope()) : values.scope().trim().toUpperCase(Locale.ROOT);
+        errors.check(scope.equals("PERSONAL") || scope.equals("SHARED"), "scope", "Choose Personal or Shared.");
         errors.throwIfAny();
-        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status);
+        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status, scope);
     }
 
     private List<Type> allTypes() {
@@ -243,7 +310,7 @@ public class AdminFurnitureService {
 
     private static Type type(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new Type(rs.getLong("id"), rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
-                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"));
+                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"), rs.getString("scope"));
     }
 
     private static void put(Map<String, Object> change, String key, Object before, Object after) {
