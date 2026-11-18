@@ -78,6 +78,7 @@ const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
 // Manager — 07 Web – Manager
 const ManagerDashboard = () => import('@/pages/manager/ManagerDashboard')
 const Approvals = () => import('@/pages/manager/Approvals')
+const CheckOutReviews = () => import('@/pages/manager/CheckOutReviews')
 const BlockFinance = () => import('@/pages/manager/BlockFinance')
 const BlockStaff = () => import('@/pages/manager/BlockStaff')
 const RoutingRules = () => import('@/pages/manager/RoutingRules')
@@ -251,6 +252,7 @@ export const router = createBrowserRouter([
         { index: true, ...page(ManagerDashboard) },
         { path: 'approvals', ...page(Approvals, { tab: 'late-check-in' }) },
         { path: 'approvals/late-check-in', ...page(Approvals, { tab: 'late-check-in' }) },
+        { path: 'approvals/check-out-charges', ...page(CheckOutReviews) },
         { path: 'applications', ...page(ApplicationQueue) },
         { path: 'applications/:id', ...page(ApplicationReview) },
         { path: 'assignment', ...page(AssignmentRuns) },

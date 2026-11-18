@@ -171,6 +171,7 @@ export const backOffice = {
             tabs: [
               { label: 'Decisions', to: '/manager/approvals' },
               { label: 'Terminations', to: '/manager/terminations' },
+              { label: 'Check-out charges', to: '/manager/approvals/check-out-charges' },
             ],
           },
           {
