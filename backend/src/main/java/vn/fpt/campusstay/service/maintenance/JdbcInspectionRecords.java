@@ -37,6 +37,22 @@ class JdbcInspectionRecords implements InspectionRecords {
         return result;
     }
 
+
+    @Override
+    public Map<Long, String> worstSince(long roomId, java.time.Instant since) {
+        Map<Long, String> result = new HashMap<>();
+        jdbc.sql("""
+                SELECT c.check_key, bool_or(c.condition = 'MISSING') AS missing
+                FROM mnt_inspection_room_check c JOIN mnt_inspection_room ir ON ir.id = c.inspection_room_id
+                WHERE ir.room_id = :room AND ir.status = 'INSPECTED' AND ir.inspected_at >= :since
+                  AND c.condition IN ('DAMAGED', 'MISSING') AND c.check_key LIKE 'FURNITURE:%'
+                GROUP BY c.check_key
+                """).param("room", roomId).param("since", java.sql.Timestamp.from(since))
+                .query((rs, i) -> Map.entry(Long.parseLong(rs.getString("check_key").substring("FURNITURE:".length())),
+                        rs.getBoolean("missing") ? "MISSING" : "DAMAGED"))
+                .list().forEach(e -> result.put(e.getKey(), e.getValue()));
+        return result;
+    }
     @Override
     public Optional<Meters> latestMeters(long roomId) {
         return jdbc.sql("""

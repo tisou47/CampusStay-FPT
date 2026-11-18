@@ -1,0 +1,135 @@
+package vn.fpt.campusstay.service.assignment;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+
+import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.service.setting.Parameters;
+
+/**
+ * Furniture charges at check-out. The student answers only for what got worse while they lived there:
+ * <ul>
+ * <li>a personal item (of their Bed): its condition at check-out, or the worst an inspection recorded during the stay,
+ * against its condition in their final check-in inventory (without one: Good). Charge = price of the item's type in
+ * the Room's class × (percent of the condition now − percent of the condition at check-in), never below 0. An item
+ * recorded as there before the student is never charged;</li>
+ * <li>a shared item: only damage the student acknowledged ({@code asg_damage_claim}); otherwise the dorm bears it.</li>
+ * </ul>
+ * Worn is never charged (its percent is 0 by default). No dispute window: the student agrees at the desk.
+ */
+@Component
+class CheckOutCharges {
+
+    /**
+     * A line of the check-out.
+     *
+     * @param start     the condition at check-in (null: no inventory, counted as Good)
+     * @param now       the condition at check-out (Staff's answer, or the worst during the stay when worse)
+     * @param source    {@code PERSONAL}, {@code ACKNOWLEDGED} or {@code NONE} (shared item not acknowledged)
+     */
+    record Line(long itemId, String assetCode, String type, String typeVi, String bed, boolean personal, String start,
+            String now, boolean preExisting, long unitPrice, int percent, long amount, String source, String note) {
+    }
+
+    private final JdbcClient jdbc;
+    private final Inventory inventory;
+    private final InspectionRecords inspections;
+    private final Parameters parameters;
+
+    CheckOutCharges(JdbcClient jdbc, Inventory inventory, InspectionRecords inspections, Parameters parameters) {
+        this.jdbc = jdbc;
+        this.inventory = inventory;
+        this.inspections = inspections;
+        this.parameters = parameters;
+    }
+
+    /** The percent of the price a condition costs (Admin › System parameters). */
+    int percent(String condition) {
+        if (condition == null) {
+            return 0;
+        }
+        return switch (condition) {
+            case "WORN" -> parameters.intValue("compensation.worn_percent");
+            case "DAMAGED" -> parameters.intValue("compensation.damaged_percent");
+            case "MISSING" -> parameters.intValue("compensation.missing_percent");
+            default -> 0;
+        };
+    }
+
+    /**
+     * The lines of the student's check-out.
+     *
+     * @param answers item id → the condition Staff found at check-out (items not answered: as at check-in)
+     * @param residentAt when the student started living in the Room (inspections since then count)
+     */
+    List<Line> lines(long allocationId, long termId, long roomId, long bedId, Instant residentAt,
+            Map<Long, String> answers) {
+        Map<Long, String> start = new HashMap<>();
+        Map<Long, Boolean> pre = new HashMap<>();
+        jdbc.sql("""
+                SELECT i.furniture_item_id, coalesce(i.verified_condition, i.condition, i.baseline_condition) AS c,
+                       i.pre_existing
+                FROM asg_handover_item i JOIN asg_handover h ON h.id = i.handover_id
+                WHERE h.allocation_id = :a AND h.status = 'FINAL'
+                """).param("a", allocationId).query((rs, i) -> {
+                    start.put(rs.getLong("furniture_item_id"), rs.getString("c"));
+                    pre.put(rs.getLong("furniture_item_id"), rs.getBoolean("pre_existing"));
+                    return null;
+                }).list();
+        Map<Long, Long> acknowledged = new HashMap<>();
+        Map<Long, String> acknowledgedCondition = new HashMap<>();
+        jdbc.sql("""
+                SELECT furniture_item_id, condition, amount FROM asg_damage_claim
+                WHERE allocation_id = :a AND status = 'ACKNOWLEDGED'
+                """).param("a", allocationId).query((rs, i) -> {
+                    acknowledged.merge(rs.getLong("furniture_item_id"), rs.getLong("amount"), Long::sum);
+                    acknowledgedCondition.put(rs.getLong("furniture_item_id"), rs.getString("condition"));
+                    return null;
+                }).list();
+        Map<Long, String> worst = residentAt == null ? Map.of() : inspections.worstSince(roomId, residentAt);
+        Map<Long, Long> prices = inventory.furniturePrices(roomId, termId);
+        List<Line> lines = new ArrayList<>();
+        for (Inventory.FurnitureLine f : inventory.furnitureLines(roomId)) {
+            boolean personal = f.personal() && f.bedId() != null;
+            if (personal && f.bedId() != bedId) {
+                continue;
+            }
+            long price = prices.getOrDefault(f.typeId(), 0L);
+            String at = start.get(f.id());
+            String found = answers.getOrDefault(f.id(), at == null ? "GOOD" : at);
+            if (personal) {
+                String during = worst.get(f.id());
+                if (during != null && percent(during) > percent(found)) {
+                    found = during;
+                }
+                boolean before = pre.getOrDefault(f.id(), false);
+                int pct = before ? 0 : Math.max(0, percent(found) - percent(at == null ? "GOOD" : at));
+                lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), f.bedLabel(), true, at, found, before,
+                        price, pct, price * pct / 100, "PERSONAL", null));
+            } else {
+                long amount = acknowledged.getOrDefault(f.id(), 0L);
+                String claimed = acknowledgedCondition.get(f.id());
+                lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at,
+                        claimed != null ? claimed : found, pre.getOrDefault(f.id(), false), price,
+                        claimed == null ? 0 : percent(claimed), amount, claimed == null ? "NONE" : "ACKNOWLEDGED",
+                        claimed == null ? null : "Acknowledged by the student"));
+            }
+        }
+        return lines;
+    }
+
+    /** The amount a shared item costs in its condition (for a damage claim). */
+    long claimAmount(long roomId, long termId, long itemId, String condition) {
+        Optional<Inventory.FurnitureLine> line = inventory.furnitureLines(roomId).stream()
+                .filter(l -> l.id() == itemId).findFirst();
+        long price = line.map(l -> inventory.furniturePrices(roomId, termId).getOrDefault(l.typeId(), 0L)).orElse(0L);
+        return price * percent(condition) / 100;
+    }
+}

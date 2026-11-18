@@ -21,6 +21,12 @@ public interface InspectionRecords {
     /** Furniture item id → its latest condition recorded in a finished inspection of the Room. */
     Map<Long, Condition> latestConditions(long roomId);
 
+    /**
+     * Furniture item id → its worst condition recorded by inspections of the Room since {@code since} (Damaged and
+     * Missing only): what an item went through while a student lived there, even if it was repaired since.
+     */
+    Map<Long, String> worstSince(long roomId, Instant since);
+
     /** The Room's latest meters read in an inspection. */
     Optional<Meters> latestMeters(long roomId);
 }
