@@ -96,6 +96,7 @@ public class InspectionScheduleService {
         SCOPES.put("ALL_ROOMS", "All Rooms");
         SCOPES.put("OCCUPIED", "Occupied Rooms");
         SCOPES.put("EMPTY", "Empty Rooms");
+        SCOPES.put("INCOMING", "Rooms new residents will receive (pre-arrival)");
         REPEATS.put("ONCE", "Once");
         REPEATS.put("WEEKLY", "Every week");
         REPEATS.put("MONTHLY", "Every month");
@@ -188,8 +189,9 @@ public class InspectionScheduleService {
         long id = jdbc.sql("""
                 INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, floors, repeat,
                                                      assignee_id, due_within_days, create_requests, notify_residents,
-                                                     next_run_at, created_at)
-                VALUES (:b, :name, :family, :scope, :floors, :repeat, :assignee, :due, :requests, :notify, :now, :now)
+                                                     next_run_at, created_at, kind)
+                VALUES (:b, :name, :family, :scope, :floors, :repeat, :assignee, :due, :requests, :notify, :now, :now,
+                        :kind)
                 RETURNING id
                 """)
                 .param("b", building).param("name", name).param("family", family).param("scope", scope[0])
@@ -197,6 +199,7 @@ public class InspectionScheduleService {
                 .param("repeat", repeat).param("assignee", assignee).param("due", due)
                 .param("requests", !Boolean.FALSE.equals(body.get("createRequests")))
                 .param("notify", !Boolean.FALSE.equals(body.get("notifyResidents"))).param("now", Timestamp.from(now))
+                .param("kind", scope[0].equals("INCOMING") ? "PRE_ARRIVAL" : "PERIODIC")
                 .query(Long.class).single();
         audit.record("INSPECTION_SCHEDULE_CREATED", AuditLog.Tone.INFO, "Inspection schedule", id, name, null);
         start(find(id, true), now);
@@ -232,7 +235,8 @@ public class InspectionScheduleService {
         jdbc.sql("""
                 UPDATE mnt_inspection_schedule SET name = :name, checklist_family = :family, scope = :scope,
                        floors = :floors, repeat = :repeat, assignee_id = :assignee, due_within_days = :due,
-                       create_requests = :requests, notify_residents = :notify, status = :status, version = version + 1
+                       create_requests = :requests, notify_residents = :notify, status = :status,
+                       kind = CASE WHEN :scope = 'INCOMING' THEN 'PRE_ARRIVAL' ELSE 'PERIODIC' END, version = version + 1
                 WHERE id = :id
                 """)
                 .param("name", name).param("family", family).param("scope", scope[0])
@@ -276,6 +280,8 @@ public class InspectionScheduleService {
         LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
         List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
         Map<Long, Long> occupied = residences.residentsOfBeds(beds.stream().map(Inventory.BedSlot::bedId).toList());
+        Set<Long> incoming = s.scope().equals("INCOMING")
+                ? residences.awaitingArrival(beds.stream().map(Inventory.BedSlot::bedId).toList()) : Set.of();
         Map<Long, List<Inventory.BedSlot>> rooms = beds.stream()
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, LinkedHashMap::new, Collectors.toList()));
         List<Long> inScope = new ArrayList<>();
@@ -285,6 +291,7 @@ public class InspectionScheduleService {
             boolean take = switch (s.scope()) {
                 case "OCCUPIED" -> !residents.isEmpty();
                 case "EMPTY" -> residents.isEmpty();
+                case "INCOMING" -> roomBeds.stream().anyMatch(b -> incoming.contains(b.bedId()));
                 case "FLOORS" -> s.floors().contains(roomBeds.getFirst().floor());
                 default -> true;
             };

@@ -24,3 +24,8 @@ ALTER TABLE mnt_inspection_schedule
 
 -- The latest recorded condition of each furniture item (the baseline of the check-in inventory).
 CREATE INDEX ix_inspection_check_key ON mnt_inspection_room_check (check_key);
+
+-- A pre-arrival schedule inspects the Rooms that new residents will receive.
+ALTER TABLE mnt_inspection_schedule DROP CONSTRAINT mnt_inspection_schedule_scope_check;
+ALTER TABLE mnt_inspection_schedule ADD CONSTRAINT ck_inspection_schedule_scope
+    CHECK (scope IN ('ALL_ROOMS', 'OCCUPIED', 'EMPTY', 'FLOORS', 'INCOMING'));

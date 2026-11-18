@@ -34,7 +34,8 @@ class InspectionController {
     record PublishRequest(@Size(max = 100, message = "Use at most 100 items.") List<ChecklistService.ItemInput> items) {
     }
 
-    record RoomRequest(@Size(max = 100) List<InspectionRunService.Result> results) {
+    /** {@code meters}: the Room's readings (needed in a pre-arrival inspection). */
+    record RoomRequest(@Size(max = 100) List<InspectionRunService.Result> results, InspectionRunService.Meters meters) {
     }
 
     private final ChecklistService checklists;
@@ -111,7 +112,7 @@ class InspectionController {
     @PutMapping("/inspection-runs/{id}/rooms/{room}")
     InspectionRunService.Saved saveRoom(@PathVariable String id, @PathVariable String room,
             @Valid @RequestBody RoomRequest body) {
-        return runs.saveRoom(id, room, body.results());
+        return runs.saveRoom(id, room, body.results(), body.meters());
     }
 
     @PostMapping("/inspection-runs/{id}/rooms/{room}/unreachable")

@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ import vn.fpt.campusstay.service.assignment.Residences;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.event.MaintenanceReported;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
@@ -61,8 +63,16 @@ public class InspectionRunService {
     public record Current(RunView run) {
     }
 
-    /** @param result Pass, Fail or Not checked */
-    public record Result(String itemId, String result, String note) {
+    /**
+     * @param result    Pass, Fail or Not checked
+     * @param condition for a furniture check: Good, Worn, Damaged or Missing (sets the result: Good and Worn pass)
+     * @param restock   for a Missing item: plan a spare of its type from the Block store
+     */
+    public record Result(String itemId, String result, String note, String condition, Boolean restock) {
+
+        public Result(String itemId, String result, String note) {
+            this(itemId, result, note, null, null);
+        }
     }
 
     /**
@@ -71,16 +81,24 @@ public class InspectionRunService {
      * @param id       {@code people}, or {@code furniture-<item id>}
      * @param kind     {@code people} or {@code furniture}
      * @param expected for {@code people}: the residents the Room has now
+     * @param bed      for a personal item: the label of its Bed; null for a shared item
      */
-    public record RoomCheck(String id, String kind, Integer expected, String assetCode, String type, String typeVi) {
+    public record RoomCheck(String id, String kind, Integer expected, String assetCode, String type, String typeVi,
+            String bed) {
+    }
+
+    /** The Room's meters read in the inspection; {@code replaced}: a new meter (the reading may be lower). */
+    public record Meters(java.math.BigDecimal electricity, java.math.BigDecimal water, Boolean replaced) {
     }
 
     /**
-     * @param status To do, In progress, Done or Not reachable
-     * @param checks the Room's own checks; their answers are in {@code results} too
+     * @param status        To do, In progress, Done or Not reachable
+     * @param checks        the Room's own checks; their answers are in {@code results} too
+     * @param meters        the readings recorded, null before
+     * @param metersNeeded  a pre-arrival inspection: the Room is done only with its meters
      */
     public record RoomItem(String room, String roomTypeName, String roomClassName, String status, List<Result> results,
-            List<RoomCheck> checks) {
+            List<RoomCheck> checks, Meters meters, boolean metersNeeded) {
     }
 
     public record RoomsPage(List<RoomItem> items, long total) {
@@ -99,7 +117,7 @@ public class InspectionRunService {
             Long inspectorId, String status) {
     }
 
-    private record RoomRow(long id, long roomId, String status) {
+    private record RoomRow(long id, long roomId, String status, Meters meters) {
     }
 
     private record Stored(long itemId, String result, String note, Long requestId) {
@@ -108,10 +126,19 @@ public class InspectionRunService {
     private record NewRequest(long id, String code) {
     }
 
-    private record Choice(String result, String note) {
+    private record Choice(String result, String note, String condition, boolean restock) {
     }
 
     private static final Map<String, String> RESULTS = Map.of("PASS", "Pass", "FAIL", "Fail", "NOT_CHECKED", "Not checked");
+    /** Furniture conditions (V75): Good and Worn pass, Damaged and Missing fail. */
+    static final Map<String, String> CONDITIONS = new LinkedHashMap<>();
+
+    static {
+        CONDITIONS.put("GOOD", "Good");
+        CONDITIONS.put("WORN", "Worn");
+        CONDITIONS.put("DAMAGED", "Damaged");
+        CONDITIONS.put("MISSING", "Missing");
+    }
     /** Priority of the Maintenance Request a failed item creates, by the item's severity. */
     private static final Map<String, String> PRIORITY = Map.of("CRITICAL", "HIGH", "MAJOR", "MEDIUM", "MINOR", "LOW",
             "TRIVIAL", "LOW");
@@ -127,13 +154,15 @@ public class InspectionRunService {
     private final Residences residences;
     private final ChecklistService checklists;
     private final RequestStore requests;
+    private final Billing billing;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public InspectionRunService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
             Inventory inventory, Catalog catalog, TermCatalog terms, Residences residences, ChecklistService checklists,
-            RequestStore requests, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            RequestStore requests, Billing billing, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+        this.billing = billing;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -181,18 +210,20 @@ public class InspectionRunService {
                 .collect(Collectors.toMap(Catalog.RoomTypeInfo::id, Catalog.RoomTypeInfo::name));
         Map<Long, String> classes = catalog.roomClasses().stream()
                 .collect(Collectors.toMap(Catalog.RoomClassInfo::id, Catalog.RoomClassInfo::name));
+        boolean preArrival = preArrival(run);
         List<RoomItem> items = rows.stream().skip(page.offset()).limit(page.limit()).map(r -> {
             Inventory.BedSlot info = roomInfo.get(r.roomId());
             List<Stored> stored = results.getOrDefault(r.id(), List.of());
             List<StoredCheck> answered = checkResults.getOrDefault(r.id(), List.of());
             List<Result> all = new ArrayList<>(stored.stream()
                     .map(s -> new Result(String.valueOf(s.itemId()), RESULTS.get(s.result()), s.note())).toList());
-            answered.forEach(c -> all.add(new Result(checkId(c.key()), RESULTS.get(c.result()), c.note())));
+            answered.forEach(c -> all.add(new Result(checkId(c.key()), RESULTS.get(c.result()), c.note(),
+                    c.condition() == null ? null : CONDITIONS.get(c.condition()), null)));
             return new RoomItem(info == null ? null : info.roomCode(), info == null ? null : types.get(info.roomTypeId()),
                     info == null ? null : classes.get(info.roomClassId()),
                     status(r, stored.stream().anyMatch(s -> !s.result().equals("NOT_CHECKED"))
                             || answered.stream().anyMatch(c -> !c.result().equals("NOT_CHECKED"))),
-                    all, checks(r.roomId()));
+                    all, checks(r.roomId()), r.meters(), preArrival);
         }).toList();
         return new RoomsPage(items, rows.size());
     }
@@ -200,6 +231,16 @@ public class InspectionRunService {
     /** Results of the Room's items; a Room is done once every item is Pass or Fail. */
     @Transactional
     public Saved saveRoom(String id, String roomCode, List<Result> input) {
+        return saveRoom(id, roomCode, input, null);
+    }
+
+    /**
+     * Results of the Room's items and, optionally, its meters; a Room is done once every item is answered (and, in a
+     * pre-arrival inspection, its meters are read). A Missing item with {@code restock} plans a spare from the
+     * Block store; without a spare (or without restock) it becomes a Maintenance Request like a Damaged one.
+     */
+    @Transactional
+    public Saved saveRoom(String id, String roomCode, List<Result> input, Meters meters) {
         AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
         Run run = run(id, true);
         open(run);
@@ -231,8 +272,9 @@ public class InspectionRunService {
             if (note != null && note.length() > NOTE_MAX) {
                 throw FieldErrors.single("results", "Keep each note under " + NOTE_MAX + " characters.");
             }
-            chosen.put(itemId, new Choice(result, note));
+            chosen.put(itemId, new Choice(result, note, null, false));
         }
+        Meters read = meters(room, meters);
         Map<Long, Stored> before = results(List.of(room.id())).getOrDefault(room.id(), List.of()).stream()
                 .collect(Collectors.toMap(Stored::itemId, s -> s));
         boolean createRequests = run.scheduleId() == null || jdbc.sql(
@@ -261,25 +303,53 @@ public class InspectionRunService {
         }
         Map<String, StoredCheck> checksBefore = checkResults(List.of(room.id())).getOrDefault(room.id(), List.of())
                 .stream().collect(Collectors.toMap(c -> checkId(c.key()), c -> c));
+        Map<Long, Inventory.FurnitureLine> lines = new HashMap<>();
+        inventory.furnitureLines(room.roomId()).forEach(l -> lines.put(l.id(), l));
         for (Map.Entry<String, Choice> e : chosenChecks.entrySet()) {
             RoomCheck check = checks.get(e.getKey());
-            String result = e.getValue().result();
-            String note = e.getValue().note();
-            Long requestId = checksBefore.containsKey(check.id()) ? checksBefore.get(check.id()).requestId() : null;
-            if (result.equals("FAIL") && requestId == null && createRequests && info != null
+            Choice choice = e.getValue();
+            String result = choice.result();
+            String note = choice.note();
+            StoredCheck previous = checksBefore.get(check.id());
+            Long requestId = previous != null ? previous.requestId() : null;
+            boolean handled = previous != null && Objects.equals(previous.condition(), choice.condition());
+            if (check.kind().equals("furniture") && "MISSING".equals(choice.condition()) && choice.restock() && !handled) {
+                long itemId = Long.parseLong(check.id().substring("furniture-".length()));
+                Inventory.FurnitureLine line = lines.get(itemId);
+                Optional<String> spare = line == null ? Optional.empty()
+                        : inventory.planRestock(room.roomId(), line.typeId(), "Missing in inspection "
+                                + InspectionScheduleService.code(run.id()) + " (" + check.assetCode() + ")", me.userId());
+                if (spare.isPresent()) {
+                    note = (note == null ? "" : note + " · ") + "Spare " + spare.get() + " planned from the store";
+                    handled = true;
+                }
+            }
+            if (result.equals("FAIL") && requestId == null && !handled && createRequests && info != null
                     && check.kind().equals("furniture")) {
                 NewRequest request = furnitureRequest(run, info, check, note, me.userId(), now);
                 requestId = request.id();
                 created.add(request.code());
             }
             jdbc.sql("""
-                    INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, note, created_request_id)
-                    VALUES (:room, :key, :result, :note, :request)
+                    INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, note, created_request_id,
+                                                           condition)
+                    VALUES (:room, :key, :result, :note, :request, :condition)
                     ON CONFLICT (inspection_room_id, check_key) DO UPDATE SET result = EXCLUDED.result,
-                           note = EXCLUDED.note, created_request_id = EXCLUDED.created_request_id
+                           note = EXCLUDED.note, created_request_id = EXCLUDED.created_request_id,
+                           condition = EXCLUDED.condition
                     """).param("room", room.id()).param("key", checkKey(check.id())).param("result", result)
-                    .param("note", note).param("request", requestId).update();
+                    .param("note", note == null || note.length() <= NOTE_MAX ? note : note.substring(0, NOTE_MAX))
+                    .param("request", requestId).param("condition", choice.condition()).update();
         }
+        if (read != null) {
+            jdbc.sql("""
+                    UPDATE mnt_inspection_room SET electricity = :e, water = :w, meter_replaced = :replaced,
+                           inspected_by = :by WHERE id = :id
+                    """).param("e", read.electricity()).param("w", read.water())
+                    .param("replaced", Boolean.TRUE.equals(read.replaced())).param("by", me.userId())
+                    .param("id", room.id()).update();
+        }
+        boolean metersRead = read != null || room.meters() != null;
         Map<Long, String> after = new HashMap<>();
         results(List.of(room.id())).getOrDefault(room.id(), List.of()).forEach(s -> after.put(s.itemId(), s.result()));
         Map<String, String> checksAfter = new HashMap<>();
@@ -287,10 +357,13 @@ public class InspectionRunService {
                 .forEach(c -> checksAfter.put(checkId(c.key()), c.result()));
         boolean done = items.keySet().stream().allMatch(i -> after.containsKey(i) && !after.get(i).equals("NOT_CHECKED"))
                 && checks.keySet().stream()
-                        .allMatch(k -> checksAfter.containsKey(k) && !checksAfter.get(k).equals("NOT_CHECKED"));
+                        .allMatch(k -> checksAfter.containsKey(k) && !checksAfter.get(k).equals("NOT_CHECKED"))
+                && (metersRead || !preArrival(run));
         if (done) {
-            jdbc.sql("UPDATE mnt_inspection_room SET status = 'INSPECTED', inspected_at = :now WHERE id = :id")
-                    .param("now", Timestamp.from(now)).param("id", room.id()).update();
+            jdbc.sql("""
+                    UPDATE mnt_inspection_room SET status = 'INSPECTED', inspected_at = :now,
+                           inspected_by = coalesce(inspected_by, :by) WHERE id = :id
+                    """).param("now", Timestamp.from(now)).param("by", me.userId()).param("id", room.id()).update();
         }
         started(run);
         return new Saved(created);
@@ -372,9 +445,9 @@ public class InspectionRunService {
         List<RoomCheck> checks = new ArrayList<>();
         int residents = terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
                 .map(t -> residences.residents(roomId, t.id())).orElse(0);
-        checks.add(new RoomCheck("people", "people", residents, null, null, null));
-        inventory.furnitureOf(roomId).forEach(f -> checks.add(new RoomCheck("furniture-" + f.id(), "furniture", null,
-                f.assetCode(), f.type(), f.typeVi())));
+        checks.add(new RoomCheck("people", "people", residents, null, null, null, null));
+        inventory.furnitureLines(roomId).forEach(f -> checks.add(new RoomCheck("furniture-" + f.id(), "furniture", null,
+                f.assetCode(), f.type(), f.typeVi(), f.personal() ? f.bedLabel() : null)));
         return checks;
     }
 
@@ -386,18 +459,74 @@ public class InspectionRunService {
         return key.equals("PEOPLE") ? "people" : "furniture-" + key.substring("FURNITURE:".length());
     }
 
+    /**
+     * A Room check's answer. A furniture check may send a condition instead of a result: Good and Worn pass, Damaged
+     * and Missing fail; a result alone keeps its meaning (Pass is Good, Fail is Damaged).
+     */
     private static Choice choice(Result r) {
-        String result = r.result() == null ? null : RESULTS.entrySet().stream()
-                .filter(e -> e.getValue().equalsIgnoreCase(r.result().trim()) || e.getKey().equalsIgnoreCase(r.result().trim()))
-                .map(Map.Entry::getKey).findFirst().orElse(null);
+        String condition = r.condition() == null || r.condition().isBlank() ? null
+                : CONDITIONS.entrySet().stream()
+                        .filter(e -> e.getValue().equalsIgnoreCase(r.condition().trim())
+                                || e.getKey().equalsIgnoreCase(r.condition().trim()))
+                        .map(Map.Entry::getKey).findFirst()
+                        .orElseThrow(() -> FieldErrors.single("results", "Choose Good, Worn, Damaged or Missing."));
+        boolean furniture = r.itemId() != null && r.itemId().trim().startsWith("furniture-");
+        if (condition != null && !furniture) {
+            throw FieldErrors.single("results", "Only furniture items take a condition.");
+        }
+        String result = condition != null ? (condition.equals("GOOD") || condition.equals("WORN") ? "PASS" : "FAIL")
+                : r.result() == null ? null : RESULTS.entrySet().stream()
+                        .filter(e -> e.getValue().equalsIgnoreCase(r.result().trim())
+                                || e.getKey().equalsIgnoreCase(r.result().trim()))
+                        .map(Map.Entry::getKey).findFirst().orElse(null);
         if (result == null) {
             throw FieldErrors.single("results", "Send Pass, Fail or Not checked for items of this checklist.");
+        }
+        if (condition == null && furniture) {
+            condition = switch (result) {
+                case "PASS" -> "GOOD";
+                case "FAIL" -> "DAMAGED";
+                default -> null;
+            };
         }
         String note = r.note() == null || r.note().isBlank() ? null : r.note().trim();
         if (note != null && note.length() > NOTE_MAX) {
             throw FieldErrors.single("results", "Keep each note under " + NOTE_MAX + " characters.");
         }
-        return new Choice(result, note);
+        return new Choice(result, note, condition, Boolean.TRUE.equals(r.restock()));
+    }
+
+    /**
+     * Checks the meters sent: both readings, not negative, and not lower than the Room's latest reading unless the
+     * meter was replaced. @return null when none were sent
+     */
+    private Meters meters(RoomRow room, Meters meters) {
+        if (meters == null || meters.electricity() == null && meters.water() == null) {
+            return null;
+        }
+        FieldErrors errors = new FieldErrors();
+        errors.check(meters.electricity() != null && meters.electricity().signum() >= 0, "electricity",
+                "Enter the electricity reading (kWh).");
+        errors.check(meters.water() != null && meters.water().signum() >= 0, "water", "Enter the water reading (m³).");
+        errors.throwIfAny();
+        if (!Boolean.TRUE.equals(meters.replaced())) {
+            billing.lastReading(room.roomId()).ifPresent(last -> {
+                errors.check(meters.electricity().compareTo(last.electricity()) >= 0, "electricity",
+                        "The reading is lower than the last one (" + last.electricity().toPlainString() + " kWh on "
+                                + last.date() + "). Tick \"Meter replaced\" if it is a new meter.");
+                errors.check(meters.water().compareTo(last.water()) >= 0, "water",
+                        "The reading is lower than the last one (" + last.water().toPlainString() + " m³ on "
+                                + last.date() + "). Tick \"Meter replaced\" if it is a new meter.");
+            });
+            errors.throwIfAny();
+        }
+        return meters;
+    }
+
+    /** The run belongs to a pre-arrival schedule: its Rooms need their meters read. */
+    private boolean preArrival(Run run) {
+        return run.scheduleId() != null && jdbc.sql("SELECT kind FROM mnt_inspection_schedule WHERE id = :id")
+                .param("id", run.scheduleId()).query(String.class).optional().map("PRE_ARRIVAL"::equals).orElse(false);
     }
 
     /** A furniture item failed: a Furniture Maintenance Request naming it, whose history the item keeps. */
@@ -486,9 +615,14 @@ public class InspectionRunService {
     }
 
     private List<RoomRow> roomRows(long runId) {
-        return jdbc.sql("SELECT id, room_id, status FROM mnt_inspection_room WHERE run_id = :run ORDER BY id")
-                .param("run", runId)
-                .query((rs, i) -> new RoomRow(rs.getLong("id"), rs.getLong("room_id"), rs.getString("status"))).list();
+        return jdbc.sql("""
+                SELECT id, room_id, status, electricity, water, meter_replaced FROM mnt_inspection_room
+                WHERE run_id = :run ORDER BY id
+                """).param("run", runId)
+                .query((rs, i) -> new RoomRow(rs.getLong("id"), rs.getLong("room_id"), rs.getString("status"),
+                        rs.getBigDecimal("electricity") == null ? null : new Meters(rs.getBigDecimal("electricity"),
+                                rs.getBigDecimal("water"), rs.getBoolean("meter_replaced"))))
+                .list();
     }
 
     private Map<Long, List<Stored>> results(List<Long> roomIds) {
@@ -506,7 +640,7 @@ public class InspectionRunService {
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
     }
 
-    private record StoredCheck(String key, String result, String note, Long requestId) {
+    private record StoredCheck(String key, String result, String note, Long requestId, String condition) {
     }
 
     private Map<Long, List<StoredCheck>> checkResults(List<Long> roomIds) {
@@ -514,11 +648,13 @@ public class InspectionRunService {
             return Map.of();
         }
         return jdbc.sql("""
-                SELECT inspection_room_id, check_key, result, note, created_request_id FROM mnt_inspection_room_check
+                SELECT inspection_room_id, check_key, result, note, created_request_id, condition
+                FROM mnt_inspection_room_check
                 WHERE inspection_room_id IN (:rooms) ORDER BY (check_key = 'PEOPLE') DESC, check_key
                 """).param("rooms", roomIds)
                 .query((rs, i) -> Map.entry(rs.getLong("inspection_room_id"), new StoredCheck(rs.getString("check_key"),
-                        rs.getString("result"), rs.getString("note"), rs.getObject("created_request_id", Long.class))))
+                        rs.getString("result"), rs.getString("note"), rs.getObject("created_request_id", Long.class),
+                        rs.getString("condition"))))
                 .list().stream().collect(Collectors.groupingBy(Map.Entry::getKey, LinkedHashMap::new,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
     }
