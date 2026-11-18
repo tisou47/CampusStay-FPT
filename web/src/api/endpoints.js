@@ -569,6 +569,10 @@ export const api = {
       create: (body) => http.post('/admin/furniture-types', body),
       update: (id, body) => http.put(`/admin/furniture-types/${id}`, body),
     },
+    /** The share of the real price each condition level is still worth: PUT { items: [{ code, percent }] }. */
+    furnitureConditions: {
+      save: (body) => http.put('/admin/furniture-conditions', body),
+    },
     /** What furniture each Room Class requires: PUT { items: [{ typeId, quantity }] } replaces a class's list. */
     requirements: {
       list: g('/admin/room-class-requirements'),

@@ -17,7 +17,11 @@ import vn.fpt.campusstay.service.inventory.AdminFurnitureService;
 @RestController
 class AdminFurnitureController {
 
-    record TypeRequest(String code, String name, String nameVi, String category, Boolean definesClass, String status) {
+    record TypeRequest(String code, String name, String nameVi, String category, Boolean definesClass, String status,
+            String use, Long price) {
+    }
+
+    record ConditionsRequest(List<AdminFurnitureService.ConditionValue> items) {
     }
 
     record RequirementsRequest(List<AdminFurnitureService.RequirementValue> items) {
@@ -47,6 +51,12 @@ class AdminFurnitureController {
         return new Saved(String.valueOf(furniture.updateType(id, values(body))));
     }
 
+    @PutMapping("/admin/furniture-conditions")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void setConditions(@RequestBody ConditionsRequest body) {
+        furniture.setConditions(body.items());
+    }
+
     @GetMapping("/admin/room-class-requirements")
     AdminFurnitureService.RequirementPage requirements() {
         return furniture.requirements();
@@ -60,6 +70,6 @@ class AdminFurnitureController {
 
     private static AdminFurnitureService.TypeValues values(TypeRequest b) {
         return new AdminFurnitureService.TypeValues(b.code(), b.name(), b.nameVi(), b.category(), b.definesClass(),
-                b.status());
+                b.status(), b.use(), b.price());
     }
 }

@@ -70,6 +70,13 @@ Choose a role. ⟶ Hãy chọn vai trò.
 Choose a time. ⟶ Hãy chọn thời gian.
 Choose Male or Female. ⟶ Hãy chọn Nam hoặc Nữ.
 Choose Active or Inactive. ⟶ Hãy chọn Đang dùng hoặc Ngưng dùng.
+Choose Personal or Shared. ⟶ Hãy chọn Cá nhân hoặc Dùng chung.
+Enter a price from 0 to 1,000,000,000 VND. ⟶ Nhập giá từ 0 đến 1.000.000.000 ₫.
+Keep at least one condition level. ⟶ Hãy giữ ít nhất một mức tình trạng.
+This condition level does not exist. ⟶ Mức tình trạng này không tồn tại.
+Enter a name of at most 60 characters. ⟶ Hãy nhập tên tối đa 60 ký tự.
+Give each condition level its own name. ⟶ Mỗi mức tình trạng cần một tên riêng.
+Enter a value from 0 to 100 %. ⟶ Nhập giá trị từ 0 đến 100 %.
 Choose 24h or 7d. ⟶ Hãy chọn 24 giờ hoặc 7 ngày.
 Choose a date range: 7d, 30d, 90d or all. ⟶ Hãy chọn khoảng thời gian: 7 ngày, 30 ngày, 90 ngày hoặc tất cả.
 Choose today, 7d or term. ⟶ Hãy chọn hôm nay, 7 ngày hoặc cả học kỳ.
