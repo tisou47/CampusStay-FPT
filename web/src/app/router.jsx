@@ -106,6 +106,7 @@ const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
+const FurniturePrices = () => import('@/pages/admin/FurniturePrices')
 const FeesRules = () => import('@/pages/admin/FeesRules')
 const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
@@ -321,6 +322,7 @@ export const router = createBrowserRouter([
         { path: 'demo', ...page(DemoData) },
         { path: 'buildings', ...page(Buildings) },
         { path: 'furniture-types', ...page(FurnitureTypes) },
+        { path: 'furniture-prices', ...page(FurniturePrices) },
         { path: 'users', ...page(UsersRoles) },
         { path: 'reports/occupancy', ...page(OccupancyReport) },
         { path: 'reports/financial', ...page(FinancialReport) },

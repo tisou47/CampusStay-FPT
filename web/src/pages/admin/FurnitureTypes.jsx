@@ -17,7 +17,7 @@ import { t, tr } from '@/i18n'
 
 // SCR-INV-14 Furniture types (Change Spec v2 phase 3, spec §6.19, §9 "Buildings and rooms").
 // GET /admin/furniture-types → { items: [{ id, code, name, nameVi, category, definesClass, status, items }], categories }
-// POST /admin/furniture-types { code, name, nameVi, category, definesClass, status } · PUT /admin/furniture-types/:id
+// POST /admin/furniture-types { code, name, nameVi, category, definesClass, status, scope: Personal | Shared } · PUT /admin/furniture-types/:id
 
 function EditDrawer({ item, categories, onClose }) {
   const { notify } = useToast()
@@ -29,6 +29,7 @@ function EditDrawer({ item, categories, onClose }) {
     category: item.category ?? categories[0] ?? '',
     definesClass: item.definesClass ?? false,
     status: item.status ?? 'Active',
+    scope: item.scope ?? 'Shared',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const save = useMutation(() => (isNew ? api.admin.furnitureTypes.create(form) : api.admin.furnitureTypes.update(item.id, form)), {
@@ -78,6 +79,9 @@ function EditDrawer({ item, categories, onClose }) {
         checked={form.definesClass}
         onChange={(e) => setForm((x) => ({ ...x, definesClass: e.target.checked }))}
       />
+      <Field label="Belongs to" helper="Personal: one per Bed, charged to its student at check-out. Shared: the Room's, charged only for damage a student confirmed.">
+        {(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={[{ value: 'Shared', label: 'Shared (the Room)' }, { value: 'Personal', label: 'Personal (one Bed)' }]} />}
+      </Field>
     </Drawer>
   )
 }
@@ -92,9 +96,12 @@ export default function FurnitureTypes() {
         title="Furniture types"
         description="Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers)."
         actions={
+          <>
+          <Button to="/admin/furniture-prices">Prices</Button>
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!query.data}>
             New furniture type
           </Button>
+          </>
         }
       />
       <Table fill>
@@ -104,6 +111,7 @@ export default function FurnitureTypes() {
             <Th>Name</Th>
             <Th className="w-36">Category</Th>
             <Th className="w-48">Role</Th>
+            <Th className="w-28">Belongs to</Th>
             <Th className="w-28" align="right">
               Items recorded
             </Th>
@@ -114,7 +122,7 @@ export default function FurnitureTypes() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} rows={items} emptyIcon={Package} emptyTitle="No furniture types yet" />
+          <TableStatus query={query} colSpan={8} rows={items} emptyIcon={Package} emptyTitle="No furniture types yet" />
           {items.map((x) => (
             <Tr key={x.id} className="[&>td]:h-12">
               <Td className="font-medium">{x.code}</Td>
@@ -126,6 +134,7 @@ export default function FurnitureTypes() {
               </Td>
               <Td>{tr(x.category)}</Td>
               <Td>{x.definesClass ? <Tag tone="brand">Defines the room tier</Tag> : <Tag>Standard</Tag>}</Td>
+              <Td>{x.scope === 'Personal' ? <Tag tone="info">Personal</Tag> : <Tag>Shared</Tag>}</Td>
               <Td align="right" className="tabular">
                 {formatNumber(x.items)}
               </Td>
