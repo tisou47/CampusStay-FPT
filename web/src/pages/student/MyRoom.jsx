@@ -12,6 +12,7 @@ import { formatDate, formatDateRange, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 import { NextTermCard } from './room/NextTermCard'
+import { HandoverBanner } from './room/HandoverBanner'
 import { BalanceCard, CheckInHeaderWidget, DoorCodeCard, LateCheckInCard, RoomQuickLinksCard } from './room/RoomAccessAndFinance'
 import { FurnitureCard, RoomHeroCard, RoommatesCard } from './room/RoomHeroAndDetails'
 
@@ -80,6 +81,7 @@ function Room({ data }) {
 
   return (
     <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+      <HandoverBanner />
       {termination && (
         <Alert type="error" title={termination.status === 'Checked out' ? 'Stay ended' : 'Your stay is terminated'} className="shrink-0">
           {t('Reason: {reason}.', { reason: tr(termination.reason) })}
