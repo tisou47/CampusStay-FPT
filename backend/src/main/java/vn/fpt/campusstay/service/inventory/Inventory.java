@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.inventory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -68,4 +69,27 @@ public interface Inventory {
 
     /** The items in the Room that are not disposed, by type then asset code. */
     List<RoomFurniture> furnitureOf(long roomId);
+
+    /**
+     * A furniture item of a Room with what the check-in inventory and check-out need.
+     *
+     * @param personal the item belongs to one Bed ({@code bedId}, null while it is not linked to one)
+     * @param status   {@code IN_USE}, {@code BROKEN} or {@code IN_REPAIR}
+     */
+    record FurnitureLine(long id, String assetCode, long typeId, String type, String typeVi, boolean personal,
+            Long bedId, String bedLabel, String status) {
+    }
+
+    /** The Room's items that are not disposed, shared ones first, then by Bed, type and asset code. */
+    List<FurnitureLine> furnitureLines(long roomId);
+
+    /** Furniture type id → its replacement price in the Room's class of the Term (0 when none is set). */
+    Map<Long, Long> furniturePrices(long roomId, long termId);
+
+    /**
+     * Plans a move of an item of the type from the Block's store to the Room (a missing item found in an inspection
+     * or an inventory). Runs in the caller's transaction. @return the asset code of the planned item, or empty when
+     * the store has none free
+     */
+    Optional<String> planRestock(long roomId, long furnitureTypeId, String reason, long by);
 }
