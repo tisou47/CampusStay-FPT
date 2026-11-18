@@ -70,6 +70,7 @@ const OperationalMoves = () => import('@/pages/staff/OperationalMoves')
 const TermTransition = () => import('@/pages/transition/TermTransition')
 const CheckInDesk = () => import('@/pages/staff/CheckInDesk')
 const CheckOutDesk = () => import('@/pages/staff/CheckOutDesk')
+const HandoverReview = () => import('@/pages/staff/HandoverReview')
 const MeterReadings = () => import('@/pages/staff/MeterReadings')
 const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
 
@@ -229,6 +230,7 @@ export const router = createBrowserRouter([
         { path: 'next-term/:tab', ...page(TermTransition) },
         { path: 'moves', ...page(OperationalMoves) },
         { path: 'check-in', ...page(CheckInDesk) },
+        { path: 'check-in/inventories', ...page(HandoverReview) },
         { path: 'check-out', ...page(CheckOutDesk) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
@@ -273,6 +275,7 @@ export const router = createBrowserRouter([
         { path: 'maintenance', ...page(MaintenanceQueue) },
         { path: 'maintenance/:id', ...page(MaintenanceDetail) },
         { path: 'inspections', ...page(InspectionSchedule) },
+        { path: 'check-in/inventories', ...page(HandoverReview) },
         { path: 'finance', ...page(BlockFinance) },
         { path: 'staff', ...page(BlockStaff) },
         { path: 'routing-rules', ...page(RoutingRules) },
