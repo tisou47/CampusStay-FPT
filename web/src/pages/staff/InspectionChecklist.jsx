@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Alert, Card } from '@/components/ui/Display'
-import { Input } from '@/components/ui/Field'
+import { Checkbox } from '@/components/ui/Choice'
+import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, ErrorState, LoadingState, QueryState, TableStatus } from '@/components/ui/States'
@@ -42,6 +43,10 @@ function summary(r, total) {
   return checked < total ? t('In progress') : t('All passed')
 }
 
+// Furniture items are answered with their condition (V75): Good and Worn pass, Damaged and Missing fail.
+const conditions = ['Good', 'Worn', 'Damaged', 'Missing']
+const conditionTone = { Good: 'success', Worn: 'info', Damaged: 'error', Missing: 'warning' }
+
 function Checklist({ run, room }) {
   const { notify, notifyError } = useToast()
   // The checklist's items, then the Room's own: the number of people, and each furniture item in it.
@@ -49,21 +54,57 @@ function Checklist({ run, room }) {
     ...(run.checklist?.items ?? []),
     ...(room.checks ?? []).map((c) => ({
       id: c.id,
-      label: c.kind === 'people' ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 }) : `${typeName(c)} · ${c.assetCode}`,
+      furniture: c.kind === 'furniture',
+      label:
+        c.kind === 'people'
+          ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 })
+          : `${typeName(c)} · ${c.assetCode}${c.bed ? ` · ${t('Bed {bed}', { bed: c.bed })}` : ''}`,
     })),
   ]
-  const initial = Object.fromEntries(items.map((it) => [it.id, room.results?.find((x) => x.itemId === it.id) ?? { result: 'Not checked', note: '' }]))
+  const initial = Object.fromEntries(
+    items.map((it) => {
+      const saved = room.results?.find((x) => x.itemId === it.id)
+      return [it.id, saved ? { ...saved, condition: saved.condition ?? null, restock: false } : { result: 'Not checked', note: '', condition: null, restock: false }]
+    }),
+  )
   const [results, setResults] = useState(initial)
+  const [meters, setMeters] = useState({
+    electricity: room.meters?.electricity ?? '',
+    water: room.meters?.water ?? '',
+    replaced: room.meters?.replaced ?? false,
+  })
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const done = room.status === 'Done' || room.status === 'Not reachable'
-  const untouched = Object.values(results).every((r) => r.result === 'Not checked')
+  const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
+  const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
 
-  const save = useMutation(() => api.inspections.saveRoom(run.id, room.room, { results: items.map((it) => ({ itemId: it.id, result: results[it.id].result, note: results[it.id].note || undefined })) }), {
-    invalidates: ['inspections', 'maintenance'],
-    onSuccess: (res) =>
-      notify({ title: t('{room} saved', { room: room.room }), message: res?.createdRequests?.length ? t('{ids} created in maintenance.', { ids: res.createdRequests.join(', ') }) : 'All items passed.' }),
-    onError: (e) => notifyError(e, 'Could not save the room'),
-  })
+  const setCondition = (id, condition) =>
+    setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
+
+  const save = useMutation(
+    () =>
+      api.inspections.saveRoom(run.id, room.room, {
+        results: items.map((it) => {
+          const r = results[it.id]
+          return it.furniture && r.condition
+            ? { itemId: it.id, condition: r.condition, note: r.note || undefined, restock: r.condition === 'Missing' ? r.restock : undefined }
+            : { itemId: it.id, result: r.result, note: r.note || undefined }
+        }),
+        meters:
+          meters.electricity !== '' || meters.water !== ''
+            ? { electricity: Number(meters.electricity), water: Number(meters.water), replaced: meters.replaced }
+            : undefined,
+      }),
+    {
+      invalidates: ['inspections', 'maintenance', 'furniture'],
+      onSuccess: (res) =>
+        notify({
+          title: t('{room} saved', { room: room.room }),
+          message: res?.createdRequests?.length ? t('{ids} created in maintenance.', { ids: res.createdRequests.join(', ') }) : 'Saved without new maintenance requests.',
+        }),
+      onError: (e) => notifyError(e, 'Could not save the room'),
+    },
+  )
   const unreachable = useMutation(() => api.inspections.unreachable(run.id, room.room), {
     invalidates: ['inspections'],
     onSuccess: () => notify({ type: 'info', title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next inspection run.' }),
@@ -85,7 +126,7 @@ function Checklist({ run, room }) {
         <THead>
           <tr>
             <Th>Item</Th>
-            <Th className="w-32">Result</Th>
+            <Th className="w-56">Result</Th>
             <Th className="w-56">Note</Th>
           </tr>
         </THead>
@@ -96,15 +137,38 @@ function Checklist({ run, room }) {
               <Tr key={item.id} className="[&>td]:h-11">
                 <Td className="py-1.5">{item.label}</Td>
                 <Td>
-                  <button
-                    type="button"
-                    disabled={done}
-                    onClick={() => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], result: nextResult[rs[item.id].result] ?? 'Pass' } }))}
-                    aria-label={t('{item}: {result}. Change result', { item: item.label, result: t(r.result) })}
-                    className={cx('rounded-full', !done && 'cursor-pointer hover:ring-2 hover:ring-line-strong')}
-                  >
-                    <Tag tone={resultTone[r.result] ?? 'neutral'}>{r.result}</Tag>
-                  </button>
+                  {item.furniture ? (
+                    done ? (
+                      <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ?? r.result}</Tag>
+                    ) : (
+                      <div className="flex flex-col gap-1 py-1">
+                        <Select
+                          size="sm"
+                          aria-label={t('Condition of {item}', { item: item.label })}
+                          value={r.condition ?? ''}
+                          onChange={(e) => setCondition(item.id, e.target.value || null)}
+                          options={[{ value: '', label: 'Not checked' }, ...conditions.map((c) => ({ value: c, label: c }))]}
+                        />
+                        {r.condition === 'Missing' && (
+                          <Checkbox
+                            label="Take a spare from the Block store"
+                            checked={!!r.restock}
+                            onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], restock: e.target.checked } }))}
+                          />
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={done}
+                      onClick={() => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], result: nextResult[rs[item.id].result] ?? 'Pass' } }))}
+                      aria-label={t('{item}: {result}. Change result', { item: item.label, result: t(r.result) })}
+                      className={cx('rounded-full', !done && 'cursor-pointer hover:ring-2 hover:ring-line-strong')}
+                    >
+                      <Tag tone={resultTone[r.result] ?? 'neutral'}>{r.result}</Tag>
+                    </button>
+                  )}
                 </Td>
                 <Td>
                   {r.result === 'Fail' && !done ? (
@@ -118,6 +182,16 @@ function Checklist({ run, room }) {
           })}
         </TBody>
       </Table>
+      <div className="flex shrink-0 flex-wrap items-end gap-3">
+        <Field label="Electricity (kWh)" required={room.metersNeeded} className="w-44">
+          <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} />
+        </Field>
+        <Field label="Water (m³)" required={room.metersNeeded} className="w-44">
+          <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} />
+        </Field>
+        <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
+        {room.metersNeeded && <p className="text-sm text-fg-tertiary">Pre-arrival inspection: the Room is done once its meters are read.</p>}
+      </div>
       <div className="flex shrink-0 flex-col gap-2.5">
         {room.status === 'Done' ? (
           <Alert type="success" title="Room saved">
@@ -129,10 +203,10 @@ function Checklist({ run, room }) {
           </Alert>
         ) : failed > 0 ? (
           <Alert type="warning" title={t('{n} failed items will create maintenance requests', { n: failed })}>
-            They are routed by the block routing rules after you save this room.
+            Damaged items become furniture repair requests; a Missing item with a spare from the store becomes a planned move instead.
           </Alert>
         ) : (
-          <p className="text-sm text-fg-tertiary">Click a result to switch between Pass, Fail and Not checked.</p>
+          <p className="text-sm text-fg-tertiary">Choose Good, Worn, Damaged or Missing for each furniture item; click a checklist result to switch between Pass, Fail and Not checked.</p>
         )}
         {!done && (
           <div className="flex justify-end gap-2">
@@ -140,7 +214,7 @@ function Checklist({ run, room }) {
               Mark not reachable
             </Button>
             <Button variant="primary" onClick={() => save.run()} disabled={untouched || save.pending}>
-              Save room
+              {metersMissing ? 'Save (meters still needed)' : 'Save room'}
             </Button>
           </div>
         )}
