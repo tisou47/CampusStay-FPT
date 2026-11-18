@@ -574,6 +574,11 @@ export const api = {
       list: g('/admin/room-class-requirements'),
       save: (roomClassId, body) => http.put(`/admin/room-class-requirements/${roomClassId}`, body),
     },
+    /** Replacement prices of furniture types per Room Class (check-out charges): PUT { items: [{ typeId, roomClassId, price }] }. */
+    furniturePrices: {
+      list: g('/admin/furniture-prices'),
+      save: (body) => http.put('/admin/furniture-prices', body),
+    },
     users: {
       list: g('/admin/users'),
       invite: (body) => http.post('/admin/users', body),
@@ -581,6 +586,40 @@ export const api = {
       permissions: g('/admin/permissions'),
     },
     auditLog: g('/admin/audit-log'),
+  },
+
+  /* ---------------------------------------------------------------- Room handover (check-in inventory, check-out furniture) */
+  handover: {
+    /** The student's check-in inventory: { status, checks, items, dueAt, toAgree, … } (never the Room's record). */
+    mine: g('/students/me/handover'),
+    start: () => http.post('/students/me/handover/start'),
+    /** { items: [{ itemId, condition, note }], electricity, water } → the view. */
+    save: (body) => http.put('/students/me/handover', body),
+    /** multipart: photo, itemId (none = the meters) → { id, url }. */
+    addPhoto: (formData) => http.post('/students/me/handover/photos', formData),
+    removePhoto: (id) => http.delete(`/students/me/handover/photos/${id}`),
+    submit: (body) => http.post('/students/me/handover/submit', body),
+    agree: (body) => http.post('/students/me/handover/agree', body),
+    late: (body) => http.post('/students/me/handover/late', body),
+    /** Staff: inventories of their Blocks (status To review, Verifying, Draft, Final, Late report, All). */
+    list: g('/handovers'),
+    detail: (id, opts) => http.get(`/handovers/${id}`, undefined, opts),
+    confirm: (id, body) => http.post(`/handovers/${id}/confirm`, body),
+    visit: (id, body) => http.post(`/handovers/${id}/visit`, body),
+    verification: (id, body) => http.put(`/handovers/${id}/verification`, body),
+    cancel: (id, body) => http.post(`/handovers/${id}/cancel`, body),
+    acceptLate: (id, body) => http.post(`/handovers/${id}/late`, body),
+  },
+  checkOutFurniture: {
+    view: (allocationId, opts) => http.get(`/check-outs/${allocationId}/furniture`, undefined, opts),
+    /** { items: [{ itemId, condition, note, amount, overrideReason, managerReview }], studentPresent }. */
+    record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
+    claim: (allocationId, body) => http.post(`/check-outs/${allocationId}/damage-claims`, body),
+    reviews: g('/check-out-reviews'),
+    decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
+    mine: g('/students/me/check-out'),
+    agree: () => http.post('/students/me/check-out/agree'),
+    answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),
   },
 
   exports: {
