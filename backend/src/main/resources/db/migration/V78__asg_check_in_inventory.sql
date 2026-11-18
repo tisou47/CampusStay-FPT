@@ -33,6 +33,8 @@ CREATE TABLE asg_handover (
     visit_at              TIMESTAMPTZ,
     verified_at           TIMESTAMPTZ,
     verified_by           BIGINT REFERENCES auth_user (id),
+    verified_electricity  NUMERIC(10,1) CHECK (verified_electricity >= 0),
+    verified_water        NUMERIC(10,1) CHECK (verified_water >= 0),
     student_comment       VARCHAR(500),
     confirm_reason        VARCHAR(500),
     finalized_at          TIMESTAMPTZ,
