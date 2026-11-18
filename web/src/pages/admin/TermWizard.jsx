@@ -983,17 +983,26 @@ export default function TermWizard() {
                     )}
                   >
                     <div className="flex items-center gap-2 min-w-0">
+                      {/* A saved step is only "done" (green check) when nothing is left to fix in it; otherwise a warning. */}
                       <span
                         className={cx(
                           'flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
                           current
                             ? 'bg-primary text-white'
-                            : saved
-                              ? 'bg-success text-white'
-                              : 'bg-subtle text-fg-secondary',
+                            : saved && open > 0
+                              ? 'bg-warning-bg text-warning-fg'
+                              : saved
+                                ? 'bg-success text-white'
+                                : 'bg-subtle text-fg-secondary',
                         )}
                       >
-                        {saved && !current ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : i + 1}
+                        {current || !saved ? (
+                          i + 1
+                        ) : open > 0 ? (
+                          <TriangleAlert size={12} strokeWidth={2.5} aria-label={t('{n} to fix in this step', { n: open })} />
+                        ) : (
+                          <Check size={12} strokeWidth={2.5} aria-hidden="true" />
+                        )}
                       </span>
                       <span className="truncate">{t(s.label)}</span>
                     </div>
