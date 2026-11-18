@@ -20,9 +20,11 @@ class ResidenceJobs {
     private final DoorCodeRelease release;
     private final TerminationService terminations;
     private final HandoverJobService handovers;
+    private final CheckOutFurnitureService furniture;
 
     ResidenceJobs(ForfeitService forfeits, DoorCodeRelease release, TerminationService terminations,
-            HandoverJobService handovers) {
+            HandoverJobService handovers, CheckOutFurnitureService furniture) {
+        this.furniture = furniture;
         this.handovers = handovers;
         this.forfeits = forfeits;
         this.release = release;
@@ -50,6 +52,7 @@ class ResidenceJobs {
             log.info("{} check-in inventories closed by their deadline", closed);
         }
         handovers.remind();
+        furniture.expireClaims();
         int overdue = terminations.markOverdue();
         if (overdue > 0) {
             log.info("{} terminations overdue", overdue);

@@ -472,8 +472,16 @@ public class DeskService {
         }
         Map<Long, Damage> damages = damages(cmd.damages(), p.bed().roomId(), errors);
         errors.throwIfAny();
+        FurnitureRecord furniture = furnitureRecord(p.alloc().id());
+        if (!cmd.draft() && cmd.damages() == null && furniture.recorded() && furniture.studentPresent()
+                && furniture.agreedAt() == null) {
+            throw ApiException.conflict("STUDENT_NOT_AGREED",
+                    "The student has not agreed with the furniture charges yet. Ask them to agree on the app.");
+        }
+        // Furniture recorded by condition (CheckOutFurnitureService) sets the charge; lines a Manager reviews wait.
         long damage = cmd.damages() != null
                 ? damages.values().stream().mapToLong(Damage::amount).sum()
+                : furniture.recorded() ? furniture.total()
                 : cmd.damageCharge() == null ? 0 : cmd.damageCharge();
         Reading reading = new Reading(cmd.electricity(), cmd.water());
         Billing.SettlementRequest request = request(p, reading, damage);
@@ -493,6 +501,10 @@ public class DeskService {
         String where = "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel();
         damages.forEach((itemId, d) -> events.publishEvent(new FurnitureDamaged(itemId,
                 "Damaged at the check-out of " + where + (d.note() == null ? "" : ": " + d.note()), user.userId())));
+        if (cmd.damages() == null) {
+            furniture.worse().forEach(itemId -> events.publishEvent(new FurnitureDamaged(itemId,
+                    "Damaged at the check-out of " + where, user.userId())));
+        }
         jdbc.sql("""
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1
                 WHERE id = :id AND status = 'ACTIVE'
@@ -726,6 +738,38 @@ public class DeskService {
             }
         }
         return damages;
+    }
+
+    /**
+     * The furniture recorded by condition for the check-out: whether any, the charge (lines a Manager reviews or
+     * dropped left out), whether the student is present and agreed, and the items that got worse.
+     */
+    private record FurnitureRecord(boolean recorded, long total, boolean studentPresent, Instant agreedAt,
+            List<Long> worse) {
+    }
+
+    private FurnitureRecord furnitureRecord(long allocationId) {
+        record Raw(long item, long amount, String condition, String baseline, String review) {
+        }
+        List<Raw> lines = jdbc.sql("""
+                SELECT d.furniture_item_id, d.amount, d.condition, d.baseline_condition, d.manager_review
+                FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
+                WHERE c.allocation_id = :a AND d.condition IS NOT NULL
+                """).param("a", allocationId)
+                .query((rs, i) -> new Raw(rs.getLong("furniture_item_id"), rs.getLong("amount"),
+                        rs.getString("condition"), rs.getString("baseline_condition"), rs.getString("manager_review")))
+                .list();
+        record Meta(Boolean present, Timestamp agreed) {
+        }
+        Meta meta = jdbc.sql("SELECT student_present, student_agreed_at FROM asg_check_out WHERE allocation_id = :a")
+                .param("a", allocationId).query((rs, i) -> new Meta(rs.getObject("student_present", Boolean.class),
+                        rs.getTimestamp("student_agreed_at"))).optional().orElse(new Meta(null, null));
+        long total = lines.stream().filter(l -> l.review() == null || l.review().equals("KEPT"))
+                .mapToLong(Raw::amount).sum();
+        List<Long> worse = lines.stream().filter(l -> (l.condition().equals("DAMAGED") || l.condition().equals("MISSING"))
+                && !l.condition().equals(l.baseline())).map(Raw::item).toList();
+        return new FurnitureRecord(!lines.isEmpty(), total, Boolean.TRUE.equals(meta.present()),
+                meta.agreed() == null ? null : meta.agreed().toInstant(), worse);
     }
 
     /** Replaces the check-out's damage lines; null leaves them as they are (an older client). */

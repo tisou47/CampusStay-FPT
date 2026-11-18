@@ -33,6 +33,7 @@ public enum Permission {
     ISSUE_TERM_FEES("Issue the next-Term room fees", Role.MANAGER),
     RECONCILE_ENROLLMENT("Reconcile the enrolled list with residents and applicants", Role.MANAGER),
     DECIDE_REFUNDS("Decide refunds and late check-ins", Role.MANAGER),
+    REVIEW_CHECK_OUT_CHARGES("Keep or drop furniture charges a student did not accept at check-out", Role.MANAGER),
     TERMINATE_STAYS("Start and cancel terminations of stays", Role.MANAGER),
     MANAGE_BLOCK("Manage staff, routing and Block settings", Role.MANAGER),
     MANAGE_FAMILY_DAYS("Organise Family Days: create, publish, cancel and close them; cancel registrations",
