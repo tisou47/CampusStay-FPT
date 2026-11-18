@@ -35,6 +35,7 @@ class InventoryDemoData implements DemoData {
 
     @Override
     public void clear() {
+        jdbc.execute("DELETE FROM inv_furniture_move WHERE status = 'PLANNED'");
         jdbc.execute("DELETE FROM inv_door_code_task");
         jdbc.execute("DELETE FROM inv_door_code");
         jdbc.execute("DELETE FROM inv_room_class_term");
@@ -48,7 +49,7 @@ class InventoryDemoData implements DemoData {
         }
         List<Room> rooms = jdbc.query("""
                 SELECT r.id, s.id AS staff FROM inv_room r JOIN inv_building b ON b.id = r.building_id
-                JOIN demo_staff s ON s.account = 'staff.' || lower(b.code) || '1'
+                JOIN demo_staff s ON s.account = 'staff' || lower(b.code) || '01'
                 WHERE r.status = 'IN_SERVICE' ORDER BY r.id
                 """, (rs, i) -> new Room(rs.getLong("id"), rs.getLong("staff")));
         Timestamp at = jdbc.queryForObject("SELECT ((n_start - 7) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' FROM demo_t",
