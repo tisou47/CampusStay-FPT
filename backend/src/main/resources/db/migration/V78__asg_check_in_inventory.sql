@@ -41,6 +41,7 @@ CREATE TABLE asg_handover (
     cancelled_reason      VARCHAR(300),
     late_note             VARCHAR(500),
     late_submitted_at     TIMESTAMPTZ,
+    reminders_sent        SMALLINT      NOT NULL DEFAULT 0,
     created_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
     version               BIGINT        NOT NULL DEFAULT 0,
     CONSTRAINT ck_handover_final CHECK (status <> 'FINAL' OR (finalized_at IS NOT NULL AND source IS NOT NULL))

@@ -1,0 +1,47 @@
+-- =====================================================================
+-- CampusStay FPT — V79: notifications of the check-in inventory and of
+-- furniture damage.
+-- =====================================================================
+
+INSERT INTO ntf_template (key, event, push, title_en, title_vi, body, body_vi, variables) VALUES
+  ('CHECK_IN_AVAILABLE', 'A new resident may now receive the Room', TRUE,
+     'You can move in · Room {{room}}', 'Bạn đã có thể nhận phòng · Phòng {{room}}',
+     'Open My Room and press "Start check-in inventory" when you are at the Room: you receive the door code and have {{hours}} hours to file the inventory.',
+     'Mở Phòng của tôi và bấm "Bắt đầu kiểm kê nhận phòng" khi bạn đã đến phòng: bạn nhận mã cửa và có {{hours}} giờ để nộp biên bản kiểm kê.',
+     '{room,hours}'),
+  ('CHECK_IN_INVENTORY_DUE', 'A student''s check-in inventory is due soon', TRUE,
+     'File your check-in inventory · Room {{room}}', 'Hãy nộp biên bản kiểm kê · Phòng {{room}}',
+     'Your check-in inventory is due by {{dueAt}}. If it is not filed, the Room''s recorded condition is used and you can no longer report damage that was already there.',
+     'Biên bản kiểm kê nhận phòng của bạn hết hạn lúc {{dueAt}}. Nếu không nộp, hệ thống dùng tình trạng phòng đã ghi nhận và bạn không thể báo hư hỏng có sẵn nữa.',
+     '{room,dueAt}'),
+  ('CHECK_IN_INVENTORY_SUBMITTED', 'A student filed a check-in inventory that needs a look', FALSE,
+     'Check-in inventory to review · Room {{room}}', 'Biên bản kiểm kê cần xem · Phòng {{room}}',
+     '{{name}} filed the inventory of Room {{room}} ({{comparison}}).',
+     '{{name}} đã nộp biên bản kiểm kê phòng {{room}} ({{comparison}}).',
+     '{name,room,comparison}'),
+  ('CHECK_IN_VISIT', 'Staff will check the Room with the student', TRUE,
+     'Staff will check your Room · Room {{room}}', 'Nhân viên sẽ xuống kiểm tra phòng · Phòng {{room}}',
+     'Some answers of your check-in inventory need a look in the Room. Staff will come {{visitAt}}; please be there.',
+     'Một số mục trong biên bản kiểm kê cần kiểm tra tại phòng. Nhân viên sẽ đến {{visitAt}}, bạn vui lòng có mặt.',
+     '{room,visitAt}'),
+  ('CHECK_IN_TO_AGREE', 'Staff sent the checked inventory for the student''s agreement', TRUE,
+     'Check the inventory with Staff · Room {{room}}', 'Xác nhận biên bản cùng nhân viên · Phòng {{room}}',
+     'Staff recorded what they found in Room {{room}}. Open My Room to read it and agree.',
+     'Nhân viên đã ghi nhận tình trạng thực tế phòng {{room}}. Mở Phòng của tôi để xem và xác nhận.',
+     '{room}'),
+  ('CHECK_IN_INVENTORY_FINAL', 'The check-in inventory is final', FALSE,
+     'Check-in inventory recorded · Room {{room}}', 'Đã ghi nhận biên bản kiểm kê · Phòng {{room}}',
+     'Your check-in inventory of Room {{room}} is recorded. Utility is counted from {{from}}.',
+     'Biên bản kiểm kê phòng {{room}} của bạn đã được ghi nhận. Điện nước được tính từ {{from}}.',
+     '{room,from}'),
+  ('DAMAGE_TO_ACKNOWLEDGE', 'Staff attributed damage to a shared item to the student', TRUE,
+     'Damage to confirm · {{item}}', 'Hư hỏng cần xác nhận · {{item}}',
+     'Staff recorded {{item}} in Room {{room}} as {{condition}} and say you caused it. Confirm by {{dueAt}} if this is right; it is then charged at check-out ({{amount}}).',
+     'Nhân viên ghi nhận {{item}} ở phòng {{room}} là {{condition}} do bạn gây ra. Nếu đúng, hãy xác nhận trước {{dueAt}}; khoản này được tính khi trả phòng ({{amount}}).',
+     '{item,room,condition,dueAt,amount}'),
+  ('CHECK_OUT_TO_AGREE', 'Staff recorded the furniture at check-out', TRUE,
+     'Check the furniture charges · Room {{room}}', 'Xác nhận tiền đền nội thất · Phòng {{room}}',
+     'Staff checked the furniture of your check-out ({{amount}}). Open My Room to read each item and agree.',
+     'Nhân viên đã kiểm nội thất khi bạn trả phòng ({{amount}}). Mở Phòng của tôi để xem từng món và xác nhận.',
+     '{room,amount}')
+ON CONFLICT (key) DO NOTHING;
