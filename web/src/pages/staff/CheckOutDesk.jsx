@@ -275,8 +275,7 @@ function CheckOutPanel({ d }) {
         </div>
       </div>
 
-      {/* 2. The work area (meters, condition, furniture) and, beside it on wide screens, the settlement. */}
-      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      {/* 2. Vertical workflow: Step 1 (Meters) -> Step 2 (Room condition & furniture) -> Step 3 (Settlement & actions). */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
         {/* Step 1: Final Meter Reading */}
         <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
@@ -343,100 +342,98 @@ function CheckOutPanel({ d }) {
           water={water}
           onLiveTotalChange={setLiveFurnitureTotal}
         />
-      </div>
 
-      {/* 3. Settlement and actions: a footer on narrow screens, a column beside the work area on wide ones. */}
-      <div className="flex shrink-0 flex-col gap-3 border-t border-line bg-surface px-5 py-4 shadow-card xl:w-88 xl:overflow-y-auto xl:border-t-0 xl:border-l xl:shadow-none">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Receipt size={14} aria-hidden="true" className="text-fg-brand" />
-            <p className="text-xs font-semibold tracking-wide text-fg-tertiary uppercase">
-              {t('3. Utility deposit settlement')}
-            </p>
-          </div>
-          <span className="text-[11px] text-fg-tertiary">
-            {refund >= 0 ? t('Refund goes to the manager for approval') : t('The balance is invoiced to the student')}
-          </span>
-        </div>
-
-        <dl className="flex flex-col gap-1">
-          <Row label="Utility deposit held">{formatVnd(s.held)}</Row>
-          <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
-          <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
-          {damageAmount > 0 && (
-            <Row label="Damage charge" tone="text-warning-fg">
-              − {formatVnd(damageAmount)}
-            </Row>
-          )}
-        </dl>
-
-        {/* Realtime Net Settlement Highlight Box */}
-        <div
-          className={cx(
-            'flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5',
-            refund >= 0 ? 'bg-brand-subtle' : 'bg-error-bg',
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {refund >= 0 ? (
-              <CheckCircle2 size={18} aria-hidden="true" className="shrink-0 text-fg-brand" />
-            ) : (
-              <AlertTriangle size={18} aria-hidden="true" className="shrink-0 text-error-fg" />
-            )}
-            <span className="text-sm font-semibold text-fg">
-              {t(refund >= 0 ? 'Refund to student' : 'Student still owes')}
+        {/* Step 3: Utility deposit settlement and actions */}
+        <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Receipt size={15} aria-hidden="true" className="text-fg-brand" />
+              <p className="text-sm font-semibold text-fg">
+                {t('3. Utility deposit settlement')}
+              </p>
+            </div>
+            <span className="text-xs text-fg-tertiary">
+              {refund >= 0 ? t('Refund goes to the manager for approval') : t('The balance is invoiced to the student')}
             </span>
           </div>
-          <span
+
+          <dl className="flex flex-col gap-1.5">
+            <Row label="Utility deposit held">{formatVnd(s.held)}</Row>
+            <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
+            <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
+            {damageAmount > 0 && (
+              <Row label="Damage charge" tone="text-warning-fg">
+                − {formatVnd(damageAmount)}
+              </Row>
+            )}
+          </dl>
+
+          {/* Realtime Net Settlement Highlight Box */}
+          <div
             className={cx(
-              'text-xl font-bold whitespace-nowrap tabular',
-              refund >= 0 ? 'text-fg-brand' : 'text-error-fg',
+              'flex items-center justify-between gap-3 rounded-xl px-4 py-3',
+              refund >= 0 ? 'bg-brand-subtle' : 'bg-error-bg',
             )}
           >
-            {formatVnd(Math.abs(refund))}
-          </span>
-        </div>
-
-        {done ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3 py-2 text-xs font-medium text-success-fg">
-            <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
-            <span>
-              {refund < 0
-                ? t('{amount} was invoiced to the student.', { amount: formatVnd(-refund) })
-                : d.refundStatus === 'Approved'
-                  ? t('A manager approved the refund.')
-                  : t('The refund is waiting for a manager’s approval.')}
+            <div className="flex items-center gap-2">
+              {refund >= 0 ? (
+                <CheckCircle2 size={18} aria-hidden="true" className="shrink-0 text-fg-brand" />
+              ) : (
+                <AlertTriangle size={18} aria-hidden="true" className="shrink-0 text-error-fg" />
+              )}
+              <span className="text-sm font-semibold text-fg">
+                {t(refund >= 0 ? 'Refund to student' : 'Student still owes')}
+              </span>
+            </div>
+            <span
+              className={cx(
+                'text-xl font-bold whitespace-nowrap tabular',
+                refund >= 0 ? 'text-fg-brand' : 'text-error-fg',
+              )}
+            >
+              {formatVnd(Math.abs(refund))}
             </span>
           </div>
-        ) : (
-          <div className="flex flex-col gap-1.5 pt-0.5">
-            {!condition && (
-              <p className="text-right text-xs font-medium text-warning-fg">
-                {t('Please select the room condition before you confirm.')}
-              </p>
-            )}
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                tip="Keep what you entered and finish the check-out later."
-                size="sm"
-                onClick={() => submit.run(true)}
-                disabled={submit.pending}
-              >
-                Save draft
-              </Button>
-              <Button
-                tip="Ends the student’s stay and frees the bed. A meter reading is taken."
-                variant="primary"
-                disabled={!condition || submit.pending}
-                onClick={() => setShowSummary(true)}
-              >
-                Confirm check-out
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
 
+          {done ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3.5 py-2.5 text-xs font-medium text-success-fg">
+              <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
+              <span>
+                {refund < 0
+                  ? t('{amount} was invoiced to the student.', { amount: formatVnd(-refund) })
+                  : d.refundStatus === 'Approved'
+                    ? t('A manager approved the refund.')
+                    : t('The refund is waiting for a manager’s approval.')}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 pt-1">
+              {!condition && (
+                <p className="text-right text-xs font-medium text-warning-fg">
+                  {t('Please select the room condition before you confirm.')}
+                </p>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  tip="Keep what you entered and finish the check-out later."
+                  size="sm"
+                  onClick={() => submit.run(true)}
+                  disabled={submit.pending}
+                >
+                  Save draft
+                </Button>
+                <Button
+                  tip="Ends the student’s stay and frees the bed. A meter reading is taken."
+                  variant="primary"
+                  disabled={!condition || submit.pending}
+                  onClick={() => setShowSummary(true)}
+                >
+                  Confirm check-out
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       {showSummary && (

@@ -111,9 +111,33 @@ public class ChecklistService {
                             .map(v -> new Replaced(v.version(), items.getOrDefault(v.id(), List.of()).size()))
                             .toList()));
         });
-        result.sort(Comparator.comparing((Checklist c) -> c.status().equals("Archived")).thenComparing(Checklist::name));
+        result.sort(Comparator.comparing((Checklist c) -> c.status().equals("Archived"))
+                .thenComparingInt(c -> priority(c.id(), c.name()))
+                .thenComparing(Checklist::name));
         return new Page(result, lookups.list("MAINTENANCE_CATEGORY").stream().map(Lookups.Lookup::label).toList(),
                 List.copyOf(SEVERITIES.values()));
+    }
+
+    private static int priority(String family, String name) {
+        if ("CL_PRE_ARRIVAL".equals(family) || "DEMO_TURNOVER".equals(family)) {
+            return 0;
+        }
+        if ("CL_SECURITY".equals(family)) {
+            return 1;
+        }
+        if ("CL_BATHROOM".equals(family)) {
+            return 2;
+        }
+        if (name != null) {
+            String lower = name.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("nhận phòng") || lower.contains("bàn giao")) {
+                return 0;
+            }
+            if (lower.contains("an ninh") || lower.contains("khóa")) {
+                return 1;
+            }
+        }
+        return 3;
     }
 
     /** A Draft v1 without items. */
@@ -290,7 +314,11 @@ public class ChecklistService {
         if (checklistIds.isEmpty()) {
             return Map.of();
         }
-        return jdbc.sql("SELECT * FROM mnt_checklist_item WHERE checklist_id IN (:ids) ORDER BY sort_order, id")
+        return jdbc.sql("""
+                SELECT * FROM mnt_checklist_item WHERE checklist_id IN (:ids)
+                ORDER BY CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'MAJOR' THEN 1 WHEN 'MINOR' THEN 2 ELSE 3 END,
+                         sort_order, id
+                """)
                 .param("ids", checklistIds)
                 .query((rs, i) -> new VersionItem(rs.getLong("id"), rs.getLong("checklist_id"), rs.getString("label"),
                         rs.getString("category"), rs.getString("severity")))

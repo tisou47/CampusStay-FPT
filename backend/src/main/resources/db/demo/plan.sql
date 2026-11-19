@@ -391,9 +391,15 @@ UPDATE demo_checkin c SET state = 'WAITING'
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8);
 UPDATE demo_checkin c SET state = CASE WHEN c.state IN ('MINOR', 'MAJOR', 'VERIFYING') THEN 'MATCHED' ELSE c.state END
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9);
--- Everyone in the two clean demo rooms (D1's room and S12's A-603) starts READY from scratch (no handover yet).
+-- Everyone in the three clean demo rooms (D1's room, S12's A-603, and the extra READY room in Block A) starts READY from scratch (no handover yet).
 UPDATE demo_checkin c SET state = 'READY'
-WHERE c.room_id IN (SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12');
+WHERE c.room_id IN (
+    SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+    UNION
+    (SELECT room_id FROM demo_checkin
+     WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+     ORDER BY room_code LIMIT 1)
+);
 -- A late arrival whose Balance is not paid yet (S17) is waiting for the payment.
 UPDATE demo_checkin SET state = 'WAITING' WHERE scenario = 'S17';
 

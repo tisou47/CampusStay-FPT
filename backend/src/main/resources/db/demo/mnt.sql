@@ -186,7 +186,9 @@ WHERE ir.status = 'INSPECTED';
 INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
                                      create_requests, notify_residents, next_run_at, status, created_at, kind)
 SELECT b.id, 'Kiểm tra phòng trước nhận phòng · Tòa ' || b.code, 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
-       (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '02'), 2, TRUE, FALSE, NULL, 'ACTIVE',
+       CASE WHEN b.code = 'A' THEN NULL
+            ELSE (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '02') END,
+       2, TRUE, FALSE, NULL, 'ACTIVE',
        ((t.n_end - 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'PRE_ARRIVAL'
 FROM inv_building b CROSS JOIN demo_t t
 WHERE t.stage = 'D' AND b.id IN (SELECT DISTINCT building_id FROM demo_checkin);
@@ -203,8 +205,8 @@ WHERE b.code BETWEEN 'A' AND 'H';
 
 INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
                                 submitted_at, created_at)
-SELECT s.id, s.building_id, c.id, t.n_end + 1, (t.x_ci_start + TIME '00:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
-       s.assignee_id, 'SUBMITTED', ((t.n_end + 2) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+SELECT s.id, s.building_id, c.id, t.n_end + 1, ((t.today + 2) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       s.assignee_id, 'IN_PROGRESS', NULL,
        ((t.n_end + 1) + TIME '06:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
 FROM mnt_inspection_schedule s CROSS JOIN demo_t t
 JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
@@ -212,18 +214,51 @@ WHERE t.stage = 'D' AND s.name LIKE 'Kiểm tra phòng trước nhận phòng ·
 
 INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
 SELECT ru.id, r.room_id,
-       CASE WHEN r.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9) THEN 'UNREACHABLE' ELSE 'INSPECTED' END,
-       ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
-           + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120),
-       CASE WHEN r.room_id <> (SELECT room_id FROM demo_checkin WHERE named = 9) THEN m.e END,
-       CASE WHEN r.room_id <> (SELECT room_id FROM demo_checkin WHERE named = 9) THEN m.w END,
-       ru.inspector_id
+       CASE WHEN r.room_id IN (
+                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+                UNION
+                (SELECT room_id FROM demo_checkin
+                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+                 ORDER BY room_code LIMIT 1)
+            ) THEN 'PENDING'
+            ELSE 'INSPECTED' END,
+       CASE WHEN r.room_id NOT IN (
+                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+                UNION
+                (SELECT room_id FROM demo_checkin
+                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+                 ORDER BY room_code LIMIT 1)
+            )
+            THEN ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                 + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120) END,
+       CASE WHEN r.room_id NOT IN (
+                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+                UNION
+                (SELECT room_id FROM demo_checkin
+                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+                 ORDER BY room_code LIMIT 1)
+            ) THEN m.e END,
+       CASE WHEN r.room_id NOT IN (
+                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+                UNION
+                (SELECT room_id FROM demo_checkin
+                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+                 ORDER BY room_code LIMIT 1)
+            ) THEN m.w END,
+       CASE WHEN r.room_id NOT IN (
+                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
+                UNION
+                (SELECT room_id FROM demo_checkin
+                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
+                 ORDER BY room_code LIMIT 1)
+            )
+            THEN coalesce(ru.inspector_id,
+                 (SELECT id FROM demo_staff WHERE account = 'staff' || lower((SELECT code FROM inv_building WHERE id = ru.building_id)) || '02')) END
 FROM (SELECT DISTINCT room_id, building_id FROM demo_checkin) r CROSS JOIN demo_t t
 JOIN mnt_inspection_run ru ON ru.building_id = r.building_id AND ru.run_date = t.n_end + 1
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_room_meter m ON m.room_id = r.room_id
-WHERE t.stage = 'D'
-  AND r.room_id NOT IN (SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12');
+WHERE t.stage = 'D';
 
 INSERT INTO mnt_inspection_result (inspection_room_id, item_id, result)
 SELECT ir.id, ci.id, 'PASS'

@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.CheckOutCompleted;
 import vn.fpt.campusstay.event.FurnitureDamaged;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.security.AuthenticatedUser;
@@ -676,6 +677,8 @@ public class DeskService {
                 .forEach(id -> stays.cancel(id, terminated ? "TERMINATED" : "END_OF_STAY"));
         stays.endIfLeft(p.alloc().studentId(), terminated);
         long refund = settled.settlement().refund();
+        events.publishEvent(new CheckOutCompleted(p.alloc().studentId(), p.bed().roomCode(), refund,
+                settled.refundId().isPresent()));
         audit.record("CHECKED_OUT", AuditLog.Tone.SUCCESS, "Allocation", p.alloc().id(),
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
                 Map.of("refund", refund, "damage", damage, "conditionGood", cmd.conditionGood()));
@@ -1003,8 +1006,24 @@ public class DeskService {
     /** A resident's or a checked-out Allocation in the user's scope. */
     private Placed checkOutTarget(String allocationId, boolean lock) {
         long id = parseId(allocationId).orElseThrow(() -> ApiException.notFound("This Allocation does not exist."));
-        Placed p = checkOutRows(null, null, id).stream().findFirst()
-                .orElseThrow(() -> ApiException.notFound("This student does not live in the Room."));
+        Optional<Placed> found = checkOutRows(null, null, id).stream().findFirst();
+        if (found.isEmpty()) {
+            record Pending(long bedId, long termId, String status, Instant checkedInAt) {
+            }
+            Pending pending = jdbc.sql("SELECT bed_id, term_id, status, checked_in_at FROM asg_allocation WHERE id = :id")
+                    .param("id", id).query((rs, i) -> new Pending(rs.getLong("bed_id"), rs.getLong("term_id"),
+                            rs.getString("status"), instant(rs, "checked_in_at")))
+                    .optional().orElse(null);
+            if (pending != null && "ACTIVE".equals(pending.status()) && pending.checkedInAt() == null) {
+                Inventory.BedSlot bed = inventory.beds(pending.termId(), List.of(pending.bedId())).get(pending.bedId());
+                if (bed != null && blockScope.resolve(null).ids().contains(bed.buildingId())) {
+                    throw ApiException.badRequest("NOT_CHECKED_IN",
+                            "This student has not checked in yet and cannot check out.");
+                }
+            }
+            throw ApiException.notFound("This student does not live in the Room.");
+        }
+        Placed p = found.get();
         blockScope.check(p.bed().buildingId());
         if (lock) {
             jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).single();
@@ -1018,7 +1037,7 @@ public class DeskService {
         List<Object[]> raw = jdbc.sql("""
                 SELECT a.*, c.reason AS out_reason, c.status AS out_status, c.completed_at AS out_completed
                 FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
-                WHERE %s AND ((a.status = 'ACTIVE' AND a.resident_at IS NOT NULL)
+                WHERE %s AND ((a.status = 'ACTIVE' AND a.checked_in_at IS NOT NULL)
                               OR (a.status = 'ENDED' AND a.end_reason = 'CHECK_OUT'))
                 """.formatted(where))
                 .params(allocationId != null ? Map.of("id", allocationId) : Map.of("term", termId))

@@ -161,7 +161,8 @@ public class InspectionScheduleService {
         List<Long> buildings = List.copyOf(selection.ids());
         Map<Long, String> codes = blockCodes.codesByIds(selection.ids());
         List<Schedule> schedules = jdbc.sql("""
-                SELECT * FROM mnt_inspection_schedule WHERE building_id IN (:b) ORDER BY name, id
+                SELECT * FROM mnt_inspection_schedule WHERE building_id IN (:b)
+                ORDER BY (kind = 'PRE_ARRIVAL' OR scope = 'INCOMING') DESC, (status = 'ACTIVE') DESC, name, id
                 """).param("b", buildings).query(InspectionScheduleService::schedule).list();
         record Run(long id, long buildingId, Long inspectorId, String status, int rooms, int inspected, int failed,
                 int unreachable, String scheduleName, LocalDate date, Instant dueAt) {
@@ -179,7 +180,9 @@ public class InspectionScheduleService {
                                ON x.id = c.inspection_room_id WHERE x.run_id = r.id AND c.result = 'FAIL') AS failed
                 FROM mnt_inspection_run r LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
                 WHERE r.building_id IN (:b)
-                ORDER BY r.run_date DESC, r.id DESC LIMIT :limit
+                ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC, (r.status <> 'SUBMITTED') DESC,
+                         r.run_date DESC, r.id DESC
+                LIMIT :limit
                 """).param("b", buildings).param("limit", every ? RECENT_RUNS * 3 : RECENT_RUNS)
                 .query((rs, i) -> new Run(rs.getLong("id"), rs.getLong("building_id"),
                         rs.getObject("inspector_id", Long.class), rs.getString("status"), rs.getInt("rooms"),
@@ -284,6 +287,12 @@ public class InspectionScheduleService {
                 .param("notify", body.containsKey("notifyResidents") ? !Boolean.FALSE.equals(body.get("notifyResidents"))
                         : s.notifyResidents())
                 .param("status", status).param("id", s.id()).update();
+        if (assignee != null) {
+            jdbc.sql("""
+                    UPDATE mnt_inspection_run SET inspector_id = :assignee
+                    WHERE schedule_id = :id AND status <> 'SUBMITTED'
+                    """).param("assignee", assignee).param("id", s.id()).update();
+        }
         audit.record("INSPECTION_SCHEDULE_UPDATED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), name,
                 Map.of("status", status.equals("ACTIVE") ? "Active" : "Paused"));
     }

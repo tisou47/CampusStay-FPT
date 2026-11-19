@@ -233,24 +233,24 @@ export function FurnitureConditions({
             {t('Verify each item with the student on site: choose Good, Worn, Damaged or Missing, or click Record damaged / missing directly.')}
           </p>
 
-          <ul className="flex flex-col divide-y divide-line/60 overflow-hidden rounded-lg border border-line bg-surface">
+          <ul className="flex flex-col gap-2.5">
             {computedLines.map(({ item: i, answer: a, deltaPct, nowPct, amount, effectiveReview }) => {
               const hasIssue = a.condition !== 'Good'
               return (
                 <li
                   key={i.itemId}
                   className={cx(
-                    'flex flex-col gap-2 px-3 py-2.5 transition-colors',
-                    amount > 0 ? 'bg-brand-subtle/30' : hasIssue ? 'bg-subtle/40' : '',
+                    'flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-3.5 transition-colors',
+                    amount > 0 ? 'border-brand/40 bg-brand-subtle/30' : hasIssue ? 'bg-subtle/40' : '',
                   )}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate text-sm font-medium text-fg">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-fg">
                           {typeName(i)} · {i.personal ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
                         </span>
-                        <span className="rounded bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-secondary tabular">
+                        <span className="rounded bg-subtle px-2 py-0.5 font-mono text-xs text-fg-secondary tabular">
                           {t('Base price: {price}', { price: formatVnd(i.unitPrice ?? 0) })}
                         </span>
                         {i.studentReportedCondition && (
@@ -260,13 +260,13 @@ export function FurnitureConditions({
                           </Tag>
                         )}
                       </div>
-                      <span className="truncate font-mono text-[11px] text-fg-tertiary">
+                      <span className="font-mono text-xs text-fg-tertiary">
                         {i.assetCode} · {t('At check-in: {c}', { c: conditionName(i.atCheckIn ?? 'Good') })}
                         {i.preExisting ? ` · ${t('there before')}` : ''}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2.5">
                       {/* Automatic Price x % = Amount pill when non-Good or charged */}
                       {(hasIssue || amount > 0) && (
                         <div className="flex flex-col items-end text-right">

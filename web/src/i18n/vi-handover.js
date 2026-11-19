@@ -432,4 +432,8 @@ export default {
   "Only checklists that have never been used in any inspection schedule or run can be permanently deleted.": "Chỉ có thể xóa hẳn danh mục chưa từng được sử dụng trong bất kỳ lịch hoặc đợt kiểm tra nào.",
   "This checklist has already been used in inspection schedules or runs and cannot be deleted. Archive it instead to preserve history.": "Danh mục này đã từng được sử dụng trong lịch hoặc đợt kiểm tra thực tế nên không thể xóa cứng. Hãy dùng Tạm tắt / Lưu trữ để bảo toàn lịch sử.",
   "Share of the asset’s remaining usable value; the percentage lost compared to 100% is used to calculate compensation at check-out.": "Tỷ lệ % giá trị sử dụng còn lại của tài sản; phần giá trị bị giảm so với 100% sẽ dùng để tính mức bồi thường khi kiểm kê trả phòng.",
+  "Report 1 (Room baseline · Web fast entry)": "Báo cáo 1 (Gốc của phòng · Nhập nhanh trên Web)",
+  "Checklist & furniture ({n} items)": "Danh mục & nội thất ({n} mục)",
+  "Mark all Good / Pass": "Đánh dấu tất cả Tốt / Đạt",
+  "Checked {n} of {total} items": "Đã kiểm {n}/{total} mục",
 }

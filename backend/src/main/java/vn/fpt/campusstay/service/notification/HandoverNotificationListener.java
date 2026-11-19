@@ -16,6 +16,7 @@ import vn.fpt.campusstay.event.CheckInInventoryFinal;
 import vn.fpt.campusstay.event.CheckInInventorySubmitted;
 import vn.fpt.campusstay.event.CheckInToAgree;
 import vn.fpt.campusstay.event.CheckInVisit;
+import vn.fpt.campusstay.event.CheckOutCompleted;
 import vn.fpt.campusstay.event.CheckOutToAgree;
 import vn.fpt.campusstay.event.DamageToAcknowledge;
 
@@ -84,6 +85,16 @@ class HandoverNotificationListener {
     void on(CheckOutToAgree e) {
         notifier.notify(e.studentId(), "CHECK_OUT_TO_AGREE", Map.of("room", e.room(), "amount", money(e.amount())),
                 "/student/room/inventory");
+    }
+
+    @EventListener
+    void on(CheckOutCompleted e) {
+        if (e.refundPending() && e.refund() > 0) {
+            notifier.notify(e.studentId(), "CHECK_OUT_REFUND_PENDING",
+                    Map.of("room", e.room(), "amount", money(e.refund())), "/student/invoices");
+        } else {
+            notifier.notify(e.studentId(), "CHECK_OUT_COMPLETED", Map.of("room", e.room()), "/student/invoices");
+        }
     }
 
     private static String when(Instant at) {

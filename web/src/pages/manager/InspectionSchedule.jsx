@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, ProgressBar } from '@/components/ui/Display'
 import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
-import { EmptyBlock, TableStatus } from '@/components/ui/States'
+import { EmptyBlock, LoadingState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
@@ -28,13 +28,26 @@ import { t, tr } from '@/i18n'
 
 const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progress': 'info', Done: 'success' }
 const blank = { name: '', checklistId: '', scope: '', repeat: '', assignee: '', dueWithinDays: 3, createRequests: true, notifyResidents: true }
+const NEW_ITEM = {}
 const ALL = 'all'
+const PRE_ARRIVAL_KEYS = ['pre-arrival', 'trước nhận phòng', 'trước khi nhận phòng', 'trước khi giao', 'đón sinh viên mới', 'bàn giao', 'incoming']
 
-function Editor({ item, options, block, onCreated }) {
+function isPreArrivalSchedule(s) {
+  if (s?.scope === 'INCOMING') return true
+  const text = `${s?.checklistId ?? ''} ${s?.name ?? ''} ${tr(s?.name) ?? ''}`.toLowerCase()
+  return PRE_ARRIVAL_KEYS.some((k) => text.includes(k))
+}
+
+function isPreArrivalRun(r) {
+  const text = `${r?.scheduleName ?? ''} ${tr(r?.scheduleName) ?? ''}`.toLowerCase()
+  return PRE_ARRIVAL_KEYS.some((k) => text.includes(k))
+}
+
+function Editor({ item, options, block, onSaved, onCancel }) {
   const { notify, notifyError } = useToast()
   const isNew = !item.id
-  const [form, setForm] = useState({ ...blank, ...item })
-  useEffect(() => setForm({ ...blank, ...item }), [item])
+  const [form, setForm] = useState({ ...blank, ...item, assignee: item.assignee ?? '' })
+  useEffect(() => setForm({ ...blank, ...item, assignee: item.assignee ?? '' }), [item])
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const body = () => ({
     block,
@@ -51,7 +64,7 @@ function Editor({ item, options, block, onCreated }) {
     invalidates: ['inspection-schedules'],
     onSuccess: (res) => {
       notify({ title: 'Schedule saved', message: t('{name}. Staff get each run on their inspections page.', { name: form.name.trim() }) })
-      if (isNew && res?.id) onCreated(res.id)
+      onSaved?.(isNew ? res?.id : item.id)
     },
     onError: () => {},
   })
@@ -60,9 +73,10 @@ function Editor({ item, options, block, onCreated }) {
     onSuccess: () => notify({ type: 'info', title: t(item.status === 'Paused' ? '{name} resumed' : '{name} paused', { name: item.name }) }),
     onError: (e) => notifyError(e, 'Could not change the schedule'),
   })
-  const opt = (list) => [{ value: '', label: 'Choose…', disabled: true }, ...(list ?? [])]
+  const opt = (list, placeholder = 'Choose…') => [{ value: '', label: placeholder, disabled: true }, ...(list ?? [])]
   const complete = form.name.trim() && form.checklistId && form.scope && form.repeat && form.assignee
   const checklist = options?.checklists?.find((c) => c.value === form.checklistId)
+  const assigneePlaceholder = block ? `-- Chọn nhân viên Tòa ${block} --` : '-- Chọn nhân viên --'
 
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
@@ -75,15 +89,20 @@ function Editor({ item, options, block, onCreated }) {
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       {isNew && <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Air-conditioner filters" />}</Field>}
       <Field label="Checklist" helper={checklist ? undefined : t('{n} published checklists to choose from.', { n: options?.checklists?.length ?? 0 })}>
-        {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists)} />}
+        {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists, '-- Chọn danh mục kiểm tra --')} />}
       </Field>
-      <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes)} />}</Field>
-      <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats)} />}</Field>
-      <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees)} />}</Field>
+      <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes, '-- Chọn phạm vi --')} />}</Field>
+      <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats, '-- Chọn tần suất --')} />}</Field>
+      <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees, assigneePlaceholder)} />}</Field>
       <Field label="Due within (days)">{(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}</Field>
       <Checkbox label="Create maintenance requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
       <Checkbox label="Notify residents when the inspection starts" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
       <div className="flex justify-end gap-2">
+        {!isNew && onCancel && (
+          <Button onClick={onCancel}>
+            Hủy
+          </Button>
+        )}
         {!isNew && (
           <Button onClick={() => pause.run()} disabled={pause.pending}>
             {item.status === 'Paused' ? t('Resume') : t('Pause')}
@@ -91,6 +110,50 @@ function Editor({ item, options, block, onCreated }) {
         )}
         <Button variant="primary" onClick={() => save.run()} disabled={!complete || save.pending}>
           Save
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+/** Compact card for an already-assigned schedule: shows Pause/Resume and a small Edit button. */
+function ScheduleCard({ item, options, onEdit }) {
+  const { notify, notifyError } = useToast()
+  const pause = useMutation(() => api.inspections.updateSchedule(item.id, { status: item.status === 'Paused' ? 'Active' : 'Paused' }), {
+    invalidates: ['inspection-schedules'],
+    onSuccess: () => notify({ type: 'info', title: t(item.status === 'Paused' ? '{name} resumed' : '{name} paused', { name: item.name }) }),
+    onError: (e) => notifyError(e, 'Could not change the schedule'),
+  })
+  const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
+  return (
+    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-h3 font-semibold text-fg">{tr(item.name)}</h2>
+          <p className="text-sm text-fg-secondary">
+            {[item.block && t('Block {code}', { code: item.block }), item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : null].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        <Tag tone={tone[item.status] ?? 'neutral'}>{item.status}</Tag>
+      </div>
+      <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+        <dt className="text-fg-secondary">{t('Scope')}</dt>
+        <dd className="text-fg">{tr(item.scopeLabel)}</dd>
+        <dt className="text-fg-secondary">{t('Repeats')}</dt>
+        <dd className="text-fg">{tr(item.repeatLabel)}</dd>
+        <dt className="text-fg-secondary">{t('Assign to')}</dt>
+        <dd className="font-medium text-fg">{assigneeName || '—'}</dd>
+        <dt className="text-fg-secondary">{t('Next run')}</dt>
+        <dd className="text-fg">{item.nextRunAt ? formatDateTime(item.nextRunAt) : '—'}</dd>
+        <dt className="text-fg-secondary">{t('Due within (days)')}</dt>
+        <dd className="text-fg">{item.dueWithinDays}</dd>
+      </dl>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <Button size="sm" onClick={onEdit}>
+          Chỉnh sửa
+        </Button>
+        <Button onClick={() => pause.run()} disabled={pause.pending}>
+          {item.status === 'Paused' ? t('Resume') : t('Pause')}
         </Button>
       </div>
     </Card>
@@ -174,34 +237,65 @@ function RunDetail({ run }) {
 export default function InspectionSchedule() {
   const { block: scopeBlock, blocks } = useSession()
   const [filter, setFilter] = useState(scopeBlock ?? ALL)
+  const effectiveFilter = scopeBlock ?? filter
+  const [selectedId, setSelectedId] = useState(null)
+  const [selectedRun, setSelectedRun] = useState(null)
+  const [editing, setEditing] = useState(false)
   useEffect(() => {
-    if (scopeBlock) setFilter(scopeBlock)
+    setFilter(scopeBlock ?? ALL)
+    setSelectedId(null)
+    setSelectedRun(null)
+    setEditing(false)
   }, [scopeBlock])
   const [view, setView] = useState('schedules')
   const [q, setQ] = useState('')
-  const query = useQuery(['inspection-schedules', filter], ({ signal }) => api.inspections.schedules({ block: filter }, { signal }))
-  const one = filter !== ALL
+  const query = useQuery(
+    ['inspection-schedules', effectiveFilter],
+    ({ signal }) => api.inspections.schedules({ block: effectiveFilter }, { signal }),
+    { keepPrevious: false },
+  )
+  const one = effectiveFilter !== ALL
   const needle = q.trim().toLowerCase()
   const matches = (...texts) => !needle || texts.some((x) => (x ?? '').toLowerCase().includes(needle))
-  const items = (query.data?.items ?? []).filter((s) => matches(tr(s.name), s.name, s.block, tr(s.scopeLabel)))
-  const runs = (query.data?.runs ?? []).filter((r) => matches(r.id, r.assigneeName, tr(r.scheduleName), r.block))
-  const [selectedId, setSelectedId] = useState(null)
-  const [selectedRun, setSelectedRun] = useState(null)
-  const selected = selectedId === 'new' ? {} : items.find((s) => s.id === selectedId) ?? items[0]
+  const items = (query.data?.items ?? [])
+    .filter((s) => matches(tr(s.name), s.name, s.block, tr(s.scopeLabel)))
+    .sort((a, b) => {
+      const pa = isPreArrivalSchedule(a) ? 0 : 1
+      const pb = isPreArrivalSchedule(b) ? 0 : 1
+      if (pa !== pb) return pa - pb
+      const sa = a.status === 'Active' ? 0 : 1
+      const sb = b.status === 'Active' ? 0 : 1
+      if (sa !== sb) return sa - sb
+      return (a.block ?? '').localeCompare(b.block ?? '') || tr(a.name).localeCompare(tr(b.name))
+    })
+  const runs = (query.data?.runs ?? [])
+    .filter((r) => matches(r.id, r.assigneeName, tr(r.scheduleName), r.block))
+    .sort((a, b) => {
+      const pa = isPreArrivalRun(a) ? 0 : 1
+      const pb = isPreArrivalRun(b) ? 0 : 1
+      if (pa !== pb) return pa - pb
+      const da = a.status !== 'Done' ? 0 : 1
+      const db = b.status !== 'Done' ? 0 : 1
+      if (da !== db) return da - db
+      return String(b.date ?? '').localeCompare(String(a.date ?? ''))
+    })
+  const selected = selectedId === 'new' ? NEW_ITEM : items.find((s) => s.id === selectedId) ?? items[0]
   const run = runs.find((r) => r.id === selectedRun) ?? runs[0]
   const blockOptions = [{ value: ALL, label: t('Every Block in use') }, ...(query.data?.blocks ?? blocks).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]
   const openBlock = (code) => {
     setFilter(code)
     setSelectedId(null)
+    setSelectedRun(null)
+    setEditing(false)
   }
 
   return (
     <>
       <PageHeader
-        title={one ? t('Inspection schedules · Block {code}', { code: filter }) : 'Inspection schedules'}
+        title={one ? t('Inspection schedules · Block {code}', { code: effectiveFilter }) : 'Inspection schedules'}
         description="Plan recurring inspections; staff run them with the admin checklist."
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => { setView('schedules'); setSelectedId('new') }} disabled={!query.data || !one} tip={one ? undefined : 'Choose a Block to create a schedule in it.'}>
+          <Button variant="primary" icon={Plus} onClick={() => { setView('schedules'); setSelectedId('new'); setEditing(true) }} disabled={!query.data || !one} tip={one ? undefined : 'Choose a Block to create a schedule in it.'}>
             New schedule
           </Button>
         }
@@ -219,11 +313,12 @@ export default function InspectionSchedule() {
           <Select
             wrapperClassName="w-56"
             aria-label={t('Block')}
-            value={filter}
+            value={effectiveFilter}
             onChange={(e) => {
               setFilter(e.target.value)
               setSelectedId(null)
               setSelectedRun(null)
+              setEditing(false)
             }}
             options={blockOptions}
           />
@@ -248,7 +343,7 @@ export default function InspectionSchedule() {
               <TBody>
                 <TableStatus query={query} colSpan={one ? 5 : 6} rows={items} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to staff." />
                 {items.map((s) => (
-                  <Tr key={s.id} selected={s.id === selected?.id} onClick={() => setSelectedId(s.id)} className="[&>td]:h-15.5">
+                  <Tr key={s.id} selected={s.id === selected?.id} onClick={() => { setSelectedId(s.id); setEditing(false) }} className="[&>td]:h-15.5">
                     <Td className="font-medium text-fg-brand">{tr(s.name)}</Td>
                     {!one && <Td>{s.block}</Td>}
                     <Td>{tr(s.scopeLabel)}</Td>
@@ -262,8 +357,26 @@ export default function InspectionSchedule() {
               </TBody>
             </Table>
           </div>
-          {selected && one ? (
-            <Editor key={selected.id ?? 'new'} item={selected} options={query.data?.options} block={filter} onCreated={setSelectedId} />
+          {query.loading && !query.data ? (
+            <Card className="flex w-95 shrink-0 flex-col">
+              <LoadingState />
+            </Card>
+          ) : selected && one ? (
+            editing || selectedId === 'new' || !selected.assignee ? (
+              <Editor
+                key={`${effectiveFilter}-${selected.id ?? 'new'}`}
+                item={selected}
+                options={query.data?.options}
+                block={effectiveFilter}
+                onSaved={(id) => {
+                  if (id) setSelectedId(id)
+                  setEditing(false)
+                }}
+                onCancel={selected.assignee ? () => setEditing(false) : undefined}
+              />
+            ) : (
+              <ScheduleCard item={selected} options={query.data?.options} onEdit={() => setEditing(true)} />
+            )
           ) : selected?.id ? (
             <ScheduleSummary item={selected} onOpenBlock={openBlock} />
           ) : (
@@ -315,7 +428,11 @@ export default function InspectionSchedule() {
               </TBody>
             </Table>
           </div>
-          {run ? (
+          {query.loading && !query.data ? (
+            <Card className="flex w-95 shrink-0 flex-col">
+              <LoadingState />
+            </Card>
+          ) : run ? (
             <RunDetail run={run} />
           ) : (
             <Card className="flex w-95 shrink-0 flex-col">

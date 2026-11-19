@@ -329,13 +329,11 @@ class InspectionIT {
     }
 
     /**
-     * The Room's own checks of the run above (spec §6.19): the Room is not done until the people count and each furniture
-     * item are answered; a failed furniture item creates a Furniture Maintenance Request naming the item, and the
-     * item's history keeps the repair.
+     * Thematic runs (non-PRE_ARRIVAL) complete as soon as checklist items are answered (A-404), while explicit room
+     * checks (people + furniture) can still be submitted (A-405): a failed furniture item creates a Furniture
+     * Maintenance Request naming the item, and the item's history keeps the repair.
      */
     private void roomChecks(String run, String staff, List<String> itemIds, String rooms) throws Exception {
-        List<String> checks = JsonPath.read(rooms, "$.items[?(@.room == 'A-404')].checks[*].id");
-        String furniture = checks.stream().filter(c -> c.startsWith("furniture-")).findFirst().orElseThrow();
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < itemIds.size(); i++) {
             items.append(i == 0 ? "" : ",").append("{\"itemId\":\"").append(itemIds.get(i)).append("\",\"result\":\"Pass\"}");
@@ -343,13 +341,16 @@ class InspectionIT {
         putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + items + "]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(0)));
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
-                .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("In progress")));
+                .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("Done")));
+
+        List<String> checks = JsonPath.read(rooms, "$.items[?(@.room == 'A-405')].checks[*].id");
+        String furniture = checks.stream().filter(c -> c.startsWith("furniture-")).findFirst().orElseThrow();
         StringBuilder own = new StringBuilder();
         for (String check : checks) {
             own.append(own.isEmpty() ? "" : ",").append("{\"itemId\":\"").append(check).append("\",\"result\":\"")
                     .append(check.equals(furniture) ? "Fail\",\"note\":\"Door hinge broken\"}" : "Pass\"}");
         }
-        String saved = putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + own + "]}")
+        String saved = putAs("/inspection-runs/" + run + "/rooms/A-405", staff, "{\"results\":[" + own + "]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(1)))
                 .andReturn().getResponse().getContentAsString();
         String request = JsonPath.read(saved, "$.createdRequests[0]");
@@ -358,7 +359,11 @@ class InspectionIT {
         assertThat(mr).containsEntry("category", "FURNITURE").containsEntry("item", furniture.substring("furniture-".length()))
                 .containsEntry("description", "Door hinge broken");
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
-                .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("Done")));
+                .andExpect(jsonPath("$.items[?(@.room == 'A-405')].status").value(hasItem("In progress")));
+        putAs("/inspection-runs/" + run + "/rooms/A-405", staff, "{\"results\":[" + items + "]}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(0)));
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[?(@.room == 'A-405')].status").value(hasItem("Done")));
         getAs("/furniture/" + furniture.substring("furniture-".length()), staff)
                 .andExpect(jsonPath("$.history[?(@.kind == 'Repair')].from").value(hasItem(request)));
     }

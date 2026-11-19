@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, CircleCheck, Download, FileText } from 'lucide-react'
+import { CalendarDays, CheckCheck, CircleCheck, Download, FileText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
 import { Alert, Card } from '@/components/ui/Display'
 import { Checkbox } from '@/components/ui/Choice'
-import { Field, Input, Select } from '@/components/ui/Field'
+import { Field, Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, ErrorState, LoadingState, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
+import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
@@ -36,12 +36,9 @@ import { t, tr } from '@/i18n'
 // POST /inspection-runs/:id/submit { confirmed } · GET /inspection-runs/upcoming?block → { items }
 
 const resultTone = { Pass: 'success', Fail: 'error', 'Not checked': 'neutral' }
-const nextResult = { 'Not checked': 'Pass', Pass: 'Fail', Fail: 'Not checked' }
-const statusTone = { 'In progress': 'info', Done: 'success', 'To do': 'neutral', 'Not reachable': 'warning' }
-const runTone = { Open: 'info', Submitted: 'success' }
+const statusTone = { 'In progress': 'info', Done: 'success', 'To do': 'neutral' }
 
 function summary(r, total) {
-  if (r.status === 'Not reachable') return t('No one home')
   const results = r.results ?? []
   const failed = results.filter((x) => x.result === 'Fail').length
   const checked = results.filter((x) => x.result && x.result !== 'Not checked').length
@@ -50,10 +47,14 @@ function summary(r, total) {
   return checked < total ? t('In progress') : t('All passed')
 }
 
-/** The checklist's items, then the Room's own checks (the number of people, each furniture item). */
+/** The checklist's items; pre-arrival handover runs also include the Room's own checks (people count & furniture items). */
 function roomItems(run, room) {
+  const checklist = (run.checklist?.items ?? []).map((i) => ({ id: String(i.id), label: tr(i.label), kind: 'checklist' }))
+  if (!room?.metersNeeded) {
+    return checklist
+  }
   return [
-    ...(run.checklist?.items ?? []).map((i) => ({ id: String(i.id), label: tr(i.label), kind: 'checklist' })),
+    ...checklist,
     ...(room.checks ?? []).map((c) => ({
       id: c.id,
       kind: c.kind,
@@ -116,7 +117,7 @@ function Checklist({ run, room }) {
     replaced: room.meters?.replaced ?? false,
   })
   const sent = run.status === 'Submitted'
-  const done = sent || room.status === 'Done' || room.status === 'Not reachable'
+  const done = sent || room.status === 'Done'
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
@@ -124,6 +125,17 @@ function Checklist({ run, room }) {
   const setCondition = (id, condition) =>
     setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: !condition ? 'Not checked' : condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
   const setNote = (id, note) => setResults((rs) => ({ ...rs, [id]: { ...rs[id], note } }))
+  const markAllGood = () => {
+    setResults((rs) => {
+      const next = { ...rs }
+      for (const it of items) {
+        next[it.id] = it.furniture
+          ? { ...next[it.id], condition: 'Good', result: 'Pass', restock: false }
+          : { ...next[it.id], result: 'Pass' }
+      }
+      return next
+    })
+  }
 
   const save = useMutation(
     () =>
@@ -149,148 +161,183 @@ function Checklist({ run, room }) {
       onError: (e) => notifyError(e, 'Could not save the room'),
     },
   )
-  const unreachable = useMutation(() => api.inspections.unreachable(run.id, room.room), {
-    invalidates: ['inspections'],
-    onSuccess: () => notify({ type: 'info', title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next inspection run.' }),
-    onError: (e) => notifyError(e, 'Could not update the room'),
-  })
+
+  const checkedCount = items.filter((it) => {
+    const r = results[it.id]
+    return it.furniture ? Boolean(r?.condition) : r?.result && r.result !== 'Not checked'
+  }).length
 
   return (
-    <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
-      <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">
-            {room.room} · {tr(run.checklist?.name)}
-          </h2>
-          <p className="text-sm text-fg-secondary">
-            {t('Checklist {version} set by admin · {n} items', { version: run.checklist?.version, n: items.length })}
-            {run.inspectorName ? ` · ${t('Inspector {name}', { name: run.inspectorName })}` : ''}
+    <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      {/* 1. Pinned compact room header */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-h3 font-semibold text-fg">
+              {room.room} · {tr(run.checklist?.name)}
+            </h2>
+            <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
+          </div>
+          <p className="text-xs text-fg-secondary">
+            {t('Report 1 (Room baseline · Web fast entry)')}
             {room.inspectedAt ? ` · ${t('Inspected {date}', { date: formatDateTime(room.inspectedAt) })}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
+        <div className="flex shrink-0 items-center gap-2">
           <Button size="sm" icon={FileText} onClick={() => printRoom(run, room) || notify({ type: 'info', title: 'Allow pop-ups to print the report' })}>
             View and print report
           </Button>
         </div>
       </div>
-      <p className="shrink-0 rounded-lg bg-subtle/60 px-3 py-2 text-sm text-fg-secondary">
-        {t('This inspection is Report 1, the Room’s record: each new resident’s check-in inventory (Report 2) is compared with it item by item and meter by meter.')}
-      </p>
-      <Table className="shrink-0 overflow-visible">
-        <THead>
-          <tr>
-            <Th>Item</Th>
-            <Th className="w-48">Condition or result</Th>
-            <Th className="w-64">Note</Th>
-          </tr>
-        </THead>
-        <TBody>
-          {items.map((item) => {
-            const r = results[item.id]
-            return (
-              <Tr key={item.id} className={cx('[&>td]:py-2', (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/50')}>
-                <Td>
-                  <span className="text-sm text-fg">{item.label}</span>
-                </Td>
-                <Td>
-                  {item.furniture ? (
-                    done ? (
-                      <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ? conditionName(r.condition) : r.result}</Tag>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <Select
-                          size="sm"
-                          aria-label={t('Condition of {item}', { item: item.label })}
-                          value={r.condition ?? ''}
-                          onChange={(e) => setCondition(item.id, e.target.value || null)}
-                          options={[{ value: '', label: 'Not checked' }, ...conditionOptions()]}
-                        />
-                        {r.condition === 'Missing' && (
-                          <Checkbox
-                            label="Take a spare from the Block store"
-                            checked={!!r.restock}
-                            onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], restock: e.target.checked } }))}
-                          />
-                        )}
-                      </div>
-                    )
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={done}
-                      onClick={() => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], result: nextResult[rs[item.id].result] ?? 'Pass' } }))}
-                      aria-label={t('{item}: {result}. Change result', { item: item.label, result: t(r.result) })}
-                      className={cx('rounded-full', !done && 'cursor-pointer hover:ring-2 hover:ring-line-strong')}
-                    >
-                      <Tag tone={resultTone[r.result] ?? 'neutral'}>{r.result}</Tag>
-                    </button>
-                  )}
-                </Td>
-                <Td>
-                  {done ? (
-                    <span className="text-sm text-fg">{r.note || '—'}</span>
-                  ) : (
-                    <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
-                  )}
-                </Td>
-              </Tr>
-            )
-          })}
-        </TBody>
-      </Table>
-      <section className="flex shrink-0 flex-col gap-2 rounded-lg border border-line p-3">
-        <span className="text-base font-medium text-fg">{t('Meters of the Room')}</span>
-        <div className="flex flex-wrap items-start gap-3">
-          <Field
-            label="Electricity (kWh)"
-            required={room.metersNeeded}
-            className="w-56"
-            helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
-          >
-            <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} />
-          </Field>
-          <Field
-            label="Water (m³)"
-            required={room.metersNeeded}
-            className="w-56"
-            helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
-          >
-            <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} />
-          </Field>
-          <div className="pt-7">
-            <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
-          </div>
-        </div>
-        {room.metersNeeded && <p className="text-sm text-fg-tertiary">{t('Pre-arrival inspection: the Room is done once its meters are read.')}</p>}
-      </section>
-      <div className="flex shrink-0 flex-col gap-2.5">
-        {sent ? (
-          <Alert type="info" title="Results sent">
-            {t('This run was sent: read the Rooms, print a Room’s report or export the run.')}
-          </Alert>
-        ) : room.status === 'Done' ? (
-          <Alert type="success" title="Room saved">
-            {failed ? t('{n} failed items were sent to maintenance.', { n: failed }) : t('Every item passed.')}
-          </Alert>
-        ) : room.status === 'Not reachable' ? (
-          <Alert type="warning" title="Not reachable">
-            This room moves to the next inspection run.
-          </Alert>
-        ) : failed > 0 ? (
-          <Alert type="warning" title={t('{n} failed items will create maintenance requests', { n: failed })}>
-            Damaged items become furniture repair requests; a Missing item with a spare from the store becomes a planned move instead.
-          </Alert>
-        ) : (
-          <p className="text-sm text-fg-tertiary">{t('Choose Good, Worn, Damaged or Missing for each furniture item; click a checklist result to switch between Pass, Fail and Not checked.')}</p>
+
+      {/* 2. Scrollable work area: Meters (pre-arrival runs) + Fast Checklist Table */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-3.5">
+        {room.metersNeeded && (
+          <section className="flex shrink-0 flex-col gap-2 rounded-xl border border-line bg-subtle/40 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-fg">{t('Meters of the Room')}</span>
+              <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field
+                label="Electricity (kWh)"
+                required={room.metersNeeded}
+                helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
+              >
+                <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} className="font-semibold tabular" />
+              </Field>
+              <Field
+                label="Water (m³)"
+                required={room.metersNeeded}
+                helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
+              >
+                <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} className="font-semibold tabular" />
+              </Field>
+            </div>
+          </section>
         )}
-        {!done && (
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => unreachable.run()} disabled={unreachable.pending}>
-              Mark not reachable
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-fg">
+            {t('Checklist & furniture ({n} items)', { n: items.length })}
+          </span>
+          {!done && items.length > 0 && (
+            <Button size="sm" icon={CheckCheck} onClick={markAllGood}>
+              {t('Mark all Good / Pass')}
             </Button>
-            <Button variant="primary" onClick={() => save.run()} disabled={untouched || save.pending}>
+          )}
+        </div>
+
+        <Table className="shrink-0 overflow-visible">
+          <THead>
+            <tr>
+              <Th>Item</Th>
+              <Th className="w-76">Condition or result</Th>
+              <Th className="w-56">Note</Th>
+            </tr>
+          </THead>
+          <TBody>
+            {items.map((item) => {
+              const r = results[item.id]
+              return (
+                <Tr key={item.id} className={cx('[&>td]:py-2', (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/50')}>
+                  <Td>
+                    <span className="text-sm text-fg">{item.label}</span>
+                  </Td>
+                  <Td>
+                    {item.furniture ? (
+                      done ? (
+                        <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ? conditionName(r.condition) : r.result}</Tag>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-wrap gap-1">
+                            {conditionOptions().map((opt) => {
+                              const active = r.condition === opt.value
+                              const toneCls =
+                                opt.value === 'Good'
+                                  ? 'border-success bg-success-bg text-success-fg'
+                                  : opt.value === 'Worn'
+                                    ? 'border-warning bg-warning-bg text-warning-fg'
+                                    : 'border-error bg-error-bg text-error-fg'
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => setCondition(item.id, active ? null : opt.value)}
+                                  className={cx(
+                                    'rounded-md border px-2 py-1 text-xs font-medium transition-colors',
+                                    active ? toneCls : 'border-line bg-surface text-fg-secondary hover:bg-subtle',
+                                  )}
+                                >
+                                  {opt.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          {r.condition === 'Missing' && (
+                            <Checkbox
+                              label="Take a spare from the Block store"
+                              checked={!!r.restock}
+                              onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], restock: e.target.checked } }))}
+                            />
+                          )}
+                        </div>
+                      )
+                    ) : done ? (
+                      <Tag tone={resultTone[r.result] ?? 'neutral'}>{r.result}</Tag>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { value: 'Pass', label: t('Pass'), cls: 'border-success bg-success-bg text-success-fg' },
+                          { value: 'Fail', label: t('Fail'), cls: 'border-error bg-error-bg text-error-fg' },
+                        ].map((opt) => {
+                          const active = r.result === opt.value
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], result: active ? 'Not checked' : opt.value } }))}
+                              className={cx(
+                                'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+                                active ? opt.cls : 'border-line bg-surface text-fg-secondary hover:bg-subtle',
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </Td>
+                  <Td>
+                    {done ? (
+                      <span className="text-sm text-fg">{r.note || '—'}</span>
+                    ) : (
+                      <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
+                    )}
+                  </Td>
+                </Tr>
+              )
+            })}
+          </TBody>
+        </Table>
+      </div>
+
+      {/* 3. Pinned bottom action bar */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-5 py-3">
+        <div className="text-xs text-fg-secondary">
+          {sent ? (
+            <span className="font-medium text-fg">{t('This run was sent: read the Rooms, print a Room’s report or export the run.')}</span>
+          ) : (
+            <span>
+              {t('Checked {n} of {total} items', { n: checkedCount, total: items.length })}
+              {failed > 0 ? ` · ${t('{n} failed items will create maintenance requests', { n: failed })}` : ''}
+            </span>
+          )}
+        </div>
+        {!done && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="primary" onClick={() => save.run()} disabled={untouched || save.pending}>
               {metersMissing ? 'Save (meters still needed)' : 'Save room'}
             </Button>
           </div>
@@ -429,9 +476,9 @@ async function exportRun(run) {
 }
 
 function RunSwitcher({ runs, value, onChange }) {
-  if (runs.length < 2) return null
+  if (runs.length === 0) return null
   return (
-    <div className="flex shrink-0 gap-2 overflow-x-auto pb-1" role="tablist" aria-label={t('Inspection runs assigned to you')}>
+    <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto" role="tablist" aria-label={t('Inspection runs assigned to you')}>
       {runs.map((r) => {
         const active = r.id === value
         return (
@@ -442,21 +489,16 @@ function RunSwitcher({ runs, value, onChange }) {
             aria-selected={active}
             onClick={() => onChange(r.id)}
             className={cx(
-              'flex min-w-56 shrink-0 flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors',
-              active ? 'border-primary bg-brand-subtle' : 'border-line bg-surface hover:bg-subtle',
+              'flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors',
+              active ? 'border-primary bg-brand-subtle text-fg' : 'border-line bg-subtle/50 text-fg-secondary hover:bg-subtle',
             )}
           >
-            <span className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fg">{r.id}</span>
-              <span className="flex gap-1">
-                {r.overdue && <Tag tone="error">Overdue</Tag>}
-                <Tag tone={runTone[r.status] ?? 'neutral'}>{r.status === 'Open' ? 'In progress' : 'Sent'}</Tag>
-              </span>
+            <span className="font-semibold text-fg">{r.id}</span>
+            <span className="max-w-44 truncate">{tr(r.scheduleName) || t('Inspection')}</span>
+            <span className="rounded bg-surface px-1.5 py-0.5 font-medium tabular">
+              {r.inspected + r.unreachable}/{r.rooms}
             </span>
-            <span className="truncate text-sm text-fg">{tr(r.scheduleName) || t('Inspection')}</span>
-            <span className="text-xs text-fg-secondary">
-              {[r.block && t('Block {code}', { code: r.block }), t('{n} of {total} Rooms', { n: r.inspected + r.unreachable, total: r.rooms }), r.mine ? t('Assigned to you') : r.inspectorName].filter(Boolean).join(' · ')}
-            </span>
+            {r.overdue && <Tag tone="error">Overdue</Tag>}
           </button>
         )
       })}
@@ -464,26 +506,37 @@ function RunSwitcher({ runs, value, onChange }) {
   )
 }
 
-function Run({ run, switcher }) {
+function Run({ run, switcher, onSubmitted }) {
   const { notify, notifyError } = useToast()
   const [page, setPage] = useState(1)
+  const [roomFilter, setRoomFilter] = useState('all')
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [calendar, setCalendar] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [exporting, setExporting] = useState(false)
   useEffect(() => {
     setPage(1)
+    setRoomFilter('all')
     setSelectedRoom(null)
   }, [run.id])
   const rooms = useQuery(['inspections', 'rooms', run.id, page], ({ signal }) => api.inspections.rooms(run.id, { page, pageSize: 20 }, { signal }))
   const upcoming = useQuery(['inspections', 'upcoming'], ({ signal }) => api.inspections.upcoming(undefined, { signal }), { enabled: calendar })
-  const items = rooms.data?.items ?? []
-  const selected = items.find((r) => r.room === selectedRoom) ?? items[0]
+  const allItems = rooms.data?.items ?? []
+  const items = allItems.filter((r) => {
+    if (roomFilter === 'todo') return r.status === 'To do' || r.status === 'In progress'
+    if (roomFilter === 'done') return r.status === 'Done' || r.status === 'Not reachable'
+    return true
+  })
+  const selected =
+    items.find((r) => r.room === selectedRoom) ??
+    items.find((r) => r.status === 'To do' || r.status === 'In progress') ??
+    items[0]
   const total = run.checklist?.items?.length ?? 0
   const sent = run.status === 'Submitted'
   const submit = useMutation(() => api.inspections.submit(run.id, { confirmed: true }), {
     invalidates: ['inspections'],
     onSuccess: () => {
+      onSubmitted?.(run.id)
       setReviewing(false)
       notify({ title: 'Results submitted', message: 'Sent to the managers. Unvisited rooms move to the next run.' })
     },
@@ -521,31 +574,55 @@ function Run({ run, switcher }) {
           </>
         }
       />
-      {switcher}
-      <div className="flex shrink-0 gap-4">
-        <KpiTile label="Rooms in this run" value={formatNumber(run.rooms)} note={sent ? t('Sent') : run.id} noteTone="tertiary" />
-        <KpiTile label="Inspected" value={formatNumber(run.inspected)} note={run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null} noteTone={run.overdue ? 'error' : 'tertiary'} />
-        <KpiTile label="Items failed" value={formatNumber(run.failed)} note="Each creates a maintenance request" noteTone="tertiary" />
-        <KpiTile label="Not reachable" value={formatNumber(run.unreachable)} note="Re-schedule in the next run" noteTone="tertiary" />
+
+      {/* Compact single-bar Run Switcher + Inline Stats */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+        {switcher}
+        <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
+            {t('Rooms in this run')}: <strong className="text-fg tabular">{formatNumber(run.rooms)}</strong>
+          </span>
+          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
+            {t('Inspected')}: <strong className="text-fg tabular">{formatNumber(run.inspected)}</strong>
+          </span>
+          <span className={cx('rounded-md px-2 py-1', run.failed > 0 ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
+            {t('Items failed')}: <strong className="tabular">{formatNumber(run.failed)}</strong>
+          </span>
+          {run.dueAt && (
+            <span className={cx('rounded-md px-2 py-1', run.overdue ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
+              {t('Due {date}', { date: formatDate(run.dueAt) })}
+            </span>
+          )}
+        </div>
       </div>
+
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-96 shrink-0 flex-col gap-3">
+        <div className="flex min-h-0 w-104 shrink-0 flex-col gap-2.5">
+          <Segmented
+            value={roomFilter}
+            onChange={setRoomFilter}
+            options={[
+              { value: 'all', label: `${t('All')} (${allItems.length})` },
+              { value: 'todo', label: `${t('To do')} (${allItems.filter((r) => r.status === 'To do' || r.status === 'In progress').length})` },
+              { value: 'done', label: `${t('Done')} (${allItems.filter((r) => r.status === 'Done').length})` },
+            ]}
+          />
           <Table fill>
             <THead>
               <tr>
-                <Th className="w-28">Room</Th>
+                <Th className="w-32">Room</Th>
                 <Th>Result</Th>
-                <Th className="w-30">Status</Th>
+                <Th className="w-32">Status</Th>
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={rooms} colSpan={3} emptyTitle="No rooms in this run" />
+              <TableStatus query={rooms} colSpan={3} rows={items} emptyTitle="No rooms in this run" />
               {items.map((r) => (
-                <Tr key={r.room} selected={r.room === selected?.room} onClick={() => setSelectedRoom(r.room)} className="[&>td]:h-15.5">
+                <Tr key={r.room} selected={r.room === selected?.room} onClick={() => setSelectedRoom(r.room)} className="[&>td]:py-2.5">
                   <Td>
                     <TwoLine primary={r.room} secondary={`${tr(r.roomTypeName)} ${tr(r.roomClassName)}`.trim()} />
                   </Td>
-                  <Td>{summary(r, total)}</Td>
+                  <Td>{summary(r, roomItems(run, r).length)}</Td>
                   <Td>
                     <Tag tone={statusTone[r.status] ?? 'neutral'}>{r.status}</Tag>
                   </Td>
@@ -591,7 +668,7 @@ export default function InspectionChecklist() {
   const runs = list.data?.items ?? []
   const [runId, setRunId] = useState(null)
   const run = runs.find((r) => r.id === runId) ?? runs[0]
-  if (run) return <Run run={run} switcher={<RunSwitcher runs={runs} value={run.id} onChange={setRunId} />} />
+  if (run) return <Run run={run} switcher={<RunSwitcher runs={runs} value={run.id} onChange={setRunId} />} onSubmitted={setRunId} />
   return (
     <>
       <PageHeader title="Inspections" />

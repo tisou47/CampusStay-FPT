@@ -17,6 +17,9 @@ public interface StudentAllocations {
 
     Optional<Placement> ofApplication(long applicationId);
 
+    /** Active Bed currently held by the student in the given Term (including continuing stays). */
+    Optional<Placement> ofStudent(long studentId, long termId);
+
     /** The student already holds a Bed for the Term (a continuing resident uses requests, not an Application). */
     boolean holdsBed(long studentId, long termId);
 

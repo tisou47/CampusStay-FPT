@@ -219,9 +219,12 @@ public class InspectionRunService {
         Set<Long> buildings = blockScope.resolve(block).ids();
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
         Optional<Run> run = jdbc.sql("""
-                SELECT * FROM mnt_inspection_run
-                WHERE building_id IN (:b) AND status <> 'SUBMITTED' AND run_date <= :today
-                ORDER BY (inspector_id = :me) DESC NULLS LAST, run_date, id LIMIT 1
+                SELECT r.* FROM mnt_inspection_run r
+                LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
+                WHERE r.building_id IN (:b) AND r.status <> 'SUBMITTED' AND r.run_date <= :today
+                ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC,
+                         (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
+                LIMIT 1
                 """).param("b", List.copyOf(buildings)).param("today", today).param("me", me.userId())
                 .query((rs, i) -> run(rs)).optional();
         return new Current(run.map(this::view).orElse(null));
@@ -233,7 +236,8 @@ public class InspectionRunService {
         Run run = run(id, false);
         Map<Long, Inventory.BedSlot> roomInfo = roomInfo(run.buildingId());
         List<RoomRow> rows = roomRows(run.id()).stream()
-                .sorted(Comparator.comparing(r -> roomInfo.containsKey(r.roomId()) ? roomInfo.get(r.roomId()).roomCode() : ""))
+                .sorted(Comparator.comparing((RoomRow r) -> "INSPECTED".equals(r.status()) || "UNREACHABLE".equals(r.status()))
+                        .thenComparing(r -> roomInfo.containsKey(r.roomId()) ? roomInfo.get(r.roomId()).roomCode() : ""))
                 .toList();
         Map<Long, List<Stored>> results = results(rows.stream().map(RoomRow::id).toList());
         Map<Long, List<StoredCheck>> checkResults = checkResults(rows.stream().map(RoomRow::id).toList());
@@ -395,9 +399,10 @@ public class InspectionRunService {
         Map<String, String> checksAfter = new HashMap<>();
         checkResults(List.of(room.id())).getOrDefault(room.id(), List.of())
                 .forEach(c -> checksAfter.put(checkId(c.key()), c.result()));
+        boolean requireRoomChecks = preArrival(run) || !chosenChecks.isEmpty() || !checksAfter.isEmpty();
         boolean done = items.keySet().stream().allMatch(i -> after.containsKey(i) && !after.get(i).equals("NOT_CHECKED"))
-                && checks.keySet().stream()
-                        .allMatch(k -> checksAfter.containsKey(k) && !checksAfter.get(k).equals("NOT_CHECKED"))
+                && (!requireRoomChecks || checks.keySet().stream()
+                        .allMatch(k -> checksAfter.containsKey(k) && !checksAfter.get(k).equals("NOT_CHECKED")))
                 && (metersRead || !preArrival(run));
         if (done) {
             jdbc.sql("""
@@ -461,10 +466,12 @@ public class InspectionRunService {
         Set<Long> buildings = blockScope.resolve(block).ids();
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
         List<Run> runs = jdbc.sql("""
-                SELECT * FROM mnt_inspection_run
-                WHERE building_id IN (:b) AND run_date <= :today
-                  AND (status <> 'SUBMITTED' OR run_date >= :since)
-                ORDER BY (status = 'SUBMITTED'), (inspector_id = :me) DESC NULLS LAST, run_date, id
+                SELECT r.* FROM mnt_inspection_run r
+                LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
+                WHERE r.building_id IN (:b) AND r.run_date <= :today
+                  AND (r.status <> 'SUBMITTED' OR r.run_date >= :since)
+                ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC, (r.status = 'SUBMITTED'),
+                         (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
                 """).param("b", List.copyOf(buildings)).param("today", today)
                 .param("since", today.minusDays(SENT_RUNS_DAYS)).param("me", me.userId())
                 .query((rs, i) -> run(rs)).list();
