@@ -460,4 +460,9 @@ export default {
   "Checklist & furniture ({n} items)": "Danh mục & nội thất ({n} mục)",
   "Mark all Good / Pass": "Đánh dấu tất cả Tốt / Đạt",
   "Checked {n} of {total} items": "Đã kiểm {n}/{total} mục",
+  "Report 1 · paper form: write the condition (Good, Worn, Damaged, Missing) and a note for each item.": "Báo cáo 1 · phiếu giấy: ghi tình trạng (Tốt, Hao mòn, Hư hỏng, Thiếu) và ghi chú cho từng mục.",
+  "Report 1 forms · {run}": "Phiếu Báo cáo 1 · {run}",
+  "Lower than the last reading ({value} {unit}). Read the meter again.": "Thấp hơn chỉ số lần trước ({value} {unit}). Hãy đọc lại công tơ.",
+  "Print Report 1 forms": "In phiếu Báo cáo 1 (giấy)",
+  "Could not print the forms": "Không in được phiếu",
 }

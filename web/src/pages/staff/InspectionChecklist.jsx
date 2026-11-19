@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, CheckCheck, CircleCheck, Download, FileText } from 'lucide-react'
+import { CalendarDays, CheckCheck, CircleCheck, Download, FileText, Printer } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Checkbox } from '@/components/ui/Choice'
-import { Field, Input } from '@/components/ui/Field'
+import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, ErrorState, LoadingState, QueryState, TableStatus } from '@/components/ui/States'
@@ -101,6 +101,49 @@ function printRoom(run, room) {
   return printDocument(t('Room inspection report · {room}', { room: room.room }), body)
 }
 
+/**
+ * Paper Report 1 forms for every Room of the run, one page each: the items with an empty Condition and Note to fill in
+ * by hand in the Room (no status, no answer printed), the meters with blank boxes and the previous reading.
+ */
+async function printBlankForms(run) {
+  const rooms = []
+  for (let page = 1; page < 50; page++) {
+    const res = await api.inspections.rooms(run.id, { page, pageSize: 100 })
+    rooms.push(...(res?.items ?? []))
+    if (!res?.items?.length || rooms.length >= (res.total ?? 0)) break
+  }
+  const sheets = rooms
+    .map((room, index) => {
+      const rows = roomItems(run, room)
+        .map((it, n) => `<tr><td style="width:32px">${n + 1}</td><td>${h(it.label)}</td><td style="width:150px">&nbsp;</td><td style="width:240px">&nbsp;</td></tr>`)
+        .join('')
+      const meters = room.metersNeeded
+        ? `<h2>${h(t('Meters'))}</h2>
+          <table><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th></tr>
+          <tr><td style="height:34px">&nbsp;</td><td>&nbsp;</td>
+          <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></table>`
+        : ''
+      return `<section style="${index < rooms.length - 1 ? 'page-break-after:always;' : ''}">
+        <h1>${h(t('Room inspection report · {room}', { room: room.room }))}</h1>
+        <p class="muted">${h(t('Report 1 · paper form: write the condition (Good, Worn, Damaged, Missing) and a note for each item.'))}</p>
+        <div class="grid">
+          <div><b>${h(t('Run'))}:</b> ${h(run.id)} · ${h(tr(run.scheduleName) ?? '')}</div>
+          <div><b>${h(t('Block'))}:</b> ${h(run.block ?? '')}</div>
+          <div><b>${h(t('Room'))}:</b> ${h(room.room)} · ${h([tr(room.roomTypeName), tr(room.roomClassName)].filter(Boolean).join(' '))}</div>
+          <div><b>${h(t('Inspector'))}:</b> ${h(run.assigneeName ?? run.inspectorName ?? '')}</div>
+          <div><b>${h(t('Date'))}:</b> ....../....../..........</div>
+          <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
+        </div>
+        ${meters}
+        <h2>${h(t('Items'))}</h2>
+        <table><tr><th>#</th><th>${h(t('Item'))}</th><th>${h(t('Condition'))}</th><th>${h(t('Note'))}</th></tr>${rows}</table>
+        <div class="sign"><div><b>${h(t('Inspector'))}</b></div><div><b>${h(t('Manager'))}</b></div></div>
+      </section>`
+    })
+    .join('')
+  return printDocument(t('Report 1 forms · {run}', { run: run.id }), sheets)
+}
+
 function Checklist({ run, room }) {
   const { notify, notifyError } = useToast()
   const items = roomItems(run, room)
@@ -133,7 +176,7 @@ function Checklist({ run, room }) {
     if (value < 0) return t('The reading cannot be negative.')
     const last = room.previousMeters?.[key]
     if (!meters.replaced && last != null && value < Number(last)) {
-      return t('Lower than the last reading ({value} {unit}). Tick “Meter replaced” if it is a new meter.', { value: formatNumber(last), unit })
+      return t('Lower than the last reading ({value} {unit}). Read the meter again.', { value: formatNumber(last), unit })
     }
     return null
   }
@@ -229,10 +272,7 @@ function Checklist({ run, room }) {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-3.5">
         {room.metersNeeded && (
           <section className="flex shrink-0 flex-col gap-2 rounded-xl border border-line bg-subtle/40 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fg">{t('Meters of the Room')}</span>
-              <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
-            </div>
+            <span className="text-sm font-semibold text-fg">{t('Meters of the Room')}</span>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field
                 label="Electricity (kWh)"
@@ -313,30 +353,20 @@ function Checklist({ run, room }) {
                         <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ? conditionName(r.condition) : r.result}</Tag>
                       ) : (
                         <div className="flex flex-col gap-1.5">
-                          <div className="flex flex-wrap gap-1">
-                            {conditionOptions().map((opt) => {
-                              const active = r.condition === opt.value
-                              const toneCls =
-                                opt.value === 'Good'
-                                  ? 'border-success bg-success-bg text-success-fg'
-                                  : opt.value === 'Worn'
-                                    ? 'border-warning bg-warning-bg text-warning-fg'
-                                    : 'border-error bg-error-bg text-error-fg'
-                              return (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => setCondition(item.id, active ? null : opt.value)}
-                                  className={cx(
-                                    'rounded-md border px-2 py-1 text-xs font-medium transition-colors',
-                                    active ? toneCls : 'border-line bg-surface text-fg-secondary hover:bg-subtle',
-                                  )}
-                                >
-                                  {opt.label}
-                                </button>
-                              )
-                            })}
-                          </div>
+                          <Select
+                            size="sm"
+                            wrapperClassName="w-40"
+                            aria-label={t('Condition of {item}', { item: item.label })}
+                            value={r.condition ?? ''}
+                            onChange={(e) => setCondition(item.id, e.target.value || null)}
+                          >
+                            <option value="" disabled hidden />
+                            {conditionOptions().map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </Select>
                           {r.condition === 'Missing' && (
                             <Checkbox
                               label="Take a spare from the Block store"
@@ -621,6 +651,17 @@ function Run({ run, switcher, onSubmitted }) {
     },
     onError: (e) => notifyError(e, 'Could not submit the results'),
   })
+  const [printing, setPrinting] = useState(false)
+  const doPrintForms = async () => {
+    setPrinting(true)
+    try {
+      if (!(await printBlankForms(run))) notify({ type: 'info', title: 'Allow pop-ups to print the report' })
+    } catch (e) {
+      notifyError(e, 'Could not print the forms')
+    } finally {
+      setPrinting(false)
+    }
+  }
   const doExport = async () => {
     setExporting(true)
     try {
@@ -644,6 +685,9 @@ function Run({ run, switcher, onSubmitted }) {
             </Button>
             <Button icon={Download} onClick={doExport} disabled={exporting}>
               Export CSV
+            </Button>
+            <Button icon={Printer} onClick={doPrintForms} disabled={printing}>
+              Print Report 1 forms
             </Button>
             {!sent && mine && (
               <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
