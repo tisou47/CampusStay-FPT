@@ -400,7 +400,12 @@ export const api = {
     /** { onDuty } → the same: starts or ends the signed-in person's shift. */
     setDuty: (body) => http.put('/block-staff/me/duty', body),
     list: g('/block-staff'),
+    /** { handles?, onDuty?, note? }: a note is required when onDuty changes. */
     update: (id, body) => http.put(`/block-staff/${id}`, body),
+    /** The person's open work → { items: [{ type, id, code, title, roomCode, status, openedAt, dueAt, overdue, link }], total }. */
+    work: (id, opts) => http.get(`/block-staff/${id}/work`, undefined, opts),
+    /** { items: [{ type, id }], toStaffId, note } → { moved }: all or none. */
+    reassign: (id, body) => http.post(`/block-staff/${id}/work/reassign`, body),
     requestAccount: (body) => http.post('/staff-account-requests', body),
   },
   routing: {
