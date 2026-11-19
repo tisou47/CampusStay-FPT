@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V81: a schedule per week. A Manager plans a Staff
+-- CampusStay FPT — V95: a schedule per week. A Manager plans a Staff
 -- member's shifts for a given week (its Monday); a week not planned uses
 -- the person's default weekly shifts (auth_staff_shift). Planning next
 -- week never changes this week. Staff see next week once it is sent.

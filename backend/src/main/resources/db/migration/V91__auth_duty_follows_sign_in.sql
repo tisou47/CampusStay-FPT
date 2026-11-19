@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V77: a Staff member's or Manager's duty follows their
+-- CampusStay FPT — V91: a Staff member's or Manager's duty follows their
 -- presence. Signing in (or using the app) puts them on duty; signing out,
 -- or no use of the app for this many minutes, takes them off. Nobody
 -- switches duty by hand any more.

@@ -16,7 +16,7 @@ import { t, tr } from '@/i18n'
 // GET /week-schedule/me → { thisWeek: { start, end, sent, shifts }, nextWeek: { start, end, sent, shifts|null }, inShift, shiftToday }
 // GET /block-staff/me → { handles, blocks, open, resolved7d, … }
 // The shifts a Manager planned for this week and, once sent, next week, and the kinds of work they gave the person.
-// Outside them, a change asks the person to confirm and is marked for the Managers (A-75, A-76).
+// Outside them, a change asks the person to confirm and is marked for the Managers (A-78, A-79).
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const NAMED = { '07:00-15:00': 'Morning', '15:00-23:00': 'Afternoon', '23:00-07:00': 'Night' }

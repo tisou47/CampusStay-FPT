@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V76: Manager › Staff and workload. A person holding more
+-- CampusStay FPT — V90: Manager › Staff and workload. A person holding more
 -- open work than the limit is shown as overloaded (display only: routing is
 -- unchanged), and a Manager may move open work from one person to another;
 -- the receiver is told in the app.

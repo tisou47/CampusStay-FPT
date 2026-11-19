@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V80: Admin chooses when Managers are reminded to send next
+-- CampusStay FPT — V94: Admin chooses when Managers are reminded to send next
 -- week's Staff schedule: the weekday (or no reminder) and the hour, both as
 -- lists (an INT parameter cannot hold the hour 0).
 -- =====================================================================
