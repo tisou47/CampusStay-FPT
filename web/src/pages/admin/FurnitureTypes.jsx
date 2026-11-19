@@ -1,25 +1,33 @@
 import { useState } from 'react'
-import { Check, Package, Pencil, Plus } from 'lucide-react'
+import { Check, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
-import { Alert } from '@/components/ui/Display'
+import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Drawer } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatNumber } from '@/lib/format'
-import { t, tr } from '@/i18n'
+import { formatNumber, formatVnd } from '@/lib/format'
+import { t, tr, useI18n } from '@/i18n'
 
-// SCR-INV-14 Furniture types (Change Spec v2 phase 3, spec §6.19, §9 "Buildings and rooms").
-// GET /admin/furniture-types → { items: [{ id, code, name, nameVi, category, definesClass, status, items }], categories }
-// POST /admin/furniture-types { code, name, nameVi, category, definesClass, status, scope: Personal | Shared } · PUT /admin/furniture-types/:id
+// SCR-INV-14 Furniture types (Change Spec v2 phase 3, spec §6.19, §9 "Buildings and rooms"; value: user decision 19/11/2026).
+// GET /admin/furniture-types → { items: [{ id, code, name, nameVi, category, definesClass, status, use, price, items }],
+//   categories, uses, conditions: [{ code, name, nameVi, percent }] (best first) }
+// PUT /admin/furniture-conditions { items: [{ code (empty: new), name?, nameVi, percent }] } → 204 replaces the levels
+// POST /admin/furniture-types { code, name, nameVi, category, definesClass, status, use, price } · PUT /admin/furniture-types/:id
 
-function EditDrawer({ item, categories, onClose }) {
+// Digits only: "8.000.000" or "8000000" → 8000000; empty → null (no price yet).
+const toPrice = (s) => {
+  const digits = String(s ?? '').replace(/\D/g, '')
+  return digits ? Number(digits) : null
+}
+
+function EditDrawer({ item, categories, uses, onClose }) {
   const { notify } = useToast()
   const isNew = !item.id
   const [form, setForm] = useState({
@@ -29,10 +37,12 @@ function EditDrawer({ item, categories, onClose }) {
     category: item.category ?? categories[0] ?? '',
     definesClass: item.definesClass ?? false,
     status: item.status ?? 'Active',
-    scope: item.scope ?? 'Shared',
+    use: item.use ?? '',
+    price: item.price != null ? formatNumber(item.price) : '',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const save = useMutation(() => (isNew ? api.admin.furnitureTypes.create(form) : api.admin.furnitureTypes.update(item.id, form)), {
+  const body = () => ({ ...form, use: form.use || undefined, price: toPrice(form.price) })
+  const save = useMutation(() => (isNew ? api.admin.furnitureTypes.create(body()) : api.admin.furnitureTypes.update(item.id, body())), {
     invalidates: ['admin-furniture-types', 'admin-requirements'],
     onSuccess: () => {
       notify({ title: t('{name} saved', { name: form.name.trim() }), message: isNew ? 'Register its items in Manager › Furniture.' : 'Changes are written to the audit log.' })
@@ -73,16 +83,112 @@ function EditDrawer({ item, categories, onClose }) {
           {(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}
         </Field>
       </div>
+      <div className="flex gap-3">
+        <Field label="Used by" className="flex-1" helper="Personal: one per bed. Shared: the whole room uses it." error={f.use}>
+          {(id) => (
+            <Select
+              id={id}
+              value={form.use}
+              onChange={set('use')}
+              options={[...(isNew ? [{ value: '', label: t('By category') }] : []), ...uses.map((u) => ({ value: u, label: t(u === 'Personal' ? 'Personal' : 'Shared') }))]}
+            />
+          )}
+        </Field>
+        <Field label="Real price (₫)" className="flex-1" helper="The price of one new item. Empty: not set yet." error={f.price}>
+          {(id) => <Input id={id} value={form.price} onChange={(e) => setForm((x) => ({ ...x, price: e.target.value.replace(/[^\d.]/g, '') }))} inputMode="numeric" placeholder="e.g. 8.000.000" />}
+        </Field>
+      </div>
       <Checkbox
         label="Defines the room tier"
         description="Room tiers can require it (air conditioner, fridge…). Standard types (bed, wardrobe) are in every room and do not decide the class."
         checked={form.definesClass}
         onChange={(e) => setForm((x) => ({ ...x, definesClass: e.target.checked }))}
       />
-      <Field label="Belongs to" helper="Personal: one per Bed, charged to its student at check-out. Shared: the Room's, charged only for damage a student confirmed.">
-        {(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={[{ value: 'Shared', label: 'Shared (the Room)' }, { value: 'Personal', label: 'Personal (one Bed)' }]} />}
-      </Field>
     </Drawer>
+  )
+}
+
+// Adds, renames, revalues and removes the condition levels; saved together, listed by value (best first).
+function ConditionsDrawer({ conditions, onClose }) {
+  const { notify } = useToast()
+  const [rows, setRows] = useState(() => conditions.map((c) => ({ key: c.code, code: c.code, nameVi: c.nameVi, percent: String(c.percent) })))
+  const setRow = (key, field, value) => setRows((list) => list.map((r) => (r.key === key ? { ...r, [field]: value } : r)))
+  const add = () => setRows((list) => [...list, { key: `new-${Date.now()}`, code: null, nameVi: '', percent: '' }])
+  const remove = (key) => setRows((list) => list.filter((r) => r.key !== key))
+  const save = useMutation(
+    () => api.admin.furnitureConditions.save({ items: rows.map((r) => ({ code: r.code, nameVi: r.nameVi.trim(), percent: Number(r.percent) })) }),
+    {
+      invalidates: ['admin-furniture-types'],
+      onSuccess: () => {
+        notify({ title: 'Condition levels saved', message: 'Changes are written to the audit log.' })
+        onClose()
+      },
+      onError: () => {},
+    },
+  )
+  const filled = rows.length > 0 && rows.every((r) => r.nameVi.trim() && r.percent !== '')
+  return (
+    <Drawer
+      open
+      width={520}
+      onClose={onClose}
+      title="Condition levels"
+      description="What share of the real price an item is still worth in each condition. Levels are listed by value, best first."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={Check} onClick={() => save.run()} disabled={!filled || save.pending}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      {save.error && <Alert type="error" title="Could not save">{save.error.fields?.items ?? save.error.summary}</Alert>}
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_96px_32px] gap-2 text-sm font-medium text-fg-secondary">
+          <span>{t('Condition level')}</span>
+          <span>{t('Value (%)')}</span>
+          <span className="sr-only">{t('Actions')}</span>
+        </div>
+        {rows.map((r) => (
+          <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2">
+            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="vd. Trầy xước" />
+            <Input aria-label={t('Value (%)')} inputMode="numeric" value={r.percent} onChange={(e) => setRow(r.key, 'percent', e.target.value.replace(/\D/g, '').slice(0, 3))} />
+            <IconButton icon={Trash2} aria-label={t('Remove level')} onClick={() => remove(r.key)} disabled={rows.length === 1 || HANDOVER_LEVELS.includes(r.code)} />
+          </div>
+        ))}
+        <Button icon={Plus} onClick={add} className="self-start">
+          Add level
+        </Button>
+      </div>
+      <p className="mt-4 text-sm text-fg-secondary">
+        {t('Inspections, check-in inventories and check-outs use the first four levels: Good is Intact, Worn is Partly damaged, Damaged is More than half damaged and Missing is Completely damaged. At check-out a student pays the share of the real price lost since their check-in inventory.')}
+      </p>
+    </Drawer>
+  )
+}
+
+// Levels the room handover records its conditions on (backend Inventory.conditionLoss): they cannot be removed.
+const HANDOVER_LEVELS = ['INTACT', 'PARTLY_DAMAGED', 'MOSTLY_DAMAGED', 'DESTROYED']
+
+// The condition levels: what share of its real price an item in each is still worth. Chips wrap, so any number fits.
+function ConditionsCard({ conditions, onEdit }) {
+  const { lang } = useI18n()
+  return (
+    <Card padding="sm" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+      <h2 className="text-base font-semibold text-fg">{t('Condition levels')}</h2>
+      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        {conditions.map((c) => (
+          <li key={c.code} className="inline-flex items-center gap-2 rounded-full border border-line bg-subtle py-1 pr-1 pl-3 text-sm">
+            <span className="text-fg">{lang === 'vi' ? c.nameVi : c.name}</span>
+            <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-fg tabular">{c.percent} %</span>
+          </li>
+        ))}
+      </ul>
+      <Button size="sm" icon={Pencil} onClick={onEdit}>
+        Edit levels
+      </Button>
+    </Card>
   )
 }
 
@@ -90,39 +196,42 @@ export default function FurnitureTypes() {
   const query = useQuery(['admin-furniture-types'], ({ signal }) => api.admin.furnitureTypes.list(undefined, { signal }))
   const [editing, setEditing] = useState(null)
   const items = query.data?.items ?? []
+  const conditions = query.data?.conditions ?? []
+  const [levels, setLevels] = useState(false)
   return (
     <>
       <PageHeader
         title="Furniture types"
         description="Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers)."
         actions={
-          <>
-          <Button to="/admin/furniture-prices">Prices</Button>
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!query.data}>
             New furniture type
           </Button>
-          </>
         }
       />
+      {conditions.length > 0 && <ConditionsCard conditions={conditions} onEdit={() => setLevels(true)} />}
       <Table fill>
         <THead>
           <tr>
             <Th className="w-24">Code</Th>
             <Th>Name</Th>
-            <Th className="w-36">Category</Th>
+            <Th className="w-32">Category</Th>
+            <Th className="w-28">Used by</Th>
             <Th className="w-48">Role</Th>
-            <Th className="w-28">Belongs to</Th>
-            <Th className="w-28" align="right">
+            <Th className="w-36" align="right">
+              Real price
+            </Th>
+            <Th className="w-24" align="right">
               Items recorded
             </Th>
-            <Th className="w-28">Status</Th>
+            <Th className="w-32">Status</Th>
             <Th className="w-24">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} rows={items} emptyIcon={Package} emptyTitle="No furniture types yet" />
+          <TableStatus query={query} colSpan={9} rows={items} emptyIcon={Package} emptyTitle="No furniture types yet" />
           {items.map((x) => (
             <Tr key={x.id} className="[&>td]:h-12">
               <Td className="font-medium">{x.code}</Td>
@@ -133,8 +242,11 @@ export default function FurnitureTypes() {
                 </div>
               </Td>
               <Td>{tr(x.category)}</Td>
+              <Td>{x.use === 'Shared' ? <Tag tone="info">Shared</Tag> : <Tag>Personal</Tag>}</Td>
               <Td>{x.definesClass ? <Tag tone="brand">Defines the room tier</Tag> : <Tag>Standard</Tag>}</Td>
-              <Td>{x.scope === 'Personal' ? <Tag tone="info">Personal</Tag> : <Tag>Shared</Tag>}</Td>
+              <Td align="right" className="tabular">
+                {x.price != null ? formatVnd(x.price) : <span className="text-fg-tertiary">{t('Not set')}</span>}
+              </Td>
               <Td align="right" className="tabular">
                 {formatNumber(x.items)}
               </Td>
@@ -150,7 +262,8 @@ export default function FurnitureTypes() {
           ))}
         </TBody>
       </Table>
-      {editing && <EditDrawer key={editing.id ?? 'new'} item={editing} categories={query.data?.categories ?? []} onClose={() => setEditing(null)} />}
+      {editing && <EditDrawer key={editing.id ?? 'new'} item={editing} categories={query.data?.categories ?? []} uses={query.data?.uses ?? ['Personal', 'Shared']} onClose={() => setEditing(null)} />}
+      {levels && <ConditionsDrawer conditions={conditions} onClose={() => setLevels(false)} />}
     </>
   )
 }

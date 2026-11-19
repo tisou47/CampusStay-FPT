@@ -26,7 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Admin › Furniture: furniture types and Room Class requirements (spec §6.19; TC-INV-013, 014). */
+/** Admin › Furniture: furniture types, their value and Room Class requirements (spec §6.19; TC-INV-013, 014, 026). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -136,5 +136,94 @@ class AdminFurnitureIT {
                 .andExpect(jsonPath("$.conformance.missing[0].quantity").value(1));
         mvc.perform(json(put("/admin/room-class-requirements/99999"), admin, "{\"items\":[]}"))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * TC-INV-026: each furniture type is personal (furniture, one per Bed) or shared by the Room (appliances and
+     * fixtures) and has a real price (0–1,000,000,000 VND, empty while not set); four condition levels give the
+     * share of that price an item is still worth (100, 75, 50, 0 %). The Admin sets the price and adds, renames,
+     * revalues or removes levels (a Vietnamese name, the English one optional, 0–100 %, listed best first); Managers
+     * may not.
+     */
+    @Test
+    void setsFurnitureValue() throws Exception {
+        String admin = bearer(mvc, ADMIN);
+        mvc.perform(get("/admin/furniture-types").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.code == 'BED')].use", contains("Personal")))
+                .andExpect(jsonPath("$.items[?(@.code == 'AC')].use", contains("Shared")))
+                .andExpect(jsonPath("$.uses", contains("Personal", "Shared")))
+                .andExpect(jsonPath("$.conditions[*].code",
+                        contains("INTACT", "PARTLY_DAMAGED", "MOSTLY_DAMAGED", "DESTROYED")))
+                .andExpect(jsonPath("$.conditions[*].nameVi",
+                        contains("Nguyên vẹn", "Hư một phần", "Hư hơn một nửa", "Hư hoàn toàn")))
+                .andExpect(jsonPath("$.conditions[*].percent", contains(100, 75, 50, 0)));
+        long wardrobe = typeId("WRD");
+        mvc.perform(json(put("/admin/furniture-types/" + wardrobe), admin, """
+                        {"name":"Wardrobe","nameVi":"Tủ quần áo","category":"Furniture","status":"Active","price":-1,"use":"Both"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.price").value("Enter a price from 0 to 1,000,000,000 VND."))
+                .andExpect(jsonPath("$.details.fields.use").value("Choose Personal or Shared."));
+        mvc.perform(json(put("/admin/furniture-types/" + wardrobe), admin, """
+                        {"name":"Wardrobe","nameVi":"Tủ quần áo","category":"Furniture","status":"Active","price":2500000}"""))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/furniture-types").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.items[?(@.code == 'WRD')].price", contains(2500000)))
+                .andExpect(jsonPath("$.items[?(@.code == 'WRD')].use", contains("Personal")));
+        String four = "{\"code\":\"INTACT\",\"name\":\"Intact\",\"nameVi\":\"Nguyên vẹn\",\"percent\":100},"
+                + "{\"code\":\"PARTLY_DAMAGED\",\"name\":\"Partly damaged\",\"nameVi\":\"Hư một phần\",\"percent\":75},"
+                + "{\"code\":\"MOSTLY_DAMAGED\",\"name\":\"More than half damaged\",\"nameVi\":\"Hư hơn một nửa\",\"percent\":50},"
+                + "{\"code\":\"DESTROYED\",\"name\":\"Completely damaged\",\"nameVi\":\"Hư hoàn toàn\",\"percent\":0}";
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items").value("Keep at least one condition level."));
+        mvc.perform(json(put("/admin/furniture-conditions"), admin,
+                        "{\"items\":[" + four + ",{\"name\":\"Intact\",\"nameVi\":\"Còn tốt\",\"percent\":90}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items").value("Give each condition level its own name."));
+        mvc.perform(json(put("/admin/furniture-conditions"), admin,
+                        "{\"items\":[" + four + ",{\"name\":\"Scratched\",\"nameVi\":\"Trầy xước\",\"percent\":120}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items").value("Enter a value from 0 to 100 %."));
+        mvc.perform(json(put("/admin/furniture-conditions"), bearer(mvc, MANAGER_A), "{\"items\":[" + four + "]}"))
+                .andExpect(status().isForbidden());
+        // A new level is added and placed by its value; with no English name it takes the Vietnamese one.
+        mvc.perform(json(put("/admin/furniture-conditions"), admin,
+                        "{\"items\":[" + four + ",{\"nameVi\":\"Trầy xước\",\"percent\":90}]}"))
+                .andExpect(status().isNoContent());
+        String levels = mvc.perform(get("/admin/furniture-types").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.conditions[*].nameVi",
+                        contains("Nguyên vẹn", "Trầy xước", "Hư một phần", "Hư hơn một nửa", "Hư hoàn toàn")))
+                .andExpect(jsonPath("$.conditions[*].percent", contains(100, 90, 75, 50, 0)))
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(levels, "$.conditions[1].code")).startsWith("LEVEL_");
+        org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(levels, "$.conditions[1].name")).isEqualTo("Trầy xước");
+        // Left out, it is removed: back to the four levels of V75.
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + four + "]}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/admin/furniture-types").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.conditions[*].percent", contains(100, 75, 50, 0)));
+    }
+
+    /**
+     * TC-INV-027: the four condition levels the room handover records its conditions on (Intact, Partly damaged, More
+     * than half damaged, Completely damaged) cannot be removed; renaming them or changing their value is allowed.
+     */
+    @Test
+    void handoverLevelsStay() throws Exception {
+        String admin = bearer(mvc, ADMIN);
+        String three = "{\"code\":\"INTACT\",\"name\":\"Intact\",\"nameVi\":\"Nguyên vẹn\",\"percent\":100},"
+                + "{\"code\":\"PARTLY_DAMAGED\",\"name\":\"Partly damaged\",\"nameVi\":\"Hư một phần\",\"percent\":75},"
+                + "{\"code\":\"MOSTLY_DAMAGED\",\"name\":\"More than half damaged\",\"nameVi\":\"Hư hơn một nửa\",\"percent\":50}";
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items")
+                        .value("Keep the first four levels: inspections, check-in inventories and check-outs use them."));
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three
+                        + ",{\"code\":\"DESTROYED\",\"name\":\"Lost or destroyed\",\"nameVi\":\"Mất hoặc hư hoàn toàn\",\"percent\":0}]}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three
+                        + ",{\"code\":\"DESTROYED\",\"name\":\"Completely damaged\",\"nameVi\":\"Hư hoàn toàn\",\"percent\":0}]}"))
+                .andExpect(status().isNoContent());
     }
 }

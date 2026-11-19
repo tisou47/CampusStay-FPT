@@ -146,29 +146,39 @@ class JdbcInventory implements Inventory {
     @Override
     public List<FurnitureLine> furnitureLines(long roomId) {
         return jdbc.sql("""
-                SELECT i.id, i.asset_code, t.id AS type_id, t.name, t.name_vi, t.scope, i.bed_id, b.label AS bed_label,
+                SELECT i.id, i.asset_code, t.id AS type_id, t.name, t.name_vi, t.use_scope, i.bed_id, b.label AS bed_label,
                        i.status
                 FROM inv_furniture_item i JOIN inv_furniture_type t ON t.id = i.furniture_type_id
                 LEFT JOIN inv_bed b ON b.id = i.bed_id
                 WHERE i.room_id = :room AND i.status <> 'DISPOSED'
-                ORDER BY (t.scope = 'PERSONAL'), b.label NULLS FIRST, t.sort_order, i.asset_code
+                ORDER BY (t.use_scope = 'PERSONAL'), b.label NULLS FIRST, t.sort_order, i.asset_code
                 """).param("room", roomId)
                 .query((rs, i) -> new FurnitureLine(rs.getLong("id"), rs.getString("asset_code"), rs.getLong("type_id"),
-                        rs.getString("name"), rs.getString("name_vi"), "PERSONAL".equals(rs.getString("scope")),
+                        rs.getString("name"), rs.getString("name_vi"), "PERSONAL".equals(rs.getString("use_scope")),
                         rs.getObject("bed_id", Long.class), rs.getString("bed_label"), rs.getString("status")))
                 .list();
     }
 
     @Override
-    public Map<Long, Long> furniturePrices(long roomId, long termId) {
+    public Map<Long, Long> furniturePrices() {
         Map<Long, Long> prices = new LinkedHashMap<>();
-        jdbc.sql("""
-                SELECT p.furniture_type_id, p.price FROM inv_furniture_price p
-                WHERE p.room_class_id = inv_room_class_in(:room, :term)
-                """).param("room", roomId).param("term", termId)
-                .query((rs, i) -> Map.entry(rs.getLong("furniture_type_id"), rs.getLong("price"))).list()
+        jdbc.sql("SELECT id, unit_price FROM inv_furniture_type WHERE unit_price IS NOT NULL")
+                .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getLong("unit_price"))).list()
                 .forEach(e -> prices.put(e.getKey(), e.getValue()));
         return prices;
+    }
+
+    @Override
+    public Map<String, Integer> conditionLoss() {
+        Map<String, Integer> loss = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT m.observed, 100 - c.value_percent AS loss
+                FROM (VALUES ('GOOD', 'INTACT'), ('WORN', 'PARTLY_DAMAGED'), ('DAMAGED', 'MOSTLY_DAMAGED'),
+                             ('MISSING', 'DESTROYED')) AS m(observed, level)
+                JOIN inv_furniture_condition c ON c.code = m.level
+                """).query((rs, i) -> Map.entry(rs.getString("observed"), rs.getInt("loss"))).list()
+                .forEach(e -> loss.put(e.getKey(), e.getValue()));
+        return loss;
     }
 
     @Override

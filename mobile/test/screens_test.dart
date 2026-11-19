@@ -508,6 +508,18 @@ void main() {
     expect(find.textContaining('Invoice to pay'), findsOneWidget);
   });
 
+  testWidgets('Assistant: the question field stays above the keyboard', (tester) async {
+    AssistantScreen.messages.clear();
+    useApi({});
+    await show(tester, const AssistantScreen());
+    // a keyboard over the lower 900 physical pixels of the 4000-pixel screen
+    tester.view.viewInsets = const FakeViewPadding(bottom: 900);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    final keyboardTop = (4000 - 900) / tester.view.devicePixelRatio;
+    expect(tester.getRect(find.byType(TextField)).bottom, lessThanOrEqualTo(keyboardTop));
+  });
+
   testWidgets('Links open Family Day screens', (tester) async {
     useApi({'/students/me/family-days': {'resident': false, 'items': <Object>[]}});
     late BuildContext context;

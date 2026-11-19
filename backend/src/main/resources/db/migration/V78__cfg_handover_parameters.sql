@@ -1,8 +1,8 @@
 -- =====================================================================
--- CampusStay FPT — V77: parameters of the check-in inventory and the
--- furniture compensation at check-out (Admin › System parameters,
--- section "Room handover"). Percentages are of the item's replacement
--- price for its Room Class (inv_furniture_price).
+-- CampusStay FPT — V78: parameters of the check-in inventory and the
+-- shared furniture damage at check-out (Admin › System parameters,
+-- section "Room handover"). What an item costs is its type's unit_price
+-- and the condition levels of Admin › Furniture types (V75).
 -- =====================================================================
 
 INSERT INTO cfg_parameter (key, section, label, value_type, value, helper, sort_order, used_in) VALUES
@@ -27,11 +27,5 @@ INSERT INTO cfg_parameter (key, section, label, value_type, value, helper, sort_
   ('handover.major_mismatches', 'Room handover', 'Items that differ from the record before the inventory needs a visit',
      'INT', '3', NULL, 314, 'Comparison of the check-in inventory'),
   ('handover.acknowledge_hours', 'Room handover', 'Hours a student has to acknowledge damage to a shared item',
-     'INT', '48', 'Not acknowledged in time: nobody is charged.', 320, 'Shared furniture damage'),
-  ('compensation.worn_percent', 'Room handover', 'Charge for a Worn item (% of its price)', 'INT', '0', NULL, 330,
-     'Check-out furniture charges'),
-  ('compensation.damaged_percent', 'Room handover', 'Charge for a Damaged item (% of its price)', 'INT', '50', NULL,
-     331, 'Check-out furniture charges'),
-  ('compensation.missing_percent', 'Room handover', 'Charge for a Missing item (% of its price)', 'INT', '100', NULL,
-     332, 'Check-out furniture charges')
+     'INT', '48', 'Not acknowledged in time: nobody is charged.', 320, 'Shared furniture damage')
 ON CONFLICT (key) DO NOTHING;

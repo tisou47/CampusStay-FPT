@@ -247,7 +247,9 @@ export const backOffice = {
       {
         title: 'Reports',
         items: [
-          { label: 'Block reports', icon: ChartColumn, to: '/manager/reports' },
+          { label: 'Block reports', icon: ChartColumn, to: '/manager/reports', exclude: ['/manager/reports/occupancy', '/manager/reports/financial'] },
+          { label: 'Occupancy', icon: ChartColumn, to: '/manager/reports/occupancy' },
+          { label: 'Finance', icon: ShieldCheck, to: '/manager/reports/financial' },
           { label: 'Family Day statistics', icon: HeartHandshake, to: '/manager/family-day-stats' },
         ],
       },
@@ -304,14 +306,6 @@ export const backOffice = {
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
           { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
-        ],
-      },
-      {
-        title: 'Reports',
-        items: [
-          { label: 'Occupancy', icon: ChartColumn, to: '/admin/reports/occupancy' },
-          { label: 'Finance', icon: ShieldCheck, to: '/admin/reports/financial' },
-          { label: 'Family Day statistics', icon: HeartHandshake, to: '/admin/family-day-stats' },
         ],
       },
     ],

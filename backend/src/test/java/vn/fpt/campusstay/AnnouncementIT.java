@@ -68,7 +68,8 @@ class AnnouncementIT {
         String admin = bearer(mvc, ADMIN);
         String id = JsonPath.read(send("POST", "/announcements", admin, """
                 {"category":"Operations","audience":"All students","title":"Water off on Saturday",
-                 "body":"The water is off from 08:00 to 12:00 for repairs.","pinned":true}""")
+                 "body":"The water is off from 08:00 to 12:00 for repairs.","pinned":true,
+                 "link":"/student/requests"}""")
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
         String student = bearer(mvc, STUDENT);
         String board = mvc.perform(get("/students/me/board").header(HttpHeaders.AUTHORIZATION, student))
@@ -77,6 +78,7 @@ class AnnouncementIT {
                 .andExpect(jsonPath("$.items[0].category").value("Operations"))
                 .andExpect(jsonPath("$.items[0].title").value("Water off on Saturday"))
                 .andExpect(jsonPath("$.items[0].read").value(false))
+                .andExpect(jsonPath("$.items[0].link").value("/student/requests"))
                 .andReturn().getResponse().getContentAsString();
         int unread = JsonPath.read(board, "$.unread");
         mvc.perform(get("/students/me/board").header(HttpHeaders.AUTHORIZATION, student).header("Accept-Language", "vi"))
@@ -98,6 +100,14 @@ class AnnouncementIT {
                 .andExpect(jsonPath("$.items[0].active").value(true));
         mvc.perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.items[*].id", not(hasItem("ann-" + id))));
+        // A link written by hand stays inside the student portal.
+        for (String link : new String[] { "https://example.com", "/manager/assignment", "/student/../admin", "javascript:alert(1)" }) {
+            send("POST", "/announcements", admin, """
+                    {"category":"Operations","audience":"All students","title":"Bad link","body":"Text.","link":"%s"}"""
+                    .formatted(link))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.details.fields.link").value("Choose a page of the student portal."));
+        }
     }
 
     /**

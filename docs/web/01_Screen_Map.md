@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 18/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 19/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -123,6 +123,8 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-REQ-20 | Request Routing Rules | `/manager/routing-rules` | 69:949 | `GET /routing-rules`<br>`POST /routing-rules`<br>`PUT /routing-rules/:id`<br>`PUT /routing-rules/timers` | [manager/RoutingRules.jsx](../../web/src/pages/manager/RoutingRules.jsx) |
 | SCR-REQ-21 | Escalations | `/manager/escalations` | 69:1335 | `GET /escalations`<br>`POST /escalations/:id/actions` | [manager/Escalations.jsx](../../web/src/pages/manager/Escalations.jsx) |
 | SCR-RPT-10 | Block Reports | `/manager/reports` | 70:1180 | `GET /reports/block`<br>`GET /exports/block-occupancy` | [manager/BlockReports.jsx](../../web/src/pages/manager/BlockReports.jsx) |
+| SCR-RPT-01 | Occupancy report | `/manager/reports/occupancy` | 72:2988 | `GET /reports/occupancy`<br>`GET /exports/occupancy` | [manager/OccupancyReport.jsx](../../web/src/pages/manager/OccupancyReport.jsx) |
+| SCR-RPT-02 | Financial report | `/manager/reports/financial` | 72:3428 | `GET /reports/financial`<br>`GET /exports/financial` | [manager/FinancialReport.jsx](../../web/src/pages/manager/FinancialReport.jsx) |
 | SCR-CFG-20 | Block Settings | `/manager/block-settings` | 70:1488 | `GET /block-settings`<br>`PUT /block-settings` | [manager/BlockSettings.jsx](../../web/src/pages/manager/BlockSettings.jsx) |
 | SCR-AUTH-13 | Students | `/manager/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
 | SCR-AUTH-14 | Student hub | `/manager/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
@@ -160,13 +162,8 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-CFG-08 | System Parameters | `/admin/system-parameters` | 71:3286 | `GET /admin/system-parameters`<br>`PUT /admin/system-parameters` | [admin/SystemParameters.jsx](../../web/src/pages/admin/SystemParameters.jsx) |
 | SCR-CFG-27 | Demo data | `/admin/demo` | — | `GET /admin/demo`<br>`POST /admin/demo/reset`<br>`GET /admin/demo/files/:kind` | [admin/DemoData.jsx](../../web/src/pages/admin/DemoData.jsx) |
 | SCR-INV-01 | Buildings and Structure | `/admin/buildings` | 25:1593 | `GET /admin/buildings`<br>`POST /admin/buildings`<br>`PUT /admin/buildings/:id`<br>`POST /admin/buildings/:id/rooms/bulk`<br>`GET /admin/buildings/:id/floors/:floor/rooms` | [admin/Buildings.jsx](../../web/src/pages/admin/Buildings.jsx) |
-| SCR-INV-14 | Furniture types | `/admin/furniture-types` | — | `GET /admin/furniture-types`<br>`POST /admin/furniture-types`<br>`PUT /admin/furniture-types/:id` | [admin/FurnitureTypes.jsx](../../web/src/pages/admin/FurnitureTypes.jsx) |
-| — | Admin › Furniture types › Prices: what each furniture type costs to replace in each Room Class | `/admin/furniture-prices` | — | `GET /admin/furniture-prices`<br>`PUT /admin/furniture-prices` | [admin/FurniturePrices.jsx](../../web/src/pages/admin/FurniturePrices.jsx) |
+| SCR-INV-14 | Furniture types | `/admin/furniture-types` | — | `GET /admin/furniture-types`<br>`PUT /admin/furniture-conditions`<br>`POST /admin/furniture-types`<br>`PUT /admin/furniture-types/:id` | [admin/FurnitureTypes.jsx](../../web/src/pages/admin/FurnitureTypes.jsx) |
 | SCR-AUTH-11 | Users and Roles | `/admin/users` | 63:2150 | `GET /admin/users`<br>`POST /admin/users`<br>`PUT /admin/users/:id`<br>`GET /admin/permissions` | [admin/UsersRoles.jsx](../../web/src/pages/admin/UsersRoles.jsx) |
-| SCR-RPT-01 | Occupancy report | `/admin/reports/occupancy` | 72:2988 | `GET /reports/occupancy`<br>`GET /exports/occupancy` | [admin/OccupancyReport.jsx](../../web/src/pages/admin/OccupancyReport.jsx) |
-| SCR-RPT-02 | Financial report | `/admin/reports/financial` | 72:3428 | `GET /reports/financial`<br>`GET /exports/financial` | [admin/FinancialReport.jsx](../../web/src/pages/admin/FinancialReport.jsx) |
-| SCR-VIS-06 | Family Day statistics | `/admin/family-day-stats` | — | `GET /family-day-stats` | [manager/FamilyDayStats.jsx](../../web/src/pages/manager/FamilyDayStats.jsx) |
-| SCR-VIS-07 | Statistics of one Family Day | `/admin/family-day-stats/:id` | — | `GET /family-days/:id/stats` | [manager/FamilyDayStatsDetail.jsx](../../web/src/pages/manager/FamilyDayStatsDetail.jsx) |
 | SCR-AUTH-12 | Audit log | `/admin/audit-log` | 72:3772 | `GET /admin/audit-log`<br>`GET /exports/audit-log` | [admin/AuditLog.jsx](../../web/src/pages/admin/AuditLog.jsx) |
 | SCR-AUTH-13 | Students | `/admin/students` | — | `GET /student-accounts` | [manager/Students.jsx](../../web/src/pages/manager/Students.jsx) |
 | SCR-AUTH-14 | Student hub | `/admin/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |

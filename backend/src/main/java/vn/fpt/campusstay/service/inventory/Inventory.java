@@ -83,8 +83,17 @@ public interface Inventory {
     /** The Room's items that are not disposed, shared ones first, then by Bed, type and asset code. */
     List<FurnitureLine> furnitureLines(long roomId);
 
-    /** Furniture type id → its replacement price in the Room's class of the Term (0 when none is set). */
-    Map<Long, Long> furniturePrices(long roomId, long termId);
+    /** Furniture type id → the price of one new item (Admin › Furniture types, V75); types without a price are left out. */
+    Map<Long, Long> furniturePrices();
+
+    /**
+     * The share of an item's price lost in each condition an inspection, an inventory or a check-out records, from
+     * the condition levels of Admin › Furniture types (100 − the value the level keeps): {@code GOOD} is Intact,
+     * {@code WORN} Partly damaged, {@code DAMAGED} More than half damaged and {@code MISSING} Completely damaged.
+     *
+     * @return condition → percent of the price (0–100)
+     */
+    Map<String, Integer> conditionLoss();
 
     /**
      * Plans a move of an item of the type from the Block's store to the Room (a missing item found in an inspection

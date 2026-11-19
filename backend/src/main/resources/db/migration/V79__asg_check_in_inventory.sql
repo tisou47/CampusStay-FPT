@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V78: the check-in inventory (one per Allocation that
+-- CampusStay FPT — V79: the check-in inventory (one per Allocation that
 -- starts living in a Room), its items and photos, the moment Utility is
 -- counted from, furniture conditions at check-out, and damage to shared
 -- items that a student acknowledged.

@@ -79,13 +79,6 @@ SELECT ro.id, chr(64 + s.n)
 FROM inv_room ro JOIN cfg_room_type rt ON rt.id = ro.room_type_id CROSS JOIN LATERAL generate_series(1, rt.beds) AS s(n)
 ON CONFLICT (room_id, label) DO NOTHING;
 
--- Starting replacement prices per furniture type and Room Class (V76, check-out charges); an Admin changes them.
-INSERT INTO inv_furniture_price (furniture_type_id, room_class_id, price)
-SELECT t.id, c.id, CASE t.category WHEN 'APPLIANCE' THEN 2000000 WHEN 'FURNITURE' THEN 800000
-                                   WHEN 'FIXTURE' THEN 300000 ELSE 200000 END
-FROM inv_furniture_type t CROSS JOIN cfg_room_class c
-ON CONFLICT DO NOTHING;
-
 -- ---------- furniture (types: V39) ----------
 -- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
 INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)
@@ -95,6 +88,12 @@ FROM cfg_room_class c JOIN inv_furniture_type t ON
   OR (c.name = 'Standard' AND t.code IN ('AC', 'WH'))
   OR (c.name = 'Premium' AND t.code IN ('AC', 'WH', 'FRG'))
 ON CONFLICT DO NOTHING;
+
+-- Real price of one new item (VND, V75), sample values; a price the Admin has set is kept.
+UPDATE inv_furniture_type t SET unit_price = v.price, updated_at = now()
+FROM (VALUES ('BED', 2000000), ('WRD', 2500000), ('DESK', 1500000), ('FAN', 800000), ('AC', 8000000),
+             ('WH', 3500000), ('FRG', 5000000)) AS v(code, price)
+WHERE t.code = v.code AND t.unit_price IS NULL;
 
 -- Per Bed a bed, a wardrobe and a desk (asset code <type>-<Room><Bed>, BED-A101A); per Room the items of its
 -- Room Class (<type>-<Room>-<n>, AC-A501-1); in every Block store 4 fans, 2 air conditioners, 2 water heaters and
@@ -106,7 +105,7 @@ CROSS JOIN inv_furniture_type t
 WHERE b.code BETWEEN 'A' AND 'H' AND t.code IN ('BED', 'WRD', 'DESK')
 ON CONFLICT (asset_code) DO NOTHING;
 
--- Personal items belong to their Bed (V76): the Bed is the last letter of the asset code.
+-- Personal items belong to their Bed (V77): the Bed is the last letter of the asset code.
 UPDATE inv_furniture_item f SET bed_id = bd.id
 FROM inv_bed bd JOIN inv_room r ON r.id = bd.room_id, inv_furniture_type t
 WHERE t.id = f.furniture_type_id AND t.code IN ('BED', 'WRD', 'DESK') AND f.room_id = r.id AND f.bed_id IS NULL

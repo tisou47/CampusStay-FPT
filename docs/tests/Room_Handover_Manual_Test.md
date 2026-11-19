@@ -1,6 +1,6 @@
 # Kịch bản test thủ công: Kiểm tra phòng, Kiểm kê nhận phòng, Tiền đền khi trả phòng
 
-Nhánh `feat/room-handover` (contract A-72, migration V75–V79). Ngày soạn: 19/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
+Nhánh `feat/room-handover` (contract A-73 trên giá và mức tình trạng của A-72, migration V76–V80). Ngày soạn: 19/11/2026. Mỗi bước có **Kết quả mong đợi**; đánh dấu `[x]` khi đúng, ghi lại bước nào sai.
 
 ## 0. Chuẩn bị
 
@@ -13,7 +13,7 @@ docker compose -f infra/docker-compose.yml --profile app up -d --build
 ```
 
 - Xong khi http://localhost:8080/api/actuator/health trả về `{"status":"UP"}`.
-- Migration V75–V79 chạy vào database local. Nếu sau đó quay về `main`, Flyway bỏ qua các migration "tương lai" nên vẫn chạy được; muốn sạch hẳn thì xóa volume database rồi chạy lại.
+- Migration V76–V80 chạy vào database local. Nếu sau đó quay về `main`, Flyway bỏ qua các migration "tương lai" nên vẫn chạy được; muốn sạch hẳn thì xóa volume database rồi chạy lại.
 
 Chạy web trong cửa sổ khác:
 
@@ -45,7 +45,7 @@ $env:JAVA_TOOL_OPTIONS = "-Dsun.nio.ch.PipeImpl.noUnixDomainSockets=true -Djdk.n
 |---|---|---|
 | Staff | `staffa01@fpt.edu.vn` | Đợt "Pre-arrival check (demo)": A-902…A-905 đã kiểm, **A-901 chưa kiểm** |
 | Manager | `manager01@fpt.edu.vn` | Duyệt khoản đền, xem đợt kiểm tra |
-| Admin | `admin01@fpt.edu.vn` | Loại nội thất, bảng giá, tham số |
+| Admin | `admin01@fpt.edu.vn` | Loại nội thất (dùng, giá thật, mức tình trạng), tham số |
 | S40 | A-901 giường A | Đã trả tiền, được duyệt đến muộn: **có thể bắt đầu kiểm kê** |
 | S41 | A-902 giường A | Đã bắt đầu, **đang nháp**, còn ~42 giờ |
 | S42 | A-903 giường A | Đã nộp, **Lệch lớn** (thiếu tủ, điện +43,5 kWh) |
@@ -113,14 +113,14 @@ $env:JAVA_TOOL_OPTIONS = "-Dsun.nio.ch.PipeImpl.noUnixDomainSockets=true -Djdk.n
 
 | # | Bước | Kết quả mong đợi | ✓ |
 |---|---|---|---|
-| 3.1 | `admin01` › **Loại nội thất** | Cột "Thuộc về": Giường, Tủ, Bàn = Riêng; còn lại = Chung; sửa được | [ ] |
-| 3.2 | Nút **Bảng giá** | Lưới loại × hạng phòng, có giá khởi đầu; sửa và lưu được | [ ] |
-| 3.3 | Tham số hệ thống › Room handover | Có % Hao mòn 0, Hư hỏng 50, Thiếu 100; hạn 48 giờ; ngưỡng công tơ | [ ] |
+| 3.1 | `admin01` › **Loại nội thất** | Cột "Dùng": đồ nội thất = Cá nhân, thiết bị và đồ cố định = Dùng chung; cột Giá thật (Giường 2.000.000, Tủ 2.500.000, Bàn 1.500.000…); sửa được | [ ] |
+| 3.2 | **Mức tình trạng** › Sửa | Nguyên vẹn 100, Hư một phần 75, Hư hơn một nửa 50, Hư hoàn toàn 0; có ghi chú bàn giao phòng dùng 4 mức đầu; nút xóa của 4 mức này bị khóa | [ ] |
+| 3.3 | Tham số hệ thống › Room handover | Hạn 48 giờ, ngưỡng công tơ, hạn xác nhận đồ chung; **không còn** % đền (đã chuyển sang mức tình trạng) | [ ] |
 | 3.4 | S45 › Phòng của tôi | Thẻ "Khoản đền nội thất cần trả lời"; trang kiểm kê có câu hỏi "Bạn có làm hỏng …?" | [ ] |
 | 3.5 | S45 bấm **Từ chối** | Không bị tính; Staff thấy trạng thái Declined | [ ] |
-| 3.6 | Staff tạo lại ghi nhận hư hỏng đồ chung (màn Trả phòng › "Sinh viên đã làm hỏng"), S45 **Xác nhận** | Khoản tiền = giá × 50% được cộng vào tiền đền khi trả phòng | [ ] |
+| 3.6 | Staff tạo lại ghi nhận hư hỏng đồ chung (màn Trả phòng › "Sinh viên đã làm hỏng"), S45 **Xác nhận** | Khoản tiền = giá thật × 50% (Hư hơn một nửa) được cộng vào tiền đền khi trả phòng | [ ] |
 | 3.7 | `staffa01` › **Trả phòng**, chọn S45 (giai đoạn C, hoặc lý do trả phòng sớm) | Mục mới **"Nội thất theo tình trạng"**; bảng nhập tiền tay cũ vẫn còn | [ ] |
-| 3.8 | Đặt bàn học của S45 = Hư hỏng, tick "Sinh viên có mặt", **Ghi nhận nội thất** | Hiện tiền = giá bàn × 50%; footer trừ cọc theo tổng này | [ ] |
+| 3.8 | Đặt bàn học của S45 = Hư hỏng, tick "Sinh viên có mặt", **Ghi nhận nội thất** | Hiện tiền = giá thật của bàn (1.500.000) × 50% = 750.000; footer trừ cọc theo tổng này | [ ] |
 | 3.9 | Bấm **Xác nhận trả phòng** ngay | Lỗi "Sinh viên chưa đồng ý với khoản đền" | [ ] |
 | 3.10 | S45 bấm **Đồng ý với khoản đền**, Staff xác nhận lại | Trả phòng thành công; nếu tổng > cọc → hóa đơn DAMAGE cho phần thiếu | [ ] |
 | 3.11 | Lần khác: tick **"Sinh viên không đồng ý: Manager quyết định"** cho 1 món | Món đó chưa tính; `manager01` › Quyết định › **Tiền đền khi trả phòng** thấy món, Giữ/Bỏ (bắt buộc lý do) | [ ] |
@@ -170,7 +170,7 @@ Mỗi Block có một đợt "Pre-arrival check Block X (demo)" đã gửi; kho�
 
 1. **Đồ riêng mới đăng ký không gắn giường.** Nội thất › Đăng ký món mới chưa có ô chọn giường (`bed_id`), nên món riêng thêm sau được coi như đồ chung: sinh viên nào cũng khai, và khi trả phòng **không bị tính** cho ai. Cần thêm ô "Giường" ở màn đăng ký/sửa món.
 2. **Bàn tiếp nhận cũ vẫn check-in được** sinh viên chưa kiểm kê. Khi bật kiểm kê, Staff check-in ở bàn thì sinh viên thành cư dân nhưng điện nước chỉ tính khi biên bản chốt (có thể lâu). Nên chặn hoặc cảnh báo ở màn Nhận phòng cũ khi còn biên bản chưa chốt.
-3. **Hạng phòng tạo mới không có giá đền.** Bảng giá chỉ có giá cho hạng phòng đã tồn tại; hạng mới thì tiền đền = 0 cho tới khi Admin nhập giá. Nên tự thêm giá mặc định khi tạo hạng hoặc cảnh báo ô trống.
+3. **Loại nội thất chưa có giá thật thì tiền đền = 0.** Giá lấy từ cột Giá thật của loại (một giá cho mọi hạng phòng và mọi kỳ); loại tạo mới để trống giá thì món hư không bị tính cho tới khi Admin nhập giá. Hao mòn (= Hư một phần) bị tính 25 % theo mức mặc định; muốn miễn thì Admin đặt mức này 100 %.
 4. **Lịch "trước khi vào ở"** chỉ lấy phòng có sinh viên **chưa** nhận mã lúc đợt bắt đầu; lịch này là một lần (ONCE). Chưa tự đề xuất theo timeline kỳ; Manager phải tạo trước `check_in_start`.
 5. **Ảnh iPhone HEIC** bị từ chối (chỉ nhận JPEG/PNG); web dùng camera thường ra JPEG, nhưng chọn từ thư viện có thể ra HEIC.
 6. **Báo cáo trễ** chỉ 1 lần, Staff chỉ chấp nhận được từng món là Hư hỏng/Thiếu; không có ảnh kèm.

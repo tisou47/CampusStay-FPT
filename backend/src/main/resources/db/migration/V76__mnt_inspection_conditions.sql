@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V75: inspections record the condition of each furniture
+-- CampusStay FPT — V76: inspections record the condition of each furniture
 -- item (Good, Worn, Damaged, Missing) and the Room's meters; a schedule is
 -- either periodic (Rooms in use) or a pre-arrival check (Rooms that new
 -- residents will receive). The condition is the baseline a student's

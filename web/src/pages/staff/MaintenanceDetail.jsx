@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { Bed, Check, RotateCcw, SearchX, UserCheck, Wrench } from 'lucide-react'
+import { Check, Clock, MessageSquare, RotateCcw, SearchX, UserCheck, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -8,11 +8,13 @@ import { useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
-import { Alert, Avatar, Breadcrumb, Card, Facts } from '@/components/ui/Display'
+import { Alert, Avatar, Breadcrumb, Card } from '@/components/ui/Display'
+import { InfoTip } from '@/components/ui/Tooltip'
 import { DatePicker, TimeRangePicker } from '@/components/ui/date-time'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { campusToday, formatDateTime } from '@/lib/format'
 import { typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
@@ -29,26 +31,20 @@ import { t, tr } from '@/i18n'
 
 const OPEN = ['Submitted', 'Assigned', 'In progress']
 
-function Row({ label, children }) {
+// One step of the request history, joined to the next by a rail; internal notes are tinted.
+function Event({ event, last }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-base">
-      <dt className="text-fg-secondary">{t(label)}</dt>
-      <dd className="font-medium text-fg">{children}</dd>
-    </div>
-  )
-}
-
-function Event({ event }) {
-  return (
-    <li className="flex items-start gap-3">
+    <li className="relative flex items-start gap-3 pb-4 last:pb-0">
+      {!last && <span aria-hidden="true" className="absolute top-10 bottom-1 left-4 w-px bg-line" />}
       <Avatar name={event.who} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="text-base font-medium text-fg">{tr(event.text)}</p>
-        {event.message && <p className="text-base text-fg-secondary">{event.message}</p>}
-        <p className="flex items-center gap-2 text-sm text-fg-tertiary">
-          {formatDateTime(event.at)}
-          {event.role ? ` · ${tr(event.role)}` : ''}
+      <div className={cx('flex min-w-0 flex-1 flex-col gap-1', event.internal && 'rounded-md bg-warning-bg px-3 py-2')}>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
+          <span className="font-medium text-fg">{tr(event.text)}</span>
           {event.internal && <Tag dot={false}>Internal note</Tag>}
+        </p>
+        {event.message && <p className="text-base whitespace-pre-line text-fg">{event.message}</p>}
+        <p className="text-sm text-fg-tertiary">
+          {[event.who, event.role ? tr(event.role) : null, formatDateTime(event.at)].filter(Boolean).join(' · ')}
         </p>
       </div>
     </li>
@@ -56,6 +52,19 @@ function Event({ event }) {
 }
 
 // The furniture item the request is about (spec §6.18): the item's history keeps the repair.
+// A label over its value; every fact of the request card uses it, so the row lines up.
+function Fact({ label, tip, children }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <dt className="flex items-center gap-1 text-sm whitespace-nowrap text-fg-tertiary">
+        {t(label)}
+        {tip && <InfoTip label={tip} />}
+      </dt>
+      <dd className="flex min-h-8 items-center text-base font-medium text-fg">{children}</dd>
+    </div>
+  )
+}
+
 function FurnitureItem({ r }) {
   const { notify, notifyError } = useToast()
   const save = useMutation((id) => api.maintenance.update(r.id, { furnitureItemId: id || null }), {
@@ -68,9 +77,15 @@ function FurnitureItem({ r }) {
     ...(r.furnitureOptions ?? []).map((f) => ({ value: f.id, label: `${typeName(f)} · ${f.assetCode}` })),
   ]
   return (
-    <Field label="Furniture item" helper="The item's history lists this request when it is reported and resolved.">
-      <Select value={r.furnitureItem?.id ?? ''} options={options} disabled={save.pending || r.status === 'Closed'} onChange={(e) => save.run(e.target.value)} />
-    </Field>
+    <Fact label="Furniture item" tip="The item's history lists this request when it is reported and resolved.">
+      <Select
+        aria-label={t('Furniture item')}
+        value={r.furnitureItem?.id ?? ''}
+        options={options}
+        disabled={save.pending || r.status === 'Closed'}
+        onChange={(e) => save.run(e.target.value)}
+      />
+    </Fact>
   )
 }
 
@@ -129,21 +144,32 @@ function RequestDetail({ r, staff, priorities }) {
     onError: (e) => notifyError(e, 'Could not post the update'),
   })
   const busy = save.pending || setStatus.pending || takeOver.pending
+  // Where the problem is, always naming the room: "Room A-801 · Bed A", or "Balcony · Room A-801".
+  const place = r.bed ? t('{room} · Bed {bed}', { room: r.room, bed: r.bed }) : r.room
+  const where = !r.location || r.location === 'Room' ? t('Room {code}', { code: place }) : `${tr(r.location)} · ${t('Room {code}', { code: place })}`
 
   return (
     <>
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: r.id }]} />}
-        title={r.title}
+        title={
+          <span className="block max-w-[34vw] truncate" title={r.title}>
+            {r.title}
+          </span>
+        }
         badge={
-          <>
+          <span className="mr-6 flex shrink-0 items-center gap-2">
             <StatusTag status={r.status} />
-            <SlaBadge dueAt={r.slaDueAt} done={!open} />
-          </>
+          </span>
+        }
+        description={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
+            {[r.reporter?.name, r.reporter?.role ? tr(r.reporter.role) : null, formatDateTime(r.reportedAt)].filter(Boolean).join(' · ')}
+            {r.urgency === 'Urgent' && <StatusTag status={r.urgency} tone="error" />}
+          </span>
         }
         actions={
           <>
-            <Button to={`${base}/maintenance`}>Back to queue</Button>
             {someoneElse && r.status !== 'Closed' ? (
               <Button variant="primary" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
                 Take over
@@ -168,123 +194,115 @@ function RequestDetail({ r, staff, priorities }) {
         }
       />
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-          {someoneElse && r.status !== 'Closed' && (
-            <Alert type="warning" title={t('{name} is in charge of this request', { name: r.assignee.name })} className="shrink-0">
-              {t('Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.')}
-            </Alert>
-          )}
-          {isStaff && mine && open && (
-            <Alert type="info" title="You are in charge of this request" className="shrink-0">
-              Start the work, keep the student updated and mark it resolved when it is fixed.
-            </Alert>
-          )}
-          {r.status === 'Resolved' && studentRequest && (
-            <Alert title={t('Waiting for {name} to confirm the fix', { name: r.reporter.name })} className="shrink-0">
-              The request closes when the student confirms, or automatically after a few days.
-            </Alert>
-          )}
-          {r.status === 'Closed' && (
-            <Alert type="success" title="Closed" className="shrink-0">
-              The student confirmed that the issue is fixed.
-            </Alert>
-          )}
+      {someoneElse && r.status !== 'Closed' && (
+        <Alert type="warning" title={t('{name} is in charge of this request', { name: r.assignee.name })} className="shrink-0">
+          {t('Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.')}
+        </Alert>
+      )}
+      {isStaff && mine && open && (
+        <Alert type="info" title="You are in charge of this request" className="shrink-0">
+          Start the work, keep the student updated and mark it resolved when it is fixed.
+        </Alert>
+      )}
+      {r.status === 'Resolved' && studentRequest && (
+        <Alert title={t('Waiting for {name} to confirm the fix', { name: r.reporter.name })} className="shrink-0">
+          The request closes when the student confirms, or automatically after a few days.
+        </Alert>
+      )}
+      {r.status === 'Closed' && (
+        <Alert type="success" title="Closed" className="shrink-0">
+          The student confirmed that the issue is fixed.
+        </Alert>
+      )}
 
-          <Card className="flex shrink-0 flex-col gap-3">
-            <h2 className="text-h3 font-semibold text-fg">{t('Request')}</h2>
-            <Facts
-              dense
-              items={[
-                ['Room', r.bed ? t('{room} · Bed {bed}', { room: r.room, bed: r.bed }) : r.room],
-                ['Category', tr(r.category) || '—'],
-                ['Where', tr(r.location) || '—'],
-              ]}
-            />
-            <Facts
-              dense
-              items={[
-                ['Reported by', `${r.reporter?.name ?? '—'} · ${formatDateTime(r.reportedAt)}`],
-                [studentRequest ? 'Student urgency' : 'Urgency', tr(r.urgency) || '—'],
-                ['Entry when absent', r.staffMayEnter === false ? 'Not allowed' : 'Allowed'],
-              ]}
-            />
-            <FurnitureItem r={r} />
-            {r.description && <p className="text-base text-fg">{r.description}</p>}
+      {/* One screen, two columns: the request and its conversation | what the desk decides.
+          Only the update history scrolls, inside its card; narrow screens stack the columns. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,1fr)_360px] xl:overflow-hidden">
+        <div className="flex min-h-0 flex-col gap-4">
+          {/* What the student reported */}
+          <Card className="flex shrink-0 flex-col gap-4">
+            {r.description && <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{r.description}</p>}
             {r.photos?.length > 0 && (
-              <ul className="flex gap-3" aria-label={t('Photos')}>
+              <ul className="flex flex-wrap gap-2" aria-label={t('Photos')}>
                 {r.photos.map((p) => (
                   <li key={p.url}>
-                    <a href={p.url} target="_blank" rel="noreferrer" className="block size-20 overflow-hidden rounded-md border border-line bg-subtle">
+                    <a href={p.url} target="_blank" rel="noreferrer" className="block size-16 overflow-hidden rounded-md border border-line bg-subtle">
                       <img src={p.url} alt={p.name ?? t('Photo')} className="size-full object-cover" />
                     </a>
                   </li>
                 ))}
               </ul>
             )}
-          </Card>
-
-          <Card className="flex min-h-60 flex-1 flex-col gap-3">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Updates')}</h2>
-            <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-              {(r.events ?? []).map((e, i) => (
-                <Event key={`${i}-${e.at}`} event={e} />
-              ))}
-            </ul>
-            <Textarea
-              aria-label={t('Update')}
-              rows={2}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={internal || !studentRequest ? 'Write an internal note for staff…' : 'Write an update for the student…'}
-              className="shrink-0"
-            />
-            <div className="flex shrink-0 items-center justify-between gap-4">
-              <Checkbox label="Internal note (hidden from the student)" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
-              <Button onClick={() => post.run()} disabled={!message.trim() || post.pending}>
-                Post update
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-        <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
-          <Card className="flex shrink-0 flex-col gap-3.5">
-            <h2 className="text-h3 font-semibold text-fg">{t('Assignment')}</h2>
-            <Field label="Priority">{(id) => <Select id={id} value={priority ?? ''} onChange={(e) => setPriority(e.target.value)} options={priorities} />}</Field>
-            <Field label="Assignee">
-              {(id) => (
-                <Select
-                  id={id}
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
-                />
-              )}
-            </Field>
-            <VisitWindowField value={visit} onChange={setVisit} />
-            <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
-              {studentRequest ? 'Save and notify student' : 'Save'}
-            </Button>
-          </Card>
-
-          <Card className="flex shrink-0 flex-col gap-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="flex items-center gap-2 text-base font-medium text-fg">
-                <Bed size={16} aria-hidden="true" className="text-fg-secondary" />
-                {t('Room {code}', { code: r.room })}
-              </p>
-              <Button variant="text" to={`${base}/inventory?room=${r.room}`}>
-                Open room
-              </Button>
-            </div>
-            <dl className="flex flex-col gap-2.5">
-              <Row label="Residents">{r.roomSummary ? t('{n} of {total}', { n: r.roomSummary.residents, total: r.roomSummary.capacity }) : '—'}</Row>
-              <Row label="Other open requests">{r.roomSummary?.otherOpen ?? '—'}</Row>
-              <Row label="Past requests (this term)">{r.roomSummary?.pastThisTerm ?? '—'}</Row>
+            {/* One row: the three facts take their own width, the furniture item the rest; one label style throughout. */}
+            <dl className="grid grid-cols-2 gap-x-10 gap-y-4 lg:grid-cols-[auto_auto_auto_minmax(240px,1fr)]">
+              <Fact label="Where">{where}</Fact>
+              <Fact label="Category">{tr(r.category) || '—'}</Fact>
+              <Fact label="Entry when absent">{t(r.staffMayEnter === false ? 'Not allowed' : 'Allowed')}</Fact>
+              <FurnitureItem r={r} />
             </dl>
           </Card>
+
+          {/* The conversation: history scrolls, the composer stays at the bottom */}
+          <Card className="flex min-h-[360px] flex-1 flex-col gap-3 xl:min-h-0">
+            <h2 className="flex shrink-0 items-center gap-2 text-h3 font-semibold text-fg">
+              <MessageSquare size={18} aria-hidden="true" className="text-fg-secondary" />
+              {t('Updates')}
+              <span className="text-sm font-normal text-fg-tertiary">{(r.events ?? []).length}</span>
+            </h2>
+            <ol className="-mr-2 flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
+              {(r.events ?? []).map((e, i, all) => (
+                <Event key={`${i}-${e.at}`} event={e} last={i === all.length - 1} />
+              ))}
+            </ol>
+            <div className="flex shrink-0 items-end gap-3 border-t border-line pt-3">
+              <Textarea
+                aria-label={t('Update')}
+                rows={2}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={internal || !studentRequest ? 'Write an internal note for staff…' : 'Write an update for the student…'}
+                className="min-w-0 flex-1"
+              />
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <Checkbox label="Internal note (hidden from the student)" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
+                <Button variant="primary" onClick={() => post.run()} disabled={!message.trim() || post.pending}>
+                  Post update
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
+
+        {/* 3 · What the desk decides */}
+        <Card className="flex min-h-0 flex-col gap-3.5 self-start xl:max-h-full xl:overflow-y-auto">
+          <h2 className="text-h3 font-semibold text-fg">{t('Handling')}</h2>
+          {r.slaDueAt && open && (
+            <div className="flex items-center justify-between gap-3 rounded-md bg-subtle px-3 py-2 text-sm text-fg-secondary">
+              <span className="flex min-w-0 items-center gap-2">
+                <Clock size={16} aria-hidden="true" className="shrink-0" />
+                {t('Due {date}', { date: formatDateTime(r.slaDueAt) })}
+              </span>
+              <SlaBadge dueAt={r.slaDueAt} />
+            </div>
+          )}
+          <Field label="Priority" helper={studentRequest && r.urgency ? t('The student marked it {urgency}.', { urgency: tr(r.urgency) }) : undefined}>
+            {(id) => <Select id={id} value={priority ?? ''} onChange={(e) => setPriority(e.target.value)} options={priorities} />}
+          </Field>
+          <Field label="Assignee">
+            {(id) => (
+              <Select
+                id={id}
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
+              />
+            )}
+          </Field>
+          <VisitWindowField value={visit} onChange={setVisit} />
+          <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
+            {studentRequest ? 'Save and notify student' : 'Save'}
+          </Button>
+        </Card>
       </div>
     </>
   )

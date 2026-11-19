@@ -4,7 +4,7 @@ import '../api.dart';
 import '../common.dart';
 import '../files.dart';
 
-/// The check-in inventory (web Student › My room › Check-in inventory, contract A-72): the four conditions and the
+/// The check-in inventory (web Student › My room › Check-in inventory, contract A-73): the four conditions and the
 /// start (the door code), each item of the Bed and the shared items with a condition, a note and photos, the meters,
 /// draft and submit; after Staff's visit the student agrees (with a comment); after the deadline a late report. The
 /// Room's record is never sent to the student. The same page answers the furniture charges of a check-out and the

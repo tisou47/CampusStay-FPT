@@ -70,6 +70,14 @@ Choose a role. ⟶ Hãy chọn vai trò.
 Choose a time. ⟶ Hãy chọn thời gian.
 Choose Male or Female. ⟶ Hãy chọn Nam hoặc Nữ.
 Choose Active or Inactive. ⟶ Hãy chọn Đang dùng hoặc Ngưng dùng.
+Choose Personal or Shared. ⟶ Hãy chọn Cá nhân hoặc Dùng chung.
+Enter a price from 0 to 1,000,000,000 VND. ⟶ Nhập giá từ 0 đến 1.000.000.000 ₫.
+Keep at least one condition level. ⟶ Hãy giữ ít nhất một mức tình trạng.
+Keep the first four levels: inspections, check-in inventories and check-outs use them. ⟶ Hãy giữ bốn mức đầu tiên: kiểm tra phòng, kiểm kê nhận phòng và trả phòng dùng các mức này.
+This condition level does not exist. ⟶ Mức tình trạng này không tồn tại.
+Enter a name of at most 60 characters. ⟶ Hãy nhập tên tối đa 60 ký tự.
+Give each condition level its own name. ⟶ Mỗi mức tình trạng cần một tên riêng.
+Enter a value from 0 to 100 %. ⟶ Nhập giá trị từ 0 đến 100 %.
 Choose 24h or 7d. ⟶ Hãy chọn 24 giờ hoặc 7 ngày.
 Choose a date range: 7d, 30d, 90d or all. ⟶ Hãy chọn khoảng thời gian: 7 ngày, 30 ngày, 90 ngày hoặc tất cả.
 Choose today, 7d or term. ⟶ Hãy chọn hôm nay, 7 ngày hoặc cả học kỳ.
@@ -653,6 +661,7 @@ Write the announcement in at most 4,000 characters. ⟶ Hãy viết nội dung t
 End it after it starts and after now. ⟶ Thời điểm kết thúc phải sau khi bắt đầu và sau hiện tại.
 Choose at least one Block. ⟶ Hãy chọn ít nhất một tòa.
 Choose a published Term. ⟶ Hãy chọn một học kỳ đã công bố.
+Choose a page of the student portal. ⟶ Hãy chọn một trang của cổng sinh viên.
 Staff write to the residents of their Blocks only. ⟶ Nhân viên chỉ gửi thông báo cho sinh viên đang ở các tòa của mình.
 
 # Names of values in change announcements (the announcement's Vietnamese text)
@@ -1070,5 +1079,3 @@ This damage record does not exist or can no longer be answered. ⟶ Ghi nhận h
 This Allocation does not exist. ⟶ Chỗ ở này không tồn tại.
 Choose Personal or Shared. ⟶ Hãy chọn Riêng hoặc Chung.
 Send at least one price. ⟶ Hãy gửi ít nhất một mức giá.
-Choose a furniture type and a Room Class for each price. ⟶ Hãy chọn loại nội thất và hạng phòng cho mỗi mức giá.
-Enter a price of 0 or more. ⟶ Hãy nhập giá từ 0 trở lên.

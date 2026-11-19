@@ -353,7 +353,10 @@ public class DemoResetService {
         return jdbc.sql("SELECT count(*) FROM " + table).query(Long.class).single();
     }
 
-    /** {@code db/demo/scenarios.csv}: {@code id;stages;account;role;scenario;where;scenario_vi;where_vi}, a header line first. */
+    /**
+     * {@code db/demo/scenarios.csv}: {@code id|stages|account|role|scenario|where|scenario_vi|where_vi}, a header line
+     * first. The texts use ";" in their sentences, so the columns are split on "|"; a line without eight columns fails.
+     */
     static List<Scenario> scenarios() {
         List<Scenario> scenarios = new ArrayList<>();
         try (InputStream in = new ClassPathResource("db/demo/scenarios.csv").getInputStream()) {
@@ -362,8 +365,11 @@ public class DemoResetService {
                 if (lines[i].isBlank()) {
                     continue;
                 }
-                // Fields are separated by ";" with no space after it; the texts use "; " inside sentences.
-                String[] f = lines[i].split(";(?! )", -1);
+                String[] f = lines[i].split("\\|", -1);
+                if (f.length != 8) {
+                    throw new IllegalStateException("db/demo/scenarios.csv line " + (i + 1) + " has " + f.length
+                            + " columns instead of 8.");
+                }
                 scenarios.add(new Scenario(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]));
             }
         } catch (IOException e) {

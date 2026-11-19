@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.service.inventory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,25 +31,34 @@ import vn.fpt.campusstay.service.setting.Catalog;
 @Service
 public class AdminFurnitureService {
 
-    /** @param items items of the type that are not disposed */
-    /** @param scope Personal (one per Bed, charged to its student) or Shared (the Room's) */
+    /**
+     * @param use   Personal (one per Bed) or Shared (by the Room)
+     * @param price the real price of one item in VND, null while not set
+     * @param items items of the type that are not disposed
+     */
     public record TypeItem(String id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status, long items, String scope) {
+            String status, String use, Long price, long items) {
     }
 
-    public record TypePage(List<TypeItem> items, List<String> categories) {
+    /**
+     * {@code conditions}: the condition levels, best first, with the share of the price an item in each is still
+     * worth; the Admin sets the shares ({@link #setConditions}).
+     */
+    public record TypePage(List<TypeItem> items, List<String> categories, List<String> uses,
+            List<Condition> conditions) {
+    }
+
+    public record Condition(String code, String name, String nameVi, int percent) {
+    }
+
+    /** {@code code}: an existing level's, or empty for a new one. */
+    public record ConditionValue(String code, String name, String nameVi, Integer percent) {
     }
 
     public record TypeValues(String code, String name, String nameVi, String category, Boolean definesClass,
-            String status, String scope) {
+            String status, String use, Long price) {
     }
 
-    /** A replacement price of a furniture type in a Room Class (VND). */
-    public record Price(String typeId, String roomClassId, long price) {
-    }
-
-    public record PricePage(List<TypeOption> types, List<TypeOption> roomClasses, List<Price> items) {
-    }
 
     public record Requirement(String typeId, String type, String typeVi, int quantity) {
     }
@@ -66,10 +76,15 @@ public class AdminFurnitureService {
     }
 
     static final Map<String, String> CATEGORIES = categories();
+    static final Map<String, String> USES = Map.of("PERSONAL", "Personal", "SHARED", "Shared");
     private static final int MAX_QUANTITY = 20;
 
+    /** Condition levels the Room handover maps its conditions to (INV's {@code Inventory.conditionLoss}). */
+    private static final List<String> USED_LEVELS = List.of("INTACT", "PARTLY_DAMAGED", "MOSTLY_DAMAGED", "DESTROYED");
+    private static final long MAX_PRICE = 1_000_000_000L;
+
     private record Type(long id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status, String scope) {
+            String status, String use, Long price) {
     }
 
     private final JdbcClient jdbc;
@@ -93,10 +108,10 @@ public class AdminFurnitureService {
                 .forEach(e -> counts.put(e.getKey(), e.getValue()));
         List<TypeItem> items = allTypes().stream()
                 .map(t -> new TypeItem(String.valueOf(t.id()), t.code(), t.name(), t.nameVi(), CATEGORIES.get(t.category()),
-                        t.definesClass(), statusLabel(t.status()), counts.getOrDefault(t.id(), 0L),
-                        "PERSONAL".equals(t.scope()) ? "Personal" : "Shared"))
+                        t.definesClass(), statusLabel(t.status()), USES.get(t.use()), t.price(),
+                        counts.getOrDefault(t.id(), 0L)))
                 .toList();
-        return new TypePage(items, List.copyOf(CATEGORIES.values()));
+        return new TypePage(items, List.copyOf(CATEGORIES.values()), List.of("Personal", "Shared"), conditions());
     }
 
     @Transactional
@@ -104,16 +119,22 @@ public class AdminFurnitureService {
         currentUser.require(Permission.MANAGE_BUILDINGS);
         Valid v = validate(values, null);
         long id = jdbc.sql("""
-                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, sort_order, scope)
-                VALUES (:code, :name, :nameVi, :category, :defines, :status,
-                        (SELECT coalesce(max(sort_order), 0) + 1 FROM inv_furniture_type), :scope)
+                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, use_scope, unit_price,
+                                                sort_order)
+                VALUES (:code, :name, :nameVi, :category, :defines, :status, :use, :price,
+                        (SELECT coalesce(max(sort_order), 0) + 1 FROM inv_furniture_type))
                 RETURNING id
                 """)
                 .param("code", v.code()).param("name", v.name()).param("nameVi", v.nameVi())
                 .param("category", v.category()).param("defines", v.definesClass()).param("status", v.status())
-                .param("scope", v.scope()).query(Long.class).single();
-        audit.record("FURNITURE_TYPE_CREATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(),
-                Map.of("code", v.code(), "definesClass", v.definesClass()));
+                .param("use", v.use()).param("price", v.price())
+                .query(Long.class).single();
+        Map<String, Object> created = new LinkedHashMap<>();
+        created.put("code", v.code());
+        created.put("definesClass", v.definesClass());
+        created.put("use", USES.get(v.use()));
+        created.put("price", v.price() == null ? "—" : v.price());
+        audit.record("FURNITURE_TYPE_CREATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), created);
         return id;
     }
 
@@ -136,16 +157,18 @@ public class AdminFurnitureService {
         put(change, "category", CATEGORIES.get(before.category()), CATEGORIES.get(v.category()));
         put(change, "definesClass", before.definesClass(), v.definesClass());
         put(change, "status", statusLabel(before.status()), statusLabel(v.status()));
-        put(change, "scope", before.scope(), v.scope());
+        put(change, "use", USES.get(before.use()), USES.get(v.use()));
+        put(change, "price", before.price() == null ? "—" : before.price(), v.price() == null ? "—" : v.price());
         if (!change.isEmpty()) {
             jdbc.sql("""
                     UPDATE inv_furniture_type SET name = :name, name_vi = :nameVi, category = :category,
-                           defines_class = :defines, status = :status, scope = :scope, updated_at = now(),
-                           version = version + 1
+                           defines_class = :defines, status = :status, use_scope = :use, unit_price = :price,
+                           updated_at = now(), version = version + 1
                     WHERE id = :id
                     """)
                     .param("name", v.name()).param("nameVi", v.nameVi()).param("category", v.category())
-                    .param("defines", v.definesClass()).param("status", v.status()).param("scope", v.scope()).param("id", id)
+                    .param("defines", v.definesClass()).param("status", v.status()).param("use", v.use())
+                    .param("price", v.price()).param("id", id)
                     .update();
             audit.record("FURNITURE_TYPE_UPDATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), change);
         }
@@ -209,62 +232,109 @@ public class AdminFurnitureService {
                 Map.of("requirements", described.isEmpty() ? "None" : described));
     }
 
-
-    /** Admin › Furniture › Prices: the replacement price of each type in each Room Class (check-out charges). */
-    @Transactional(readOnly = true)
-    public PricePage prices() {
-        currentUser.require(Permission.MANAGE_BUILDINGS);
-        List<TypeOption> types = allTypes().stream().filter(t -> "ACTIVE".equals(t.status()))
-                .map(t -> new TypeOption(String.valueOf(t.id()), t.name(), t.nameVi())).toList();
-        List<TypeOption> classes = catalog.roomClasses().stream()
-                .map(c -> new TypeOption(String.valueOf(c.id()), c.name(), c.name())).toList();
-        List<Price> items = jdbc.sql("SELECT furniture_type_id, room_class_id, price FROM inv_furniture_price")
-                .query((rs, i) -> new Price(String.valueOf(rs.getLong(1)), String.valueOf(rs.getLong(2)), rs.getLong(3)))
-                .list();
-        return new PricePage(types, classes, items);
-    }
-
-    /** Sets prices (each type and Room Class once); prices not sent stay as they are. */
+    /**
+     * Replaces the condition levels: a level sent with its code is renamed or revalued, one without a code is added,
+     * one left out is removed. Each needs its own Vietnamese name (the English one is optional) and a value from 0 to
+     * 100 %; at least one stays. They are listed by value, best first.
+     */
     @Transactional
-    public void setPrices(List<Price> prices) {
+    public void setConditions(List<ConditionValue> values) {
         currentUser.require(Permission.MANAGE_BUILDINGS);
-        if (prices == null || prices.isEmpty()) {
-            throw FieldErrors.single("items", "Send at least one price.");
+        Map<String, Condition> before = conditions().stream()
+                .collect(Collectors.toMap(Condition::code, c -> c, (x, y) -> x, LinkedHashMap::new));
+        List<ConditionValue> list = values == null ? List.of() : values.stream().filter(Objects::nonNull).toList();
+        FieldErrors errors = new FieldErrors();
+        errors.check(!list.isEmpty(), "items", "Keep at least one condition level.");
+        Set<String> codes = new HashSet<>();
+        Set<String> names = new HashSet<>();
+        Set<String> namesVi = new HashSet<>();
+        List<ConditionValue> clean = new ArrayList<>();
+        for (ConditionValue c : list) {
+            String code = c.code() == null || c.code().isBlank() ? null : c.code().trim().toUpperCase(Locale.ROOT);
+            String nameVi = c.nameVi() == null ? "" : c.nameVi().trim();
+            // The English name is optional: a level keeps its own, a new one takes the Vietnamese name.
+            String sentName = c.name() == null ? "" : c.name().trim();
+            String name = !sentName.isEmpty() ? sentName
+                    : code != null && before.containsKey(code) ? before.get(code).name() : nameVi;
+            if (code != null && (!before.containsKey(code) || !codes.add(code))) {
+                errors.add("items", "This condition level does not exist.");
+            } else if (name.isEmpty() || name.length() > 60 || nameVi.isEmpty() || nameVi.length() > 60) {
+                errors.add("items", "Enter a name of at most 60 characters.");
+            } else if (!names.add(name.toLowerCase(Locale.ROOT)) || !namesVi.add(nameVi.toLowerCase(Locale.ROOT))) {
+                errors.add("items", "Give each condition level its own name.");
+            } else if (c.percent() == null || c.percent() < 0 || c.percent() > 100) {
+                errors.add("items", "Enter a value from 0 to 100 %.");
+            }
+            if (errors.has("items")) {
+                break;
+            }
+            clean.add(new ConditionValue(code, name, nameVi, c.percent()));
         }
-        java.util.Set<Long> types = new java.util.HashSet<>(allTypes().stream().map(Type::id).toList());
-        java.util.Set<Long> classes = new java.util.HashSet<>(catalog.roomClasses().stream()
-                .map(Catalog.RoomClassInfo::id).toList());
+        // Inspections, check-in inventories and check-outs record their conditions on these four levels.
+        if (!errors.has("items") && USED_LEVELS.stream().anyMatch(l -> before.containsKey(l) && !codes.contains(l))) {
+            errors.add("items", "Keep the first four levels: inspections, check-in inventories and check-outs use them.");
+        }
+        errors.throwIfAny();
         Map<String, Object> change = new LinkedHashMap<>();
-        for (Price p : prices) {
-            long type;
-            long roomClass;
-            try {
-                type = Long.parseLong(p.typeId().trim());
-                roomClass = Long.parseLong(p.roomClassId().trim());
-            } catch (RuntimeException e) {
-                throw FieldErrors.single("items", "Choose a furniture type and a Room Class for each price.");
+        for (Condition c : before.values()) {
+            if (!codes.contains(c.code())) {
+                jdbc.sql("DELETE FROM inv_furniture_condition WHERE code = :c").param("c", c.code()).update();
+                change.put(c.name(), List.of(c.percent() + " %", "removed"));
             }
-            if (!types.contains(type) || !classes.contains(roomClass)) {
-                throw FieldErrors.single("items", "Choose a furniture type and a Room Class for each price.");
-            }
-            if (p.price() < 0 || p.price() > 1_000_000_000) {
-                throw FieldErrors.single("items", "Enter a price of 0 or more.");
-            }
-            jdbc.sql("""
-                    INSERT INTO inv_furniture_price (furniture_type_id, room_class_id, price, updated_at, updated_by)
-                    VALUES (:t, :c, :p, now(), :by)
-                    ON CONFLICT (furniture_type_id, room_class_id)
-                    DO UPDATE SET price = EXCLUDED.price, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by
-                    """).param("t", type).param("c", roomClass).param("p", p.price()).param("by", currentUser.id())
-                    .update();
-            change.put(type + "/" + roomClass, p.price());
         }
-        audit.record("FURNITURE_PRICES_UPDATED", AuditLog.Tone.INFO, "Furniture prices", null, "Furniture prices", change);
+        // Best first: by value, ties in the order sent.
+        List<ConditionValue> sorted = new ArrayList<>(clean);
+        sorted.sort(Comparator.comparing(ConditionValue::percent).reversed());
+        int order = 1;
+        for (ConditionValue c : sorted) {
+            Condition old = c.code() == null ? null : before.get(c.code());
+            if (old == null) {
+                jdbc.sql("""
+                        INSERT INTO inv_furniture_condition (code, name, name_vi, value_percent, sort_order)
+                        VALUES (:code, :name, :nameVi, :p, :order)
+                        """).param("code", newConditionCode()).param("name", c.name()).param("nameVi", c.nameVi())
+                        .param("p", c.percent()).param("order", order).update();
+                change.put(c.name(), List.of("added", c.percent() + " %"));
+            } else {
+                jdbc.sql("""
+                        UPDATE inv_furniture_condition SET name = :name, name_vi = :nameVi, value_percent = :p,
+                               sort_order = :order, updated_at = now()
+                        WHERE code = :code
+                        """).param("name", c.name()).param("nameVi", c.nameVi()).param("p", c.percent())
+                        .param("order", order).param("code", old.code()).update();
+                if (old.percent() != c.percent() || !old.name().equals(c.name()) || !old.nameVi().equals(c.nameVi())) {
+                    change.put(c.name(), List.of(old.name() + " " + old.percent() + " %", c.name() + " " + c.percent() + " %"));
+                }
+            }
+            order++;
+        }
+        if (!change.isEmpty()) {
+            audit.record("FURNITURE_CONDITIONS_SET", AuditLog.Tone.INFO, "Furniture condition", null,
+                    "Condition levels", change);
+        }
     }
+
+    /** LEVEL_1, LEVEL_2, … : the first code no level has. */
+    private String newConditionCode() {
+        Set<String> taken = new HashSet<>(jdbc.sql("SELECT code FROM inv_furniture_condition").query(String.class).list());
+        for (int i = 1; ; i++) {
+            if (!taken.contains("LEVEL_" + i)) {
+                return "LEVEL_" + i;
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- helpers
 
+    private List<Condition> conditions() {
+        return jdbc.sql("SELECT code, name, name_vi, value_percent FROM inv_furniture_condition ORDER BY value_percent DESC, sort_order")
+                .query((rs, i) -> new Condition(rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
+                        rs.getInt("value_percent")))
+                .list();
+    }
+
     private record Valid(String code, String name, String nameVi, String category, boolean definesClass, String status,
-            String scope) {
+            String use, Long price) {
     }
 
     private Valid validate(TypeValues values, Type before) {
@@ -297,11 +367,19 @@ public class AdminFurnitureService {
         String status = values.status() == null || values.status().isBlank() ? "ACTIVE"
                 : values.status().trim().toUpperCase(Locale.ROOT);
         errors.check(status.equals("ACTIVE") || status.equals("INACTIVE"), "status", "Choose Active or Inactive.");
-        String scope = values.scope() == null || values.scope().isBlank()
-                ? (before == null ? "SHARED" : before.scope()) : values.scope().trim().toUpperCase(Locale.ROOT);
-        errors.check(scope.equals("PERSONAL") || scope.equals("SHARED"), "scope", "Choose Personal or Shared.");
+        // Not sent: an existing type keeps its use; a new one follows its category (furniture belongs to a Bed).
+        String sentUse = values.use() == null ? "" : values.use().trim();
+        String use = sentUse.isEmpty()
+                ? (before != null ? before.use() : "FURNITURE".equals(category) || category == null ? "PERSONAL" : "SHARED")
+                : USES.entrySet().stream()
+                        .filter(e -> e.getValue().equalsIgnoreCase(sentUse) || e.getKey().equalsIgnoreCase(sentUse))
+                        .map(Map.Entry::getKey).findFirst().orElse(null);
+        errors.check(use != null, "use", "Choose Personal or Shared.");
+        Long price = values.price();
+        errors.check(price == null || price >= 0 && price <= MAX_PRICE, "price",
+                "Enter a price from 0 to 1,000,000,000 VND.");
         errors.throwIfAny();
-        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status, scope);
+        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status, use, price);
     }
 
     private List<Type> allTypes() {
@@ -310,7 +388,8 @@ public class AdminFurnitureService {
 
     private static Type type(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new Type(rs.getLong("id"), rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
-                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"), rs.getString("scope"));
+                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"),
+                rs.getString("use_scope"), rs.getObject("unit_price", Long.class));
     }
 
     private static void put(Map<String, Object> change, String key, Object before, Object after) {

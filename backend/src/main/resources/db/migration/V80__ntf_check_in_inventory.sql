@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V79: notifications of the check-in inventory and of
+-- CampusStay FPT — V80: notifications of the check-in inventory and of
 -- furniture damage.
 -- =====================================================================
 

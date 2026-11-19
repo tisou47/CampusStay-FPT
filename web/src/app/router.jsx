@@ -106,7 +106,6 @@ const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
-const FurniturePrices = () => import('@/pages/admin/FurniturePrices')
 const FeesRules = () => import('@/pages/admin/FeesRules')
 const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
@@ -118,8 +117,8 @@ const SystemParameters = () => import('@/pages/admin/SystemParameters')
 const DemoData = () => import('@/pages/admin/DemoData')
 const Buildings = () => import('@/pages/admin/Buildings')
 const UsersRoles = () => import('@/pages/admin/UsersRoles')
-const OccupancyReport = () => import('@/pages/admin/OccupancyReport')
-const FinancialReport = () => import('@/pages/admin/FinancialReport')
+const OccupancyReport = () => import('@/pages/manager/OccupancyReport')
+const FinancialReport = () => import('@/pages/manager/FinancialReport')
 const AuditLog = () => import('@/pages/admin/AuditLog')
 
 // Development only: every state of the date and time pickers.
@@ -286,6 +285,8 @@ export const router = createBrowserRouter([
         { path: 'routing-rules', ...page(RoutingRules) },
         { path: 'escalations', ...page(Escalations) },
         { path: 'reports', ...page(BlockReports) },
+        { path: 'reports/occupancy', ...page(OccupancyReport) },
+        { path: 'reports/financial', ...page(FinancialReport) },
         { path: 'block-settings', ...page(BlockSettings) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
@@ -322,12 +323,7 @@ export const router = createBrowserRouter([
         { path: 'demo', ...page(DemoData) },
         { path: 'buildings', ...page(Buildings) },
         { path: 'furniture-types', ...page(FurnitureTypes) },
-        { path: 'furniture-prices', ...page(FurniturePrices) },
         { path: 'users', ...page(UsersRoles) },
-        { path: 'reports/occupancy', ...page(OccupancyReport) },
-        { path: 'reports/financial', ...page(FinancialReport) },
-        { path: 'family-day-stats', ...page(FamilyDayStats) },
-        { path: 'family-day-stats/:id', ...page(FamilyDayStatsDetail) },
         { path: 'audit-log', ...page(AuditLog) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },

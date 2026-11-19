@@ -26,6 +26,17 @@ import { DateTimePicker } from '@/components/ui/date-time'
 
 export const categoryTone = { Registration: 'brand', Finance: 'warning', Rules: 'info', Operations: 'neutral' }
 
+// Pages of the student portal an announcement may open from the board ("Open"). The API accepts /student paths only.
+const studentPages = [
+  { value: '/student/applications', label: 'My applications' },
+  { value: '/student/room', label: 'My room' },
+  { value: '/student/invoices', label: 'My invoices' },
+  { value: '/student/requests', label: 'My requests' },
+  { value: '/student/requests/maintenance/new', label: 'New maintenance request' },
+  { value: '/student/family-days', label: 'Family Days' },
+  { value: '/student/round-2-offer', label: 'Round 2 offer' },
+]
+
 function NewAnnouncement({ options, onClose }) {
   const { notify } = useToast()
   const [form, setForm] = useState({
@@ -37,6 +48,7 @@ function NewAnnouncement({ options, onClose }) {
     body: '',
     pinned: false,
     shownUntil: '',
+    link: '',
   })
   const [fields, setFields] = useState({})
   const set = (key, value) => {
@@ -54,6 +66,7 @@ function NewAnnouncement({ options, onClose }) {
         body: form.body.trim(),
         pinned: form.pinned,
         shownUntil: form.shownUntil ? fromDateTimeInput(form.shownUntil) : null,
+        link: form.link || null,
       }),
     {
       invalidates: ['announcements'],
@@ -120,6 +133,20 @@ function NewAnnouncement({ options, onClose }) {
       </Field>
       <Field label="Text" error={fields.body}>
         {(id) => <Textarea id={id} rows={6} value={form.body} onChange={(e) => set('body', e.target.value)} />}
+      </Field>
+      <Field label="Link on the board" helper="Students see “Open” under the announcement and go to this page." error={fields.link}>
+        {(id) => (
+          <Select
+            id={id}
+            value={form.link}
+            onChange={(e) => set('link', e.target.value)}
+            options={[
+              { value: '', label: t('No link') },
+              ...options.terms.map((x) => ({ value: `/student/registration-periods/${x.id}`, label: t('Registration period · {term}', { term: x.name }) })),
+              ...studentPages.map((p) => ({ value: p.value, label: t(p.label) })),
+            ]}
+          />
+        )}
       </Field>
       <div className="grid grid-cols-2 items-end gap-4">
         <Field label="Shown until" helper="Empty: until you end it." error={fields.shownUntil}>

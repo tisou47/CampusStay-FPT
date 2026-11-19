@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { Download } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
+import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
@@ -22,11 +22,13 @@ const sum = (cells, key) => cells.reduce((n, c) => n + (c[key] ?? 0), 0)
 
 export default function OccupancyReport() {
   const { term } = useSession()
+  // The Manager's Term and Block selectors (top bar) choose what the report covers.
+  const params = useScopeQuery()
   const { notifyError } = useToast()
-  const query = useQuery(['reports', 'occupancy', term?.id], ({ signal }) => api.reports.occupancy({ termId: term?.id }, { signal }))
+  const query = useQuery(['reports', 'occupancy', params], ({ signal }) => api.reports.occupancy(params, { signal }))
   const d = query.data
   const s = d?.summary
-  const exporting = useMutation(() => api.exports.download('occupancy', { termId: term?.id }, 'occupancy.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('occupancy', params, 'occupancy.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
 
   return (
     <>

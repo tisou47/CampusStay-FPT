@@ -64,7 +64,7 @@ export function FurnitureConditions({ allocationId, query, done }) {
         {data.saved && <span className="text-xs font-semibold text-warning-fg tabular">− {formatVnd(data.total)}</span>}
       </div>
       <p className="text-xs text-fg-secondary">
-        {t('Compared with the student’s check-in inventory: only what got worse is charged (price list × percent). Shared items are charged only for damage the student confirmed.')}
+        {t('Compared with the student’s check-in inventory: only what got worse is charged (real price × the share lost, Admin › Furniture types). Shared items are charged only for damage the student confirmed.')}
       </p>
       <ul className="flex flex-col divide-y divide-line/60 rounded-lg bg-surface">
         {data.items.map((i) => {

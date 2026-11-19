@@ -12,7 +12,6 @@ import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { Tabs } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber } from '@/lib/format'
@@ -120,39 +119,24 @@ function CommitModal({ runId, block, summary, open, onClose, onDone }) {
   )
 }
 
-/** A run that can no longer change (dry, committed, discarded, failed): who ran it, when, and what it gave. */
-function RunDetails({ run }) {
+/** One block in the left list: its name and size, with its state on the right. */
+function BlockButton({ active, onClick, title, note, children }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-medium text-fg-tertiary">{t('Run details')}</p>
-        <p className="text-h3 font-semibold text-fg">
-          {run.id} · {tr(run.kind)}
-        </p>
-      </div>
-      <div className="flex flex-col gap-2 rounded-lg border border-line bg-subtle p-4 text-base">
-        {[
-          ['Status', <Tag key="s" tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>],
-          ['Started by', run.startedBy ?? '—'],
-          ['Started', formatDateTime(run.startedAt)],
-          ['Finished', run.finishedAt ? formatDateTime(run.finishedAt) : '—'],
-          ['Rules snapshot', run.snapshot ?? '—'],
-          ['Input', t('{n} Approved applications', { n: formatNumber(run.input) })],
-          ['Proposed', formatNumber(run.proposed)],
-          ['Conflicts', formatNumber(run.conflicts)],
-          ['Waitlisted', formatNumber(run.waitlisted)],
-          ['Average room fit', run.averageFit != null ? `${run.averageFit} / 100` : '—'],
-        ].map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-4">
-            <span className="text-fg-secondary">{t(label)}</span>
-            <span className="text-right font-medium text-fg">{value}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-sm text-fg-tertiary">
-        {run.kind === 'Dry run' ? t('A dry run is a preview: nothing in it can be changed or committed.') : t('This run can no longer change: its proposal is shown read only.')}
-      </p>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cx(
+        'flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition-colors',
+        active ? 'bg-primary-subtle shadow-[inset_3px_0_0_var(--color-primary)]' : 'hover:bg-subtle',
+      )}
+    >
+      <span className="flex min-w-0 flex-col">
+        <span className={cx('text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>{title}</span>
+        <span className="truncate text-sm text-fg-tertiary">{note}</span>
+      </span>
+      {children}
+    </button>
   )
 }
 
@@ -283,30 +267,30 @@ export default function ProposalReview() {
   const submitted = activeBlock && activeBlock.status !== 'review'
   const ready = activeBlock && activeBlock.conflicts === 0 && !submitted && !readOnly
   const run = data?.run
+  const choose = (key) => {
+    const b = blocks.find((x) => x.block === key)
+    setTab(key)
+    setView(!readOnly && b?.conflicts ? 'conflicts' : 'all')
+    setPage(1)
+  }
+
+  const committed = run?.status === 'Committed'
+  const blockState = (b) => (b.status !== 'review' ? { label: 'Committed', tone: 'success' } : readOnly ? { label: 'Preview', tone: 'neutral' } : b.conflicts ? { label: t('{n} conflicts', { n: b.conflicts }), tone: 'warning' } : { label: 'Ready to commit', tone: 'info' })
+  const showIssues = !readOnly
+  const columns = showIssues ? 4 : 3
 
   return (
     <>
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Assignment', to: `${base}/assignment` }, { label: runId }]} />}
-        title={t('Proposal · {id}', { id: runId })}
+        title={committed ? t('Assignment result · {id}', { id: runId }) : t('Proposal · {id}', { id: runId })}
         description={
           run &&
           `${tr(run.kind)} · ${t('Started by {name} · {date}', { name: run.startedBy ?? '—', date: formatDateTime(run.startedAt) })} · ${t('{n} proposed', { n: formatNumber(run.proposed) })} · ${t('{c} conflicts · {w} waitlisted', { c: run.conflicts, w: run.waitlisted })}`
         }
-        badge={
-          readOnly ? (
-            <Tag tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>
-          ) : (
-            activeBlock && <Tag tone={submitted ? 'success' : 'warning'}>{submitted ? t('Committed') : t('In review')}</Tag>
-          )
-        }
+        badge={run && <Tag tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>}
         actions={
           <>
-            {activeBlock && !submitted && !readOnly && (
-              <p className="text-sm text-fg-tertiary">
-                {activeBlock.conflicts ? t('Resolve {n} conflicts in Block {code} to commit it', { n: activeBlock.conflicts, code: tab }) : t('Block {code} is ready to commit', { code: tab })}
-              </p>
-            )}
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
               Export
             </Button>
@@ -319,47 +303,65 @@ export default function ProposalReview() {
         }
       />
 
-      {blocks.length > 0 && (
-        <Tabs
-          className="shrink-0 overflow-x-auto [scrollbar-width:thin]"
-          value={tab}
-          onChange={(key) => {
-            setTab(key)
-            setView('conflicts')
-            setPage(1)
-          }}
-          items={[
-            ...blocks.map((b) => ({ key: b.block, label: `${t('Block {code}', { code: b.block })} · ${formatNumber(b.total)} · ${b.conflicts ? t('{n} conflicts', { n: b.conflicts }) : t('ready')}` })),
-            { key: 'waitlisted', label: 'Waitlisted', count: data?.waitlistedCount },
-          ]}
-        />
-      )}
-
-      {tab !== 'waitlisted' && (
-        <div className="flex shrink-0 items-center gap-2">
-          {[
-            ['all', `${t('All')} ${formatNumber(activeBlock?.total)}`],
-            ['proposed', `${t('Proposed')} ${activeBlock ? formatNumber(activeBlock.total - activeBlock.conflicts) : '—'}`],
-            ['conflicts', `${t('Conflicts')} ${formatNumber(activeBlock?.conflicts)}`],
-          ].map(([key, label]) => (
-            <Chip
-              key={key}
-              active={view === key}
-              onClick={() => {
-                setView(key)
-                setPage(1)
-              }}
-            >
-              {label}
-            </Chip>
-          ))}
-          <span className="flex-1" />
-          <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Search student or bed" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-      )}
-
+      {/* Blocks on the left, the chosen block's students in the middle, the conflict being resolved on the right
+          (only while the run can still change). */}
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
+        <Card padding="none" className="flex min-h-0 w-60 shrink-0 flex-col overflow-hidden">
+          <p className="shrink-0 px-4 pt-4 pb-2 text-sm font-medium text-fg-tertiary">{t('Blocks')}</p>
+          <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+            {blocks.map((b) => {
+              const state = blockState(b)
+              return (
+                <li key={b.block}>
+                  <BlockButton active={tab === b.block} onClick={() => choose(b.block)} title={t('Block {code}', { code: b.block })} note={t('{n} students', { n: formatNumber(b.total) })}>
+                    <Tag tone={state.tone}>{state.label}</Tag>
+                  </BlockButton>
+                </li>
+              )
+            })}
+            {blocks.length > 0 && (
+              <li className="mt-1 border-t border-line pt-1">
+                <BlockButton active={tab === 'waitlisted'} onClick={() => choose('waitlisted')} title={t('Waitlisted')} note={t('No bed of the chosen type')}>
+                  <span className={cx('text-base font-semibold tabular', data?.waitlistedCount ? 'text-warning-fg' : 'text-fg-tertiary')}>{formatNumber(data?.waitlistedCount ?? 0)}</span>
+                </BlockButton>
+              </li>
+            )}
+          </ul>
+          {readOnly && <p className="shrink-0 border-t border-line px-4 py-3 text-sm text-fg-tertiary">{run?.kind === 'Dry run' ? t('A dry run is a preview: nothing in it can be changed or committed.') : t('This run can no longer change: its proposal is shown read only.')}</p>}
+        </Card>
+
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+          <div className="flex shrink-0 items-center gap-2">
+            <h2 className="mr-2 text-h3 font-semibold whitespace-nowrap text-fg">
+              {tab === 'waitlisted' ? t('Waitlisted') : tab ? t('Block {code}', { code: tab }) : ''}
+              {activeBlock && <span className="ml-2 text-sm font-normal text-fg-tertiary">{t('{n} students', { n: formatNumber(activeBlock.total) })}</span>}
+            </h2>
+            {tab !== 'waitlisted' &&
+              !readOnly &&
+              [
+                ['all', `${t('All')} ${formatNumber(activeBlock?.total)}`],
+                ['conflicts', `${t('Conflicts')} ${formatNumber(activeBlock?.conflicts)}`],
+              ].map(([key, label]) => (
+                <Chip
+                  key={key}
+                  active={view === key}
+                  onClick={() => {
+                    setView(key)
+                    setPage(1)
+                  }}
+                >
+                  {label}
+                </Chip>
+              ))}
+            <span className="flex-1" />
+            {activeBlock && !submitted && !readOnly && (
+              <p className="text-sm text-fg-tertiary">
+                {activeBlock.conflicts ? t('Resolve {n} conflicts in Block {code} to commit it', { n: activeBlock.conflicts, code: tab }) : t('Block {code} is ready to commit', { code: tab })}
+              </p>
+            )}
+            <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Search student or bed" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+
           {tab === 'waitlisted' ? (
             <Table fill>
               <THead>
@@ -386,17 +388,14 @@ export default function ProposalReview() {
             <Table fill>
               <THead>
                 <tr>
-                  <Th className="w-48">Student</Th>
-                  <Th className="w-36">Preference</Th>
-                  <Th className="w-28">Proposed bed</Th>
-                  <Th className="w-20" align="right">
-                    Room fit
-                  </Th>
-                  <Th>Issue</Th>
+                  <Th>Student</Th>
+                  <Th className="w-[28%]">Preference</Th>
+                  <Th className="w-[22%]">{committed ? 'Bed' : 'Proposed bed'}</Th>
+                  {showIssues && <Th className="w-[22%]">Issue</Th>}
                 </tr>
               </THead>
               <TBody>
-                <TableStatus query={query} colSpan={5} emptyIcon={Layers} emptyTitle={!blocks.length ? t('This run has no proposal to show') : view === 'conflicts' ? t('No conflicts left in Block {code}', { code: tab ?? '' }) : t('Nothing matches the search')} />
+                <TableStatus query={query} colSpan={columns} emptyIcon={Layers} emptyTitle={!blocks.length ? t('This run has no proposal to show') : view === 'conflicts' ? t('No conflicts left in Block {code}', { code: tab ?? '' }) : t('Nothing matches the search')} />
                 {items.map((r) => {
                   const isSelected = r.applicationId === selectedId
                   const open = r.issue && !r.resolved && !readOnly
@@ -405,15 +404,14 @@ export default function ProposalReview() {
                       key={r.applicationId}
                       selected={isSelected}
                       onClick={open ? () => setSelectedId(r.applicationId) : undefined}
-                      className={cx('[&>td]:h-14', isSelected && '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-primary)]')}
+                      className={cx('[&>td]:h-13', isSelected && '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-primary)]')}
                     >
                       <Td>
                         <TwoLine primary={r.studentName} secondary={r.pair ? `${r.studentCode} · ${t('pair')}` : r.studentCode} />
                       </Td>
-                      <Td className="whitespace-nowrap">{tr(r.preference)}</Td>
-                      <Td className="font-medium whitespace-nowrap">{r.bed ?? '—'}</Td>
-                      <Td align="right">{r.fit ?? '—'}</Td>
-                      <Td>{r.resolved ? <Tag tone="success">{t('Resolved')}</Tag> : r.issue ? <Tag tone={r.issue.tone ?? 'error'}>{r.issue.label}</Tag> : <span className="text-fg-tertiary">—</span>}</Td>
+                      <Td className="whitespace-nowrap text-fg-secondary">{tr(r.preference)}</Td>
+                      <Td className="font-medium whitespace-nowrap">{r.bed ?? <span className="text-fg-tertiary">—</span>}</Td>
+                      {showIssues && <Td>{r.resolved ? <Tag tone="success">{t('Resolved')}</Tag> : r.issue ? <Tag tone={r.issue.tone ?? 'error'}>{r.issue.label}</Tag> : <span className="text-fg-tertiary">—</span>}</Td>}
                     </Tr>
                   )
                 })}
@@ -434,12 +432,10 @@ export default function ProposalReview() {
           </div>
         </div>
 
-        {tab !== 'waitlisted' && (
-          <Card className="flex min-h-0 w-100 shrink-0 flex-col gap-3.5 overflow-y-auto">
+        {tab !== 'waitlisted' && !readOnly && (
+          <Card className="flex min-h-0 w-96 shrink-0 flex-col gap-3.5 overflow-y-auto">
             {data === undefined && !query.loading && query.error ? (
               <EmptyBlock title="Proposal unavailable" />
-            ) : readOnly ? (
-              <RunDetails run={run} />
             ) : (
               <ConflictPanel
                 runId={runId}

@@ -11,18 +11,18 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.service.inventory.Inventory;
-import vn.fpt.campusstay.service.setting.Parameters;
 
 /**
  * Furniture charges at check-out. The student answers only for what got worse while they lived there:
  * <ul>
  * <li>a personal item (of their Bed): its condition at check-out, or the worst an inspection recorded during the stay,
- * against its condition in their final check-in inventory (without one: Good). Charge = price of the item's type in
- * the Room's class × (percent of the condition now − percent of the condition at check-in), never below 0. An item
+ * against its condition in their final check-in inventory (without one: Good). Charge = the price of one new item of
+ * its type × (share lost in the condition now − share lost in the condition at check-in), never below 0. An item
  * recorded as there before the student is never charged;</li>
  * <li>a shared item: only damage the student acknowledged ({@code asg_damage_claim}); otherwise the dorm bears it.</li>
  * </ul>
- * Worn is never charged (its percent is 0 by default). No dispute window: the student agrees at the desk.
+ * Prices and shares come from Admin › Furniture types (INV's {@code furniturePrices}, {@code conditionLoss}). No
+ * dispute window: the student agrees at the desk.
  */
 @Component
 class CheckOutCharges {
@@ -41,26 +41,16 @@ class CheckOutCharges {
     private final JdbcClient jdbc;
     private final Inventory inventory;
     private final InspectionRecords inspections;
-    private final Parameters parameters;
 
-    CheckOutCharges(JdbcClient jdbc, Inventory inventory, InspectionRecords inspections, Parameters parameters) {
+    CheckOutCharges(JdbcClient jdbc, Inventory inventory, InspectionRecords inspections) {
         this.jdbc = jdbc;
         this.inventory = inventory;
         this.inspections = inspections;
-        this.parameters = parameters;
     }
 
-    /** The percent of the price a condition costs (Admin › System parameters). */
+    /** The percent of the price a condition costs (Admin › Furniture types › condition levels). */
     int percent(String condition) {
-        if (condition == null) {
-            return 0;
-        }
-        return switch (condition) {
-            case "WORN" -> parameters.intValue("compensation.worn_percent");
-            case "DAMAGED" -> parameters.intValue("compensation.damaged_percent");
-            case "MISSING" -> parameters.intValue("compensation.missing_percent");
-            default -> 0;
-        };
+        return condition == null ? 0 : inventory.conditionLoss().getOrDefault(condition, 0);
     }
 
     /**
@@ -94,7 +84,7 @@ class CheckOutCharges {
                     return null;
                 }).list();
         Map<Long, String> worst = residentAt == null ? Map.of() : inspections.worstSince(roomId, residentAt);
-        Map<Long, Long> prices = inventory.furniturePrices(roomId, termId);
+        Map<Long, Long> prices = inventory.furniturePrices();
         List<Line> lines = new ArrayList<>();
         for (Inventory.FurnitureLine f : inventory.furnitureLines(roomId)) {
             boolean personal = f.personal() && f.bedId() != null;
@@ -129,7 +119,7 @@ class CheckOutCharges {
     long claimAmount(long roomId, long termId, long itemId, String condition) {
         Optional<Inventory.FurnitureLine> line = inventory.furnitureLines(roomId).stream()
                 .filter(l -> l.id() == itemId).findFirst();
-        long price = line.map(l -> inventory.furniturePrices(roomId, termId).getOrDefault(l.typeId(), 0L)).orElse(0L);
+        long price = line.map(l -> inventory.furniturePrices().getOrDefault(l.typeId(), 0L)).orElse(0L);
         return price * percent(condition) / 100;
     }
 }

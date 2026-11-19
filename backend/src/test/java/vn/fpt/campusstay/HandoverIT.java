@@ -277,8 +277,8 @@ class HandoverIT {
     }
 
     /**
-     * TC-ASG-058: at check-out a personal item Good at check-in and Damaged now costs its price × the damaged
-     * percent; the check-out waits for the student's agreement on the app.
+     * TC-ASG-058: at check-out a personal item Good at check-in and Damaged now costs its price × the share the
+     * Mostly damaged level loses (50 %); the check-out waits for the student's agreement on the app.
      */
     @Test
     void personalItemIsChargedByCondition() throws Exception {
@@ -292,8 +292,7 @@ class HandoverIT {
                 WHERE t.code = 'DESK' AND r.code = 'A-206'
                 """).update();
         long price = jdbc.sql("""
-                SELECT p.price FROM inv_furniture_price p JOIN inv_furniture_type t ON t.id = p.furniture_type_id
-                WHERE t.code = 'DESK' AND p.room_class_id = (SELECT room_class_id FROM inv_room WHERE code = 'A-206')
+                SELECT unit_price FROM inv_furniture_type WHERE code = 'DESK'
                 """).query(Long.class).single();
         String staff = bearer(mvc, STAFF_A);
         String itemId = jdbc.sql("SELECT 'furniture-' || id FROM inv_furniture_item WHERE asset_code = 'DESK-TEST-A206A'")

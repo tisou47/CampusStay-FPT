@@ -238,10 +238,8 @@ JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id;
 INSERT INTO asg_damage_claim (allocation_id, furniture_item_id, condition, note, status, amount, created_by, created_at,
                               due_at)
 SELECT al.id, i.id, 'DAMAGED', 'Cracked casing after it was knocked over.', 'PENDING',
-       coalesce((SELECT p.price FROM inv_furniture_price p
-                 WHERE p.furniture_type_id = i.furniture_type_id
-                   AND p.room_class_id = inv_room_class_in(h.room_id, t.n_id)), 0)
-           * (SELECT CAST(value AS INT) FROM cfg_parameter WHERE key = 'compensation.damaged_percent') / 100,
+       coalesce((SELECT ft.unit_price FROM inv_furniture_type ft WHERE ft.id = i.furniture_type_id), 0)
+           * (100 - coalesce((SELECT value_percent FROM inv_furniture_condition WHERE code = 'MOSTLY_DAMAGED'), 50)) / 100,
        (SELECT id FROM demo_staff WHERE account = 'staffa01'), t.now - interval '4 hours', t.now + interval '44 hours'
 FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id = h.student_id AND al.term_id = t.n_id
 JOIN LATERAL (SELECT f.* FROM inv_furniture_item f WHERE f.room_id = h.room_id AND f.bed_id IS NULL
