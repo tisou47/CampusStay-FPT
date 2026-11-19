@@ -60,6 +60,45 @@ function RoomSegmentedTabs({ items, value, onChange }) {
   )
 }
 
+/**
+ * The contract at a glance, always shown at the top of Contract & utilities so its left column is never empty: the
+ * Term and its stay dates, the Bed, the Room's type and class, the status, when the Bed was given and lived in, and
+ * the stay length (Terms committed and used).
+ */
+function StayContractCard({ data }) {
+  const a = data.allocation
+  const tm = data.term
+  const facts = [
+    { label: 'Term', value: tm ? tm.name : null },
+    { label: 'Stay', value: tm?.stayStart ? formatDateRange(tm.stayStart, tm.stayEnd) : null },
+    { label: 'Room', value: [a.room, a.bed ? t('Bed {bed}', { bed: a.bed }) : null].filter(Boolean).join(' · ') },
+    { label: 'Block', value: a.blockLabel ?? a.block },
+    { label: 'Room type', value: [tr(a.roomTypeName), tr(a.roomClassName)].filter(Boolean).join(' · ') },
+    { label: 'Allocated on', value: a.allocatedAt ? formatDate(a.allocatedAt) : null },
+    { label: 'Living here since', value: a.residentSince ? formatDate(a.residentSince) : null },
+    {
+      label: 'Stay length',
+      value: data.stay ? t('{used} of {committed} Terms', { used: data.stay.termsUsed ?? 0, committed: data.stay.committedTerms ?? 0 }) : null,
+    },
+  ].filter((f) => f.value)
+  return (
+    <Card padding="lg" className="flex shrink-0 flex-col gap-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-h3 font-semibold text-fg">{t('Your stay contract')}</h2>
+        <StatusTag status={a.status ?? 'Allocated'} />
+      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+        {facts.map((f) => (
+          <div key={f.label} className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-sm text-fg-secondary">{t(f.label)}</dt>
+            <dd className="truncate text-base font-medium text-fg">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  )
+}
+
 function Room({ data }) {
   const { allocation: a, roommates = [], checkIn, balance, termination } = data
   const resident = a.status === 'Resident'
@@ -136,6 +175,7 @@ function Room({ data }) {
           className="grid animate-fade-in grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6 lg:overflow-y-auto"
         >
           <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+            <StayContractCard data={data} />
             <NextTermCard data={data} />
           </div>
           <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
