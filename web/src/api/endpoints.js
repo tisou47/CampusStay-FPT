@@ -394,6 +394,12 @@ export const api = {
     update: (id, body) => http.put(`/staff-accounts/${id}`, body),
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
+  weekSchedule: {
+    /** { block? } → { start, end, sentBlocks, pendingBlocks, sentAt, sentBy }: next week's schedule handover. */
+    next: g('/week-schedule'),
+    /** { block? } → { start, notified, blocks }: tells every Staff member of the Blocks their shifts. */
+    send: (body) => http.post('/week-schedule/send', body),
+  },
   blockStaff: {
     /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
     me: g('/block-staff/me'),

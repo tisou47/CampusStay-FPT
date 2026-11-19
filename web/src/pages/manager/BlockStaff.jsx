@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Send, Users, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -15,7 +15,7 @@ import { Drawer, Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-AUTH-10 Manager › Staff and workload (Figma 69:554)
@@ -55,6 +55,33 @@ function shiftSummary(shifts) {
     })
     .join(' · ')
 }
+
+/** What Staff handle, grouped as the Staff menu, with the screens each kind covers. */
+const HANDLE_GROUPS = [
+  {
+    title: 'Desk',
+    items: [
+      { label: 'Check-in and check-out desk', covers: 'Check-in, check-out, late check-ins' },
+      { label: 'Family Day guests', covers: 'Passes, guest check-in and check-out' },
+    ],
+  },
+  {
+    title: 'Residents',
+    items: [
+      { label: 'Room changes, swaps and moves', covers: 'Room-change requests, swaps, operational moves' },
+      { label: 'Term transition requests', covers: 'Extensions and ends of stay for next Term' },
+    ],
+  },
+  { title: 'Rooms', items: [{ label: 'Rooms, door codes and furniture', covers: 'Rooms out of service, door codes, furniture' }] },
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Maintenance', covers: 'Maintenance requests' },
+      { label: 'Inspections', covers: 'Inspection runs' },
+      { label: 'Meter readings', covers: 'Meter readings and meter cuts' },
+    ],
+  },
+]
 
 const PRESETS = [
   { key: 'morning', label: 'Morning', start: '07:00', end: '15:00' },
@@ -158,6 +185,13 @@ function ShiftEditor({ shifts, onChange }) {
 function EditModal({ person, handleOptions, onClose }) {
   const { notify } = useToast()
   const [handles, setHandles] = useState(new Set(person.handles))
+  const toggle = (h) =>
+    setHandles((s) => {
+      const next = new Set(s)
+      if (next.has(h)) next.delete(h)
+      else next.add(h)
+      return next
+    })
   const isStaff = person.role === 'Staff'
   const [shifts, setShifts] = useState(person.shifts ?? [])
   const save = useMutation(
@@ -194,22 +228,27 @@ function EditModal({ person, handleOptions, onClose }) {
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-base font-medium text-fg">{t('Handles')}</legend>
         <p className="text-sm text-fg-secondary">{t('Work outside these kinds asks the person to confirm and is marked in the staff activity log.')}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-          {handleOptions.map((h) => (
-            <Checkbox
-              key={h}
-              label={h}
-              checked={handles.has(h)}
-              onChange={() =>
-                setHandles((s) => {
-                  const next = new Set(s)
-                  if (next.has(h)) next.delete(h)
-                  else next.add(h)
-                  return next
-                })
-              }
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          {HANDLE_GROUPS.map((g) => {
+            const items = g.items.filter((i) => handleOptions.includes(i.label))
+            if (!items.length) return null
+            return (
+              <div key={g.title} className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium text-fg-secondary">{t(g.title)}</p>
+                {items.map((i) => (
+                  <div key={i.label} className="flex flex-col">
+                    <Checkbox label={i.label} checked={handles.has(i.label)} onChange={() => toggle(i.label)} />
+                    <span className="pl-6 text-xs text-fg-tertiary">{t(i.covers)}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+          {handleOptions
+            .filter((h) => !HANDLE_GROUPS.some((g) => g.items.some((i) => i.label === h)))
+            .map((h) => (
+              <Checkbox key={h} label={h} checked={handles.has(h)} onChange={() => toggle(h)} />
+            ))}
         </div>
       </fieldset>
       {isStaff && <ShiftEditor shifts={shifts} onChange={setShifts} />}
@@ -334,6 +373,39 @@ function WorkDrawer({ person, staff, onClose }) {
   )
 }
 
+/**
+ * Next week's schedule handover: shifts repeat every week, and the Manager sends next week's schedule to the Staff of
+ * the Blocks (each one is told their shifts). On Sunday the Managers are reminded while a Block's schedule is not sent.
+ */
+function WeekHandover({ block }) {
+  const { notify, notifyError } = useToast()
+  const query = useQuery(['week-schedule', block], ({ signal }) => api.weekSchedule.next({ block: block ?? undefined }, { signal }))
+  const send = useMutation(() => api.weekSchedule.send({ block: block ?? undefined }), {
+    invalidates: ['week-schedule'],
+    onSuccess: (r) => notify({ title: t('Schedule sent to {n} staff', { n: r.notified }), message: t('Blocks {codes}', { codes: r.blocks.join(', ') }) }),
+    onError: (e) => notifyError(e, 'Could not send the schedule'),
+  })
+  const w = query.data
+  if (!w) return null
+  const week = `${formatDate(w.start)} – ${formatDate(w.end)}`
+  const pending = w.pendingBlocks.length > 0
+  return (
+    <Alert
+      type={pending ? 'warning' : 'success'}
+      title={pending ? t('Next week ({week}): schedule not sent yet', { week }) : t('Next week ({week}): schedule sent', { week })}
+      action={
+        <Button variant={pending ? 'primary' : 'secondary'} icon={Send} onClick={() => send.run()} disabled={send.pending}>
+          {pending ? 'Send next week’s schedule' : 'Send again'}
+        </Button>
+      }
+    >
+      {pending
+        ? t('Check each person’s shifts and work, then send: every Staff member is told their shifts. Not sent: Blocks {list}. You are reminded on Sunday.', { list: w.pendingBlocks.join(', ') })
+        : t('Sent by {by} on {at}.', { by: w.sentBy, at: formatDateTime(w.sentAt) })}
+    </Alert>
+  )
+}
+
 export default function BlockStaff() {
   const { block } = useSession()
   const query = useQuery(['block-staff', block], ({ signal }) => api.blockStaff.list({ block: block ?? undefined }, { signal }))
@@ -401,6 +473,7 @@ export default function BlockStaff() {
           )}
         </KpiTile>
       </div>
+      <WeekHandover block={block} />
       <Table fill className="min-h-[420px] shrink-0">
         <THead>
           <tr>
