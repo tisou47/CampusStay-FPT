@@ -17,11 +17,18 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.auth.BlockStaffService;
 
-/** Block Manager › Staff: handles and duty of the Block's staff, and requests for new accounts. */
+/** Manager › Staff and workload: handles, duty and work of the Block's staff, and requests for new accounts. */
 @RestController
 class BlockStaffController {
 
-    record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles, Boolean onDuty) {
+    /** {@code note}: why the Manager changes the person's duty (required when {@code onDuty} changes). */
+    record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles, Boolean onDuty,
+            @Size(max = 300, message = "Keep the note under 300 characters.") String note) {
+    }
+
+    /** Items of the person to move ({ type, id }), the receiver and why. */
+    record ReassignRequest(@Size(max = 100) List<BlockStaffService.WorkRef> items, Object toStaffId,
+            @Size(max = 300, message = "Keep the note under 300 characters.") String note) {
     }
 
     record DutyRequest(Boolean onDuty) {
@@ -58,7 +65,19 @@ class BlockStaffController {
     @PutMapping("/block-staff/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void update(@PathVariable String id, @Valid @RequestBody UpdateRequest body) {
-        staff.update(id, body.handles(), body.onDuty());
+        staff.update(id, body.handles(), body.onDuty(), body.note());
+    }
+
+    /** The person's open work, overdue first. */
+    @GetMapping("/block-staff/{id}/work")
+    BlockStaffService.WorkPage work(@PathVariable String id) {
+        return staff.work(id);
+    }
+
+    /** Moves some of the person's open work to someone else, all or none. */
+    @PostMapping("/block-staff/{id}/work/reassign")
+    BlockStaffService.Moved reassign(@PathVariable String id, @Valid @RequestBody ReassignRequest body) {
+        return staff.reassign(id, body.items(), body.toStaffId(), body.note());
     }
 
     @PostMapping("/staff-account-requests")

@@ -1023,3 +1023,16 @@ Only a published Family Day has guests inside. ⟶ Chỉ Ngày thăm thân đã 
 No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation. ⟶ Không có khách nào cần nhắc: không ai còn ở lại quá giờ mà chưa được xác nhận.
 None of your guests is inside after their time slot, so there is nothing to confirm. ⟶ Không có người thân nào của bạn còn ở lại quá giờ nên không cần xác nhận.
 This Family Day was cancelled, so it has no statistics. ⟶ Ngày thăm thân này đã bị hủy nên không có số liệu thống kê.
+
+# ---------- Manager › Staff and workload ----------
+Say why you change this person's duty. ⟶ Hãy ghi lý do thay đổi ca trực của người này.
+Keep the note under 300 characters. ⟶ Ghi chú tối đa 300 ký tự.
+Say why you move this work. ⟶ Hãy ghi lý do chuyển công việc này.
+Choose the work to move (at most 100 items). ⟶ Hãy chọn công việc cần chuyển (tối đa 100 mục).
+Choose who receives the work. ⟶ Hãy chọn người nhận công việc.
+Choose someone other than the current holder. ⟶ Hãy chọn người khác với người đang giữ công việc.
+Choose the work to move from the list. ⟶ Hãy chọn công việc cần chuyển trong danh sách.
+Some of this work was closed or moved meanwhile. Reload the list and try again. ⟶ Một số công việc vừa được đóng hoặc chuyển đi. Hãy tải lại danh sách rồi thử lại.
+{0} does not work in Block {1}. ⟶ {0} không làm việc ở Tòa {1}.
+{0} does not handle this type of work. ⟶ {0} không phụ trách loại công việc này.
+This work is no longer open. ⟶ Công việc này không còn mở.

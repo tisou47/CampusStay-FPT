@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.EscalationAssigned;
 import vn.fpt.campusstay.event.MeterPeriodLate;
+import vn.fpt.campusstay.event.WorkReassigned;
 
 /** Notices for Staff and Managers: work handed to them or overdue. */
 @Component
@@ -21,6 +22,12 @@ class StaffNotificationListener {
     @EventListener
     void on(EscalationAssigned e) {
         notifier.notify(e.assigneeId(), "ESCALATION_ASSIGNED", Map.of("code", e.code(), "title", e.title()), e.link());
+    }
+
+    @EventListener
+    void on(WorkReassigned e) {
+        notifier.notify(e.toUserId(), "WORK_REASSIGNED", Map.of("code", e.code(), "title", e.title(), "from", e.from(),
+                "by", e.by(), "note", e.note()), e.link());
     }
 
     @EventListener
