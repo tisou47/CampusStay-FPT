@@ -312,6 +312,9 @@ class HandoverCore {
                 events.publishEvent(new FurnitureFoundDamaged(h.roomId(), i.itemId(), condition,
                         i.verifiedNote() != null ? i.verifiedNote() : i.note(), by != null ? by : a.studentId(),
                         "check-in inventory " + code(h.id())));
+            } else if ("WORN".equals(condition) && (i.baseline() == null || "GOOD".equals(i.baseline()))) {
+                events.publishEvent(new vn.fpt.campusstay.event.FurnitureDamaged(i.itemId(), "WORN",
+                        "Worn in check-in inventory " + code(h.id()), by != null ? by : a.studentId()));
             }
         }
         BigDecimal electricity = source.equals("VERIFIED") && h.verifiedElectricity() != null ? h.verifiedElectricity()

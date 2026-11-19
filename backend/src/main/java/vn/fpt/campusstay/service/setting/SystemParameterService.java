@@ -24,8 +24,10 @@ import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
  * Admin › System parameters: typed key/value settings grouped into sections. A
- * PUT sends the sections back; only {@code value} is read from it. Parameters of a settings group (deadlines,
- * refunds and terminations, stay and renewal) are edited on their own screens ({@link AdminSettingsService}).
+ * PUT sends the sections back; only {@code value} is read from it. Parameters
+ * of a settings group (deadlines,
+ * refunds and terminations, stay and renewal) are edited on their own screens
+ * ({@link AdminSettingsService}).
  */
 @Service
 public class SystemParameterService {
@@ -33,7 +35,10 @@ public class SystemParameterService {
     public record Option(String value, String label) {
     }
 
-    /** {@code value} is a number for whole-number parameters, else text; {@code options} only for choices. */
+    /**
+     * {@code value} is a number for whole-number parameters, else text;
+     * {@code options} only for choices.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Field(String key, String label, Object value, String helper, List<Option> options, String type) {
     }
@@ -172,7 +177,10 @@ public class SystemParameterService {
         };
     }
 
-    /** The stored text for a submitted value, or null when it is not valid for the parameter's type. */
+    /**
+     * The stored text for a submitted value, or null when it is not valid for the
+     * parameter's type.
+     */
     private String normalize(Row row, Object value) {
         String text = value == null ? "" : String.valueOf(value).trim();
         switch (row.type()) {
@@ -191,7 +199,8 @@ public class SystemParameterService {
                 }
             }
             case "BOOL" -> {
-                return text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false") ? text.toLowerCase(Locale.ROOT) : null;
+                return text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false") ? text.toLowerCase(Locale.ROOT)
+                        : null;
             }
             case "CHOICE" -> {
                 List<Option> options = json.readValue(row.options(), new TypeReference<List<Option>>() {

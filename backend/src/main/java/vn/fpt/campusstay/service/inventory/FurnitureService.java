@@ -53,13 +53,15 @@ public class FurnitureService {
     }
 
     public record FurnitureItem(String id, String assetCode, String typeId, String type, String typeVi, String category,
-            String status, Location location, String note, PlannedMove plannedMove, Instant updatedAt) {
+            String status, String condition, Location location, String note, PlannedMove plannedMove,
+            Instant updatedAt) {
     }
 
     public record TypeOption(String id, String name, String nameVi) {
     }
 
-    public record Options(List<TypeOption> types, List<String> statuses, List<String> blocks) {
+    public record Options(List<TypeOption> types, List<String> statuses, List<String> blocks,
+            List<Inventory.ConditionLevel> conditionLevels) {
     }
 
     public record FurniturePage(List<FurnitureItem> items, long total, Map<String, Long> counts, Options options) {
@@ -120,8 +122,8 @@ public class FurnitureService {
     private static final int MAX_MOVE = 200;
 
     private static final String ITEM = """
-            SELECT i.id, i.asset_code, i.furniture_type_id, t.name, t.name_vi, t.category, i.status, i.note, i.updated_at,
-                   i.room_id, r.code AS room, COALESCE(r.building_id, i.store_building_id) AS building_id,
+            SELECT i.id, i.asset_code, i.furniture_type_id, t.name, t.name_vi, t.category, i.status, i.condition, i.note,
+                   i.updated_at, i.room_id, r.code AS room, COALESCE(r.building_id, i.store_building_id) AS building_id,
                    COALESCE(rb.code, sb.code) AS block,
                    m.id AS move_id, m.reason AS move_reason, mr.code AS move_room, COALESCE(mrb.code, msb.code) AS move_block,
                    count(*) OVER () AS total
@@ -158,10 +160,13 @@ public class FurnitureService {
     private final AuditLog audit;
     private final Clock clock;
     private final FurnitureBeds beds;
+    private final Inventory inventory;
 
     public FurnitureService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
-            UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock, FurnitureBeds beds) {
+            UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock, FurnitureBeds beds,
+            Inventory inventory) {
         this.beds = beds;
+        this.inventory = inventory;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -234,7 +239,8 @@ public class FurnitureService {
                 """).query((rs, i) -> new TypeOption(String.valueOf(rs.getLong("id")), rs.getString("name"),
                 rs.getString("name_vi"))).list();
         List<String> blockCodes = blocks.codesByIds(scope.ids()).values().stream().sorted().toList();
-        return new FurniturePage(items, total, counts, new Options(types, List.copyOf(STATUSES.values()), blockCodes));
+        return new FurniturePage(items, total, counts,
+                new Options(types, List.copyOf(STATUSES.values()), blockCodes, inventory.conditionLevels()));
     }
 
     /**
@@ -374,9 +380,19 @@ public class FurnitureService {
         errors.check(note == null || note.trim().length() <= 500, "note", "Keep the note under 500 characters.");
         errors.throwIfAny();
         Timestamp now = Timestamp.from(Instant.now(clock));
-        jdbc.sql("UPDATE inv_furniture_item SET status = :status, updated_at = :now, version = version + 1 WHERE id = :id")
-                .param("status", code).param("now", now).param("id", id)
-                .update();
+        boolean resetCondition = ("IN_USE".equals(code) || "IN_STORE".equals(code))
+                && ("BROKEN".equals(item.status()) || "IN_REPAIR".equals(item.status()));
+        if (resetCondition) {
+            jdbc.sql("""
+                    UPDATE inv_furniture_item SET status = :status, condition = 'GOOD', updated_at = :now,
+                           version = version + 1
+                    WHERE id = :id
+                    """).param("status", code).param("now", now).param("id", id).update();
+        } else {
+            jdbc.sql("UPDATE inv_furniture_item SET status = :status, updated_at = :now, version = version + 1 WHERE id = :id")
+                    .param("status", code).param("now", now).param("id", id)
+                    .update();
+        }
         if (note != null) {
             // An empty note clears it.
             jdbc.sql("UPDATE inv_furniture_item SET note = :note WHERE id = :id")
@@ -803,36 +819,78 @@ public class FurnitureService {
                 """).param("id", itemId).query(Long.class).single();
     }
 
-    /** A Maintenance Request names the item: its history keeps the repair (spec §6.18). */
+    /** A Maintenance Request names the item: its history keeps the repair (spec §6.18), and resolving resets it. */
     @EventListener
     void on(FurnitureRepairLogged repair) {
+        Instant now = Instant.now(clock);
         jdbc.sql("""
                 INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
                 VALUES (:item, 'REPAIR', :code, :step, :title, :by, :now)
                 """)
                 .param("item", repair.itemId()).param("code", repair.requestCode()).param("step", repair.step())
                 .param("title", repair.title().length() > 500 ? repair.title().substring(0, 500) : repair.title())
-                .param("by", repair.byUserId()).param("now", Timestamp.from(Instant.now(clock)))
+                .param("by", repair.byUserId()).param("now", Timestamp.from(now))
                 .update();
+        if ("Resolved".equalsIgnoreCase(repair.step())) {
+            record Current(String status, Long roomId) {
+            }
+            Current cur = jdbc.sql("SELECT status, room_id FROM inv_furniture_item WHERE id = :id FOR UPDATE")
+                    .param("id", repair.itemId())
+                    .query((rs, i) -> new Current(rs.getString("status"), rs.getObject("room_id", Long.class)))
+                    .single();
+            if ("BROKEN".equals(cur.status()) || "IN_REPAIR".equals(cur.status())) {
+                String targetStatus = cur.roomId() == null ? "IN_STORE" : "IN_USE";
+                jdbc.sql("""
+                        UPDATE inv_furniture_item SET status = :status, condition = 'GOOD', updated_at = :now,
+                               version = version + 1
+                        WHERE id = :id
+                        """).param("status", targetStatus).param("now", Timestamp.from(now)).param("id", repair.itemId())
+                        .update();
+                jdbc.sql("""
+                        INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
+                        VALUES (:item, 'STATUS', :from, :to, :reason, :by, :now)
+                        """).param("item", repair.itemId()).param("from", STATUSES.get(cur.status()))
+                        .param("to", STATUSES.get(targetStatus))
+                        .param("reason", "Maintenance request " + repair.requestCode() + " resolved")
+                        .param("by", repair.byUserId()).param("now", Timestamp.from(now)).update();
+            }
+        }
     }
 
-    /** Damage recorded at a check-out: the item is Broken until it is repaired (spec §6.16). */
+    /** Damage/condition recorded at a check-out, check-in or inspection: Worn keeps In use; Damaged/Missing becomes Broken. */
     @EventListener
     void on(FurnitureDamaged damaged) {
         String before = jdbc.sql("SELECT status FROM inv_furniture_item WHERE id = :id FOR UPDATE")
                 .param("id", damaged.itemId()).query(String.class).single();
-        if (before.equals("BROKEN") || before.equals("DISPOSED")) {
+        if ("DISPOSED".equals(before)) {
             return;
         }
-        jdbc.sql("UPDATE inv_furniture_item SET status = 'BROKEN', updated_at = :now WHERE id = :id")
-                .param("now", Timestamp.from(Instant.now(clock))).param("id", damaged.itemId()).update();
+        String cond = damaged.condition() == null ? "DAMAGED" : damaged.condition().trim().toUpperCase(Locale.ROOT);
+        if (!cond.equals("GOOD") && !cond.equals("WORN") && !cond.equals("DAMAGED") && !cond.equals("MISSING")) {
+            cond = "DAMAGED";
+        }
+        Instant now = Instant.now(clock);
+        if ("GOOD".equals(cond) || "WORN".equals(cond)) {
+            if (!"IN_REPAIR".equals(before)) {
+                jdbc.sql("UPDATE inv_furniture_item SET condition = :cond, updated_at = :now WHERE id = :id")
+                        .param("cond", cond).param("now", Timestamp.from(now)).param("id", damaged.itemId()).update();
+            }
+            return;
+        }
+        if ("BROKEN".equals(before) || "IN_REPAIR".equals(before)) {
+            jdbc.sql("UPDATE inv_furniture_item SET condition = :cond, updated_at = :now WHERE id = :id")
+                    .param("cond", cond).param("now", Timestamp.from(now)).param("id", damaged.itemId()).update();
+            return;
+        }
+        jdbc.sql("UPDATE inv_furniture_item SET status = 'BROKEN', condition = :cond, updated_at = :now WHERE id = :id")
+                .param("cond", cond).param("now", Timestamp.from(now)).param("id", damaged.itemId()).update();
         jdbc.sql("""
                 INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
                 VALUES (:item, 'STATUS', :from, 'Broken', :reason, :by, :now)
                 """)
                 .param("item", damaged.itemId()).param("from", STATUSES.get(before))
                 .param("reason", damaged.reason().length() > 500 ? damaged.reason().substring(0, 500) : damaged.reason())
-                .param("by", damaged.byUserId()).param("now", Timestamp.from(Instant.now(clock))).update();
+                .param("by", damaged.byUserId()).param("now", Timestamp.from(now)).update();
     }
 
     private void event(long itemId, String kind, String from, String to, String reason) {
@@ -852,8 +910,20 @@ public class FurnitureService {
         return new FurnitureItem(String.valueOf(rs.getLong("id")), rs.getString("asset_code"),
                 String.valueOf(rs.getLong("furniture_type_id")), rs.getString("name"), rs.getString("name_vi"),
                 AdminFurnitureService.CATEGORIES.get(rs.getString("category")), STATUSES.get(rs.getString("status")),
-                location(rs.getString("room"), rs.getString("block")), rs.getString("note"), move,
-                rs.getTimestamp("updated_at").toInstant());
+                conditionLabel(rs.getString("condition")), location(rs.getString("room"), rs.getString("block")),
+                rs.getString("note"), move, rs.getTimestamp("updated_at").toInstant());
+    }
+
+    private static String conditionLabel(String code) {
+        if (code == null) {
+            return "Good";
+        }
+        return switch (code) {
+            case "WORN" -> "Worn";
+            case "DAMAGED" -> "Damaged";
+            case "MISSING" -> "Missing";
+            default -> "Good";
+        };
     }
 
     private static Location location(String room, String block) {

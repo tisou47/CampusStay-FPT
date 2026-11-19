@@ -733,8 +733,8 @@ public class DeskService {
         damages.forEach((itemId, d) -> events.publishEvent(new FurnitureDamaged(itemId,
                 "Damaged at the check-out of " + where + (d.note() == null ? "" : ": " + d.note()), user.userId())));
         if (cmd.damages() == null) {
-            furniture.worse().forEach(itemId -> events.publishEvent(new FurnitureDamaged(itemId,
-                    "Damaged at the check-out of " + where, user.userId())));
+            furniture.worse().forEach(w -> events.publishEvent(new FurnitureDamaged(w.itemId(), w.condition(),
+                    "Condition " + w.condition() + " at the check-out of " + where, user.userId())));
             // Shared items' damage split among the residents: the roommates' shares become their Invoices.
             if (furniture.recorded()) {
                 furnitureCharges.chargeRoommates(p.alloc().id(), null);
@@ -985,8 +985,11 @@ public class DeskService {
      * The furniture recorded by condition for the check-out: whether any, the charge (lines a Manager reviews or
      * dropped left out), whether the student is present and agreed, and the items that got worse.
      */
+    private record WorseItem(long itemId, String condition) {
+    }
+
     private record FurnitureRecord(boolean recorded, long total, boolean studentPresent, Instant agreedAt,
-            List<Long> worse) {
+            List<WorseItem> worse) {
     }
 
     private FurnitureRecord furnitureRecord(long allocationId) {
@@ -1007,8 +1010,10 @@ public class DeskService {
                         rs.getTimestamp("student_agreed_at"))).optional().orElse(new Meta(null, null));
         long total = lines.stream().filter(l -> l.review() == null || l.review().equals("KEPT"))
                 .mapToLong(Raw::amount).sum();
-        List<Long> worse = lines.stream().filter(l -> (l.condition().equals("DAMAGED") || l.condition().equals("MISSING"))
-                && !l.condition().equals(l.baseline())).map(Raw::item).toList();
+        List<WorseItem> worse = lines.stream()
+                .filter(l -> (l.condition().equals("WORN") || l.condition().equals("DAMAGED")
+                        || l.condition().equals("MISSING")) && !l.condition().equals(l.baseline()))
+                .map(l -> new WorseItem(l.item(), l.condition())).toList();
         return new FurnitureRecord(!lines.isEmpty(), total, Boolean.TRUE.equals(meta.present()),
                 meta.agreed() == null ? null : meta.agreed().toInstant(), worse);
     }

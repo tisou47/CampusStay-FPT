@@ -43,8 +43,8 @@ class InventoryDemoData implements DemoData {
         // the base data has no broken item.
         jdbc.execute("""
                 UPDATE inv_furniture_item SET status = CASE WHEN room_id IS NULL THEN 'IN_STORE' ELSE 'IN_USE' END,
-                       updated_at = now(), version = version + 1
-                WHERE status IN ('BROKEN', 'IN_REPAIR')
+                       condition = 'GOOD', updated_at = now(), version = version + 1
+                WHERE status IN ('BROKEN', 'IN_REPAIR') OR condition <> 'GOOD'
                 """);
     }
 

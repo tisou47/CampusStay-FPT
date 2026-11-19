@@ -170,7 +170,7 @@ function Form({ data }) {
                   }}
                 >
                   <option value="" disabled hidden />
-                  {conditionOptions().map((o) => (
+                  {conditionOptions(data?.conditionLevels).map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
@@ -179,7 +179,7 @@ function Form({ data }) {
               </div>
               {i.roommateCondition && (
                 <p className="text-sm text-fg-secondary">
-                  {t('Your roommate recorded it as {condition}. Choose the same if it is right, or what you see.', { condition: conditionName(i.roommateCondition) })}
+                  {t('Your roommate recorded it as {condition}. Choose the same if it is right, or what you see.', { condition: conditionName(i.roommateCondition, data?.conditionLevels) })}
                 </p>
               )}
               {(a.condition === 'Damaged' || a.condition === 'Missing' || a.condition === 'Worn') && (

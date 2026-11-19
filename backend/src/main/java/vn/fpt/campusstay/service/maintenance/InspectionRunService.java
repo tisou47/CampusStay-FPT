@@ -66,7 +66,7 @@ public class InspectionRunService {
      */
     public record RunView(String id, LocalDate date, Instant dueAt, String scheduleName, String scope, int rooms,
             int inspected, int failed, int unreachable, String inspectorName, ChecklistView checklist, String status,
-            String block, boolean mine, boolean overdue) {
+            String block, boolean mine, boolean overdue, List<Inventory.ConditionLevel> conditionLevels) {
     }
 
     /** The runs of the Blocks: open ones (the user's first) and the ones sent in the last days. */
@@ -404,6 +404,13 @@ public class InspectionRunService {
                     """).param("room", room.id()).param("key", checkKey(check.id())).param("result", result)
                     .param("note", note == null || note.length() <= NOTE_MAX ? note : note.substring(0, NOTE_MAX))
                     .param("request", requestId).param("condition", choice.condition()).update();
+            if (check.kind().equals("furniture") && choice.condition() != null) {
+                long itemId = Long.parseLong(check.id().substring("furniture-".length()));
+                events.publishEvent(new vn.fpt.campusstay.event.FurnitureDamaged(itemId, choice.condition(),
+                        "Inspection " + InspectionScheduleService.code(run.id())
+                                + (note == null || note.isBlank() ? "" : ": " + note),
+                        me.userId()));
+            }
         }
         if (read != null) {
             jdbc.sql("""
@@ -631,7 +638,8 @@ public class InspectionRunService {
                 run.status().equals("SUBMITTED") ? "Submitted" : "Open",
                 blockCodes.codesByIds(Set.of(run.buildingId())).get(run.buildingId()),
                 run.inspectorId() != null && run.inspectorId() == currentUser.id(),
-                !run.status().equals("SUBMITTED") && run.dueAt().isBefore(Instant.now(clock)));
+                !run.status().equals("SUBMITTED") && run.dueAt().isBefore(Instant.now(clock)),
+                inventory.conditionLevels());
     }
 
     /**

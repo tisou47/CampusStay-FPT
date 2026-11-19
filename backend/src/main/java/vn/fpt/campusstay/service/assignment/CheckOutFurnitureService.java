@@ -64,8 +64,9 @@ public class CheckOutFurnitureService {
      */
     public record Charges(String allocationId, String room, String bed, List<Line> items, long total,
             boolean studentPresent, Instant agreedAt, boolean saved, List<Claim> claims,
-            Map<String, Integer> conditionRates, BigDecimal electricity, BigDecimal water,
-            SettlementPreview settlement, CheckInReport checkInReport, int residents) {
+            Map<String, Integer> conditionRates, List<Inventory.ConditionLevel> conditionLevels,
+            BigDecimal electricity, BigDecimal water, SettlementPreview settlement, CheckInReport checkInReport,
+            int residents) {
     }
 
     /**
@@ -576,8 +577,8 @@ public class CheckOutFurnitureService {
                 : estimateSettlement(t, meta.electricity(), meta.water(), total);
         return new Charges(String.valueOf(t.allocationId()), t.roomCode(), t.bedLabel(), items, total,
                 Boolean.TRUE.equals(meta.present()), meta.agreed(), recorded, claims, conditionRates,
-                meta.electricity(), meta.water(), settlement, checkInReport(t.allocationId()),
-                charges.roommates(t.allocationId(), t.termId(), t.roomId()).size() + 1);
+                inventory.conditionLevels(), meta.electricity(), meta.water(), settlement,
+                checkInReport(t.allocationId()), charges.roommates(t.allocationId(), t.termId(), t.roomId()).size() + 1);
     }
 
     private CheckInReport checkInReport(long allocationId) {

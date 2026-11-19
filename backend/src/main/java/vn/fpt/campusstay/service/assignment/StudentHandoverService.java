@@ -70,7 +70,8 @@ public class StudentHandoverService {
             Instant dueAt, Instant submittedAt, Instant visitAt, boolean toAgree, Instant finalizedAt,
             Instant utilityFrom, String source, BigDecimal electricity, BigDecimal water, BigDecimal staffElectricity,
             BigDecimal staffWater, List<Photo> meterPhotos, List<Item> items, boolean photosRequired, int maxPhotos,
-            String studentComment, boolean lateAllowed, String lateNote) {
+            String studentComment, boolean lateAllowed, String lateNote,
+            List<Inventory.ConditionLevel> conditionLevels) {
     }
 
     public record ItemAnswer(String itemId, String condition, String note) {
@@ -473,7 +474,7 @@ public class StudentHandoverService {
         return new View(null, status, bed == null ? null : bed.roomCode(), bed == null ? null : bed.bedLabel(), checks,
                 null, null, null, null, false, null, null, null, null, null, null, null, List.of(), List.of(),
                 parameters.boolValue("handover.photos_required"), parameters.intValue("handover.max_photos"), null, false,
-                null);
+                null, inventory.conditionLevels());
     }
 
     /** The student's view: never the Room's record nor the comparison (Staff only). */
@@ -508,7 +509,7 @@ public class StudentHandoverService {
                 visited ? h.verifiedWater() : null, meterPhotos, items,
                 parameters.boolValue("handover.photos_required"), parameters.intValue("handover.max_photos"),
                 h.studentComment(), h.status().equals("FINAL") && "AUTO".equals(h.source()) && h.lateSubmittedAt() == null,
-                h.lateNote());
+                h.lateNote(), inventory.conditionLevels());
     }
 
     static String label(String condition) {

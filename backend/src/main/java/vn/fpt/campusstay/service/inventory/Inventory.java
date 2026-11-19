@@ -77,7 +77,12 @@ public interface Inventory {
      * @param status   {@code IN_USE}, {@code BROKEN} or {@code IN_REPAIR}
      */
     record FurnitureLine(long id, String assetCode, long typeId, String type, String typeVi, boolean personal,
-            Long bedId, String bedLabel, String status) {
+            Long bedId, String bedLabel, String status, String condition) {
+    }
+
+    /** One Admin condition level with its handover key (Good/Worn/Damaged/Missing) and remaining/loss %. */
+    record ConditionLevel(String code, String handoverKey, String name, String nameVi, int remainingPercent,
+            int lossPercent) {
     }
 
     /** The Room's items that are not disposed, shared ones first, then by Bed, type and asset code. */
@@ -94,6 +99,9 @@ public interface Inventory {
      * @return condition → percent of the price (0–100)
      */
     Map<String, Integer> conditionLoss();
+
+    /** The Admin-configured condition levels mapped to handover keys, ordered best first. */
+    List<ConditionLevel> conditionLevels();
 
     /**
      * Plans a move of an item of the type from the Block's store to the Room (a missing item found in an inspection

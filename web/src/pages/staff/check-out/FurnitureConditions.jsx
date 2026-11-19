@@ -9,7 +9,7 @@ import { Alert } from '@/components/ui/Display'
 import { Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
+import { conditionLossRates, conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -69,7 +69,8 @@ export function FurnitureConditions({
 }) {
   const { notify, notifyError } = useToast()
   const data = query.data
-  const rates = { ...DEFAULT_RATES, ...(data?.conditionRates ?? {}) }
+  const levels = data?.conditionLevels
+  const rates = conditionLossRates(levels, { ...DEFAULT_RATES, ...(data?.conditionRates ?? {}) })
   const [answers, setAnswers] = useState({})
 
   useEffect(() => {
@@ -243,7 +244,7 @@ export function FurnitureConditions({
         <span className="font-medium text-fg">{t('Condition rate schedule:')}</span>
         {['Good', 'Worn', 'Damaged', 'Missing'].map((c) => (
           <span key={c} className="inline-flex items-center gap-1 rounded-md bg-subtle px-2 py-0.5 text-[11px] font-medium text-fg">
-            <span>{conditionName(c)}:</span>
+            <span>{conditionName(c, levels)}:</span>
             <strong className="tabular">{rates[c] ?? DEFAULT_RATES[c]}%</strong>
           </span>
         ))}
@@ -363,7 +364,7 @@ export function FurnitureConditions({
                           }
                           setAnswers((s) => ({ ...s, [i.itemId]: { ...a, condition: nextCond } }))
                         }}
-                        options={conditionOptions()}
+                        options={conditionOptions(levels)}
                       />
                     </div>
                   </div>

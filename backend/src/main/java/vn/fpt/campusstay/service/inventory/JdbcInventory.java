@@ -147,7 +147,7 @@ class JdbcInventory implements Inventory {
     public List<FurnitureLine> furnitureLines(long roomId) {
         return jdbc.sql("""
                 SELECT i.id, i.asset_code, t.id AS type_id, t.name, t.name_vi, t.use_scope, i.bed_id, b.label AS bed_label,
-                       i.status
+                       i.status, i.condition
                 FROM inv_furniture_item i JOIN inv_furniture_type t ON t.id = i.furniture_type_id
                 LEFT JOIN inv_bed b ON b.id = i.bed_id
                 WHERE i.room_id = :room AND i.status <> 'DISPOSED'
@@ -155,7 +155,8 @@ class JdbcInventory implements Inventory {
                 """).param("room", roomId)
                 .query((rs, i) -> new FurnitureLine(rs.getLong("id"), rs.getString("asset_code"), rs.getLong("type_id"),
                         rs.getString("name"), rs.getString("name_vi"), "PERSONAL".equals(rs.getString("use_scope")),
-                        rs.getObject("bed_id", Long.class), rs.getString("bed_label"), rs.getString("status")))
+                        rs.getObject("bed_id", Long.class), rs.getString("bed_label"), rs.getString("status"),
+                        rs.getString("condition")))
                 .list();
     }
 
@@ -195,6 +196,34 @@ class JdbcInventory implements Inventory {
                 """).query((rs, i) -> Map.entry(rs.getString("observed"), rs.getInt("loss"))).list()
                 .forEach(e -> loss.put(e.getKey(), Math.max(0, Math.min(100, e.getValue()))));
         return loss;
+    }
+
+    private static final Map<String, String> LEVEL_TO_HANDOVER = Map.of(
+            "INTACT", "Good",
+            "PARTLY_DAMAGED", "Worn",
+            "MOSTLY_DAMAGED", "Damaged",
+            "DESTROYED", "Missing");
+
+    @Override
+    public List<ConditionLevel> conditionLevels() {
+        List<ConditionLevel> rows = jdbc.sql("""
+                SELECT code, name, name_vi, value_percent
+                FROM inv_furniture_condition
+                ORDER BY value_percent DESC, sort_order
+                """).query((rs, i) -> {
+                    String code = rs.getString("code");
+                    int remaining = Math.max(0, Math.min(100, rs.getInt("value_percent")));
+                    return new ConditionLevel(code, LEVEL_TO_HANDOVER.get(code), rs.getString("name"),
+                            rs.getString("name_vi"), remaining, 100 - remaining);
+                }).list();
+        if (rows.isEmpty()) {
+            return List.of(
+                    new ConditionLevel("INTACT", "Good", "Intact", "Nguyên vẹn", 100, 0),
+                    new ConditionLevel("PARTLY_DAMAGED", "Worn", "Partly damaged", "Hư một phần", 75, 25),
+                    new ConditionLevel("MOSTLY_DAMAGED", "Damaged", "More than half damaged", "Hư hơn một nửa", 50, 50),
+                    new ConditionLevel("DESTROYED", "Missing", "Completely damaged", "Hư hoàn toàn", 0, 100));
+        }
+        return rows;
     }
 
     @Override

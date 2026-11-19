@@ -44,6 +44,8 @@ class FurnitureFoundListener {
 
     @EventListener
     void on(FurnitureFoundDamaged e) {
+        events.publishEvent(new vn.fpt.campusstay.event.FurnitureDamaged(e.furnitureItemId(), e.condition(),
+                "Found " + e.condition().toLowerCase() + " in " + e.source(), e.reporterId()));
         boolean open = jdbc.sql("""
                 SELECT EXISTS (SELECT 1 FROM mnt_request WHERE furniture_item_id = :item
                                AND status NOT IN ('RESOLVED', 'CLOSED'))

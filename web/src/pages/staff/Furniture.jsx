@@ -16,8 +16,8 @@ import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
 import { Segmented, Tabs } from '@/components/ui/Tabs'
-import { StatusTag } from '@/components/ui/Tag'
-import { typeName } from '@/lib/furniture'
+import { StatusTag, Tag } from '@/components/ui/Tag'
+import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -310,7 +310,14 @@ function Items({ manages }) {
                   <TwoLine primary={typeName(i)} secondary={tr(i.category)} />
                 </Td>
                 <Td>
-                  <StatusTag status={i.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusTag status={i.status} />
+                    {i.condition && i.condition !== 'Good' && (
+                      <Tag tone={conditionTone[i.condition] ?? 'neutral'}>
+                        {conditionName(i.condition, d?.options?.conditionLevels)}
+                      </Tag>
+                    )}
+                  </div>
                 </Td>
                 <Td>{placeLabel(i.location)}</Td>
                 <Td className="text-sm text-fg-secondary">{i.plannedMove ? t('To {place}', { place: placeLabel(i.plannedMove.to) }) : '—'}</Td>

@@ -4535,6 +4535,7 @@ const managerOverview = {
   "Completed inspection forms · {run}": "Phiếu kiểm tra đã làm · {run}",
   "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
   "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
+  "Page {n} / {total}": "Trang {n} / {total}",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

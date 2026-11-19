@@ -68,7 +68,7 @@ function roomItems(run, room) {
 }
 
 /** Builds a printable room inspection sheet; leaves unchecked results, missing meter readings, and empty notes blank for hand-writing. */
-function buildRoomSheetHtml(run, room, { pageBreak = false } = {}) {
+function buildRoomSheetHtml(run, room, { pageIndex, totalPages } = {}) {
   const items = roomItems(run, room)
   const results = Object.fromEntries((room.results ?? []).map((r) => [r.itemId, r]))
   const cls = (r) => (r?.condition === 'Damaged' || r?.result === 'Fail' ? 'bad' : r?.condition === 'Missing' ? 'warn' : r?.result === 'Pass' ? 'ok' : '')
@@ -87,7 +87,9 @@ function buildRoomSheetHtml(run, room, { pageBreak = false } = {}) {
     .join('')
   const elecCell = room.meters?.electricity != null ? `<td>${h(room.meters.electricity)}</td>` : `<td style="height:32px">&nbsp;</td>`
   const waterCell = room.meters?.water != null ? `<td>${h(room.meters.water)}</td>` : `<td style="height:32px">&nbsp;</td>`
-  return `<section style="${pageBreak ? 'page-break-after:always;' : ''}">
+  const pageBadge = totalPages > 1 ? `<div class="page-num">${h(t('Page {n} / {total}', { n: pageIndex + 1, total: totalPages }))}</div>` : ''
+  return `<section class="page-sheet">
+    ${pageBadge}
     <h1>${h(t('Room inspection report · {room}', { room: room.room }))}</h1>
     <p class="muted">${h(t('Report 1 · Room’s record: new residents’ check-in inventories are compared with it.'))}</p>
     <div class="grid">
@@ -100,11 +102,11 @@ function buildRoomSheetHtml(run, room, { pageBreak = false } = {}) {
       <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
     </div>
     <h2>${h(t('Meters'))}</h2>
-    <table><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th></tr>
-      <tr>${elecCell}${waterCell}
-      <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></table>
+    <table><thead><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th></tr></thead>
+      <tbody><tr>${elecCell}${waterCell}
+      <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></tbody></table>
     <h2>${h(t('Items'))}</h2>
-    <table><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th></tr>${rows}</table>
+    <table><thead><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="sign"><div><b>${h(t('Inspector'))}</b><br><span class="muted">${h(run.assigneeName ?? run.inspectorName ?? '')}</span></div><div><b>${h(t('Manager'))}</b></div></div>
   </section>`
 }
@@ -135,7 +137,7 @@ async function printBatchForms(run, mode) {
   if (filtered.length === 0) {
     return { empty: true, opened: false }
   }
-  const sheets = filtered.map((room, index) => buildRoomSheetHtml(run, room, { pageBreak: index < filtered.length - 1 })).join('')
+  const sheets = filtered.map((room, index) => buildRoomSheetHtml(run, room, { pageIndex: index, totalPages: filtered.length })).join('')
   const title = mode === 'todo'
     ? t('Unfinished inspection forms · {run}', { run: run.id })
     : t('Completed inspection forms · {run}', { run: run.id })
@@ -164,7 +166,8 @@ async function printBlankForms(run) {
           <tr><td style="height:34px">&nbsp;</td><td>&nbsp;</td>
           <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></table>`
         : ''
-      return `<section style="${index < rooms.length - 1 ? 'page-break-after:always;' : ''}">
+      return `<section class="page-sheet">
+        ${rooms.length > 1 ? `<div class="page-num">${h(t('Page {n} / {total}', { n: index + 1, total: rooms.length }))}</div>` : ''}
         <h1>${h(t('Room inspection report · {room}', { room: room.room }))}</h1>
         <p class="muted">${h(t('Report 1 · paper form: write the condition (Good, Worn, Damaged, Missing) and a note for each item.'))}</p>
         <div class="grid">
@@ -177,7 +180,7 @@ async function printBlankForms(run) {
         </div>
         ${meters}
         <h2>${h(t('Items'))}</h2>
-        <table><tr><th>#</th><th>${h(t('Item'))}</th><th>${h(t('Condition'))}</th><th>${h(t('Note'))}</th></tr>${rows}</table>
+        <table><thead><tr><th>#</th><th>${h(t('Item'))}</th><th>${h(t('Condition'))}</th><th>${h(t('Note'))}</th></tr></thead><tbody>${rows}</tbody></table>
         <div class="sign"><div><b>${h(t('Inspector'))}</b></div><div><b>${h(t('Manager'))}</b></div></div>
       </section>`
     })
@@ -391,18 +394,20 @@ function Checklist({ run, room }) {
                   <Td>
                     {item.furniture ? (
                       done ? (
-                        <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ? conditionName(r.condition) : r.result}</Tag>
+                        <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>
+                          {r.condition ? conditionName(r.condition, run.conditionLevels) : r.result}
+                        </Tag>
                       ) : (
                         <div className="flex flex-col gap-1.5">
                           <Select
                             size="sm"
-                            wrapperClassName="w-40"
+                            wrapperClassName="w-44"
                             aria-label={t('Condition of {item}', { item: item.label })}
                             value={r.condition ?? ''}
                             onChange={(e) => setCondition(item.id, e.target.value || null)}
                           >
                             <option value="" disabled hidden />
-                            {conditionOptions().map((opt) => (
+                            {conditionOptions(run.conditionLevels).map((opt) => (
                               <option key={opt.value} value={opt.value}>
                                 {opt.label}
                               </option>
