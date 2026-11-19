@@ -256,6 +256,11 @@ function Summary({ data }) {
               : t('Submitted {date}. Staff are looking at it.', { date: formatDateTime(data.submittedAt) })
         }
       />
+      {data.status === 'Final' && (
+        <Alert type="success" title="Final report: your handover record until check-out">
+          {t('This is the final, signed record of your Room ({how}). Keep it: at check-out Staff compare each item with it, and only what got worse since is charged. Damage recorded here is never charged to you.', { how: t(data.source) })}
+        </Alert>
+      )}
       {steps.length > 0 && (
         <ol className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg bg-subtle/50 px-4 py-3">
           {steps.map((s) => (

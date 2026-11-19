@@ -251,6 +251,43 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-061: with the student in the Room, Staff sign the Final report there: the inventory is final at once
+     * (no agreement on the app), the student is checked in, and check-out compares with that Final report.
+     */
+    @Test
+    void finalReportSignedInTheRoom() throws Exception {
+        long allocation = newcomer(38, "A-206", "A");
+        doorCode("A-206");
+        meterCut("A-206", 500, 50);
+        String student = bearer(mvc, StayFlow.student(38));
+        String id = JsonPath.read(json(send(post("/students/me/handover/start"), student, "")), "$.id");
+        String view = json(mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student)));
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 600, 50))
+                .andExpect(jsonPath("$.status").value("Submitted"));
+
+        String staff = bearer(mvc, STAFF_A);
+        String detail = json(mvc.perform(get("/handovers/" + id).header(HttpHeaders.AUTHORIZATION, staff)));
+        String slot = JsonPath.read(detail, "$.visitWindow.suggestions[0]");
+        send(post("/handovers/" + id + "/visit"), staff, "{\"visitAt\":\"" + slot + "\"}").andExpect(status().isOk());
+        send(put("/handovers/" + id + "/verification"), staff,
+                "{\"electricity\":501,\"water\":50,\"finalizeOnSite\":true}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.row.status").value("Final"))
+                .andExpect(jsonPath("$.source").value("Checked in the Room"))
+                .andExpect(jsonPath("$.electricity.verified").value(501.0));
+
+        mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student))
+                .andExpect(jsonPath("$.status").value("Final")).andExpect(jsonPath("$.toAgree").value(false));
+        send(post("/students/me/handover/agree"), student, "{}").andExpect(status().isConflict());
+        assertThat(jdbc.sql("SELECT checked_in_at IS NOT NULL FROM asg_allocation WHERE id = :id")
+                .param("id", allocation).query(Boolean.class).single()).isTrue();
+        mvc.perform(get("/check-outs/" + allocation + "/furniture").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checkInReport.id").value(id))
+                .andExpect(jsonPath("$.checkInReport.source").value("Checked in the Room"));
+    }
+
+    /**
      * TC-ASG-056: a meter far above the Room's record is a major difference: Staff ask for a visit, record what they
      * find and send it; the student agrees with a comment and the inventory is final (no dispute state).
      */
@@ -322,8 +359,11 @@ class HandoverIT {
     @Test
     void personalItemIsChargedByCondition() throws Exception {
         long allocation = newcomer(38, "A-206", "A");
-        jdbc.sql("UPDATE asg_allocation SET resident_at = now(), code_released_at = now() WHERE id = :id")
-                .param("id", allocation).update();
+        // Checked in (a check-out needs it since the check-out guard): resident with the code, at the desk.
+        jdbc.sql("""
+                UPDATE asg_allocation SET resident_at = now(), code_released_at = now(), checked_in_at = now()
+                WHERE id = :id
+                """).param("id", allocation).update();
         jdbc.sql("""
                 INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id, bed_id)
                 SELECT 'DESK-TEST-A206A', t.id, 'IN_USE', r.id, b.id

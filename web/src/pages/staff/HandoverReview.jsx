@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarClock, ClipboardList, Eye, ImageOff, Lock } from 'lucide-react'
+import { CalendarClock, CircleCheck, ClipboardList, Eye, ImageOff, Lock } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
@@ -154,19 +155,27 @@ function Verification({ detail, onClose }) {
   const [items, setItems] = useState(Object.fromEntries(detail.items.map((i) => [i.itemId, { condition: i.verified ?? i.condition ?? 'Good', note: i.verifiedNote ?? '' }])))
   const [electricity, setElectricity] = useState(detail.electricity?.verified ?? detail.electricity?.student ?? '')
   const [water, setWater] = useState(detail.water?.verified ?? detail.water?.student ?? '')
+  // The student is in the Room with Staff: they agree in person and the inventory is final at once (no app step).
+  const [present, setPresent] = useState(false)
   const save = useMutation(
-    (send) =>
+    (mode) =>
       api.handover.verification(detail.row.id, {
         items: Object.entries(items).map(([itemId, v]) => ({ itemId, condition: v.condition, note: v.note || undefined })),
         electricity: electricity === '' ? undefined : Number(electricity),
         water: water === '' ? undefined : Number(water),
-        send,
+        send: mode === 'send',
+        finalizeOnSite: mode === 'final',
       }),
     {
-      invalidates: ['handovers'],
-      onSuccess: (_, send) => {
-        notify({ title: send ? 'Sent to the student' : 'Saved', message: send ? 'The student agrees on the app; the inventory is then final.' : undefined })
-        if (send) onClose()
+      invalidates: ['handovers', 'check-in'],
+      onSuccess: (_, mode) => {
+        if (mode === 'final') {
+          notify({ title: 'Final report signed in the Room', message: 'The student is checked in. The Final report is kept until check-out.' })
+          onClose()
+          return
+        }
+        notify({ title: mode === 'send' ? 'Sent to the student' : 'Saved', message: mode === 'send' ? 'The student agrees on the app; the inventory is then final.' : undefined })
+        if (mode === 'send') onClose()
       },
       onError: (e) => notifyError(e, 'Could not save what you found'),
     },
@@ -177,16 +186,22 @@ function Verification({ detail, onClose }) {
       onClose={onClose}
       width={880}
       title={t('Check Room {room} with the student', { room: detail.row.room })}
-      description="Start from the student's answers and change what you find different. The student agrees on the app, with a comment if they see it differently: there is no dispute."
+      description="Start from the student's answers and change what you find different. With the student in the Room, sign the Final report there; otherwise send it and the student agrees on the app."
       footer={
-        <>
-          <Button onClick={() => save.run(false)} disabled={save.pending}>
-            Save
-          </Button>
-          <Button variant="primary" onClick={() => save.run(true)} disabled={save.pending}>
-            Send to the student
-          </Button>
-        </>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <Checkbox label="The student is here and agrees with what we found" checked={present} onChange={(e) => setPresent(e.target.checked)} />
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => save.run('save')} disabled={save.pending}>
+              Save
+            </Button>
+            <Button onClick={() => save.run('send')} disabled={save.pending}>
+              Send to the student
+            </Button>
+            <Button variant="primary" icon={CircleCheck} onClick={() => save.run('final')} disabled={!present || save.pending}>
+              Sign the Final report in the Room
+            </Button>
+          </div>
+        </div>
       }
     >
       <div className="flex max-h-[65vh] flex-col gap-4 overflow-auto">

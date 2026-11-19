@@ -260,10 +260,16 @@ public class HandoverDeskService {
 
     /**
      * In the Room: what Staff found (items not sent keep the student's answer), saved and, with {@code send}, sent to
-     * the student to agree.
+     * the student to agree on the app. With {@code finalizeOnSite} the student is with Staff in the Room and signs
+     * there: the inventory is final at once (the Final report, kept until check-out), with no step on the app.
      */
     @Transactional
     public Detail saveVerification(String id, Verification v, boolean send) {
+        return saveVerification(id, v, send, false);
+    }
+
+    @Transactional
+    public Detail saveVerification(String id, Verification v, boolean send, boolean finalizeOnSite) {
         AuthenticatedUser me = currentUser.require(Permission.DESK);
         HandoverCore.Row h = find(id, true);
         if (!h.status().equals("VERIFYING")) {
@@ -300,7 +306,18 @@ public class HandoverDeskService {
                     WHERE id = :id
                     """).param("e", v.electricity()).param("w", v.water()).param("id", h.id()).update();
         }
-        if (send) {
+        if (finalizeOnSite) {
+            // The student checked the Room with Staff and agrees in person: final now, checked in, nothing on the app.
+            Instant now = Instant.now(clock);
+            jdbc.sql("""
+                    UPDATE asg_handover SET verified_at = coalesce(verified_at, :now), verified_by = coalesce(verified_by, :by)
+                    WHERE id = :id
+                    """).param("now", Timestamp.from(now)).param("by", me.userId()).param("id", h.id()).update();
+            HandoverCore.Alloc a = core.allocation(h.allocationId()).orElseThrow();
+            audit.record("CHECK_IN_VERIFIED", AuditLog.Tone.SUCCESS, "Check-in inventory", h.id(),
+                    HandoverCore.code(h.id()), Map.of("finalizedOnSite", true));
+            core.finalize(core.byId(h.id(), false).orElseThrow(), a, "VERIFIED", me.userId(), now);
+        } else if (send) {
             jdbc.sql("UPDATE asg_handover SET verified_at = :now, verified_by = :by WHERE id = :id")
                     .param("now", Timestamp.from(Instant.now(clock))).param("by", me.userId()).param("id", h.id()).update();
             HandoverCore.Alloc a = core.allocation(h.allocationId()).orElseThrow();

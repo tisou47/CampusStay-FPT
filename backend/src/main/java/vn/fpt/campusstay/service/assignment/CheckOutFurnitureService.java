@@ -58,7 +58,14 @@ public class CheckOutFurnitureService {
     public record Charges(String allocationId, String room, String bed, List<Line> items, long total,
             boolean studentPresent, Instant agreedAt, boolean saved, List<Claim> claims,
             Map<String, Integer> conditionRates, BigDecimal electricity, BigDecimal water,
-            SettlementPreview settlement) {
+            SettlementPreview settlement, CheckInReport checkInReport) {
+    }
+
+    /**
+     * The student's final check-in inventory (the Final report kept through the stay) the charges are compared with:
+     * its code, when it became final and how (Checked in the Room, As filed, Deadline passed); null without one.
+     */
+    public record CheckInReport(String id, Instant finalizedAt, String source) {
     }
 
     /** Staff's answer for an item; {@code amount} overrides the computed charge (with a reason). */
@@ -485,7 +492,22 @@ public class CheckOutFurnitureService {
                 : estimateSettlement(t, meta.electricity(), meta.water(), total);
         return new Charges(String.valueOf(t.allocationId()), t.roomCode(), t.bedLabel(), items, total,
                 Boolean.TRUE.equals(meta.present()), meta.agreed(), recorded, claims, conditionRates,
-                meta.electricity(), meta.water(), settlement);
+                meta.electricity(), meta.water(), settlement, checkInReport(t.allocationId()));
+    }
+
+    private CheckInReport checkInReport(long allocationId) {
+        return jdbc.sql("""
+                SELECT id, finalized_at, source FROM asg_handover
+                WHERE allocation_id = :a AND status = 'FINAL' ORDER BY id DESC LIMIT 1
+                """).param("a", allocationId)
+                .query((rs, i) -> new CheckInReport(HandoverCore.code(rs.getLong("id")),
+                        rs.getTimestamp("finalized_at") == null ? null : rs.getTimestamp("finalized_at").toInstant(),
+                        switch (String.valueOf(rs.getString("source"))) {
+                            case "AUTO" -> "Deadline passed";
+                            case "VERIFIED" -> "Checked in the Room";
+                            default -> "As filed";
+                        }))
+                .optional().orElse(null);
     }
 
     private SettlementPreview estimateSettlement(Target t, BigDecimal electricity, BigDecimal water, long damage) {

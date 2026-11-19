@@ -10,8 +10,8 @@ import { Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
-import { formatVnd } from '@/lib/format'
-import { t } from '@/i18n'
+import { formatDateTime, formatVnd } from '@/lib/format'
+import { t, tr } from '@/i18n'
 
 // Check-out › furniture by condition (V78): the student's Bed items and the Room's shared items.
 // GET /check-outs/:allocationId/furniture → { items: [{ itemId, assetCode, type, typeVi, bed, personal, atCheckIn,
@@ -208,6 +208,17 @@ export function FurnitureConditions({
           </span>
         ))}
       </div>
+
+      {/* The baseline: the student's Final report, kept from check-in until now */}
+      <p className="rounded-lg border border-line/70 bg-subtle/50 px-3 py-2 text-xs text-fg-secondary">
+        {data.checkInReport
+          ? t('Compared with the Final report {id} ({how}, {date}): kept from check-in until check-out.', {
+              id: data.checkInReport.id,
+              how: tr(data.checkInReport.source),
+              date: formatDateTime(data.checkInReport.finalizedAt),
+            })
+          : t('No final check-in inventory for this stay: every item is compared as Good.')}
+      </p>
 
       {/* Student stay-time declarations banner */}
       {studentReportedItems.length > 0 && (

@@ -45,7 +45,7 @@ class HandoverController {
     }
 
     record VerificationRequest(@Size(max = 100) List<HandoverDeskService.VerifyItem> items,
-            java.math.BigDecimal electricity, java.math.BigDecimal water, Boolean send) {
+            java.math.BigDecimal electricity, java.math.BigDecimal water, Boolean send, Boolean finalizeOnSite) {
     }
 
     record LateRequest(@Size(max = 100) List<HandoverDeskService.VerifyItem> items) {
@@ -130,7 +130,7 @@ class HandoverController {
     @PutMapping("/handovers/{id}/verification")
     HandoverDeskService.Detail verification(@PathVariable String id, @Valid @RequestBody VerificationRequest body) {
         return desk.saveVerification(id, new HandoverDeskService.Verification(body.items(), body.electricity(),
-                body.water()), Boolean.TRUE.equals(body.send()));
+                body.water()), Boolean.TRUE.equals(body.send()), Boolean.TRUE.equals(body.finalizeOnSite()));
     }
 
     @PostMapping("/handovers/{id}/cancel")
