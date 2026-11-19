@@ -7,7 +7,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Avatar } from '@/components/ui/Display'
-import { Select } from '@/components/ui/Field'
+import { SearchInput, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -23,7 +23,10 @@ import { t, tr } from '@/i18n'
 // A week not planned uses each person's default weekly shifts (Edit on Staff and workload). Planning next week never
 // changes this week; Staff see next week once it is sent.
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+/** Lower case without Vietnamese marks, so "dinh" finds "Đinh". */
+const fold = (s) => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
+
+const DAYS =['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const PRESETS = [
   { key: 'morning', label: 'Morning', start: '07:00', end: '15:00' },
   { key: 'afternoon', label: 'Afternoon', start: '15:00', end: '23:00' },
@@ -113,6 +116,9 @@ export default function StaffSchedule() {
   const d = query.data
   const start = d?.start
   const staff = d?.staff ?? []
+  const [q, setQ] = useState('')
+  const needle = fold(q.trim())
+  const shown = needle ? staff.filter((p) => fold(p.name).includes(needle)) : staff
 
   const save = useMutation(({ id, shifts }) => api.weekSchedule.setWeek(id, start, { shifts }), {
     invalidates: ['week-schedule', 'block-staff', 'me-duty'],
@@ -166,6 +172,7 @@ export default function StaffSchedule() {
           Back to next week
         </Button>
         <div className="ml-auto flex gap-2">
+          <SearchInput wrapperClassName="w-64" aria-label={t('Search staff')} placeholder="Search staff name" value={q} onChange={(e) => setQ(e.target.value)} />
           {d?.editable && (
             <Button icon={Copy} onClick={() => copyPrevious.run()} disabled={copyPrevious.pending || staff.length === 0}>
               Copy the week before
@@ -196,8 +203,8 @@ export default function StaffSchedule() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyIcon={CalendarDays} emptyTitle="No staff in these blocks" />
-          {staff.map((p) => (
+          <TableStatus query={query} rows={shown} colSpan={9} emptyIcon={CalendarDays} emptyTitle={needle ? 'No staff match this name' : 'No staff in these blocks'} />
+          {shown.map((p) => (
             <Tr key={p.id}>
               <Td className="sticky left-0 z-[1] bg-surface">
                 <div className="flex items-center gap-2.5">
