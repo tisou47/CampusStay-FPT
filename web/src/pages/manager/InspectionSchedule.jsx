@@ -13,6 +13,7 @@ import { EmptyBlock, LoadingState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
+import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -26,7 +27,7 @@ import { t, tr } from '@/i18n'
 //   block, blocks }
 // POST /inspection-schedules · PUT /inspection-schedules/:id
 
-const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progress': 'info', Done: 'success' }
+const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progress': 'info', Done: 'success', Completed: 'success' }
 const blank = { name: '', checklistId: '', scope: '', repeat: '', assignee: '', dueWithinDays: 3, createRequests: true, notifyResidents: true }
 const NEW_ITEM = {}
 const ALL = 'all'
@@ -213,7 +214,7 @@ function RunDetail({ run }) {
           <span className="text-fg-secondary">{t('Progress')}</span>
           <span className="font-semibold text-fg tabular">{t('{n} of {total} Rooms', { n: done, total: run.rooms })}</span>
         </div>
-        <ProgressBar value={done} max={run.rooms || 1} tone={run.status === 'Done' ? 'success' : 'accent'} />
+        <ProgressBar value={done} max={run.rooms || 1} tone={run.status === 'Completed' ? 'success' : 'accent'} />
       </div>
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-fg-secondary">{t('Assigned to')}</dt>
@@ -230,7 +231,114 @@ function RunDetail({ run }) {
         <dd className={run.failed ? 'font-semibold text-error-fg tabular' : 'text-fg tabular'}>{run.failed}</dd>
       </dl>
       <p className="text-sm text-fg-tertiary">{t('Items not passed became maintenance requests (or a spare from the store for a missing item).')}</p>
+      <RunStats run={run} />
     </Card>
+  )
+}
+
+/** Every Room of a run (pages of 100), for the statistics. */
+async function allRooms(runId, signal) {
+  const rooms = []
+  for (let page = 1; page < 50; page++) {
+    const res = await api.inspections.rooms(runId, { page, pageSize: 100 }, { signal })
+    rooms.push(...(res?.items ?? []))
+    if (!res?.items?.length || rooms.length >= (res.total ?? 0)) break
+  }
+  return rooms
+}
+
+/**
+ * The statistics of a run: Rooms by state, furniture found Worn, Damaged or Missing by type, and a short list of the
+ * Rooms with something found. Read from the run's Rooms, so a run sent by Staff shows its final results at once.
+ */
+function RunStats({ run }) {
+  const query = useQuery(['inspections', 'rooms', run.id, 'stats'], ({ signal }) => allRooms(run.id, signal))
+  const rooms = query.data ?? []
+  const stat = { done: 0, unreachable: 0, open: 0, Worn: 0, Damaged: 0, Missing: 0, failedChecks: 0 }
+  const byType = new Map()
+  const found = []
+  for (const r of rooms) {
+    if (r.status === 'Done') stat.done += 1
+    else if (r.status === 'Not reachable') stat.unreachable += 1
+    else stat.open += 1
+    const checks = Object.fromEntries((r.checks ?? []).map((c) => [c.id, c]))
+    const items = []
+    for (const x of r.results ?? []) {
+      const check = checks[x.itemId]
+      if (check?.kind === 'furniture' && x.condition && x.condition !== 'Good') {
+        stat[x.condition] += 1
+        const key = typeName(check)
+        const row = byType.get(key) ?? { type: key, Worn: 0, Damaged: 0, Missing: 0 }
+        row[x.condition] += 1
+        byType.set(key, row)
+        items.push(`${typeName(check)}: ${conditionName(x.condition)}${x.note ? ` (${x.note})` : ''}`)
+      } else if (!check && x.result === 'Fail') {
+        stat.failedChecks += 1
+        const label = run.checklist?.items?.find((i) => String(i.id) === String(x.itemId))?.label
+        items.push(`${tr(label) ?? t('Checklist item')}: ${t('Fail')}${x.note ? ` (${x.note})` : ''}`)
+      }
+    }
+    if (items.length) found.push({ room: r.room, items })
+  }
+  const types = [...byType.values()].sort((a, b) => b.Damaged + b.Missing - (a.Damaged + a.Missing))
+  return (
+    <section className="flex flex-col gap-3 border-t border-line pt-3">
+      <h3 className="text-base font-semibold text-fg">{t(run.status === 'Completed' ? 'Results of the completed run' : 'Results so far')}</h3>
+      {query.loading && !query.data ? (
+        <p className="text-sm text-fg-secondary">{t('Loading…')}</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { label: 'Rooms done', value: stat.done },
+              { label: 'Not reachable', value: stat.unreachable },
+              { label: 'Rooms not finished', value: stat.open },
+              { label: 'Damaged', value: stat.Damaged, warn: true },
+              { label: 'Missing', value: stat.Missing, warn: true },
+              { label: 'Worn', value: stat.Worn },
+            ].map((x) => (
+              <div key={x.label} className="rounded-lg bg-subtle/60 px-2 py-2">
+                <p className={x.warn && x.value ? 'text-h3 font-semibold text-error-fg tabular' : 'text-h3 font-semibold text-fg tabular'}>{x.value}</p>
+                <p className="text-xs text-fg-secondary">{x.label === 'Damaged' || x.label === 'Missing' || x.label === 'Worn' ? conditionName(x.label) : t(x.label)}</p>
+              </div>
+            ))}
+          </div>
+          {stat.failedChecks > 0 && <p className="text-sm text-fg-secondary">{t('{n} checklist items failed.', { n: stat.failedChecks })}</p>}
+          {types.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-fg">{t('By furniture type')}</span>
+              <ul className="flex flex-col divide-y divide-line/70 rounded-lg border border-line text-sm">
+                {types.map((x) => (
+                  <li key={x.type} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                    <span className="truncate text-fg">{x.type}</span>
+                    <span className="flex shrink-0 gap-1">
+                      {x.Damaged > 0 && <Tag tone={conditionTone.Damaged}>{`${conditionName('Damaged')} ${x.Damaged}`}</Tag>}
+                      {x.Missing > 0 && <Tag tone={conditionTone.Missing}>{`${conditionName('Missing')} ${x.Missing}`}</Tag>}
+                      {x.Worn > 0 && <Tag tone={conditionTone.Worn}>{`${conditionName('Worn')} ${x.Worn}`}</Tag>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-fg">{t('Rooms with something found ({n})', { n: found.length })}</span>
+            {found.length === 0 ? (
+              <p className="text-sm text-fg-secondary">{t('Nothing worn, damaged or missing was found.')}</p>
+            ) : (
+              <ul className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+                {found.map((f) => (
+                  <li key={f.room} className="rounded-lg bg-subtle/40 px-3 py-2 text-sm">
+                    <span className="font-semibold text-fg">{f.room}</span>
+                    <span className="text-fg-secondary"> · {f.items.join(' · ')}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   )
 }
 
@@ -254,6 +362,18 @@ export default function InspectionSchedule() {
     ({ signal }) => api.inspections.schedules({ block: effectiveFilter }, { signal }),
     { keepPrevious: false },
   )
+  // Staff send their results from their own screens: read the runs again when the Manager comes back to this window
+  // and every 30 seconds, so a run sent shows as Completed with its results without reloading the page.
+  const reloadRuns = query.reload
+  useEffect(() => {
+    const refresh = () => document.visibilityState === 'visible' && reloadRuns()
+    window.addEventListener('focus', refresh)
+    const timer = setInterval(refresh, 30_000)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      clearInterval(timer)
+    }
+  }, [reloadRuns])
   const one = effectiveFilter !== ALL
   const needle = q.trim().toLowerCase()
   const matches = (...texts) => !needle || texts.some((x) => (x ?? '').toLowerCase().includes(needle))
@@ -274,8 +394,8 @@ export default function InspectionSchedule() {
       const pa = isPreArrivalRun(a) ? 0 : 1
       const pb = isPreArrivalRun(b) ? 0 : 1
       if (pa !== pb) return pa - pb
-      const da = a.status !== 'Done' ? 0 : 1
-      const db = b.status !== 'Done' ? 0 : 1
+      const da = a.status !== 'Completed' ? 0 : 1
+      const db = b.status !== 'Completed' ? 0 : 1
       if (da !== db) return da - db
       return String(b.date ?? '').localeCompare(String(a.date ?? ''))
     })

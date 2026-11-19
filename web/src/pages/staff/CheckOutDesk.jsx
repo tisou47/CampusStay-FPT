@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Gauge, LogOut, Receipt, Save, Upload, Zap } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, FileText, Gauge, LogOut, Receipt, Save, Upload, Zap } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -15,7 +15,7 @@ import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { typeName } from '@/lib/furniture'
+import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
@@ -204,6 +204,7 @@ function CheckOutPanel({ d }) {
   })
   const [liveFurnitureTotal, setLiveFurnitureTotal] = useState(0)
   const [showSummary, setShowSummary] = useState(false)
+  const [showHandover, setShowHandover] = useState(false)
   // Furniture recorded by condition (V78): when saved, its total is the damage charge calculated from base price & condition %.
   const furnitureQuery = useQuery(['check-out-furniture', d.allocationId], ({ signal }) => api.checkOutFurniture.view(d.allocationId, { signal }))
   const fData = furnitureQuery.data
@@ -262,17 +263,55 @@ function CheckOutPanel({ d }) {
           </div>
           <StatusTag status={d.status} tone={tones[d.status]} />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-fg-secondary">
-          <span className="rounded-md bg-brand-subtle px-2 py-0.5 font-semibold text-fg-brand">
-            {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
-          </span>
-          <span>·</span>
-          <span>
-            {tr(d.roomTypeName)} {tr(d.roomClassName)}
-          </span>
-          <span>·</span>
-          <span className="font-medium text-fg">{tr(d.reason)}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-fg-secondary">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-md bg-brand-subtle px-2 py-0.5 font-semibold text-fg-brand">
+              {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
+            </span>
+            <span>·</span>
+            <span>
+              {tr(d.roomTypeName)} {tr(d.roomClassName)}
+            </span>
+            <span>·</span>
+            <span className="font-medium text-fg">{tr(d.reason)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {d.handoverReport ? (
+              <Button size="sm" icon={FileText} onClick={() => setShowHandover(true)}>
+                Xem hợp đồng / biên bản nhận phòng (Report Final)
+              </Button>
+            ) : (
+              <span className="rounded-md bg-subtle px-2 py-1 text-[11px] text-fg-tertiary">
+                Không có Report Final
+              </span>
+            )}
+          </div>
         </div>
+        {d.handoverReport && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-subtle/60 px-2.5 py-1.5 text-[11px] text-fg-secondary">
+            <span className="font-semibold text-fg">Report Final ({d.handoverReport.id})</span>
+            {d.handoverReport.finalizedAt && (
+              <>
+                <span>·</span>
+                <span>Chốt: {formatDateTime(d.handoverReport.finalizedAt)}</span>
+              </>
+            )}
+            {d.handoverReport.electricity != null && d.handoverReport.water != null && (
+              <>
+                <span>·</span>
+                <span className="font-medium text-fg tabular">
+                  Điện {formatNumber(d.handoverReport.electricity)} kWh · Nước {formatNumber(d.handoverReport.water)} m³
+                </span>
+              </>
+            )}
+            {d.handoverReport.staffName && (
+              <>
+                <span>·</span>
+                <span>Staff duyệt: {d.handoverReport.staffName}</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 2. Vertical workflow: Step 1 (Meters) -> Step 2 (Room condition & furniture) -> Step 3 (Settlement & actions). */}
@@ -435,6 +474,98 @@ function CheckOutPanel({ d }) {
           )}
         </section>
       </div>
+
+      {showHandover && d.handoverReport && (
+        <Modal
+          open={showHandover}
+          onClose={() => setShowHandover(false)}
+          size="lg"
+          title={`Biên bản nhận phòng (Report Final) · ${d.name}`}
+          description={`${d.studentCode} · ${d.room} · Giường ${d.bed} · ${d.handoverReport.id}`}
+          footer={<Button onClick={() => setShowHandover(false)}>Đóng</Button>}
+        >
+          <div className="flex flex-col gap-4">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-line bg-subtle/40 p-3.5 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs text-fg-tertiary">Nguồn chốt</dt>
+                <dd className="font-medium text-fg">
+                  {d.handoverReport.source === 'STUDENT'
+                    ? 'Sinh viên khai khớp'
+                    : d.handoverReport.source === 'AUTO'
+                      ? 'Hệ thống tự động chốt'
+                      : 'Nhân viên & Sinh viên xác nhận'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-tertiary">Thời điểm bàn giao</dt>
+                <dd className="font-medium text-fg">
+                  {d.handoverReport.finalizedAt ? formatDateTime(d.handoverReport.finalizedAt) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-tertiary">Điện đầu kỳ</dt>
+                <dd className="font-semibold text-fg tabular">
+                  {d.handoverReport.electricity != null ? `${formatNumber(d.handoverReport.electricity)} kWh` : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-tertiary">Nước đầu kỳ</dt>
+                <dd className="font-semibold text-fg tabular">
+                  {d.handoverReport.water != null ? `${formatNumber(d.handoverReport.water)} m³` : '—'}
+                </dd>
+              </div>
+              {d.handoverReport.staffName && (
+                <div className="col-span-2">
+                  <dt className="text-xs text-fg-tertiary">Nhân viên kiểm tra / duyệt</dt>
+                  <dd className="font-medium text-fg">{d.handoverReport.staffName}</dd>
+                </div>
+              )}
+              {d.handoverReport.studentSubmittedAt && (
+                <div className="col-span-2">
+                  <dt className="text-xs text-fg-tertiary">Sinh viên xác nhận lúc</dt>
+                  <dd className="font-medium text-fg">{formatDateTime(d.handoverReport.studentSubmittedAt)}</dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+                Tình trạng nội thất lúc nhận phòng ({d.handoverReport.items?.length ?? 0} món)
+              </p>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-line">
+                <Table>
+                  <THead>
+                    <tr>
+                      <Th>Nội thất</Th>
+                      <Th className="w-32">Mã tài sản</Th>
+                      <Th className="w-36">Tình trạng lúc nhận</Th>
+                      <Th>Ghi chú</Th>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {(d.handoverReport.items ?? []).map((it) => (
+                      <Tr key={it.itemId}>
+                        <Td className="font-medium text-fg">
+                          {typeName(it)} · {it.bed ? t('Bed {bed}', { bed: it.bed }) : t('Shared')}
+                        </Td>
+                        <Td className="font-mono text-xs text-fg-secondary">{it.assetCode}</Td>
+                        <Td>
+                          <Tag tone={conditionTone[it.condition] ?? 'neutral'}>
+                            {conditionName(it.condition)}
+                          </Tag>
+                        </Td>
+                        <Td className="text-xs text-fg-secondary">
+                          {it.note || (it.preExisting ? 'Đã ghi nhận có sẵn từ trước' : '—')}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </TBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {showSummary && (
         <Modal

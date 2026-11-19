@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.InspectionAssigned;
 import vn.fpt.campusstay.service.assignment.Residences;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
@@ -96,7 +97,7 @@ public class InspectionScheduleService {
     private static final Map<String, String> SCOPES = new LinkedHashMap<>();
     private static final Map<String, String> REPEATS = new LinkedHashMap<>();
     static final Map<String, String> RUN_STATUSES = Map.of("SCHEDULED", "Planned", "IN_PROGRESS", "In progress",
-            "SUBMITTED", "Done");
+            "SUBMITTED", "Completed");
     /** Runs start at this hour, campus time. */
     static final int START_HOUR = 6;
     private static final int MAX_DUE_DAYS = 60;
@@ -292,6 +293,17 @@ public class InspectionScheduleService {
                     UPDATE mnt_inspection_run SET inspector_id = :assignee
                     WHERE schedule_id = :id AND status <> 'SUBMITTED'
                     """).param("assignee", assignee).param("id", s.id()).update();
+            if (!Objects.equals(assignee, s.assigneeId())) {
+                jdbc.sql("""
+                        SELECT id, due_at FROM mnt_inspection_run
+                        WHERE schedule_id = :id AND status <> 'SUBMITTED'
+                        ORDER BY id DESC LIMIT 1
+                        """).param("id", s.id())
+                        .query((rs, i) -> new Object[] { rs.getLong("id"), rs.getTimestamp("due_at").toInstant() })
+                        .optional()
+                        .ifPresent(r -> events.publishEvent(
+                                new InspectionAssigned(assignee, name, code((Long) r[0]), (Instant) r[1])));
+            }
         }
         audit.record("INSPECTION_SCHEDULE_UPDATED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), name,
                 Map.of("status", status.equals("ACTIVE") ? "Active" : "Paused"));
@@ -360,6 +372,9 @@ public class InspectionScheduleService {
             for (long room : inScope) {
                 jdbc.sql("INSERT INTO mnt_inspection_room (run_id, room_id) VALUES (:run, :room)")
                         .param("run", run).param("room", room).update();
+            }
+            if (s.assigneeId() != null) {
+                events.publishEvent(new InspectionAssigned(s.assigneeId(), s.name(), code(run), dueAt));
             }
             if (s.notifyResidents() && !students.isEmpty()) {
                 events.publishEvent(new InspectionScheduled(run, code(run), List.copyOf(students), today, dueAt));

@@ -117,10 +117,40 @@ function Checklist({ run, room }) {
     replaced: room.meters?.replaced ?? false,
   })
   const sent = run.status === 'Submitted'
-  const done = sent || room.status === 'Done'
+  const mine = Boolean(run.mine)
+  const done = sent || !mine || room.status === 'Done'
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
+  // Live checks of the meters (on change and on blur): a number of 0 or more, not below the Room's last reading unless
+  // the meter was replaced. Shown at once under the field; the Room cannot be saved while one fails.
+  const [touched, setTouched] = useState({ electricity: false, water: false })
+  const meterError = (key, unit) => {
+    const raw = String(meters[key] ?? '').trim()
+    if (raw === '') return t('Enter the reading ({unit}).', { unit })
+    const value = Number(raw)
+    if (!Number.isFinite(value)) return t('Enter a valid number.')
+    if (value < 0) return t('The reading cannot be negative.')
+    const last = room.previousMeters?.[key]
+    if (!meters.replaced && last != null && value < Number(last)) {
+      return t('Lower than the last reading ({value} {unit}). Tick “Meter replaced” if it is a new meter.', { value: formatNumber(last), unit })
+    }
+    return null
+  }
+  const electricityError = room.metersNeeded ? meterError('electricity', 'kWh') : null
+  const waterError = room.metersNeeded ? meterError('water', 'm³') : null
+  // Every item answered: a condition for furniture, Pass or Fail for checklist items; a Missing item needs nothing else,
+  // a failed item may carry a note.
+  const unanswered = items.filter((it) => {
+    const r = results[it.id]
+    return it.furniture ? !r?.condition : !r?.result || r.result === 'Not checked'
+  }).length
+  const canSave = !untouched && unanswered === 0 && !electricityError && !waterError
+  const saveHint = unanswered > 0
+    ? t('{n} items still need a condition or a result.', { n: unanswered })
+    : electricityError || waterError
+      ? t('Enter valid electricity and water readings.')
+      : null
 
   const setCondition = (id, condition) =>
     setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: !condition ? 'Not checked' : condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
@@ -177,6 +207,11 @@ function Checklist({ run, room }) {
               {room.room} · {tr(run.checklist?.name)}
             </h2>
             <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
+            {room.createdRequests?.length > 0 && (
+              <Tag tone="warning">
+                Đơn bảo trì: {room.createdRequests.join(', ')}
+              </Tag>
+            )}
           </div>
           <p className="text-xs text-fg-secondary">
             {t('Report 1 (Room baseline · Web fast entry)')}
@@ -202,16 +237,44 @@ function Checklist({ run, room }) {
               <Field
                 label="Electricity (kWh)"
                 required={room.metersNeeded}
+                error={!done && touched.electricity ? electricityError : undefined}
                 helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
               >
-                <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} className="font-semibold tabular" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  disabled={done}
+                  invalid={!done && touched.electricity && Boolean(electricityError)}
+                  value={meters.electricity}
+                  onChange={(e) => {
+                    setMeters((m) => ({ ...m, electricity: e.target.value }))
+                    setTouched((s) => ({ ...s, electricity: true }))
+                  }}
+                  onBlur={() => setTouched((s) => ({ ...s, electricity: true }))}
+                  className="font-semibold tabular"
+                />
               </Field>
               <Field
                 label="Water (m³)"
                 required={room.metersNeeded}
+                error={!done && touched.water ? waterError : undefined}
                 helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
               >
-                <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} className="font-semibold tabular" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  disabled={done}
+                  invalid={!done && touched.water && Boolean(waterError)}
+                  value={meters.water}
+                  onChange={(e) => {
+                    setMeters((m) => ({ ...m, water: e.target.value }))
+                    setTouched((s) => ({ ...s, water: true }))
+                  }}
+                  onBlur={() => setTouched((s) => ({ ...s, water: true }))}
+                  className="font-semibold tabular"
+                />
               </Field>
             </div>
           </section>
@@ -328,6 +391,12 @@ function Checklist({ run, room }) {
         <div className="text-xs text-fg-secondary">
           {sent ? (
             <span className="font-medium text-fg">{t('This run was sent: read the Rooms, print a Room’s report or export the run.')}</span>
+          ) : !mine ? (
+            <span className="font-medium text-warning-fg">
+              {run.assigneeName
+                ? `Đợt kiểm tra này được giao cho ${run.assigneeName}. Bạn chỉ có thể xem hoặc xuất báo cáo.`
+                : 'Đợt kiểm tra này chưa được giao cho nhân viên nào.'}
+            </span>
           ) : (
             <span>
               {t('Checked {n} of {total} items', { n: checkedCount, total: items.length })}
@@ -337,7 +406,16 @@ function Checklist({ run, room }) {
         </div>
         {!done && (
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="primary" onClick={() => save.run()} disabled={untouched || save.pending}>
+            {saveHint && <span className="text-xs font-medium text-warning-fg">{saveHint}</span>}
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                setTouched({ electricity: true, water: true })
+                if (canSave) save.run()
+              }}
+              disabled={!canSave || save.pending}
+            >
               {metersMissing ? 'Save (meters still needed)' : 'Save room'}
             </Button>
           </div>
@@ -533,6 +611,7 @@ function Run({ run, switcher, onSubmitted }) {
     items[0]
   const total = run.checklist?.items?.length ?? 0
   const sent = run.status === 'Submitted'
+  const mine = Boolean(run.mine)
   const submit = useMutation(() => api.inspections.submit(run.id, { confirmed: true }), {
     invalidates: ['inspections'],
     onSuccess: () => {
@@ -566,7 +645,7 @@ function Run({ run, switcher, onSubmitted }) {
             <Button icon={Download} onClick={doExport} disabled={exporting}>
               Export CSV
             </Button>
-            {!sent && (
+            {!sent && mine && (
               <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
                 Submit results
               </Button>
@@ -579,6 +658,9 @@ function Run({ run, switcher, onSubmitted }) {
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
         {switcher}
         <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
+            Phụ trách: <strong className={mine ? 'text-fg-brand' : 'text-fg'}>{run.assigneeName ?? 'Chưa phân công'}</strong>
+          </span>
           <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
             {t('Rooms in this run')}: <strong className="text-fg tabular">{formatNumber(run.rooms)}</strong>
           </span>

@@ -27,6 +27,7 @@ import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.common.file.FileLinks;
@@ -120,7 +121,7 @@ public class InspectionRunService {
      */
     public record RoomItem(String room, String roomTypeName, String roomClassName, String status, List<Result> results,
             List<RoomCheck> checks, Meters meters, boolean metersNeeded, PreviousMeters previousMeters,
-            List<Photo> photos, java.time.Instant inspectedAt) {
+            List<Photo> photos, java.time.Instant inspectedAt, List<String> createdRequests) {
     }
 
     public record RoomsPage(List<RoomItem> items, long total) {
@@ -218,14 +219,17 @@ public class InspectionRunService {
         AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
         Set<Long> buildings = blockScope.resolve(block).ids();
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        boolean staffOnly = me.role() == Role.STAFF;
         Optional<Run> run = jdbc.sql("""
                 SELECT r.* FROM mnt_inspection_run r
                 LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
                 WHERE r.building_id IN (:b) AND r.status <> 'SUBMITTED' AND r.run_date <= :today
+                  AND (:staffOnly = FALSE OR r.inspector_id = :me)
                 ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC,
                          (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
                 LIMIT 1
                 """).param("b", List.copyOf(buildings)).param("today", today).param("me", me.userId())
+                .param("staffOnly", staffOnly)
                 .query((rs, i) -> run(rs)).optional();
         return new Current(run.map(this::view).orElse(null));
     }
@@ -252,6 +256,16 @@ public class InspectionRunService {
                 .param("run", run.id())
                 .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getTimestamp("inspected_at").toInstant()))
                 .list().forEach(e -> inspectedAt.put(e.getKey(), e.getValue()));
+        Set<Long> requestIds = new java.util.HashSet<>();
+        results.values().stream().flatMap(List::stream).map(Stored::requestId).filter(Objects::nonNull)
+                .forEach(requestIds::add);
+        checkResults.values().stream().flatMap(List::stream).map(StoredCheck::requestId).filter(Objects::nonNull)
+                .forEach(requestIds::add);
+        Map<Long, String> requestCodes = requestIds.isEmpty() ? Map.of()
+                : jdbc.sql("SELECT id, code FROM mnt_request WHERE id IN (:ids)")
+                        .param("ids", List.copyOf(requestIds))
+                        .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getString("code")))
+                        .list().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         List<RoomItem> items = rows.stream().skip(page.offset()).limit(page.limit()).map(r -> {
             Inventory.BedSlot info = roomInfo.get(r.roomId());
             List<Stored> stored = results.getOrDefault(r.id(), List.of());
@@ -262,12 +276,18 @@ public class InspectionRunService {
                     c.condition() == null ? null : CONDITIONS.get(c.condition()), null)));
             PreviousMeters previousMeters = billing.lastReading(r.roomId())
                     .map(m -> new PreviousMeters(m.electricity(), m.water(), m.date())).orElse(null);
+            List<String> roomRequests = new java.util.LinkedHashSet<String>() {{
+                stored.stream().map(Stored::requestId).filter(Objects::nonNull).map(requestCodes::get)
+                        .filter(Objects::nonNull).forEach(this::add);
+                answered.stream().map(StoredCheck::requestId).filter(Objects::nonNull).map(requestCodes::get)
+                        .filter(Objects::nonNull).forEach(this::add);
+            }}.stream().toList();
             return new RoomItem(info == null ? null : info.roomCode(), info == null ? null : types.get(info.roomTypeId()),
                     info == null ? null : classes.get(info.roomClassId()),
                     status(r, stored.stream().anyMatch(s -> !s.result().equals("NOT_CHECKED"))
                             || answered.stream().anyMatch(c -> !c.result().equals("NOT_CHECKED"))),
                     all, checks(r.roomId(), preArrival), r.meters(), preArrival, previousMeters,
-                    photos.getOrDefault(r.id(), List.of()), inspectedAt.get(r.id()));
+                    photos.getOrDefault(r.id(), List.of()), inspectedAt.get(r.id()), roomRequests);
         }).toList();
         return new RoomsPage(items, rows.size());
     }
@@ -465,15 +485,18 @@ public class InspectionRunService {
         AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
         Set<Long> buildings = blockScope.resolve(block).ids();
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        boolean staffOnly = me.role() == Role.STAFF;
         List<Run> runs = jdbc.sql("""
                 SELECT r.* FROM mnt_inspection_run r
                 LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
                 WHERE r.building_id IN (:b) AND r.run_date <= :today
+                  AND (:staffOnly = FALSE OR r.inspector_id = :me)
                   AND (r.status <> 'SUBMITTED' OR r.run_date >= :since)
                 ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC, (r.status = 'SUBMITTED'),
                          (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
                 """).param("b", List.copyOf(buildings)).param("today", today)
                 .param("since", today.minusDays(SENT_RUNS_DAYS)).param("me", me.userId())
+                .param("staffOnly", staffOnly)
                 .query((rs, i) -> run(rs)).list();
         return new RunsPage(runs.stream().map(this::view).toList());
     }
@@ -560,15 +583,18 @@ public class InspectionRunService {
     /** The next run of each active schedule in the Blocks, soonest first. */
     @Transactional(readOnly = true)
     public UpcomingPage upcoming(String block) {
-        currentUser.require(Permission.PROCESS_MAINTENANCE);
+        AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
         Set<Long> buildings = blockScope.resolve(block).ids();
+        boolean staffOnly = me.role() == Role.STAFF;
         record Row(long id, String name, String scope, Integer floor, Instant next) {
         }
         List<Row> rows = jdbc.sql("""
                 SELECT id, name, scope, floors[1] AS floor, next_run_at FROM mnt_inspection_schedule
                 WHERE building_id IN (:b) AND status = 'ACTIVE' AND next_run_at > :now
+                  AND (:staffOnly = FALSE OR assignee_id = :me)
                 ORDER BY next_run_at, id
                 """).param("b", List.copyOf(buildings)).param("now", Timestamp.from(Instant.now(clock)))
+                .param("me", me.userId()).param("staffOnly", staffOnly)
                 .query((rs, i) -> new Row(rs.getLong("id"), rs.getString("name"), rs.getString("scope"),
                         rs.getObject("floor", Integer.class), rs.getTimestamp("next_run_at").toInstant()))
                 .list();
@@ -581,8 +607,11 @@ public class InspectionRunService {
 
     private RunView view(Run run) {
         List<RoomRow> rows = roomRows(run.id());
-        Map<Long, List<Stored>> results = results(rows.stream().map(RoomRow::id).toList());
-        int failed = (int) results.values().stream().flatMap(List::stream).filter(s -> s.result().equals("FAIL")).count();
+        List<Long> roomIds = rows.stream().map(RoomRow::id).toList();
+        Map<Long, List<Stored>> results = results(roomIds);
+        Map<Long, List<StoredCheck>> checkResults = checkResults(roomIds);
+        int failed = (int) results.values().stream().flatMap(List::stream).filter(s -> s.result().equals("FAIL")).count()
+                + (int) checkResults.values().stream().flatMap(List::stream).filter(c -> c.result().equals("FAIL")).count();
         record Head(String name, String scope, Integer floor) {
         }
         Head head = run.scheduleId() == null ? new Head(null, null, null) : jdbc.sql(
@@ -702,6 +731,13 @@ public class InspectionRunService {
     }
 
     /** A furniture item failed: a Furniture Maintenance Request naming it, whose history the item keeps. */
+    private Long currentTermId() {
+        List<TermSummary> published = terms.publishedTerms();
+        return published.stream().filter(TermSummary::current).findFirst()
+                .or(() -> published.stream().reduce((a, b) -> b))
+                .map(TermSummary::id).orElse(null);
+    }
+
     private NewRequest furnitureRequest(Run run, Inventory.BedSlot room, RoomCheck check, String note, long reporter,
             Instant now) {
         String code = InspectionScheduleService.code(run.id());
@@ -709,16 +745,17 @@ public class InspectionRunService {
         String title = check.type() + " " + check.assetCode() + " needs a repair";
         NewRequest row = jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
-                INSERT INTO mnt_request (id, code, room_id, building_id, room_code, reporter_id, source, title,
+                INSERT INTO mnt_request (id, code, term_id, room_id, building_id, room_code, reporter_id, source, title,
                                          description, category, location, urgency, priority, staff_may_enter,
                                          reported_at, furniture_item_id)
                 OVERRIDING SYSTEM VALUE
-                SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :room, :building, :roomCode,
+                SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term, :room, :building, :roomCode,
                        :reporter, 'INSPECTION', :title, :description, 'FURNITURE', 'ROOM', 'NORMAL', 'MEDIUM', TRUE, :now,
                        :item
                 FROM next
                 RETURNING id, code
                 """)
+                .param("term", currentTermId())
                 .param("room", room.roomId()).param("building", room.buildingId()).param("roomCode", room.roomCode())
                 .param("reporter", reporter).param("title", title.length() > 150 ? title.substring(0, 150) : title)
                 .param("description", note != null ? note : "Failed in inspection " + code + ".")
@@ -735,15 +772,16 @@ public class InspectionRunService {
         String code = InspectionScheduleService.code(run.id());
         NewRequest row = jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
-                INSERT INTO mnt_request (id, code, room_id, building_id, room_code, reporter_id, source, title,
+                INSERT INTO mnt_request (id, code, term_id, room_id, building_id, room_code, reporter_id, source, title,
                                          description, category, location, urgency, priority, staff_may_enter,
                                          reported_at)
                 OVERRIDING SYSTEM VALUE
-                SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :room, :building, :roomCode,
+                SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term, :room, :building, :roomCode,
                        :reporter, 'INSPECTION', :title, :description, :category, 'ROOM', :urgency, :priority, TRUE, :now
                 FROM next
                 RETURNING id, code
                 """)
+                .param("term", currentTermId())
                 .param("room", room.roomId()).param("building", room.buildingId()).param("roomCode", room.roomCode())
                 .param("reporter", reporter).param("title", item.label().length() > 150 ? item.label().substring(0, 150)
                         : item.label())
@@ -763,6 +801,13 @@ public class InspectionRunService {
         }
     }
 
+    private void requireAssigned(Run run) {
+        if (run.inspectorId() == null || run.inspectorId() != currentUser.id()) {
+            throw ApiException.forbidden("INSPECTION_NOT_ASSIGNED",
+                    "This inspection run is assigned to another staff member.");
+        }
+    }
+
     private static void open(Run run) {
         if (run.status().equals("SUBMITTED")) {
             throw ApiException.conflict("RUN_SUBMITTED", "This inspection run is already submitted.");
@@ -775,6 +820,9 @@ public class InspectionRunService {
                 + (lock ? " FOR UPDATE" : "")).param("id", n).query((rs, i) -> run(rs)).optional())
                 .orElseThrow(() -> ApiException.notFound("This inspection run does not exist."));
         blockScope.check(run.buildingId());
+        if (lock || currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF) {
+            requireAssigned(run);
+        }
         return run;
     }
 

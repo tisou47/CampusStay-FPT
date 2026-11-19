@@ -355,3 +355,23 @@ FROM asg_handover_item hi JOIN inv_furniture_item f ON f.id = hi.furniture_item_
 JOIN inv_furniture_type ft ON ft.id = f.furniture_type_id
 WHERE hi.handover_id = ho.id AND ho.comparison_note LIKE '%' || ft.name || ': Good →%'
   AND hi.condition IN ('DAMAGED', 'MISSING') AND hi.baseline_condition IS NOT NULL;
+
+-- Sync each FINAL check-in handover's Electricity/Water baseline into bil_meter_cut (reason = CHECK_IN),
+-- so Check-out subtracts the exact Report Final readings as the initial meter benchmark.
+INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason, allocation_id, recorded_by)
+SELECT ho.room_id,
+       coalesce((ho.utility_from AT TIME ZONE 'Asia/Ho_Chi_Minh')::date,
+                (ho.finalized_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date, t.today),
+       coalesce(ho.verified_electricity, ho.electricity, ho.baseline_electricity),
+       coalesce(ho.verified_water, ho.water, ho.baseline_water),
+       'CHECK_IN', ho.allocation_id, ho.verify_requested_by
+FROM asg_handover ho
+JOIN asg_allocation a ON a.id = ho.allocation_id
+JOIN demo_t t ON t.stage = 'D'
+WHERE ho.status = 'FINAL'
+  AND a.term_id = t.x_id
+  AND coalesce(ho.verified_electricity, ho.electricity, ho.baseline_electricity) IS NOT NULL
+  AND coalesce(ho.verified_water, ho.water, ho.baseline_water) IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM bil_meter_cut mc WHERE mc.allocation_id = ho.allocation_id AND mc.reason = 'CHECK_IN'
+  );

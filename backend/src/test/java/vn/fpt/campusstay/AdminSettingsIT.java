@@ -98,7 +98,9 @@ class AdminSettingsIT {
                 .andExpect(jsonPath("$.items[*].title", hasItem("Changed: Stay and renewal")))
                 .andExpect(jsonPath("$.items[?(@.title == 'Changed: Stay and renewal')].changes[0].after", contains("6")));
         mvc.perform(get("/admin/system-parameters").header(HttpHeaders.AUTHORIZATION, admin))
-                .andExpect(jsonPath("$.sections[*].fields[*].key", not(hasItem("stay.max_terms"))));
+                .andExpect(jsonPath("$.sections[*].fields[*].key", not(hasItem("stay.max_terms"))))
+                .andExpect(jsonPath("$.sections[*].fields[?(@.key == 'handover.visit_from_hour')].label")
+                        .value(hasItem("Room visits start at (hour, 1–24)")));
         mvc.perform(get("/admin/settings/nothing").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/admin/settings/stay").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)))

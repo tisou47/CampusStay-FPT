@@ -143,10 +143,19 @@ public class DeskService {
     public record SettlementView(long held, String periodLabel, long share, long unpaid, long damage, long refund) {
     }
 
+    public record HandoverReportItem(String itemId, String assetCode, String type, String typeVi, String bed,
+            String condition, String note, boolean preExisting) {
+    }
+
+    public record HandoverReport(String id, String source, String status, Instant finalizedAt, Instant utilityFrom,
+            BigDecimal electricity, BigDecimal water, String comparison, String comparisonNote,
+            String staffName, Instant studentSubmittedAt, List<HandoverReportItem> items) {
+    }
+
     public record CheckOutDetail(String allocationId, String studentCode, String name, String room, String bed,
             String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
             Reading reading, PreviousReading previousReading, SettlementView settlement, String refundStatus,
-            List<DamageItem> furniture) {
+            List<DamageItem> furniture, HandoverReport handoverReport) {
     }
 
     /** @param damages per furniture item; when sent, the damage charge is their sum */
@@ -606,11 +615,73 @@ public class DeskService {
             return new DamageItem(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi(), d == null ? 0 : d.amount(),
                     d == null ? null : d.note());
         }).toList();
+        HandoverReport handoverReport = handoverReport(p.alloc().id(), p.bed().roomId());
         PreviousReading previousReading = billing.lastReading(p.bed().roomId())
-                .map(r -> new PreviousReading(r.electricity(), r.water(), r.date())).orElse(null);
+                .map(r -> new PreviousReading(r.electricity(), r.water(), r.date()))
+                .orElseGet(() -> handoverReport != null && handoverReport.electricity() != null
+                        && handoverReport.water() != null
+                        ? new PreviousReading(handoverReport.electricity(), handoverReport.water(),
+                                LocalDate.ofInstant(handoverReport.utilityFrom() != null
+                                        ? handoverReport.utilityFrom()
+                                        : handoverReport.finalizedAt(), TimeConfig.CAMPUS_ZONE))
+                        : null);
         return new CheckOutDetail(row.allocationId(), row.studentCode(), row.name(), row.room(), row.bed(),
                 row.roomTypeName(), row.roomClassName(), row.reason(), row.status(), row.checkedOutAt(), reading,
-                previousReading, settlement, refundStatus, furniture);
+                previousReading, settlement, refundStatus, furniture, handoverReport);
+    }
+
+    private HandoverReport handoverReport(long allocationId, long roomId) {
+        record HoRow(long id, String source, String status, Instant finalizedAt, Instant utilityFrom,
+                BigDecimal electricity, BigDecimal water, String comparison, String comparisonNote,
+                Long staffId, Instant submittedAt) {
+        }
+        HoRow ho = jdbc.sql("""
+                SELECT id, source, status, finalized_at, utility_from,
+                       coalesce(verified_electricity, electricity, baseline_electricity) AS electricity,
+                       coalesce(verified_water, water, baseline_water) AS water,
+                       comparison, comparison_note, verify_requested_by, submitted_at
+                FROM asg_handover
+                WHERE allocation_id = :a AND status = 'FINAL'
+                ORDER BY id DESC LIMIT 1
+                """).param("a", allocationId)
+                .query((rs, i) -> new HoRow(rs.getLong("id"), rs.getString("source"), rs.getString("status"),
+                        instant(rs, "finalized_at"), instant(rs, "utility_from"),
+                        rs.getBigDecimal("electricity"), rs.getBigDecimal("water"),
+                        rs.getString("comparison"), rs.getString("comparison_note"),
+                        rs.getObject("verify_requested_by", Long.class), instant(rs, "submitted_at")))
+                .optional().orElse(null);
+        if (ho == null) {
+            return null;
+        }
+        String staffName = ho.staffId() == null ? null : users.displayNames(List.of(ho.staffId())).get(ho.staffId());
+        Map<Long, Inventory.FurnitureLine> byId = new HashMap<>();
+        inventory.furnitureLines(roomId).forEach(l -> byId.put(l.id(), l));
+        List<HandoverReportItem> items = jdbc.sql("""
+                SELECT furniture_item_id, coalesce(verified_condition, condition, baseline_condition) AS cond,
+                       note, pre_existing
+                FROM asg_handover_item
+                WHERE handover_id = :h
+                ORDER BY furniture_item_id
+                """).param("h", ho.id())
+                .query((rs, i) -> {
+                    long itemId = rs.getLong("furniture_item_id");
+                    Inventory.FurnitureLine line = byId.get(itemId);
+                    String rawCond = rs.getString("cond");
+                    String cond = switch (rawCond == null ? "GOOD" : rawCond) {
+                        case "WORN" -> "Worn";
+                        case "DAMAGED" -> "Damaged";
+                        case "MISSING" -> "Missing";
+                        default -> "Good";
+                    };
+                    return new HandoverReportItem(String.valueOf(itemId),
+                            line == null ? String.valueOf(itemId) : line.assetCode(),
+                            line == null ? "Item" : line.type(),
+                            line == null ? null : line.typeVi(),
+                            line != null && line.personal() ? line.bedLabel() : null,
+                            cond, rs.getString("note"), rs.getBoolean("pre_existing"));
+                }).list();
+        return new HandoverReport(HandoverCore.code(ho.id()), ho.source(), ho.status(), ho.finalizedAt(), ho.utilityFrom(),
+                ho.electricity(), ho.water(), ho.comparison(), ho.comparisonNote(), staffName, ho.submittedAt(), items);
     }
 
     @Transactional

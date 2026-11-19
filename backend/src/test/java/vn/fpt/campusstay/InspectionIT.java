@@ -167,6 +167,22 @@ class InspectionIT {
                 .andReturn().getResponse().getContentAsString();
         String run = JsonPath.read(current, "$.run.id");
         assertThat(run).startsWith("INS-");
+        getAs("/notifications", staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].link").value("/staff/inspections"));
+        String otherStaff = bearer(mvc, STAFF_A);
+        getAs("/inspection-runs?block=A", otherStaff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + run + "')]", hasSize(0)));
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", otherStaff)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSPECTION_NOT_ASSIGNED"));
+        putAs("/inspection-runs/" + run + "/rooms/A-401", otherStaff, "{\"results\":[]}")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSPECTION_NOT_ASSIGNED"));
+        stay.postJson("/inspection-runs/" + run + "/submit", otherStaff, "{}")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSPECTION_NOT_ASSIGNED"));
         List<String> itemIds = JsonPath.read(current, "$.run.checklist.items[*].id");
         String rooms = getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[?(@.room == 'A-401')].status").value(hasItem("To do")))
@@ -217,7 +233,7 @@ class InspectionIT {
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isNoContent());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RUN_SUBMITTED"));
-        getAs("/inspection-schedules?block=A", manager).andExpect(jsonPath("$.runs[0].status").value("Done"));
+        getAs("/inspection-schedules?block=A", manager).andExpect(jsonPath("$.runs[0].status").value("Completed"));
 
         // The job starts the next run once its day comes.
         jdbc.sql("UPDATE mnt_inspection_schedule SET next_run_at = now() - interval '1 minute' WHERE id = :id")
@@ -366,5 +382,10 @@ class InspectionIT {
                 .andExpect(jsonPath("$.items[?(@.room == 'A-405')].status").value(hasItem("Done")));
         getAs("/furniture/" + furniture.substring("furniture-".length()), staff)
                 .andExpect(jsonPath("$.history[?(@.kind == 'Repair')].from").value(hasItem(request)));
+        getAs("/maintenance-requests?block=A", staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + request + "')].room").value(hasItem("A-405")));
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[?(@.room == 'A-405')].createdRequests[*]").value(hasItem(request)));
     }
 }

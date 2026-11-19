@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 19/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 20/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -156,7 +156,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-CFG-20 | Utility | `/admin/utility` | 100:3830 | `GET /admin/utility`<br>`PUT /admin/utility` | [admin/UtilitySettings.jsx](../../web/src/pages/admin/UtilitySettings.jsx) |
 | SCR-CFG-05 | Who may apply | `/admin/eligibility` | — | `GET /admin/eligibility`<br>`PUT /admin/eligibility` | [admin/EligibilityRules.jsx](../../web/src/pages/admin/EligibilityRules.jsx) |
 | SCR-CFG-06 | Roommate matching | `/admin/matching` | — | `GET /admin/matching`<br>`PUT /admin/matching`<br>`POST /admin/matching/preview` | [admin/MatchingCriteria.jsx](../../web/src/pages/admin/MatchingCriteria.jsx) |
-| SCR-CFG-21 | Inspection Checklists | `/admin/inspection-checklists` | 100:4252 | `GET /inspection-checklists`<br>`POST /inspection-checklists`<br>`POST /inspection-checklists/:id/publish`<br>`POST /inspection-checklists/:id/archive` | [admin/InspectionChecklists.jsx](../../web/src/pages/admin/InspectionChecklists.jsx) |
+| SCR-CFG-21 | Inspection Checklists | `/admin/inspection-checklists` | 100:4252 | `GET /inspection-checklists`<br>`POST /inspection-checklists`<br>`POST /inspection-checklists/:id/publish`<br>`POST /inspection-checklists/:id/archive`<br>`PUT /inspection-checklists/:id`<br>`POST /inspection-checklists/:id/restore`<br>`DELETE /inspection-checklists/:id` | [admin/InspectionChecklists.jsx](../../web/src/pages/admin/InspectionChecklists.jsx) |
 | SCR-CFG-07 | Notification Templates | `/admin/notifications` | 71:2940 | `GET /admin/notification-templates`<br>`PUT /admin/notification-templates/:key`<br>`POST /admin/notification-templates/:key/test` | [admin/NotificationTemplates.jsx](../../web/src/pages/admin/NotificationTemplates.jsx) |
 | SCR-NTF-21 | Send Email | `/admin/notifications/send` | 100:4658 | `GET /admin/emails/options`<br>`POST /admin/emails/preview`<br>`POST /admin/emails` | [admin/SendEmail.jsx](../../web/src/pages/admin/SendEmail.jsx) |
 | SCR-CFG-08 | System Parameters | `/admin/system-parameters` | 71:3286 | `GET /admin/system-parameters`<br>`PUT /admin/system-parameters` | [admin/SystemParameters.jsx](../../web/src/pages/admin/SystemParameters.jsx) |

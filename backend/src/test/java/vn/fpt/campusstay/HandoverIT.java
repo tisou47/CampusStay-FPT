@@ -285,6 +285,12 @@ class HandoverIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.checkInReport.id").value(id))
                 .andExpect(jsonPath("$.checkInReport.source").value("Checked in the Room"));
+        // The check-out desk's detail carries the Final report (it failed with a 500 on its item query).
+        mvc.perform(get("/check-out/" + allocation).header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.handoverReport.id").value(id))
+                .andExpect(jsonPath("$.handoverReport.electricity").value(501.0))
+                .andExpect(jsonPath("$.handoverReport.items").isNotEmpty());
     }
 
     /**

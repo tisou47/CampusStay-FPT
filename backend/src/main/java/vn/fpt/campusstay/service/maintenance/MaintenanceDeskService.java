@@ -142,7 +142,7 @@ public class MaintenanceDeskService {
         params.put("scope", List.copyOf(scope));
         StringBuilder base = new StringBuilder(" WHERE building_id IN (:scope)");
         if (f.termId() != null) {
-            base.append(" AND term_id = :term");
+            base.append(" AND (term_id = :term OR term_id IS NULL)");
             params.put("term", f.termId());
         }
         StringBuilder where = new StringBuilder(base);

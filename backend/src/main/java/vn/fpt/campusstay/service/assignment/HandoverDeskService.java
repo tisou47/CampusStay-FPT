@@ -468,7 +468,7 @@ public class HandoverDeskService {
 
     /** The office hours and days a Room visit may be set in, and the next free hours (every 2 hours). */
     VisitWindow visitWindow() {
-        int from = Math.clamp(parameters.intValue("handover.visit_from_hour"), 0, 23);
+        int from = Math.clamp(parameters.intValue("handover.visit_from_hour"), 1, 23);
         int to = Math.clamp(parameters.intValue("handover.visit_to_hour"), from + 1, 24);
         int days = Math.max(0, parameters.intValue("handover.visit_within_days"));
         ZonedDateTime now = Instant.now(clock).atZone(TimeConfig.CAMPUS_ZONE);
