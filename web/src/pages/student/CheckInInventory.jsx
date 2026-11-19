@@ -14,6 +14,7 @@ import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/
 import { formatCurrency, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
+import { ConditionGuide } from './room/ConditionGuide'
 
 // Student › My room › Check-in inventory. The student never sees what the dormitory recorded about the Room.
 // GET /students/me/handover → { id, status: Not needed | Waiting | Ready | Draft | Submitted | Verifying | Final, room, bed,
@@ -135,8 +136,13 @@ function Form({ data }) {
   })
   const remove = useMutation((id) => api.handover.removePhoto(id), { invalidates: ['handover'], onError: (e) => notifyError(e, 'Could not remove the photo') })
   const answered = Object.values(answers).filter((a) => a.condition).length
+  // The item whose conditions the side panel describes: the one last opened or answered (the first at the start).
+  const [focused, setFocused] = useState(data.items[0]?.itemId ?? null)
+  const focusedItem = data.items.find((i) => i.itemId === focused) ?? null
+  const pick = (itemId, condition) => setAnswers((s) => ({ ...s, [itemId]: { ...s[itemId], condition } }))
 
   return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
     <Card className="flex flex-col gap-4">
       <CardHeader
         title={t('Check-in inventory · Room {room}', { room: data.room })}
@@ -146,7 +152,7 @@ function Form({ data }) {
         {data.items.map((i) => {
           const a = answers[i.itemId]
           return (
-            <li key={i.itemId} className="flex flex-col gap-2 py-3">
+            <li key={i.itemId} className={cx('flex flex-col gap-2 py-3', focused === i.itemId && 'lg:-mx-2 lg:rounded-lg lg:bg-subtle/50 lg:px-2')} onFocusCapture={() => setFocused(i.itemId)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-col">
                   <span className="text-base font-medium text-fg">{typeName(i)}</span>
@@ -158,9 +164,18 @@ function Form({ data }) {
                   wrapperClassName="w-40"
                   aria-label={t('Condition of {item}', { item: i.assetCode })}
                   value={a.condition}
-                  onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...s[i.itemId], condition: e.target.value } }))}
-                  options={[{ value: '', label: 'Choose' }, ...conditionOptions()]}
-                />
+                  onChange={(e) => {
+                    setFocused(i.itemId)
+                    pick(i.itemId, e.target.value)
+                  }}
+                >
+                  <option value="" disabled hidden />
+                  {conditionOptions().map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
               {i.roommateCondition && (
                 <p className="text-sm text-fg-secondary">
@@ -208,6 +223,13 @@ function Form({ data }) {
         </Button>
       </div>
     </Card>
+    <ConditionGuide
+      item={focusedItem}
+      value={focusedItem ? answers[focusedItem.itemId]?.condition : null}
+      onPick={focusedItem ? (c) => pick(focusedItem.itemId, c) : undefined}
+      photosRequired={data.photosRequired}
+    />
+    </div>
   )
 }
 
