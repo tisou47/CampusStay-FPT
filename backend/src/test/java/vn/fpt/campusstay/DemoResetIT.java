@@ -49,7 +49,7 @@ class DemoResetIT {
         mvc.perform(get("/admin/demo").header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true))
-                .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C")))
+                .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C", "D")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager01@fpt.edu.vn")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D12')].scenarioVi").isNotEmpty())
                 .andExpect(jsonPath("$.files", hasSize(5)))
@@ -67,9 +67,9 @@ class DemoResetIT {
         String admin = bearer(mvc, ADMIN);
         long terms = jdbc.sql("SELECT count(*) FROM cfg_term").query(Long.class).single();
         mvc.perform(post("/admin/demo/reset").header(HttpHeaders.AUTHORIZATION, admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"D\",\"confirm\":\"reset\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"E\",\"confirm\":\"reset\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.stage").value("Choose stage 0, A, B or C."))
+                .andExpect(jsonPath("$.details.fields.stage").value("Choose stage 0, A, B, C or D."))
                 .andExpect(jsonPath("$.details.fields.confirm").value("Type RESET to confirm."));
         mvc.perform(post("/admin/demo/reset").header(HttpHeaders.AUTHORIZATION, admin)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"0\",\"confirm\":\"RESET\"}"))

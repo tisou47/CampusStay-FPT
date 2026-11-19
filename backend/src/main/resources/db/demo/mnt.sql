@@ -90,7 +90,7 @@ INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope,
 SELECT b.id, 'Pre-arrival check (demo)', 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
        (SELECT id FROM demo_staff WHERE account = 'staffa01'), 4, TRUE, FALSE, NULL, 'ACTIVE', t.now - interval '3 days',
        'PRE_ARRIVAL'
-FROM inv_building b CROSS JOIN demo_t t WHERE b.code = 'A';
+FROM inv_building b CROSS JOIN demo_t t WHERE b.code = 'A' AND t.stage <> 'D';
 
 INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
                                 created_at)
@@ -122,4 +122,60 @@ SELECT ir.id, 'PEOPLE', 'PASS', NULL FROM mnt_inspection_room ir WHERE ir.status
 UNION ALL
 SELECT ir.id, 'FURNITURE:' || i.id, 'PASS', 'GOOD'
 FROM mnt_inspection_room ir JOIN inv_furniture_item i ON i.room_id = ir.room_id AND i.status <> 'DISPOSED'
+WHERE ir.status = 'INSPECTED';
+
+-- ---------- check-in week (D): the pre-arrival inspection of every Block ----------
+-- Between Term N's check-out deadline and Term N+1's check-in start, each Block's first Staff member inspected the
+-- Rooms new residents receive (Managers scheduled it once, scope "Rooms new residents will receive") and sent the
+-- results the day before check-in opened. The Room of D9 was not reachable: its new residents have no record.
+INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
+                                     create_requests, notify_residents, next_run_at, status, created_at, kind)
+SELECT b.id, 'Pre-arrival check Block ' || b.code || ' (demo)', 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
+       (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '01'), 2, TRUE, FALSE, NULL, 'ACTIVE',
+       ((t.n_end - 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'PRE_ARRIVAL'
+FROM inv_building b CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND b.id IN (SELECT DISTINCT building_id FROM demo_checkin);
+
+INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
+                                submitted_at, created_at)
+SELECT s.id, s.building_id, c.id, t.n_end + 1, (t.x_ci_start + TIME '00:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       s.assignee_id, 'SUBMITTED', ((t.n_end + 2) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       ((t.n_end + 1) + TIME '06:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+FROM mnt_inspection_schedule s CROSS JOIN demo_t t
+JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
+WHERE t.stage = 'D' AND s.name LIKE 'Pre-arrival check Block % (demo)';
+
+INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
+SELECT ru.id, r.room_id,
+       CASE WHEN r.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9) THEN 'UNREACHABLE' ELSE 'INSPECTED' END,
+       ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+           + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120),
+       CASE WHEN r.room_id <> (SELECT room_id FROM demo_checkin WHERE named = 9) THEN m.e END,
+       CASE WHEN r.room_id <> (SELECT room_id FROM demo_checkin WHERE named = 9) THEN m.w END,
+       ru.inspector_id
+FROM (SELECT DISTINCT room_id, building_id FROM demo_checkin) r CROSS JOIN demo_t t
+JOIN mnt_inspection_run ru ON ru.building_id = r.building_id AND ru.run_date = t.n_end + 1
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Pre-arrival check Block % (demo)'
+JOIN demo_room_meter m ON m.room_id = r.room_id
+WHERE t.stage = 'D';
+
+INSERT INTO mnt_inspection_result (inspection_room_id, item_id, result)
+SELECT ir.id, ci.id, 'PASS'
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Pre-arrival check Block % (demo)'
+JOIN mnt_checklist_item ci ON ci.checklist_id = ru.checklist_id
+WHERE ir.status = 'INSPECTED';
+
+INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition, note)
+SELECT ir.id, 'PEOPLE', 'PASS', NULL, NULL
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Pre-arrival check Block % (demo)'
+WHERE ir.status = 'INSPECTED'
+UNION ALL
+SELECT ir.id, 'FURNITURE:' || i.item_id,
+       CASE WHEN i.condition IN ('GOOD', 'WORN') THEN 'PASS' ELSE 'FAIL' END, i.condition,
+       CASE i.condition WHEN 'DAMAGED' THEN 'Reported for repair before check-in.' WHEN 'WORN' THEN 'Normal wear.' END
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Pre-arrival check Block % (demo)'
+JOIN demo_checkin_item i ON i.room_id = ir.room_id
 WHERE ir.status = 'INSPECTED';

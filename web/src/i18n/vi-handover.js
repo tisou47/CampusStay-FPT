@@ -220,4 +220,6 @@ export default {
   "I checked the list and still send it with the Rooms above not finished": "Tôi đã xem danh sách và vẫn gửi dù các phòng trên chưa kiểm xong",
   "I inspected these Rooms myself and the conditions and meters are correct": "Tôi cam kết đã tự kiểm tra các phòng này và tình trạng, chỉ số công tơ ghi là đúng",
   "Your name and the time are kept with the results.": "Tên của bạn và thời điểm gửi được lưu cùng kết quả.",
+  "Check-in week": "Tuần nhận phòng",
+  "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. New residents start their check-in inventory to get the door code; inventories are drafts, matching, waiting for Staff, checked in the Room or closed by their deadline.": "Học kỳ N đã kết thúc: người rời đi đã trả phòng đúng hạn (một người quá hạn), nhân viên đã kiểm tra các phòng người mới sẽ nhận và đổi mã cửa, và đợt nhận phòng học kỳ N+1 đã mở được ba ngày. Sinh viên mới bắt đầu kiểm kê nhận phòng để nhận mã cửa; biên bản ở đủ trạng thái: nháp, khớp, chờ nhân viên, kiểm tại phòng, hoặc đã chốt do quá hạn.",
 }

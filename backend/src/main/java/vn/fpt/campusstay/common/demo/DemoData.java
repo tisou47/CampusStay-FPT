@@ -15,7 +15,7 @@ public interface DemoData {
      * The stage loaded and the moment it is loaded for: every date of the demo is relative to {@code now}.
      *
      * @param code  {@code A} (requests window and registration open), {@code B} (next-Term fees issued, before M7)
-     *              or {@code C} (turnover week)
+     *              , {@code C} (turnover week) or {@code D} (check-in week of the next Term)
      * @param today the campus date of {@code now}
      */
     record Stage(String code, Instant now, LocalDate today) {

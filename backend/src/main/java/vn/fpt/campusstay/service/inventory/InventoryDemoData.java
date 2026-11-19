@@ -66,5 +66,36 @@ class InventoryDemoData implements DemoData {
             ps.setLong(5, room.staffId());
             ps.setTimestamp(6, at);
         });
+        if ("D".equals(stage.code())) {
+            rotateForCheckIn();
+        }
+    }
+
+    /**
+     * Check-in week (D): Staff set a new code on every Room a leaver left during the inspection, the day before
+     * check-in opened, except the Room of D8 (its code is still to set, so its new residents wait) and A-803.
+     */
+    private void rotateForCheckIn() {
+        jdbc.update("""
+                INSERT INTO inv_door_code_task (room_id, reason, created_at)
+                SELECT c.room_id, 'CHECK_OUT', ((t.n_end + 1) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                FROM demo_checkin c CROSS JOIN demo_t t
+                WHERE c.named = 8
+                  AND NOT EXISTS (SELECT 1 FROM inv_door_code_task k WHERE k.room_id = c.room_id AND k.done_at IS NULL)
+                """);
+        jdbc.update("""
+                UPDATE inv_door_code d SET proposed_at = ((t.n_end + 2) + TIME '11:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                       confirmed_at = ((t.n_end + 2) + TIME '11:30') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                FROM demo_t t, inv_door_code_task k JOIN inv_room r ON r.id = k.room_id
+                WHERE d.room_id = k.room_id AND d.status = 'ACTIVE' AND k.done_at IS NULL AND r.code <> 'A-803'
+                  AND k.room_id <> coalesce((SELECT room_id FROM demo_checkin WHERE named = 8), -1)
+                """);
+        jdbc.update("""
+                UPDATE inv_door_code_task k SET done_at = ((t.n_end + 2) + TIME '11:30') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                       door_code_id = d.id
+                FROM demo_t t, inv_door_code d JOIN inv_room r ON r.id = d.room_id
+                WHERE d.room_id = k.room_id AND d.status = 'ACTIVE' AND k.done_at IS NULL AND r.code <> 'A-803'
+                  AND k.room_id <> coalesce((SELECT room_id FROM demo_checkin WHERE named = 8), -1)
+                """);
     }
 }

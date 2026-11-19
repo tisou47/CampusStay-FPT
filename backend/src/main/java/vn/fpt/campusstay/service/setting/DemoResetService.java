@@ -123,7 +123,12 @@ public class DemoResetService {
                             + "before their deadline (M7). New students are assigned and pay their Balance."),
             new StageInfo("C", "Turnover week",
                     "Term N ends in three days: leavers check out, movers change Rooms, door codes are rotated, unpaid "
-                            + "fees released their Beds and Round 2 can fill the free Beds."));
+                            + "fees released their Beds and Round 2 can fill the free Beds."),
+            new StageInfo("D", "Check-in week",
+                    "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
+                            + "residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. "
+                            + "New residents start their check-in inventory to get the door code; inventories are drafts, "
+                            + "matching, waiting for Staff, checked in the Room or closed by their deadline."));
 
     private final JdbcClient jdbc;
     private final JdbcTemplate template;
@@ -172,10 +177,28 @@ public class DemoResetService {
                   AND s.student_code NOT IN (:reserved)
                 ORDER BY s.student_code LIMIT 6
                 """).param("reserved", SCENARIO_CODES).query(String.class).list();
+        // Check-in week (D): D1-D9 are the first new resident (by code) of the first nine Rooms of Block A that new
+        // residents of the latest Term receive (db/demo/plan.sql, demo_checkin); empty in the other stages.
+        List<String> checkIn = jdbc.sql("""
+                SELECT lower(x.code) || ' (' || x.room || ')' FROM (
+                    SELECT DISTINCT ON (r.code) r.code AS room, s.student_code AS code
+                    FROM asg_allocation a JOIN auth_student s ON s.user_id = a.student_id
+                    JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id
+                    JOIN inv_building bl ON bl.id = r.building_id
+                    WHERE a.term_id = (SELECT id FROM cfg_term WHERE status = 'PUBLISHED' ORDER BY stay_start DESC LIMIT 1)
+                      AND a.status = 'ACTIVE' AND a.source = 'ASSIGNMENT' AND bl.code = 'A' AND r.code NOT LIKE 'A-9%'
+                      AND s.student_code NOT IN (:reserved)
+                      AND EXISTS (SELECT 1 FROM cfg_term t WHERE t.id = a.term_id AND t.check_in_start <= current_date)
+                    ORDER BY r.code, s.student_code) x
+                ORDER BY x.room LIMIT 9
+                """).param("reserved", SCENARIO_CODES).query(String.class).list();
         java.util.function.UnaryOperator<String> fill = text -> {
             String out = text;
             for (int i = 0; i < codes.size(); i++) {
                 out = out.replace("{S4" + i + "}", codes.get(i).toLowerCase(java.util.Locale.ROOT));
+            }
+            for (int i = 1; i <= 9; i++) {
+                out = out.replace("{D" + i + "}", i <= checkIn.size() ? checkIn.get(i - 1) : "(load stage D)");
             }
             return out;
         };
@@ -191,7 +214,7 @@ public class DemoResetService {
         }
         FieldErrors errors = new FieldErrors();
         String code = stage == null ? "" : stage.trim().toUpperCase(Locale.ROOT);
-        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B or C.");
+        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B, C or D.");
         errors.check(CONFIRMATION.equals(confirm == null ? null : confirm.trim()), "confirm",
                 "Type RESET to confirm.");
         errors.throwIfAny();
@@ -339,7 +362,8 @@ public class DemoResetService {
                 if (lines[i].isBlank()) {
                     continue;
                 }
-                String[] f = lines[i].split(";", -1);
+                // Fields are separated by ";" with no space after it; the texts use "; " inside sentences.
+                String[] f = lines[i].split(";(?! )", -1);
                 scenarios.add(new Scenario(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]));
             }
         } catch (IOException e) {

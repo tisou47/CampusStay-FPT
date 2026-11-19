@@ -20,7 +20,7 @@ SELECT t.x_id, 'REAL', 'COMMITTED', 5, (SELECT max(id) FROM cfg_matching_snapsho
        t.x_results - interval '1 day', (SELECT count(*) FROM demo_app WHERE status <> 'AWAITING_DEPOSIT'),
        (SELECT count(*) FROM demo_app WHERE status IN ('ALLOCATED', 'FORFEITED')), 0,
        (SELECT count(*) FROM demo_app WHERE status = 'WAITLISTED'), 0.8130
-FROM demo_t t WHERE t.stage IN ('B', 'C');
+FROM demo_t t WHERE t.stage IN ('B', 'C', 'D');
 
 -- Stays: the Terms committed (stay length, grown by an approved extension) and used.
 INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, status, end_kind, started_at,
@@ -29,8 +29,8 @@ SELECT d.student_id, t.n_id, t.n_id,
        d.committed + CASE WHEN d.fate = 'LAST' AND d.x_state IN ('CONTINUING', 'FEE_NOT_PAID')
                           THEN CASE WHEN d.scenario = 'S10' THEN 2 ELSE 1 END ELSE 0 END,
        1, CASE WHEN d.leave = 'CHECKED_OUT' THEN 'ENDED' ELSE 'ACTIVE' END,
-       CASE WHEN d.leave = 'CHECKED_OUT' THEN 'COMPLETED' END, (t.n_start - 2 + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
-       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END
+       CASE WHEN d.leave = 'CHECKED_OUT' THEN 'COMPLETED' END, (t.n_start + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.out_base - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END
 FROM demo_res d CROSS JOIN demo_t t;
 
 INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, started_at)
@@ -45,12 +45,12 @@ INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, status,
 SELECT t.n_id, ap.id, d.student_id, d.bed_id, CASE WHEN d.leave = 'CHECKED_OUT' THEN 'ENDED' ELSE 'ACTIVE' END,
        'ASSIGNMENT', (SELECT id FROM asg_run WHERE term_id = t.n_id), t.n_results,
        (SELECT id FROM demo_staff WHERE account = 'manager01'),
-       CASE WHEN d.h % 2 = 0 THEN ((t.n_start - 3 + d.h % 5) + TIME '14:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
+       CASE WHEN d.h % 2 = 0 THEN ((t.n_start + d.h % 5) + TIME '14:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE WHEN d.h % 2 = 0 THEN (SELECT id FROM demo_staff WHERE account = 'staff' || lower(d.block) || '01') END,
-       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.today - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
+       CASE WHEN d.leave = 'CHECKED_OUT' THEN ((t.out_base - (1 + d.h % 3)) + TIME '08:30' + interval '13 minutes' * (d.h % 37)) AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE WHEN d.leave = 'CHECKED_OUT' THEN 'CHECK_OUT' END,
-       ((t.n_start - 3 + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
-       ((t.n_start - 3 + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       ((t.n_start + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       ((t.n_start + d.h % 5) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
        s.id
 FROM demo_res d CROSS JOIN demo_t t
 JOIN app_application ap ON ap.term_id = t.n_id AND ap.student_id = d.student_id
@@ -61,11 +61,11 @@ INSERT INTO asg_renewal (term_id, previous_term_id, opened_at, continuing, await
                          fees_issued_at, fees_issued_by, fees_closed_at)
 SELECT t.x_id, t.n_id, t.x_m2,
        (SELECT count(*) FROM demo_res WHERE fate = 'CONTINUING'), (SELECT count(*) FROM demo_res WHERE fate = 'LAST'),
-       CASE WHEN t.stage IN ('B', 'C') THEN t.x_m3 + interval '5 minutes' END,
-       CASE WHEN t.stage IN ('B', 'C') THEN t.x_m4 - interval '48 hours' END,
-       CASE WHEN t.stage IN ('B', 'C') THEN t.x_m6 END,
-       CASE WHEN t.stage IN ('B', 'C') THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
-       CASE WHEN t.stage = 'C' THEN t.x_m7 + interval '5 minutes' END
+       CASE WHEN t.stage IN ('B', 'C', 'D') THEN t.x_m3 + interval '5 minutes' END,
+       CASE WHEN t.stage IN ('B', 'C', 'D') THEN t.x_m4 - interval '48 hours' END,
+       CASE WHEN t.stage IN ('B', 'C', 'D') THEN t.x_m6 END,
+       CASE WHEN t.stage IN ('B', 'C', 'D') THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
+       CASE WHEN t.stage IN ('C', 'D') THEN t.x_m7 + interval '5 minutes' END
 FROM demo_t t;
 
 -- Next-Term Allocations: the same Bed (S12 moved by its approved room change), Continuing or Awaiting extension;
@@ -104,8 +104,8 @@ INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, window_clos
 SELECT al.id,
        CASE a.scenario WHEN 'S16' THEN 'My flight from Da Nang is booked for after the check-in window (family wedding).'
                        ELSE 'Internship in Ha Noi until the end of the month; the company letter is attached.' END,
-       t.x_start + 9, ((t.x_start + 4) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh', t.x_start + 9,
-       a.late, CASE WHEN a.late = 'APPROVED' THEN t.x_start + 10 END,
+       t.x_ci_end + 5, ((t.x_ci_end) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh', t.x_ci_end + 5,
+       a.late, CASE WHEN a.late = 'APPROVED' THEN t.x_ci_end + 6 END,
        CASE WHEN a.late = 'APPROVED' THEN (SELECT id FROM demo_staff WHERE account = 'manager01') END,
        CASE WHEN a.late = 'APPROVED' THEN least(t.x_results + interval '2 days', t.now - interval '1 day') END,
        least(t.x_results + interval '1 day', t.now - interval '2 days'), 'ONLINE'
@@ -173,9 +173,9 @@ JOIN (SELECT d.student_id,
              CASE d.scenario WHEN 'S40' THEN NULL WHEN 'S41' THEN t2.now - interval '6 hours'
                              WHEN 'S42' THEN t2.now - interval '30 hours' WHEN 'S43' THEN t2.now - interval '10 days'
                              WHEN 'S44' THEN t2.now - interval '2 days'
-                             ELSE ((t2.n_start - 2) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS since,
+                             ELSE ((t2.n_start) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS since,
              CASE d.scenario WHEN 'S43' THEN t2.now - interval '10 days' + interval '1 hour'
-                             WHEN 'S45' THEN ((t2.n_start - 2) + TIME '11:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS final
+                             WHEN 'S45' THEN ((t2.n_start) + TIME '11:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END AS final
       FROM demo_handover d CROSS JOIN demo_t t2) w ON w.student_id = h.student_id;
 
 -- S40 asked online for a late arrival; a Manager approved it until the day after tomorrow.
@@ -247,3 +247,105 @@ FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id
 JOIN LATERAL (SELECT f.* FROM inv_furniture_item f WHERE f.room_id = h.room_id AND f.bed_id IS NULL
               AND f.status = 'IN_USE' ORDER BY f.asset_code LIMIT 1) i ON TRUE
 WHERE h.scenario = 'S45';
+
+-- ---------- check-in week (D): Term N+1 receives its residents ----------
+-- Continuing residents on the same Bed live in N+1 from the check-in start (code released automatically, no
+-- inventory) and their Term N Allocation ended then; S12 moves to A-603 and files an inventory there (READY).
+UPDATE asg_allocation n SET status = 'ENDED', ended_at = (t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                            end_reason = 'TERM_END'
+FROM demo_res d CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND n.term_id = t.n_id AND n.student_id = d.student_id AND d.x_state = 'CONTINUING'
+  AND n.status = 'ACTIVE';
+
+UPDATE asg_allocation x SET code_released_at = ((t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh')
+                                               + interval '1 minute' * (d.h % 60),
+                            resident_at = ((t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh')
+                                          + interval '1 minute' * (d.h % 60)
+FROM demo_res d CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND x.term_id = t.x_id AND x.student_id = d.student_id AND d.x_state = 'CONTINUING'
+  AND d.scenario IS DISTINCT FROM 'S12' AND x.status = 'ACTIVE';
+
+-- When each new resident opened, filed and closed the inventory (see demo_checkin in plan.sql for the states).
+CREATE TEMP TABLE demo_checkin_time ON COMMIT DROP AS
+WITH b AS (
+    SELECT c.*, t.now, t.today, (t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS ci_open
+    FROM demo_checkin c CROSS JOIN demo_t t),
+o AS (
+    SELECT b.*, CASE
+        WHEN b.state IN ('MATCHED', 'NO_RECORD') THEN b.ci_open + interval '1 day' * (b.h % 3) + interval '7 minutes' * b.h
+        WHEN b.state = 'DRAFT' AND b.named = 2 THEN b.now - interval '30 hours'
+        WHEN b.state = 'DRAFT' THEN b.now - interval '1 hour' * (2 + b.h % 18)
+        WHEN b.state IN ('MINOR', 'MAJOR') THEN b.now - interval '1 hour' * (10 + b.h % 14)
+        WHEN b.state = 'VERIFYING' THEN b.now - interval '30 hours'
+        WHEN b.state = 'AUTO' THEN b.ci_open + interval '1 minute' * (b.h % 50) END AS opened
+    FROM b)
+SELECT o.*, o.opened + interval '48 hours' AS due,
+       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
+            WHEN o.state IN ('MINOR', 'MAJOR') THEN o.now - interval '1 hour' * (1 + o.h % 8)
+            WHEN o.state = 'VERIFYING' THEN o.now - interval '26 hours' END AS submitted,
+       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
+            WHEN o.state = 'AUTO' THEN o.opened + interval '48 hours 10 minutes' END AS finalized,
+       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
+            WHEN o.state = 'AUTO' THEN o.opened END AS utility_from
+FROM o;
+
+UPDATE asg_allocation x SET eligible_at = CASE WHEN c.state = 'WAITING' THEN NULL ELSE c.ci_open END,
+                            handover_needed = c.state <> 'WAITING',
+                            code_released_at = c.opened, resident_at = c.opened,
+                            utility_from = c.utility_from, checked_in_at = c.finalized
+FROM demo_checkin_time c CROSS JOIN demo_t t
+WHERE x.term_id = t.x_id AND x.student_id = c.student_id AND x.status = 'ACTIVE';
+
+INSERT INTO asg_handover (allocation_id, room_id, status, source, opened_at, due_at, submitted_at, electricity, water,
+                          baseline_electricity, baseline_water, baseline_at, comparison, comparison_note,
+                          verify_requested_at, verify_requested_by, visit_at, verified_electricity, verified_water,
+                          finalized_at, utility_from, reminders_sent)
+SELECT x.id, c.room_id,
+       CASE c.state WHEN 'DRAFT' THEN 'DRAFT' WHEN 'MINOR' THEN 'SUBMITTED' WHEN 'MAJOR' THEN 'SUBMITTED'
+                    WHEN 'VERIFYING' THEN 'VERIFYING' ELSE 'FINAL' END,
+       CASE c.state WHEN 'AUTO' THEN 'AUTO' WHEN 'MATCHED' THEN 'STUDENT' WHEN 'NO_RECORD' THEN 'STUDENT' END,
+       c.opened, c.due, c.submitted,
+       CASE c.state WHEN 'MATCHED' THEN m.e + 1.5 WHEN 'NO_RECORD' THEN m.e + 1.5 WHEN 'MINOR' THEN m.e + 2
+                    WHEN 'MAJOR' THEN m.e + 45 WHEN 'VERIFYING' THEN m.e + 38 END,
+       CASE WHEN c.state IN ('MATCHED', 'NO_RECORD', 'MINOR', 'MAJOR', 'VERIFYING') THEN m.w + 0.1 END,
+       CASE WHEN c.state = 'NO_RECORD' THEN m.e - 12 ELSE m.e END,
+       CASE WHEN c.state = 'NO_RECORD' THEN m.w - 1 ELSE m.w END,
+       CASE WHEN c.state = 'NO_RECORD' THEN NULL
+            ELSE ((t.n_end + 2) + TIME '15:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
+       CASE c.state WHEN 'MINOR' THEN 'MINOR' WHEN 'MAJOR' THEN 'MAJOR' WHEN 'VERIFYING' THEN 'MAJOR'
+                    WHEN 'MATCHED' THEN 'MATCHED' WHEN 'NO_RECORD' THEN 'MATCHED' END,
+       CASE c.state WHEN 'MINOR' THEN 'Desk: Good → Damaged'
+                    WHEN 'MAJOR' THEN 'Wardrobe: Good → Missing' || chr(10) || 'Electricity +45 kWh (allowed 6 kWh)'
+                    WHEN 'VERIFYING' THEN 'Electricity +38 kWh (allowed 7.5 kWh)' END,
+       CASE WHEN c.state = 'VERIFYING' THEN c.now - interval '20 hours' END,
+       CASE WHEN c.state = 'VERIFYING' THEN (SELECT id FROM demo_staff WHERE account = 'staff' || lower(c.block) || '01') END,
+       CASE WHEN c.state = 'VERIFYING' AND c.named = 5 THEN (c.today + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+            WHEN c.state = 'VERIFYING' THEN ((c.today + 1) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
+       CASE WHEN c.state = 'VERIFYING' THEN m.e + 38 END, CASE WHEN c.state = 'VERIFYING' THEN m.w + 0.1 END,
+       c.finalized, c.utility_from,
+       CASE WHEN c.state = 'DRAFT' AND c.due < c.now + interval '24 hours' THEN 1 ELSE 0 END
+FROM demo_checkin_time c CROSS JOIN demo_t t
+JOIN asg_allocation x ON x.term_id = t.x_id AND x.student_id = c.student_id AND x.status = 'ACTIVE'
+JOIN demo_room_meter m ON m.room_id = c.room_id
+WHERE c.opened IS NOT NULL;
+
+-- Each inventory's items: the student's Bed and the Room's shared items, with what the inspection recorded.
+INSERT INTO asg_handover_item (handover_id, furniture_item_id, condition, note, baseline_condition, baseline_source,
+                               verified_condition, pre_existing)
+SELECT ho.id, i.item_id, a.answer,
+       CASE WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'The drawer of the desk is broken.'
+            WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'There is no wardrobe next to my bed.' END,
+       CASE WHEN c.state = 'NO_RECORD' THEN NULL ELSE i.condition END,
+       CASE WHEN c.state = 'NO_RECORD' THEN NULL ELSE 'INSPECTION' END,
+       CASE WHEN c.state = 'VERIFYING' THEN a.answer END,
+       ho.status = 'FINAL' AND coalesce(a.answer, i.condition) IN ('DAMAGED', 'MISSING')
+FROM asg_handover ho JOIN asg_allocation x ON x.id = ho.allocation_id
+JOIN demo_checkin_time c ON c.student_id = x.student_id
+JOIN demo_checkin_item i ON i.room_id = c.room_id AND (i.bed_id IS NULL OR i.bed_id = c.bed_id)
+CROSS JOIN LATERAL (SELECT CASE
+        WHEN c.state = 'AUTO' THEN NULL
+        WHEN c.state = 'DRAFT' THEN CASE WHEN i.bed_id IS NOT NULL THEN i.condition END
+        WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'DAMAGED'
+        WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'MISSING'
+        ELSE i.condition END AS answer) a
+JOIN demo_t t ON t.stage = 'D';
