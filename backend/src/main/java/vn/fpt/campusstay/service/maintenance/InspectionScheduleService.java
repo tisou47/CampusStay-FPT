@@ -28,6 +28,7 @@ import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
@@ -55,14 +56,23 @@ public class InspectionScheduleService {
     /** @param scope and {@code repeat} are option values; {@code assignee} a user id; {@code status} Active or Paused */
     public record ScheduleItem(String id, String name, String checklistId, String scope, String scopeLabel,
             String repeat, String repeatLabel, String assignee, int dueWithinDays, boolean createRequests,
-            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt) {
+            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt, String block) {
     }
 
-    /** @param status Planned, In progress or Done */
-    public record RunItem(String id, String assigneeName, int inspected, int rooms, int failed, String status) {
+    /**
+     * @param status Planned, In progress or Done; {@code unreachable} Rooms not reached; {@code overdue} not sent by
+     *               its due date
+     */
+    public record RunItem(String id, String assigneeName, int inspected, int rooms, int failed, String status,
+            String block, String scheduleName, LocalDate date, Instant dueAt, int unreachable, boolean overdue) {
     }
 
-    public record Page(List<ScheduleItem> items, List<RunItem> runs, Options options) {
+    /**
+     * @param block   the Block shown, null for every Block in scope
+     * @param options null for every Block: a schedule is created and changed in its own Block
+     * @param blocks  the Blocks in scope, for the filter
+     */
+    public record Page(List<ScheduleItem> items, List<RunItem> runs, Options options, String block, List<String> blocks) {
     }
 
     public record Created(String id) {
@@ -114,10 +124,13 @@ public class InspectionScheduleService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final BlockDirectory blockCodes;
 
     public InspectionScheduleService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope,
             UserDirectory users, Inventory inventory, Residences residences, TermCatalog terms,
-            ChecklistService checklists, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ChecklistService checklists, ApplicationEventPublisher events, AuditLog audit, Clock clock,
+            BlockDirectory blockCodes) {
+        this.blockCodes = blockCodes;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -133,37 +146,61 @@ public class InspectionScheduleService {
 
     // ---------------------------------------------------------------- screen
 
+    /**
+     * The schedules and recent runs of one Block, or of every Block in scope when {@code block} is blank or
+     * {@code all} (then without the editor options: a schedule is changed in its own Block).
+     */
     @Transactional(readOnly = true)
     public Page list(String block) {
         currentUser.require(Permission.MANAGE_BLOCK);
-        long building = building(block);
-        List<Schedule> schedules = jdbc.sql("SELECT * FROM mnt_inspection_schedule WHERE building_id = :b ORDER BY name, id")
-                .param("b", building).query(InspectionScheduleService::schedule).list();
-        record Run(long id, Long inspectorId, String status, int rooms, int inspected, int failed) {
+        boolean every = block == null || block.isBlank() || "all".equalsIgnoreCase(block.trim());
+        BlockSelection selection = blockScope.resolve(every ? null : block);
+        if (!every && !selection.single()) {
+            throw FieldErrors.single("block", "Choose a Block.");
+        }
+        List<Long> buildings = List.copyOf(selection.ids());
+        Map<Long, String> codes = blockCodes.codesByIds(selection.ids());
+        List<Schedule> schedules = jdbc.sql("""
+                SELECT * FROM mnt_inspection_schedule WHERE building_id IN (:b) ORDER BY name, id
+                """).param("b", buildings).query(InspectionScheduleService::schedule).list();
+        record Run(long id, long buildingId, Long inspectorId, String status, int rooms, int inspected, int failed,
+                int unreachable, String scheduleName, LocalDate date, Instant dueAt) {
         }
         List<Run> recent = jdbc.sql("""
-                SELECT r.id, r.inspector_id, r.status,
+                SELECT r.id, r.building_id, r.inspector_id, r.status, r.run_date, r.due_at, s.name AS schedule_name,
                        (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id) AS rooms,
                        (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id AND x.status = 'INSPECTED')
                            AS inspected,
-                       (SELECT count(*) FROM mnt_inspection_result s JOIN mnt_inspection_room x
-                               ON x.id = s.inspection_room_id WHERE x.run_id = r.id AND s.result = 'FAIL') AS failed
-                FROM mnt_inspection_run r WHERE r.building_id = :b
+                       (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id AND x.status = 'UNREACHABLE')
+                           AS unreachable,
+                       (SELECT count(*) FROM mnt_inspection_result s2 JOIN mnt_inspection_room x
+                               ON x.id = s2.inspection_room_id WHERE x.run_id = r.id AND s2.result = 'FAIL')
+                       + (SELECT count(*) FROM mnt_inspection_room_check c JOIN mnt_inspection_room x
+                               ON x.id = c.inspection_room_id WHERE x.run_id = r.id AND c.result = 'FAIL') AS failed
+                FROM mnt_inspection_run r LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
+                WHERE r.building_id IN (:b)
                 ORDER BY r.run_date DESC, r.id DESC LIMIT :limit
-                """).param("b", building).param("limit", RECENT_RUNS)
-                .query((rs, i) -> new Run(rs.getLong("id"), rs.getObject("inspector_id", Long.class),
-                        rs.getString("status"), rs.getInt("rooms"), rs.getInt("inspected"), rs.getInt("failed")))
+                """).param("b", buildings).param("limit", every ? RECENT_RUNS * 3 : RECENT_RUNS)
+                .query((rs, i) -> new Run(rs.getLong("id"), rs.getLong("building_id"),
+                        rs.getObject("inspector_id", Long.class), rs.getString("status"), rs.getInt("rooms"),
+                        rs.getInt("inspected"), rs.getInt("failed"), rs.getInt("unreachable"),
+                        rs.getString("schedule_name"), rs.getObject("run_date", LocalDate.class),
+                        rs.getTimestamp("due_at").toInstant()))
                 .list();
         Map<Long, String> inspectors = users.displayNames(recent.stream().map(Run::inspectorId)
                 .filter(Objects::nonNull).collect(Collectors.toSet()));
+        Instant now = Instant.now(clock);
         List<RunItem> runs = recent.stream().map(r -> new RunItem(code(r.id()),
                 r.inspectorId() == null ? null : inspectors.get(r.inspectorId()), r.inspected(), r.rooms(), r.failed(),
-                RUN_STATUSES.get(r.status()))).toList();
+                RUN_STATUSES.get(r.status()), codes.get(r.buildingId()), r.scheduleName(), r.date(), r.dueAt(),
+                r.unreachable(), !r.status().equals("SUBMITTED") && r.dueAt().isBefore(now))).toList();
         return new Page(schedules.stream().map(s -> new ScheduleItem(String.valueOf(s.id()), s.name(), s.family(),
                 s.scopeValue(), scopeLabel(s.scope(), s.floor()), s.repeat(), REPEATS.get(s.repeat()),
                 s.assigneeId() == null ? null : String.valueOf(s.assigneeId()), s.dueWithinDays(), s.createRequests(),
-                s.notifyResidents(), s.nextRunAt(), s.status().equals("ACTIVE") ? "Active" : "Paused", s.createdAt()))
-                .toList(), runs, options(building));
+                s.notifyResidents(), s.nextRunAt(), s.status().equals("ACTIVE") ? "Active" : "Paused", s.createdAt(),
+                codes.get(s.buildingId())))
+                .toList(), runs, every ? null : options(selection.singleId()),
+                every ? null : codes.get(selection.singleId()), codes.values().stream().sorted().toList());
     }
 
     // ---------------------------------------------------------------- changes

@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { CalendarDays, CircleCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Camera, CalendarDays, CircleCheck, Download, FileText, ImageOff, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Alert, Card } from '@/components/ui/Display'
 import { Checkbox } from '@/components/ui/Choice'
@@ -16,22 +16,29 @@ import { EmptyBlock, ErrorState, LoadingState, QueryState, TableStatus } from '@
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { typeName } from '@/lib/furniture'
-import { formatDate, formatNumber } from '@/lib/format'
+import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
+import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { downloadCsv, h, printDocument } from '@/lib/report'
 import { t, tr } from '@/i18n'
 
-// SCR-MNT-12 Inspection Checklist (Figma 98:4293)
-// GET /inspection-runs/current?termId&block → { run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName,
-//   checklist: { name, version, items: [{ id, label, category, severity }] } } | null }
-// GET /inspection-runs/:id/rooms?page&pageSize → { items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result, note }],
-//   checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi }] }], total } — the Room's own checks
-//   (spec §6.19) are answered like checklist items
-// PUT /inspection-runs/:id/rooms/:room { results } → { createdRequests } · POST …/rooms/:room/unreachable · POST /inspection-runs/:id/submit
-// GET /inspection-runs/upcoming?block → { items: [{ id, date, scope, scheduleName }] }
+// SCR-MNT-12 Inspection Checklist (Figma 98:4293). A Room's inspection is Report 1: the record a new resident's
+// check-in inventory (Report 2) is compared with, so it records the same things: each furniture item's condition (Good,
+// Worn, Damaged, Missing) with a note and photos, and the meters with their photos.
+// GET /inspection-runs?block → { items: [run] }: the runs Staff can open (open ones, theirs first, then the ones sent
+//   lately); run = { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName,
+//   checklist: { name, version, items }, status: Open | Submitted, block, mine, overdue }
+// GET /inspection-runs/:id → { run } · GET /inspection-runs/current → { run } (the first open one)
+// GET /inspection-runs/:id/rooms?page&pageSize → { items: [{ room, roomTypeName, roomClassName, status, results:
+//   [{ itemId, result, note, condition }], checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi,
+//   bed }], meters, metersNeeded, previousMeters, photos: [{ id, itemId, url }], inspectedAt }], total }
+// PUT /inspection-runs/:id/rooms/:room { results, meters } → { createdRequests } · POST …/rooms/:room/unreachable
+// POST …/rooms/:room/photos (multipart photo, itemId) · DELETE …/rooms/:room/photos/:photoId
+// POST /inspection-runs/:id/submit { confirmed } · GET /inspection-runs/upcoming?block → { items }
 
 const resultTone = { Pass: 'success', Fail: 'error', 'Not checked': 'neutral' }
 const nextResult = { 'Not checked': 'Pass', Pass: 'Fail', Fail: 'Not checked' }
 const statusTone = { 'In progress': 'info', Done: 'success', 'To do': 'neutral', 'Not reachable': 'warning' }
+const runTone = { Open: 'info', Submitted: 'success' }
 
 function summary(r, total) {
   if (r.status === 'Not reachable') return t('No one home')
@@ -43,28 +50,112 @@ function summary(r, total) {
   return checked < total ? t('In progress') : t('All passed')
 }
 
-// Furniture items are answered with their condition (V75): Good and Worn pass, Damaged and Missing fail.
-const conditions = ['Good', 'Worn', 'Damaged', 'Missing']
-const conditionTone = { Good: 'success', Worn: 'info', Damaged: 'error', Missing: 'warning' }
-
-function Checklist({ run, room }) {
-  const { notify, notifyError } = useToast()
-  // The checklist's items, then the Room's own: the number of people, and each furniture item in it.
-  const items = [
-    ...(run.checklist?.items ?? []),
+/** The checklist's items, then the Room's own checks (the number of people, each furniture item). */
+function roomItems(run, room) {
+  return [
+    ...(run.checklist?.items ?? []).map((i) => ({ id: String(i.id), label: tr(i.label), kind: 'checklist' })),
     ...(room.checks ?? []).map((c) => ({
       id: c.id,
+      kind: c.kind,
       furniture: c.kind === 'furniture',
       label:
         c.kind === 'people'
           ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 })
-          : `${typeName(c)} · ${c.assetCode}${c.bed ? ` · ${t('Bed {bed}', { bed: c.bed })}` : ''}`,
+          : `${typeName(c)} · ${c.assetCode}${c.bed ? ` · ${t('Bed {bed}', { bed: c.bed })}` : ` · ${t('Shared')}`}`,
     })),
   ]
+}
+
+function PhotoStrip({ photos, onRemove }) {
+  if (!photos?.length) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-fg-tertiary">
+        <ImageOff size={13} aria-hidden="true" />
+        {t('No photo')}
+      </span>
+    )
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {photos.map((p) => (
+        <div key={p.id} className="relative size-12 overflow-hidden rounded-md border border-line">
+          <a href={p.url} target="_blank" rel="noreferrer">
+            <img src={p.url} alt={t('Photo')} className="size-full object-cover" />
+          </a>
+          {onRemove && (
+            <IconButton icon={Trash2} size="sm" aria-label={t('Remove photo')} className="absolute top-0 right-0 bg-surface" onClick={() => onRemove(p.id)} />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PhotoButton({ runId, room, itemId }) {
+  const { notifyError } = useToast()
+  const upload = useMutation(
+    (file) => {
+      const form = new FormData()
+      form.append('photo', file)
+      if (itemId) form.append('itemId', itemId)
+      return api.inspections.addPhoto(runId, room, form)
+    },
+    { invalidates: ['inspections'], onError: (e) => notifyError(e, 'Could not add the photo') },
+  )
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-fg-brand">
+      <Camera size={14} aria-hidden="true" />
+      {upload.pending ? t('Uploading…') : t('Add photo')}
+      <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && upload.run(e.target.files[0])} />
+    </label>
+  )
+}
+
+/** The Room's inspection as a document: printed, or saved as PDF, to keep or show. */
+function printRoom(run, room) {
+  const items = roomItems(run, room)
+  const results = Object.fromEntries((room.results ?? []).map((r) => [r.itemId, r]))
+  const photos = (id) => (room.photos ?? []).filter((p) => (id ? p.itemId === id : !p.itemId))
+  const cls = (r) => (r?.condition === 'Damaged' || r?.result === 'Fail' ? 'bad' : r?.condition === 'Missing' ? 'warn' : r?.result === 'Pass' ? 'ok' : '')
+  const answer = (it, r) => (it.furniture ? conditionName(r?.condition) || t(r?.result ?? 'Not checked') : t(r?.result ?? 'Not checked'))
+  const rows = items
+    .map((it) => {
+      const r = results[it.id]
+      const pics = photos(it.id).map((p) => `<img src="${h(p.url)}" alt="">`).join('')
+      return `<tr><td>${h(it.label)}</td><td><span class="tag ${cls(r)}">${h(answer(it, r))}</span></td><td>${h(r?.note ?? '')}</td><td>${pics || `<span class="muted">${h(t('No photo'))}</span>`}</td></tr>`
+    })
+    .join('')
+  const meterPics = photos(null).map((p) => `<img src="${h(p.url)}" alt="">`).join('')
+  const body = `
+    <h1>${h(t('Room inspection report · {room}', { room: room.room }))}</h1>
+    <p class="muted">${h(t('Report 1 · Room’s record: new residents’ check-in inventories are compared with it.'))}</p>
+    <div class="grid">
+      <div><b>${h(t('Run'))}:</b> ${h(run.id)} · ${h(tr(run.scheduleName) ?? '')}</div>
+      <div><b>${h(t('Block'))}:</b> ${h(run.block ?? '')}</div>
+      <div><b>${h(t('Room'))}:</b> ${h(room.room)} · ${h([tr(room.roomTypeName), tr(room.roomClassName)].filter(Boolean).join(' '))}</div>
+      <div><b>${h(t('Status'))}:</b> ${h(t(room.status))}</div>
+      <div><b>${h(t('Inspector'))}:</b> ${h(run.inspectorName ?? '')}</div>
+      <div><b>${h(t('Inspected at'))}:</b> ${h(room.inspectedAt ? formatDateTime(room.inspectedAt) : '—')}</div>
+      <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
+    </div>
+    <h2>${h(t('Meters'))}</h2>
+    <table><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th><th>${h(t('Photos'))}</th></tr>
+      <tr><td>${h(room.meters?.electricity ?? '—')}</td><td>${h(room.meters?.water ?? '—')}</td>
+      <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td>
+      <td>${meterPics || `<span class="muted">${h(t('No photo'))}</span>`}</td></tr></table>
+    <h2>${h(t('Items'))}</h2>
+    <table><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th><th style="width:170px">${h(t('Photos'))}</th></tr>${rows}</table>
+    <div class="sign"><div><b>${h(t('Inspector'))}</b><br><span class="muted">${h(run.inspectorName ?? '')}</span></div><div><b>${h(t('Manager'))}</b></div></div>`
+  return printDocument(t('Room inspection report · {room}', { room: room.room }), body)
+}
+
+function Checklist({ run, room }) {
+  const { notify, notifyError } = useToast()
+  const items = roomItems(run, room)
   const initial = Object.fromEntries(
     items.map((it) => {
       const saved = room.results?.find((x) => x.itemId === it.id)
-      return [it.id, saved ? { ...saved, condition: saved.condition ?? null, restock: false } : { result: 'Not checked', note: '', condition: null, restock: false }]
+      return [it.id, saved ? { ...saved, note: saved.note ?? '', condition: saved.condition ?? null, restock: false } : { result: 'Not checked', note: '', condition: null, restock: false }]
     }),
   )
   const [results, setResults] = useState(initial)
@@ -73,13 +164,16 @@ function Checklist({ run, room }) {
     water: room.meters?.water ?? '',
     replaced: room.meters?.replaced ?? false,
   })
+  const sent = run.status === 'Submitted'
+  const done = sent || room.status === 'Done' || room.status === 'Not reachable'
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
-  const done = room.status === 'Done' || room.status === 'Not reachable'
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
+  const photosOf = (id) => (room.photos ?? []).filter((p) => (id ? p.itemId === id : !p.itemId))
 
   const setCondition = (id, condition) =>
-    setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
+    setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: !condition ? 'Not checked' : condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
+  const setNote = (id, note) => setResults((rs) => ({ ...rs, [id]: { ...rs[id], note } }))
 
   const save = useMutation(
     () =>
@@ -110,44 +204,63 @@ function Checklist({ run, room }) {
     onSuccess: () => notify({ type: 'info', title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next inspection run.' }),
     onError: (e) => notifyError(e, 'Could not update the room'),
   })
+  const removePhoto = useMutation((id) => api.inspections.removePhoto(run.id, room.room, id), {
+    invalidates: ['inspections'],
+    onError: (e) => notifyError(e, 'Could not remove the photo'),
+  })
 
   return (
-    <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
-      <div className="flex shrink-0 flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">
-          {room.room} · {tr(run.checklist?.name)}
-        </h2>
-        <p className="text-sm text-fg-secondary">
-          {t('Checklist {version} set by admin · {n} items', { version: run.checklist?.version, n: items.length })}
-          {run.inspectorName ? ` · ${t('Inspector {name}', { name: run.inspectorName })}` : ''}
-        </p>
+    <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-h3 font-semibold text-fg">
+            {room.room} · {tr(run.checklist?.name)}
+          </h2>
+          <p className="text-sm text-fg-secondary">
+            {t('Checklist {version} set by admin · {n} items', { version: run.checklist?.version, n: items.length })}
+            {run.inspectorName ? ` · ${t('Inspector {name}', { name: run.inspectorName })}` : ''}
+            {room.inspectedAt ? ` · ${t('Inspected {date}', { date: formatDateTime(room.inspectedAt) })}` : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
+          <Button size="sm" icon={FileText} onClick={() => printRoom(run, room) || notify({ type: 'info', title: 'Allow pop-ups to print the report' })}>
+            View and print report
+          </Button>
+        </div>
       </div>
-      <Table fill>
+      <p className="shrink-0 rounded-lg bg-subtle/60 px-3 py-2 text-sm text-fg-secondary">
+        {t('This inspection is Report 1, the Room’s record: each new resident’s check-in inventory (Report 2) is compared with it item by item and meter by meter.')}
+      </p>
+      <Table className="shrink-0 overflow-visible">
         <THead>
           <tr>
             <Th>Item</Th>
-            <Th className="w-56">Result</Th>
-            <Th className="w-56">Note</Th>
+            <Th className="w-48">Condition or result</Th>
+            <Th className="w-64">Note</Th>
+            <Th className="w-44">Photos</Th>
           </tr>
         </THead>
         <TBody>
           {items.map((item) => {
             const r = results[item.id]
             return (
-              <Tr key={item.id} className="[&>td]:h-11">
-                <Td className="py-1.5">{tr(item.label)}</Td>
+              <Tr key={item.id} className={cx('[&>td]:py-2', (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/50')}>
+                <Td>
+                  <span className="text-sm text-fg">{item.label}</span>
+                </Td>
                 <Td>
                   {item.furniture ? (
                     done ? (
-                      <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ?? r.result}</Tag>
+                      <Tag tone={conditionTone[r.condition] ?? resultTone[r.result] ?? 'neutral'}>{r.condition ? conditionName(r.condition) : r.result}</Tag>
                     ) : (
-                      <div className="flex flex-col gap-1 py-1">
+                      <div className="flex flex-col gap-1">
                         <Select
                           size="sm"
                           aria-label={t('Condition of {item}', { item: item.label })}
                           value={r.condition ?? ''}
                           onChange={(e) => setCondition(item.id, e.target.value || null)}
-                          options={[{ value: '', label: 'Not checked' }, ...conditions.map((c) => ({ value: c, label: c }))]}
+                          options={[{ value: '', label: 'Not checked' }, ...conditionOptions()]}
                         />
                         {r.condition === 'Missing' && (
                           <Checkbox
@@ -171,10 +284,20 @@ function Checklist({ run, room }) {
                   )}
                 </Td>
                 <Td>
-                  {r.result === 'Fail' && !done ? (
-                    <Input aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setResults((rs) => ({ ...rs, [item.id]: { ...rs[item.id], note: e.target.value } }))} placeholder="What is wrong?" />
+                  {done ? (
+                    <span className="text-sm text-fg">{r.note || '—'}</span>
                   ) : (
-                    <span className="text-fg">{r.note ?? ''}</span>
+                    <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
+                  )}
+                </Td>
+                <Td>
+                  {item.furniture ? (
+                    <div className="flex flex-col gap-1">
+                      <PhotoStrip photos={photosOf(item.id)} onRemove={sent ? undefined : (id) => removePhoto.run(id)} />
+                      {!sent && photosOf(item.id).length < 3 && <PhotoButton runId={run.id} room={room.room} itemId={item.id} />}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-fg-tertiary">—</span>
                   )}
                 </Td>
               </Tr>
@@ -182,44 +305,41 @@ function Checklist({ run, room }) {
           })}
         </TBody>
       </Table>
-      <div className="flex shrink-0 flex-wrap items-start gap-3">
-        <Field
-          label="Electricity (kWh)"
-          required={room.metersNeeded}
-          className="w-56"
-          helper={
-            room.previousMeters
-              ? t('Previous reading: {value} kWh (recorded {date})', {
-                  value: formatNumber(room.previousMeters.electricity),
-                  date: formatDate(room.previousMeters.date),
-                })
-              : undefined
-          }
-        >
-          <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} />
-        </Field>
-        <Field
-          label="Water (m³)"
-          required={room.metersNeeded}
-          className="w-56"
-          helper={
-            room.previousMeters
-              ? t('Previous reading: {value} m³ (recorded {date})', {
-                  value: formatNumber(room.previousMeters.water),
-                  date: formatDate(room.previousMeters.date),
-                })
-              : undefined
-          }
-        >
-          <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} />
-        </Field>
-        <div className="pt-7">
-          <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
+      <section className="flex shrink-0 flex-col gap-2 rounded-lg border border-line p-3">
+        <span className="text-base font-medium text-fg">{t('Meters of the Room')}</span>
+        <div className="flex flex-wrap items-start gap-3">
+          <Field
+            label="Electricity (kWh)"
+            required={room.metersNeeded}
+            className="w-56"
+            helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
+          >
+            <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} />
+          </Field>
+          <Field
+            label="Water (m³)"
+            required={room.metersNeeded}
+            className="w-56"
+            helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
+          >
+            <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} />
+          </Field>
+          <div className="pt-7">
+            <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
+          </div>
         </div>
-        {room.metersNeeded && <p className="pt-7 text-sm text-fg-tertiary">Pre-arrival inspection: the Room is done once its meters are read.</p>}
-      </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <PhotoStrip photos={photosOf(null)} onRemove={sent ? undefined : (id) => removePhoto.run(id)} />
+          {!sent && photosOf(null).length < 3 && <PhotoButton runId={run.id} room={room.room} />}
+        </div>
+        {room.metersNeeded && <p className="text-sm text-fg-tertiary">{t('Pre-arrival inspection: the Room is done once its meters are read.')}</p>}
+      </section>
       <div className="flex shrink-0 flex-col gap-2.5">
-        {room.status === 'Done' ? (
+        {sent ? (
+          <Alert type="info" title="Results sent">
+            {t('This run was sent: read the Rooms, print a Room’s report or export the run.')}
+          </Alert>
+        ) : room.status === 'Done' ? (
           <Alert type="success" title="Room saved">
             {failed ? t('{n} failed items were sent to maintenance.', { n: failed }) : t('Every item passed.')}
           </Alert>
@@ -232,7 +352,7 @@ function Checklist({ run, room }) {
             Damaged items become furniture repair requests; a Missing item with a spare from the store becomes a planned move instead.
           </Alert>
         ) : (
-          <p className="text-sm text-fg-tertiary">Choose Good, Worn, Damaged or Missing for each furniture item; click a checklist result to switch between Pass, Fail and Not checked.</p>
+          <p className="text-sm text-fg-tertiary">{t('Choose Good, Worn, Damaged or Missing for each furniture item; click a checklist result to switch between Pass, Fail and Not checked.')}</p>
         )}
         {!done && (
           <div className="flex justify-end gap-2">
@@ -267,7 +387,7 @@ function SubmitReview({ run, onClose, onSubmit, pending }) {
       .map((x) => {
         const check = (r.checks ?? []).find((c) => c.id === x.itemId)
         const item = run.checklist?.items?.find((i) => String(i.id) === String(x.itemId))
-        return { room: r.room, label: check ? `${typeName(check)} · ${check.assetCode}` : item?.label ?? x.itemId, condition: x.condition ?? x.result, note: x.note }
+        return { room: r.room, label: check ? `${typeName(check)} · ${check.assetCode}` : tr(item?.label) ?? x.itemId, condition: x.condition, result: x.result, note: x.note }
       }),
   )
   const blocking = notDone.length > 0 || noMeters.length > 0
@@ -327,7 +447,7 @@ function SubmitReview({ run, onClose, onSubmit, pending }) {
                       {f.room} · {f.label}
                       {f.note ? <span className="text-fg-secondary"> · {f.note}</span> : null}
                     </span>
-                    <Tag tone={conditionTone[f.condition] ?? 'error'}>{f.condition}</Tag>
+                    <Tag tone={conditionTone[f.condition] ?? 'error'}>{f.condition ? conditionName(f.condition) : f.result}</Tag>
                   </div>
                 ))}
               </div>
@@ -345,17 +465,91 @@ function SubmitReview({ run, onClose, onSubmit, pending }) {
   )
 }
 
-function Run({ run }) {
+/** Every Room of the run with every answer, as a CSV file (Excel opens it with the Vietnamese accents). */
+async function exportRun(run) {
+  const rooms = []
+  for (let page = 1; page < 50; page++) {
+    const res = await api.inspections.rooms(run.id, { page, pageSize: 100 })
+    rooms.push(...(res?.items ?? []))
+    if (!res?.items?.length || rooms.length >= (res.total ?? 0)) break
+  }
+  const header = [t('Run'), t('Block'), t('Room'), t('Status'), t('Item'), t('Condition or result'), t('Note'), t('Photos'), t('Electricity (kWh)'), t('Water (m³)'), t('Inspected at')]
+  const rows = [header]
+  for (const room of rooms) {
+    const results = Object.fromEntries((room.results ?? []).map((r) => [r.itemId, r]))
+    for (const it of roomItems(run, room)) {
+      const r = results[it.id]
+      rows.push([
+        run.id,
+        run.block ?? '',
+        room.room,
+        t(room.status),
+        it.label,
+        it.furniture && r?.condition ? conditionName(r.condition) : t(r?.result ?? 'Not checked'),
+        r?.note ?? '',
+        (room.photos ?? []).filter((p) => p.itemId === it.id).length,
+        room.meters?.electricity ?? '',
+        room.meters?.water ?? '',
+        room.inspectedAt ? formatDateTime(room.inspectedAt) : '',
+      ])
+    }
+  }
+  downloadCsv(`${run.id}-${run.block ?? 'block'}.csv`, rows)
+}
+
+function RunSwitcher({ runs, value, onChange }) {
+  if (runs.length < 2) return null
+  return (
+    <div className="flex shrink-0 gap-2 overflow-x-auto pb-1" role="tablist" aria-label={t('Inspection runs assigned to you')}>
+      {runs.map((r) => {
+        const active = r.id === value
+        return (
+          <button
+            key={r.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(r.id)}
+            className={cx(
+              'flex min-w-56 shrink-0 flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors',
+              active ? 'border-primary bg-brand-subtle' : 'border-line bg-surface hover:bg-subtle',
+            )}
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-fg">{r.id}</span>
+              <span className="flex gap-1">
+                {r.overdue && <Tag tone="error">Overdue</Tag>}
+                <Tag tone={runTone[r.status] ?? 'neutral'}>{r.status === 'Open' ? 'In progress' : 'Sent'}</Tag>
+              </span>
+            </span>
+            <span className="truncate text-sm text-fg">{tr(r.scheduleName) || t('Inspection')}</span>
+            <span className="text-xs text-fg-secondary">
+              {[r.block && t('Block {code}', { code: r.block }), t('{n} of {total} Rooms', { n: r.inspected + r.unreachable, total: r.rooms }), r.mine ? t('Assigned to you') : r.inspectorName].filter(Boolean).join(' · ')}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function Run({ run, switcher }) {
   const { notify, notifyError } = useToast()
   const [page, setPage] = useState(1)
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [calendar, setCalendar] = useState(false)
   const [reviewing, setReviewing] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  useEffect(() => {
+    setPage(1)
+    setSelectedRoom(null)
+  }, [run.id])
   const rooms = useQuery(['inspections', 'rooms', run.id, page], ({ signal }) => api.inspections.rooms(run.id, { page, pageSize: 20 }, { signal }))
   const upcoming = useQuery(['inspections', 'upcoming'], ({ signal }) => api.inspections.upcoming(undefined, { signal }), { enabled: calendar })
   const items = rooms.data?.items ?? []
   const selected = items.find((r) => r.room === selectedRoom) ?? items[0]
   const total = run.checklist?.items?.length ?? 0
+  const sent = run.status === 'Submitted'
   const submit = useMutation(() => api.inspections.submit(run.id, { confirmed: true }), {
     invalidates: ['inspections'],
     onSuccess: () => {
@@ -364,37 +558,53 @@ function Run({ run }) {
     },
     onError: (e) => notifyError(e, 'Could not submit the results'),
   })
+  const doExport = async () => {
+    setExporting(true)
+    try {
+      await exportRun(run)
+    } catch (e) {
+      notifyError(e, 'Could not export the run')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <>
       <PageHeader
         title="Inspections"
-        description={[formatDate(run.date), tr(run.scheduleName), tr(run.scope)].filter(Boolean).join(' · ')}
+        description={[run.id, formatDate(run.date), tr(run.scheduleName), tr(run.scope), run.block && t('Block {code}', { code: run.block })].filter(Boolean).join(' · ')}
         actions={
           <>
             <Button icon={CalendarDays} onClick={() => setCalendar(true)}>
               Calendar
             </Button>
-            <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
-              Submit results
+            <Button icon={Download} onClick={doExport} disabled={exporting}>
+              Export CSV
             </Button>
+            {!sent && (
+              <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
+                Submit results
+              </Button>
+            )}
           </>
         }
       />
+      {switcher}
       <div className="flex shrink-0 gap-4">
-        <KpiTile label="Rooms in this run" value={formatNumber(run.rooms)} note={run.id} noteTone="tertiary" />
-        <KpiTile label="Inspected" value={formatNumber(run.inspected)} note={run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null} noteTone="tertiary" />
+        <KpiTile label="Rooms in this run" value={formatNumber(run.rooms)} note={sent ? t('Sent') : run.id} noteTone="tertiary" />
+        <KpiTile label="Inspected" value={formatNumber(run.inspected)} note={run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null} noteTone={run.overdue ? 'error' : 'tertiary'} />
         <KpiTile label="Items failed" value={formatNumber(run.failed)} note="Each creates a maintenance request" noteTone="tertiary" />
         <KpiTile label="Not reachable" value={formatNumber(run.unreachable)} note="Re-schedule in the next run" noteTone="tertiary" />
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-118 shrink-0 flex-col gap-3">
+        <div className="flex min-h-0 w-96 shrink-0 flex-col gap-3">
           <Table fill>
             <THead>
               <tr>
-                <Th className="w-32">Room</Th>
+                <Th className="w-28">Room</Th>
                 <Th>Result</Th>
-                <Th className="w-32">Status</Th>
+                <Th className="w-30">Status</Th>
               </tr>
             </THead>
             <TBody>
@@ -417,7 +627,7 @@ function Run({ run }) {
           </div>
         </div>
         {selected ? (
-          <Checklist key={`${selected.room}-${selected.status}`} run={run} room={selected} />
+          <Checklist key={`${run.id}-${selected.room}-${selected.status}`} run={run} room={selected} />
         ) : (
           <Card className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={CircleCheck} title="Select a room" />
@@ -427,7 +637,7 @@ function Run({ run }) {
 
       {reviewing && <SubmitReview run={run} pending={submit.pending} onClose={() => setReviewing(false)} onSubmit={() => submit.run()} />}
       <Modal open={calendar} onClose={() => setCalendar(false)} title="Upcoming inspections" description="Scheduled by the managers." footer={<Button onClick={() => setCalendar(false)}>Close</Button>}>
-        <QueryState query={upcoming} compact empty={<p className="text-base text-fg-secondary">No inspections scheduled.</p>}>
+        <QueryState query={upcoming} compact empty={<p className="text-base text-fg-secondary">{t('No inspections scheduled.')}</p>}>
           {(d) => (
             <ul className="flex flex-col gap-2">
               {d.items.map((u) => (
@@ -446,15 +656,18 @@ function Run({ run }) {
 
 export default function InspectionChecklist() {
   const scope = useScopeQuery()
-  const query = useQuery(['inspections', 'current', scope], ({ signal }) => api.inspections.current(scope, { signal }))
-  if (query.data?.run) return <Run run={query.data.run} />
+  const list = useQuery(['inspections', 'runs', scope], ({ signal }) => api.inspections.runs(scope, { signal }))
+  const runs = list.data?.items ?? []
+  const [runId, setRunId] = useState(null)
+  const run = runs.find((r) => r.id === runId) ?? runs[0]
+  if (run) return <Run run={run} switcher={<RunSwitcher runs={runs} value={run.id} onChange={setRunId} />} />
   return (
     <>
       <PageHeader title="Inspections" />
-      {query.data === undefined && query.loading ? (
+      {list.data === undefined && list.loading ? (
         <LoadingState />
-      ) : query.data === undefined ? (
-        <ErrorState error={query.error} onRetry={query.reload} />
+      ) : list.data === undefined ? (
+        <ErrorState error={list.error} onRetry={list.reload} />
       ) : (
         <Card className="flex min-h-0 flex-1 flex-col">
           <EmptyBlock icon={CircleCheck} title="No inspection run today">

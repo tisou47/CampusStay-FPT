@@ -259,6 +259,8 @@ Meter readings, Utility Invoices and Admin › Utility: C-29.
 
 - Rooms of a run carry `checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi }]`, answered in `results` like checklist items; a Room is Done when both are answered (A-51, B-11)
 
+- `GET /inspection-runs?block` → `{ items: [run] }`: the runs Staff can open, open ones (their own first) then the ones sent in the last 30 days; each run as below plus `status` (Open | Submitted), `block`, `mine`, `overdue` (A-74) · `GET /inspection-runs/{id}` → `{ run }`
+- `POST /inspection-runs/{id}/rooms/{room}/photos` (multipart `photo`, `itemId` "furniture-<id>", none = the meters; JPEG/PNG, at most `handover.max_photos` each) → `{ id, itemId, url }` · `DELETE …/photos/{photoId}` → 204; a Room of `GET …/rooms` also gives `photos: [{ id, itemId, url }]` and `inspectedAt` (A-74)
 - `GET /inspection-runs/current?termId&block` → `{ run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName, checklist: { name, version, items: [{ id, label, category, severity }] } } | null }`
 - `GET /inspection-runs/{id}/rooms?page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result: 'Pass'|'Fail'|'Not checked', note }] }], total }`
 - `PUT /inspection-runs/{id}/rooms/{room}` `{ results }` → `{ createdRequests: [id] }`. A failed item creates a Maintenance Request; its severity sets the request priority.

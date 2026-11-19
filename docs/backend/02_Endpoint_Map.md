@@ -246,6 +246,10 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | MNT | POST | `/inspection-checklists/{id}/archive` | Could | Verified | C-34; pauses the schedules: TC-MNT-004, 006 |
 | MNT | POST | `/inspection-checklists/{id}/publish` | Could | Verified | A-14, C-34; TC-MNT-004, 006 |
 | MNT | GET | `/inspection-runs/current` | Could | Verified | C-34; TC-MNT-005, 007 |
+| MNT | GET | `/inspection-runs` | Should | Verified | A-74; every run Staff can open; TC-MNT-010 |
+| MNT | GET | `/inspection-runs/{id}` | Should | Verified | A-74; TC-MNT-010 |
+| MNT | POST | `/inspection-runs/{id}/rooms/{room}/photos` | Should | Verified | A-74; V82; TC-MNT-010 |
+| MNT | DELETE | `/inspection-runs/{id}/rooms/{room}/photos/{photoId}` | Should | Verified | A-74; TC-MNT-010 |
 | MNT | GET | `/inspection-runs/upcoming` | Could | Verified | C-34; TC-MNT-005 |
 | MNT | GET | `/inspection-runs/{id}/rooms` | Could | Verified | C-34; TC-MNT-005 |
 | MNT | PUT | `/inspection-runs/{id}/rooms/{room}` | Could | Verified | C-34; a failed item creates a Maintenance Request: TC-MNT-005 |

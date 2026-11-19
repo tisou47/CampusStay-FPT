@@ -227,6 +227,74 @@ class InspectionIT {
                 .andExpect(jsonPath("$.run.inspected").value(0));
     }
 
+    /**
+     * TC-MNT-010: Staff see every run assigned to them (not only the first), open one by its code, and add photos of a
+     * furniture item and of the meters like a student's check-in inventory; Managers list every Block's schedules and
+     * runs, each with its Block, without the editor options.
+     */
+    @Test
+    void staffListTheirRunsWithPhotos() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        long a2 = stay.userId(STAFF_A2);
+        String body = """
+                {"block":"A","name":"%s","checklistId":"CL-ROOM","scope":"%s","repeat":"WEEKLY",
+                 "assignee":"%d","dueWithinDays":3,"createRequests":true,"notifyResidents":false}""";
+        stay.postJson("/inspection-schedules", manager, body.formatted("Floor 2 check", "FLOOR_2", a2)).andExpect(status().isOk());
+        stay.postJson("/inspection-schedules", manager, body.formatted("Floor 3 check", "FLOOR_3", a2)).andExpect(status().isOk());
+
+        String staff = bearer(mvc, STAFF_A2);
+        String list = getAs("/inspection-runs?block=A", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.scheduleName == 'Floor 2 check')].status").value(hasItem("Open")))
+                .andExpect(jsonPath("$.items[?(@.scheduleName == 'Floor 3 check')].mine").value(hasItem(true)))
+                .andExpect(jsonPath("$.items[?(@.scheduleName == 'Floor 3 check')].block").value(hasItem("A")))
+                .andReturn().getResponse().getContentAsString();
+        List<String> floor3 = JsonPath.read(list, "$.items[?(@.scheduleName == 'Floor 3 check')].id");
+        String run = floor3.getFirst();
+        getAs("/inspection-runs/" + run, staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.run.id").value(run)).andExpect(jsonPath("$.run.scope").value("Floor 3"));
+
+        String rooms = getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff).andReturn().getResponse()
+                .getContentAsString();
+        String room = JsonPath.read(rooms, "$.items[0].room");
+        List<String> furniture = JsonPath.read(rooms, "$.items[0].checks[?(@.kind == 'furniture')].id");
+        org.springframework.mock.web.MockMultipartFile photo = new org.springframework.mock.web.MockMultipartFile("photo",
+                "item.png", "image/png", new byte[] { (byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10, 0, 0, 0, 13 });
+        String added = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/inspection-runs/" + run + "/rooms/" + room + "/photos").file(photo)
+                        .param("itemId", furniture.getFirst()).header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.itemId").value(furniture.getFirst()))
+                .andReturn().getResponse().getContentAsString();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/inspection-runs/" + run + "/rooms/" + room + "/photos").file(photo)
+                        .header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.itemId").value((Object) null));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/inspection-runs/" + run + "/rooms/" + room + "/photos").file(photo)
+                        .param("itemId", "furniture-999999").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.itemId").exists());
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[0].photos", hasSize(2)));
+        String photoId = JsonPath.read(added, "$.id");
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/inspection-runs/" + run + "/rooms/" + room + "/photos/" + photoId)
+                        .header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isNoContent());
+        getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
+                .andExpect(jsonPath("$.items[0].photos", hasSize(1)));
+
+        getAs("/inspection-schedules?block=all", manager).andExpect(status().isOk())
+                .andExpect(jsonPath("$.options").value((Object) null))
+                .andExpect(jsonPath("$.blocks").value(hasItem("A")))
+                .andExpect(jsonPath("$.items[?(@.name == 'Floor 3 check')].block").value(hasItem("A")))
+                .andExpect(jsonPath("$.runs[?(@.id == '" + run + "')].scheduleName").value(hasItem("Floor 3 check")));
+        getAs("/inspection-runs?block=A", bearer(mvc, StayFlow.student(2))).andExpect(status().isForbidden());
+
+        // The other tests of this class read the first open run of staff.a2: these runs go.
+        String mine = "(SELECT id FROM mnt_inspection_schedule WHERE name IN ('Floor 2 check', 'Floor 3 check'))";
+        jdbc.sql("DELETE FROM mnt_inspection_run WHERE schedule_id IN " + mine).update();
+        jdbc.sql("DELETE FROM mnt_inspection_schedule WHERE id IN " + mine).update();
+    }
+
     /** TC-MNT-006: archiving a checklist pauses its schedules, which cannot resume until another is published. */
     @Test
     void archivingPausesSchedules() throws Exception {

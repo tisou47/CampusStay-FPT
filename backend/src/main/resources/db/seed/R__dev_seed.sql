@@ -311,6 +311,45 @@ JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện ho�
      v (family_key, n, label, category, severity) ON v.family_key = c.family_key
 WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);
 
+-- More published checklists, so a schedule has real choices: a full pre-arrival check (the record new residents'
+-- inventories are compared with), security and door codes, bathrooms, and the network. Each item is added once.
+INSERT INTO mnt_checklist (family_key, name, version, status, published_at, updated_at)
+SELECT v.family_key, v.name, 1, 'PUBLISHED', now() - interval '20 days', now() - interval '20 days'
+FROM (VALUES ('CL_PRE_ARRIVAL', 'Kiểm tra phòng trước khi giao cho sinh viên mới'),
+             ('CL_SECURITY',    'Kiểm tra an ninh, khóa cửa & mã cửa'),
+             ('CL_BATHROOM',    'Kiểm tra nhà vệ sinh & nhà tắm'),
+             ('CL_NETWORK',     'Kiểm tra mạng Wi-Fi & thiết bị điện tử')) v (family_key, name)
+WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist c WHERE c.family_key = v.family_key);
+
+INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
+SELECT c.id, v.label, v.category, v.severity, v.n
+FROM mnt_checklist c
+JOIN (VALUES ('CL_PRE_ARRIVAL', 1, 'Đèn chiếu sáng, đèn bàn học và công tắc hoạt động tốt', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 2, 'Ổ cắm điện đủ số lượng, không lỏng hoặc cháy xém', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 3, 'Máy điều hòa bật được, làm mát, có điều khiển', 'AIR_CONDITIONING', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 4, 'Bình nóng lạnh có điện và ra nước nóng', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 5, 'Vòi nước, vòi sen và bồn cầu không rò rỉ', 'PLUMBING', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 6, 'Khóa mã cửa nhận mã mới và cửa đóng kín', 'OTHER', 'CRITICAL'),
+             ('CL_PRE_ARRIVAL', 7, 'Cửa sổ, rèm và lưới chống muỗi nguyên vẹn', 'OTHER', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 8, 'Tường, trần và sàn sạch, không ẩm mốc hoặc nứt', 'OTHER', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 9, 'Phòng đã được vệ sinh, không còn đồ của người ở trước', 'CLEANING', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 10, 'Bảng nội quy và sơ đồ thoát hiểm còn trên cửa', 'OTHER', 'TRIVIAL'),
+             ('CL_SECURITY', 1, 'Khóa mã cửa hoạt động, pin còn trên 20 %', 'OTHER', 'CRITICAL'),
+             ('CL_SECURITY', 2, 'Cửa chính tự đóng, bản lề và tay nắm chắc chắn', 'OTHER', 'MAJOR'),
+             ('CL_SECURITY', 3, 'Chốt cửa sổ và cửa ban công khóa được', 'OTHER', 'MAJOR'),
+             ('CL_SECURITY', 4, 'Không có thiết bị lạ gắn vào khóa hoặc ổ điện', 'OTHER', 'CRITICAL'),
+             ('CL_BATHROOM', 1, 'Bồn cầu xả nước mạnh, không chảy liên tục', 'PLUMBING', 'MAJOR'),
+             ('CL_BATHROOM', 2, 'Vòi sen và vòi lavabo đủ áp lực, không rò rỉ', 'PLUMBING', 'MAJOR'),
+             ('CL_BATHROOM', 3, 'Quạt thông gió nhà tắm hoạt động', 'ELECTRICAL', 'MINOR'),
+             ('CL_BATHROOM', 4, 'Gương, kệ và móc treo chắc chắn', 'FURNITURE', 'TRIVIAL'),
+             ('CL_BATHROOM', 5, 'Nhà tắm khô ráo, không nấm mốc, thoát sàn nhanh', 'CLEANING', 'MINOR'),
+             ('CL_NETWORK', 1, 'Wi-Fi của tầng bắt được trong phòng, tốc độ ổn định', 'INTERNET', 'MAJOR'),
+             ('CL_NETWORK', 2, 'Ổ mạng dây (LAN) ở bàn học hoạt động', 'INTERNET', 'MINOR'),
+             ('CL_NETWORK', 3, 'Không có bộ phát Wi-Fi tự lắp gây nhiễu', 'INTERNET', 'MINOR'))
+     v (family_key, n, label, category, severity) ON v.family_key = c.family_key
+WHERE c.family_key IN ('CL_PRE_ARRIVAL', 'CL_SECURITY', 'CL_BATHROOM', 'CL_NETWORK')
+  AND NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id AND i.label = v.label);
+
 UPDATE mnt_inspection_schedule s
 SET name = 'Kiểm tra phòng trước nhận phòng · Tòa ' || b.code,
     assignee_id = coalesce((SELECT u.id FROM auth_user u WHERE u.email = 'staff' || lower(b.code) || '02@fpt.edu.vn'), s.assignee_id)

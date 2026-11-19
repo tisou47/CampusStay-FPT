@@ -101,6 +101,45 @@ JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện ho�
      v (family_key, n, label, category, severity) ON v.family_key = c.family_key
 WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);
 
+-- More published checklists, so a schedule has real choices: a full pre-arrival check (the record new residents'
+-- inventories are compared with), security and door codes, bathrooms, and the network. Each item is added once.
+INSERT INTO mnt_checklist (family_key, name, version, status, published_at, updated_at)
+SELECT v.family_key, v.name, 1, 'PUBLISHED', now() - interval '20 days', now() - interval '20 days'
+FROM (VALUES ('CL_PRE_ARRIVAL', 'Kiểm tra phòng trước khi giao cho sinh viên mới'),
+             ('CL_SECURITY',    'Kiểm tra an ninh, khóa cửa & mã cửa'),
+             ('CL_BATHROOM',    'Kiểm tra nhà vệ sinh & nhà tắm'),
+             ('CL_NETWORK',     'Kiểm tra mạng Wi-Fi & thiết bị điện tử')) v (family_key, name)
+WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist c WHERE c.family_key = v.family_key);
+
+INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
+SELECT c.id, v.label, v.category, v.severity, v.n
+FROM mnt_checklist c
+JOIN (VALUES ('CL_PRE_ARRIVAL', 1, 'Đèn chiếu sáng, đèn bàn học và công tắc hoạt động tốt', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 2, 'Ổ cắm điện đủ số lượng, không lỏng hoặc cháy xém', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 3, 'Máy điều hòa bật được, làm mát, có điều khiển', 'AIR_CONDITIONING', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 4, 'Bình nóng lạnh có điện và ra nước nóng', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 5, 'Vòi nước, vòi sen và bồn cầu không rò rỉ', 'PLUMBING', 'MAJOR'),
+             ('CL_PRE_ARRIVAL', 6, 'Khóa mã cửa nhận mã mới và cửa đóng kín', 'OTHER', 'CRITICAL'),
+             ('CL_PRE_ARRIVAL', 7, 'Cửa sổ, rèm và lưới chống muỗi nguyên vẹn', 'OTHER', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 8, 'Tường, trần và sàn sạch, không ẩm mốc hoặc nứt', 'OTHER', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 9, 'Phòng đã được vệ sinh, không còn đồ của người ở trước', 'CLEANING', 'MINOR'),
+             ('CL_PRE_ARRIVAL', 10, 'Bảng nội quy và sơ đồ thoát hiểm còn trên cửa', 'OTHER', 'TRIVIAL'),
+             ('CL_SECURITY', 1, 'Khóa mã cửa hoạt động, pin còn trên 20 %', 'OTHER', 'CRITICAL'),
+             ('CL_SECURITY', 2, 'Cửa chính tự đóng, bản lề và tay nắm chắc chắn', 'OTHER', 'MAJOR'),
+             ('CL_SECURITY', 3, 'Chốt cửa sổ và cửa ban công khóa được', 'OTHER', 'MAJOR'),
+             ('CL_SECURITY', 4, 'Không có thiết bị lạ gắn vào khóa hoặc ổ điện', 'OTHER', 'CRITICAL'),
+             ('CL_BATHROOM', 1, 'Bồn cầu xả nước mạnh, không chảy liên tục', 'PLUMBING', 'MAJOR'),
+             ('CL_BATHROOM', 2, 'Vòi sen và vòi lavabo đủ áp lực, không rò rỉ', 'PLUMBING', 'MAJOR'),
+             ('CL_BATHROOM', 3, 'Quạt thông gió nhà tắm hoạt động', 'ELECTRICAL', 'MINOR'),
+             ('CL_BATHROOM', 4, 'Gương, kệ và móc treo chắc chắn', 'FURNITURE', 'TRIVIAL'),
+             ('CL_BATHROOM', 5, 'Nhà tắm khô ráo, không nấm mốc, thoát sàn nhanh', 'CLEANING', 'MINOR'),
+             ('CL_NETWORK', 1, 'Wi-Fi của tầng bắt được trong phòng, tốc độ ổn định', 'INTERNET', 'MAJOR'),
+             ('CL_NETWORK', 2, 'Ổ mạng dây (LAN) ở bàn học hoạt động', 'INTERNET', 'MINOR'),
+             ('CL_NETWORK', 3, 'Không có bộ phát Wi-Fi tự lắp gây nhiễu', 'INTERNET', 'MINOR'))
+     v (family_key, n, label, category, severity) ON v.family_key = c.family_key
+WHERE c.family_key IN ('CL_PRE_ARRIVAL', 'CL_SECURITY', 'CL_BATHROOM', 'CL_NETWORK')
+  AND NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id AND i.label = v.label);
+
 INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
                                      create_requests, notify_residents, next_run_at, status, created_at, kind)
 SELECT b.id, 'Kiểm tra phòng trước nhận phòng · Tòa A', 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
@@ -200,8 +239,69 @@ WHERE ir.status = 'INSPECTED'
 UNION ALL
 SELECT ir.id, 'FURNITURE:' || i.item_id,
        CASE WHEN i.condition IN ('GOOD', 'WORN') THEN 'PASS' ELSE 'FAIL' END, i.condition,
-       CASE i.condition WHEN 'DAMAGED' THEN 'Reported for repair before check-in.' WHEN 'WORN' THEN 'Normal wear.' END
+       CASE i.condition WHEN 'DAMAGED' THEN 'Đã báo sửa trước khi nhận phòng.' WHEN 'WORN' THEN 'Hao mòn bình thường.' END
 FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_checkin_item i ON i.room_id = ir.room_id
 WHERE ir.status = 'INSPECTED';
+
+-- ---------- open runs of the Block's first Staff (every stage) ----------
+-- Two weekly checks started by the Managers and assigned to staff<block>01, still in progress, so the Staff page lists
+-- several runs to switch between: security and door codes (started today) and bathrooms (started yesterday). Six
+-- occupied Rooms each, the first two already inspected (every item passed, furniture Good).
+INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
+                                     create_requests, notify_residents, next_run_at, status, created_at, kind)
+SELECT b.id, v.name || ' · Tòa ' || b.code, v.family, 'OCCUPIED', 'WEEKLY',
+       (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '01'), v.due, TRUE, FALSE,
+       ((t.today + 7 - v.started) + TIME '07:00') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'ACTIVE',
+       t.now - interval '10 days', 'PERIODIC'
+FROM inv_building b CROSS JOIN demo_t t
+CROSS JOIN (VALUES ('Kiểm tra an ninh & khóa mã cửa', 'CL_SECURITY', 3, 0),
+                   ('Kiểm tra nhà vệ sinh & nhà tắm', 'CL_BATHROOM', 4, 1)) v (name, family, due, started)
+WHERE b.code BETWEEN 'A' AND 'H'
+  AND EXISTS (SELECT 1 FROM demo_staff WHERE account = 'staff' || lower(b.code) || '01');
+
+INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
+                                created_at)
+SELECT s.id, s.building_id, c.id, t.today - v.started,
+       ((t.today - v.started + s.due_within_days) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       s.assignee_id, 'IN_PROGRESS', t.now - interval '1 hour' * (1 + 24 * v.started)
+FROM mnt_inspection_schedule s CROSS JOIN demo_t t
+JOIN (VALUES ('Kiểm tra an ninh & khóa mã cửa', 'CL_SECURITY', 0),
+             ('Kiểm tra nhà vệ sinh & nhà tắm', 'CL_BATHROOM', 1)) v (name, family, started)
+  ON s.name LIKE v.name || ' · Tòa %'
+JOIN mnt_checklist c ON c.family_key = v.family AND c.status = 'PUBLISHED';
+
+INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, inspected_by)
+SELECT x.run_id, x.room_id, CASE WHEN x.n <= 2 THEN 'INSPECTED' ELSE 'PENDING' END,
+       CASE WHEN x.n <= 2 THEN t.now - interval '30 minutes' * x.n END,
+       CASE WHEN x.n <= 2 THEN x.inspector_id END
+FROM demo_t t CROSS JOIN LATERAL (
+    SELECT ru.id AS run_id, ru.inspector_id, r.id AS room_id,
+           row_number() OVER (PARTITION BY ru.id ORDER BY r.code) AS n
+    FROM mnt_inspection_run ru JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+    JOIN inv_room r ON r.building_id = ru.building_id AND r.status = 'IN_SERVICE'
+    WHERE s.name LIKE 'Kiểm tra an ninh & khóa mã cửa · Tòa %' OR s.name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm · Tòa %') x
+WHERE x.n <= 6;
+
+INSERT INTO mnt_inspection_result (inspection_room_id, item_id, result)
+SELECT ir.id, ci.id, 'PASS'
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+JOIN mnt_checklist_item ci ON ci.checklist_id = ru.checklist_id
+WHERE ir.status = 'INSPECTED'
+  AND (s.name LIKE 'Kiểm tra an ninh & khóa mã cửa · Tòa %' OR s.name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm · Tòa %');
+
+INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition)
+SELECT ir.id, 'PEOPLE', 'PASS', NULL
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+WHERE ir.status = 'INSPECTED'
+  AND (s.name LIKE 'Kiểm tra an ninh & khóa mã cửa · Tòa %' OR s.name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm · Tòa %')
+UNION ALL
+SELECT ir.id, 'FURNITURE:' || i.id, 'PASS', 'GOOD'
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+JOIN inv_furniture_item i ON i.room_id = ir.room_id AND i.status <> 'DISPOSED'
+WHERE ir.status = 'INSPECTED'
+  AND (s.name LIKE 'Kiểm tra an ninh & khóa mã cửa · Tòa %' OR s.name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm · Tòa %');

@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.controller.maintenance;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 
@@ -7,6 +9,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -96,6 +102,42 @@ class InspectionController {
     InspectionRunService.Current current(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block) {
         return runs.current(block);
+    }
+
+    /** Every run of the user's Blocks they can open: open ones (their own first) and the ones sent lately. */
+    @GetMapping("/inspection-runs")
+    InspectionRunService.RunsPage list(@RequestParam(required = false) String block) {
+        return runs.runs(block);
+    }
+
+    @GetMapping("/inspection-runs/{id:INS-\\d+|\\d+}")
+    InspectionRunService.Current run(@PathVariable String id) {
+        return runs.runView(id);
+    }
+
+    /** A photo of a furniture item ({@code itemId} "furniture-<id>") or, without it, of the meters. */
+    @PostMapping(path = "/inspection-runs/{id}/rooms/{room}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    InspectionRunService.Photo addPhoto(@PathVariable String id, @PathVariable String room,
+            @RequestParam(required = false) String itemId,
+            @RequestPart(name = "photo", required = false) MultipartFile photo) {
+        return runs.addPhoto(id, room, itemId, photo == null ? null : photo.getOriginalFilename(), bytes(photo));
+    }
+
+    @DeleteMapping("/inspection-runs/{id}/rooms/{room}/photos/{photoId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void removePhoto(@PathVariable String id, @PathVariable String room, @PathVariable String photoId) {
+        runs.removePhoto(id, room, photoId);
+    }
+
+    private static byte[] bytes(MultipartFile file) {
+        if (file == null) {
+            return null;
+        }
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @GetMapping("/inspection-runs/upcoming")
