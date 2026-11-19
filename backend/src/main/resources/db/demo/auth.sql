@@ -12,7 +12,7 @@ INSERT INTO auth_reconciliation (term_id, kind, file_name, rows_read, created_by
 SELECT t.x_id, 'ENROLLED', 'enrolled-' || lower(t.x_code) || '.csv',
        (SELECT count(*) FROM demo_res) + (SELECT count(*) FROM demo_app) + 1,
        (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_m5 - interval '2 days'
-FROM demo_t t WHERE t.stage IN ('B', 'C');
+FROM demo_t t WHERE t.stage IN ('B', 'C', 'D');
 
 INSERT INTO auth_reconciliation_item (reconciliation_id, grp, student_id, student_code, student_name, roles,
                                       file_status, directory_status, line_no, status, outcome, note, resolved_by,

@@ -12,15 +12,19 @@
 -- =====================================================================
 
 -- ---------- timeline ----------
--- k: days of the cycle already gone (A 0, B 25, C 42); e: days left in Term N.
+-- k: days of the cycle already gone (A 0, B 25, C 42, D 51); e: days left in Term N (D: Term N ended 6 days ago).
+-- Every Term follows the rules of the wizard (TermTimelines): Term N's stay ends on n_end and its residents leave by
+-- the next day (check-out by n_end + 1); Staff inspect the Rooms new residents will receive on n_end + 1 and n_end + 2
+-- (pre-arrival inspection); Term N+1 starts with its check-in window on n_end + 3 (check-in start = stay start, never
+-- before Term N's check-out) for seven days. D is the fourth day of that window.
 CREATE TEMP TABLE demo_t ON COMMIT DROP AS
 WITH p AS (
     SELECT {{stage}}::text AS stage, {{now}} AS now, {{today}} AS today,
-           CASE {{stage}} WHEN 'A' THEN 0 WHEN 'B' THEN 25 ELSE 42 END AS k,
-           CASE {{stage}} WHEN 'A' THEN 45 WHEN 'B' THEN 20 ELSE 3 END AS e),
+           CASE {{stage}} WHEN 'A' THEN 0 WHEN 'B' THEN 25 WHEN 'C' THEN 42 ELSE 51 END AS k,
+           CASE {{stage}} WHEN 'A' THEN 45 WHEN 'B' THEN 20 WHEN 'C' THEN 3 ELSE -6 END AS e),
 d AS (
-    SELECT p.*, p.today + p.e - 111 AS n_start, p.today + p.e AS n_end, p.today + p.e + 1 AS x_start,
-           p.today + p.e + 112 AS x_end
+    SELECT p.*, p.today + p.e - 111 AS n_start, p.today + p.e AS n_end, p.today + p.e + 3 AS x_start,
+           p.today + p.e + 114 AS x_end
     FROM p),
 s AS (
     SELECT d.*, extract(month FROM d.n_start + 55)::int AS m, extract(year FROM d.n_start + 55)::int AS y FROM d),
@@ -33,6 +37,11 @@ c AS (
            CASE WHEN m > 4 THEN y + 1 ELSE y END AS f_year
     FROM s)
 SELECT c.stage, c.now, c.today, c.n_start, c.n_end, c.x_start, c.x_end,
+       -- check-in windows and check-out deadlines; inspections of the turnover between n_end + 1 and x_ci_start - 1
+       c.n_start AS n_ci_start, c.n_start + 6 AS n_ci_end, c.n_end + 1 AS n_out_by,
+       c.x_start AS x_ci_start, c.x_start + 6 AS x_ci_end, c.x_end + 1 AS x_out_by,
+       -- the day leavers checked out from: the last days of the stay (D), else the days before today
+       CASE c.stage WHEN 'D' THEN c.n_end + 1 ELSE c.today END AS out_base,
        c.n_season || lpad((c.y % 100)::text, 2, '0') AS n_code,
        CASE c.n_season WHEN 'SP' THEN 'Spring ' WHEN 'SU' THEN 'Summer ' ELSE 'Fall ' END || c.y AS n_name,
        c.x_season || lpad((c.x_year % 100)::text, 2, '0') AS x_code,
@@ -105,6 +114,8 @@ JOIN (VALUES (1, 'S40', 'A-901', 'A'), (2, 'S41', 'A-902', 'A'), (3, 'S42', 'A-9
 JOIN inv_room r ON r.code = v.room JOIN inv_bed b ON b.room_id = r.id AND b.label = v.bed;
 
 INSERT INTO demo_reserved SELECT student_id, code FROM demo_handover;
+-- In the check-in week (D) Term N is over: these Term N cases give way to the check-in of Term N+1 (demo_checkin).
+DELETE FROM demo_handover USING demo_t t WHERE t.stage = 'D';
 -- ---------- residents of Term N ----------
 -- fate at the start of the requests window: CONTINUING (stay length left), LAST (last Term of the Stay), NONE.
 CREATE TEMP TABLE demo_res ON COMMIT DROP AS
@@ -177,24 +188,27 @@ UPDATE demo_res r SET fee = CASE
     WHEN r.scenario IN ('S19', 'S20', 'S22') THEN 'UNPAID'
     WHEN r.scenario = 'S23' THEN 'CLAIMED'
     WHEN t.stage = 'B' AND r.h < 60 THEN 'PAID' WHEN t.stage = 'B' AND r.h < 70 THEN 'CLAIMED'
-    WHEN t.stage = 'C' AND r.h < 90 THEN 'PAID' ELSE 'UNPAID' END
-FROM demo_t t WHERE t.stage IN ('B', 'C') AND r.x_state = 'CONTINUING';
+    WHEN t.stage IN ('C', 'D') AND r.h < 90 THEN 'PAID' ELSE 'UNPAID' END
+FROM demo_t t WHERE t.stage IN ('B', 'C', 'D') AND r.x_state = 'CONTINUING';
 
 UPDATE demo_res r SET x_state = 'FEE_NOT_PAID'
-FROM demo_t t WHERE t.stage = 'C' AND r.fee = 'UNPAID';
+FROM demo_t t WHERE t.stage IN ('C', 'D') AND r.fee = 'UNPAID';
 
-UPDATE demo_res r SET fee = 'PAID' FROM demo_t t WHERE t.stage = 'C' AND r.fee = 'CLAIMED';
+UPDATE demo_res r SET fee = 'PAID' FROM demo_t t WHERE t.stage IN ('C', 'D') AND r.fee = 'CLAIMED';
 
 -- The next-Term Bed: the same one, except the approved room change of S12 (B, C) to A-603.
 UPDATE demo_res r SET x_bed_id = CASE
-    WHEN r.scenario = 'S12' AND t.stage IN ('B', 'C')
+    WHEN r.scenario = 'S12' AND t.stage IN ('B', 'C', 'D')
         THEN (SELECT b.id FROM inv_bed b JOIN inv_room ro ON ro.id = b.room_id WHERE ro.code = 'A-603' AND b.label = 'A')
     ELSE r.bed_id END
 FROM demo_t t WHERE r.x_state IS NOT NULL;
 
 -- Leavers in the turnover week (C): checked out already (about 40 %) or still to check out (the scenarios).
-UPDATE demo_res r SET leave = CASE WHEN r.scenario IS NULL AND r.h % 5 < 2 THEN 'CHECKED_OUT' ELSE 'TO_CHECK_OUT' END
-FROM demo_t t WHERE t.stage = 'C' AND (r.x_state IS NULL OR r.x_state <> 'CONTINUING') AND r.scenario IS DISTINCT FROM 'S21';
+-- Check-in week (D): every leaver checked out by the deadline, except S09 who is overdue (an unhappy case).
+UPDATE demo_res r SET leave = CASE
+    WHEN t.stage = 'D' THEN CASE WHEN r.scenario = 'S09' THEN 'TO_CHECK_OUT' ELSE 'CHECKED_OUT' END
+    WHEN r.scenario IS NULL AND r.h % 5 < 2 THEN 'CHECKED_OUT' ELSE 'TO_CHECK_OUT' END
+FROM demo_t t WHERE t.stage IN ('C', 'D') AND (r.x_state IS NULL OR r.x_state <> 'CONTINUING') AND r.scenario IS DISTINCT FROM 'S21';
 
 -- ---------- new students applying for Term N+1 ----------
 -- status at this stage; balance (B, C) PAID or UNPAID; late check-in PENDING or APPROVED.
@@ -241,7 +255,7 @@ FROM demo_t t WHERE a.status = 'ALLOCATED';
 
 -- C: Balances not paid by their deadline were forfeited (the approved late check-in moved S17's deadline).
 UPDATE demo_app a SET status = 'FORFEITED'
-FROM demo_t t WHERE t.stage = 'C' AND a.status = 'ALLOCATED' AND a.balance = 'UNPAID' AND a.late IS DISTINCT FROM 'APPROVED';
+FROM demo_t t WHERE t.stage IN ('C', 'D') AND a.status = 'ALLOCATED' AND a.balance = 'UNPAID' AND a.late IS DISTINCT FROM 'APPROVED';
 
 -- Beds for the Round-1 assignment: free in N+1 once the requests window closed (not held by a continuing
 -- resident, not a scenario Room), matched by gender. Forfeited Allocations had a Bed too.
@@ -283,14 +297,16 @@ SELECT e.period_start, e.period_end, to_char(e.period_start, 'MM/YYYY') AS label
        least(((e.period_end + 2) + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh', e.now - interval '3 hours') AS closed_at,
        ((e.period_end + 1 + u.payment_due_days) + TIME '00:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS due_at
 FROM e CROSS JOIN cfg_utility_policy u
-WHERE e.period_end >= e.n_start - 3;
+WHERE e.period_end >= e.n_start;
 
 -- Residence starts with the door code (asg.sql: resident_at = Term start - 3 + h % 5, 10:00): hours in each month.
 CREATE TEMP TABLE demo_util_stay ON COMMIT DROP AS
 SELECT d.student_id, d.room_id, d.room_code, d.scenario, d.h, m.label, m.age,
-       (m.period_end + 1 - greatest(m.period_start, t.n_start - 3 + d.h % 5)) * 24
-           - CASE WHEN t.n_start - 3 + d.h % 5 >= m.period_start THEN 10 ELSE 0 END AS hours
-FROM demo_res d CROSS JOIN demo_t t JOIN demo_util_month m ON m.period_end >= t.n_start - 3 + d.h % 5;
+       (least(m.period_end, t.n_end) + 1 - greatest(m.period_start, t.n_start + d.h % 5)) * 24
+           - CASE WHEN t.n_start + d.h % 5 >= m.period_start THEN 10 ELSE 0 END AS hours
+FROM demo_res d CROSS JOIN demo_t t JOIN demo_util_month m ON m.period_end >= t.n_start + d.h % 5
+-- Term N residents pay until its stay ends (D: the months after it are the next Term's).
+WHERE m.period_start <= t.n_end;
 
 -- Each lived-in Room's use (only those get a reading, as Close period does): about 1.2–1.6 kWh and 0.1 m³ per
 -- resident a day; readings chained from month to month.
@@ -322,3 +338,67 @@ SELECT x.*, round(x.exact)::bigint AS share, (ceil(ceil(x.exact) / x.step) * x.s
        coalesce((x.scenario IN ('S19', 'S20', 'S21') AND x.age = 1) OR (x.scenario IN ('S20', 'S21') AND x.age = 2),
                 FALSE) AS overdue
 FROM x;
+
+-- ---------- check-in week (D): the Room handover of Term N+1 ----------
+-- The Room's latest meters (the last confirmed monthly reading); the pre-arrival inspection read a little more.
+CREATE TEMP TABLE demo_room_meter ON COMMIT DROP AS
+SELECT r.id AS room_id,
+       (coalesce(max(u.electricity_prev + u.kwh), 1000 + (r.id % 97) * 7) + 12)::numeric(10,1) AS e,
+       (coalesce(max(u.water_prev + u.m3), 30 + r.id % 40) + 1)::numeric(10,1) AS w
+FROM inv_room r LEFT JOIN demo_util_room u ON u.room_id = r.id
+GROUP BY r.id;
+
+-- Every new student who keeps a Bed of N+1 (and S12, who moves to A-603) and the state of their check-in inventory.
+-- Named cases (D1-D9) are the first student of nine Rooms of Block A; the others are spread by hash:
+--   READY       paid, code set, not started yet         DRAFT     started, due later
+--   MATCHED     filed, matching: final at once          MINOR     filed, one item Damaged: waits for Staff
+--   MAJOR       filed, a meter far above the record     VERIFYING Staff come to the Room today
+--   AUTO        deadline passed: the Room's record      WAITING   the Room's door code is not set yet (D8)
+--   NO_RECORD   the Room was not reachable in the inspection: nothing to compare with (D9)
+CREATE TEMP TABLE demo_checkin ON COMMIT DROP AS
+WITH arrivals AS (
+    SELECT a.student_id, a.code, a.scenario, a.h, a.x_bed_id AS bed_id, a.late FROM demo_app a CROSS JOIN demo_t t
+    WHERE t.stage = 'D' AND a.status = 'ALLOCATED' AND a.x_bed_id IS NOT NULL
+    UNION ALL
+    SELECT d.student_id, d.code, d.scenario, d.h, d.x_bed_id, NULL FROM demo_res d CROSS JOIN demo_t t
+    WHERE t.stage = 'D' AND d.scenario = 'S12' AND d.x_state = 'CONTINUING'),
+placed AS (
+    SELECT a.*, abs(hashtext('checkin' || a.student_id)) % 100 AS k, b.room_id, r.code AS room_code, r.building_id,
+           bl.code AS block
+    FROM arrivals a JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id
+    JOIN inv_building bl ON bl.id = r.building_id),
+named_rooms AS (
+    SELECT room_id, row_number() OVER (ORDER BY room_code) AS n
+    FROM (SELECT DISTINCT room_id, room_code FROM placed
+          WHERE block = 'A' AND scenario IS NULL AND room_code NOT LIKE 'A-9%') x),
+named AS (
+    SELECT DISTINCT ON (p.room_id) p.student_id, nr.n
+    FROM placed p JOIN named_rooms nr ON nr.room_id = p.room_id AND nr.n <= 9
+    WHERE p.scenario IS NULL
+    ORDER BY p.room_id, p.code)
+SELECT p.student_id, p.code, p.scenario, p.h, p.bed_id, p.room_id, p.room_code, p.building_id, p.block,
+       nm.n AS named,
+       CASE WHEN nm.n IS NOT NULL THEN (ARRAY['READY', 'DRAFT', 'MAJOR', 'MINOR', 'VERIFYING', 'MATCHED', 'AUTO',
+                                              'WAITING', 'NO_RECORD'])[nm.n]
+            WHEN p.scenario = 'S12' THEN 'READY'
+            WHEN p.scenario IS NOT NULL THEN 'READY'
+            WHEN p.k < 40 THEN 'MATCHED' WHEN p.k < 55 THEN 'DRAFT' WHEN p.k < 65 THEN 'MINOR'
+            WHEN p.k < 70 THEN 'MAJOR' WHEN p.k < 75 THEN 'VERIFYING' WHEN p.k < 90 THEN 'READY' ELSE 'AUTO' END AS state
+FROM placed p LEFT JOIN named nm ON nm.student_id = p.student_id;
+
+-- Everyone in the Room of D8 waits for its door code; everyone in the Room of D9 has no inspection record.
+UPDATE demo_checkin c SET state = 'WAITING'
+WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8);
+UPDATE demo_checkin c SET state = CASE WHEN c.state IN ('MINOR', 'MAJOR', 'VERIFYING') THEN 'MATCHED' ELSE c.state END
+WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9);
+-- A late arrival whose Balance is not paid yet (S17) is waiting for the payment.
+UPDATE demo_checkin SET state = 'WAITING' WHERE scenario = 'S17';
+
+-- What the pre-arrival inspection found in those Rooms (read by asg.sql as the record and written by mnt.sql): most
+-- items Good, a few Worn or Damaged (already reported for repair), never charged to the new residents.
+CREATE TEMP TABLE demo_checkin_item ON COMMIT DROP AS
+SELECT i.id AS item_id, i.room_id, i.bed_id, ft.code AS type_code,
+       CASE abs(hashtext('inspected' || i.id)) % 30 WHEN 0 THEN 'DAMAGED' WHEN 1 THEN 'WORN' WHEN 2 THEN 'WORN'
+                                                    ELSE 'GOOD' END AS condition
+FROM inv_furniture_item i JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id
+WHERE i.status <> 'DISPOSED' AND i.room_id IN (SELECT room_id FROM demo_checkin);

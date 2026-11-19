@@ -62,4 +62,4 @@ SELECT 'OPERATIONS', 'RESIDENTS', t.n_id, 'Check-out before ' || to_char(t.n_end
            || t.x_name || '.',
        TRUE, t.now - interval '2 days', 'MANUAL', (SELECT id FROM demo_staff WHERE account = 'manager01'),
        t.now - interval '2 days'
-FROM demo_t t WHERE t.stage = 'C';
+FROM demo_t t WHERE t.stage IN ('C', 'D');
