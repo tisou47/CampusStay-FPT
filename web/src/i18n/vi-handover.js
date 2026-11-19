@@ -214,6 +214,12 @@ export default {
   "No furniture in these blocks": "Không có nội thất trong các tòa này",
   "{n} furniture types have no real price yet: their store value counts 0 and a damaged item of them is not charged at check-out. An Admin sets it in Furniture types.": "{n} loại nội thất chưa có giá thực: giá trị trong kho tính là 0 và món hỏng của loại đó không bị tính tiền khi trả phòng. Admin đặt giá ở Loại nội thất.",
   "Check-in inventory final": "Biên bản kiểm kê nhận phòng đã chốt",
+  "Next-Term fee paid": "Đã thanh toán phí học kỳ sau",
+  "Check-in has started": "Đã đến ngày nhận phòng",
+  "Check-in has started (from {date})": "Đã đến ngày nhận phòng (từ {date})",
+  "The Room's door code is set": "Mã cửa của phòng đã được đặt",
+  "Within the check-in period": "Còn trong thời gian nhận phòng",
+  "Within the check-in period (until {date})": "Còn trong thời gian nhận phòng (đến {date})",
   "Check-in inventory filed by the student (My Room)": "Sinh viên đã nộp kiểm kê nhận phòng (Phòng của tôi)",
   "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. New residents start their check-in inventory to get the door code; inventories are drafts, matching, waiting for Staff, checked in the Room or closed by their deadline.": "Học kỳ N đã kết thúc: người rời đi đã trả phòng đúng hạn (một người quá hạn), nhân viên đã kiểm tra các phòng người mới sẽ nhận và đổi mã cửa, và đợt nhận phòng học kỳ N+1 đã mở được ba ngày. Sinh viên mới bắt đầu kiểm kê nhận phòng để nhận mã cửa; biên bản ở đủ trạng thái: nháp, khớp, chờ nhân viên, kiểm tại phòng, hoặc đã chốt do quá hạn.",
 }

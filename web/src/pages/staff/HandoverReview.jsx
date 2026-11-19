@@ -197,7 +197,7 @@ function Detail({ id }) {
   })
 
   return (
-    <QueryState query={query}>
+    <QueryState query={query} isEmpty={() => false}>
       {(d) => {
         const status = d.row.status
         return (

@@ -11,7 +11,7 @@ import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { typeName } from '@/lib/furniture'
 import { formatCurrency, formatDateTime } from '@/lib/format'
-import { t } from '@/i18n'
+import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 
 // Student › My room › Check-in inventory. The student never sees what the dormitory recorded about the Room.
@@ -83,7 +83,7 @@ function Start({ data }) {
         {data.checks.map((c) => (
           <li key={c.key} className="flex items-center gap-2 text-base">
             <Tag tone={c.passed ? 'success' : 'neutral'}>{c.passed ? 'Done' : 'Waiting'}</Tag>
-            <span className={c.passed ? 'text-fg' : 'text-fg-secondary'}>{c.label}</span>
+            <span className={c.passed ? 'text-fg' : 'text-fg-secondary'}>{tr(c.label)}</span>
           </li>
         ))}
       </ul>
@@ -363,7 +363,8 @@ export default function CheckInInventory() {
   return (
     <StudentPage breadcrumb={[{ label: 'My room', to: '/student/room' }, { label: 'Check-in inventory' }]} title="Check-in inventory" width="max-w-3xl">
       <div className="flex flex-col gap-4 lg:overflow-y-auto">
-        <QueryState query={query}>
+        {/* The view is never "empty": before the start (Waiting, Ready) its items list is empty by design. */}
+        <QueryState query={query} isEmpty={() => false}>
           {(d) =>
             d.status === 'Not needed' ? (
               <Card>
