@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Generated | 19/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
+| Generated | 20/11/2026 by `node docs/tools/generate-catalogs.mjs` from `web/src/app/router.jsx`, `web/src/app/screens.js` and the header comment of each page |
 | Feeds | Report 3 (SRS: screens and actors), Report 4 (SDD: user interface design), Report 6 (User Guides) |
 | Related | `docs/api-contract.md` (request and response shapes), Figma file *CampusStay-FPT* |
 
@@ -126,6 +126,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-14 | Student hub | `/manager/students/:id` | — | `GET /student-accounts/:id`<br>`PUT /student-accounts/:id`<br>`POST /student-accounts/:id/verify`<br>`POST /student-accounts/:id/reject`<br>`POST /student-accounts/:id/lock`<br>`POST /student-accounts/:id/unlock` | [manager/StudentHub.jsx](../../web/src/pages/manager/StudentHub.jsx) |
 | SCR-AUTH-15 | Import student list | `/manager/student-import` | — | `GET /student-imports/template`<br>`POST /student-imports`<br>`GET /student-imports/:id`<br>`POST /student-imports/:id/confirm`<br>`GET /student-imports` | [manager/StudentImport.jsx](../../web/src/pages/manager/StudentImport.jsx) |
 | SCR-AUTH-16 | Staff accounts | `/manager/staff-accounts` | — | `GET /staff-accounts`<br>`POST /staff-accounts`<br>`PUT /staff-accounts/:id`<br>`POST /staff-accounts/:id/invitation` | [manager/StaffAccounts.jsx](../../web/src/pages/manager/StaffAccounts.jsx) |
+| — | Manager › Staff › Staff activity | `/manager/staff-activity` | — | `GET /staff-activity` | [manager/StaffActivity.jsx](../../web/src/pages/manager/StaffActivity.jsx) |
 | SCR-CFG-22 | Registration-period requests | `/manager/term-requests` | — | `GET /term-requests`<br>`GET /term-requests/:id`<br>`POST /term-requests`<br>`PUT /term-requests/:id`<br>`POST /term-requests/:id/comments`<br>`POST /term-requests/:id/decision`<br>`POST /admin/terms/drafts` | [registration/TermRequests.jsx](../../web/src/pages/registration/TermRequests.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms/:id` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |

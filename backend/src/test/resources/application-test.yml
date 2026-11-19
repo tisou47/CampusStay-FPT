@@ -6,6 +6,7 @@ campusstay:
   mail:
     dispatch-interval: 1h
   auth:
+    shift-gate: false   # on only in ShiftGateIT, so other tests need no shifts
     google:             # pinned off, so a developer's GOOGLE_* variables cannot change test results
       client-id: ""
       client-secret: ""

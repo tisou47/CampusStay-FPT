@@ -1036,3 +1036,13 @@ Some of this work was closed or moved meanwhile. Reload the list and try again. 
 {0} does not work in Block {1}. ⟶ {0} không làm việc ở Tòa {1}.
 {0} does not handle this type of work. ⟶ {0} không phụ trách loại công việc này.
 This work is no longer open. ⟶ Công việc này không còn mở.
+
+# ---------- Staff shifts and the record of changes ----------
+You are outside your shift. Confirm to go on: this action is recorded for your Manager. ⟶ Bạn đang ngoài ca làm. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+This is not the work your Manager gave you. Confirm to go on: this action is recorded for your Manager. ⟶ Đây không phải công việc Quản lý phân cho bạn. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+You are outside your shift, and this is not the work your Manager gave you. Confirm to go on: this action is recorded for your Manager. ⟶ Bạn đang ngoài ca làm và đây không phải công việc Quản lý phân cho bạn. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+Only Staff members have shifts. ⟶ Chỉ nhân viên mới có ca làm.
+Give at most 21 shifts a week. ⟶ Mỗi tuần tối đa 21 ca.
+Enter each shift's start and end as HH:mm. ⟶ Nhập giờ bắt đầu và kết thúc của mỗi ca theo dạng HH:mm.
+Choose a weekday for each shift. ⟶ Chọn ngày trong tuần cho mỗi ca.
+A shift must end at another time than it starts. ⟶ Giờ kết thúc ca phải khác giờ bắt đầu.

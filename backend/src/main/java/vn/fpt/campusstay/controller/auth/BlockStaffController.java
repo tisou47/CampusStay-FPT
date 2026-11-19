@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.controller.auth;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.auth.BlockStaffService;
+import vn.fpt.campusstay.service.auth.StaffActivityService;
+import vn.fpt.campusstay.service.auth.StaffShifts;
 
 /** Manager › Staff and workload: handles, duty and work of the Block's staff, and requests for new accounts. */
 @RestController
@@ -23,6 +26,12 @@ class BlockStaffController {
 
     /** What the person handles. Duty is not set by hand: it follows sign-in and sign-out. */
     record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles) {
+    }
+
+    record ShiftsRequest(@Size(max = 21, message = "Give at most 21 shifts a week.") List<StaffShifts.Shift> shifts) {
+    }
+
+    record ShiftsResponse(List<StaffShifts.Shift> shifts) {
     }
 
     /** Items of the person to move ({ type, id }), the receiver and why. */
@@ -36,8 +45,10 @@ class BlockStaffController {
     }
 
     private final BlockStaffService staff;
+    private final StaffActivityService activity;
 
-    BlockStaffController(BlockStaffService staff) {
+    BlockStaffController(BlockStaffService staff, StaffActivityService activity) {
+        this.activity = activity;
         this.staff = staff;
     }
 
@@ -69,6 +80,22 @@ class BlockStaffController {
     BlockStaffService.Moved reassign(@PathVariable String id, @Valid @RequestBody ReassignRequest body) {
         return staff.reassign(id, body.items(), body.toStaffId(), body.note());
     }
+
+    /** A Staff member's weekly shifts, all replaced: { shifts: [{ weekday, start, end }] }. */
+    @PutMapping("/block-staff/{id}/shifts")
+    ShiftsResponse setShifts(@PathVariable String id, @Valid @RequestBody ShiftsRequest body) {
+        return new ShiftsResponse(staff.setShifts(id, body.shifts()));
+    }
+
+    /** What the Staff of the Manager's Blocks changed, newest first; {@code flagged} keeps those outside shift or work. */
+    @GetMapping("/staff-activity")
+    StaffActivityService.Page activity(@RequestParam(required = false) String block,
+            @RequestParam(required = false) String staffId, @RequestParam(required = false) Boolean flagged,
+            @RequestParam(required = false) LocalDate from, @RequestParam(required = false) LocalDate to,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return activity.list(block, staffId, flagged, from, to, page, pageSize);
+    }
+
 
     @PostMapping("/staff-account-requests")
     BlockStaffService.Created requestAccount(@Valid @RequestBody AccountRequest body) {

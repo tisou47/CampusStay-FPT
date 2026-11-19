@@ -60,6 +60,7 @@ campusstay:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   auth:
+    shift-gate: true                 # Staff confirm changes outside their shift or work; every change is recorded
     session-ttl: 12h                 # idle timeout without "remember me"
     remember-ttl: 30d                # idle timeout with "remember me"
     session-absolute-max: 30d        # hard limit after sign-in
