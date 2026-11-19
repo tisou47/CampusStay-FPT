@@ -225,7 +225,7 @@ public class BlockStaffService {
     @Transactional
     public void update(String id, List<String> newHandles, Boolean onDuty, String note) {
         currentUser.require(Permission.MANAGE_BLOCK);
-        Person p = person(id);
+        Person p = person(id, true);
         Map<String, String> labels = handles.labels();
         List<String> codes = p.handles();
         if (newHandles != null) {
@@ -311,7 +311,7 @@ public class BlockStaffService {
     @Transactional(readOnly = true)
     public WorkPage work(String id) {
         currentUser.require(Permission.MANAGE_BLOCK);
-        Person p = person(id);
+        Person p = person(id, false);
         List<WorkItem> items = work.stream().flatMap(w -> w.openItems(p.id()).stream())
                 .sorted(Comparator.comparing((StaffWork.Item i) -> !i.overdue())
                         .thenComparing(StaffWork.Item::dueAt, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -331,7 +331,7 @@ public class BlockStaffService {
     @Transactional
     public Moved reassign(String id, List<WorkRef> refs, Object toStaffId, String note) {
         AuthenticatedUser manager = currentUser.require(Permission.MANAGE_BLOCK);
-        Person from = person(id);
+        Person from = person(id, true);
         FieldErrors errors = new FieldErrors();
         String why = note == null ? "" : note.trim();
         errors.check(!why.isEmpty(), "note", "Say why you move this work.");
@@ -342,7 +342,7 @@ public class BlockStaffService {
         errors.check(!to.isEmpty(), "toStaffId", "Choose who receives the work.");
         errors.check(!to.equals(String.valueOf(from.id())), "toStaffId", "Choose someone other than the current holder.");
         errors.throwIfAny();
-        Person receiver = person(to);
+        Person receiver = person(to, true);
 
         // Every check first: one refused item moves nothing.
         List<StaffWork.Item> items = new ArrayList<>();
@@ -479,7 +479,7 @@ public class BlockStaffService {
     }
 
     /** A Staff member or Manager who shares a Block with the current Manager; anyone else answers 404. */
-    private Person person(String id) {
+    private Person person(String id, boolean lock) {
         Set<Long> mine = currentUser.get().blockIds();
         if (id == null || id.isBlank() || id.length() > 18 || !id.chars().allMatch(Character::isDigit) || mine.isEmpty()) {
             throw ApiException.notFound("This staff member does not exist.");
@@ -490,8 +490,7 @@ public class BlockStaffService {
                 FROM auth_user u LEFT JOIN auth_staff_profile p ON p.user_id = u.id
                 WHERE u.id = :id AND u.role IN ('STAFF', 'MANAGER') AND u.status = 'ACTIVE'
                   AND EXISTS (SELECT 1 FROM auth_user_block b WHERE b.user_id = u.id AND b.building_id IN (:mine))
-                FOR UPDATE OF u
-                """).param("id", Long.parseLong(id)).param("mine", List.copyOf(mine))
+                """ + (lock ? " FOR UPDATE OF u" : "")).param("id", Long.parseLong(id)).param("mine", List.copyOf(mine))
                 .query((rs, i) -> new Person(rs.getLong("id"), rs.getString("display_name"),
                         Role.valueOf(rs.getString("role")), rs.getString("title"),
                         List.of((String[]) rs.getArray("handles").getArray()), rs.getBoolean("on_duty")))

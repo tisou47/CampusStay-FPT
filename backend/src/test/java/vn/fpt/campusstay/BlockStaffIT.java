@@ -116,12 +116,12 @@ class BlockStaffIT {
     void updatesHandlesAndDuty() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
         long ab = stay.userId(STAFF_AB);
-        update(manager, ab, "{\"handles\":[\"Payments\",\"Meter readings\"],\"onDuty\":false}")
+        update(manager, ab, "{\"handles\":[\"Payments\",\"Meter readings\"],\"onDuty\":false,\"note\":\"Leave\"}")
                 .andExpect(status().isNoContent());
         list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
                 "Meter readings")))
                 .andExpect(jsonPath(person("Huynh Gia Bao") + ".onDuty").value(hasItem(false)));
-        update(manager, ab, "{\"onDuty\":true}").andExpect(status().isNoContent());
+        update(manager, ab, "{\"onDuty\":true,\"note\":\"Back\"}").andExpect(status().isNoContent());
         list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
                 "Meter readings")))
                 .andExpect(jsonPath(person("Huynh Gia Bao") + ".onDuty").value(hasItem(true)));

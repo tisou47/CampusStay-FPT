@@ -198,8 +198,9 @@ class StaffWorkloadIT {
     @Test
     void aSwapWaitingForStaffIsInTheBlockQueue() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
-        int before = com.jayway.jsonpath.JsonPath.read(list(manager).andReturn().getResponse().getContentAsString(),
-                "$.queue[?(@.type == 'SWAP_WAITING_STAFF')].count[0]");
+        java.util.List<Integer> counts = com.jayway.jsonpath.JsonPath.read(list(manager).andReturn().getResponse().getContentAsString(),
+                "$.queue[?(@.type == 'SWAP_WAITING_STAFF')].count");
+        int before = counts.get(0);
         long open = ((Number) com.jayway.jsonpath.JsonPath.read(list(manager).andReturn().getResponse()
                 .getContentAsString(), "$.summary.open")).longValue();
         stay.livesIn(30, "A-201", "A", true);
