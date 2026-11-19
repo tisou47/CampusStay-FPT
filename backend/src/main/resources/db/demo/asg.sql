@@ -161,9 +161,10 @@ WHERE p.building_id IS NOT NULL;
 INSERT INTO asg_stay (student_id, first_term_id, last_term_id, committed_terms, terms_used, started_at)
 SELECT h.student_id, t.n_id, t.n_id, 1, 1, t.now - interval '20 days' FROM demo_handover h CROSS JOIN demo_t t;
 
-INSERT INTO asg_allocation (term_id, student_id, bed_id, status, source, allocated_at, allocated_by, resident_at,
+INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, status, source, allocated_at, allocated_by, resident_at,
                             code_released_at, eligible_at, handover_needed, utility_from, checked_in_at, stay_id)
-SELECT t.n_id, h.student_id, h.bed_id, 'ACTIVE', 'MANUAL', t.now - interval '20 days',
+SELECT t.n_id, (SELECT ap.id FROM app_application ap WHERE ap.term_id = t.n_id AND ap.student_id = h.student_id),
+       h.student_id, h.bed_id, 'ACTIVE', 'MANUAL', t.now - interval '20 days',
        (SELECT id FROM demo_staff WHERE account = 'manager01'), w.since, w.since,
        coalesce(w.since, t.now - interval '2 hours'), TRUE, w.final, w.final, s.id
 FROM demo_handover h CROSS JOIN demo_t t

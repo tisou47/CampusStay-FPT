@@ -29,6 +29,31 @@ JOIN cfg_room_class rc ON rc.id = s.room_class_id
 JOIN auth_student st ON st.user_id = s.student_id
 WHERE cfg.id = t.n_id;
 
+-- Term N: the check-in inventory students (S40–S45) were given their place by a Manager after the assignment.
+INSERT INTO app_application (id, code, term_id, student_id, room_type_id, room_class_id, term_price, surcharge_rate,
+                             deposit_amount, status, roommate_mode, contact, consent_matching, consent_rules,
+                             consented_at, deposit_due_at, submitted_at, reviewed_by, reviewed_at, created_at, updated_at,
+                             student_name, student_code, gender, stay_terms)
+OVERRIDING SYSTEM VALUE
+WITH src AS (
+    SELECT nextval(pg_get_serial_sequence('app_application', 'id')) AS id, h.student_id, r.room_type_id,
+           r.room_class_id, t.now - interval '25 days' AS created
+    FROM demo_handover h CROSS JOIN demo_t t JOIN inv_room r ON r.id = h.room_id)
+SELECT s.id, 'APP-' || t.n_code || '-' || lpad(s.id::text, greatest(6, length(s.id::text)), '0'), t.n_id, s.student_id,
+       s.room_type_id, s.room_class_id, p.price, rc.surcharge_rate,
+       round(p.price * cfg.deposit_percent / 100 / 1000) * 1000, 'ALLOCATED', 'NONE',
+       jsonb_build_object('phone', st.phone, 'email', NULL, 'emergencyName', st.emergency_name,
+                          'relationship', st.emergency_relationship, 'emergencyPhone', st.emergency_phone),
+       TRUE, TRUE, s.created, s.created + interval '48 hours', s.created + interval '2 hours',
+       (SELECT id FROM demo_staff WHERE account = 'manager01'), s.created + interval '1 day',
+       s.created, s.created + interval '1 day', u.display_name, st.student_code, st.gender, 1
+FROM src s CROSS JOIN demo_t t CROSS JOIN cfg_term cfg
+JOIN cfg_term_price p ON p.term_id = cfg.id AND p.room_type_id = s.room_type_id AND p.room_class_id = s.room_class_id
+JOIN cfg_room_class rc ON rc.id = s.room_class_id
+JOIN auth_student st ON st.user_id = s.student_id
+JOIN auth_user u ON u.id = s.student_id
+WHERE cfg.id = t.n_id;
+
 -- Term N+1: the new students. Awaiting Deposit ones applied in the last day (S05 a little earlier: its first claim
 -- was rejected).
 INSERT INTO app_application (id, code, term_id, student_id, room_type_id, room_class_id, term_price, surcharge_rate,
