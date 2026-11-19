@@ -250,6 +250,7 @@ export default {
   "Electricity {d} kWh (allowed {a} kWh)": "Điện {d} kWh (cho phép {a} kWh)",
   "Water {d} m³ (allowed {a} m³)": "Nước {d} m³ (cho phép {a} m³)",
   "Comparison": "So với gốc",
+  "e.g. Scratched": "vd. Trầy xước",
   "Click a student to open them at the desk.":"Bấm vào sinh viên để mở hồ sơ tại quầy.",
   "Nobody is waiting.": "Không có ai đang chờ.",
   "Nobody is blocked.": "Không có ai bị chặn.",

@@ -152,7 +152,7 @@ function ConditionsDrawer({ conditions, onClose }) {
         </div>
         {rows.map((r) => (
           <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2">
-            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="vd. Trầy xước" />
+            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="e.g. Scratched" />
             <Input aria-label={t('Value (%)')} inputMode="numeric" value={r.percent} onChange={(e) => setRow(r.key, 'percent', e.target.value.replace(/\D/g, '').slice(0, 3))} />
             <IconButton icon={Trash2} aria-label={t('Remove level')} onClick={() => remove(r.key)} disabled={rows.length === 1 || HANDOVER_LEVELS.includes(r.code)} />
           </div>

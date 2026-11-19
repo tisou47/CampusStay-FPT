@@ -30,6 +30,7 @@ class AssignmentDemoData implements DemoData {
         jdbc.execute("DELETE FROM asg_handover_item");
         jdbc.execute("DELETE FROM asg_handover");
         jdbc.execute("DELETE FROM asg_damage_claim");
+        jdbc.execute("DELETE FROM asg_furniture_report");
         jdbc.execute("DELETE FROM asg_check_out_damage");
         jdbc.execute("DELETE FROM asg_check_out");
         jdbc.execute("DELETE FROM asg_late_check_in");
