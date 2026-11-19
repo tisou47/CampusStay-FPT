@@ -204,6 +204,7 @@ function CheckOutPanel({ d }) {
     return (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : ''
   })
   const [liveFurnitureTotal, setLiveFurnitureTotal] = useState(0)
+  const [furnitureSummary, setFurnitureSummary] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
   const [showHandover, setShowHandover] = useState(false)
   // Furniture recorded by condition (V78): when saved, its total is the damage charge calculated from base price & condition %.
@@ -225,15 +226,47 @@ function CheckOutPanel({ d }) {
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
   const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
+  const damageLines = done
+    ? (fData?.items ?? [])
+        .filter((i) => i.amount > 0 && i.review !== 'Dropped')
+        .map((i) => ({
+          key: i.itemId,
+          name: typeName(i),
+          assetCode: i.assetCode,
+          condition: i.atCheckOut ?? 'Damaged',
+          percent: i.percent ?? 0,
+          personal: Boolean(i.personal),
+          split: i.sharedWith ?? 1,
+          fullAmount: i.fullAmount ?? i.amount,
+          amount: i.amount,
+        }))
+    : condition === 'good'
+      ? []
+      : (furnitureSummary?.lines ?? []).map((l) => ({
+          key: l.item.itemId,
+          name: typeName(l.item),
+          assetCode: l.item.assetCode,
+          condition: l.answer.condition,
+          percent: l.deltaPct,
+          personal: Boolean(l.item.personal),
+          split: l.split,
+          fullAmount: l.fullAmount,
+          amount: l.amount,
+        }))
+  const hasSharedSplit = damageLines.some((l) => l.split > 1)
 
   const submit = useMutation(
-    (draft) =>
-      api.desk.checkOut(d.allocationId, {
+    async (draft) => {
+      if (!done && condition && furnitureSummary?.dirty) {
+        await api.checkOutFurniture.record(d.allocationId, furnitureSummary.payload)
+      }
+      return api.desk.checkOut(d.allocationId, {
         electricity: toNumber(electricity),
         water: toNumber(water),
         conditionGood: condition === 'good',
         draft,
-      }),
+      })
+    },
     {
       invalidates: ['check-out', 'check-out-furniture', 'dashboard', 'refunds'],
       onSuccess: (res, draft) => {
@@ -400,6 +433,7 @@ function CheckOutPanel({ d }) {
           electricity={electricity}
           water={water}
           onLiveTotalChange={setLiveFurnitureTotal}
+          onLiveSummaryChange={setFurnitureSummary}
         />
 
         {/* Step 3: Utility deposit settlement and actions */}
@@ -421,9 +455,27 @@ function CheckOutPanel({ d }) {
             <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
             <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
             {damageAmount > 0 && (
-              <Row label="Damage charge" tone="text-warning-fg">
-                − {formatVnd(damageAmount)}
-              </Row>
+              <>
+                <Row label="Damage charge" tone="text-warning-fg">
+                  − {formatVnd(damageAmount)}
+                </Row>
+                {damageLines.length > 0 && (
+                  <div className="flex flex-col gap-1 border-l-2 border-warning/40 pl-3 text-[11px] text-fg-secondary">
+                    {damageLines.map((l) => (
+                      <div key={l.key} className="flex items-start justify-between gap-2">
+                        <span className="min-w-0">
+                          {l.name} ({l.assetCode}) · {conditionName(l.condition)}
+                          {l.percent > 0 ? ` ${l.percent}%` : ''}
+                          {l.split > 1
+                            ? ` · ${t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}`
+                            : ''}
+                        </span>
+                        <span className="shrink-0 font-medium text-fg tabular">− {formatVnd(l.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </dl>
 
@@ -622,9 +674,32 @@ function CheckOutPanel({ d }) {
                 <Row label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>− {formatVnd(s.share)}</Row>
                 <Row label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</Row>
                 {damageAmount > 0 && (
-                  <Row label="Damage charge" tone="text-warning-fg" strong>
-                    − {formatVnd(damageAmount)}
-                  </Row>
+                  <>
+                    <Row label="Damage charge" tone="text-warning-fg" strong>
+                      − {formatVnd(damageAmount)}
+                    </Row>
+                    {damageLines.length > 0 && (
+                      <div className="flex flex-col gap-1 border-l-2 border-warning/40 pl-3 text-[11px] text-fg-secondary">
+                        {damageLines.map((l) => (
+                          <div key={l.key} className="flex items-start justify-between gap-2">
+                            <span className="min-w-0">
+                              {l.name} ({l.assetCode}) · {conditionName(l.condition)}
+                              {l.percent > 0 ? ` ${l.percent}%` : ''}
+                              {l.split > 1
+                                ? ` · ${t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}`
+                                : ''}
+                            </span>
+                            <span className="shrink-0 font-medium text-fg tabular">− {formatVnd(l.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {hasSharedSplit && (
+                      <p className="rounded-lg bg-warning-bg/60 px-2.5 py-1.5 text-[11px] text-warning-fg">
+                        {t('Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.')}
+                      </p>
+                    )}
+                  </>
                 )}
               </dl>
             </div>

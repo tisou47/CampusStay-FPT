@@ -125,7 +125,13 @@ function ScheduleCard({ item, options, onEdit }) {
     onSuccess: () => notify({ type: 'info', title: t(item.status === 'Paused' ? '{name} resumed' : '{name} paused', { name: item.name }) }),
     onError: (e) => notifyError(e, 'Could not change the schedule'),
   })
+  const completeSchedule = useMutation(() => api.inspections.updateSchedule(item.id, { status: 'Completed' }), {
+    invalidates: ['inspection-schedules'],
+    onSuccess: () => notify({ title: 'Đã kết thúc lịch kiểm tra', message: tr(item.name) }),
+    onError: (e) => notifyError(e, 'Không thể kết thúc lịch kiểm tra'),
+  })
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
+  const isCompleted = item.status === 'Completed'
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
@@ -149,14 +155,26 @@ function ScheduleCard({ item, options, onEdit }) {
         <dt className="text-fg-secondary">{t('Due within (days)')}</dt>
         <dd className="text-fg">{item.dueWithinDays}</dd>
       </dl>
-      <div className="flex items-center justify-end gap-2 pt-1">
-        <Button size="sm" onClick={onEdit}>
-          Chỉnh sửa
-        </Button>
-        <Button onClick={() => pause.run()} disabled={pause.pending}>
-          {item.status === 'Paused' ? t('Resume') : t('Pause')}
-        </Button>
-      </div>
+      {!isCompleted && item.latestRunSubmitted && (
+        <Alert type="success" title="Nhân viên đã nộp kết quả kiểm tra">
+          Đợt kiểm tra của lịch này đã được nhân viên nộp báo cáo. Bạn có thể ghi nhận hoàn thành và bấm kết thúc lịch.
+        </Alert>
+      )}
+      {!isCompleted && (
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <Button size="sm" onClick={onEdit}>
+            Chỉnh sửa
+          </Button>
+          <Button onClick={() => pause.run()} disabled={pause.pending}>
+            {item.status === 'Paused' ? t('Resume') : t('Pause')}
+          </Button>
+          {item.latestRunSubmitted && (
+            <Button variant="primary" onClick={() => completeSchedule.run()} disabled={completeSchedule.pending}>
+              Kết thúc lịch
+            </Button>
+          )}
+        </div>
+      )}
     </Card>
   )
 }

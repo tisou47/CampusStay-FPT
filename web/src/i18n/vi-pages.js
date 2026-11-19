@@ -4526,6 +4526,15 @@ const managerOverview = {
   "Every decision that needs a manager, the most urgent first": "Mọi quyết định cần quản lý, việc khẩn cấp nhất ở trước",
   "{stage} · {n} days left": "{stage} · còn {n} ngày",
   "{n}/{total} beds": "{n}/{total} giường",
+  "Shared · {full} ÷ {n} residents": "Đồ chung · {full} ÷ {n} thành viên",
+  "Shared item: {full} ÷ {n} residents; roommates get an invoice for their share": "Đồ chung: {full} ÷ {n} thành viên (các thành viên còn lại nhận hóa đơn phần của mình)",
+  "Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.": "Phí hư hỏng nội thất chung được chia đều cho các thành viên đang ở; các thành viên còn lại sẽ nhận hóa đơn và thông báo cho phần của mình.",
+  "Print all unfinished forms": "Tải / In toàn bộ phiếu chưa làm",
+  "Print all completed forms": "Tải / In toàn bộ phiếu đã làm",
+  "Unfinished inspection forms · {run}": "Phiếu kiểm tra chưa làm · {run}",
+  "Completed inspection forms · {run}": "Phiếu kiểm tra đã làm · {run}",
+  "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
+  "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

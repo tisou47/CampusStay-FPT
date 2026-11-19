@@ -54,10 +54,11 @@ public class InspectionScheduleService {
     public record Options(List<Option> checklists, List<Option> scopes, List<Option> repeats, List<Option> assignees) {
     }
 
-    /** @param scope and {@code repeat} are option values; {@code assignee} a user id; {@code status} Active or Paused */
+    /** @param scope and {@code repeat} are option values; {@code assignee} a user id; {@code status} Active, Paused or Completed */
     public record ScheduleItem(String id, String name, String checklistId, String scope, String scopeLabel,
             String repeat, String repeatLabel, String assignee, int dueWithinDays, boolean createRequests,
-            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt, String block) {
+            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt, String block,
+            boolean latestRunSubmitted) {
     }
 
     /**
@@ -163,8 +164,17 @@ public class InspectionScheduleService {
         Map<Long, String> codes = blockCodes.codesByIds(selection.ids());
         List<Schedule> schedules = jdbc.sql("""
                 SELECT * FROM mnt_inspection_schedule WHERE building_id IN (:b)
-                ORDER BY (kind = 'PRE_ARRIVAL' OR scope = 'INCOMING') DESC, (status = 'ACTIVE') DESC, name, id
+                ORDER BY (kind = 'PRE_ARRIVAL' OR scope = 'INCOMING') DESC, (status = 'ACTIVE') DESC,
+                         (status = 'PAUSED') DESC, name, id
                 """).param("b", buildings).query(InspectionScheduleService::schedule).list();
+        Set<Long> submittedSchedules = schedules.isEmpty() ? Set.of() : Set.copyOf(jdbc.sql("""
+                SELECT DISTINCT r.schedule_id FROM mnt_inspection_run r
+                WHERE r.schedule_id IN (:ids) AND r.status = 'SUBMITTED'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM mnt_inspection_run r2
+                      WHERE r2.schedule_id = r.schedule_id AND r2.status <> 'SUBMITTED' AND r2.id > r.id
+                  )
+                """).param("ids", schedules.stream().map(Schedule::id).toList()).query(Long.class).list());
         record Run(long id, long buildingId, Long inspectorId, String status, int rooms, int inspected, int failed,
                 int unreachable, String scheduleName, LocalDate date, Instant dueAt) {
         }
@@ -201,8 +211,8 @@ public class InspectionScheduleService {
         return new Page(schedules.stream().map(s -> new ScheduleItem(String.valueOf(s.id()), s.name(), s.family(),
                 s.scopeValue(), scopeLabel(s.scope(), s.floor()), s.repeat(), REPEATS.get(s.repeat()),
                 s.assigneeId() == null ? null : String.valueOf(s.assigneeId()), s.dueWithinDays(), s.createRequests(),
-                s.notifyResidents(), s.nextRunAt(), s.status().equals("ACTIVE") ? "Active" : "Paused", s.createdAt(),
-                codes.get(s.buildingId())))
+                s.notifyResidents(), s.nextRunAt(), scheduleStatusLabel(s.status()), s.createdAt(),
+                codes.get(s.buildingId()), submittedSchedules.contains(s.id())))
                 .toList(), runs, every ? null : options(selection.singleId()),
                 every ? null : codes.get(selection.singleId()), codes.values().stream().sorted().toList());
     }
@@ -266,8 +276,10 @@ public class InspectionScheduleService {
         String status = s.status();
         if (body.containsKey("status")) {
             String value = text(body.get("status"));
-            status = value.equalsIgnoreCase("Active") ? "ACTIVE" : value.equalsIgnoreCase("Paused") ? "PAUSED" : null;
-            errors.check(status != null, "status", "Choose Active or Paused.");
+            status = value.equalsIgnoreCase("Active") ? "ACTIVE"
+                    : value.equalsIgnoreCase("Paused") ? "PAUSED"
+                    : value.equalsIgnoreCase("Completed") ? "COMPLETED" : null;
+            errors.check(status != null, "status", "Choose Active, Paused or Completed.");
         }
         errors.throwIfAny();
         if (status.equals("ACTIVE") && !s.status().equals("ACTIVE") && checklists.published(family).isEmpty()) {
@@ -277,6 +289,7 @@ public class InspectionScheduleService {
                 UPDATE mnt_inspection_schedule SET name = :name, checklist_family = :family, scope = :scope,
                        floors = :floors, repeat = :repeat, assignee_id = :assignee, due_within_days = :due,
                        create_requests = :requests, notify_residents = :notify, status = :status,
+                       next_run_at = CASE WHEN :status = 'COMPLETED' THEN NULL ELSE next_run_at END,
                        kind = CASE WHEN :scope = 'INCOMING' THEN 'PRE_ARRIVAL' ELSE 'PERIODIC' END, version = version + 1
                 WHERE id = :id
                 """)
@@ -306,7 +319,15 @@ public class InspectionScheduleService {
             }
         }
         audit.record("INSPECTION_SCHEDULE_UPDATED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), name,
-                Map.of("status", status.equals("ACTIVE") ? "Active" : "Paused"));
+                Map.of("status", scheduleStatusLabel(status)));
+    }
+
+    private static String scheduleStatusLabel(String status) {
+        return switch (status) {
+            case "ACTIVE" -> "Active";
+            case "COMPLETED" -> "Completed";
+            default -> "Paused";
+        };
     }
 
     // ---------------------------------------------------------------- runs

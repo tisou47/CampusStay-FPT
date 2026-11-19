@@ -65,6 +65,7 @@ export function FurnitureConditions({
   electricity,
   water,
   onLiveTotalChange,
+  onLiveSummaryChange,
 }) {
   const { notify, notifyError } = useToast()
   const data = query.data
@@ -133,9 +134,42 @@ export function FurnitureConditions({
       ? 0
       : computedLines.filter((l) => l.countedInTotal).reduce((s, l) => s + l.amount, 0)
 
+  const chargedLines =
+    condition === 'good'
+      ? []
+      : computedLines.filter((l) => l.countedInTotal && l.amount > 0)
+
+  const hasUnsavedAnswers =
+    Boolean(data) &&
+    (!data.saved
+      ? condition === 'damaged' || computedLines.some((l) => l.answer.condition !== (l.item.atCheckIn ?? 'Good') || Boolean(l.answer.note?.trim()))
+      : computedLines.some((l) => {
+          const savedCond = l.item.atCheckOut ?? l.item.atCheckIn ?? 'Good'
+          const savedNote = l.item.note ?? ''
+          return l.answer.condition !== savedCond || (l.answer.note ?? '') !== savedNote
+        }))
+
   useEffect(() => {
     onLiveTotalChange?.(liveTotal)
   }, [liveTotal, onLiveTotalChange])
+
+  useEffect(() => {
+    if (!data || !onLiveSummaryChange) return
+    onLiveSummaryChange({
+      lines: chargedLines,
+      dirty: hasUnsavedAnswers,
+      payload: {
+        items: computedLines.map((l) => ({
+          itemId: l.item.itemId,
+          condition: l.answer.condition,
+          note: l.answer.note?.trim() || undefined,
+        })),
+        studentPresent: Boolean(data.studentPresent),
+        electricity: electricity !== '' && electricity != null ? Number(String(electricity).replace(/[^\d.]/g, '')) : undefined,
+        water: water !== '' && water != null ? Number(String(water).replace(/[^\d.]/g, '')) : undefined,
+      },
+    })
+  }, [data, liveTotal, hasUnsavedAnswers, condition, answers, electricity, water, onLiveSummaryChange])
 
   const flaggedLines = computedLines.filter(
     (l) => l.answer.condition !== 'Good' || l.amount > 0,
@@ -400,7 +434,7 @@ export function FurnitureConditions({
               <span className="text-right">{t('Charge')}</span>
             </div>
             <div className="divide-y divide-line/60">
-              {flaggedLines.map(({ item: i, answer: a, deltaPct, amount, effectiveReview }) => (
+              {flaggedLines.map(({ item: i, answer: a, deltaPct, amount, fullAmount, split, effectiveReview }) => (
                 <div key={i.itemId} className="flex flex-col gap-0.5 px-2.5 py-1.5 text-xs">
                   <div className="grid grid-cols-[minmax(0,1.3fr)_5.5rem_5.5rem_4rem_6rem] items-center gap-1.5">
                     <span className="truncate font-medium text-fg">
@@ -415,6 +449,11 @@ export function FurnitureConditions({
                       {effectiveReview === 'Pending' ? t('Pending') : formatVnd(amount)}
                     </span>
                   </div>
+                  {split > 1 && (
+                    <span className="text-[11px] font-medium text-fg-brand tabular">
+                      {t('Shared item: {full} ÷ {n} residents; roommates get an invoice for their share', { full: formatVnd(fullAmount), n: split })}
+                    </span>
+                  )}
                   {a.note?.trim() && (
                     <span className="text-[11px] text-fg-tertiary">
                       {t('Note')}: {a.note.trim()}

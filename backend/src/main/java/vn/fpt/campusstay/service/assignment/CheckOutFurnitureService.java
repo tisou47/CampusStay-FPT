@@ -287,10 +287,10 @@ public class CheckOutFurnitureService {
     @Transactional
     public int chargeRoommates(long allocationId, Long onlyItem) {
         Target t = targetOf(allocationId);
-        record Split(long itemId, int sharedWith, long full) {
+        record Split(long itemId, int sharedWith, long full, String condition, int percent, String note) {
         }
         List<Split> splits = jdbc.sql("""
-                SELECT d.furniture_item_id, d.shared_with, d.full_amount
+                SELECT d.furniture_item_id, d.shared_with, d.full_amount, d.condition, d.percent, d.note
                 FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
                 WHERE c.allocation_id = :a AND d.shared_with > 1 AND d.full_amount > 0
                   AND coalesce(d.source, '') <> 'OVERRIDE'
@@ -299,7 +299,8 @@ public class CheckOutFurnitureService {
                 ORDER BY d.furniture_item_id
                 """).param("a", allocationId).param("item", onlyItem)
                 .query((rs, i) -> new Split(rs.getLong("furniture_item_id"), rs.getInt("shared_with"),
-                        rs.getLong("full_amount")))
+                        rs.getLong("full_amount"), rs.getString("condition"), rs.getInt("percent"),
+                        rs.getString("note")))
                 .list();
         if (splits.isEmpty()) {
             return 0;
@@ -323,11 +324,17 @@ public class CheckOutFurnitureService {
             }
             Inventory.FurnitureLine line = furniture.get(split.itemId());
             String item = line == null ? "Furniture item " + split.itemId() : line.type() + " " + line.assetCode();
+            String condLabel = StudentHandoverService.label(split.condition());
+            String fullFormatted = java.text.NumberFormat.getIntegerInstance(java.util.Locale.of("vi", "VN"))
+                    .format(split.full()) + " ₫";
+            String detail = item + " · " + condLabel
+                    + (split.percent() > 0 ? " (" + split.percent() + "%)" : "")
+                    + " · " + fullFormatted + " ÷ " + split.sharedWith() + " residents"
+                    + (split.note() != null && !split.note().isBlank() ? " · " + split.note().trim() : "");
             for (Roommate r : roommates) {
                 billing.issueCharge(new Billing.ChargeRequest(t.termId(), r.studentId(), r.allocationId(), t.buildingId(),
                         "DAMAGE", "Shared furniture damage · Room " + t.roomCode(), share,
-                        List.of(new Billing.ChargeLine(item + " · split among " + split.sharedWith() + " residents",
-                                share)),
+                        List.of(new Billing.ChargeLine(detail, share)),
                         now.plus(Duration.ofDays(days)),
                         "SHARED-" + allocationId + "-" + split.itemId() + "-" + r.allocationId()));
                 issued++;

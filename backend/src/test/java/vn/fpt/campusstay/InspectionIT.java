@@ -233,7 +233,9 @@ class InspectionIT {
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isNoContent());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RUN_SUBMITTED"));
-        getAs("/inspection-schedules?block=A", manager).andExpect(jsonPath("$.runs[0].status").value("Completed"));
+        getAs("/inspection-schedules?block=A", manager)
+                .andExpect(jsonPath("$.runs[0].status").value("Completed"))
+                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].latestRunSubmitted").value(hasItem(true)));
 
         // The job starts the next run once its day comes.
         jdbc.sql("UPDATE mnt_inspection_schedule SET next_run_at = now() - interval '1 minute' WHERE id = :id")
@@ -241,6 +243,12 @@ class InspectionIT {
         assertThat(schedules.startDue()).isEqualTo(1);
         getAs("/inspection-runs/current?block=A", staff).andExpect(jsonPath("$.run.id").value(startsWith("INS-")))
                 .andExpect(jsonPath("$.run.inspected").value(0));
+
+        // Manager marks the schedule Completed once finished.
+        putAs("/inspection-schedules/" + id, manager, "{\"status\":\"Completed\"}")
+                .andExpect(status().isNoContent());
+        getAs("/inspection-schedules?block=A", manager)
+                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].status").value(hasItem("Completed")));
     }
 
     /**
