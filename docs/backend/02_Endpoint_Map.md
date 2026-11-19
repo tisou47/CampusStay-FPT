@@ -184,8 +184,8 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 |---|---|---|---|---|---|
 | AUTH | GET | `/block-staff` | Should | Verified | C-32, A-73; TC-AUTH-019, 062…065 |
 | AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32, A-73; TC-AUTH-020, 061 |
-| AUTH | GET | `/block-staff/{id}/work` | Should | Coded | A-73; TC-AUTH-066, 067 |
-| AUTH | POST | `/block-staff/{id}/work/reassign` | Should | Coded | A-73; TC-AUTH-068…070 |
+| AUTH | GET | `/block-staff/{id}/work` | Should | Verified | A-73; TC-AUTH-066, 067 |
+| AUTH | POST | `/block-staff/{id}/work/reassign` | Should | Verified | A-73; TC-AUTH-068…070 |
 | AUTH | GET | `/block-staff/me` | Should | Verified | A-60; TC-AUTH-057 |
 | AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
 | AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
