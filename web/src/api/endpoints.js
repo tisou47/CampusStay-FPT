@@ -398,6 +398,10 @@ export const api = {
     /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
     me: g('/block-staff/me'),
     list: g('/block-staff'),
+    /** { shifts: [{ weekday 1-7, start 'HH:mm', end 'HH:mm' }] } → the same: replaces a Staff member's weekly shifts. */
+    setShifts: (id, body) => http.put(`/block-staff/${id}/shifts`, body),
+    /** { block?, staffId?, flagged?, from?, to?, page?, pageSize? } → { items, total, summary, staffOptions }. */
+    activity: g('/staff-activity'),
     /** { handles }: what the person handles. Duty follows sign-in. */
     update: (id, body) => http.put(`/block-staff/${id}`, body),
     /** The person's open work → { items: [{ type, id, code, title, roomCode, status, openedAt, dueAt, overdue, link }], total }. */

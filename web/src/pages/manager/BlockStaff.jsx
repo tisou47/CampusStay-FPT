@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, ClipboardList, Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { ArrowRightLeft, ClipboardList, History, Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar } from '@/components/ui/Display'
-import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -36,28 +36,105 @@ function oldest(at) {
   return t('{n} h', { n: Math.max(0, Math.floor((Date.now() - new Date(at).getTime()) / HOUR)) })
 }
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+/** "Mon–Fri 07:00–15:00 · Sat 07:00–12:00": shifts with the same hours grouped. */
+function shiftSummary(shifts) {
+  if (!shifts?.length) return null
+  const groups = new Map()
+  for (const s of shifts) {
+    const key = `${s.start}–${s.end}`
+    groups.set(key, [...(groups.get(key) ?? []), s.weekday])
+  }
+  return [...groups.entries()]
+    .map(([span, days]) => {
+      const sorted = [...days].sort((a, b) => a - b)
+      const run = sorted.length > 2 && sorted.every((d, i) => i === 0 || d === sorted[i - 1] + 1)
+      const label = run ? `${t(WEEKDAYS[sorted[0] - 1])}–${t(WEEKDAYS[sorted.at(-1) - 1])}` : sorted.map((d) => t(WEEKDAYS[d - 1])).join(', ')
+      return `${label} ${span}`
+    })
+    .join(' · ')
+}
+
+/** A Staff member's weekly shifts: one row per shift; an end before the start runs past midnight. */
+function ShiftEditor({ shifts, onChange }) {
+  const set = (i, patch) => onChange(shifts.map((s, j) => (j === i ? { ...s, ...patch } : s)))
+  const add = (days, start = '07:00', end = '15:00') => onChange([...shifts, ...days.map((weekday) => ({ weekday, start, end }))])
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 text-base font-medium text-fg">{t('Weekly shifts')}</legend>
+      <p className="text-sm text-fg-secondary">
+        {t('Outside these hours, every change this person makes asks them to confirm and is marked in the staff activity log. No shift = always outside.')}
+      </p>
+      {shifts.length === 0 && <p className="text-sm text-fg-tertiary">{t('No shift yet.')}</p>}
+      {shifts.map((s, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <Select
+            aria-label={t('Weekday')}
+            wrapperClassName="w-28"
+            value={s.weekday}
+            onChange={(e) => set(i, { weekday: Number(e.target.value) })}
+            options={WEEKDAYS.map((d, k) => ({ value: k + 1, label: t(d) }))}
+          />
+          <Input aria-label={t('Start')} type="time" className="w-32" value={s.start} onChange={(e) => set(i, { start: e.target.value })} />
+          <span aria-hidden="true">–</span>
+          <Input aria-label={t('End')} type="time" className="w-32" value={s.end} onChange={(e) => set(i, { end: e.target.value })} />
+          {s.end && s.start && s.end < s.start && <Tag>{t('Overnight')}</Tag>}
+          <Button variant="text" onClick={() => onChange(shifts.filter((_, j) => j !== i))}>
+            Remove
+          </Button>
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => add([1])}>
+          Add a shift
+        </Button>
+        <Button size="sm" onClick={() => add([1, 2, 3, 4, 5])}>
+          Mon–Fri 07:00–15:00
+        </Button>
+        <Button size="sm" onClick={() => add([1, 2, 3, 4, 5], '15:00', '23:00')}>
+          Mon–Fri 15:00–23:00
+        </Button>
+        {shifts.length > 0 && (
+          <Button size="sm" variant="text" onClick={() => onChange([])}>
+            Clear all
+          </Button>
+        )}
+      </div>
+    </fieldset>
+  )
+}
+
 function EditModal({ person, handleOptions, onClose }) {
   const { notify } = useToast()
   const [handles, setHandles] = useState(new Set(person.handles))
-  const save = useMutation(() => api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)) }), {
-    invalidates: ['block-staff', 'routing'],
-    onSuccess: () => {
-      notify({ title: t('{name} updated', { name: person.name }), message: 'Routing uses the new request types from now on.' })
-      onClose()
+  const isStaff = person.role === 'Staff'
+  const [shifts, setShifts] = useState(person.shifts ?? [])
+  const save = useMutation(
+    async () => {
+      await api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)) })
+      if (isStaff) await api.blockStaff.setShifts(person.id, { shifts })
     },
-    onError: () => {},
-  })
+    {
+      invalidates: ['block-staff', 'routing', 'staff-activity'],
+      onSuccess: () => {
+        notify({ title: t('{name} updated', { name: person.name }), message: 'Routing uses the new request types from now on.' })
+        onClose()
+      },
+      onError: () => {},
+    },
+  )
   return (
     <Modal
       open
       onClose={onClose}
-      width={560}
+      width={640}
       title={t('Edit {name}', { name: person.name })}
       description={`${tr(person.title)} · ${t('Blocks {codes}', { codes: person.blocks.join(', ') })}. ${t('Name, email and blocks are set on staff accounts.')}`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => save.run()} disabled={save.pending}>
+          <Button variant="primary" onClick={() => save.run()} disabled={save.pending || shifts.some((s) => !s.start || !s.end || s.start === s.end)}>
             Save
           </Button>
         </>
@@ -66,6 +143,7 @@ function EditModal({ person, handleOptions, onClose }) {
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-base font-medium text-fg">{t('Handles')}</legend>
+        <p className="text-sm text-fg-secondary">{t('Work outside these kinds asks the person to confirm and is marked in the staff activity log.')}</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           {handleOptions.map((h) => (
             <Checkbox
@@ -84,6 +162,7 @@ function EditModal({ person, handleOptions, onClose }) {
           ))}
         </div>
       </fieldset>
+      {isStaff && <ShiftEditor shifts={shifts} onChange={setShifts} />}
       <p className="text-sm text-fg-secondary">
         {t(person.onDuty ? 'On duty now' : 'Off duty now')} · {t('Duty follows sign-in: signing in starts the shift, signing out ends it.')}
       </p>
@@ -286,13 +365,14 @@ export default function BlockStaff() {
             <Th className="w-20 whitespace-nowrap text-right">Oldest</Th>
             <Th className="w-28 whitespace-nowrap text-right">Resolved (7 days)</Th>
             <Th className="w-28 whitespace-nowrap">Duty</Th>
-            <Th className="w-40">
+            <Th className="min-w-48">Shift</Th>
+            <Th className="w-56">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={11} emptyIcon={Users} emptyTitle="No staff in these blocks" />
+          <TableStatus query={query} colSpan={12} emptyIcon={Users} emptyTitle="No staff in these blocks" />
           {staff.map((p) => (
             <Tr key={p.id} className="[&>td]:min-h-14">
               <Td className="sticky left-0 z-[1] bg-surface">
@@ -325,10 +405,27 @@ export default function BlockStaff() {
               <Td className="text-right tabular">{p.resolved7d ?? '—'}</Td>
               <Td className="whitespace-nowrap">{p.onDuty ? <Tag tone="success">On duty</Tag> : <Tag>Off</Tag>}</Td>
               <Td>
+                {p.role !== 'Staff' ? (
+                  <span className="text-fg-tertiary">—</span>
+                ) : p.shifts?.length ? (
+                  <div className="flex flex-col items-start gap-0.5 py-1">
+                    {p.inShift ? <Tag tone="success">In shift</Tag> : <Tag tone="warning">Outside shift</Tag>}
+                    <span className="text-sm text-fg-secondary">{shiftSummary(p.shifts)}</span>
+                  </div>
+                ) : (
+                  <Tag tone="warning">No shift set</Tag>
+                )}
+              </Td>
+              <Td>
                 <div className="flex gap-1 whitespace-nowrap">
                   <Button variant="text" icon={ClipboardList} onClick={() => setViewing(p)}>
                     Work
                   </Button>
+                  {p.role === 'Staff' && (
+                    <Button variant="text" icon={History} to={`/manager/staff-activity?staff=${p.id}`}>
+                      Activity
+                    </Button>
+                  )}
                   <Button variant="text" onClick={() => setEditing(p)}>
                     Edit
                   </Button>

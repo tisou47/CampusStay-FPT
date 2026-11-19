@@ -13,6 +13,7 @@ import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { FlowTrail } from './FlowTrail'
 import { SectionTabs } from './SectionTabs'
+import { ShiftConfirmHost } from './ShiftConfirm'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -114,7 +115,7 @@ function Sidebar({ role }) {
             </button>
           </Tooltip>
         ) : (
-          <DutyIndicator />
+          <DutyIndicator role={role} />
         )}
         <Tooltip label={t('Sign out')} align="end">
           <button
@@ -350,7 +351,7 @@ function QuickSearch({ role }) {
  * The person's duty (A-60): it follows their sign-in. Signing in puts Staff and Managers on duty, signing out (or not
  * using the app for a while) takes them off; routing gives new requests to people on duty first. Read only.
  */
-function DutyIndicator() {
+function DutyIndicator({ role }) {
   const me = useQuery(['me-duty'], ({ signal }) => api.blockStaff.me(undefined, { signal }))
   const onDuty = me.data?.onDuty
   if (!me.data) return null
@@ -363,6 +364,15 @@ function DutyIndicator() {
             <span aria-hidden="true" className={cx('size-1.5 rounded-full', onDuty ? 'bg-green-500' : 'bg-red-500')} />
             {onDuty ? t('On duty while you are signed in') : t('Off duty')}
           </span>
+          {role === 'staff' && (
+            <span className="font-normal text-white/70">
+              {me.data.inShift
+                ? t('Inside your shift today ({spans})', { spans: me.data.shiftToday })
+                : me.data.shiftToday
+                  ? t('Outside your shift (today {spans}): changes ask you to confirm', { spans: me.data.shiftToday })
+                  : t('No shift now: changes ask you to confirm')}
+            </span>
+          )}
           <span className="font-normal text-white/70">{t('Signing out ends your shift.')}</span>
         </span>
       }
@@ -433,6 +443,7 @@ export function BackOfficeLayout({ role }) {
           <FlowTrail role={role} />
           <SectionTabs role={role} />
           <Outlet />
+          <ShiftConfirmHost />
         </main>
       </div>
     </div>

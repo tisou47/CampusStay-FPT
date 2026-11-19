@@ -57,6 +57,16 @@ function buildUrl(path, query) {
   return url
 }
 
+/*
+ * A Staff member's change outside their shift or their work answers 428 SHIFT_CONFIRM_REQUIRED: the back office
+ * registers a confirmer (a dialog) that resolves true to send the change again with X-Shift-Acknowledged.
+ */
+let shiftConfirmer = null
+
+export function setShiftConfirmer(fn) {
+  shiftConfirmer = fn
+}
+
 export async function request(path, { method = 'GET', query, body, signal, headers } = {}) {
   const token = readSession()?.token
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData
@@ -88,6 +98,12 @@ export async function request(path, { method = 'GET', query, body, signal, heade
   // the route guard opens that step.
   if (res.status === 403 && (data?.code === 'PASSWORD_REQUIRED' || data?.code === 'PROFILE_REQUIRED')) {
     window.dispatchEvent(new Event('campusstay:setup-required'))
+  }
+  if (res.status === 428 && data?.code === 'SHIFT_CONFIRM_REQUIRED' && shiftConfirmer && !headers?.['X-Shift-Acknowledged']) {
+    if (await shiftConfirmer({ message: data.message, ...data.details })) {
+      return request(path, { method, query, body, signal, headers: { ...headers, 'X-Shift-Acknowledged': 'true' } })
+    }
+    throw new ApiError(t('Cancelled: nothing was changed.'), { status: 428, code: 'SHIFT_CANCELLED' })
   }
   if (!res.ok) {
     const message = data?.message ?? (res.status >= 500 ? t('The server could not complete the request. Try again later.') : t('Request failed ({status}).', { status: res.status }))
