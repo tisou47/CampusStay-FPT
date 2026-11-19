@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, ClipboardList, History, Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar } from '@/components/ui/Display'
@@ -364,9 +364,9 @@ export default function BlockStaff() {
             <Th className="w-20 whitespace-nowrap text-right">Overdue</Th>
             <Th className="w-20 whitespace-nowrap text-right">Oldest</Th>
             <Th className="w-28 whitespace-nowrap text-right">Resolved (7 days)</Th>
-            <Th className="w-28 whitespace-nowrap">Duty</Th>
-            <Th className="min-w-48">Shift</Th>
-            <Th className="w-56">
+            <Th className="w-28 whitespace-nowrap">Status</Th>
+            <Th className="min-w-48">Work shift</Th>
+            <Th className="sticky right-0 z-20 w-32 bg-subtle">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
@@ -416,19 +416,11 @@ export default function BlockStaff() {
                   <Tag tone="warning">No shift set</Tag>
                 )}
               </Td>
-              <Td>
-                <div className="flex gap-1 whitespace-nowrap">
-                  <Button variant="text" icon={ClipboardList} onClick={() => setViewing(p)}>
-                    Work
-                  </Button>
-                  {p.role === 'Staff' && (
-                    <Button variant="text" icon={History} to={`/manager/staff-activity?staff=${p.id}`}>
-                      Activity
-                    </Button>
-                  )}
-                  <Button variant="text" onClick={() => setEditing(p)}>
-                    Edit
-                  </Button>
+              <Td className="sticky right-0 z-[1] bg-surface">
+                <div className="flex justify-end gap-0.5">
+                  <IconButton icon={ClipboardList} aria-label={t('Work')} onClick={() => setViewing(p)} />
+                  {p.role === 'Staff' && <IconButton icon={History} aria-label={t('Activity')} onClick={() => navigate(`/manager/staff-activity?staff=${p.id}`)} />}
+                  <IconButton icon={Pencil} aria-label={t('Edit')} onClick={() => setEditing(p)} />
                 </div>
               </Td>
             </Tr>

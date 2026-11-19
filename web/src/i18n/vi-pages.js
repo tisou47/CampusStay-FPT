@@ -1552,6 +1552,7 @@ const manager = {
   "Duty follows sign-in: signing in starts the shift, signing out ends it.": "Ca trực theo đăng nhập: đăng nhập là vào ca, đăng xuất là hết ca.",
   "Nothing yet": "Chưa có",
   "Weekly shifts": "Ca làm hằng tuần",
+  "Work shift": "Ca làm",
   "Outside these hours, every change this person makes asks them to confirm and is marked in the staff activity log. No shift = always outside.": "Ngoài các khung giờ này, mọi thao tác thay đổi của người này đều phải xác nhận cảnh báo và được đánh dấu trong nhật ký thao tác nhân viên. Không có ca = luôn ngoài ca.",
   "No shift yet.": "Chưa có ca nào.",
   "Weekday": "Thứ",
