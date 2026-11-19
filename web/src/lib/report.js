@@ -38,6 +38,7 @@ export function downloadCsv(fileName, rows) {
 export function printDocument(title, bodyHtml) {
   const w = window.open('', '_blank', 'noopener=no,width=900,height=1000')
   if (!w) return false
+  w.document.open()
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
   * { box-sizing: border-box; }
@@ -145,5 +146,6 @@ ${bodyHtml}
 </script>
 </body></html>`)
   w.document.close()
+  w.focus()
   return true
 }

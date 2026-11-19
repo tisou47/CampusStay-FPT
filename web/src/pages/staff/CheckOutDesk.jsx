@@ -214,7 +214,7 @@ function CheckOutPanel({ d }) {
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
     setWater(d.reading?.water != null ? formatNumber(d.reading.water) : '')
-  }, [d])
+  }, [d.allocationId, d.reading?.electricity, d.reading?.water])
   useEffect(() => {
     if (!fData) return
     if (fData.saved && !condition) {

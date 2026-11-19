@@ -149,11 +149,9 @@ async function printBatchForms(run, mode) {
  * by hand in the Room (no status, no answer printed), the meters with blank boxes and the previous reading.
  */
 async function printBlankForms(run) {
-  const rooms = []
-  for (let page = 1; page < 50; page++) {
-    const res = await api.inspections.rooms(run.id, { page, pageSize: 100 })
-    rooms.push(...(res?.items ?? []))
-    if (!res?.items?.length || rooms.length >= (res.total ?? 0)) break
+  const rooms = await fetchAllRunRooms(run.id)
+  if (rooms.length === 0) {
+    return false
   }
   const sheets = rooms
     .map((room, index) => {
