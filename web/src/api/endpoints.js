@@ -67,6 +67,7 @@ export const api = {
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
+    reportFurniture: (body) => http.put('/students/me/furniture/report', body),
     /** { request: { id, status, requestedFor, deadline, reason, decisionReason, createdAt, source } | null, canRequest, checkInEnd, latestDay }. */
     lateCheckIn: g('/students/me/late-check-in'),
     /** multipart: reason, requestedFor (YYYY-MM-DD), evidence (JPEG, PNG or PDF) → { id } (spec §6.9). */
@@ -334,6 +335,12 @@ export const api = {
   inspections: {
     // Staff runs
     current: g('/inspection-runs/current'),
+    /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */
+    runs: g('/inspection-runs'),
+    run: (id, opts) => http.get(`/inspection-runs/${id}`, undefined, opts),
+    /** multipart: photo, itemId ("furniture-<id>"; none = the meters) → { id, itemId, url }. */
+    addPhoto: (runId, room, formData) => http.post(`/inspection-runs/${runId}/rooms/${room}/photos`, formData),
+    removePhoto: (runId, room, photoId) => http.delete(`/inspection-runs/${runId}/rooms/${room}/photos/${photoId}`),
     upcoming: g('/inspection-runs/upcoming'),
     rooms: (runId, query, opts) => http.get(`/inspection-runs/${runId}/rooms`, query, opts),
     saveRoom: (runId, room, body) => http.put(`/inspection-runs/${runId}/rooms/${room}`, body),

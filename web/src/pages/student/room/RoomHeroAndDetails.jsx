@@ -1,10 +1,16 @@
-import { Bed, Package, Wrench } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Bed, ClipboardEdit, Package, Wrench } from 'lucide-react'
+import { api } from '@/api/endpoints'
+import { useMutation } from '@/api/hooks'
+import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Avatar, Card, Facts, Note } from '@/components/ui/Display'
+import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
+import { Field, Input, Select } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { LoadingState } from '@/components/ui/States'
-import { StatusTag } from '@/components/ui/Tag'
+import { StatusTag, Tag } from '@/components/ui/Tag'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { countLines, typeName } from '@/lib/furniture'
+import { conditionName, conditionOptions, conditionTone, countLines, typeName } from '@/lib/furniture'
 import { formatDate, formatDateRange } from '@/lib/format'
 import { t, tr, tx } from '@/i18n'
 
@@ -172,9 +178,43 @@ export function RoommatesCard({ roommates = [], capacity, roomCode }) {
 }
 
 export function FurnitureCard({ furnitureQuery }) {
+  const { notify, notifyError } = useToast()
+  const [declareOpen, setDeclareOpen] = useState(false)
+  const [selectedItemId, setSelectedItemId] = useState('')
+  const [condition, setCondition] = useState('Damaged')
+  const [note, setNote] = useState('')
+
   const items = furnitureQuery.data?.items
+  const reportableItems = (items ?? []).filter((i) => i.reportable !== false && i.itemId)
+  const reportedItems = (items ?? []).filter((i) => i.reportedCondition)
+
+  const saveReport = useMutation(
+    (payload) => api.me.reportFurniture(payload),
+    {
+      invalidates: ['my-furniture'],
+      onSuccess: () => {
+        notify({
+          title: t('Furniture condition declared'),
+          message: t('Your declaration has been saved and will be shown during check-out.'),
+        })
+        setDeclareOpen(false)
+        setNote('')
+      },
+      onError: (e) => notifyError(e, 'Could not save furniture declaration'),
+    },
+  )
+
   if (furnitureQuery.loading && !items) return <LoadingState />
   if (!items) return null
+
+  const openModalFor = (item) => {
+    const target = item ?? reportableItems[0]
+    if (!target) return
+    setSelectedItemId(target.itemId)
+    setCondition(target.reportedCondition ?? 'Damaged')
+    setNote(target.reportedNote ?? '')
+    setDeclareOpen(true)
+  }
 
   // Students only see furniture categories, quantities, and status counts (never internal assetCode).
   const groups = groupFurniture(items)
@@ -186,10 +226,40 @@ export function FurnitureCard({ furnitureQuery }) {
           <h2 className="text-h3 font-semibold text-fg">{t('Furniture & equipment')}</h2>
           <span className="text-sm font-medium text-fg-tertiary tabular">({items.length})</span>
         </div>
-        <Button variant="primary" icon={Wrench} to="/student/requests/maintenance/new">
-          {t('Report broken equipment')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {reportableItems.length > 0 && (
+            <Button icon={ClipboardEdit} onClick={() => openModalFor(null)}>
+              {t('Declare damaged / missing')}
+            </Button>
+          )}
+          <Button variant="primary" icon={Wrench} to="/student/requests/maintenance/new">
+            {t('Report broken equipment')}
+          </Button>
+        </div>
       </div>
+
+      {reportedItems.length > 0 && (
+        <Alert type="warning" title={t('Declared furniture issues during stay ({n})', { n: reportedItems.length })}>
+          <ul className="mt-1 flex flex-col gap-1.5">
+            {reportedItems.map((i) => (
+              <li key={i.itemId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-fg">
+                    {typeName(i)} · {i.personal && i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
+                  </span>
+                  <Tag tone={conditionTone[i.reportedCondition] ?? 'warning'}>
+                    {conditionName(i.reportedCondition)}
+                  </Tag>
+                  {i.reportedNote && <span className="text-fg-secondary">— {i.reportedNote}</span>}
+                </div>
+                <Button size="sm" variant="text" onClick={() => openModalFor(i)}>
+                  {t('Update')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
       {items.length ? (
         <ul className="grid min-h-0 flex-1 grid-cols-1 content-start gap-3.5 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4" aria-label={t('Furniture')}>
@@ -199,6 +269,7 @@ export function FurnitureCard({ furnitureQuery }) {
               acc[st] = (acc[st] ?? 0) + 1
               return acc
             }, {})
+            const groupReported = g.items.filter((i) => i.reportedCondition)
             return (
               <li key={g.name} className="flex flex-col justify-between gap-3 rounded-lg bg-subtle p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -219,6 +290,12 @@ export function FurnitureCard({ furnitureQuery }) {
                       {Object.keys(statusCounts).length > 1 && <span className="font-medium">({count})</span>}
                     </span>
                   ))}
+                  {groupReported.map((ri) => (
+                    <Tag key={ri.itemId} tone={conditionTone[ri.reportedCondition] ?? 'warning'}>
+                      <AlertTriangle size={12} aria-hidden="true" />
+                      {t('Declared: {c}', { c: conditionName(ri.reportedCondition) })}
+                    </Tag>
+                  ))}
                 </div>
               </li>
             )
@@ -227,7 +304,62 @@ export function FurnitureCard({ furnitureQuery }) {
       ) : (
         <p className="text-base text-fg-secondary">{t('No furniture recorded in this room.')}</p>
       )}
-      <Note className="shrink-0">Something broken? Report it from requests so staff can repair it.</Note>
+      <Note className="shrink-0">
+        {t('You can declare worn, damaged or missing furniture during your stay so Staff can verify it when you check out.')}
+      </Note>
+
+      <Modal
+        open={declareOpen}
+        onClose={() => setDeclareOpen(false)}
+        title={t('Declare furniture condition')}
+        description={t('Select the item in your room and its current condition. Staff will review this declaration at check-out.')}
+        footer={
+          <>
+            <Button onClick={() => setDeclareOpen(false)}>{t('Cancel')}</Button>
+            <Button
+              variant="primary"
+              disabled={!selectedItemId || saveReport.pending}
+              onClick={() => saveReport.run({ itemId: selectedItemId, condition, note: note.trim() || undefined })}
+            >
+              {t('Save declaration')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Field label="Furniture item" required>
+            <Select
+              value={selectedItemId}
+              onChange={(e) => {
+                const nextId = e.target.value
+                setSelectedItemId(nextId)
+                const found = reportableItems.find((x) => x.itemId === nextId)
+                setCondition(found?.reportedCondition ?? 'Damaged')
+                setNote(found?.reportedNote ?? '')
+              }}
+              options={reportableItems.map((i) => ({
+                value: i.itemId,
+                label: `${typeName(i)} · ${i.personal && i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}${i.reportedCondition ? ` (${conditionName(i.reportedCondition)})` : ''}`,
+              }))}
+            />
+          </Field>
+          <Field label="Condition" required>
+            <Select
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              options={conditionOptions()}
+            />
+          </Field>
+          <Field label="Note" helper={t('Describe what happened (optional). Choose Good to clear an existing declaration.')}>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={300}
+              placeholder={t('e.g. Broken chair leg, missing locker key…')}
+            />
+          </Field>
+        </div>
+      </Modal>
     </Card>
   )
 }

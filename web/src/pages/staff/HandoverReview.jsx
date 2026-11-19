@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CalendarClock, ClipboardList, ImageOff, Lock } from 'lucide-react'
+import { useSearchParams } from 'react-router'
+import { CalendarClock, ClipboardList, Eye, ImageOff, Lock } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -72,19 +73,48 @@ function differenceLines(d) {
 }
 
 /** One of the three reports: the Room's record, the student's answers, what Staff found in the Room. */
-function Report({ title, subtitle, tone, meters, rows, emptyText }) {
+function Report({ title, subtitle, tone, meters, rows, emptyText, active, onSelect }) {
   const dim = !rows
   return (
-    <section className={cx('flex min-w-0 flex-col gap-3 rounded-lg border p-4', dim ? 'border-dashed border-line bg-subtle/40' : 'border-line bg-surface')}>
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className={cx('size-2.5 shrink-0 rounded-full', { neutral: 'bg-fg-tertiary', brand: 'bg-primary', success: 'bg-success' }[tone])} aria-hidden="true" />
-          <h3 className="text-base font-semibold text-fg">{t(title)}</h3>
+    <section
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect?.()
+        }
+      }}
+      className={cx(
+        'flex h-full min-w-0 cursor-pointer flex-col gap-3 rounded-lg border p-4 text-left transition-all focus:outline-none',
+        active
+          ? 'border-primary bg-surface ring-2 ring-primary/20'
+          : dim
+            ? 'border-dashed border-line bg-subtle/40 hover:border-line-strong'
+            : 'border-line bg-surface hover:border-line-strong',
+      )}
+    >
+      <div className="flex min-h-15 flex-col justify-between gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={cx('size-2.5 shrink-0 rounded-full', { neutral: 'bg-fg-tertiary', brand: 'bg-primary', success: 'bg-success' }[tone])} aria-hidden="true" />
+            <h3 className="text-base font-semibold text-fg">{t(title)}</h3>
+          </div>
+          {active ? (
+            <Tag tone="brand">{t('Viewing details')}</Tag>
+          ) : (
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-fg-tertiary">
+              <Eye size={13} aria-hidden="true" />
+              {t('View details')}
+            </span>
+          )}
         </div>
         <p className="text-sm text-fg-secondary">{subtitle}</p>
       </div>
       {dim ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-1.5 py-6 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-md bg-subtle/40 px-3 py-8 text-center">
           <Lock size={18} aria-hidden="true" className="text-fg-tertiary" />
           <p className="text-sm text-fg-secondary">{emptyText}</p>
         </div>
@@ -92,20 +122,24 @@ function Report({ title, subtitle, tone, meters, rows, emptyText }) {
         <>
           <dl className="grid grid-cols-2 gap-2">
             {meters.map((m) => (
-              <div key={m.label} className="rounded-md bg-subtle/60 px-3 py-2">
-                <dt className="text-xs text-fg-secondary">{t(m.label)}</dt>
-                <dd className="text-base font-semibold text-fg tabular">{m.value == null ? '—' : `${formatNumber(m.value)} ${m.unit}`}</dd>
-                {m.extra && <dd className="text-xs text-fg-secondary">{m.extra}</dd>}
+              <div key={m.label} className="flex min-h-18 flex-col justify-between rounded-md bg-subtle/60 px-3 py-2">
+                <div>
+                  <dt className="text-xs text-fg-secondary">{t(m.label)}</dt>
+                  <dd className="text-base font-semibold text-fg tabular">{m.value == null ? '—' : `${formatNumber(m.value)} ${m.unit}`}</dd>
+                </div>
+                <dd className="text-xs text-fg-secondary">{m.extra || '\u00A0'}</dd>
               </div>
             ))}
           </dl>
           <ul className="flex flex-col divide-y divide-line/70">
             {rows.map((r) => (
-              <li key={r.key} className={cx('flex items-center justify-between gap-3 py-2', r.highlight && '-mx-2 rounded-md bg-warning-bg px-2')}>
+              <li key={r.key} className={cx('flex min-h-10 items-center justify-between gap-3 py-2', r.highlight && '-mx-2 rounded-md bg-warning-bg px-2')}>
                 <span className="min-w-0 truncate text-sm text-fg" title={r.label}>
                   {r.label}
                 </span>
-                <Condition value={r.value} />
+                <div className="shrink-0">
+                  <Condition value={r.value} />
+                </div>
               </li>
             ))}
           </ul>
@@ -307,6 +341,7 @@ function Detail({ id }) {
   const [dialog, setDialog] = useState(null)
   const [reason, setReason] = useState('')
   const [lateItems, setLateItems] = useState({})
+  const [activeReport, setActiveReport] = useState('report2')
   const done = (title, message) => () => {
     notify({ title, message })
     setDialog(null)
@@ -386,14 +421,26 @@ function Detail({ id }) {
               </Alert>
             )}
 
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-stretch gap-3 xl:grid-cols-3">
               <Report
                 title="Report 1 · Room's record"
                 subtitle={d.electricity?.baselineAt ? t('Recorded by Staff before the student moved in ({date}).', { date: formatDateTime(d.electricity.baselineAt) }) : t('Recorded by Staff before the student moved in.')}
                 tone="neutral"
+                active={activeReport === 'report1'}
+                onSelect={() => setActiveReport('report1')}
                 meters={[
-                  { label: 'Electricity', unit: 'kWh', value: d.electricity?.baseline },
-                  { label: 'Water', unit: 'm³', value: d.water?.baseline },
+                  {
+                    label: 'Electricity',
+                    unit: 'kWh',
+                    value: d.electricity?.baseline,
+                    extra: d.electricity?.baselineAt ? formatDate(d.electricity.baselineAt) : null,
+                  },
+                  {
+                    label: 'Water',
+                    unit: 'm³',
+                    value: d.water?.baseline,
+                    extra: d.water?.baselineAt ? formatDate(d.water.baselineAt) : null,
+                  },
                 ]}
                 rows={d.items.map((i) => ({ key: i.itemId, label: itemLabel(i), value: i.baseline }))}
               />
@@ -401,6 +448,8 @@ function Detail({ id }) {
                 title="Report 2 · Student's answers"
                 subtitle={d.row.submittedAt ? t('Filed by the student on {date}.', { date: formatDateTime(d.row.submittedAt) }) : t('Not submitted yet.')}
                 tone="brand"
+                active={activeReport === 'report2'}
+                onSelect={() => setActiveReport('report2')}
                 meters={[
                   { label: 'Electricity', unit: 'kWh', value: d.electricity?.student, extra: signed(diff(d.electricity), 'kWh') },
                   { label: 'Water', unit: 'm³', value: d.water?.student, extra: signed(diff(d.water), 'm³') },
@@ -411,6 +460,8 @@ function Detail({ id }) {
                 title="Final report · Checked in the Room"
                 subtitle={visited ? t('Recorded by Staff in the Room with the student.') : t('Only when Staff check the Room with the student.')}
                 tone="success"
+                active={activeReport === 'final'}
+                onSelect={() => setActiveReport('final')}
                 meters={[
                   { label: 'Electricity', unit: 'kWh', value: d.electricity?.verified },
                   { label: 'Water', unit: 'm³', value: d.water?.verified },
@@ -426,37 +477,170 @@ function Detail({ id }) {
               />
             </div>
 
-            <section className="flex flex-col gap-2">
-              <h3 className="text-base font-semibold text-fg">{t('Notes and photos')}</h3>
-              <div className="overflow-hidden rounded-lg border border-line">
-                <div className="flex flex-col gap-1.5 border-b border-line bg-subtle/40 px-4 py-3">
-                  <span className="text-sm font-medium text-fg">{t('Meters')}</span>
-                  <Photos photos={d.meterPhotos} />
+            <section className="flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="text-base font-semibold text-fg">
+                    {activeReport === 'report1'
+                      ? t("Photos and notes · Report 1 (Room's record)")
+                      : activeReport === 'final'
+                        ? t('Photos and notes · Final report (Checked in the Room)')
+                        : t("Photos and notes · Report 2 (Student's answers)")}
+                  </h3>
+                  <p className="text-xs text-fg-secondary">
+                    {t('Click any of the 3 report cards above to inspect its specific meter photos, item photos and notes.')}
+                  </p>
                 </div>
-                <ul className="flex flex-col divide-y divide-line">
-                  {d.items.map((i) => (
-                    <li key={i.itemId} className={cx('grid grid-cols-1 gap-2 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto]', i.differs && 'bg-warning-bg/50')}>
-                      <TwoLine primary={typeName(i)} secondary={`${i.assetCode ?? ''} · ${i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}`} />
-                      <div className="flex min-w-0 flex-col gap-1 text-sm">
-                        {i.note ? <span className="text-fg">{t('Student: {note}', { note: i.note })}</span> : <span className="text-fg-tertiary">{t('No note from the student')}</span>}
-                        {i.verifiedNote && <span className="text-fg">{t('Staff: {note}', { note: i.verifiedNote })}</span>}
-                        {i.preExisting && <span className="text-fg-secondary">{t('There before the student: never charged to them')}</span>}
-                        {d.lateNote && status === 'Final' && (
-                          <Select
-                            size="sm"
-                            wrapperClassName="max-w-60"
-                            aria-label={t('Accept {item} from the late report', { item: i.assetCode })}
-                            value={lateItems[i.itemId] ?? ''}
-                            onChange={(e) => setLateItems((s) => ({ ...s, [i.itemId]: e.target.value }))}
-                            options={[{ value: '', label: 'Keep as recorded' }, { value: 'Damaged', label: 'Accept as Damaged' }, { value: 'Missing', label: 'Accept as Missing' }]}
-                          />
-                        )}
-                      </div>
-                      <Photos photos={i.photos} />
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant={activeReport === 'report1' ? 'primary' : 'default'} onClick={() => setActiveReport('report1')}>
+                    {t('Report 1')}
+                  </Button>
+                  <Button size="sm" variant={activeReport === 'report2' ? 'primary' : 'default'} onClick={() => setActiveReport('report2')}>
+                    {t('Report 2')}
+                  </Button>
+                  <Button size="sm" variant={activeReport === 'final' ? 'primary' : 'default'} onClick={() => setActiveReport('final')}>
+                    {t('Final report')}
+                  </Button>
+                </div>
               </div>
+
+              {activeReport === 'report1' && (
+                <div className="overflow-hidden rounded-lg border border-line">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-subtle/40 px-4 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-fg">{t('Meters (Report 1 · Baseline)')}</span>
+                      <span className="text-xs text-fg-secondary">
+                        {t('Electricity: {e} kWh · Water: {w} m³', {
+                          e: d.electricity?.baseline != null ? formatNumber(d.electricity.baseline) : '—',
+                          w: d.water?.baseline != null ? formatNumber(d.water.baseline) : '—',
+                        })}
+                        {d.electricity?.baselineAt ? ` · ${formatDateTime(d.electricity.baselineAt)}` : ''}
+                      </span>
+                    </div>
+                    <Photos photos={d.baselineMeterPhotos} />
+                  </div>
+                  <ul className="flex flex-col divide-y divide-line">
+                    {d.items.map((i) => (
+                      <li key={i.itemId} className="grid grid-cols-1 items-center gap-2 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,9rem)_minmax(0,1fr)_auto]">
+                        <TwoLine primary={typeName(i)} secondary={`${i.assetCode ?? ''} · ${i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}`} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Condition value={i.baseline} />
+                          {i.baselineSource && <span className="text-xs text-fg-tertiary">({tr(i.baselineSource)})</span>}
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1 text-sm">
+                          {i.baselineNote ? (
+                            <span className="text-fg">{t('Staff: {note}', { note: i.baselineNote })}</span>
+                          ) : (
+                            <span className="text-fg-tertiary">{t('No note')}</span>
+                          )}
+                        </div>
+                        <Photos photos={i.baselinePhotos} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {activeReport === 'report2' && (
+                <div className="overflow-hidden rounded-lg border border-line">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-subtle/40 px-4 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-fg">{t('Meters (Report 2 · Student declared)')}</span>
+                      <span className="text-xs text-fg-secondary">
+                        {t('Electricity: {e} kWh · Water: {w} m³', {
+                          e: d.electricity?.student != null ? formatNumber(d.electricity.student) : '—',
+                          w: d.water?.student != null ? formatNumber(d.water.student) : '—',
+                        })}
+                        {d.row.submittedAt ? ` · ${formatDateTime(d.row.submittedAt)}` : ''}
+                      </span>
+                    </div>
+                    <Photos photos={d.meterPhotos} />
+                  </div>
+                  <ul className="flex flex-col divide-y divide-line">
+                    {d.items.map((i) => (
+                      <li key={i.itemId} className={cx('grid grid-cols-1 items-center gap-2 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,9rem)_minmax(0,1fr)_auto]', i.differs && 'bg-warning-bg/50')}>
+                        <TwoLine primary={typeName(i)} secondary={`${i.assetCode ?? ''} · ${i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}`} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Condition value={i.condition} />
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1 text-sm">
+                          {i.note ? (
+                            <span className="text-fg">{t('Student: {note}', { note: i.note })}</span>
+                          ) : (
+                            <span className="text-fg-tertiary">{t('No note')}</span>
+                          )}
+                          {i.preExisting && <span className="text-fg-secondary">{t('There before the student: never charged to them')}</span>}
+                        </div>
+                        <Photos photos={i.photos} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {activeReport === 'final' && (
+                <div className="overflow-hidden rounded-lg border border-line">
+                  {!visited && status !== 'Final' ? (
+                    <div className="flex flex-col items-center justify-center gap-1.5 bg-subtle/30 px-4 py-8 text-center">
+                      <Lock size={18} aria-hidden="true" className="text-fg-tertiary" />
+                      <p className="text-sm font-medium text-fg">
+                        {status === 'Verifying'
+                          ? t('Nothing recorded in the Room yet.')
+                          : t('No Room visit: Staff confirm at the desk, or check a major difference in the Room.')}
+                      </p>
+                      <p className="text-xs text-fg-secondary">
+                        {t('Once Staff check the Room with the student or confirm the inventory, the Final report details will appear here.')}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-subtle/40 px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-medium text-fg">{t('Meters (Final report · Official baseline)')}</span>
+                          <span className="text-xs text-fg-secondary">
+                            {t('Electricity: {e} kWh · Water: {w} m³', {
+                              e: (d.electricity?.verified ?? d.electricity?.student) != null ? formatNumber(d.electricity?.verified ?? d.electricity?.student) : '—',
+                              w: (d.water?.verified ?? d.water?.student) != null ? formatNumber(d.water?.verified ?? d.water?.student) : '—',
+                            })}
+                            {d.finalizedAt ? ` · ${formatDateTime(d.finalizedAt)}` : ''}
+                          </span>
+                        </div>
+                        <Photos photos={d.meterPhotos} />
+                      </div>
+                      <ul className="flex flex-col divide-y divide-line">
+                        {d.items.map((i) => (
+                          <li key={i.itemId} className={cx('grid grid-cols-1 items-center gap-2 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,9rem)_minmax(0,1fr)_auto]', i.differs && 'bg-warning-bg/50')}>
+                            <TwoLine primary={typeName(i)} secondary={`${i.assetCode ?? ''} · ${i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}`} />
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Condition value={i.verified ?? i.condition ?? i.baseline} />
+                            </div>
+                            <div className="flex min-w-0 flex-col gap-1 text-sm">
+                              {i.verifiedNote ? (
+                                <span className="text-fg">{t('Staff: {note}', { note: i.verifiedNote })}</span>
+                              ) : (
+                                <span className="text-fg-tertiary">{t('No note')}</span>
+                              )}
+                              {i.note && <span className="text-fg-secondary">{t('Student: {note}', { note: i.note })}</span>}
+                              {i.preExisting && <span className="text-fg-secondary">{t('There before the student: never charged to them')}</span>}
+                              {d.lateNote && status === 'Final' && (
+                                <Select
+                                  size="sm"
+                                  wrapperClassName="max-w-60"
+                                  aria-label={t('Accept {item} from the late report', { item: i.assetCode })}
+                                  value={lateItems[i.itemId] ?? ''}
+                                  onChange={(e) => setLateItems((s) => ({ ...s, [i.itemId]: e.target.value }))}
+                                  options={[{ value: '', label: 'Keep as recorded' }, { value: 'Damaged', label: 'Accept as Damaged' }, { value: 'Missing', label: 'Accept as Missing' }]}
+                                />
+                              )}
+                            </div>
+                            <Photos photos={i.photos} />
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
             </section>
 
             {status === 'Final' && (
@@ -530,12 +714,18 @@ function Detail({ id }) {
 
 export default function HandoverReview() {
   const scope = useScopeQuery()
-  const [tab, setTab] = useState('To review')
+  const [params] = useSearchParams()
+  const initialStatus = params.get('status')
+  const initialTab =
+    initialStatus === 'Draft' || initialStatus === 'Verifying' || initialStatus === 'Final' || initialStatus === 'Late report'
+      ? initialStatus
+      : 'To review'
+  const [tab, setTab] = useState(initialTab)
   const [page, setPage] = useState(1)
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState(params.get('id') ?? null)
   const list = useQuery(['handovers', 'list', scope, tab, page], ({ signal }) => api.handover.list({ ...scope, status: tab === 'To review' ? 'Submitted' : tab, page, pageSize: 20 }, { signal }))
   const items = list.data?.items ?? []
-  const current = items.find((r) => r.id === selected)?.id ?? items[0]?.id
+  const current = items.find((r) => r.id === selected)?.id ?? selected ?? items[0]?.id
   return (
     <>
       <PageHeader

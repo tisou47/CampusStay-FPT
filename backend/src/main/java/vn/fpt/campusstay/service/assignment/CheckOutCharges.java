@@ -106,10 +106,19 @@ class CheckOutCharges {
             } else {
                 long amount = acknowledged.getOrDefault(f.id(), 0L);
                 String claimed = acknowledgedCondition.get(f.id());
-                lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at,
-                        claimed != null ? claimed : found, pre.getOrDefault(f.id(), false), price,
-                        claimed == null ? 0 : percent(claimed), amount, claimed == null ? "NONE" : "ACKNOWLEDGED",
-                        claimed == null ? null : "Acknowledged by the student"));
+                boolean staffRecorded = claimed == null && answers.containsKey(f.id())
+                        && percent(found) > percent(at == null ? "GOOD" : at);
+                if (staffRecorded) {
+                    boolean before = pre.getOrDefault(f.id(), false);
+                    int pct = before ? 0 : Math.max(0, percent(found) - percent(at == null ? "GOOD" : at));
+                    lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at, found, before,
+                            price, pct, price * pct / 100, "PERSONAL", null));
+                } else {
+                    lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at,
+                            claimed != null ? claimed : found, pre.getOrDefault(f.id(), false), price,
+                            claimed == null ? 0 : percent(claimed), amount, claimed == null ? "NONE" : "ACKNOWLEDGED",
+                            claimed == null ? null : "Acknowledged by the student"));
+                }
             }
         }
         return lines;

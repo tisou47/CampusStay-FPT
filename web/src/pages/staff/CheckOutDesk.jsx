@@ -30,8 +30,16 @@ import { t, tr } from '@/i18n'
 // POST /check-out/:allocationId { electricity, water, conditionGood, keyReturned, damages: [{ itemId, amount, note }], draft }
 //   → { refund, refundStatus } — the damage charge is the sum of the items' damages (spec §6.16)
 
-const tones = { 'Pending check-out': 'warning', 'Settlement due': 'error', 'Checked out': 'success' }
+const tones = { Pending: 'warning', Draft: 'info', 'Checked out': 'success', 'Pending check-out': 'warning', 'Settlement due': 'error' }
 const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
+
+const statusSegments = [
+  { key: 'All', label: 'All' },
+  { key: 'Pending', label: 'Pending' },
+  { key: 'Draft', label: 'Draft' },
+  { key: 'Overdue', label: 'Overdue' },
+  { key: 'Checked out', label: 'Checked out' },
+]
 
 function Row({ label, children, strong, tone }) {
   return (
@@ -215,7 +223,6 @@ function CheckOutPanel({ d }) {
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
   const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
-  const waitingStudentAgreement = !done && byCondition && fData?.studentPresent && !fData?.agreedAt
 
   const submit = useMutation(
     (draft) =>
@@ -403,15 +410,11 @@ function CheckOutPanel({ d }) {
           </div>
         ) : (
           <div className="flex flex-col gap-1.5 pt-0.5">
-            {!condition ? (
+            {!condition && (
               <p className="text-right text-xs font-medium text-warning-fg">
                 {t('Please select the room condition before you confirm.')}
               </p>
-            ) : waitingStudentAgreement ? (
-              <p className="text-right text-xs font-medium text-warning-fg">
-                {t('Waiting for the student to agree on the app.')}
-              </p>
-            ) : null}
+            )}
             <div className="flex items-center justify-end gap-2">
               <Button
                 tip="Keep what you entered and finish the check-out later."
@@ -424,7 +427,7 @@ function CheckOutPanel({ d }) {
               <Button
                 tip="Ends the student’s stay and frees the bed. A meter reading is taken."
                 variant="primary"
-                disabled={!condition || waitingStudentAgreement || submit.pending}
+                disabled={!condition || submit.pending}
                 onClick={() => setShowSummary(true)}
               >
                 Confirm check-out
@@ -520,6 +523,7 @@ export default function CheckOutDesk() {
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
   const [reason, setReason] = useState('')
+  const [status, setStatus] = useState('All')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [selectedId, setSelectedId] = useState(null)
@@ -533,9 +537,10 @@ export default function CheckOutDesk() {
     return () => clearTimeout(t)
   }, [q])
 
-  const filters = { ...scope, q: search, reason, page, pageSize }
+  const filters = { ...scope, q: search, reason, status: status === 'All' ? undefined : status, page, pageSize }
   const list = useQuery(['check-out', filters], ({ signal }) => api.desk.checkOutList(filters, { signal }))
   const items = list.data?.items ?? []
+  const statusCounts = list.data?.statusCounts ?? {}
   // Rows are keyed by Allocation id: the student code never goes into a URL (contract change B-01).
   const allocationId = items.find((r) => r.allocationId === selectedId)?.allocationId ?? items[0]?.allocationId
   const detail = useQuery(['check-out', 'detail', allocationId], ({ signal }) => api.desk.checkOutDetail(allocationId, { signal }), { enabled: Boolean(allocationId), keepPrevious: false })
@@ -566,7 +571,7 @@ export default function CheckOutDesk() {
       />
       <RoomReadingsModal open={readingsOpen} onClose={() => setReadingsOpen(false)} scope={scope} />
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search student code or room" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           wrapperClassName="w-60"
@@ -578,6 +583,40 @@ export default function CheckOutDesk() {
           }}
           options={[{ value: '', label: 'Reason: All' }, ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: t('Reason: {r}', { r: tr(r) }) }))]}
         />
+        <div role="tablist" aria-label={t('Check-out status')} className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-surface p-1">
+          {statusSegments.map((seg) => {
+            const active = status === seg.key
+            const count = statusCounts[seg.key]
+            return (
+              <button
+                key={seg.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setStatus(seg.key)
+                  setPage(1)
+                }}
+                className={cx(
+                  'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  active ? 'bg-primary font-semibold text-fg-on-brand shadow-card' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
+                )}
+              >
+                <span>{t(seg.label)}</span>
+                {count != null && (
+                  <span
+                    className={cx(
+                      'rounded-full px-1.5 py-0.5 text-xs font-semibold tabular',
+                      active ? 'bg-surface/20 text-fg-on-brand' : 'bg-subtle text-fg-secondary',
+                    )}
+                  >
+                    {formatNumber(count)}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
         {/* Overdue leavers: a short notice beside the filters, so it never pushes the work area down. */}
         {list.data?.overdueCount > 0 && (
           <span

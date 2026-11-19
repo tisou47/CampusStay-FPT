@@ -43,7 +43,8 @@ public class CheckOutFurnitureService {
     /** A line as screens show it; {@code review}: Pending, Kept or Dropped when a Manager was asked. */
     public record Line(String itemId, String assetCode, String type, String typeVi, String bed, boolean personal,
             String atCheckIn, String atCheckOut, boolean preExisting, long unitPrice, int percent, long amount,
-            String source, String note, String review, String reviewNote) {
+            String source, String note, String review, String reviewNote, String studentReportedCondition,
+            String studentReportedNote, Instant studentReportedAt) {
     }
 
     /** Settlement preview shown to the student when checking and confirming the check-out package. */
@@ -407,6 +408,17 @@ public class CheckOutFurnitureService {
         });
         List<CheckOutCharges.Line> lines = charges.lines(t.allocationId(), t.termId(), t.roomId(), t.bedId(),
                 t.residentAt(), answers);
+        record StudentReport(String condition, String note, Instant at) {
+        }
+        Map<Long, StudentReport> studentReports = new HashMap<>();
+        jdbc.sql("""
+                SELECT furniture_item_id, condition, note, updated_at
+                FROM asg_furniture_report WHERE allocation_id = :a
+                """).param("a", t.allocationId())
+                .query((rs, i) -> Map.entry(rs.getLong("furniture_item_id"),
+                        new StudentReport(rs.getString("condition"), rs.getString("note"),
+                                rs.getTimestamp("updated_at").toInstant())))
+                .list().forEach(e -> studentReports.put(e.getKey(), e.getValue()));
         List<Line> items = new ArrayList<>();
         long total = 0;
         for (CheckOutCharges.Line l : lines) {
@@ -420,13 +432,16 @@ public class CheckOutFurnitureService {
             if (review == null || review.equals("Kept")) {
                 total += amount;
             }
+            StudentReport rep = studentReports.get(l.itemId());
             items.add(new Line("furniture-" + l.itemId(), l.assetCode(), l.type(), l.typeVi(), l.bed(), l.personal(),
                     StudentHandoverService.label(l.start()), StudentHandoverService.label(l.now()), l.preExisting(),
                     l.unitPrice(), l.percent(), amount,
                     s != null && "OVERRIDE".equals(s.source()) ? "Override" : l.source().equals("ACKNOWLEDGED")
                             ? "Acknowledged" : l.personal() ? "Personal" : "Shared",
                     s != null ? (s.overrideReason() != null ? s.overrideReason() : s.note()) : l.note(), review,
-                    s == null ? null : s.reviewNote()));
+                    s == null ? null : s.reviewNote(),
+                    rep == null ? null : StudentHandoverService.label(rep.condition()),
+                    rep == null ? null : rep.note(), rep == null ? null : rep.at()));
         }
         record Meta(Boolean present, Instant agreed, BigDecimal electricity, BigDecimal water, String status,
                 Long held, String period, Long share, Long unpaid, Long damage, Long settled) {

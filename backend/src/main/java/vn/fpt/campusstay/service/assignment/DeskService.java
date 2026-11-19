@@ -68,7 +68,8 @@ public class DeskService {
     // ---------------------------------------------------------------- check-in records
 
     /** A student of the desk's side lists; {@code studentCode} opens them at the desk. */
-    public record Recent(String name, String studentCode, String bed, Instant at) {
+    public record Recent(String name, String studentCode, String bed, Instant at, String handoverId,
+            String handoverStatus, String handoverComparison, boolean doorCodeReleased, Instant utilityFrom) {
     }
 
     /**
@@ -78,7 +79,8 @@ public class DeskService {
      */
     public record Today(LocalDate date, String block, long expected, long checkedIn, long waiting, long blocked,
             List<Recent> recent, String termId, String termName, LocalDate checkInStart, LocalDate checkInEnd,
-            String window, List<Recent> waitingList, List<Recent> blockedList) {
+            String window, List<Recent> waitingList, List<Recent> blockedList, long inProgress,
+            List<Recent> inProgressList, List<Recent> checkedInList) {
     }
 
     /** How many students each side list of the check-in desk shows. */
@@ -97,7 +99,10 @@ public class DeskService {
 
     /** {@code status}: ready, blocked, checked-in or not-allocated. */
     public record Person(String name, String studentCode, String room, String bed, String block, Integer floor,
-            String status, List<Check> checks, Owes owes, Instant checkedInAt, List<String> handOverItems) {
+            String status, List<Check> checks, Owes owes, Instant checkedInAt, List<String> handOverItems,
+            String handoverId, String handoverStatus, String handoverComparison, String handoverSource,
+            boolean doorCodeReleased, Instant doorCodeReleasedAt, Instant utilityFrom, BigDecimal electricity,
+            BigDecimal water) {
     }
 
     public record Lookup(Person student) {
@@ -116,7 +121,7 @@ public class DeskService {
 
     /** @param checkOutBy the day leavers of the Term must have checked out */
     public record CheckOutPage(LocalDate date, long pendingCount, List<String> reasons, List<CheckOutRow> items,
-            long total, LocalDate checkOutBy, long overdueCount) {
+            long total, LocalDate checkOutBy, long overdueCount, Map<String, Long> statusCounts) {
     }
 
     /** Damage to one furniture item of the Room; {@code amount} VND. */
@@ -154,7 +159,12 @@ public class DeskService {
     // ---------------------------------------------------------------- internal rows
 
     private record Alloc(long id, long termId, long studentId, long bedId, String status, Instant checkedInAt,
-            List<String> handOverItems, Instant residentAt) {
+            List<String> handOverItems, Instant residentAt, Instant codeReleasedAt, Instant utilityFrom) {
+    }
+
+    private record HandoverSummary(long id, long allocationId, String status, String source, String comparison,
+            Instant openedAt, Instant submittedAt, Instant finalizedAt, Instant utilityFrom, BigDecimal electricity,
+            BigDecimal water) {
     }
 
     /** An Allocation with its Bed and, for check-out, its check-out record. */
@@ -221,39 +231,60 @@ public class DeskService {
         BlockSelection scope = blockScope.resolve(block);
         TermSummary term = term(termId);
         List<Placed> placed = active(term.id(), scope.ids());
-        Map<Long, Billing.CheckInDue> dues = billing.checkInDues(placed.stream().map(p -> p.alloc().id()).toList());
-        long checkedIn = placed.stream().filter(p -> p.alloc().checkedInAt() != null).count();
-        long blocked = placed.stream()
-                .filter(p -> p.alloc().checkedInAt() == null && dues.containsKey(p.alloc().id())).count();
+        List<Long> allocIds = placed.stream().map(p -> p.alloc().id()).toList();
+        Map<Long, Billing.CheckInDue> dues = billing.checkInDues(allocIds);
+        Map<Long, HandoverSummary> handoverMap = handovers(allocIds);
+        List<Placed> checkedInAll = placed.stream().filter(p -> p.alloc().checkedInAt() != null)
+                .sorted(Comparator.comparing((Placed p) -> p.alloc().checkedInAt()).reversed()).toList();
+        long checkedIn = checkedInAll.size();
         LocalDate today = today();
         Instant start = today.atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
-        List<Placed> recent = placed.stream()
-                .filter(p -> p.alloc().checkedInAt() != null && !p.alloc().checkedInAt().isBefore(start))
-                .sorted(Comparator.comparing((Placed p) -> p.alloc().checkedInAt()).reversed())
-                .limit(8).toList();
-        // Not checked in yet: waiting at the desk (paid) or blocked (still owing), by Room and Bed.
+        List<Placed> recentToday = checkedInAll.stream()
+                .filter(p -> !p.alloc().checkedInAt().isBefore(start)).limit(8).toList();
+        List<Placed> recent = recentToday.isEmpty() ? checkedInAll.stream().limit(8).toList() : recentToday;
+        List<Placed> checkedInList = checkedInAll.stream().limit(SIDE_LIST).toList();
+        // Not checked in yet: in room doing/awaiting inventory report, waiting at desk (paid), or blocked (still owing).
         Comparator<Placed> byBed = Comparator.comparing((Placed p) -> p.bed().code());
-        List<Placed> waitingList = placed.stream()
-                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id()))
-                .sorted(byBed).limit(SIDE_LIST).toList();
-        List<Placed> blockedList = placed.stream()
+        List<Placed> inProgressAll = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id())
+                        && (handoverMap.containsKey(p.alloc().id()) || p.alloc().codeReleasedAt() != null))
+                .sorted(byBed).toList();
+        List<Placed> inProgressList = inProgressAll.stream().limit(SIDE_LIST).toList();
+        List<Placed> waitingAll = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id())
+                        && !handoverMap.containsKey(p.alloc().id()) && p.alloc().codeReleasedAt() == null)
+                .sorted(byBed).toList();
+        List<Placed> waitingList = waitingAll.stream().limit(SIDE_LIST).toList();
+        List<Placed> blockedAll = placed.stream()
                 .filter(p -> p.alloc().checkedInAt() == null && dues.containsKey(p.alloc().id()))
-                .sorted(byBed).limit(SIDE_LIST).toList();
+                .sorted(byBed).toList();
+        List<Placed> blockedList = blockedAll.stream().limit(SIDE_LIST).toList();
         Map<Long, UserDirectory.Student> students = users.students(java.util.stream.Stream
-                .of(recent, waitingList, blockedList).flatMap(List::stream).map(p -> p.alloc().studentId()).toList());
+                .of(recent, checkedInList, inProgressList, waitingList, blockedList)
+                .flatMap(List::stream).map(p -> p.alloc().studentId()).distinct().toList());
         java.util.function.Function<Placed, Recent> side = p -> {
             UserDirectory.Student s = students.get(p.alloc().studentId());
+            HandoverSummary h = handoverMap.get(p.alloc().id());
+            Instant at = p.alloc().checkedInAt() != null ? p.alloc().checkedInAt()
+                    : h != null && h.submittedAt() != null ? h.submittedAt()
+                    : h != null ? h.openedAt() : p.alloc().codeReleasedAt();
+            String hStatus = h != null ? h.status() : p.alloc().checkedInAt() != null ? "Final" : null;
+            Instant utilFrom = p.alloc().utilityFrom() != null ? p.alloc().utilityFrom()
+                    : h == null ? null : h.utilityFrom();
             return new Recent(s == null ? null : s.name(), s == null ? null : s.studentCode(), p.bed().code(),
-                    p.alloc().checkedInAt());
+                    at, h == null ? null : HandoverCore.code(h.id()), hStatus, h == null ? null : h.comparison(),
+                    p.alloc().codeReleasedAt() != null || h != null, utilFrom);
         };
         String code = scope.single() ? blocks.codesByIds(scope.ids()).get(scope.singleId()) : null;
         String window = term.checkInStart() == null || term.checkInEnd() == null ? null
                 : today.isBefore(term.checkInStart()) ? "UPCOMING"
                 : today.isAfter(term.checkInEnd()) ? "CLOSED" : "OPEN";
-        return new Today(today, code, placed.size(), checkedIn, placed.size() - checkedIn - blocked, blocked,
+        return new Today(today, code, placed.size(), checkedIn, waitingAll.size(), blockedAll.size(),
                 recent.stream().map(side).toList(),
                 String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window,
-                waitingList.stream().map(side).toList(), blockedList.stream().map(side).toList());
+                waitingList.stream().map(side).toList(), blockedList.stream().map(side).toList(),
+                inProgressAll.size(), inProgressList.stream().map(side).toList(),
+                checkedInList.stream().map(side).toList());
     }
 
     /** @param q a student code, a name or the pass payload {@code CSTAY-PASS:<allocationId>} */
@@ -283,7 +314,7 @@ public class DeskService {
                 return new Lookup(null);
             }
             return new Lookup(new Person(student.name(), student.studentCode(), null, null, null, null, "not-allocated",
-                    List.of(), null, null, List.of()));
+                    List.of(), null, null, List.of(), null, null, null, null, false, null, null, null, null));
         }
         Alloc a = alloc.get();
         Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
@@ -357,9 +388,47 @@ public class DeskService {
                 : checks.stream().allMatch(Check::passed) ? "ready" : "blocked";
         List<String> items = a.checkedInAt() != null ? a.handOverItems()
                 : lookups.list("HAND_OVER_ITEM").stream().map(Lookups.Lookup::label).toList();
+        HandoverSummary h = handovers(List.of(a.id())).get(a.id());
+        String handoverStatus = h != null ? h.status() : a.checkedInAt() != null ? "Final" : null;
+        String handoverSource = h == null || h.source() == null ? null : switch (h.source()) {
+            case "AUTO" -> "Deadline passed";
+            case "VERIFIED" -> "Checked in the Room";
+            default -> "As filed";
+        };
+        Instant doorCodeAt = a.codeReleasedAt() != null ? a.codeReleasedAt() : h == null ? null : h.openedAt();
+        Instant utilFrom = a.utilityFrom() != null ? a.utilityFrom() : h == null ? null : h.utilityFrom();
         return new Person(student == null ? null : student.name(), student == null ? null : student.studentCode(),
                 bed.roomCode(), bed.bedLabel(), "Block " + bed.block(), bed.floor(), status, checks,
-                due.map(d -> new Owes(d.balance(), d.utilityDeposit())).orElse(null), a.checkedInAt(), items);
+                due.map(d -> new Owes(d.balance(), d.utilityDeposit())).orElse(null), a.checkedInAt(), items,
+                h == null ? null : HandoverCore.code(h.id()), handoverStatus, h == null ? null : h.comparison(),
+                handoverSource, doorCodeAt != null, doorCodeAt, utilFrom,
+                h == null ? null : h.electricity(), h == null ? null : h.water());
+    }
+
+    private Map<Long, HandoverSummary> handovers(List<Long> allocationIds) {
+        if (allocationIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, HandoverSummary> map = new HashMap<>();
+        jdbc.sql("""
+                SELECT DISTINCT ON (allocation_id) id, allocation_id, status, source, comparison, opened_at,
+                       submitted_at, finalized_at, utility_from,
+                       coalesce(verified_electricity, electricity, baseline_electricity) AS electricity,
+                       coalesce(verified_water, water, baseline_water) AS water
+                FROM asg_handover
+                WHERE allocation_id IN (:ids) AND status <> 'CANCELLED'
+                ORDER BY allocation_id, id DESC
+                """).param("ids", allocationIds)
+                .query((rs, i) -> new HandoverSummary(rs.getLong("id"), rs.getLong("allocation_id"),
+                        HandoverCore.STATUSES.getOrDefault(rs.getString("status"), rs.getString("status")),
+                        rs.getString("source"),
+                        rs.getString("comparison") == null ? null
+                                : HandoverCore.COMPARISONS.getOrDefault(rs.getString("comparison"),
+                                        rs.getString("comparison")),
+                        instant(rs, "opened_at"), instant(rs, "submitted_at"), instant(rs, "finalized_at"),
+                        instant(rs, "utility_from"), rs.getBigDecimal("electricity"), rs.getBigDecimal("water")))
+                .list().forEach(h -> map.put(h.allocationId(), h));
+        return map;
     }
 
     /**
@@ -439,7 +508,7 @@ public class DeskService {
     // ---------------------------------------------------------------- check-out
 
     @Transactional(readOnly = true)
-    public CheckOutPage checkOutList(Long termId, String block, String q, String reason, PageQuery page) {
+    public CheckOutPage checkOutList(Long termId, String block, String q, String reason, String status, PageQuery page) {
         currentUser.require(Permission.DESK);
         BlockSelection scope = blockScope.resolve(block);
         TermSummary term = term(termId);
@@ -460,18 +529,40 @@ public class DeskService {
         String reasonCode = reason == null || reason.isBlank() ? null
                 : lookups.find("CHECK_OUT_REASON", reason.trim())
                         .orElseThrow(() -> FieldErrors.single("reason", "Choose a reason from the list.")).code();
-        List<CheckOutRow> items = rows.stream()
-                .filter(p -> reasonCode == null || reasonCode.equals(p.reason()))
+        Comparator<CheckOutRow> byNaturalRoom = Comparator
+                .comparing((CheckOutRow r) -> r.status().equals("Checked out"))
+                .thenComparing((CheckOutRow r) -> !r.overdue())
+                .thenComparing((CheckOutRow r) -> r.room().replaceAll("\\d+", ""))
+                .thenComparingLong(r -> Long.parseLong("0" + r.room().replaceAll("\\D+", "")))
+                .thenComparing(CheckOutRow::room)
+                .thenComparing(CheckOutRow::bed)
+                .thenComparing(CheckOutRow::studentCode, Comparator.nullsLast(Comparator.naturalOrder()));
+        List<CheckOutRow> filtered = rows.stream()
+                .filter(p -> reasonCode == null
+                        || reasonCode.equals(p.reason() == null ? DEFAULT_REASON : p.reason()))
                 .map(p -> row(p, students.get(p.alloc().studentId()), names, late))
                 .filter(r -> needle == null || fold(r.name()).contains(needle) || fold(r.studentCode()).contains(needle)
                         || fold(r.room()).contains(needle))
-                .sorted(Comparator.comparing((CheckOutRow r) -> r.status().equals("Checked out"))
-                        .thenComparing(CheckOutRow::room).thenComparing(CheckOutRow::bed))
+                .sorted(byNaturalRoom)
                 .toList();
+        Map<String, Long> statusCounts = new LinkedHashMap<>();
+        statusCounts.put("All", (long) filtered.size());
+        statusCounts.put("Pending", filtered.stream().filter(r -> "Pending".equals(r.status())).count());
+        statusCounts.put("Draft", filtered.stream().filter(r -> "Draft".equals(r.status())).count());
+        statusCounts.put("Checked out", filtered.stream().filter(r -> "Checked out".equals(r.status())).count());
+        statusCounts.put("Overdue", filtered.stream().filter(CheckOutRow::overdue).count());
+        String state = status == null || status.isBlank() ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
+        List<CheckOutRow> items = switch (state) {
+            case "PENDING" -> filtered.stream().filter(r -> "Pending".equals(r.status())).toList();
+            case "DRAFT" -> filtered.stream().filter(r -> "Draft".equals(r.status())).toList();
+            case "CHECKED OUT", "CHECKED_OUT" -> filtered.stream().filter(r -> "Checked out".equals(r.status())).toList();
+            case "OVERDUE" -> filtered.stream().filter(CheckOutRow::overdue).toList();
+            default -> filtered;
+        };
         return new CheckOutPage(today(), pending,
                 lookups.list("CHECK_OUT_REASON").stream().map(Lookups.Lookup::label).toList(),
                 items.stream().skip(page.offset()).limit(page.limit()).toList(), items.size(), checkOutBy,
-                items.stream().filter(CheckOutRow::overdue).count());
+                filtered.stream().filter(CheckOutRow::overdue).count(), statusCounts);
     }
 
     @Transactional(readOnly = true)
@@ -1038,7 +1129,8 @@ public class DeskService {
         List<String> list = items == null ? List.of() : Arrays.asList((String[]) items.getArray());
         return new Alloc(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"), rs.getLong("bed_id"),
                 rs.getString("status"), instant(rs, "checked_in_at"), List.copyOf(list.stream().filter(Objects::nonNull)
-                        .toList()), instant(rs, "resident_at"));
+                        .toList()), instant(rs, "resident_at"), instant(rs, "code_released_at"),
+                instant(rs, "utility_from"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

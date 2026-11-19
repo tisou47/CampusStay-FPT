@@ -62,17 +62,18 @@ public class HandoverDeskService {
      * @param differs        the student's answer differs from the record
      */
     public record Item(String itemId, String assetCode, String type, String typeVi, String bed, boolean personal,
-            String baseline, String baselineSource, String condition, String note, String verified,
-            String verifiedNote, boolean differs, boolean preExisting, List<Photo> photos) {
+            String baseline, String baselineSource, String baselineNote, List<Photo> baselinePhotos, String condition,
+            String note, String verified, String verifiedNote, boolean differs, boolean preExisting,
+            List<Photo> photos) {
     }
 
     public record Meter(BigDecimal baseline, Instant baselineAt, BigDecimal student, BigDecimal verified) {
     }
 
-    public record Detail(Row row, List<String> differences, Meter electricity, Meter water, List<Photo> meterPhotos,
-            List<Item> items, String studentComment, String confirmReason, String source, Instant finalizedAt,
-            Instant utilityFrom, String lateNote, String cancelledReason, boolean sentToStudent,
-            VisitWindow visitWindow) {
+    public record Detail(Row row, List<String> differences, Meter electricity, Meter water,
+            List<Photo> baselineMeterPhotos, List<Photo> meterPhotos, List<Item> items, String studentComment,
+            String confirmReason, String source, Instant finalizedAt, Instant utilityFrom, String lateNote,
+            String cancelledReason, boolean sentToStudent, VisitWindow visitWindow) {
     }
 
     /**
@@ -106,11 +107,13 @@ public class HandoverDeskService {
     private final AuditLog audit;
     private final Clock clock;
     private final Parameters parameters;
+    private final InspectionRecords inspections;
 
     public HandoverDeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, HandoverCore core,
             Inventory inventory, UserDirectory users, FileLinks links, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock, Parameters parameters) {
+            Clock clock, Parameters parameters, InspectionRecords inspections) {
         this.parameters = parameters;
+        this.inspections = inspections;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -405,6 +408,8 @@ public class HandoverDeskService {
         Row row = rows(List.of(head), beds).getFirst();
         Map<Long, Inventory.FurnitureLine> lines = new HashMap<>();
         inventory.furnitureLines(h.roomId()).forEach(l -> lines.put(l.id(), l));
+        Map<Long, String> baseNotes = inspections.latestNotes(h.roomId());
+        List<InspectionRecords.Photo> basePhotos = inspections.latestPhotos(h.roomId());
         List<HandoverCore.PhotoRow> photos = core.photos(h.id());
         List<Item> items = core.items(h.id()).stream().map(i -> {
             Inventory.FurnitureLine line = lines.get(i.itemId());
@@ -419,17 +424,23 @@ public class HandoverDeskService {
                                 case "HANDOVER" -> "Inventory";
                                 default -> "Check-out";
                             },
+                    baseNotes.get(i.itemId()),
+                    basePhotos.stream().filter(p -> Objects.equals(p.itemId(), i.itemId()))
+                            .map(p -> new Photo(String.valueOf(p.id()), links.link(p.fileId()))).toList(),
                     StudentHandoverService.label(i.condition()), i.note(), StudentHandoverService.label(i.verified()),
                     i.verifiedNote(), differs, i.preExisting(),
                     photos.stream().filter(p -> Objects.equals(p.itemId(), i.itemId()))
                             .map(p -> new Photo(String.valueOf(p.id()), links.link(p.fileId()))).toList());
         }).toList();
+        List<Photo> baselineMeterPhotos = basePhotos.stream().filter(p -> p.itemId() == null)
+                .map(p -> new Photo(String.valueOf(p.id()), links.link(p.fileId()))).toList();
         List<Photo> meterPhotos = photos.stream().filter(p -> p.itemId() == null)
                 .map(p -> new Photo(String.valueOf(p.id()), links.link(p.fileId()))).toList();
         List<String> differences = h.comparisonNote() == null ? List.of() : List.of(h.comparisonNote().split("\n"));
         return new Detail(row, differences,
                 new Meter(h.baselineElectricity(), h.baselineAt(), h.electricity(), h.verifiedElectricity()),
-                new Meter(h.baselineWater(), h.baselineAt(), h.water(), h.verifiedWater()), meterPhotos, items,
+                new Meter(h.baselineWater(), h.baselineAt(), h.water(), h.verifiedWater()), baselineMeterPhotos,
+                meterPhotos, items,
                 h.studentComment(), h.confirmReason(), h.source() == null ? null : switch (h.source()) {
                     case "AUTO" -> "Deadline passed";
                     case "VERIFIED" -> "Checked in the Room";

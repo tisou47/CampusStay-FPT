@@ -104,7 +104,8 @@ public class FurnitureService {
     }
 
     /** A student's view of an item of their Room. */
-    public record RoomItem(String assetCode, String type, String typeVi, String status) {
+    public record RoomItem(String itemId, String assetCode, String type, String typeVi, String status, String bed,
+            boolean personal, boolean reportable, String reportedCondition, String reportedNote, Instant reportedAt) {
     }
 
     public record MyFurniture(String room, List<RoomItem> items) {
@@ -552,7 +553,7 @@ public class FurnitureService {
                 .param("room", roomId).query((rs, i) -> item(rs)).list();
     }
 
-    /** The furniture of the Room where the student holds a Bed now. */
+    /** The furniture of the Room where the student holds a Bed now, with any stay-time damage/missing reports. */
     @Transactional(readOnly = true)
     public MyFurniture mine() {
         currentUser.require(Role.STUDENT);
@@ -562,9 +563,115 @@ public class FurnitureService {
         }
         Room room = jdbc.sql("SELECT r.id, r.code FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE b.id = :bed")
                 .param("bed", stay.bedId()).query((rs, i) -> new Room(rs.getLong("id"), rs.getString("code"))).single();
-        List<RoomItem> items = ofRoom(room.id()).stream()
-                .map(i -> new RoomItem(i.assetCode(), i.type(), i.typeVi(), i.status())).toList();
+        Long allocId = jdbc.sql("""
+                SELECT id FROM asg_allocation
+                WHERE student_id = :s AND status = 'ACTIVE'
+                ORDER BY allocated_at DESC LIMIT 1
+                """).param("s", currentUser.id()).query(Long.class).optional().orElse(null);
+        record Report(String condition, String note, Instant at) {
+        }
+        Map<Long, Report> reports = new HashMap<>();
+        if (allocId != null) {
+            jdbc.sql("""
+                    SELECT furniture_item_id, condition, note, updated_at
+                    FROM asg_furniture_report WHERE allocation_id = :a
+                    """).param("a", allocId)
+                    .query((rs, i) -> Map.entry(rs.getLong("furniture_item_id"),
+                            new Report(rs.getString("condition"), rs.getString("note"),
+                                    rs.getTimestamp("updated_at").toInstant())))
+                    .list().forEach(e -> reports.put(e.getKey(), e.getValue()));
+        }
+        record Raw(long id, String assetCode, String type, String typeVi, String status, Long bedId, String bedLabel,
+                boolean personal) {
+        }
+        List<RoomItem> items = jdbc.sql("""
+                SELECT i.id, i.asset_code, t.name, t.name_vi, i.status, i.bed_id, b.label AS bed_label,
+                       (t.use_scope = 'PERSONAL') AS personal
+                FROM inv_furniture_item i
+                JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                LEFT JOIN inv_bed b ON b.id = i.bed_id
+                WHERE i.room_id = :room AND i.status <> 'DISPOSED'
+                ORDER BY t.sort_order, i.asset_code
+                """).param("room", room.id())
+                .query((rs, i) -> new Raw(rs.getLong("id"), rs.getString("asset_code"), rs.getString("name"),
+                        rs.getString("name_vi"), STATUSES.getOrDefault(rs.getString("status"), rs.getString("status")),
+                        rs.getObject("bed_id", Long.class), rs.getString("bed_label"), rs.getBoolean("personal")))
+                .list().stream().map(r -> {
+                    Report rep = reports.get(r.id());
+                    boolean reportable = !r.personal() || r.bedId() == null || r.bedId().equals(stay.bedId());
+                    String repCond = rep == null ? null : switch (rep.condition()) {
+                        case "WORN" -> "Worn";
+                        case "DAMAGED" -> "Damaged";
+                        case "MISSING" -> "Missing";
+                        default -> rep.condition();
+                    };
+                    return new RoomItem("furniture-" + r.id(), r.assetCode(), r.type(), r.typeVi(), r.status(),
+                            r.bedLabel(), r.personal(), reportable, repCond, rep == null ? null : rep.note(),
+                            rep == null ? null : rep.at());
+                }).toList();
         return new MyFurniture(room.code(), items);
+    }
+
+    /** Student declares or updates a furniture item's worn/damaged/missing state during their stay (or clears with Good). */
+    @Transactional
+    public MyFurniture report(String itemId, String condition, String note) {
+        currentUser.require(Role.STUDENT);
+        BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
+                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
+        long allocId = jdbc.sql("""
+                SELECT id FROM asg_allocation
+                WHERE student_id = :s AND status = 'ACTIVE'
+                ORDER BY allocated_at DESC LIMIT 1
+                """).param("s", currentUser.id()).query(Long.class).optional()
+                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
+        String rawId = itemId == null ? "" : itemId.trim().replaceFirst("^furniture-", "");
+        long id;
+        try {
+            id = Long.parseLong(rawId);
+        } catch (NumberFormatException e) {
+            throw FieldErrors.single("itemId", "Choose an item of your room.");
+        }
+        record TargetItem(long roomId, Long bedId, boolean personal) {
+        }
+        Long myRoomId = jdbc.sql("SELECT room_id FROM inv_bed WHERE id = :b").param("b", stay.bedId())
+                .query(Long.class).single();
+        TargetItem item = jdbc.sql("""
+                SELECT i.room_id, i.bed_id, (t.use_scope = 'PERSONAL') AS personal
+                FROM inv_furniture_item i JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                WHERE i.id = :id AND i.status <> 'DISPOSED'
+                """).param("id", id).query((rs, i) -> new TargetItem(rs.getLong("room_id"),
+                        rs.getObject("bed_id", Long.class), rs.getBoolean("personal")))
+                .optional().orElseThrow(() -> FieldErrors.single("itemId", "Choose an item of your room."));
+        if (item.roomId() != myRoomId || (item.personal() && item.bedId() != null && !item.bedId().equals(stay.bedId()))) {
+            throw FieldErrors.single("itemId", "You can only declare items of your bed or shared items of your room.");
+        }
+        String code = condition == null || condition.isBlank() ? "GOOD" : switch (condition.trim().toUpperCase(Locale.ROOT)) {
+            case "GOOD" -> "GOOD";
+            case "WORN" -> "WORN";
+            case "DAMAGED" -> "DAMAGED";
+            case "MISSING" -> "MISSING";
+            default -> throw FieldErrors.single("condition", "Choose Good, Worn, Damaged or Missing.");
+        };
+        if ("GOOD".equals(code)) {
+            jdbc.sql("DELETE FROM asg_furniture_report WHERE allocation_id = :a AND furniture_item_id = :i")
+                    .param("a", allocId).param("i", id).update();
+            return mine();
+        }
+        String text = note == null || note.isBlank() ? null : note.trim();
+        if (text != null && text.length() > 300) {
+            throw FieldErrors.single("note", "Keep the note under 300 characters.");
+        }
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                INSERT INTO asg_furniture_report (allocation_id, furniture_item_id, condition, note, reported_at, updated_at)
+                VALUES (:a, :i, :c, :n, :now, :now)
+                ON CONFLICT (allocation_id, furniture_item_id) DO UPDATE SET
+                    condition = EXCLUDED.condition,
+                    note = EXCLUDED.note,
+                    updated_at = EXCLUDED.updated_at
+                """).param("a", allocId).param("i", id).param("c", code).param("n", text)
+                .param("now", Timestamp.from(now)).update();
+        return mine();
     }
 
     // ---------------------------------------------------------------- helpers

@@ -2,6 +2,7 @@ package vn.fpt.campusstay.service.assignment;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,8 +19,22 @@ public interface InspectionRecords {
     record Meters(BigDecimal electricity, BigDecimal water, Instant at) {
     }
 
+    /** A photo from the Room's latest inspection: {@code itemId} is null for meter photos. */
+    record Photo(long id, Long itemId, long fileId) {
+    }
+
     /** Furniture item id → its latest condition recorded in a finished inspection of the Room. */
     Map<Long, Condition> latestConditions(long roomId);
+
+    /** Furniture item id → its latest note recorded in a finished inspection of the Room. */
+    default Map<Long, String> latestNotes(long roomId) {
+        return Map.of();
+    }
+
+    /** Photos recorded in the latest finished inspection of the Room. */
+    default List<Photo> latestPhotos(long roomId) {
+        return List.of();
+    }
 
     /**
      * Furniture item id → its worst condition recorded by inspections of the Room since {@code since} (Damaged and

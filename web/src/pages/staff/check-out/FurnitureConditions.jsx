@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, ClipboardCheck, Package, Send } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Package, Save } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Checkbox, Radio } from '@/components/ui/Choice'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Overlay'
+import { Radio } from '@/components/ui/Choice'
+import { Alert } from '@/components/ui/Display'
+import { Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
-import { formatDateTime, formatVnd } from '@/lib/format'
+import { formatVnd } from '@/lib/format'
 import { t } from '@/i18n'
 
 // Check-out › furniture by condition (V78): the student's Bed items and the Room's shared items.
@@ -24,7 +24,7 @@ const reviewTone = { Pending: 'warning', Kept: 'error', Dropped: 'success' }
 const DEFAULT_RATES = { Good: 0, Worn: 25, Damaged: 50, Missing: 100 }
 
 export function computeFurnitureCharge(item, chosenCondition, rates = DEFAULT_RATES) {
-  if (!item.personal) {
+  if (!item.personal && item.source === 'Acknowledged' && chosenCondition === item.atCheckOut) {
     return {
       startPct: 0,
       nowPct: item.percent ?? 0,
@@ -68,8 +68,6 @@ export function FurnitureConditions({
   const data = query.data
   const rates = { ...DEFAULT_RATES, ...(data?.conditionRates ?? {}) }
   const [answers, setAnswers] = useState({})
-  const [present, setPresent] = useState(true)
-  const [claim, setClaim] = useState(null)
 
   useEffect(() => {
     if (!data) return
@@ -78,17 +76,17 @@ export function FurnitureConditions({
         data.items.map((i) => [
           i.itemId,
           {
-            condition: i.atCheckOut ?? i.atCheckIn ?? 'Good',
-            note: i.note ?? '',
-            review: i.review === 'Pending',
+            condition: data.saved
+              ? (i.atCheckOut ?? i.atCheckIn ?? 'Good')
+              : (i.studentReportedCondition ?? i.atCheckOut ?? i.atCheckIn ?? 'Good'),
+            note: data.saved ? (i.note ?? '') : (i.note ?? i.studentReportedNote ?? ''),
           },
         ]),
       ),
     )
-    if (data.saved) setPresent(Boolean(data.studentPresent))
   }, [data])
 
-  // When Staff choose "Bed, mattress and locker in good condition", reset personal items to their baseline (or Good)
+  // When Staff choose "Bed, mattress and locker in good condition", reset items to their baseline (or Good)
   const selectAllGood = () => {
     onConditionChange?.('good')
     if (data?.items) {
@@ -99,7 +97,6 @@ export function FurnitureConditions({
             {
               condition: i.atCheckIn ?? 'Good',
               note: '',
-              review: false,
             },
           ]),
         ),
@@ -109,12 +106,13 @@ export function FurnitureConditions({
 
   // Compute live lines and live total
   const items = data?.items ?? []
+  const studentReportedItems = items.filter((i) => i.studentReportedCondition)
   const computedLines = items.map((i) => {
-    const a = answers[i.itemId] ?? { condition: i.atCheckOut ?? i.atCheckIn ?? 'Good', note: '', review: false }
-    const effCondition = condition === 'good' && i.personal ? (i.atCheckIn ?? 'Good') : a.condition
+    const a = answers[i.itemId] ?? { condition: i.atCheckOut ?? i.atCheckIn ?? 'Good', note: '' }
+    const effCondition = condition === 'good' ? (i.atCheckIn ?? 'Good') : a.condition
     const calc = computeFurnitureCharge(i, effCondition, rates)
-    const effectiveReview = a.review ? 'Pending' : i.review === 'Dropped' || i.review === 'Kept' ? i.review : null
-    const countedInTotal = effectiveReview !== 'Pending' && effectiveReview !== 'Dropped'
+    const effectiveReview = i.review === 'Dropped' || i.review === 'Kept' ? i.review : null
+    const countedInTotal = effectiveReview !== 'Dropped'
     return {
       item: i,
       answer: { ...a, condition: effCondition },
@@ -126,7 +124,7 @@ export function FurnitureConditions({
 
   const liveTotal =
     condition === 'good'
-      ? computedLines.filter((l) => !l.item.personal && l.countedInTotal).reduce((s, l) => s + l.amount, 0)
+      ? 0
       : computedLines.filter((l) => l.countedInTotal).reduce((s, l) => s + l.amount, 0)
 
   useEffect(() => {
@@ -134,9 +132,7 @@ export function FurnitureConditions({
   }, [liveTotal, onLiveTotalChange])
 
   const flaggedLines = computedLines.filter(
-    (l) =>
-      (l.item.personal && l.answer.condition !== 'Good') ||
-      (!l.item.personal && l.amount > 0),
+    (l) => l.answer.condition !== 'Good' || l.amount > 0,
   )
 
   const save = useMutation(
@@ -146,9 +142,8 @@ export function FurnitureConditions({
           itemId: l.item.itemId,
           condition: l.answer.condition,
           note: l.answer.note?.trim() || undefined,
-          managerReview: l.answer.review || undefined,
         })),
-        studentPresent: present,
+        studentPresent: false,
         electricity: electricity !== '' && electricity != null ? Number(String(electricity).replace(/[^\d.]/g, '')) : undefined,
         water: water !== '' && water != null ? Number(String(water).replace(/[^\d.]/g, '')) : undefined,
       }),
@@ -157,28 +152,9 @@ export function FurnitureConditions({
       onSuccess: () =>
         notify({
           title: 'Furniture recorded',
-          message: present
-            ? 'The student reads the charges on the app and agrees.'
-            : 'The charges go into the settlement.',
+          message: 'The charges go into the settlement.',
         }),
       onError: (e) => notifyError(e, 'Could not record the furniture'),
-    },
-  )
-
-  const sendClaim = useMutation(
-    () =>
-      api.checkOutFurniture.claim(allocationId, {
-        itemId: claim.itemId,
-        condition: claim.condition,
-        note: claim.note || undefined,
-      }),
-    {
-      invalidates: ['check-out-furniture'],
-      onSuccess: () => {
-        notify({ title: 'Damage sent to the student', message: 'It is charged only if the student confirms it.' })
-        setClaim(null)
-      },
-      onError: (e) => notifyError(e, 'Could not send the damage'),
     },
   )
 
@@ -233,11 +209,28 @@ export function FurnitureConditions({
         ))}
       </div>
 
-      {/* Item-by-item inspection table when Damage found is selected (or if items are already recorded) */}
-      {(condition === 'damaged' || data.saved || flaggedLines.length > 0) && (
+      {/* Student stay-time declarations banner */}
+      {studentReportedItems.length > 0 && (
+        <Alert type="warning" title={t('Student declared {n} damaged/missing items during stay', { n: studentReportedItems.length })}>
+          <ul className="mt-1 flex flex-col gap-1 text-xs">
+            {studentReportedItems.map((i) => (
+              <li key={i.itemId} className="flex flex-wrap items-center gap-1.5">
+                <span className="font-medium text-fg">{typeName(i)} ({i.assetCode}):</span>
+                <Tag tone={conditionTone[i.studentReportedCondition] ?? 'warning'}>
+                  {conditionName(i.studentReportedCondition)}
+                </Tag>
+                {i.studentReportedNote && <span className="text-fg-secondary">— {i.studentReportedNote}</span>}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
+
+      {/* Item-by-item inspection table when Damage found is selected (or if items are already recorded or student declared) */}
+      {(condition === 'damaged' || data.saved || flaggedLines.length > 0 || studentReportedItems.length > 0) && (
         <div className="flex flex-col gap-2.5 border-t border-line pt-2.5">
           <p className="text-xs text-fg-secondary">
-            {t('Compared with the student’s check-in inventory: only what got worse is charged (real price × the share lost, Admin › Furniture types). Shared items are charged only for damage the student confirmed.')}
+            {t('Verify each item with the student on site: choose Good, Worn, Damaged or Missing, or click Record damaged / missing directly.')}
           </p>
 
           <ul className="flex flex-col divide-y divide-line/60 overflow-hidden rounded-lg border border-line bg-surface">
@@ -260,6 +253,12 @@ export function FurnitureConditions({
                         <span className="rounded bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-secondary tabular">
                           {t('Base price: {price}', { price: formatVnd(i.unitPrice ?? 0) })}
                         </span>
+                        {i.studentReportedCondition && (
+                          <Tag tone={conditionTone[i.studentReportedCondition] ?? 'warning'}>
+                            <AlertTriangle size={11} aria-hidden="true" />
+                            {t('Student declared: {c}', { c: conditionName(i.studentReportedCondition) })}
+                          </Tag>
+                        )}
                       </div>
                       <span className="truncate font-mono text-[11px] text-fg-tertiary">
                         {i.assetCode} · {t('At check-in: {c}', { c: conditionName(i.atCheckIn ?? 'Good') })}
@@ -284,10 +283,21 @@ export function FurnitureConditions({
                         </div>
                       )}
                       {effectiveReview && <Tag tone={reviewTone[effectiveReview] ?? 'neutral'}>{t(effectiveReview)}</Tag>}
+                      {!done && a.condition === 'Good' && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (condition !== 'damaged') onConditionChange?.('damaged')
+                            setAnswers((s) => ({ ...s, [i.itemId]: { ...a, condition: 'Damaged' } }))
+                          }}
+                        >
+                          {t('Record damaged / missing')}
+                        </Button>
+                      )}
                       <Select
                         size="sm"
                         wrapperClassName="w-32"
-                        disabled={done || !i.personal || condition === 'good'}
+                        disabled={done || condition === 'good'}
                         aria-label={t('Condition of {item}', { item: i.assetCode })}
                         value={a.condition}
                         onChange={(e) => {
@@ -302,45 +312,20 @@ export function FurnitureConditions({
                     </div>
                   </div>
 
-                  {/* Note input & Manager review option when item is Worn / Damaged / Missing */}
-                  {i.personal && hasIssue && (
-                    <div className="flex flex-col gap-1.5 pt-0.5">
+                  {/* On-site inspection note input */}
+                  {(hasIssue || Boolean(a.note) || Boolean(i.studentReportedNote)) && (
+                    <div className="flex flex-col gap-1 pt-0.5">
+                      <span className="text-[11px] font-medium text-fg-secondary">{t('Note')}</span>
                       <Input
                         size="sm"
                         disabled={done}
-                        aria-label={t('Damage note for {item}', { item: i.assetCode })}
+                        aria-label={t('Note for {item}', { item: i.assetCode })}
                         value={a.note}
                         onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...a, note: e.target.value } }))}
-                        placeholder={t('What is damaged?')}
+                        placeholder={t('On-site inspection note (optional)...')}
                         maxLength={300}
                       />
-                      {!done && amount > 0 && (
-                        <Checkbox
-                          label="The student does not accept: a Manager decides"
-                          checked={a.review}
-                          onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...a, review: e.target.checked } }))}
-                        />
-                      )}
                     </div>
-                  )}
-
-                  {!done && !i.personal && (
-                    <Button
-                      size="sm"
-                      variant="text"
-                      className="self-start"
-                      onClick={() =>
-                        setClaim({
-                          itemId: i.itemId,
-                          item: `${typeName(i)} ${i.assetCode}`,
-                          unitPrice: i.unitPrice ?? 0,
-                          condition: 'Damaged',
-                          note: '',
-                        })
-                      }
-                    >
-                      The student caused damage
-                    </Button>
                   )}
                 </li>
               )
@@ -420,74 +405,22 @@ export function FurnitureConditions({
         )}
 
         {!done && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2">
-            <Checkbox
-              label="The student is at the desk (agrees on the app)"
-              checked={present}
-              onChange={(e) => setPresent(e.target.checked)}
-            />
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line/60 pt-2">
             <Button
               size="sm"
               variant="primary"
-              icon={Send}
+              icon={Save}
               onClick={() => {
                 if (!condition) onConditionChange?.(flaggedLines.length > 0 ? 'damaged' : 'good')
                 save.run()
               }}
               disabled={save.pending}
             >
-              {present ? t('Record & send to student') : t('Record furniture')}
+              {t('Record furniture')}
             </Button>
           </div>
-        )}
-
-        {data.saved && data.studentPresent && (
-          <p className={data.agreedAt ? 'text-xs font-medium text-success-fg' : 'text-xs font-medium text-warning-fg'}>
-            {data.agreedAt
-              ? t('The student agreed on {date}.', { date: formatDateTime(data.agreedAt) })
-              : t('Waiting for the student to agree on the app.')}
-          </p>
         )}
       </div>
-
-      <Modal
-        open={Boolean(claim)}
-        onClose={() => setClaim(null)}
-        title={t('Damage to {item}', { item: claim?.item ?? '' })}
-        description="The student confirms it on the app within the set time; then it is charged at check-out. Declined or not answered: nobody is charged."
-        footer={
-          <>
-            <Button onClick={() => setClaim(null)}>Back</Button>
-            <Button variant="primary" onClick={() => sendClaim.run()} disabled={sendClaim.pending}>
-              Send to the student
-            </Button>
-          </>
-        }
-      >
-        {claim && (
-          <div className="flex flex-col gap-3">
-            <Field label="Condition of the item">
-              <Select
-                value={claim.condition}
-                onChange={(e) => setClaim({ ...claim, condition: e.target.value })}
-                options={conditionOptions().filter((o) => o.value === 'Damaged' || o.value === 'Missing')}
-              />
-            </Field>
-            {claim.unitPrice > 0 && (
-              <p className="rounded-lg bg-subtle px-3 py-2 text-xs text-fg-secondary tabular">
-                {t('Base price: {price}', { price: formatVnd(claim.unitPrice) })} ·{' '}
-                {rates[claim.condition] ?? DEFAULT_RATES[claim.condition]}% ={' '}
-                <strong className="text-fg">
-                  {formatVnd(Math.floor((claim.unitPrice * (rates[claim.condition] ?? DEFAULT_RATES[claim.condition])) / 100))}
-                </strong>
-              </p>
-            )}
-            <Field label="What happened">
-              <Textarea rows={2} value={claim.note} onChange={(e) => setClaim({ ...claim, note: e.target.value })} />
-            </Field>
-          </div>
-        )}
-      </Modal>
     </section>
   )
 }

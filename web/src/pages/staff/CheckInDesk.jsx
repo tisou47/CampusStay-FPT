@@ -6,10 +6,13 @@ import {
   Check,
   CircleCheck,
   CircleX,
+  ClipboardList,
   Clock,
+  KeyRound,
   PackageCheck,
   ScanLine,
   UserX,
+  Zap,
 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -23,7 +26,7 @@ import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { DatePicker } from '@/components/ui/date-time'
 
@@ -137,11 +140,40 @@ function StudentPanel({ person, onDone }) {
   const ready = person.status === 'ready'
   const all = checked.size === items.length
   const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
+  const hStatus = person.handoverStatus
+  const inRoomWithReport =
+    person.status !== 'checked-in' &&
+    owing === 0 &&
+    (Boolean(person.doorCodeReleased) || hStatus === 'Draft' || hStatus === 'Submitted' || hStatus === 'Verifying')
+  const awaitingStartInventory =
+    person.status === 'blocked' && owing === 0 && !inRoomWithReport && (person.checks ?? []).some((c) => !c.passed && /inventory/i.test(c.label))
   // C-23: the checks are Bed allocated, Balance paid, Utility Deposit paid and the check-in window (passed while
   // a late check-in is approved). A failed check the unpaid amounts do not explain is the window; after the
   // Term's checkInEnd it has closed (before checkInStart it has not opened yet).
   const windowClosed =
-    person.status === 'blocked' && (person.checks ?? []).filter((c) => !c.passed).length > owing && Boolean(term?.checkInEnd) && toDateInput(new Date()) > term.checkInEnd
+    person.status === 'blocked' &&
+    !inRoomWithReport &&
+    !awaitingStartInventory &&
+    (person.checks ?? []).filter((c) => !c.passed).length > owing &&
+    Boolean(term?.checkInEnd) &&
+    toDateInput(new Date()) > term.checkInEnd
+
+  const headerBadge =
+    person.status === 'checked-in' ? (
+      <Tag tone="success">{t('Checked in · Utility counting')}</Tag>
+    ) : inRoomWithReport ? (
+      hStatus === 'Submitted' ? (
+        <Tag tone="info">{t('Inventory submitted · Awaiting Staff review')}</Tag>
+      ) : hStatus === 'Verifying' ? (
+        <Tag tone="warning">{t('Room visit · Awaiting Final report')}</Tag>
+      ) : (
+        <Tag tone="warning">{t('In room · Filing inventory')}</Tag>
+      )
+    ) : awaitingStartInventory ? (
+      <Tag tone="warning">{t('Awaiting room inventory')}</Tag>
+    ) : (
+      statusTag[person.status]
+    )
   const confirm = useMutation(() => api.desk.checkIn({ studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
     onSuccess: () => {
@@ -187,7 +219,7 @@ function StudentPanel({ person, onDone }) {
             )}
           </div>
         </div>
-        <div className="shrink-0">{statusTag[person.status]}</div>
+        <div className="shrink-0">{headerBadge}</div>
       </div>
 
       {/* 2. Scrollable Body: Visual Eligibility Checks & Large Hit-Target Asset Handover */}
@@ -245,9 +277,88 @@ function StudentPanel({ person, onDone }) {
           </Alert>
         )}
 
+        {inRoomWithReport && (
+          <Alert
+            type={hStatus === 'Submitted' ? 'info' : 'warning'}
+            title={
+              hStatus === 'Submitted'
+                ? t('Student entered the room and submitted the check-in inventory — awaiting Staff approval')
+                : hStatus === 'Verifying'
+                  ? t('Student entered the room — awaiting in-room inspection Final report')
+                  : t('Student received the door code and is filing the check-in inventory in the room')
+            }
+            action={
+              person.handoverId ? (
+                <Button
+                  variant="primary"
+                  icon={ClipboardList}
+                  to={`/staff/check-in/inventories?id=${person.handoverId}&status=${hStatus ?? 'Submitted'}`}
+                >
+                  {t('Open check-in inventory')}
+                </Button>
+              ) : null
+            }
+          >
+            <div className="flex flex-col gap-1.5">
+              <p>
+                {t(
+                  'Door code received{when}{code}. Official check-in for utility billing has NOT started yet — check-in is only recorded once the inventory has a Final report or is confirmed by Staff.',
+                  {
+                    when: person.doorCodeReleasedAt ? ` (${formatDateTime(person.doorCodeReleasedAt)})` : '',
+                    code: person.handoverId ? ` · ${person.handoverId}` : '',
+                  },
+                )}
+              </p>
+              {(person.electricity != null || person.water != null) && (
+                <p className="inline-flex flex-wrap items-center gap-2 font-medium text-fg">
+                  <Zap size={14} aria-hidden="true" className="text-fg-brand" />
+                  {t('Readings in report: Electricity {e} kWh · Water {w} m³ (will become utility baseline once approved)', {
+                    e: person.electricity != null ? formatNumber(person.electricity) : '—',
+                    w: person.water != null ? formatNumber(person.water) : '—',
+                  })}
+                </p>
+              )}
+            </div>
+          </Alert>
+        )}
+
+        {awaitingStartInventory && (
+          <Alert type="info" title={t('Paid and eligible — waiting for student to receive door code & start inventory')}>
+            {t(
+              'The student has not started the check-in inventory yet. When they arrive at the room and press Start check-in inventory on the app, they receive the door code to enter and file the report. Official check-in and utility billing start once the report is finalized.',
+            )}
+          </Alert>
+        )}
+
         {person.status === 'checked-in' && (
-          <Alert type="success" title={t('Checked in at {time}', { time: formatTime(person.checkedInAt) })}>
-            {t('Assets were handed over and the student’s QR pass now opens the block gates.')}
+          <Alert
+            type="success"
+            title={t('Officially checked in at {time} · Utility billing active', { time: formatDateTime(person.checkedInAt) })}
+            action={
+              person.handoverId ? (
+                <Button size="sm" icon={ClipboardList} to={`/staff/check-in/inventories?id=${person.handoverId}&status=Final`}>
+                  {t('View final inventory')}
+                </Button>
+              ) : null
+            }
+          >
+            <div className="flex flex-col gap-1">
+              <p>{t('Assets were handed over and the student’s QR pass now opens the block gates.')}</p>
+              <p className="font-medium text-fg">
+                {t('Utility billing started from: {from}', {
+                  from: formatDateTime(person.utilityFrom ?? person.checkedInAt),
+                })}
+                {person.handoverId ? ` · ${person.handoverId}${person.handoverSource ? ` (${tr(person.handoverSource)})` : ''}` : ''}
+              </p>
+              {(person.electricity != null || person.water != null) && (
+                <p className="text-xs text-fg-secondary">
+                  {t('Recorded baseline for check-out comparison: Electricity {e} kWh · Water {w} m³', {
+                    e: person.electricity != null ? formatNumber(person.electricity) : '—',
+                    w: person.water != null ? formatNumber(person.water) : '—',
+                  })}
+                </p>
+              )}
+            </div>
           </Alert>
         )}
 
@@ -350,8 +461,29 @@ function StudentPanel({ person, onDone }) {
   )
 }
 
-const sideTitles = { recent: 'Recent check-ins', waiting: 'Waiting at desk', blocked: 'Blocked (unpaid)' }
-const sideEmpty = { recent: 'No check-ins yet today.', waiting: 'Nobody is waiting.', blocked: 'Nobody is blocked.' }
+const sideTitles = {
+  recent: 'Checked in (finalized)',
+  inProgress: 'In room · Inventory in progress',
+  waiting: 'Awaiting room inventory',
+  blocked: 'Blocked (unpaid)',
+}
+const sideEmpty = {
+  recent: 'No check-ins yet today.',
+  inProgress: 'No student is currently filing or awaiting inventory review.',
+  waiting: 'No student is waiting to start the inventory.',
+  blocked: 'Nobody is blocked.',
+}
+
+function sideStudentBadge(r, side) {
+  if (r.handoverStatus === 'Draft') return <Tag tone="warning">{t('Filing draft')}</Tag>
+  if (r.handoverStatus === 'Submitted') return <Tag tone="info">{t('Awaiting review')}</Tag>
+  if (r.handoverStatus === 'Verifying') return <Tag tone="warning">{t('Room visit')}</Tag>
+  if (r.handoverStatus === 'Final' || side === 'recent') return <Tag tone="success">{t('Final · Utility active')}</Tag>
+  if (side === 'inProgress' && r.doorCodeReleased) return <Tag tone="warning">{t('Door code received')}</Tag>
+  if (side === 'waiting') return <Tag tone="neutral">{t('Not started')}</Tag>
+  if (side === 'blocked') return <Tag tone="error">{t('Unpaid')}</Tag>
+  return null
+}
 
 /** A count of the desk's side panel; a click lists its students below. */
 function SideTile({ label, value, tone, active, onClick }) {
@@ -362,12 +494,23 @@ function SideTile({ label, value, tone, active, onClick }) {
       onClick={onClick}
       className={cx(
         'flex items-center justify-between rounded-lg px-3 py-2 text-left ring-primary transition-colors',
-        tone === 'error' ? 'bg-error-bg/60 hover:bg-error-bg' : 'bg-subtle/60 hover:bg-subtle',
+        tone === 'error'
+          ? 'bg-error-bg/60 hover:bg-error-bg'
+          : tone === 'warning'
+            ? 'bg-warning-bg/60 hover:bg-warning-bg'
+            : 'bg-subtle/60 hover:bg-subtle',
         active && 'ring-2',
       )}
     >
       <span className="text-fg-secondary">{t(label)}</span>
-      <span className={cx('font-semibold tabular', tone === 'error' ? 'text-error-fg' : 'text-fg')}>{value}</span>
+      <span
+        className={cx(
+          'font-semibold tabular',
+          tone === 'error' ? 'text-error-fg' : tone === 'warning' ? 'text-warning-fg' : 'text-fg',
+        )}
+      >
+        {value}
+      </span>
     </button>
   )
 }
@@ -400,9 +543,16 @@ export default function CheckInDesk() {
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
   const d0 = today.data
   const person = search ? lookup.data?.student : null
-  // The side list: recent check-ins, students waiting at the desk or blocked; a click opens the student here.
+  // The side list: checked-in students, in-room inventory in progress, waiting at the desk or blocked; a click opens the student here.
   const [side, setSide] = useState('recent')
-  const sideRows = (side === 'waiting' ? d0?.waitingList : side === 'blocked' ? d0?.blockedList : d0?.recent) ?? []
+  const sideRows =
+    (side === 'inProgress'
+      ? d0?.inProgressList
+      : side === 'waiting'
+        ? d0?.waitingList
+        : side === 'blocked'
+          ? d0?.blockedList
+          : d0?.checkedInList ?? d0?.recent) ?? []
   const openStudent = (code) => {
     setQ(code)
     setSearch(code)
@@ -472,7 +622,8 @@ export default function CheckInDesk() {
                 <>
                   <div className="flex flex-col gap-2 text-sm">
                     <SideTile label="Checked in" value={t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })} active={side === 'recent'} onClick={() => setSide('recent')} />
-                    <SideTile label="Waiting at desk" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
+                    <SideTile label="In room · Inventory in progress" value={formatNumber(d.inProgress ?? 0)} tone="warning" active={side === 'inProgress'} onClick={() => setSide('inProgress')} />
+                    <SideTile label="Awaiting room inventory" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
                     <SideTile label="Blocked (unpaid)" value={formatNumber(d.blocked)} tone="error" active={side === 'blocked'} onClick={() => setSide('blocked')} />
                   </div>
                   <ProgressBar value={d.checkedIn} max={d.expected || 1} tone="success" />
@@ -496,12 +647,19 @@ export default function CheckInDesk() {
                       person?.studentCode === r.studentCode ? 'bg-brand-subtle' : 'bg-subtle/40 hover:bg-subtle',
                     )}
                   >
-                    <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
-                    <span className="flex min-w-0 flex-1 flex-col">
+                    {side === 'inProgress' ? (
+                      <KeyRound size={15} aria-hidden="true" className="shrink-0 text-warning-fg" />
+                    ) : (
+                      <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
+                    )}
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="truncate text-sm font-medium text-fg">{r.name}</span>
-                      <span className="truncate text-xs text-fg-secondary">{[r.studentCode, r.bed].filter(Boolean).join(' · ')}</span>
+                      <span className="truncate text-xs text-fg-secondary">{[r.studentCode, r.bed, r.handoverId].filter(Boolean).join(' · ')}</span>
                     </span>
-                    {r.at && <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {sideStudentBadge(r, side)}
+                      {r.at && <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>}
+                    </div>
                   </button>
                 </li>
               ))}
