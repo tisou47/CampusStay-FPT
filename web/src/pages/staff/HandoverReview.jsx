@@ -12,11 +12,12 @@ import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
-import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
+import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { DateTimePicker } from '@/components/ui/date-time'
+import { DetailFacts, DetailPanel } from '@/components/ui/DetailFacts'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { campusToday, formatDate, formatDateTime, formatNumber, formatTime } from '@/lib/format'
@@ -384,7 +385,7 @@ function Detail({ id }) {
   })
 
   return (
-    <QueryState query={query} isEmpty={() => false}>
+    <DetailPanel query={query}>
       {(d) => {
         const status = d.row.status
         const major = d.row.comparison === 'Major difference'
@@ -410,6 +411,19 @@ function Detail({ id }) {
                 {d.row.comparison && <Tag tone={comparisonTone[d.row.comparison] ?? 'neutral'}>{d.row.comparison}</Tag>}
               </div>
             </div>
+
+            <DetailFacts
+              facts={[
+                { label: 'Room', value: `${d.row.room} · ${t('Bed {bed}', { bed: d.row.bed })}` },
+                { label: 'Block', value: tr(d.row.block) },
+                { label: 'Started', value: d.row.openedAt ? formatDateTime(d.row.openedAt) : null },
+                { label: 'Due', value: d.row.dueAt ? formatDateTime(d.row.dueAt) : null },
+                { label: 'Submitted', value: d.row.submittedAt ? formatDateTime(d.row.submittedAt) : null },
+                { label: 'Room visit', value: d.row.visitAt ? formatDateTime(d.row.visitAt) : null },
+                { label: 'Final', value: d.finalizedAt ? formatDateTime(d.finalizedAt) : null },
+                { label: 'Items', value: String(d.items.length) },
+              ]}
+            />
 
             {lines.length > 0 && (
               <Alert type={major ? 'error' : 'warning'} title="Differences from the Room's record">
@@ -727,7 +741,7 @@ function Detail({ id }) {
           </Card>
         )
       }}
-    </QueryState>
+    </DetailPanel>
   )
 }
 

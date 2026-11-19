@@ -514,4 +514,7 @@ export default {
   "Faded or with small stains.": "Phai màu hoặc có vết bẩn nhỏ.",
   "Torn, the rail or hooks broken.": "Bị rách, thanh ray hoặc móc treo hỏng.",
   "No curtain.": "Không có rèm.",
+  "Deposit held": "Tiền cọc đang giữ",
+  "Opening meters": "Chỉ số công tơ đầu kỳ",
+  "Furniture at check-in": "Nội thất lúc nhận phòng",
 }

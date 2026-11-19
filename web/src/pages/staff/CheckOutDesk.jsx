@@ -17,6 +17,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
 import { t, tr } from '@/i18n'
@@ -316,6 +317,25 @@ function CheckOutPanel({ d }) {
 
       {/* 2. Vertical workflow: Step 1 (Meters) -> Step 2 (Room condition & furniture) -> Step 3 (Settlement & actions). */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+        {/* The check-out at a glance, in the style of the maintenance detail. */}
+        <DetailFacts
+          facts={[
+            { label: 'Room', value: t('{room} · Bed {bed}', { room: d.room, bed: d.bed }) },
+            { label: 'Room type', value: [tr(d.roomTypeName), tr(d.roomClassName)].filter(Boolean).join(' · ') },
+            { label: 'Reason', value: tr(d.reason) },
+            { label: 'Deposit held', value: d.settlement?.held != null ? formatVnd(d.settlement.held) : null },
+            {
+              label: 'Opening meters',
+              value:
+                d.handoverReport?.electricity != null && d.handoverReport?.water != null
+                  ? `${formatNumber(d.handoverReport.electricity)} kWh · ${formatNumber(d.handoverReport.water)} m³`
+                  : null,
+            },
+            { label: 'Furniture at check-in', value: d.handoverReport?.items ? t('{n} items', { n: d.handoverReport.items.length }) : null },
+            { label: 'Checked out', value: d.checkedOutAt ? formatDateTime(d.checkedOutAt) : null },
+          ]}
+        />
+
         {/* Step 1: Final Meter Reading */}
         <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
           <div className="flex items-center gap-2">
