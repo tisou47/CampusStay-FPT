@@ -192,8 +192,6 @@ public class TermDashboardService {
         return jdbc.sql("""
                 SELECT (SELECT count(*) FROM rpt_v_room_change WHERE term_id = :t AND status IN ('SUBMITTED', 'PENDING'))
                      + (SELECT count(*) FROM rpt_v_swap WHERE term_id = :t AND status IN ('INVITED', 'PENDING', 'TO_MANAGER'))
-                     + (SELECT count(*) FROM rpt_v_room_class_change
-                        WHERE term_id = :t AND status IN ('AWAITING_CONSENT', 'SUBMITTED'))
                      + (SELECT count(*) FROM rpt_v_stay_request WHERE term_id = :t AND status = 'SUBMITTED') AS open,
                        (SELECT count(*) FROM rpt_v_allocation
                         WHERE term_id = :t AND status = 'ACTIVE' AND renewal = 'CONTINUING') AS continuing,

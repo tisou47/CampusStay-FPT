@@ -41,7 +41,6 @@ Future<void> openLink(BuildContext context, String? link) async {
     'invoices' when p.length > 1 => InvoiceDetailScreen(id: at(1)),
     'requests' when at(1) == 'maintenance' && at(2) == 'new' => const NewMaintenanceScreen(),
     'requests' when at(1) == 'room-change' => const NewRoomChangeScreen(),
-    'requests' when at(1) == 'room-class' => const NewRoomClassChangeScreen(),
     'requests' when at(1) == 'swap' && at(2) == 'invitations' && p.length > 3 => SwapInvitationScreen(id: at(3)),
     'requests' when at(1) == 'swap' => SwapScreen(board: at(2) == 'board'),
     'family-days' when p.length > 1 => FamilyDayScreen(id: at(1)),

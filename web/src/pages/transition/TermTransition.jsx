@@ -12,21 +12,19 @@ import { useRoleBase } from '@/lib/useRoleBase'
 import { t } from '@/i18n'
 import Overview from './Overview'
 import OpenRequests from './OpenRequests'
-import RoomClassChanges from './RoomClassChanges'
 import StayRequests from './StayRequests'
 import NextTermFees from './NextTermFees'
 import Turnover from './Turnover'
 
 // SCR-ASG-20 Term transition — Staff › Residents and Manager › Residents (Change Spec v2 phase 6, spec §5.1, §6.10).
 // One screen per requests window of a Term N+1: the overview (milestones M2–M7, continuing residents, open requests,
-// reconciliation, Beds left for new students), every open next-Term request with bulk decisions, Room Class changes
-// with their consents and furniture check, extensions, the next-Term fees (Managers) and the turnover.
+// reconciliation, Beds left for new students), every open next-Term request with bulk decisions, extensions, the
+// next-Term fees (Managers) and the turnover. A Room's class per Term is set in Room tiers by term, not requested.
 // GET /renewals → [{ termId, termName, previousTermName, opensAt, closesAt, decisionsDueAt, opened }]
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'requests', label: 'Open requests' },
-  { key: 'room-classes', label: 'Room tier changes' },
   { key: 'extensions', label: 'Extensions' },
   { key: 'fees', label: 'Next-term fees', manager: true },
   { key: 'turnover', label: 'Turnover' },
@@ -46,14 +44,14 @@ export default function TermTransition() {
   const [headerSlot, setHeaderSlot] = useState(null)
 
   useEffect(() => {
-    if (!manager && tab === 'fees') navigate(`${base}/next-term`, { replace: true })
+    // A tab that does not exist (e.g. an old link to the removed Room tier changes) opens the overview.
+    if ((!manager && tab === 'fees') || !tabs.some((x) => x.key === tab)) navigate(`${base}/next-term`, { replace: true })
   }, [manager, tab, base, navigate])
 
   const shown = tabs.filter((x) => manager || !x.manager)
   const body = !termId ? null : {
     overview: <Overview termId={termId} />,
     requests: <OpenRequests termId={termId} />,
-    'room-classes': <RoomClassChanges termId={termId} />,
     extensions: <StayRequests termId={termId} />,
     fees: <NextTermFees termId={termId} />,
     turnover: <Turnover termId={termId} headerSlot={headerSlot} />,

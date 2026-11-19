@@ -33,8 +33,8 @@ public class NextTermRequestsService {
     /**
      * One open request.
      *
-     * @param kind    {@code room-change}, {@code swap}, {@code room-class-change} or {@code extension}
-     * @param student who asked (the Room for a Room Class change)
+     * @param kind    {@code room-change}, {@code swap} or {@code extension}
+     * @param student who asked
      */
     public record OpenItem(String kind, String id, String student, String studentCode, String summary, String status,
             Instant submittedAt, Instant dueAt, boolean crossBlock) {
@@ -59,13 +59,12 @@ public class NextTermRequestsService {
     private final NextTermContext context;
     private final RoomChangeService roomChanges;
     private final SwapService swaps;
-    private final RoomClassChangeService classChanges;
     private final StayRequestService stayRequests;
     private final Lookups lookups;
     private final Clock clock;
 
     public NextTermRequestsService(CurrentUser currentUser, BlockScope blockScope, NextTermContext context,
-            RoomChangeService roomChanges, SwapService swaps, RoomClassChangeService classChanges,
+            RoomChangeService roomChanges, SwapService swaps,
             StayRequestService stayRequests, Lookups lookups, Clock clock) {
         this.lookups = lookups;
         this.currentUser = currentUser;
@@ -73,7 +72,6 @@ public class NextTermRequestsService {
         this.context = context;
         this.roomChanges = roomChanges;
         this.swaps = swaps;
-        this.classChanges = classChanges;
         this.stayRequests = stayRequests;
         this.clock = clock;
     }
@@ -87,8 +85,8 @@ public class NextTermRequestsService {
         Stays.Window w = context.window(term).orElseThrow(() -> ApiException.notFound(
                 "This Term has no requests window: it has no renewal milestones."));
         String k = kind == null || kind.isBlank() ? null : kind.trim().toLowerCase(Locale.ROOT);
-        if (k != null && !List.of("room-change", "swap", "room-class-change", "extension").contains(k)) {
-            throw FieldErrors.single("kind", "Choose room-change, swap, room-class-change or extension.");
+        if (k != null && !List.of("room-change", "swap", "extension").contains(k)) {
+            throw FieldErrors.single("kind", "Choose room-change, swap or extension.");
         }
         List<OpenItem> items = new ArrayList<>();
         PageQuery all = PageQuery.of(1, 100);
@@ -113,12 +111,6 @@ public class NextTermRequestsService {
                                         + (i.b().name() == null ? "" : " (" + i.b().name() + ")")),
                         i.status(), i.agreedAt(), i.dueAt(), i.crossBlock())));
             }
-        }
-        if (k == null || k.equals("room-class-change")) {
-            classChanges.open(term, scope).forEach(i -> items.add(new OpenItem("room-class-change", i.id(),
-                    "Room " + i.room(), null, i.fromClass() + " → " + i.toClass() + " · " + i.agreed() + "/" + i.asked()
-                            + " agreed",
-                    i.status(), i.submittedAt(), i.dueAt(), false)));
         }
         if (k == null || k.equals("extension")) {
             stayRequests.open(term, scope).forEach(i -> items.add(new OpenItem("extension", i.id(), i.studentName(),
@@ -172,9 +164,8 @@ public class NextTermRequestsService {
                         }
                     }
                     case "swap" -> swaps.decide(t.id(), d, why);
-                    case "room-class-change" -> classChanges.decide(t.id(), d, why);
                     case "extension" -> stayRequests.decide(t.id(), d, why);
-                    default -> throw FieldErrors.single("kind", "Choose room-change, swap, room-class-change or extension.");
+                    default -> throw FieldErrors.single("kind", "Choose room-change, swap or extension.");
                 }
                 decided++;
             } catch (ApiException e) {
@@ -186,14 +177,13 @@ public class NextTermRequestsService {
 
     /**
      * A next-Term Allocation was cancelled (Assignment's transaction: end of stay, not extended, fee not paid, not
-     * enrolled, terminated): every open request made from it closes, and its student no longer has to consent.
+     * enrolled, terminated): every open request made from it closes.
      */
     @EventListener
     void on(NextTermAllocationCancelled e) {
         Instant now = Instant.now(clock);
         roomChanges.allocationCancelled(e.allocationId(), now);
         swaps.allocationCancelled(e.allocationId(), now);
-        classChanges.allocationCancelled(e.allocationId(), e.studentId(), now);
         stayRequests.allocationCancelled(e.allocationId(), now);
     }
 }

@@ -33,7 +33,6 @@ const statusFilters = [{ value: '', label: 'Status: All' }, ...['Pending', 'Appr
 const changeFilters = [
   { value: '', label: 'Change: All' },
   { value: 'same', label: 'Change: Same type, other room' },
-  { value: 'class', label: 'Change: room tier' },
   { value: 'type', label: 'Change: room type' },
 ]
 

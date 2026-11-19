@@ -13,7 +13,7 @@ public interface SearchSource {
      * A record found.
      *
      * @param kind {@code student}, {@code room}, {@code invoice}, {@code application}, {@code maintenance},
-     *             {@code room-change}, {@code swap}, {@code room-class-change} or {@code stay-request}: the web opens
+     *             {@code room-change}, {@code swap} or {@code stay-request}: the web opens
      *             the matching screen
      * @param id   the record's code where it has one ({@code MR-000321}), the student's id, or the Room's code
      */

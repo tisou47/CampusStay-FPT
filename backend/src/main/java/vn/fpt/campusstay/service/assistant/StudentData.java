@@ -63,7 +63,7 @@ class StudentData {
         sections.put("Payments: my Invoices, amounts in VND, what is paid and owed",
                 () -> invoices.mine(null, PageQuery.of(1, 20)));
         sections.put("Requests: my Maintenance Requests", () -> requests.mine("maintenance", null, PageQuery.of(1, 20)));
-        sections.put("Requests: my next-Term requests (room changes, swaps, Room Class changes, extensions, end of "
+        sections.put("Requests: my next-Term requests (room changes, swaps, extensions, end of "
                 + "stay)", () -> requests.mine("room-changes", null, PageQuery.of(1, 20)));
         sections.put("Home: dormitory announcements", announcements::board);
         // A small model took the first row of this price list for the student's own Room Type: the title says it is not.

@@ -130,12 +130,20 @@ class JdbcInventory implements Inventory {
     @Override
     public List<RoomFurniture> furnitureOf(long roomId) {
         return jdbc.sql("""
-                SELECT i.id, i.asset_code, t.name, t.name_vi FROM inv_furniture_item i
+                SELECT i.id, i.asset_code, t.name, t.name_vi, t.unit_price FROM inv_furniture_item i
                 JOIN inv_furniture_type t ON t.id = i.furniture_type_id
                 WHERE i.room_id = :room AND i.status <> 'DISPOSED' ORDER BY t.sort_order, i.asset_code
                 """).param("room", roomId)
                 .query((rs, i) -> new RoomFurniture(rs.getLong("id"), rs.getString("asset_code"), rs.getString("name"),
-                        rs.getString("name_vi")))
+                        rs.getString("name_vi"), rs.getObject("unit_price", Long.class)))
+                .list();
+    }
+
+    @Override
+    public List<ConditionLevel> conditionLevels() {
+        return jdbc.sql("SELECT code, name, name_vi, value_percent FROM inv_furniture_condition ORDER BY sort_order, code")
+                .query((rs, i) -> new ConditionLevel(rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
+                        rs.getInt("value_percent")))
                 .list();
     }
 

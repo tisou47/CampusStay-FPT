@@ -7,7 +7,7 @@ import vn.fpt.campusstay.common.demo.DemoData;
 import vn.fpt.campusstay.common.demo.DemoScripts;
 
 /**
- * Requests' demo part: next-Term room changes, swaps, Room Class changes with consents, extension and end-of-stay
+ * Requests' demo part: next-Term room changes, swaps, extension and end-of-stay
  * requests, and the escalations, which the SLA scan opens right away for the overdue Maintenance Request
  * (routing rules and SLA timers are Block settings and stay).
  */

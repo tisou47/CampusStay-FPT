@@ -137,14 +137,18 @@ class JdbcBilling implements Billing {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<Long, LocalDate> lastMeterCuts(Collection<Long> roomIds) {
-        Map<Long, LocalDate> result = new HashMap<>();
+    public Map<Long, MeterCut> lastMeterCuts(Collection<Long> roomIds) {
+        Map<Long, MeterCut> result = new HashMap<>();
         if (roomIds == null || roomIds.isEmpty()) {
             return result;
         }
-        jdbc.sql("SELECT room_id, max(cut_date) AS day FROM bil_meter_cut WHERE room_id IN (:rooms) GROUP BY room_id")
+        jdbc.sql("""
+                SELECT DISTINCT ON (room_id) room_id, cut_date, electricity, water FROM bil_meter_cut
+                WHERE room_id IN (:rooms) ORDER BY room_id, cut_date DESC, created_at DESC, id DESC
+                """)
                 .param("rooms", List.copyOf(roomIds))
-                .query((rs, i) -> Map.entry(rs.getLong("room_id"), rs.getObject("day", LocalDate.class))).list()
+                .query((rs, i) -> Map.entry(rs.getLong("room_id"), new MeterCut(rs.getObject("cut_date", LocalDate.class),
+                        rs.getBigDecimal("electricity"), rs.getBigDecimal("water")))).list()
                 .forEach(e -> result.put(e.getKey(), e.getValue()));
         return result;
     }

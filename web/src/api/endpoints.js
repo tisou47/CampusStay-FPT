@@ -143,21 +143,6 @@ export const api = {
     addUpdate: (id, body) => http.post(`/maintenance-requests/${id}/updates`, body),
   },
   /* ---------------------------------------------------------------- Term transition (Change Spec v2 phase 6) */
-  /** Room Class change of a Room for the next Term, with the consent of its continuing residents (spec §6.11). */
-  roomClassChanges: {
-    /** Student: their next-Term Room, its class and the classes with their next-Term price, the open change. */
-    options: g('/room-class-changes/options'),
-    /** Student { roomClassId, reason } or Manager { termId, room, roomClassId, reason } → { id, status }. */
-    create: (body) => http.post('/room-class-changes', body),
-    /** Student { agree } → 204. */
-    consent: (id, body) => http.post(`/room-class-changes/${id}/consent`, body),
-    list: g('/room-class-changes'),
-    get: (id, opts) => http.get(`/room-class-changes/${id}`, undefined, opts),
-    /** { decision: Approved | Rejected, note } → the detail. */
-    decide: (id, body) => http.post(`/room-class-changes/${id}/decision`, body),
-    /** Manager { note } → the detail: the class goes back; fees of the Room are adjusted. */
-    setBack: (id, body) => http.post(`/room-class-changes/${id}/set-back`, body),
-  },
   /** Extension and end of stay (spec §6.10). */
   stay: {
     /** { terms, reason } → { id, status, automatic, note }. */

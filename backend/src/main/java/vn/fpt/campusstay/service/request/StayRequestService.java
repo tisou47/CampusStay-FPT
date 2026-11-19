@@ -167,7 +167,7 @@ public class StayRequestService {
                         r.submittedAt(), STATUSES.get(r.status()),
                         r.decisionNote() == null ? null
                                 : new RoomChangeService.StudentDecision(r.decisionNote(), r.decidedAt()),
-                        null, null, null))
+                        null, null))
                 .toList();
     }
 

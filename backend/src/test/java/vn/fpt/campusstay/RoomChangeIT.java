@@ -97,10 +97,11 @@ class RoomChangeIT {
                         hasItem((int) renewal.nextPrice("4-bed", "Standard"))))
                 .andExpect(jsonPath("$.canAsk").value(true))
                 .andExpect(jsonPath("$.hasOpenRequest").value(false));
+        // No Room Class change any more: kind class is refused (user decision 19/11/2026).
         stay.postJson("/room-changes", auth, "{\"kind\":\"class\",\"roomClassId\":\"%s\",\"reason\":\"Health\"}"
-                .formatted(flow.roomClassId("Standard")))
+                .formatted(flow.roomClassId("Premium")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.roomClassId").isString());
+                .andExpect(jsonPath("$.details.fields.kind").value("Choose another Room of the same kind or another Room Type."));
         stay.postJson("/room-changes", auth, "{\"kind\":\"swap\",\"reason\":\"Health\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.kind").isString());

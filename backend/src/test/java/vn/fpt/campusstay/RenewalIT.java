@@ -330,6 +330,7 @@ class RenewalIT {
                 .andExpect(jsonPath("$.counts.leavers").value(1))
                 .andExpect(jsonPath("$.leavers[0].student.studentCode").value("SE190013"))
                 .andExpect(jsonPath("$.leavers[0].status").value("To check out"))
+                .andExpect(jsonPath("$.leavers[0].damage").doesNotExist())
                 .andExpect(jsonPath("$.movers[0].student.studentCode").value("SE190012"))
                 .andExpect(jsonPath("$.movers[0].to").value("A-210-A"))
                 .andExpect(jsonPath("$.movers[0].moved").value(true))
@@ -341,7 +342,9 @@ class RenewalIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.electricity").isString());
         getAs("/turnover?termId=" + next, staff).andExpect(jsonPath("$.rooms[?(@.room == 'A-110')].lastMeterCut")
-                .isNotEmpty());
+                .isNotEmpty())
+                .andExpect(jsonPath("$.rooms[?(@.room == 'A-110')].lastElectricity", hasItem(1250.5)))
+                .andExpect(jsonPath("$.rooms[?(@.room == 'A-110')].lastWater", hasItem(80.0)));
         postJson("/turnover/meter-cuts", bearer(mvc, TestAuth.STAFF_B2), "{\"room\":\"A-110\",\"electricity\":1300,"
                 + "\"water\":81}").andExpect(status().isBadRequest());
     }

@@ -226,8 +226,6 @@ function hitLink(role, hit) {
       return desk ? `${base}/room-changes?id=${encodeURIComponent(hit.id)}` : null
     case 'swap':
       return desk ? `${base}/room-changes/swaps` : null
-    case 'room-class-change':
-      return desk ? `${base}/next-term/room-classes` : null
     case 'stay-request':
       return desk ? `${base}/next-term/extensions` : null
     default:
@@ -243,7 +241,6 @@ const HIT_KINDS = {
   maintenance: 'Maintenance',
   'room-change': 'Room change',
   swap: 'Swap',
-  'room-class-change': 'Room Class change',
   'stay-request': 'Stay request',
 }
 

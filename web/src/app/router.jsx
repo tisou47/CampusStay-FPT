@@ -43,7 +43,6 @@ const MyRequests = () => import('@/pages/student/MyRequests')
 const Notifications = () => import('@/pages/student/Notifications')
 const NewMaintenanceRequest = () => import('@/pages/student/NewMaintenanceRequest')
 const NewRoomChangeRequest = () => import('@/pages/student/NewRoomChangeRequest')
-const NewRoomClassChange = () => import('@/pages/student/NewRoomClassChange')
 const SwapSpecific = () => import('@/pages/student/SwapSpecific')
 const SwapBoard = () => import('@/pages/student/SwapBoard')
 const SwapInvitation = () => import('@/pages/student/SwapInvitation')
@@ -200,7 +199,6 @@ export const router = createBrowserRouter([
         { path: 'requests', ...page(MyRequests) },
         { path: 'requests/maintenance/new', ...page(NewMaintenanceRequest) },
         { path: 'requests/room-change/new', ...page(NewRoomChangeRequest) },
-        { path: 'requests/room-class/new', ...page(NewRoomClassChange) },
         { path: 'requests/swap/new', ...page(SwapSpecific) },
         { path: 'requests/swap/board', ...page(SwapBoard) },
         { path: 'requests/swap/invitations/:id', ...page(SwapInvitation) },

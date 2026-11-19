@@ -27,6 +27,8 @@ import { t, tr } from '@/i18n'
 // GET /check-out/:allocationId → { …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund },
 //   refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }
 // POST /check-out/:allocationId { electricity, water, conditionGood, keyReturned, damages: [{ itemId, amount, note }], draft }
+//   detail.furniture[]: { itemId, assetCode, type, typeVi, unitPrice, amount, note }; detail.conditions[]: { code, name, nameVi, percent }
+//   (the condition levels of Admin › Furniture types: picking one prices the damage at price × (100 % − its value))
 //   → { refund, refundStatus } — the damage charge is the sum of the items' damages (spec §6.16)
 
 const tones = { 'Pending check-out': 'warning', 'Settlement due': 'error', 'Checked out': 'success' }
@@ -163,16 +165,24 @@ function RoomReadingsModal({ open, onClose, scope }) {
   )
 }
 
-function CheckOutPanel({ d }) {
+/** One student's check-out; {@code embedded}: inside another page's side sheet (Term transition › Turnover). */
+export function CheckOutPanel({ d, embedded = false }) {
   const { notify, notifyError } = useToast()
   const done = d.status === 'Checked out'
   const [electricity, setElectricity] = useState(formatNumber(d.reading?.electricity))
   const [water, setWater] = useState(formatNumber(d.reading?.water))
   // Key returned is false by default; staff must collect key and check
   const [key, setKey] = useState(done ? Boolean(d.keyReturned) : false)
-  // Damage per furniture item of the Room: { [itemId]: { amount, note } }; a damaged item becomes Broken.
+  // Damage per furniture item of the Room: { [itemId]: { level, amount, note } }; a damaged item becomes Broken.
+  // The condition level found prices the damage (price × the value lost); the amount can still be changed.
+  const levels = d.conditions ?? []
+  const levelNames = new Set(levels.flatMap((l) => [l.name, l.nameVi]))
   const initialDamages = () =>
-    Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }]))
+    Object.fromEntries(
+      (d.furniture ?? [])
+        .filter((f) => f.amount > 0 || f.note)
+        .map((f) => [f.itemId, { level: levels.find((l) => l.name === f.note || l.nameVi === f.note)?.code ?? '', amount: formatNumber(f.amount), note: f.note ?? '' }]),
+    )
   const [damages, setDamages] = useState(initialDamages)
   // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)
   const [condition, setCondition] = useState(() => {
@@ -180,7 +190,19 @@ function CheckOutPanel({ d }) {
     return (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : ''
   })
   const [showSummary, setShowSummary] = useState(false)
-  const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { amount: '', note: '', ...all[itemId], ...patch } }))
+  const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { level: '', amount: '', note: '', ...all[itemId], ...patch } }))
+  const setLevel = (f, code) => {
+    const level = levels.find((l) => l.code === code)
+    const lost = level ? 100 - level.percent : 0
+    if (!level || lost === 0) return setDamage(f.itemId, { level: code, amount: '', note: '' })
+    const v = damages[f.itemId]
+    setDamage(f.itemId, {
+      level: code,
+      amount: f.unitPrice != null ? formatNumber(Math.round((f.unitPrice * lost) / 100)) : v?.amount ?? '',
+      // The level's name is the note unless one was typed.
+      note: !v?.note || levelNames.has(v.note) ? typeName(level) : v.note,
+    })
+  }
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
     setWater(d.reading?.water != null ? formatNumber(d.reading.water) : '')
@@ -202,7 +224,7 @@ function CheckOutPanel({ d }) {
         draft,
       }),
     {
-      invalidates: ['check-out', 'dashboard', 'refunds'],
+      invalidates: ['check-out', 'dashboard', 'refunds', 'turnover'],
       onSuccess: (res, draft) => {
         if (draft) {
           notify({ type: 'info', title: 'Draft saved', message: t('Readings and condition for {name} are saved.', { name: d.name }) })
@@ -219,7 +241,7 @@ function CheckOutPanel({ d }) {
   return (
     <Card
       padding="none"
-      className="flex h-full min-h-0 w-110 shrink-0 flex-col overflow-hidden xl:w-120"
+      className={cx('flex h-full min-h-0 shrink-0 flex-col overflow-hidden', embedded ? 'w-full rounded-none border-0' : 'w-110 xl:w-120')}
       aria-label={t('Check-out {name}', { name: d.name })}
     >
       {/* 1. PINNED HEADER: Student Identity & Room Badge */}
@@ -323,52 +345,74 @@ function CheckOutPanel({ d }) {
           {condition === 'damaged' && (d.furniture ?? []).length > 0 && (
             <div className="mt-1 flex flex-col gap-2 border-t border-line pt-2.5">
               <p className="text-xs text-fg-secondary">
-                {t('Damage per item (₫): deducted from the utility deposit; anything above it is invoiced. A damaged item becomes Broken.')}
+                {t('Pick the condition each item is found in: the damage is its price × the value lost. It is deducted from the utility deposit (anything above is invoiced), and a damaged item becomes Broken.')}
               </p>
 
-              {/* Compact Mini-Table for Damage Audit */}
+              {/* Compact Mini-Table for Damage Audit: condition level found → damage priced from the item's value */}
               <div className="overflow-hidden rounded-lg bg-surface">
-                <div className="grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
+                <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_6.5rem] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
                   <span>{t('Furniture')}</span>
-                  <span className="text-right">{t('Amount')} (₫)</span>
-                  <span>{t('Note')}</span>
+                  <span>{t('Condition found')}</span>
+                  <span className="text-right">{t('Damage')} (₫)</span>
                 </div>
-                <div className="flex max-h-48 flex-col divide-y divide-line/60 overflow-y-auto">
+                <div className="flex max-h-72 flex-col divide-y divide-line/60 overflow-y-auto">
                   {d.furniture.map((f) => {
-                    const v = damages[f.itemId] ?? { amount: '', note: '' }
+                    const v = damages[f.itemId] ?? { level: '', amount: '', note: '' }
                     const hasCharge = toNumber(v.amount) > 0 || Boolean(v.note?.trim())
+                    const level = levels.find((l) => l.code === v.level)
                     return (
-                      <div
-                        key={f.itemId}
-                        className={cx(
-                          'grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 px-2.5 py-1.5 transition-colors',
-                          hasCharge ? 'bg-brand-subtle/40' : 'hover:bg-subtle/40',
-                        )}
-                      >
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-xs font-medium text-fg">{typeName(f)}</span>
-                          <span className="truncate font-mono text-[11px] text-fg-tertiary">{f.assetCode}</span>
+                      <div key={f.itemId} className={cx('flex flex-col gap-1 px-2.5 py-1.5 transition-colors', hasCharge ? 'bg-brand-subtle/40' : 'hover:bg-subtle/40')}>
+                        <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_6.5rem] items-center gap-1.5">
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate text-xs font-medium text-fg">{typeName(f)}</span>
+                            <span className="truncate font-mono text-[11px] text-fg-tertiary">
+                              {f.assetCode}
+                              {f.unitPrice != null && ` · ${formatVnd(f.unitPrice)}`}
+                            </span>
+                          </div>
+                          <select
+                            aria-label={t('Condition of {item}', { item: f.assetCode })}
+                            value={v.level || (hasCharge ? '' : levels[0]?.code ?? '')}
+                            disabled={done}
+                            onChange={(e) => setLevel(f, e.target.value)}
+                            className={cx(
+                              'h-7 w-full cursor-pointer rounded-md border bg-surface px-1.5 text-xs focus:border-primary focus:outline-none disabled:cursor-default disabled:bg-subtle',
+                              level && level.percent < 100 ? 'border-warning/50 text-warning-fg' : 'border-line text-fg',
+                            )}
+                          >
+                            {hasCharge && !level && <option value="">{t('Other damage')}</option>}
+                            {levels.map((l) => (
+                              <option key={l.code} value={l.code}>
+                                {typeName(l)} · {l.percent}%
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            aria-label={t('Damage for {item}', { item: f.assetCode })}
+                            value={v.amount}
+                            disabled={done}
+                            onChange={(e) => setDamage(f.itemId, { amount: e.target.value })}
+                            inputMode="numeric"
+                            placeholder="0"
+                            className="h-7 w-full rounded-md border border-line bg-surface px-2 text-right font-mono text-xs font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
+                          />
                         </div>
-                        <input
-                          type="text"
-                          aria-label={t('Damage for {item}', { item: f.assetCode })}
-                          value={v.amount}
-                          disabled={done}
-                          onChange={(e) => setDamage(f.itemId, { amount: e.target.value })}
-                          inputMode="numeric"
-                          placeholder="0"
-                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-right font-mono text-xs font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
-                        />
-                        <input
-                          type="text"
-                          aria-label={t('Damage note for {item}', { item: f.assetCode })}
-                          value={v.note}
-                          disabled={done}
-                          onChange={(e) => setDamage(f.itemId, { note: e.target.value })}
-                          placeholder={t('What is damaged?')}
-                          maxLength={300}
-                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-xs text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
-                        />
+                        {hasCharge && (
+                          <input
+                            type="text"
+                            aria-label={t('Damage note for {item}', { item: f.assetCode })}
+                            value={v.note}
+                            disabled={done}
+                            onChange={(e) => setDamage(f.itemId, { note: e.target.value })}
+                            placeholder={t('What is damaged?')}
+                            maxLength={300}
+                            className="h-7 w-full rounded-md border border-line bg-surface px-2 text-xs text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
+                          />
+                        )}
+                        {level && level.percent < 100 && f.unitPrice == null && !done && (
+                          <span className="text-[11px] text-warning-fg">{t('This type has no price (Admin › Furniture types): type the damage.')}</span>
+                        )}
                       </div>
                     )
                   })}

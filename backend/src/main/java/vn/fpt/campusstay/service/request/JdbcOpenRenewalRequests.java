@@ -11,7 +11,7 @@ import vn.fpt.campusstay.service.assignment.OpenRenewalRequests;
 
 /**
  * Implements Assignment's {@link OpenRenewalRequests} from the next-Term requests of a Term still waiting for a
- * decision: room changes, agreed swaps, Room Class changes (also those still collecting consents) and extensions.
+ * decision: room changes, agreed swaps and extensions.
  * A swap invitation nobody answered yet does not count: it expires on its own.
  */
 @Component
@@ -31,9 +31,6 @@ class JdbcOpenRenewalRequests implements OpenRenewalRequests {
                 termId);
         put(result, "swaps", "SELECT count(*) FROM req_swap WHERE term_id = :t AND status IN ('PENDING', 'TO_MANAGER')",
                 termId);
-        put(result, "roomClassChanges", """
-                SELECT count(*) FROM req_room_class_change WHERE term_id = :t AND status IN ('AWAITING_CONSENT', 'SUBMITTED')
-                """, termId);
         put(result, "extensions", "SELECT count(*) FROM req_stay_request WHERE term_id = :t AND status = 'SUBMITTED'",
                 termId);
         return result;

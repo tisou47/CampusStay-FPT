@@ -8,8 +8,8 @@ import '../files.dart';
 import 'payments.dart';
 
 /// Requests (web SCR-MNT-01, phone Activity › Requests): Maintenance and Room changes (next-Term requests: room
-/// change, swap, Room Class change, extension, end of stay) with what each needs from the student — confirm a fix,
-/// pay, answer a swap, agree to a Room Class change. `GET /students/me/requests?kind=maintenance|room-changes`.
+/// change, swap, extension, end of stay) with what each needs from the student — confirm a fix, pay, answer a
+/// swap. `GET /students/me/requests?kind=maintenance|room-changes`.
 class RequestsList extends StatefulWidget {
   const RequestsList({super.key, this.initial = 'maintenance'});
 
@@ -40,7 +40,6 @@ class _RequestsListState extends State<RequestsList> {
               ('maintenance', Icons.build_outlined, t('Report a problem', 'Báo hỏng')),
               ('room-change', Icons.swap_horiz, t('Change Room next Term', 'Đổi phòng kỳ sau')),
               ('swap', Icons.people_outline, t('Swap Beds for next Term', 'Đổi chỗ kỳ sau')),
-              ('room-class', Icons.layers_outlined, t('Change the Room Class', 'Đổi hạng phòng')),
             ])
               ListTile(leading: Icon(icon), title: Text(text), onTap: () => Navigator.pop(context, key)),
           ],
@@ -51,8 +50,7 @@ class _RequestsListState extends State<RequestsList> {
     await _open(switch (choice) {
       'maintenance' => const NewMaintenanceScreen(),
       'room-change' => const NewRoomChangeScreen(),
-      'swap' => const SwapScreen(),
-      _ => const NewRoomClassChangeScreen(),
+      _ => const SwapScreen(),
     });
   }
 
@@ -140,7 +138,6 @@ class _RequestsListState extends State<RequestsList> {
                                     t('Answer', 'Trả lời'),
                                     () => _open(SwapInvitationScreen(id: r.text('invitationId'))),
                                   ),
-                                if (r.str('consentId') != null) _Consent(id: r.text('consentId'), done: reload),
                               ],
                             ),
                       ],
@@ -181,51 +178,6 @@ class _SmallButton extends StatelessWidget {
     return outlined
         ? OutlinedButton(style: style, onPressed: onPressed, child: Text(text))
         : FilledButton(style: style, onPressed: onPressed, child: Text(text));
-  }
-}
-
-/// A Room Class change of the student's Room waits for their answer (spec §6.11): agree or decline.
-/// `POST /room-class-changes/{id}/consent { agree }`.
-class _Consent extends StatefulWidget {
-  const _Consent({required this.id, required this.done});
-
-  final String id;
-  final Future<void> Function() done;
-
-  @override
-  State<_Consent> createState() => _ConsentState();
-}
-
-class _ConsentState extends State<_Consent> {
-  bool _busy = false;
-
-  Future<void> _answer(bool agree) async {
-    setState(() => _busy = true);
-    final ok = await attempt(
-      () => Api.post('/room-class-changes/${Uri.encodeComponent(widget.id)}/consent', {'agree': agree}),
-      success: agree
-          ? t(
-              'You agreed. When everyone agrees, Staff check the furniture and decide.',
-              'Bạn đã đồng ý. Khi mọi người đồng ý, nhân viên kiểm tra nội thất và quyết định.',
-            )
-          : t(
-              'You declined. The change is cancelled; your roommates are told.',
-              'Bạn đã từ chối. Yêu cầu bị huỷ; bạn cùng phòng được thông báo.',
-            ),
-    );
-    if (ok != null) await widget.done();
-    if (mounted) setState(() => _busy = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      children: [
-        _SmallButton(t('Agree', 'Đồng ý'), _busy ? null : () => _answer(true)),
-        _SmallButton(t('Decline', 'Từ chối'), _busy ? null : () => _answer(false), outlined: true),
-      ],
-    );
   }
 }
 
@@ -696,9 +648,8 @@ class _RoomChangeForm extends StatefulWidget {
 }
 
 class _RoomChangeFormState extends State<_RoomChangeForm> {
-  String _kind = 'class';
+  String _kind = 'same';
   String? _newType;
-  String? _newClass;
   String? _reason;
   final _details = TextEditingController();
   bool _understood = false;
@@ -713,13 +664,6 @@ class _RoomChangeFormState extends State<_RoomChangeForm> {
     _newType =
         widget.opts.objects('roomTypes').where((r) => r.str('id') != _cur.str('roomTypeId')).firstOrNull?.str('id') ??
         _cur.str('roomTypeId');
-    _newClass =
-        widget.opts
-            .objects('roomClasses')
-            .where((c) => c.str('id') != _cur.str('roomClassId'))
-            .firstOrNull
-            ?.str('id') ??
-        _cur.str('roomClassId');
   }
 
   @override
@@ -743,7 +687,8 @@ class _RoomChangeFormState extends State<_RoomChangeForm> {
     final cur = _cur;
     final window = opts.obj('window');
     final targetType = _kind == 'type' ? _newType : cur.str('roomTypeId');
-    final targetClass = _kind == 'class' ? _newClass : cur.str('roomClassId');
+    // A room change keeps the Room Class: only Managers set a Room's class per Term.
+    final targetClass = cur.str('roomClassId');
     return Cards(
       children: [
         if (_error != null)
@@ -767,8 +712,7 @@ class _RoomChangeFormState extends State<_RoomChangeForm> {
           title: t('What do you want next Term?', 'Kỳ sau bạn muốn gì?'),
           children: [
             for (final (value, text) in [
-              ('same', t('Same Room Type and Room Class, different Room', 'Cùng loại và hạng phòng, phòng khác')),
-              ('class', t('Different Room Class', 'Hạng phòng khác')),
+              ('same', t('Same Room Type, different Room', 'Cùng loại phòng, phòng khác')),
               ('type', t('Different Room Type', 'Loại phòng khác')),
             ])
               OptionTile(selected: _kind == value, title: text, onTap: () => setState(() => _kind = value)),
@@ -784,15 +728,12 @@ class _RoomChangeFormState extends State<_RoomChangeForm> {
               onChanged: (v) => setState(() => _newType = v),
             ),
             Choice<String>(
-              name: _kind == 'class' ? t('New Room Class', 'Hạng phòng mới') : t('Room Class', 'Hạng phòng'),
-              values: [
-                for (final c in opts.objects('roomClasses'))
-                  if (_kind != 'class' || c.str('id') != cur.str('roomClassId')) c.text('id'),
-              ],
+              name: t('Room Class', 'Hạng phòng'),
+              values: [for (final c in opts.objects('roomClasses')) c.text('id')],
               text: (id) => _name('roomClasses', id),
               value: targetClass,
-              enabled: _kind == 'class',
-              onChanged: (v) => setState(() => _newClass = v),
+              enabled: false,
+              onChanged: (_) {},
             ),
             Choice<String>(
               name: t('Reason', 'Lý do'),
@@ -875,190 +816,6 @@ class _RoomChangeFormState extends State<_RoomChangeForm> {
                   } on ApiException catch (e) {
                     setState(() {
                       _error = e.message;
-                      _busy = false;
-                    });
-                  }
-                },
-        ),
-      ],
-    );
-  }
-}
-
-/// A Room Class change of the student's Room for the next Term (web SCR-REQ-08, spec §6.11): every other continuing
-/// resident must agree, then Staff decide. `GET /room-class-changes/options`, `POST /room-class-changes`.
-class NewRoomClassChangeScreen extends StatelessWidget {
-  const NewRoomClassChangeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SubPage(
-      title: t('Change the Room Class', 'Đổi hạng phòng'),
-      body: Loader<Json>(
-        fetch: () => Api.get('/room-class-changes/options'),
-        builder: (context, opts, reload) {
-          final open = opts.obj('open');
-          if (opts.str('room') == null) {
-            return Cards(
-              children: [
-                EmptyState(
-                  icon: Icons.layers_outlined,
-                  title: t(
-                    'Room Class changes open with the requests window',
-                    'Đổi hạng phòng mở cùng đợt nhận yêu cầu',
-                  ),
-                  body: label(opts.str('unavailable')),
-                ),
-              ],
-            );
-          }
-          if (open != null) {
-            return Cards(
-              children: [
-                Section(
-                  title: t(
-                    'Change to ${label(open.str('toClass'))} · ${open.text('id')}',
-                    'Đổi sang ${label(open.str('toClass'))} · ${open.text('id')}',
-                  ),
-                  trailing: StatusChip(open.str('status')),
-                  children: [
-                    Text(t('Asked by ${open.text('requestedBy')}', 'Người đề nghị: ${open.text('requestedBy')}')),
-                    for (final c in open.objects('consents'))
-                      Row(
-                        children: [
-                          Expanded(child: Text(c.text('name'))),
-                          StatusChip(c.str('status')),
-                        ],
-                      ),
-                    Note(
-                      t(
-                        'Answer it in Activity › Requests › Room changes.',
-                        'Trả lời trong Hoạt động › Yêu cầu › Đổi phòng.',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          }
-          return _RoomClassForm(opts: opts);
-        },
-      ),
-    );
-  }
-}
-
-class _RoomClassForm extends StatefulWidget {
-  const _RoomClassForm({required this.opts});
-
-  final Json opts;
-
-  @override
-  State<_RoomClassForm> createState() => _RoomClassFormState();
-}
-
-class _RoomClassFormState extends State<_RoomClassForm> {
-  late String? _target = widget.opts.objects('classes').firstOrNull?.str('id');
-  final _reason = TextEditingController();
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _reason.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final opts = widget.opts;
-    final chosen = opts.objects('classes').where((c) => c.str('id') == _target).firstOrNull;
-    final current = opts.obj('current');
-    return Cards(
-      children: [
-        if (_error != null)
-          Alert(tone: Tone.error, title: t('Could not send the request', 'Không gửi được yêu cầu'), body: _error),
-        if (!opts.flag('canAsk'))
-          Alert(
-            tone: Tone.warning,
-            title: t('You cannot ask now', 'Hiện chưa thể gửi yêu cầu'),
-            body: label(opts.str('unavailable')),
-          ),
-        Section(
-          title: t('Your Room next Term', 'Phòng của bạn kỳ sau'),
-          children: [
-            Text(
-              joinDot([opts.str('room'), label(opts.str('roomType')), label(current?.str('name'))]),
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-        Section(
-          title: t(
-            'Which Room Class do you want for ${opts.text('termName')}?',
-            'Bạn muốn hạng phòng nào cho ${opts.text('termName')}?',
-          ),
-          children: [
-            for (final c in opts.objects('classes'))
-              OptionTile(
-                selected: _target == c.str('id'),
-                title: label(c.str('name')),
-                trailing: c.number('termPrice') == null ? t('not offered', 'không mở') : money(c.number('termPrice')),
-                onTap: c.number('termPrice') == null ? null : () => setState(() => _target = c.str('id')),
-              ),
-            Input(
-              controller: _reason,
-              label: t('Why (shown to your roommates and Staff)', 'Lý do (bạn cùng phòng và nhân viên sẽ thấy)'),
-              lines: 2,
-              maxLength: 500,
-            ),
-          ],
-        ),
-        Section(
-          title: t('Next-Term fee', 'Phí kỳ sau'),
-          children: [
-            Line(label(current?.str('name')), money(current?.number('termPrice'))),
-            Line(
-              label(chosen?.str('name')).isEmpty ? '—' : label(chosen?.str('name')),
-              money(chosen?.number('termPrice')),
-              strong: true,
-            ),
-          ],
-        ),
-        Note(
-          t(
-            '${opts.number('residents') ?? 0} continuing residents of the Room must agree. Staff then check the furniture: an upgrade needs the missing items in the Block store; they move at the turnover.',
-            '${opts.number('residents') ?? 0} người tiếp tục ở trong phòng phải đồng ý. Sau đó nhân viên kiểm tra nội thất: nâng hạng cần có đồ còn thiếu trong kho Block; đồ được chuyển khi bàn giao kỳ.',
-          ),
-        ),
-        BusyButton(
-          label: t('Ask for the change', 'Gửi đề nghị'),
-          busy: _busy,
-          onPressed: !opts.flag('canAsk') || _target == null
-              ? null
-              : () async {
-                  setState(() {
-                    _busy = true;
-                    _error = null;
-                  });
-                  try {
-                    final text = _reason.text.trim();
-                    final r = await Api.post('/room-class-changes', {
-                      'roomClassId': _target,
-                      if (text.isNotEmpty) 'reason': text,
-                    });
-                    toast(
-                      r.str('status') == 'Awaiting consent'
-                          ? t(
-                              '${r.text('id')}: your roommates are asked to agree.',
-                              '${r.text('id')}: đang chờ bạn cùng phòng đồng ý.',
-                            )
-                          : t('${r.text('id')}: Staff decide it.', '${r.text('id')}: nhân viên sẽ quyết định.'),
-                    );
-                    if (context.mounted) Navigator.pop(context, true);
-                  } on ApiException catch (e) {
-                    setState(() {
-                      _error = e.fields['roomClassId'] ?? e.message;
                       _busy = false;
                     });
                   }

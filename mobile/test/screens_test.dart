@@ -202,7 +202,7 @@ void main() {
     await tester.tap(find.text('Requests for next Term'));
     await tester.pumpAndSettle();
     expect(find.text('Extend my stay'), findsOneWidget);
-    expect(find.text('Change the Room Class'), findsOneWidget);
+    expect(find.text('Change the Room Class'), findsNothing);
     Navigator.of(tester.element(find.text('Extend my stay'))).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Show door code'));
@@ -218,7 +218,7 @@ void main() {
         'activeTermName': 'Spring 2027',
       },
       '/students/me/requests': {
-        'items': [{'id': 'RC-1', 'typeLabel': 'Room Class change', 'summary': 'Standard → Premium', 'status': 'Awaiting consent', 'consentId': 'RCC-1'}],
+        'items': [{'id': 'SW-1', 'typeLabel': 'Swap', 'summary': 'Swap with Room A-605 · Bed B', 'status': 'Invited', 'invitationId': 'SW-1'}],
         'counts': {'maintenance': 0, 'roomChanges': 1},
       },
       '/notifications': {'items': [{'id': 'n1', 'title': 'Deposit due', 'body': 'Pay by Friday.', 'createdAt': _past, 'read': false, 'link': '/student/invoices'}], 'unread': 1},
@@ -230,8 +230,8 @@ void main() {
     await show(tester, const RequestsPage());
     await tester.tap(find.text('Room changes (1)'));
     await tester.pumpAndSettle();
-    expect(find.text('Room Class change'), findsOneWidget);
-    expect(find.text('Agree'), findsOneWidget);
+    expect(find.text('Swap'), findsOneWidget);
+    expect(find.text('Agree'), findsNothing);
     expect(find.text('New request'), findsOneWidget);
   });
 

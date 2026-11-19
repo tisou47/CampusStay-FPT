@@ -20,12 +20,12 @@ import { t, tr } from '@/i18n'
 const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'Expired']
 
 // Term transition › Open requests (spec §5.1 M4: every request decided; Managers decide in bulk).
-// GET /next-term-requests?termId&block&kind → { items: [{ kind (room-change, swap, room-class-change, extension), id,
+// GET /next-term-requests?termId&block&kind → { items: [{ kind (room-change, swap, extension), id,
 //   student, studentCode, summary, status, submittedAt, dueAt, crossBlock }], total, window }
 // POST /next-term-requests/decision { items: [{ kind, id }], decision: Approved | Rejected, reason }
 //   → { decided, failed: [{ kind, id, message }] } — a room change approved in bulk gets the first matching free Bed.
 
-const kindLabels = { 'room-change': 'Room change', swap: 'Swap', 'room-class-change': 'Room Class change', extension: 'Extension' }
+const kindLabels = { 'room-change': 'Room change', swap: 'Swap', extension: 'Extension' }
 const kindFilters = [{ value: '', label: 'Kind: All' }, ...Object.entries(kindLabels).map(([value, label]) => ({ value, label: t('Kind: {k}', { k: t(label) }) }))]
 
 export default function OpenRequests({ termId }) {
@@ -46,7 +46,7 @@ export default function OpenRequests({ termId }) {
   const decide = useMutation(
     () => api.nextTermRequests.decide({ items: items.filter((r) => selected.has(key(r))).map((r) => ({ kind: r.kind, id: r.id })), decision: deciding, reason: reason.trim() || undefined }),
     {
-      invalidates: ['next-term-requests', 'renewal-overview', 'room-changes', 'swaps', 'room-class-changes', 'stay-requests'],
+      invalidates: ['next-term-requests', 'renewal-overview', 'room-changes', 'swaps', 'stay-requests'],
       onSuccess: (r) => {
         notify({ title: deciding === 'Approved' ? 'Requests approved' : 'Requests rejected', message: t('{n} decided, {failed} could not be.', { n: r.decided, failed: r.failed.length }) })
         setResult(r)
@@ -58,7 +58,7 @@ export default function OpenRequests({ termId }) {
     },
   )
   const link = (r) =>
-    r.kind === 'room-change' ? `${base}/room-changes?id=${r.id}` : r.kind === 'swap' ? `${base}/room-changes/swaps` : r.kind === 'room-class-change' ? `${base}/next-term/room-classes?termId=${termId}&id=${r.id}` : `${base}/next-term/extensions?termId=${termId}`
+    r.kind === 'room-change' ? `${base}/room-changes?id=${r.id}` : r.kind === 'swap' ? `${base}/room-changes/swaps` : `${base}/next-term/extensions?termId=${termId}`
 
   return (
     <>
@@ -161,7 +161,7 @@ export default function OpenRequests({ termId }) {
         {decide.error && <Alert type="error" title="Could not decide">{decide.error.details?.fields?.reason ?? decide.error.message}</Alert>}
         {deciding === 'Approved' ? (
           <p className="text-base text-fg-secondary">
-            {t('Each request is decided on its own. A room change gets the first matching free bed you may give; a room tier change needs every consent first. Requests that cannot be approved are listed afterwards.')}
+            {t('Each request is decided on its own. A room change gets the first matching free bed you may give. Requests that cannot be approved are listed afterwards.')}
           </p>
         ) : (
           <Field label="Why (the students see it)" required>
