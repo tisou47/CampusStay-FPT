@@ -182,15 +182,41 @@ function Checklist({ run, room }) {
           })}
         </TBody>
       </Table>
-      <div className="flex shrink-0 flex-wrap items-end gap-3">
-        <Field label="Electricity (kWh)" required={room.metersNeeded} className="w-44">
+      <div className="flex shrink-0 flex-wrap items-start gap-3">
+        <Field
+          label="Electricity (kWh)"
+          required={room.metersNeeded}
+          className="w-56"
+          helper={
+            room.previousMeters
+              ? t('Previous reading: {value} kWh (recorded {date})', {
+                  value: formatNumber(room.previousMeters.electricity),
+                  date: formatDate(room.previousMeters.date),
+                })
+              : undefined
+          }
+        >
           <Input type="number" min="0" step="0.1" disabled={done} value={meters.electricity} onChange={(e) => setMeters((m) => ({ ...m, electricity: e.target.value }))} />
         </Field>
-        <Field label="Water (m³)" required={room.metersNeeded} className="w-44">
+        <Field
+          label="Water (m³)"
+          required={room.metersNeeded}
+          className="w-56"
+          helper={
+            room.previousMeters
+              ? t('Previous reading: {value} m³ (recorded {date})', {
+                  value: formatNumber(room.previousMeters.water),
+                  date: formatDate(room.previousMeters.date),
+                })
+              : undefined
+          }
+        >
           <Input type="number" min="0" step="0.1" disabled={done} value={meters.water} onChange={(e) => setMeters((m) => ({ ...m, water: e.target.value }))} />
         </Field>
-        <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
-        {room.metersNeeded && <p className="text-sm text-fg-tertiary">Pre-arrival inspection: the Room is done once its meters are read.</p>}
+        <div className="pt-7">
+          <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
+        </div>
+        {room.metersNeeded && <p className="pt-7 text-sm text-fg-tertiary">Pre-arrival inspection: the Room is done once its meters are read.</p>}
       </div>
       <div className="flex shrink-0 flex-col gap-2.5">
         {room.status === 'Done' ? (

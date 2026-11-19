@@ -27,7 +27,11 @@ import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
+import vn.fpt.campusstay.common.file.FileLinks;
+import vn.fpt.campusstay.common.file.FileStore;
+import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.event.FurnitureRepairLogged;
 import vn.fpt.campusstay.service.assignment.Residences;
@@ -56,8 +60,20 @@ public class InspectionRunService {
     public record ChecklistView(String name, String version, List<ChecklistService.Item> items) {
     }
 
+    /**
+     * @param status Open (Staff fill it in) or Submitted (read only); {@code mine}: assigned to the user
+     */
     public record RunView(String id, LocalDate date, Instant dueAt, String scheduleName, String scope, int rooms,
-            int inspected, int failed, int unreachable, String inspectorName, ChecklistView checklist) {
+            int inspected, int failed, int unreachable, String inspectorName, ChecklistView checklist, String status,
+            String block, boolean mine, boolean overdue) {
+    }
+
+    /** The runs of the Blocks: open ones (the user's first) and the ones sent in the last days. */
+    public record RunsPage(List<RunView> items) {
+    }
+
+    /** A photo of the inspection: of a furniture check ({@code itemId}) or of the meters (null). */
+    public record Photo(String id, String itemId, String url) {
     }
 
     public record Current(RunView run) {
@@ -91,14 +107,20 @@ public class InspectionRunService {
     public record Meters(java.math.BigDecimal electricity, java.math.BigDecimal water, Boolean replaced) {
     }
 
+    /** The Room's latest recorded meters before this inspection, shown to Staff as a reference note. */
+    public record PreviousMeters(java.math.BigDecimal electricity, java.math.BigDecimal water, LocalDate date) {
+    }
+
     /**
      * @param status        To do, In progress, Done or Not reachable
      * @param checks        the Room's own checks; their answers are in {@code results} too
      * @param meters        the readings recorded, null before
      * @param metersNeeded  a pre-arrival inspection: the Room is done only with its meters
+     * @param previousMeters the Room's latest reading and date, for Staff comparison
      */
     public record RoomItem(String room, String roomTypeName, String roomClassName, String status, List<Result> results,
-            List<RoomCheck> checks, Meters meters, boolean metersNeeded) {
+            List<RoomCheck> checks, Meters meters, boolean metersNeeded, PreviousMeters previousMeters,
+            List<Photo> photos, java.time.Instant inspectedAt) {
     }
 
     public record RoomsPage(List<RoomItem> items, long total) {
@@ -158,10 +180,19 @@ public class InspectionRunService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final BlockDirectory blockCodes;
+    private final FileStore files;
+    private final FileLinks links;
+    private final Parameters parameters;
 
     public InspectionRunService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
             Inventory inventory, Catalog catalog, TermCatalog terms, Residences residences, ChecklistService checklists,
-            RequestStore requests, Billing billing, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            RequestStore requests, Billing billing, ApplicationEventPublisher events, AuditLog audit, Clock clock,
+            BlockDirectory blockCodes, FileStore files, FileLinks links, Parameters parameters) {
+        this.blockCodes = blockCodes;
+        this.files = files;
+        this.links = links;
+        this.parameters = parameters;
         this.billing = billing;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
@@ -211,6 +242,12 @@ public class InspectionRunService {
         Map<Long, String> classes = catalog.roomClasses().stream()
                 .collect(Collectors.toMap(Catalog.RoomClassInfo::id, Catalog.RoomClassInfo::name));
         boolean preArrival = preArrival(run);
+        Map<Long, List<Photo>> photos = photos(rows.stream().map(RoomRow::id).toList());
+        Map<Long, Instant> inspectedAt = new HashMap<>();
+        jdbc.sql("SELECT id, inspected_at FROM mnt_inspection_room WHERE run_id = :run AND inspected_at IS NOT NULL")
+                .param("run", run.id())
+                .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getTimestamp("inspected_at").toInstant()))
+                .list().forEach(e -> inspectedAt.put(e.getKey(), e.getValue()));
         List<RoomItem> items = rows.stream().skip(page.offset()).limit(page.limit()).map(r -> {
             Inventory.BedSlot info = roomInfo.get(r.roomId());
             List<Stored> stored = results.getOrDefault(r.id(), List.of());
@@ -219,11 +256,14 @@ public class InspectionRunService {
                     .map(s -> new Result(String.valueOf(s.itemId()), RESULTS.get(s.result()), s.note())).toList());
             answered.forEach(c -> all.add(new Result(checkId(c.key()), RESULTS.get(c.result()), c.note(),
                     c.condition() == null ? null : CONDITIONS.get(c.condition()), null)));
+            PreviousMeters previousMeters = billing.lastReading(r.roomId())
+                    .map(m -> new PreviousMeters(m.electricity(), m.water(), m.date())).orElse(null);
             return new RoomItem(info == null ? null : info.roomCode(), info == null ? null : types.get(info.roomTypeId()),
                     info == null ? null : classes.get(info.roomClassId()),
                     status(r, stored.stream().anyMatch(s -> !s.result().equals("NOT_CHECKED"))
                             || answered.stream().anyMatch(c -> !c.result().equals("NOT_CHECKED"))),
-                    all, checks(r.roomId()), r.meters(), preArrival);
+                    all, checks(r.roomId()), r.meters(), preArrival, previousMeters,
+                    photos.getOrDefault(r.id(), List.of()), inspectedAt.get(r.id()));
         }).toList();
         return new RoomsPage(items, rows.size());
     }
@@ -408,6 +448,108 @@ public class InspectionRunService {
                 Map.of("inspected", inspected, "unfinished", unfinished, "confirmed", confirmed));
     }
 
+    /** Days a sent run stays in the Staff list after its date. */
+    private static final int SENT_RUNS_DAYS = 30;
+
+    /**
+     * Every run of the Blocks the user can open: the runs not sent yet that have started (the user's own first, then
+     * the oldest) and the runs sent in the last {@value #SENT_RUNS_DAYS} days, to read and export them.
+     */
+    @Transactional(readOnly = true)
+    public RunsPage runs(String block) {
+        AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
+        Set<Long> buildings = blockScope.resolve(block).ids();
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        List<Run> runs = jdbc.sql("""
+                SELECT * FROM mnt_inspection_run
+                WHERE building_id IN (:b) AND run_date <= :today
+                  AND (status <> 'SUBMITTED' OR run_date >= :since)
+                ORDER BY (status = 'SUBMITTED'), (inspector_id = :me) DESC NULLS LAST, run_date, id
+                """).param("b", List.copyOf(buildings)).param("today", today)
+                .param("since", today.minusDays(SENT_RUNS_DAYS)).param("me", me.userId())
+                .query((rs, i) -> run(rs)).list();
+        return new RunsPage(runs.stream().map(this::view).toList());
+    }
+
+    /** One run of the Blocks, open or sent. */
+    @Transactional(readOnly = true)
+    public Current runView(String id) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE);
+        return new Current(view(run(id, false)));
+    }
+
+    /**
+     * A photo of a Room of an open run: of a furniture check ({@code itemId} "furniture-<id>") or, without it, of
+     * the meters; at most {@code handover.max_photos} each, JPEG or PNG.
+     */
+    @Transactional
+    public Photo addPhoto(String id, String roomCode, String itemId, String fileName, byte[] bytes) {
+        AuthenticatedUser me = currentUser.require(Permission.PROCESS_MAINTENANCE);
+        Run run = run(id, true);
+        open(run);
+        RoomRow room = room(run, roomCode);
+        String key = null;
+        if (itemId != null && !itemId.isBlank()) {
+            String value = itemId.trim();
+            boolean known = checks(room.roomId()).stream()
+                    .anyMatch(c -> c.kind().equals("furniture") && c.id().equals(value));
+            if (!known) {
+                throw FieldErrors.single("itemId", "Choose a furniture item of this Room.");
+            }
+            key = "FURNITURE:" + value.substring("furniture-".length());
+        }
+        if (bytes == null || bytes.length == 0) {
+            throw FieldErrors.single("photo", "Choose a photo.");
+        }
+        int max = Math.max(1, parameters.intValue("handover.max_photos"));
+        long count = jdbc.sql("""
+                SELECT count(*) FROM mnt_inspection_photo
+                WHERE inspection_room_id = :r AND check_key IS NOT DISTINCT FROM CAST(:k AS VARCHAR)
+                """).param("r", room.id()).param("k", key).query(Long.class).single();
+        if (count >= max) {
+            throw FieldErrors.single("photo", "Add at most " + max + " photos.");
+        }
+        FileStore.StoredFile file = files.store("mnt", fileName, bytes, FileStore.IMAGES, me.userId());
+        long photoId = jdbc.sql("""
+                INSERT INTO mnt_inspection_photo (inspection_room_id, check_key, file_id, taken_by)
+                VALUES (:r, :k, :f, :by) RETURNING id
+                """).param("r", room.id()).param("k", key).param("f", file.id()).param("by", me.userId())
+                .query(Long.class).single();
+        return new Photo(String.valueOf(photoId), key == null ? null : checkId(key), links.link(file.id()));
+    }
+
+    /** Removes a photo of a Room of an open run. */
+    @Transactional
+    public void removePhoto(String id, String roomCode, String photoId) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE);
+        Run run = run(id, true);
+        open(run);
+        RoomRow room = room(run, roomCode);
+        long photo = InspectionScheduleService.parse(photoId)
+                .orElseThrow(() -> ApiException.notFound("This photo does not exist."));
+        int deleted = jdbc.sql("DELETE FROM mnt_inspection_photo WHERE id = :id AND inspection_room_id = :r")
+                .param("id", photo).param("r", room.id()).update();
+        if (deleted == 0) {
+            throw ApiException.notFound("This photo does not exist.");
+        }
+    }
+
+    private Map<Long, List<Photo>> photos(List<Long> roomIds) {
+        if (roomIds.isEmpty()) {
+            return Map.of();
+        }
+        return jdbc.sql("""
+                SELECT id, inspection_room_id, check_key, file_id FROM mnt_inspection_photo
+                WHERE inspection_room_id IN (:rooms) ORDER BY id
+                """).param("rooms", roomIds)
+                .query((rs, i) -> Map.entry(rs.getLong("inspection_room_id"),
+                        new Photo(String.valueOf(rs.getLong("id")),
+                                rs.getString("check_key") == null ? null : checkId(rs.getString("check_key")),
+                                links.link(rs.getLong("file_id")))))
+                .list().stream().collect(Collectors.groupingBy(Map.Entry::getKey, LinkedHashMap::new,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+    }
+
     /** The next run of each active schedule in the Blocks, soonest first. */
     @Transactional(readOnly = true)
     public UpcomingPage upcoming(String block) {
@@ -449,7 +591,11 @@ public class InspectionRunService {
                 (int) rows.stream().filter(r -> r.status().equals("INSPECTED")).count(), failed,
                 (int) rows.stream().filter(r -> r.status().equals("UNREACHABLE")).count(),
                 run.inspectorId() == null ? null : users.displayNames(List.of(run.inspectorId())).get(run.inspectorId()),
-                new ChecklistView(version.name(), "v" + version.version(), items));
+                new ChecklistView(version.name(), "v" + version.version(), items),
+                run.status().equals("SUBMITTED") ? "Submitted" : "Open",
+                blockCodes.codesByIds(Set.of(run.buildingId())).get(run.buildingId()),
+                run.inspectorId() != null && run.inspectorId() == currentUser.id(),
+                !run.status().equals("SUBMITTED") && run.dueAt().isBefore(Instant.now(clock)));
     }
 
     /** The Room's own checks: the residents it has now, and its furniture items. */
@@ -522,13 +668,15 @@ public class InspectionRunService {
         errors.check(meters.water() != null && meters.water().signum() >= 0, "water", "Enter the water reading (m³).");
         errors.throwIfAny();
         if (!Boolean.TRUE.equals(meters.replaced())) {
+            java.time.format.DateTimeFormatter dayFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
             billing.lastReading(room.roomId()).ifPresent(last -> {
+                String day = last.date() == null ? "" : dayFmt.format(last.date());
                 errors.check(meters.electricity().compareTo(last.electricity()) >= 0, "electricity",
                         "The reading is lower than the last one (" + last.electricity().toPlainString() + " kWh on "
-                                + last.date() + "). Tick \"Meter replaced\" if it is a new meter.");
+                                + day + "). Tick \"Meter replaced\" if it is a new meter.");
                 errors.check(meters.water().compareTo(last.water()) >= 0, "water",
                         "The reading is lower than the last one (" + last.water().toPlainString() + " m³ on "
-                                + last.date() + "). Tick \"Meter replaced\" if it is a new meter.");
+                                + day + "). Tick \"Meter replaced\" if it is a new meter.");
             });
             errors.throwIfAny();
         }

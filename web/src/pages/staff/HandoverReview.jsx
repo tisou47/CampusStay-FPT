@@ -200,10 +200,40 @@ function Verification({ detail, onClose }) {
           </TBody>
         </Table>
         <div className="flex flex-wrap gap-3">
-          <Field label="Electricity (kWh)" className="w-48" helper={t('Record {value} · Student {student}', { value: detail.electricity?.baseline ?? '—', student: detail.electricity?.student ?? '—' })}>
+          <Field
+            label="Electricity (kWh)"
+            className="w-64"
+            helper={
+              detail.electricity?.baselineAt
+                ? t('Previous reading: {value} kWh (recorded {date}) · Student: {student}', {
+                    value: detail.electricity?.baseline ?? '—',
+                    date: formatDate(detail.electricity.baselineAt),
+                    student: detail.electricity?.student ?? '—',
+                  })
+                : t('Record {value} · Student {student}', {
+                    value: detail.electricity?.baseline ?? '—',
+                    student: detail.electricity?.student ?? '—',
+                  })
+            }
+          >
             <Input type="number" min="0" step="0.1" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
           </Field>
-          <Field label="Water (m³)" className="w-48" helper={t('Record {value} · Student {student}', { value: detail.water?.baseline ?? '—', student: detail.water?.student ?? '—' })}>
+          <Field
+            label="Water (m³)"
+            className="w-64"
+            helper={
+              detail.water?.baselineAt
+                ? t('Previous reading: {value} m³ (recorded {date}) · Student: {student}', {
+                    value: detail.water?.baseline ?? '—',
+                    date: formatDate(detail.water.baselineAt),
+                    student: detail.water?.student ?? '—',
+                  })
+                : t('Record {value} · Student {student}', {
+                    value: detail.water?.baseline ?? '—',
+                    student: detail.water?.student ?? '—',
+                  })
+            }
+          >
             <Input type="number" min="0" step="0.1" value={water} onChange={(e) => setWater(e.target.value)} />
           </Field>
         </div>

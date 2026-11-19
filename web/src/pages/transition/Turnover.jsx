@@ -61,10 +61,34 @@ function MeterCut({ room, onClose }) {
       }
     >
       {save.error && !save.error.details?.fields && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
-      <Field label="Electricity (kWh)" required error={fields.electricity}>
+      <Field
+        label="Electricity (kWh)"
+        required
+        error={fields.electricity}
+        helper={
+          room.previousMeters
+            ? t('Previous reading: {value} kWh (recorded {date})', {
+                value: formatNumber(room.previousMeters.electricity),
+                date: formatDate(room.previousMeters.date),
+              })
+            : undefined
+        }
+      >
         {(id) => <Input id={id} type="number" min="0" step="0.1" value={form.electricity} onChange={(e) => setForm({ ...form, electricity: e.target.value })} />}
       </Field>
-      <Field label="Water (m³)" required error={fields.water}>
+      <Field
+        label="Water (m³)"
+        required
+        error={fields.water}
+        helper={
+          room.previousMeters
+            ? t('Previous reading: {value} m³ (recorded {date})', {
+                value: formatNumber(room.previousMeters.water),
+                date: formatDate(room.previousMeters.date),
+              })
+            : undefined
+        }
+      >
         {(id) => <Input id={id} type="number" min="0" step="0.1" value={form.water} onChange={(e) => setForm({ ...form, water: e.target.value })} />}
       </Field>
     </Modal>

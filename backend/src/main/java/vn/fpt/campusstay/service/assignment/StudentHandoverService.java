@@ -253,10 +253,17 @@ public class StudentHandoverService {
                     "Add a photo of every Damaged or Missing item.");
         }
         errors.throwIfAny();
-        Optional<String> problem = billing.readingProblem(h.roomId(), h.electricity(), h.water());
-        if (problem.isPresent()) {
-            throw FieldErrors.single("electricity", problem.get());
-        }
+        // Never reveal the Room's baseline meter numbers or date to a student in the error response.
+        billing.lastReading(h.roomId()).ifPresent(last -> {
+            if (h.electricity().compareTo(last.electricity()) < 0) {
+                throw FieldErrors.single("electricity",
+                        "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
+            }
+            if (h.water().compareTo(last.water()) < 0) {
+                throw FieldErrors.single("water",
+                        "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
+            }
+        });
         Instant now = Instant.now(clock);
         jdbc.sql("UPDATE asg_handover SET status = 'SUBMITTED', submitted_at = :now, version = version + 1 WHERE id = :id")
                 .param("now", Timestamp.from(now)).param("id", h.id()).update();

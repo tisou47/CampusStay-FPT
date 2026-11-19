@@ -130,12 +130,17 @@ public class DeskService {
     public record Reading(BigDecimal electricity, BigDecimal water) {
     }
 
+    /** The Room's latest reading and date before check-out, shown to Staff as a reference note. */
+    public record PreviousReading(BigDecimal electricity, BigDecimal water, LocalDate date) {
+    }
+
     public record SettlementView(long held, String periodLabel, long share, long unpaid, long damage, long refund) {
     }
 
     public record CheckOutDetail(String allocationId, String studentCode, String name, String room, String bed,
             String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
-            Reading reading, SettlementView settlement, String refundStatus, List<DamageItem> furniture) {
+            Reading reading, PreviousReading previousReading, SettlementView settlement, String refundStatus,
+            List<DamageItem> furniture) {
     }
 
     /** @param damages per furniture item; when sent, the damage charge is their sum */
@@ -509,9 +514,11 @@ public class DeskService {
             return new DamageItem(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi(), d == null ? 0 : d.amount(),
                     d == null ? null : d.note());
         }).toList();
+        PreviousReading previousReading = billing.lastReading(p.bed().roomId())
+                .map(r -> new PreviousReading(r.electricity(), r.water(), r.date())).orElse(null);
         return new CheckOutDetail(row.allocationId(), row.studentCode(), row.name(), row.room(), row.bed(),
                 row.roomTypeName(), row.roomClassName(), row.reason(), row.status(), row.checkedOutAt(), reading,
-                settlement, refundStatus, furniture);
+                previousReading, settlement, refundStatus, furniture);
     }
 
     @Transactional
@@ -586,8 +593,9 @@ public class DeskService {
 
     // ---------------------------------------------------------------- final meter readings, Room by Room
 
-    /** A Room with leavers waiting: the reading saved on their drafts (null when none yet). */
-    public record RoomReading(String room, int students, BigDecimal electricity, BigDecimal water) {
+    /** A Room with leavers waiting: the reading saved on their drafts (null when none yet) and its previous reading. */
+    public record RoomReading(String room, int students, BigDecimal electricity, BigDecimal water,
+            PreviousReading previousReading) {
     }
 
     public record RoomReadings(List<RoomReading> items) {
@@ -616,8 +624,11 @@ public class DeskService {
         rooms.forEach((room, placed) -> {
             OutRecord saved = placed.stream().map(p -> outRecord(p.alloc().id()).orElse(null))
                     .filter(r -> r != null && r.electricity() != null).findFirst().orElse(null);
+            PreviousReading previous = placed.isEmpty() ? null
+                    : billing.lastReading(placed.getFirst().bed().roomId())
+                            .map(r -> new PreviousReading(r.electricity(), r.water(), r.date())).orElse(null);
             items.add(new RoomReading(room, placed.size(), saved == null ? null : saved.electricity(),
-                    saved == null ? null : saved.water()));
+                    saved == null ? null : saved.water(), previous));
         });
         return new RoomReadings(items);
     }

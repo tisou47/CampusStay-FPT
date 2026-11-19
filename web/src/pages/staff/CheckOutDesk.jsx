@@ -139,8 +139,8 @@ function RoomReadingsModal({ open, onClose, scope }) {
             <tr>
               <Th>Room</Th>
               <Th className="w-24">Leavers</Th>
-              <Th className="w-36">Electricity (kWh)</Th>
-              <Th className="w-36">Water (m³)</Th>
+              <Th className="w-56">Electricity (kWh)</Th>
+              <Th className="w-56">Water (m³)</Th>
             </tr>
           </THead>
           <TBody>
@@ -150,10 +150,30 @@ function RoomReadingsModal({ open, onClose, scope }) {
                 <Td className="font-medium">{r.room}</Td>
                 <Td>{formatNumber(r.students)}</Td>
                 <Td>
-                  <Input aria-label={t('Electricity of {room}', { room: r.room })} value={values[r.room]?.electricity ?? ''} onChange={(e) => set(r.room, { electricity: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                  <div className="flex flex-col gap-1">
+                    <Input aria-label={t('Electricity of {room}', { room: r.room })} value={values[r.room]?.electricity ?? ''} onChange={(e) => set(r.room, { electricity: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                    {r.previousReading && (
+                      <span className="text-xs text-fg-tertiary tabular">
+                        {t('Previous reading: {value} kWh (recorded {date})', {
+                          value: formatNumber(r.previousReading.electricity),
+                          date: formatDate(r.previousReading.date),
+                        })}
+                      </span>
+                    )}
+                  </div>
                 </Td>
                 <Td>
-                  <Input aria-label={t('Water of {room}', { room: r.room })} value={values[r.room]?.water ?? ''} onChange={(e) => set(r.room, { water: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                  <div className="flex flex-col gap-1">
+                    <Input aria-label={t('Water of {room}', { room: r.room })} value={values[r.room]?.water ?? ''} onChange={(e) => set(r.room, { water: e.target.value })} inputMode="decimal" className="text-right tabular" />
+                    {r.previousReading && (
+                      <span className="text-xs text-fg-tertiary tabular">
+                        {t('Previous reading: {value} m³ (recorded {date})', {
+                          value: formatNumber(r.previousReading.water),
+                          date: formatDate(r.previousReading.date),
+                        })}
+                      </span>
+                    )}
+                  </div>
                 </Td>
               </Tr>
             ))}
@@ -255,7 +275,17 @@ function CheckOutPanel({ d }) {
             <p className="text-sm font-semibold text-fg">{t('1. Final meter reading')}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Electricity (kWh)">
+            <Field
+              label="Electricity (kWh)"
+              helper={
+                d.previousReading
+                  ? t('Previous reading: {value} kWh (recorded {date})', {
+                      value: formatNumber(d.previousReading.electricity),
+                      date: formatDate(d.previousReading.date),
+                    })
+                  : undefined
+              }
+            >
               {(id) => (
                 <Input
                   id={id}
@@ -267,7 +297,17 @@ function CheckOutPanel({ d }) {
                 />
               )}
             </Field>
-            <Field label="Water (m³)">
+            <Field
+              label="Water (m³)"
+              helper={
+                d.previousReading
+                  ? t('Previous reading: {value} m³ (recorded {date})', {
+                      value: formatNumber(d.previousReading.water),
+                      date: formatDate(d.previousReading.date),
+                    })
+                  : undefined
+              }
+            >
               {(id) => (
                 <Input
                   id={id}

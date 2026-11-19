@@ -278,4 +278,10 @@ export default {
   "Within the check-in period (until {date})": "Còn trong thời gian nhận phòng (đến {date})",
   "Check-in inventory filed by the student (My Room)": "Sinh viên đã nộp kiểm kê nhận phòng (Phòng của tôi)",
   "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. New residents start their check-in inventory to get the door code; inventories are drafts, matching, waiting for Staff, checked in the Room or closed by their deadline.": "Học kỳ N đã kết thúc: người rời đi đã trả phòng đúng hạn (một người quá hạn), nhân viên đã kiểm tra các phòng người mới sẽ nhận và đổi mã cửa, và đợt nhận phòng học kỳ N+1 đã mở được ba ngày. Sinh viên mới bắt đầu kiểm kê nhận phòng để nhận mã cửa; biên bản ở đủ trạng thái: nháp, khớp, chờ nhân viên, kiểm tại phòng, hoặc đã chốt do quá hạn.",
+  "Previous reading: {value} kWh (recorded {date})": "Chỉ số cũ: {value} kWh (ghi ngày {date})",
+  "Previous reading: {value} m³ (recorded {date})": "Chỉ số cũ: {value} m³ (ghi ngày {date})",
+  "Previous reading: {value} (recorded {date})": "Chỉ số cũ: {value} (ghi ngày {date})",
+  "Previous: {n} ({date})": "Chỉ số cũ: {n} ({date})",
+  "Previous reading: {value} kWh (recorded {date}) · Student: {student}": "Chỉ số cũ: {value} kWh (ghi ngày {date}) · SV: {student}",
+  "Previous reading: {value} m³ (recorded {date}) · Student: {student}": "Chỉ số cũ: {value} m³ (ghi ngày {date}) · SV: {student}",
 }

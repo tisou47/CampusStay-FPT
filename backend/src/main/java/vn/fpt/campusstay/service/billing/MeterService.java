@@ -66,7 +66,7 @@ public class MeterService {
     public record Cut(LocalDate date, BigDecimal value) {
     }
 
-    public record Meter(BigDecimal previous, BigDecimal current, Cut cut) {
+    public record Meter(BigDecimal previous, LocalDate previousDate, BigDecimal current, Cut cut) {
     }
 
     public record ReadingItem(String room, String roomTypeName, String roomClassName, int residents, Meter electricity,
@@ -198,7 +198,7 @@ public class MeterService {
         List<ReadingItem> items = rows.stream().filter(r -> code == null || r.status().equals(code))
                 .sorted(Comparator.comparing(r -> rooms.get(r.roomId()).code()))
                 .map(r -> item(r, rooms.get(r.roomId()), residents.getOrDefault(r.roomId(), 0L).intValue(),
-                        cuts.getOrDefault(r.roomId(), List.of()), names))
+                        cuts.getOrDefault(r.roomId(), List.of()), names, p.start().minusDays(1)))
                 .toList();
         long missing = rows.stream().filter(r -> r.status().equals("MISSING")).count();
         Summary summary = new Summary(rows.size(), rows.size() - missing, missing,
@@ -217,7 +217,7 @@ public class MeterService {
         List<RoomStays.Stay> residents = stays.stays(List.of(r.roomId()), p.from(), p.to());
         UtilityPolicy.Prices prices = utility.prices();
         ReadingItem item = item(r, room, (int) residents.stream().map(RoomStays.Stay::studentId).distinct().count(), cuts,
-                names());
+                names(), p.start().minusDays(1));
         UtilitySplit.Result split = UtilitySplit.split(points(p, r, cuts), residentsOf(residents), prices);
         Map<Long, String> who = users.displayNames(split.shares().stream().map(UtilitySplit.Share::studentId).toList());
         return new RoomReading(item.room(), item.roomTypeName(), item.roomClassName(), item.residents(),
@@ -536,12 +536,12 @@ public class MeterService {
         return new SegmentView(s.from(), s.to(), s.residents(), s.kwh(), s.m3(), s.electricityCost(), s.waterCost());
     }
 
-    private ReadingItem item(Reading r, Room room, int residents, List<CutRow> cuts, Names names) {
+    private ReadingItem item(Reading r, Room room, int residents, List<CutRow> cuts, Names names, LocalDate prevDate) {
         CutRow cut = cuts.isEmpty() ? null : cuts.getLast();
         return new ReadingItem(room.code(), names.types().get(room.typeId()), names.classes().get(room.classId()),
                 residents,
-                new Meter(r.electricityPrev(), r.electricityCurr(), cut == null ? null : new Cut(cut.day(), cut.electricity())),
-                new Meter(r.waterPrev(), r.waterCurr(), cut == null ? null : new Cut(cut.day(), cut.water())),
+                new Meter(r.electricityPrev(), prevDate, r.electricityCurr(), cut == null ? null : new Cut(cut.day(), cut.electricity())),
+                new Meter(r.waterPrev(), prevDate, r.waterCurr(), cut == null ? null : new Cut(cut.day(), cut.water())),
                 STATUSES.get(r.status()));
     }
 
