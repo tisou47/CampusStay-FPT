@@ -85,10 +85,9 @@ WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist c WHERE c.family_key = v.family_ke
 INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
 SELECT c.id, v.label, v.category, v.severity, v.n
 FROM mnt_checklist c
-JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện hoạt động tốt', 'ELECTRICAL', 'MAJOR'),
-             ('DEMO_TURNOVER', 2, 'Vòi nước, vòi sen và bồn cầu hoạt động tốt, không rò rỉ', 'PLUMBING', 'MAJOR'),
-             ('DEMO_TURNOVER', 3, 'Khóa cửa chính và cửa sổ đóng mở chắc chắn', 'OTHER', 'MINOR'),
-             ('CL_FIRE_SAFETY', 1, 'Đầu báo khói và thiết bị báo cháy hoạt động tốt', 'ELECTRICAL', 'CRITICAL'),
+-- "Kiểm tra bàn giao & chuyển kỳ" (DEMO_TURNOVER) has no general items: a pre-arrival inspection records each
+-- furniture item of the Room and the meters (the Room's own checks), the record new residents are compared with.
+JOIN (VALUES ('CL_FIRE_SAFETY', 1, 'Đầu báo khói và thiết bị báo cháy hoạt động tốt', 'ELECTRICAL', 'CRITICAL'),
              ('CL_FIRE_SAFETY', 2, 'Aptomat, ổ cắm và công tắc điện an toàn, không đánh lửa', 'ELECTRICAL', 'MAJOR'),
              ('CL_FIRE_SAFETY', 3, 'Không có thiết bị nấu nướng hoặc vật dễ cháy nổ trái quy định', 'OTHER', 'CRITICAL'),
              ('CL_FIRE_SAFETY', 4, 'Lối thoát hiểm và cửa ban công thông thoáng', 'OTHER', 'MAJOR'),
@@ -172,9 +171,8 @@ FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
 JOIN mnt_checklist_item ci ON ci.checklist_id = ru.checklist_id
 WHERE ir.status = 'INSPECTED';
 
+-- A pre-arrival Room is empty: no "people" check, only its furniture.
 INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition)
-SELECT ir.id, 'PEOPLE', 'PASS', NULL FROM mnt_inspection_room ir WHERE ir.status = 'INSPECTED'
-UNION ALL
 SELECT ir.id, 'FURNITURE:' || i.id, 'PASS', 'GOOD'
 FROM mnt_inspection_room ir JOIN inv_furniture_item i ON i.room_id = ir.room_id AND i.status <> 'DISPOSED'
 WHERE ir.status = 'INSPECTED';
@@ -267,12 +265,8 @@ JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm 
 JOIN mnt_checklist_item ci ON ci.checklist_id = ru.checklist_id
 WHERE ir.status = 'INSPECTED';
 
+-- A pre-arrival Room is empty: no "people" check, only its furniture.
 INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition, note)
-SELECT ir.id, 'PEOPLE', 'PASS', NULL, NULL
-FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
-JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
-WHERE ir.status = 'INSPECTED'
-UNION ALL
 SELECT ir.id, 'FURNITURE:' || i.item_id,
        CASE WHEN i.condition IN ('GOOD', 'WORN') THEN 'PASS' ELSE 'FAIL' END, i.condition,
        CASE i.condition WHEN 'DAMAGED' THEN 'Đã báo sửa trước khi nhận phòng.' WHEN 'WORN' THEN 'Hao mòn bình thường.' END

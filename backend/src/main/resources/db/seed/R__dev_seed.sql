@@ -295,10 +295,9 @@ WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist c WHERE c.family_key = v.family_ke
 INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
 SELECT c.id, v.label, v.category, v.severity, v.n
 FROM mnt_checklist c
-JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện hoạt động tốt', 'ELECTRICAL', 'MAJOR'),
-             ('DEMO_TURNOVER', 2, 'Vòi nước, vòi sen và bồn cầu hoạt động tốt, không rò rỉ', 'PLUMBING', 'MAJOR'),
-             ('DEMO_TURNOVER', 3, 'Khóa cửa chính và cửa sổ đóng mở chắc chắn', 'OTHER', 'MINOR'),
-             ('CL_FIRE_SAFETY', 1, 'Đầu báo khói và thiết bị báo cháy hoạt động tốt', 'ELECTRICAL', 'CRITICAL'),
+-- "Kiểm tra bàn giao & chuyển kỳ" (DEMO_TURNOVER) has no general items: a pre-arrival inspection records each
+-- furniture item of the Room and the meters (the Room's own checks), the record new residents are compared with.
+JOIN (VALUES ('CL_FIRE_SAFETY', 1, 'Đầu báo khói và thiết bị báo cháy hoạt động tốt', 'ELECTRICAL', 'CRITICAL'),
              ('CL_FIRE_SAFETY', 2, 'Aptomat, ổ cắm và công tắc điện an toàn, không đánh lửa', 'ELECTRICAL', 'MAJOR'),
              ('CL_FIRE_SAFETY', 3, 'Không có thiết bị nấu nướng hoặc vật dễ cháy nổ trái quy định', 'OTHER', 'CRITICAL'),
              ('CL_FIRE_SAFETY', 4, 'Lối thoát hiểm và cửa ban công thông thoáng', 'OTHER', 'MAJOR'),
@@ -310,6 +309,15 @@ JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện ho�
              ('CL_HYGIENE_FURNITURE', 3, 'Tường, trần và sàn phòng không ẩm mốc hoặc bong tróc', 'OTHER', 'MINOR'))
      v (family_key, n, label, category, severity) ON v.family_key = c.family_key
 WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);
+
+-- Rooms already prepared before the turnover checklist lost its general items: they go where no result names them.
+DELETE FROM mnt_checklist_item i
+USING mnt_checklist c
+WHERE c.id = i.checklist_id AND c.family_key = 'DEMO_TURNOVER'
+  AND i.label IN ('Đèn chiếu sáng và ổ cắm điện hoạt động tốt',
+                  'Vòi nước, vòi sen và bồn cầu hoạt động tốt, không rò rỉ',
+                  'Khóa cửa chính và cửa sổ đóng mở chắc chắn')
+  AND NOT EXISTS (SELECT 1 FROM mnt_inspection_result r WHERE r.item_id = i.id);
 
 -- More published checklists, so a schedule has real choices: a full pre-arrival check (the record new residents'
 -- inventories are compared with), security and door codes, bathrooms, and the network. Each item is added once.

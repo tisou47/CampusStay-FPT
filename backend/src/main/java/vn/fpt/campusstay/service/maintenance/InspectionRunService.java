@@ -266,7 +266,7 @@ public class InspectionRunService {
                     info == null ? null : classes.get(info.roomClassId()),
                     status(r, stored.stream().anyMatch(s -> !s.result().equals("NOT_CHECKED"))
                             || answered.stream().anyMatch(c -> !c.result().equals("NOT_CHECKED"))),
-                    all, checks(r.roomId()), r.meters(), preArrival, previousMeters,
+                    all, checks(r.roomId(), preArrival), r.meters(), preArrival, previousMeters,
                     photos.getOrDefault(r.id(), List.of()), inspectedAt.get(r.id()));
         }).toList();
         return new RoomsPage(items, rows.size());
@@ -297,7 +297,7 @@ public class InspectionRunService {
         checklists.items(List.of(run.checklistId())).getOrDefault(run.checklistId(), List.of())
                 .forEach(i -> items.put(i.id(), i));
         Map<String, RoomCheck> checks = new LinkedHashMap<>();
-        checks(room.roomId()).forEach(c -> checks.put(c.id(), c));
+        checks(room.roomId(), preArrival(run)).forEach(c -> checks.put(c.id(), c));
         Map<Long, Choice> chosen = new LinkedHashMap<>();
         Map<String, Choice> chosenChecks = new LinkedHashMap<>();
         for (Result r : input == null ? List.<Result>of() : input) {
@@ -498,7 +498,7 @@ public class InspectionRunService {
         String key = null;
         if (itemId != null && !itemId.isBlank()) {
             String value = itemId.trim();
-            boolean known = checks(room.roomId()).stream()
+            boolean known = checks(room.roomId(), true).stream()
                     .anyMatch(c -> c.kind().equals("furniture") && c.id().equals(value));
             if (!known) {
                 throw FieldErrors.single("itemId", "Choose a furniture item of this Room.");
@@ -605,12 +605,17 @@ public class InspectionRunService {
                 !run.status().equals("SUBMITTED") && run.dueAt().isBefore(Instant.now(clock)));
     }
 
-    /** The Room's own checks: the residents it has now, and its furniture items. */
-    private List<RoomCheck> checks(long roomId) {
+    /**
+     * The Room's own checks: the residents it has now (not in a pre-arrival run: the Room is empty until its new
+     * residents arrive, so there is nobody to count), and its furniture items.
+     */
+    private List<RoomCheck> checks(long roomId, boolean preArrival) {
         List<RoomCheck> checks = new ArrayList<>();
-        int residents = terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
-                .map(t -> residences.residents(roomId, t.id())).orElse(0);
-        checks.add(new RoomCheck("people", "people", residents, null, null, null, null));
+        if (!preArrival) {
+            int residents = terms.publishedTerms().stream().filter(TermSummary::current).findFirst()
+                    .map(t -> residences.residents(roomId, t.id())).orElse(0);
+            checks.add(new RoomCheck("people", "people", residents, null, null, null, null));
+        }
         inventory.furnitureLines(roomId).forEach(f -> checks.add(new RoomCheck("furniture-" + f.id(), "furniture", null,
                 f.assetCode(), f.type(), f.typeVi(), f.personal() ? f.bedLabel() : null)));
         return checks;
