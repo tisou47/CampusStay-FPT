@@ -36,7 +36,7 @@ export function ShiftConfirmHost() {
     <Modal
       open
       onClose={() => answer(false)}
-      icon={Clock}
+      icon={<Clock size={22} aria-hidden="true" className="mt-0.5 shrink-0 text-warning-fg" />}
       width={520}
       title={ask.outOfShift && ask.roleMismatch ? 'Outside your shift and your work' : ask.outOfShift ? 'Outside your shift' : 'Not your assigned work'}
       footer={
