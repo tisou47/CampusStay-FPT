@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Send, Users, X } from 'lucide-react'
+import { ArrowRightLeft, CalendarDays, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Send, Users, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -105,9 +105,9 @@ function ShiftEditor({ shifts, onChange }) {
   const span = (s) => `${s.start}–${s.end}`
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="mb-1 text-base font-medium text-fg">{t('Weekly shifts')}</legend>
+      <legend className="mb-1 text-base font-medium text-fg">{t('Default weekly shifts')}</legend>
       <p className="text-sm text-fg-secondary">
-        {t('Outside these hours, every change this person makes asks them to confirm and is marked in the staff activity log. No shift = always outside.')}
+        {t('Used by every week you do not plan on Work schedule. Outside the shifts of a week, every change this person makes asks them to confirm and is marked in the staff activity log.')}
       </p>
       <div className="flex flex-wrap items-center gap-2 rounded-lg bg-subtle px-3 py-2">
         <span className="text-sm font-medium text-fg">{t('Mon–Fri:')}</span>
@@ -399,9 +399,14 @@ function WeekHandover({ block }) {
       type={pending ? 'warning' : 'success'}
       title={pending ? t('Next week ({week}): schedule not sent yet', { week }) : t('Next week ({week}): schedule sent', { week })}
       action={
-        <Button variant={pending ? 'primary' : 'secondary'} icon={Send} onClick={() => send.run()} disabled={send.pending}>
-          {pending ? 'Send next week’s schedule' : 'Send again'}
-        </Button>
+        <div className="flex gap-2">
+          <Button icon={CalendarDays} to="/manager/staff-schedule">
+            Plan next week
+          </Button>
+          <Button variant={pending ? 'primary' : 'secondary'} icon={Send} onClick={() => send.run()} disabled={send.pending}>
+            {pending ? 'Send next week’s schedule' : 'Send again'}
+          </Button>
+        </div>
       }
     >
       {pending
@@ -535,10 +540,10 @@ export default function BlockStaff() {
               <Td>
                 {p.role !== 'Staff' ? (
                   <span className="text-fg-tertiary">—</span>
-                ) : p.shifts?.length ? (
+                ) : p.weekShifts?.length ? (
                   <div className="flex flex-col items-start gap-0.5 py-1">
                     {p.inShift ? <Tag tone="success">In shift</Tag> : <Tag tone="warning">Outside shift</Tag>}
-                    <span className="text-sm text-fg-secondary">{shiftSummary(p.shifts)}</span>
+                    <span className="text-sm text-fg-secondary">{shiftSummary(p.weekShifts)}</span>
                   </div>
                 ) : (
                   <Tag tone="warning">No shift set</Tag>

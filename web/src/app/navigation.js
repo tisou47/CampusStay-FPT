@@ -241,6 +241,7 @@ export const backOffice = {
             to: '/manager/staff',
             tabs: [
               { label: 'Staff and workload', to: '/manager/staff' },
+              { label: 'Work schedule', to: '/manager/staff-schedule' },
               { label: 'Staff accounts', to: '/manager/staff-accounts' },
               { label: 'Staff activity', to: '/manager/staff-activity' },
             ],

@@ -384,6 +384,14 @@ export const api = {
     next: g('/week-schedule'),
     /** { block? } → { start, notified, blocks }: tells every Staff member of the Blocks their shifts. */
     send: (body) => http.post('/week-schedule/send', body),
+    /** { block?, week? (any day; default next week) } → { start, end, editable, nextWeek, staff: [{ id, name, title, blocks, shifts, planned }], sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }. */
+    plan: g('/week-schedule/plan'),
+    /** Plans one Staff member's week: { shifts } → { shifts }. */
+    setWeek: (staffId, week, body) => http.put(`/week-schedule/plan/${staffId}`, body, { query: { week } }),
+    /** The week follows the default weekly shifts again. */
+    resetWeek: (staffId, week) => http.delete(`/week-schedule/plan/${staffId}`, { query: { week } }),
+    /** Staff: { thisWeek: { start, end, sent, shifts }, nextWeek: { start, end, sent, shifts|null }, inShift, shiftToday }. */
+    mine: g('/week-schedule/me'),
   },
   blockStaff: {
     /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */

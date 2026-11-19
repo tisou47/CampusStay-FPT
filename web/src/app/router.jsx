@@ -88,6 +88,7 @@ const StudentHub = () => import('@/pages/manager/StudentHub')
 const StudentImport = () => import('@/pages/manager/StudentImport')
 const StaffAccounts = () => import('@/pages/manager/StaffAccounts')
 const StaffActivity = () => import('@/pages/manager/StaffActivity')
+const StaffSchedule = () => import('@/pages/manager/StaffSchedule')
 const TermDashboard = () => import('@/pages/manager/TermDashboard')
 const PaymentClaims = () => import('@/pages/manager/PaymentClaims')
 const Terminations = () => import('@/pages/manager/Terminations')
@@ -287,6 +288,7 @@ export const router = createBrowserRouter([
         { path: 'student-import', ...page(StudentImport) },
         { path: 'staff-accounts', ...page(StaffAccounts) },
         { path: 'staff-activity', ...page(StaffActivity) },
+        { path: 'staff-schedule', ...page(StaffSchedule) },
         { path: 'term-requests', ...page(TermRequests) },
         { path: 'terms', ...page(TermDashboard) },
         { path: 'terms/:id', ...page(TermDashboard) },
