@@ -76,7 +76,6 @@ export default function MySchedule() {
     <>
       <PageHeader
         title="My schedule"
-        description="The shifts your Manager planned for you this week and next week, and the work they gave you. Outside your shifts or this work, a change asks you to confirm and is marked for your Manager."
         actions={
           <Button icon={ClipboardList} to="/staff">
             My work today
