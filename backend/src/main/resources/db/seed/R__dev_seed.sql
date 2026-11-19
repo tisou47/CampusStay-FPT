@@ -89,6 +89,12 @@ FROM cfg_room_class c JOIN inv_furniture_type t ON
   OR (c.name = 'Premium' AND t.code IN ('AC', 'WH', 'FRG'))
 ON CONFLICT DO NOTHING;
 
+-- Real price of one new item (VND, V75), sample values; a price the Admin has set is kept.
+UPDATE inv_furniture_type t SET unit_price = v.price, updated_at = now()
+FROM (VALUES ('BED', 2000000), ('WRD', 2500000), ('DESK', 1500000), ('FAN', 800000), ('AC', 8000000),
+             ('WH', 3500000), ('FRG', 5000000)) AS v(code, price)
+WHERE t.code = v.code AND t.unit_price IS NULL;
+
 -- Per Bed a bed, a wardrobe and a desk (asset code <type>-<Room><Bed>, BED-A101A); per Room the items of its
 -- Room Class (<type>-<Room>-<n>, AC-A501-1); in every Block store 4 fans, 2 air conditioners, 2 water heaters and
 -- 2 fridges (<type>-<Block>STORE-<n>).
