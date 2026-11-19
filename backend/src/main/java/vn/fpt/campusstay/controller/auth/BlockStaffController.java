@@ -21,17 +21,13 @@ import vn.fpt.campusstay.service.auth.BlockStaffService;
 @RestController
 class BlockStaffController {
 
-    /** {@code note}: why the Manager changes the person's duty (required when {@code onDuty} changes). */
-    record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles, Boolean onDuty,
-            @Size(max = 300, message = "Keep the note under 300 characters.") String note) {
+    /** What the person handles. Duty is not set by hand: it follows sign-in and sign-out. */
+    record UpdateRequest(@Size(max = 20) List<@Size(max = 100) String> handles) {
     }
 
     /** Items of the person to move ({ type, id }), the receiver and why. */
     record ReassignRequest(@Size(max = 100) List<BlockStaffService.WorkRef> items, Object toStaffId,
             @Size(max = 300, message = "Keep the note under 300 characters.") String note) {
-    }
-
-    record DutyRequest(Boolean onDuty) {
     }
 
     /** {@code block} may be left out when the Manager has one Block. */
@@ -56,16 +52,10 @@ class BlockStaffController {
         return staff.me();
     }
 
-    /** Starts or ends the signed-in person's shift: { onDuty } (A-60). */
-    @PutMapping("/block-staff/me/duty")
-    BlockStaffService.Me setDuty(@RequestBody DutyRequest body) {
-        return staff.setDuty(body.onDuty());
-    }
-
     @PutMapping("/block-staff/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void update(@PathVariable String id, @Valid @RequestBody UpdateRequest body) {
-        staff.update(id, body.handles(), body.onDuty(), body.note());
+        staff.update(id, body.handles());
     }
 
     /** The person's open work, overdue first. */

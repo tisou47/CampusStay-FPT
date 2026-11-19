@@ -219,53 +219,38 @@ public class BlockStaffService {
     // ---------------------------------------------------------------- handles and duty
 
     /**
-     * Changes only what is sent: {@code handles} (labels or codes) and {@code onDuty}; changing someone's duty needs a
-     * {@code note} saying why, kept in the Audit Log.
+     * Changes what the person handles ({@code handles}: labels or codes). Duty is not set here: it follows the
+     * person's sign-in and sign-out ({@link DutyPresence}).
      */
     @Transactional
-    public void update(String id, List<String> newHandles, Boolean onDuty, String note) {
+    public void update(String id, List<String> newHandles) {
         currentUser.require(Permission.MANAGE_BLOCK);
         Person p = person(id, true);
+        if (newHandles == null) {
+            return;
+        }
         Map<String, String> labels = handles.labels();
-        List<String> codes = p.handles();
-        if (newHandles != null) {
-            List<String> chosen = new ArrayList<>();
-            for (String h : newHandles) {
-                String code = h == null ? null : labels.entrySet().stream()
-                        .filter(e -> e.getKey().equalsIgnoreCase(h.trim()) || e.getValue().equalsIgnoreCase(h.trim()))
-                        .map(Map.Entry::getKey).findFirst().orElse(null);
-                if (code == null) {
-                    throw FieldErrors.single("handles", "Choose what the person handles from the list.");
-                }
-                if (!chosen.contains(code)) {
-                    chosen.add(code);
-                }
+        List<String> chosen = new ArrayList<>();
+        for (String h : newHandles) {
+            String code = h == null ? null : labels.entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(h.trim()) || e.getValue().equalsIgnoreCase(h.trim()))
+                    .map(Map.Entry::getKey).findFirst().orElse(null);
+            if (code == null) {
+                throw FieldErrors.single("handles", "Choose what the person handles from the list.");
             }
-            // Keep the list's order.
-            codes = labels.keySet().stream().filter(chosen::contains).toList();
+            if (!chosen.contains(code)) {
+                chosen.add(code);
+            }
         }
-        boolean duty = onDuty != null ? onDuty : p.onDuty();
-        String why = note == null || note.isBlank() ? null : note.trim();
-        if (duty != p.onDuty() && why == null) {
-            throw FieldErrors.single("note", "Say why you change this person's duty.");
-        }
-        if (why != null && why.length() > MAX_NOTE) {
-            throw FieldErrors.single("note", "Keep the note under 300 characters.");
-        }
+        // Keep the list's order.
+        List<String> codes = labels.keySet().stream().filter(chosen::contains).toList();
         jdbc.sql("""
-                INSERT INTO auth_staff_profile (user_id, handles, on_duty) VALUES (:id, :handles, :duty)
-                ON CONFLICT (user_id) DO UPDATE SET handles = EXCLUDED.handles, on_duty = EXCLUDED.on_duty
-                """).param("id", p.id()).param("handles", codes.toArray(String[]::new)).param("duty", duty).update();
-        Map<String, Object> change = new LinkedHashMap<>();
+                INSERT INTO auth_staff_profile (user_id, handles, on_duty) VALUES (:id, :handles, FALSE)
+                ON CONFLICT (user_id) DO UPDATE SET handles = EXCLUDED.handles
+                """).param("id", p.id()).param("handles", codes.toArray(String[]::new)).update();
         if (!codes.equals(p.handles())) {
-            change.put("handles", Arrays.asList(labelList(p.handles(), labels), labelList(codes, labels)));
-        }
-        if (duty != p.onDuty()) {
-            change.put("onDuty", Arrays.asList(p.onDuty(), duty));
-            change.put("note", why);
-        }
-        if (!change.isEmpty()) {
-            audit.record("STAFF_PROFILE_UPDATED", AuditLog.Tone.INFO, "User", p.id(), p.name(), change);
+            audit.record("STAFF_PROFILE_UPDATED", AuditLog.Tone.INFO, "User", p.id(), p.name(),
+                    Map.of("handles", Arrays.asList(labelList(p.handles(), labels), labelList(codes, labels))));
         }
     }
 
@@ -274,28 +259,6 @@ public class BlockStaffService {
     public Me me() {
         AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
         return me(self(user.userId(), false));
-    }
-
-    /**
-     * Starts or ends the signed-in person's shift (A-60). Routing gives new requests to people on duty first, so the
-     * person who is at work says so; a Manager can still change it on Block staff.
-     */
-    @Transactional
-    public Me setDuty(Boolean onDuty) {
-        if (onDuty == null) {
-            throw FieldErrors.single("onDuty", "Say whether you are on duty.");
-        }
-        AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
-        Person p = self(user.userId(), true);
-        jdbc.sql("""
-                INSERT INTO auth_staff_profile (user_id, handles, on_duty) VALUES (:id, :handles, :duty)
-                ON CONFLICT (user_id) DO UPDATE SET on_duty = EXCLUDED.on_duty
-                """).param("id", p.id()).param("handles", p.handles().toArray(String[]::new)).param("duty", onDuty).update();
-        if (onDuty != p.onDuty()) {
-            audit.record("STAFF_DUTY_CHANGED", AuditLog.Tone.INFO, "User", p.id(), p.name(),
-                    Map.of("onDuty", Arrays.asList(p.onDuty(), onDuty)));
-        }
-        return me(new Person(p.id(), p.name(), p.role(), p.title(), p.handles(), onDuty));
     }
 
     private Me me(Person p) {

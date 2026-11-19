@@ -50,6 +50,9 @@ class StaffWorkloadIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    vn.fpt.campusstay.service.auth.DutyPresence presence;
+
     StayFlow stay;
 
     @BeforeEach
@@ -126,27 +129,41 @@ class StaffWorkloadIT {
 
     // ---------------------------------------------------------------- tests
 
-    /** TC-AUTH-061: a Manager changing someone's duty must say why; the reason is kept in the Audit Log. */
+    /**
+     * TC-AUTH-061: duty follows presence: signing in puts a person on duty, going idle or signing out takes them off,
+     * using the app again puts them back; nobody sets it by hand.
+     */
     @Test
-    void changingSomeonesDutyNeedsANote() throws Exception {
+    void dutyFollowsSignInAndSignOut() throws Exception {
         long id = staff("Duty Person", "DESK");
-        String manager = bearer(mvc, MANAGER_A);
-        mvc.perform(put("/block-staff/" + id).header(HttpHeaders.AUTHORIZATION, manager)
+        jdbc.sql("UPDATE auth_staff_profile SET on_duty = FALSE WHERE user_id = :id").param("id", id).update();
+        String email = jdbc.sql("SELECT email FROM auth_user WHERE id = :id").param("id", id).query(String.class).single();
+        String token = bearer(mvc, email);
+        assertThat(onDuty(id)).isTrue();
+
+        jdbc.sql("UPDATE auth_session SET last_used_at = now() - interval '2 hours' WHERE user_id = :id")
+                .param("id", id).update();
+        presence.sweep();
+        assertThat(onDuty(id)).isFalse();
+        mvc.perform(get("/block-staff/me").header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+        assertThat(onDuty(id)).isTrue();
+
+        // Nobody switches duty by hand: the old endpoint is gone and a Manager's onDuty is ignored.
+        mvc.perform(put("/block-staff/me/duty").header(HttpHeaders.AUTHORIZATION, token)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"onDuty\":false}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.note").exists());
-        mvc.perform(put("/block-staff/" + id).header(HttpHeaders.AUTHORIZATION, manager)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"onDuty\":false,\"note\":\"Sick leave today\"}"))
+                .andExpect(status().is4xxClientError());
+        mvc.perform(put("/block-staff/" + id).header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"onDuty\":false}"))
                 .andExpect(status().isNoContent());
-        assertThat(jdbc.sql("SELECT on_duty FROM auth_staff_profile WHERE user_id = :id").param("id", id)
-                .query(Boolean.class).single()).isFalse();
-        assertThat(jdbc.sql("""
-                SELECT change::text FROM shared_audit_log WHERE action = 'STAFF_PROFILE_UPDATED' AND object_id = :id
-                """).param("id", String.valueOf(id)).query(String.class).single()).contains("Sick leave today");
-        // Handles alone need no note.
-        mvc.perform(put("/block-staff/" + id).header(HttpHeaders.AUTHORIZATION, manager)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"handles\":[\"Payments\"]}"))
-                .andExpect(status().isNoContent());
+        assertThat(onDuty(id)).isTrue();
+
+        mvc.perform(post("/auth/sign-out").header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isNoContent());
+        assertThat(onDuty(id)).isFalse();
+    }
+
+    private boolean onDuty(long id) {
+        return jdbc.sql("SELECT on_duty FROM auth_staff_profile WHERE user_id = :id").param("id", id)
+                .query(Boolean.class).single();
     }
 
     /** TC-AUTH-062: open work is split by kind, a Maintenance Request past its SLA counts as overdue. */

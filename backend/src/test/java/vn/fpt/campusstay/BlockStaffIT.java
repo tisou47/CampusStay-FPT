@@ -111,35 +111,32 @@ class BlockStaffIT {
                 .andExpect(jsonPath("$.items[*].name", hasItem("Do Ngoc Lan")));
     }
 
-    /** TC-AUTH-020: a Manager sets what a Staff member of any Block handles and their duty (ADR-19). */
+    /** TC-AUTH-020: a Manager sets what a Staff member of any Block handles (ADR-19); duty is not set by hand. */
     @Test
     void updatesHandlesAndDuty() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
         long ab = stay.userId(STAFF_AB);
-        update(manager, ab, "{\"handles\":[\"Payments\",\"Meter readings\"],\"onDuty\":false,\"note\":\"Leave\"}")
-                .andExpect(status().isNoContent());
+        update(manager, ab, "{\"handles\":[\"Payments\",\"Meter readings\"]}").andExpect(status().isNoContent());
         list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
-                "Meter readings")))
-                .andExpect(jsonPath(person("Huynh Gia Bao") + ".onDuty").value(hasItem(false)));
-        update(manager, ab, "{\"onDuty\":true,\"note\":\"Back\"}").andExpect(status().isNoContent());
+                "Meter readings")));
+        update(manager, ab, "{}").andExpect(status().isNoContent());
         list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
-                "Meter readings")))
-                .andExpect(jsonPath(person("Huynh Gia Bao") + ".onDuty").value(hasItem(true)));
+                "Meter readings")));
         mvc.perform(get("/admin/audit-log").param("action", "Staff profile updated")
                 .header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
-                .andExpect(jsonPath("$.items", hasSize(2)));
+                .andExpect(jsonPath("$.items", hasSize(1)));
 
         update(manager, ab, "{\"handles\":[\"Cooking\"]}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.handles").exists());
-        update(manager, stay.userId(STAFF_B1), "{\"onDuty\":true}").andExpect(status().isNoContent());
-        update(bearer(mvc, MANAGER_B), stay.userId(STAFF_A), "{\"onDuty\":true}").andExpect(status().isNoContent());
-        update(manager, stay.userId(TestAuth.MANAGER_B), "{\"onDuty\":true}").andExpect(status().isNotFound());
-        update(bearer(mvc, STAFF_A), ab, "{\"onDuty\":false}").andExpect(status().isForbidden());
+        update(manager, stay.userId(STAFF_B1), "{\"handles\":[\"Desk\"]}").andExpect(status().isNoContent());
+        update(bearer(mvc, MANAGER_B), stay.userId(STAFF_A), "{}").andExpect(status().isNoContent());
+        update(manager, stay.userId(TestAuth.MANAGER_B), "{}").andExpect(status().isNotFound());
+        update(bearer(mvc, STAFF_A), ab, "{}").andExpect(status().isForbidden());
     }
 
     /**
-     * TC-AUTH-057: a Staff member reads their own duty, request types and workload, and starts or ends their shift
-     * (A-60); the change is audited, and students may not use it.
+     * TC-AUTH-057: a Staff member reads their own duty, request types and workload (A-60); signing in put them on
+     * duty, and students may not read it.
      */
     @Test
     void staffStartAndEndTheirShift() throws Exception {
@@ -151,19 +148,9 @@ class BlockStaffIT {
                 .andExpect(jsonPath("$.blocks[*]").value(contains("A")))
                 .andExpect(jsonPath("$.handles", hasItem("Maintenance")))
                 .andExpect(jsonPath("$.open").isNumber());
-        duty(staff, "{\"onDuty\":false}").andExpect(status().isOk()).andExpect(jsonPath("$.onDuty").value(false));
-        list(bearer(mvc, MANAGER_A)).andExpect(jsonPath(person("Vo Thanh Tung") + ".onDuty").value(hasItem(false)));
-        duty(staff, "{}").andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.onDuty").exists());
-        duty(staff, "{\"onDuty\":true}").andExpect(status().isOk()).andExpect(jsonPath("$.onDuty").value(true));
-        mvc.perform(get("/admin/audit-log").param("action", "Staff duty changed")
-                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
-                .andExpect(jsonPath("$.items", hasSize(2)));
-        duty(bearer(mvc, StayFlow.student(2)), "{\"onDuty\":true}").andExpect(status().isForbidden());
-    }
-
-    private ResultActions duty(String auth, String body) throws Exception {
-        return mvc.perform(put("/block-staff/me/duty").header(HttpHeaders.AUTHORIZATION, auth)
-                .contentType(MediaType.APPLICATION_JSON).content(body));
+        list(bearer(mvc, MANAGER_A)).andExpect(jsonPath(person("Vo Thanh Tung") + ".onDuty").value(hasItem(true)));
+        mvc.perform(get("/block-staff/me").header(HttpHeaders.AUTHORIZATION, bearer(mvc, StayFlow.student(2))))
+                .andExpect(status().isForbidden());
     }
 
     /** TC-AUTH-021: the Manager asks Admin for a new account in the Block; one waiting request per email. */
