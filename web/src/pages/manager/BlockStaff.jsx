@@ -8,7 +8,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
-import { Checkbox, Switch } from '@/components/ui/Choice'
+import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar } from '@/components/ui/Display'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
@@ -23,7 +23,7 @@ import { t, tr } from '@/i18n'
 //   Inspection }, overdue, oldestOpenAt, resolved7d, onDuty, overloaded }],
 //   summary: { total, shared, averageOpen, onDuty, deskOnDuty, open, overdue, overloaded, maxOpen },
 //   queue: [{ type, label, count, link }], handleOptions, roleOptions }
-// PUT /block-staff/:id { handles, onDuty, note } (note required when onDuty changes).
+// PUT /block-staff/:id { handles }. Duty follows sign-in and sign-out (nobody sets it by hand).
 // GET /block-staff/:id/work → { items, total } · POST /block-staff/:id/work/reassign { items, toStaffId, note } → { moved }.
 // New accounts and their Blocks: Staff accounts (SCR-AUTH-16).
 
@@ -39,20 +39,14 @@ function oldest(at) {
 function EditModal({ person, handleOptions, onClose }) {
   const { notify } = useToast()
   const [handles, setHandles] = useState(new Set(person.handles))
-  const [onDuty, setOnDuty] = useState(person.onDuty)
-  const [note, setNote] = useState('')
-  const dutyChanged = onDuty !== person.onDuty
-  const save = useMutation(
-    () => api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)), onDuty, note: dutyChanged ? note.trim() : undefined }),
-    {
-      invalidates: ['block-staff', 'routing'],
-      onSuccess: () => {
-        notify({ title: t('{name} updated', { name: person.name }), message: 'Routing uses the new request types from now on.' })
-        onClose()
-      },
-      onError: () => {},
+  const save = useMutation(() => api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)) }), {
+    invalidates: ['block-staff', 'routing'],
+    onSuccess: () => {
+      notify({ title: t('{name} updated', { name: person.name }), message: 'Routing uses the new request types from now on.' })
+      onClose()
     },
-  )
+    onError: () => {},
+  })
   return (
     <Modal
       open
@@ -63,13 +57,13 @@ function EditModal({ person, handleOptions, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => save.run()} disabled={save.pending || (dutyChanged && !note.trim())}>
+          <Button variant="primary" onClick={() => save.run()} disabled={save.pending}>
             Save
           </Button>
         </>
       }
     >
-      {save.error && !save.error.fields?.note && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
+      {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-base font-medium text-fg">{t('Handles')}</legend>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -90,12 +84,9 @@ function EditModal({ person, handleOptions, onClose }) {
           ))}
         </div>
       </fieldset>
-      <Switch label="On duty now" checked={onDuty} onChange={setOnDuty} />
-      {dutyChanged && (
-        <Field label="Why do you change their duty?" required error={save.error?.fields?.note} helper="Kept in the Audit Log.">
-          {(id) => <Textarea id={id} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />}
-        </Field>
-      )}
+      <p className="text-sm text-fg-secondary">
+        {t(person.onDuty ? 'On duty now' : 'Off duty now')} · {t('Duty follows sign-in: signing in starts the shift, signing out ends it.')}
+      </p>
     </Modal>
   )
 }
@@ -229,7 +220,7 @@ export default function BlockStaff() {
     <>
       <PageHeader
         title={block ? t('Staff and workload · Block {code}', { code: block }) : 'Staff and workload'}
-        description="Staff of the blocks in your scope, the work each person holds and who is on duty. Open a person's work to move it to someone else. Staff start and end their own shift from the top bar; you can change it here."
+        description="Staff of the blocks in your scope, the work each person holds and who is on duty. Open a person's work to move it to someone else. Duty follows sign-in: staff are on duty while signed in and go off when they sign out or stop using the app for a while."
         actions={
           <>
             <Button icon={Route} to="/manager/routing-rules">
@@ -281,21 +272,21 @@ export default function BlockStaff() {
           )}
         </KpiTile>
       </div>
-      <Table fill>
+      <Table fill className="min-h-[420px] shrink-0">
         <THead>
           <tr>
-            <Th>Staff</Th>
-            <Th className="w-64">Handles</Th>
+            <Th className="sticky left-0 z-20 min-w-60 bg-subtle">Staff</Th>
+            <Th className="min-w-56">Handles</Th>
             {KINDS.map((k) => (
-              <Th key={k} className="w-28 text-right">
+              <Th key={k} className="w-24 whitespace-nowrap text-right">
                 {k}
               </Th>
             ))}
-            <Th className="w-24 text-right">Overdue</Th>
-            <Th className="w-24 text-right">Oldest</Th>
-            <Th className="w-32 text-right">Resolved (7 days)</Th>
-            <Th className="w-24">Duty</Th>
-            <Th className="w-36">
+            <Th className="w-20 whitespace-nowrap text-right">Overdue</Th>
+            <Th className="w-20 whitespace-nowrap text-right">Oldest</Th>
+            <Th className="w-28 whitespace-nowrap text-right">Resolved (7 days)</Th>
+            <Th className="w-28 whitespace-nowrap">Duty</Th>
+            <Th className="w-40">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
@@ -303,9 +294,9 @@ export default function BlockStaff() {
         <TBody>
           <TableStatus query={query} colSpan={11} emptyIcon={Users} emptyTitle="No staff in these blocks" />
           {staff.map((p) => (
-            <Tr key={p.id} className="[&>td]:h-14">
-              <Td>
-                <div className="flex items-center gap-2.5">
+            <Tr key={p.id} className="[&>td]:min-h-14">
+              <Td className="sticky left-0 z-[1] bg-surface">
+                <div className="flex min-w-0 items-center gap-2.5">
                   <Avatar name={p.name} />
                   <button type="button" onClick={() => setViewing(p)} className="min-w-0 text-left hover:underline">
                     <TwoLine primary={p.name} secondary={`${tr(p.title)} · ${t('Blocks {codes}', { codes: p.blocks.join(', ') })}`} />
@@ -313,7 +304,17 @@ export default function BlockStaff() {
                   {p.overloaded && <Tag tone="warning">Overloaded</Tag>}
                 </div>
               </Td>
-              <Td>{p.handles.map((h) => tr(h)).join(', ') || '—'}</Td>
+              <Td>
+                {p.handles.length ? (
+                  <div className="flex max-w-72 flex-wrap gap-1 py-1">
+                    {p.handles.map((h) => (
+                      <Tag key={h}>{tr(h)}</Tag>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-fg-tertiary">{t('Nothing yet')}</span>
+                )}
+              </Td>
               {KINDS.map((k) => (
                 <Td key={k} className="text-right tabular">
                   {p.openByType?.[k] ?? 0}
@@ -322,9 +323,9 @@ export default function BlockStaff() {
               <Td className="text-right tabular">{p.overdue > 0 ? <Tag tone="error">{String(p.overdue)}</Tag> : 0}</Td>
               <Td className={p.oldestOpenAt ? 'text-right tabular' : 'text-right text-fg-tertiary'}>{oldest(p.oldestOpenAt)}</Td>
               <Td className="text-right tabular">{p.resolved7d ?? '—'}</Td>
-              <Td>{p.onDuty ? <Tag tone="success">On duty</Tag> : <Tag>Off</Tag>}</Td>
+              <Td className="whitespace-nowrap">{p.onDuty ? <Tag tone="success">On duty</Tag> : <Tag>Off</Tag>}</Td>
               <Td>
-                <div className="flex gap-1">
+                <div className="flex gap-1 whitespace-nowrap">
                   <Button variant="text" icon={ClipboardList} onClick={() => setViewing(p)}>
                     Work
                   </Button>
