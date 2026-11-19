@@ -126,6 +126,37 @@ $env:JAVA_TOOL_OPTIONS = "-Dsun.nio.ch.PipeImpl.noUnixDomainSockets=true -Djdk.n
 | 3.11 | Lần khác: tick **"Sinh viên không đồng ý: Manager quyết định"** cho 1 món | Món đó chưa tính; `manager01` › Quyết định › **Tiền đền khi trả phòng** thấy món, Giữ/Bỏ (bắt buộc lý do) | [ ] |
 | 3.12 | Món bàn học ở 2.18 (hỏng có từ trước) khi trả phòng | Tiền = 0, ghi "có từ trước" | [ ] |
 
+## 3b. Giai đoạn D "Tuần nhận phòng" (dữ liệu mẫu theo đúng timeline)
+
+Nạp **giai đoạn D** ở Admin › Hệ thống › Dữ liệu demo. Timeline của mọi giai đoạn tuân theo luật của trình tạo học kỳ:
+
+```
+Kỳ N:   nhận phòng n_start … n_start+6 ─ kết thúc n_end ─ hạn trả phòng n_end+1
+        Staff kiểm tra phòng trước khi vào ở: n_end+1 … n_end+2 (gửi kết quả trước ngày mở nhận phòng)
+Kỳ N+1: mở nhận phòng n_end+3 (= ngày bắt đầu ở) … n_end+9
+D = ngày thứ 4 của đợt nhận phòng kỳ N+1 (hạn nộp biên bản 48 giờ nên đã có biên bản quá hạn)
+```
+
+Mỗi Block có một đợt "Pre-arrival check Block X (demo)" đã gửi; khoảng 300 sinh viên mới ở đủ trạng thái (≈40 % đã chốt khớp, 15 % nháp, 10 % lệch nhỏ, 5 % lệch lớn, 5 % chờ xuống phòng, 15 % sẵn sàng, 10 % quá hạn). Tài khoản D1–D9 hiện ở cột tài khoản của D17–D20 trên trang Dữ liệu demo (Block A, mật khẩu `123`). Staff chọn học kỳ **kỳ N+1** ở thanh trên cùng để xem biên bản, chọn **kỳ N** để xem người trả phòng quá hạn.
+
+| # | Ai | Bước | Kết quả mong đợi | ✓ |
+|---|---|---|---|---|
+| D.1 | `staffa01` | Kiểm tra phòng › đợt Block A | Đã gửi; một phòng "Không vào được" (phòng của D9); mỗi phòng có tình trạng và công tơ | [ ] |
+| D.2 | `staffa01` | Mã cửa | Phòng của D8 còn việc đổi mã; đặt và xác nhận mã → sinh viên phòng đó chuyển sang **Sẵn sàng** | [ ] |
+| D.3 | D1 | Phòng của tôi › Bắt đầu kiểm kê | 4 điều kiện đạt; nhận mã cửa; khai đúng thực tế + công tơ (lấy chỉ số trong gợi ý của Staff: xem D.1) → **Đã chốt** ngay | [ ] |
+| D.4 | D2 | Mở biên bản nháp | Còn ~18 giờ; khai nốt, nộp | [ ] |
+| D.5 | `staffa01` | Biên bản kiểm kê › Cần xem | D3 **Lệch lớn** (thiếu tủ, +45 kWh) ở đầu; D4 **Lệch nhỏ** (bàn học) | [ ] |
+| D.6 | `staffa01` | D4 › Xác nhận biên bản | Đã chốt; bàn học ghi "có từ trước"; có yêu cầu bảo trì mới | [ ] |
+| D.7 | `staffa01` | D3 › Xác nhận | Bắt buộc lý do → chọn **Chờ xác minh tại phòng** | [ ] |
+| D.8 | `staffa01` → D5 | Tab Xuống phòng › D5 (hẹn 16:00 hôm nay) › Ghi nhận thực tế › Gửi | D5 bấm **Đồng ý kèm ý kiến** → Đã chốt, không có nút phản đối | [ ] |
+| D.9 | D7 | Mở biên bản | **Đã chốt – Quá hạn**; gửi **báo cáo trễ** một lần; Staff tab Báo cáo trễ chấp nhận một món | [ ] |
+| D.10 | D8 | Phòng của tôi | **Đang chờ**: "mã cửa của phòng chưa đặt" (đến khi làm D.2) | [ ] |
+| D.11 | D9 | Biên bản đã chốt | Staff xem: cột "Gốc của phòng" ghi **Chưa có gốc** | [ ] |
+| D.12 | `se220007` | Phòng của tôi | **Đang chờ**: chưa trả tiền phòng (dù đã được duyệt đến muộn) | [ ] |
+| D.13 | `se210006` | Phòng của tôi | Ở tiếp nhưng chuyển sang A-603 nên vẫn phải kiểm kê (**Sẵn sàng**) | [ ] |
+| D.14 | Người ở tiếp cùng giường (bất kỳ) | Phòng của tôi | Có mã cửa tự động từ ngày mở nhận phòng, **không** phải kiểm kê | [ ] |
+| D.15 | `staffa01` (chọn kỳ N) | Trả phòng | `se210003` **quá hạn**; trả phòng với nội thất theo tình trạng như mục 3 | [ ] |
+
 ## 4. Kiểm tra chéo toàn hệ thống
 
 - [ ] Hóa đơn điện nước tháng: sinh viên mới chỉ chia tiền từ lúc biên bản chốt, không từ lúc nhận mã.
