@@ -380,7 +380,7 @@ export const api = {
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
   weekSchedule: {
-    /** { block? } → { start, end, sentBlocks, pendingBlocks, sentAt, sentBy }: next week's schedule handover. */
+    /** { block? } → { start, end, sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }: next week's handover. */
     next: g('/week-schedule'),
     /** { block? } → { start, notified, blocks }: tells every Staff member of the Blocks their shifts. */
     send: (body) => http.post('/week-schedule/send', body),
