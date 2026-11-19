@@ -89,6 +89,7 @@ const vi = {
   'Signing out ends your shift.': 'Đăng xuất là kết thúc ca.',
   'Cancelled: nothing was changed.': 'Đã hủy: không có gì thay đổi.',
   'Staff activity': 'Nhật ký thao tác nhân viên',
+  'My schedule': 'Lịch làm việc của tôi',
   'Inside your shift today ({spans})': 'Đang trong ca hôm nay ({spans})',
   'Outside your shift (today {spans}): changes ask you to confirm': 'Ngoài ca làm (hôm nay {spans}): thao tác thay đổi sẽ cần xác nhận',
   'No shift now: changes ask you to confirm': 'Hiện không có ca: thao tác thay đổi sẽ cần xác nhận',

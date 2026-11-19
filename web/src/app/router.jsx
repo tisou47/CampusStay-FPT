@@ -52,6 +52,7 @@ const RegistrationPeriod = () => import('@/pages/student/RegistrationPeriod')
 
 // Staff — 06 Web – Staff
 const StaffDashboard = () => import('@/pages/staff/StaffDashboard')
+const MySchedule = () => import('@/pages/staff/MySchedule')
 const ApplicationQueue = () => import('@/pages/staff/ApplicationQueue')
 const ApplicationReview = () => import('@/pages/staff/ApplicationReview')
 const Payments = () => import('@/pages/staff/Payments')
@@ -216,6 +217,7 @@ export const router = createBrowserRouter([
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, ...page(StaffDashboard) },
+        { path: 'schedule', ...page(MySchedule) },
         { path: 'inventory', ...page(Inventory) },
         { path: 'rooms/:code', ...page(RoomHub) },
         { path: 'door-codes', ...page(DoorCodes) },

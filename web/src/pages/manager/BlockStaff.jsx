@@ -107,7 +107,7 @@ function ShiftEditor({ shifts, onChange }) {
                   {mine.map((s) => (
                     <span key={`${s.start}-${s.end}`} className="inline-flex h-7 items-center gap-1 rounded-full bg-primary-subtle pr-1 pl-2.5 text-sm font-medium text-fg-brand tabular">
                       {span(s)}
-                      {s.end < s.start && <span className="font-normal text-fg-secondary">({t('overnight')})</span>}
+                      {s.end < s.start && <span className="font-normal text-fg-secondary">({t('until {day} morning', { day: t(WEEKDAYS[s.weekday % 7]) })})</span>}
                       <button type="button" onClick={() => remove(s)} aria-label={t('Remove {span}', { span: span(s) })} className="rounded-full p-0.5 hover:bg-primary/15">
                         <X size={14} aria-hidden="true" />
                       </button>

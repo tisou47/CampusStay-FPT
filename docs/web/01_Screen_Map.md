@@ -56,6 +56,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | Code | Screen | Route | Figma | API calls | Page |
 |---|---|---|---|---|---|
 | SCR-HOME-02 | Staff Dashboard | `/staff` | — | `GET /dashboards/staff` | [staff/StaffDashboard.jsx](../../web/src/pages/staff/StaffDashboard.jsx) |
+| — | Staff › My schedule | `/staff/schedule` | — | `GET /block-staff/me` | [staff/MySchedule.jsx](../../web/src/pages/staff/MySchedule.jsx) |
 | SCR-INV-10 | Room and Bed Inventory | `/staff/inventory` | 37:2075 | `GET /inventory/structure`<br>`GET /inventory/rooms`<br>`GET /inventory/rooms/:code`<br>`POST /inventory/rooms/:code/out-of-service`<br>`POST /inventory/rooms/:code/back-in-service` | [staff/Inventory.jsx](../../web/src/pages/staff/Inventory.jsx) |
 | SCR-INV-14 | Room hub | `/staff/rooms/:code` | — | `GET /inventory/rooms/:code/hub` | [staff/RoomHub.jsx](../../web/src/pages/staff/RoomHub.jsx) |
 | SCR-INV-12 | Door codes | `/staff/door-codes` | — | `GET /door-codes`<br>`POST /door-codes/:room`<br>`POST /door-codes/:room/confirm`<br>`POST /door-codes/:room/cancel`<br>`POST /door-codes/:room/reveal`<br>`POST /door-codes/import` | [staff/DoorCodes.jsx](../../web/src/pages/staff/DoorCodes.jsx) |
