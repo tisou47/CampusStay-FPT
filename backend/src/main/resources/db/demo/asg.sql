@@ -347,3 +347,11 @@ CROSS JOIN LATERAL (SELECT CASE
         WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'MISSING'
         ELSE i.condition END AS answer) a
 JOIN demo_t t ON t.stage = 'D';
+
+-- The difference notes name the condition the inspection really recorded (Good or Worn).
+UPDATE asg_handover ho
+SET comparison_note = replace(ho.comparison_note, ft.name || ': Good →', ft.name || ': ' || initcap(hi.baseline_condition) || ' →')
+FROM asg_handover_item hi JOIN inv_furniture_item f ON f.id = hi.furniture_item_id
+JOIN inv_furniture_type ft ON ft.id = f.furniture_type_id
+WHERE hi.handover_id = ho.id AND ho.comparison_note LIKE '%' || ft.name || ': Good →%'
+  AND hi.condition IN ('DAMAGED', 'MISSING') AND hi.baseline_condition IS NOT NULL;

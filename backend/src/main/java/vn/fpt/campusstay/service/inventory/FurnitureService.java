@@ -65,6 +65,23 @@ public class FurnitureService {
     public record FurniturePage(List<FurnitureItem> items, long total, Map<String, Long> counts, Options options) {
     }
 
+    /**
+     * One furniture type in one Block: items in the Block's store, in its Rooms, broken or in repair (wherever they
+     * are) and waiting in a planned move; {@code unitPrice} is the real price of Admin › Furniture types (null: not
+     * set) and {@code storeValue} the store's items at that price.
+     */
+    public record StockRow(String block, String typeId, String type, String typeVi, String category, String use,
+            Long unitPrice, long inStore, long inRooms, long broken, long plannedMoves, long storeValue) {
+    }
+
+    /** Totals over the rows; {@code unpriced}: types that have items but no real price yet. */
+    public record StockTotals(long inStore, long inRooms, long broken, long plannedMoves, long storeValue,
+            long unpriced) {
+    }
+
+    public record StockPage(List<StockRow> rows, StockTotals totals, List<String> blocks) {
+    }
+
     /** {@code kind}: Registered, Status changed or Moved; {@code from} / {@code to} are statuses or locations. */
     public record HistoryEntry(Instant at, String kind, String from, String to, String reason, String by) {
     }
@@ -139,9 +156,11 @@ public class FurnitureService {
     private final BedOccupancy occupancy;
     private final AuditLog audit;
     private final Clock clock;
+    private final FurnitureBeds beds;
 
     public FurnitureService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
-            UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock) {
+            UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock, FurnitureBeds beds) {
+        this.beds = beds;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -217,6 +236,46 @@ public class FurnitureService {
         return new FurniturePage(items, total, counts, new Options(types, List.copyOf(STATUSES.values()), blockCodes));
     }
 
+    /**
+     * The stock of every furniture type per Block (Staff: their Blocks; Managers: every Block), with what the store
+     * is worth at the types' real prices. Disposed items are left out.
+     */
+    @Transactional(readOnly = true)
+    public StockPage stock(String block) {
+        currentUser.require(Permission.VIEW_INVENTORY);
+        BlockSelection scope = blockScope.resolve(block);
+        List<StockRow> rows = jdbc.sql("""
+                SELECT b.code AS block, t.id AS type_id, t.name, t.name_vi, t.category, t.use_scope, t.unit_price,
+                       count(*) FILTER (WHERE i.status = 'IN_STORE') AS in_store,
+                       count(*) FILTER (WHERE i.status = 'IN_USE') AS in_rooms,
+                       count(*) FILTER (WHERE i.status IN ('BROKEN', 'IN_REPAIR')) AS broken,
+                       count(m.id) AS planned
+                FROM inv_furniture_item i
+                JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                LEFT JOIN inv_room r ON r.id = i.room_id
+                JOIN inv_building b ON b.id = COALESCE(r.building_id, i.store_building_id)
+                LEFT JOIN inv_furniture_move m ON m.item_id = i.id AND m.status = 'PLANNED'
+                WHERE i.status <> 'DISPOSED' AND b.id IN (:b)
+                GROUP BY b.code, t.id, t.name, t.name_vi, t.category, t.use_scope, t.unit_price, t.sort_order
+                ORDER BY b.code, t.sort_order, t.name
+                """).param("b", List.copyOf(scope.ids()))
+                .query((rs, i) -> {
+                    Long price = rs.getObject("unit_price", Long.class);
+                    long inStore = rs.getLong("in_store");
+                    return new StockRow(rs.getString("block"), String.valueOf(rs.getLong("type_id")), rs.getString("name"),
+                            rs.getString("name_vi"), AdminFurnitureService.CATEGORIES.get(rs.getString("category")),
+                            AdminFurnitureService.USES.get(rs.getString("use_scope")), price, inStore,
+                            rs.getLong("in_rooms"), rs.getLong("broken"), rs.getLong("planned"),
+                            price == null ? 0 : price * inStore);
+                }).list();
+        StockTotals totals = new StockTotals(rows.stream().mapToLong(StockRow::inStore).sum(),
+                rows.stream().mapToLong(StockRow::inRooms).sum(), rows.stream().mapToLong(StockRow::broken).sum(),
+                rows.stream().mapToLong(StockRow::plannedMoves).sum(), rows.stream().mapToLong(StockRow::storeValue).sum(),
+                rows.stream().filter(r -> r.unitPrice() == null).map(StockRow::typeId).distinct().count());
+        List<String> blockCodes = blocks.codesByIds(scope.ids()).values().stream().sorted().toList();
+        return new StockPage(rows, totals, blockCodes);
+    }
+
     @Transactional(readOnly = true)
     public FurnitureDetail detail(long id) {
         currentUser.require(Permission.VIEW_INVENTORY);
@@ -283,6 +342,9 @@ public class FurnitureService {
             event(id.get(), "REGISTERED", null, place.label(), trimmedNote);
             codes.add(assetCode);
         }
+        if (place.roomId() != null) {
+            beds.relink(place.roomId());
+        }
         audit.record("FURNITURE_REGISTERED", AuditLog.Tone.INFO, "Furniture type", type.get().id(), type.get().name(),
                 Map.of("items", codes.size(), "location", place.label()));
         return new Registered(codes);
@@ -322,6 +384,9 @@ public class FurnitureService {
         if (!code.equals(item.status())) {
             event(id, "STATUS", STATUSES.get(item.status()), STATUSES.get(code), trimmedReason);
             if ("DISPOSED".equals(code)) {
+                if (item.place().roomId() != null) {
+                    beds.relink(item.place().roomId());
+                }
                 jdbc.sql("""
                         UPDATE inv_furniture_move SET status = 'CANCELLED', closed_by = :by, closed_at = :now
                         WHERE item_id = :id AND status = 'PLANNED'
@@ -557,6 +622,13 @@ public class FurnitureService {
                 .param("status", status).param("now", now).param("id", item.id())
                 .update();
         event(item.id(), "MOVED", item.place().label(), to.label(), reason);
+        // Unlinks the item from its old Bed; links it (or another item of its old Room) to a free Bed.
+        if (to.roomId() != null) {
+            beds.relink(to.roomId());
+        }
+        if (item.place().roomId() != null && !item.place().roomId().equals(to.roomId())) {
+            beds.relink(item.place().roomId());
+        }
     }
 
     /** A Room (by code) or the store of a Block (by code). */

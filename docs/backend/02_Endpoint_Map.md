@@ -315,6 +315,7 @@ Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | INV | GET | `/furniture/{id}` | Must | Verified | A-24; history; TC-INV-015, 016, 017, 018 |
 | INV | POST | `/furniture` | Must | Verified | A-24; Managers register items; TC-INV-016 |
 | INV | PUT | `/furniture/{id}` | Must | Verified | A-24; TC-INV-018 |
+| INV | GET | `/furniture/stock` | Should | Verified | A-73; stock per Block at the real prices; TC-INV-028 |
 | INV | GET | `/furniture/moves` | Must | Verified | A-24; TC-INV-017 |
 | INV | POST | `/furniture/moves` | Must | Verified | A-24; transfers between Blocks by Managers; TC-INV-017 |
 | INV | POST | `/furniture/moves/{id}/done` | Must | Verified | A-24; TC-INV-017 |

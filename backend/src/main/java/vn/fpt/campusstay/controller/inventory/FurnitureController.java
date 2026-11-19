@@ -62,6 +62,12 @@ class FurnitureController {
         return furniture.update(id, body.status(), body.note(), body.reason());
     }
 
+    /** The stock of each furniture type per Block and the store's value at the real prices. */
+    @GetMapping("/stock")
+    FurnitureService.StockPage stock(@RequestParam(required = false) String block) {
+        return furniture.stock(block);
+    }
+
     @GetMapping("/moves")
     FurnitureService.MovePage moves(@RequestParam(required = false) String block,
             @RequestParam(required = false) String status, @RequestParam(required = false) Integer page,

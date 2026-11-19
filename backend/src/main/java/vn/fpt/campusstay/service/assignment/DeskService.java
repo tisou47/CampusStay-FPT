@@ -174,11 +174,13 @@ public class DeskService {
     private final TerminationService terminations;
     private final JdbcStays stays;
     private final Clock clock;
+    private final DoorCodeRelease doorCodes;
 
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
             UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events,
-            TerminationService terminations, JdbcStays stays, Clock clock) {
+            TerminationService terminations, JdbcStays stays, Clock clock, DoorCodeRelease doorCodes) {
+        this.doorCodes = doorCodes;
         this.stays = stays;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
@@ -322,6 +324,7 @@ public class DeskService {
                     .orElseGet(() -> new Check("Within the check-in window (" + SHORT_DAY.format(term.checkInStart())
                             + " – " + DAY.format(term.checkInEnd()) + ")", inWindow)));
         }
+        inventoryCheck(a).ifPresent(checks::add);
         String status = a.checkedInAt() != null ? "checked-in"
                 : checks.stream().allMatch(Check::passed) ? "ready" : "blocked";
         List<String> items = a.checkedInAt() != null ? a.handOverItems()
@@ -329,6 +332,31 @@ public class DeskService {
         return new Person(student == null ? null : student.name(), student == null ? null : student.studentCode(),
                 bed.roomCode(), bed.bedLabel(), "Block " + bed.block(), bed.floor(), status, checks,
                 due.map(d -> new Owes(d.balance(), d.utilityDeposit())).orElse(null), a.checkedInAt(), items);
+    }
+
+    /**
+     * A new resident (Admin › System parameters › Room handover on) checks in by their check-in inventory: the desk
+     * waits until it is final, so they never become a resident whose Room condition and meters are not recorded.
+     * Empty when no inventory is needed (the setting is off, or they stay in the same Room).
+     */
+    private Optional<Check> inventoryCheck(Alloc a) {
+        if (a.checkedInAt() != null) {
+            return Optional.empty();
+        }
+        Optional<String> status = jdbc.sql("""
+                SELECT status FROM asg_handover WHERE allocation_id = :id AND status <> 'CANCELLED'
+                ORDER BY id DESC LIMIT 1
+                """).param("id", a.id()).query(String.class).optional();
+        if (status.isPresent()) {
+            return Optional.of(new Check("Check-in inventory final", "FINAL".equals(status.get())));
+        }
+        Long previousBed = jdbc.sql("""
+                SELECT p.bed_id FROM asg_allocation a JOIN asg_allocation p ON p.id = a.previous_allocation_id
+                WHERE a.id = :id
+                """).param("id", a.id()).query(Long.class).optional().orElse(null);
+        return doorCodes.needsInventory(previousBed, a.bedId())
+                ? Optional.of(new Check("Check-in inventory filed by the student (My Room)", false))
+                : Optional.empty();
     }
 
     private Optional<LocalDate> lateDeadline(long allocationId, LocalDate today) {

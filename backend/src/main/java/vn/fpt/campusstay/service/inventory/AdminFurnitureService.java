@@ -91,12 +91,15 @@ public class AdminFurnitureService {
     private final CurrentUser currentUser;
     private final Catalog catalog;
     private final AuditLog audit;
+    private final FurnitureBeds beds;
 
-    public AdminFurnitureService(JdbcClient jdbc, CurrentUser currentUser, Catalog catalog, AuditLog audit) {
+    public AdminFurnitureService(JdbcClient jdbc, CurrentUser currentUser, Catalog catalog, AuditLog audit,
+            FurnitureBeds beds) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.catalog = catalog;
         this.audit = audit;
+        this.beds = beds;
     }
 
     @Transactional(readOnly = true)
@@ -171,6 +174,9 @@ public class AdminFurnitureService {
                     .param("price", v.price()).param("id", id)
                     .update();
             audit.record("FURNITURE_TYPE_UPDATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), change);
+            if (!before.use().equals(v.use())) {
+                beds.relink(null);
+            }
         }
         return id;
     }

@@ -280,6 +280,8 @@ export const api = {
     /** { status?, note?, reason? } → the item. */
     update: (id, body) => http.put(`/furniture/${id}`, body),
     moves: g('/furniture/moves'),
+    /** ?block → { rows: [{ block, typeId, type, typeVi, category, use, unitPrice, inStore, inRooms, broken, plannedMoves, storeValue }], totals, blocks }. */
+    stock: g('/furniture/stock'),
     /** { items: [id], toRoom? | toStore? (Block code), reason, planned } → { moved, planned }. */
     move: (body) => http.post('/furniture/moves', body),
     finishMove: (id) => http.post(`/furniture/moves/${id}/done`),

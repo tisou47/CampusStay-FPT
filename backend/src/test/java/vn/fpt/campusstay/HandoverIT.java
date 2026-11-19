@@ -178,6 +178,32 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-060: while the check-in inventory is on, the desk does not check in a new resident who has not filed it;
+     * once the inventory is final the student is checked in by it.
+     */
+    @Test
+    void deskWaitsForTheCheckInInventory() throws Exception {
+        newcomer(29, "A-203", "A");
+        String staff = bearer(mvc, STAFF_A);
+        String body = "{\"studentCode\":\"se190029\",\"items\":[]}";
+        send(post("/check-in"), staff, body).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_BLOCKED"))
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("Check-in inventory")));
+
+        doorCode("A-203");
+        meterCut("A-203", 300, 30);
+        String student = bearer(mvc, StayFlow.student(29));
+        send(post("/students/me/handover/start"), student, "").andExpect(status().isOk());
+        send(post("/check-in"), staff, body).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_BLOCKED"));
+        String view = json(mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student)));
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 300, 30))
+                .andExpect(jsonPath("$.status").value("Final"));
+        send(post("/check-in"), staff, body).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_CHECKED_IN"));
+    }
+
+    /**
      * TC-ASG-054: the student's view never carries the Room's record nor the comparison, and the Staff endpoints are
      * closed to students.
      */

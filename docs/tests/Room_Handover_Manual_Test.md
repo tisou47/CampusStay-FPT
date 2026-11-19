@@ -125,6 +125,9 @@ $env:JAVA_TOOL_OPTIONS = "-Dsun.nio.ch.PipeImpl.noUnixDomainSockets=true -Djdk.n
 | 3.10 | S45 bấm **Đồng ý với khoản đền**, Staff xác nhận lại | Trả phòng thành công; nếu tổng > cọc → hóa đơn DAMAGE cho phần thiếu | [ ] |
 | 3.11 | Lần khác: tick **"Sinh viên không đồng ý: Manager quyết định"** cho 1 món | Món đó chưa tính; `manager01` › Quyết định › **Tiền đền khi trả phòng** thấy món, Giữ/Bỏ (bắt buộc lý do) | [ ] |
 | 3.12 | Món bàn học ở 2.18 (hỏng có từ trước) khi trả phòng | Tiền = 0, ghi "có từ trước" | [ ] |
+| 3.13 | `manager01` › Vận hành › **Nội thất** › tab **Tồn kho theo tòa** | Mỗi tòa × loại: trong kho, trong phòng, hỏng/đang sửa, lệnh chuyển; giá thật (của Loại nội thất) và **giá trị trong kho** = giá × số trong kho; 4 ô tổng ở trên; loại chưa có giá có ghi chú cảnh báo. `staffa01` chỉ thấy Block A | [ ] |
+| 3.14 | `staffa01` › Bàn tiếp nhận › **Nhận phòng**, tìm S40 (chưa kiểm kê) | Điều kiện "Sinh viên đã nộp kiểm kê nhận phòng" chưa đạt, không check-in được; sau khi S40 nộp và chốt (2.5) thì hiện đã nhận phòng | [ ] |
+| 3.15 | `manager01` › Nội thất › chuyển một **tủ** (đồ cá nhân) của A-901 về kho Block A rồi chuyển lại | Về kho: món mất giường; về lại phòng: món gắn lại giường còn trống, kiểm kê / trả phòng của giường đó thấy món | [ ] |
 
 ## 3b. Giai đoạn D "Tuần nhận phòng" (dữ liệu mẫu theo đúng timeline)
 
@@ -168,8 +171,8 @@ Mỗi Block có một đợt "Pre-arrival check Block X (demo)" đã gửi; kho�
 
 ## 5. Điểm còn hở cần xem lại (biết trước)
 
-1. **Đồ riêng mới đăng ký không gắn giường.** Nội thất › Đăng ký món mới chưa có ô chọn giường (`bed_id`), nên món riêng thêm sau được coi như đồ chung: sinh viên nào cũng khai, và khi trả phòng **không bị tính** cho ai. Cần thêm ô "Giường" ở màn đăng ký/sửa món.
-2. **Bàn tiếp nhận cũ vẫn check-in được** sinh viên chưa kiểm kê. Khi bật kiểm kê, Staff check-in ở bàn thì sinh viên thành cư dân nhưng điện nước chỉ tính khi biên bản chốt (có thể lâu). Nên chặn hoặc cảnh báo ở màn Nhận phòng cũ khi còn biên bản chưa chốt.
+1. ~~Đồ riêng mới đăng ký không gắn giường~~ — **đã xử lý**: đăng ký, chuyển, thanh lý món hoặc đổi "Dùng" của loại thì món cá nhân tự gắn vào giường còn trống của phòng (theo nhãn giường) và tự bỏ gắn khi rời phòng. Phòng có nhiều món cùng loại hơn số giường thì món dư được coi như đồ chung.
+2. ~~Bàn tiếp nhận cũ vẫn check-in được~~ — **đã xử lý**: khi bật kiểm kê, màn Nhận phòng cũ hiện điều kiện "Sinh viên đã nộp kiểm kê nhận phòng" / "Biên bản kiểm kê nhận phòng đã chốt" và chặn (`CHECK_IN_BLOCKED`) cho tới khi biên bản chốt (biên bản chốt tự ghi nhận phòng).
 3. **Loại nội thất chưa có giá thật thì tiền đền = 0.** Giá lấy từ cột Giá thật của loại (một giá cho mọi hạng phòng và mọi kỳ); loại tạo mới để trống giá thì món hư không bị tính cho tới khi Admin nhập giá. Hao mòn (= Hư một phần) bị tính 25 % theo mức mặc định; muốn miễn thì Admin đặt mức này 100 %.
 4. **Lịch "trước khi vào ở"** chỉ lấy phòng có sinh viên **chưa** nhận mã lúc đợt bắt đầu; lịch này là một lần (ONCE). Chưa tự đề xuất theo timeline kỳ; Manager phải tạo trước `check_in_start`.
 5. **Ảnh iPhone HEIC** bị từ chối (chỉ nhận JPEG/PNG); web dùng camera thường ra JPEG, nhưng chọn từ thư viện có thể ra HEIC.
@@ -183,4 +186,4 @@ cd backend
 mvn -o verify
 ```
 
-Gồm `HandoverComparisonTest` (TC-ASG-047…052) và `HandoverIT` (TC-ASG-053…059). Web: `npm run build`, `npm run i18n:check`. App: `flutter analyze`, `flutter test`.
+Gồm `HandoverComparisonTest` (TC-ASG-047…052), `HandoverIT` (TC-ASG-053…060) và `FurnitureIT` (TC-INV-028: tồn kho, đồ cá nhân theo giường). Web: `npm run build`, `npm run i18n:check`. App: `flutter analyze`, `flutter test`.
