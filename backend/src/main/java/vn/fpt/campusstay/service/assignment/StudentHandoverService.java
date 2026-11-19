@@ -254,12 +254,13 @@ public class StudentHandoverService {
         }
         errors.throwIfAny();
         // Never reveal the Room's baseline meter numbers or date to a student in the error response.
-        billing.lastReading(h.roomId()).ifPresent(last -> {
-            if (h.electricity().compareTo(last.electricity()) < 0) {
+        HandoverCore.Row filed = h;
+        billing.lastReading(filed.roomId()).ifPresent(last -> {
+            if (filed.electricity().compareTo(last.electricity()) < 0) {
                 throw FieldErrors.single("electricity",
                         "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
             }
-            if (h.water().compareTo(last.water()) < 0) {
+            if (filed.water().compareTo(last.water()) < 0) {
                 throw FieldErrors.single("water",
                         "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
             }

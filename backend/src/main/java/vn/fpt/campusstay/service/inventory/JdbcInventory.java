@@ -159,25 +159,41 @@ class JdbcInventory implements Inventory {
                 .list();
     }
 
+    /** Fallback real price (VND) when a furniture type has no price configured yet. */
+    private static final Map<String, Long> DEFAULT_TYPE_PRICES = Map.of(
+            "BED", 2_000_000L, "WRD", 2_500_000L, "DESK", 1_500_000L,
+            "FAN", 800_000L, "AC", 8_000_000L, "WH", 3_500_000L, "FRG", 5_000_000L);
+    private static final long FALLBACK_TYPE_PRICE = 1_500_000L;
+
+    /** Fallback condition loss (%) when {@code inv_furniture_condition} is missing any of the four handover levels. */
+    private static final Map<String, Integer> DEFAULT_CONDITION_LOSS = Map.of(
+            "GOOD", 0, "WORN", 25, "DAMAGED", 50, "MISSING", 100);
+
     @Override
     public Map<Long, Long> furniturePrices() {
         Map<Long, Long> prices = new LinkedHashMap<>();
-        jdbc.sql("SELECT id, unit_price FROM inv_furniture_type WHERE unit_price IS NOT NULL")
-                .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getLong("unit_price"))).list()
+        jdbc.sql("SELECT id, code, unit_price FROM inv_furniture_type")
+                .query((rs, i) -> {
+                    long id = rs.getLong("id");
+                    String code = rs.getString("code");
+                    Long p = rs.getObject("unit_price", Long.class);
+                    long resolved = p != null ? p : DEFAULT_TYPE_PRICES.getOrDefault(code, FALLBACK_TYPE_PRICE);
+                    return Map.entry(id, resolved);
+                }).list()
                 .forEach(e -> prices.put(e.getKey(), e.getValue()));
         return prices;
     }
 
     @Override
     public Map<String, Integer> conditionLoss() {
-        Map<String, Integer> loss = new LinkedHashMap<>();
+        Map<String, Integer> loss = new LinkedHashMap<>(DEFAULT_CONDITION_LOSS);
         jdbc.sql("""
                 SELECT m.observed, 100 - c.value_percent AS loss
                 FROM (VALUES ('GOOD', 'INTACT'), ('WORN', 'PARTLY_DAMAGED'), ('DAMAGED', 'MOSTLY_DAMAGED'),
                              ('MISSING', 'DESTROYED')) AS m(observed, level)
                 JOIN inv_furniture_condition c ON c.code = m.level
                 """).query((rs, i) -> Map.entry(rs.getString("observed"), rs.getInt("loss"))).list()
-                .forEach(e -> loss.put(e.getKey(), e.getValue()));
+                .forEach(e -> loss.put(e.getKey(), Math.max(0, Math.min(100, e.getValue()))));
         return loss;
     }
 

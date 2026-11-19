@@ -360,9 +360,13 @@ function FurnitureCharges() {
   if (!d) return null
   const pending = d.claims?.filter((c) => c.status === 'Pending') ?? []
   if (!d.saved && !pending.length) return null
+  const s = d.settlement
   return (
-    <Card className="flex flex-col gap-3">
-      <CardHeader title="Furniture charges" description="Only what got worse while you lived here is charged; items that were already damaged and normal wear are not." />
+    <Card className="flex flex-col gap-4">
+      <CardHeader
+        title="Furniture charges"
+        description="Only what got worse while you lived here is charged; items that were already damaged and normal wear are not."
+      />
       {pending.map((c) => (
         <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${c.type} ${c.assetCode}` })}>
           <div className="flex flex-col gap-2">
@@ -380,23 +384,110 @@ function FurnitureCharges() {
       ))}
       {d.saved && (
         <>
-          <ul className="flex flex-col divide-y divide-line">
-            {d.items.map((i) => (
-              <li key={i.itemId} className="flex flex-wrap items-center justify-between gap-2 py-2 text-base">
-                <span className="text-fg">
-                  {typeName(i)} <span className="text-fg-secondary">· {conditionName(i.atCheckIn ?? 'Good')} → {i.atCheckOut ? conditionName(i.atCheckOut) : '—'}</span>
-                </span>
-                <span className="text-fg">
-                  {formatCurrency(i.amount)}
-                  {i.review ? ` · ${t(i.review)}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {(d.electricity != null || d.water != null) && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-fg">{t('1. Final meter reading')}</span>
+              <dl className="grid grid-cols-2 gap-3 sm:max-w-md">
+                <div className="rounded-lg bg-subtle/60 px-3 py-2">
+                  <dt className="text-xs text-fg-secondary">{t('Electricity (kWh)')}</dt>
+                  <dd className="text-base font-semibold text-fg tabular">{d.electricity ?? '—'}</dd>
+                </div>
+                <div className="rounded-lg bg-subtle/60 px-3 py-2">
+                  <dt className="text-xs text-fg-secondary">{t('Water (m³)')}</dt>
+                  <dd className="text-base font-semibold text-fg tabular">{d.water ?? '—'}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
+          <div className="overflow-hidden rounded-lg border border-line">
+            <div className="grid grid-cols-[minmax(0,1.4fr)_8rem_8rem_7rem] items-center gap-2 border-b border-line bg-subtle/60 px-3 py-2 text-xs font-semibold text-fg-secondary">
+              <span>{t('Item')}</span>
+              <span>{t('Condition')}</span>
+              <span className="text-right">{t('Real price')} · %</span>
+              <span className="text-right">{t('Charge')}</span>
+            </div>
+            <ul className="flex flex-col divide-y divide-line">
+              {d.items.map((i) => (
+                <li key={i.itemId} className="flex flex-col gap-1 px-3 py-2.5 text-sm">
+                  <div className="grid grid-cols-[minmax(0,1.4fr)_8rem_8rem_7rem] items-center gap-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium text-fg">{typeName(i)}</span>
+                      <span className="truncate font-mono text-xs text-fg-tertiary">
+                        {i.assetCode} · {i.personal ? t('Your Bed {bed}', { bed: i.bed }) : t('Shared')}
+                      </span>
+                    </div>
+                    <span className="text-xs text-fg-secondary">
+                      {conditionName(i.atCheckIn ?? 'Good')} →{' '}
+                      <Tag tone={conditionTone[i.atCheckOut] ?? 'neutral'}>{i.atCheckOut ? conditionName(i.atCheckOut) : '—'}</Tag>
+                    </span>
+                    <span className="text-right font-mono text-xs text-fg-secondary tabular">
+                      {formatCurrency(i.unitPrice ?? 0)} × {i.percent ?? 0}%
+                    </span>
+                    <span className="text-right font-mono font-semibold text-fg tabular">
+                      {formatCurrency(i.amount)}
+                      {i.review ? ` · ${t(i.review)}` : ''}
+                    </span>
+                  </div>
+                  {i.note && (
+                    <span className="text-xs text-fg-secondary">
+                      {t('Note')}: {i.note}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <p className="text-base font-semibold text-fg">{t('Total {amount}', { amount: formatCurrency(d.total) })}</p>
+
+          {s && (
+            <div className="flex flex-col gap-2 rounded-xl border border-line bg-subtle/40 p-3.5">
+              <span className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+                {t('3. Utility deposit settlement')}
+              </span>
+              <dl className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-fg-secondary">{t('Utility deposit held')}</dt>
+                  <dd className="font-medium text-fg tabular">{formatCurrency(s.held)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-fg-secondary">
+                    {t('Final utility share')}
+                    {s.periodLabel ? ` (${s.periodLabel})` : ''}
+                  </dt>
+                  <dd className="font-medium text-fg tabular">− {formatCurrency(s.share)}</dd>
+                </div>
+                {s.unpaid > 0 && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-fg-secondary">{t('Unpaid utility invoices')}</dt>
+                    <dd className="font-medium text-fg tabular">− {formatCurrency(s.unpaid)}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-fg-secondary">{t('Damage charge')}</dt>
+                  <dd className="font-medium text-warning-fg tabular">− {formatCurrency(s.damage)}</dd>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3 border-t border-line pt-2 font-semibold">
+                  <dt className="text-fg">{t(s.refund >= 0 ? 'Refund to student' : 'Student still owes')}</dt>
+                  <dd className={cx('text-base font-bold tabular', s.refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
+                    {formatCurrency(Math.abs(s.refund))}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-xs text-fg-tertiary">
+                {t(
+                  s.refund >= 0
+                    ? 'Refund goes to the manager for approval'
+                    : 'The balance will be invoiced to the student',
+                )}
+              </p>
+            </div>
+          )}
+
           {d.studentPresent && !d.agreedAt && (
             <div className="flex justify-end">
-              <Button variant="primary" onClick={() => agree.run()} disabled={agree.pending}>
+              <Button variant="primary" icon={CircleCheck} onClick={() => agree.run()} disabled={agree.pending}>
                 Agree with the charges
               </Button>
             </div>

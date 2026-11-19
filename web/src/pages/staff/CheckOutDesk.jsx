@@ -189,29 +189,33 @@ function CheckOutPanel({ d }) {
   const done = d.status === 'Checked out'
   const [electricity, setElectricity] = useState(formatNumber(d.reading?.electricity))
   const [water, setWater] = useState(formatNumber(d.reading?.water))
-  // Damage per furniture item of the Room: { [itemId]: { amount, note } }; a damaged item becomes Broken.
-  const initialDamages = () =>
-    Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }]))
-  const [damages, setDamages] = useState(initialDamages)
   // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)
   const [condition, setCondition] = useState(() => {
     if (done) return (d.settlement?.damage ?? 0) > 0 || (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : 'good'
     return (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : ''
   })
+  const [liveFurnitureTotal, setLiveFurnitureTotal] = useState(0)
   const [showSummary, setShowSummary] = useState(false)
-  // Furniture recorded by condition (V78): when saved, its total is the damage charge unless items are charged by hand.
+  // Furniture recorded by condition (V78): when saved, its total is the damage charge calculated from base price & condition %.
   const furnitureQuery = useQuery(['check-out-furniture', d.allocationId], ({ signal }) => api.checkOutFurniture.view(d.allocationId, { signal }))
-  const byCondition = Boolean(furnitureQuery.data?.saved)
-  const setDamage = (itemId, patch) => setDamages((all) => ({ ...all, [itemId]: { amount: '', note: '', ...all[itemId], ...patch } }))
+  const fData = furnitureQuery.data
+  const byCondition = Boolean(fData?.saved)
   useEffect(() => {
     setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
     setWater(d.reading?.water != null ? formatNumber(d.reading.water) : '')
   }, [d])
+  useEffect(() => {
+    if (!fData) return
+    if (fData.saved && !condition) {
+      const hasIssue = (fData.items ?? []).some((i) => i.atCheckOut && i.atCheckOut !== 'Good') || fData.total > 0
+      setCondition(hasIssue ? 'damaged' : 'good')
+    }
+  }, [fData, condition])
 
   const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
-  const lines = condition === 'damaged' ? Object.entries(damages).filter(([, v]) => toNumber(v.amount) > 0 || v.note.trim()) : []
-  const damageAmount = done ? s.damage ?? 0 : byCondition && !lines.length ? furnitureQuery.data.total : lines.reduce((sum, [, v]) => sum + toNumber(v.amount), 0)
+  const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
+  const waitingStudentAgreement = !done && byCondition && fData?.studentPresent && !fData?.agreedAt
 
   const submit = useMutation(
     (draft) =>
@@ -219,11 +223,10 @@ function CheckOutPanel({ d }) {
         electricity: toNumber(electricity),
         water: toNumber(water),
         conditionGood: condition === 'good',
-        damages: byCondition && !lines.length ? undefined : lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
         draft,
       }),
     {
-      invalidates: ['check-out', 'dashboard', 'refunds'],
+      invalidates: ['check-out', 'check-out-furniture', 'dashboard', 'refunds'],
       onSuccess: (res, draft) => {
         if (draft) {
           notify({ type: 'info', title: 'Draft saved', message: t('Readings and condition for {name} are saved.', { name: d.name }) })
@@ -322,99 +325,17 @@ function CheckOutPanel({ d }) {
           </div>
         </section>
 
-        {/* Step 2: Room Condition & Compact Damage Table */}
-        <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck size={15} aria-hidden="true" className="text-fg-brand" />
-              <p className="text-sm font-semibold text-fg">{t('2. Room condition')}</p>
-            </div>
-            {lines.length > 0 && (
-              <span className="rounded-full bg-warning-bg px-2 py-0.5 text-xs font-semibold text-warning-fg tabular">
-                − {formatVnd(damageAmount)}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-fg-secondary">{t('Room condition')}</span>
-              <Radio
-                name="room-condition"
-                label="Bed, mattress and locker in good condition"
-                checked={condition === 'good'}
-                disabled={done}
-                onChange={() => setCondition('good')}
-              />
-              <Radio
-                name="room-condition"
-                label="Damage found (adds a charge)"
-                checked={condition === 'damaged'}
-                disabled={done}
-                onChange={() => setCondition('damaged')}
-              />
-            </div>
-          </div>
-
-          {condition === 'damaged' && (d.furniture ?? []).length > 0 && (
-            <div className="mt-1 flex flex-col gap-2 border-t border-line pt-2.5">
-              <p className="text-xs text-fg-secondary">
-                {t('Damage per item (₫): deducted from the utility deposit; anything above it is invoiced. A damaged item becomes Broken.')}
-              </p>
-
-              {/* Compact Mini-Table for Damage Audit */}
-              <div className="overflow-hidden rounded-lg bg-surface">
-                <div className="grid grid-cols-[minmax(0,1fr)_9rem_minmax(0,18rem)] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
-                  <span>{t('Furniture')}</span>
-                  <span className="text-right">{t('Amount')} (₫)</span>
-                  <span>{t('Note')}</span>
-                </div>
-                <div className="flex flex-col divide-y divide-line/60">
-                  {d.furniture.map((f) => {
-                    const v = damages[f.itemId] ?? { amount: '', note: '' }
-                    const hasCharge = toNumber(v.amount) > 0 || Boolean(v.note?.trim())
-                    return (
-                      <div
-                        key={f.itemId}
-                        className={cx(
-                          'grid grid-cols-[minmax(0,1fr)_9rem_minmax(0,18rem)] items-center gap-1.5 px-2.5 py-1.5 transition-colors',
-                          hasCharge ? 'bg-brand-subtle/40' : 'hover:bg-subtle/40',
-                        )}
-                      >
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-sm font-medium text-fg">{typeName(f)}</span>
-                          <span className="truncate font-mono text-[11px] text-fg-tertiary">{f.assetCode}</span>
-                        </div>
-                        <input
-                          type="text"
-                          aria-label={t('Damage for {item}', { item: f.assetCode })}
-                          value={v.amount}
-                          disabled={done}
-                          onChange={(e) => setDamage(f.itemId, { amount: e.target.value })}
-                          inputMode="numeric"
-                          placeholder="0"
-                          className="h-9 w-full rounded-md border border-line bg-surface px-2.5 text-right font-mono text-sm font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
-                        />
-                        <input
-                          type="text"
-                          aria-label={t('Damage note for {item}', { item: f.assetCode })}
-                          value={v.note}
-                          disabled={done}
-                          onChange={(e) => setDamage(f.itemId, { note: e.target.value })}
-                          placeholder={t('What is damaged?')}
-                          maxLength={300}
-                          className="h-9 w-full rounded-md border border-line bg-surface px-2.5 text-sm text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <FurnitureConditions allocationId={d.allocationId} query={furnitureQuery} done={done} />
+        {/* Step 2: Room Condition & Automatic Furniture Calculation */}
+        <FurnitureConditions
+          allocationId={d.allocationId}
+          query={furnitureQuery}
+          done={done}
+          condition={condition}
+          onConditionChange={setCondition}
+          electricity={electricity}
+          water={water}
+          onLiveTotalChange={setLiveFurnitureTotal}
+        />
       </div>
 
       {/* 3. Settlement and actions: a footer on narrow screens, a column beside the work area on wide ones. */}
@@ -473,16 +394,24 @@ function CheckOutPanel({ d }) {
           <div className="flex items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3 py-2 text-xs font-medium text-success-fg">
             <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
             <span>
-              {d.refundStatus === 'Approved' ? t('A manager approved the refund.') : t('The refund is waiting for a manager’s approval.')}
+              {refund < 0
+                ? t('{amount} was invoiced to the student.', { amount: formatVnd(-refund) })
+                : d.refundStatus === 'Approved'
+                  ? t('A manager approved the refund.')
+                  : t('The refund is waiting for a manager’s approval.')}
             </span>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5 pt-0.5">
-            {!condition && (
+            {!condition ? (
               <p className="text-right text-xs font-medium text-warning-fg">
                 {t('Please select the room condition before you confirm.')}
               </p>
-            )}
+            ) : waitingStudentAgreement ? (
+              <p className="text-right text-xs font-medium text-warning-fg">
+                {t('Waiting for the student to agree on the app.')}
+              </p>
+            ) : null}
             <div className="flex items-center justify-end gap-2">
               <Button
                 tip="Keep what you entered and finish the check-out later."
@@ -495,7 +424,7 @@ function CheckOutPanel({ d }) {
               <Button
                 tip="Ends the student’s stay and frees the bed. A meter reading is taken."
                 variant="primary"
-                disabled={!condition || submit.pending}
+                disabled={!condition || waitingStudentAgreement || submit.pending}
                 onClick={() => setShowSummary(true)}
               >
                 Confirm check-out

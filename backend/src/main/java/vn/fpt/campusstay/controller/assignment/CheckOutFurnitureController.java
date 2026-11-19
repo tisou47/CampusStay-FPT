@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.controller.assignment;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 import vn.fpt.campusstay.service.assignment.CheckOutFurnitureService;
 
@@ -22,7 +25,11 @@ import vn.fpt.campusstay.service.assignment.CheckOutFurnitureService;
 @RestController
 class CheckOutFurnitureController {
 
-    record FurnitureRequest(@Size(max = 100) List<CheckOutFurnitureService.Answer> items, Boolean studentPresent) {
+    record FurnitureRequest(@Size(max = 100) List<CheckOutFurnitureService.Answer> items, Boolean studentPresent,
+            @DecimalMin(value = "0", message = "Enter a reading of 0 or more.")
+            @DecimalMax(value = "999999999", message = "Enter a valid reading.") BigDecimal electricity,
+            @DecimalMin(value = "0", message = "Enter a reading of 0 or more.")
+            @DecimalMax(value = "999999999", message = "Enter a valid reading.") BigDecimal water) {
     }
 
     record ClaimRequest(String itemId, String condition,
@@ -48,7 +55,8 @@ class CheckOutFurnitureController {
 
     @PutMapping("/check-outs/{allocationId}/furniture")
     CheckOutFurnitureService.Charges record(@PathVariable String allocationId, @Valid @RequestBody FurnitureRequest body) {
-        return furniture.record(allocationId, body.items(), Boolean.TRUE.equals(body.studentPresent()));
+        return furniture.record(allocationId, body.items(), Boolean.TRUE.equals(body.studentPresent()),
+                body.electricity(), body.water());
     }
 
     @PostMapping("/check-outs/{allocationId}/damage-claims")

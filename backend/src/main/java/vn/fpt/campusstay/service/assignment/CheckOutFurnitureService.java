@@ -1,5 +1,6 @@
 package vn.fpt.campusstay.service.assignment;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -45,12 +46,18 @@ public class CheckOutFurnitureService {
             String source, String note, String review, String reviewNote) {
     }
 
+    /** Settlement preview shown to the student when checking and confirming the check-out package. */
+    public record SettlementPreview(long held, String periodLabel, long share, long unpaid, long damage, long refund) {
+    }
+
     /**
      * @param total          what is charged now (lines a Manager is reviewing or dropped are left out)
      * @param studentPresent the student is at the desk and must agree
      */
     public record Charges(String allocationId, String room, String bed, List<Line> items, long total,
-            boolean studentPresent, Instant agreedAt, boolean saved, List<Claim> claims) {
+            boolean studentPresent, Instant agreedAt, boolean saved, List<Claim> claims,
+            Map<String, Integer> conditionRates, BigDecimal electricity, BigDecimal water,
+            SettlementPreview settlement) {
     }
 
     /** Staff's answer for an item; {@code amount} overrides the computed charge (with a reason). */
@@ -82,14 +89,15 @@ public class CheckOutFurnitureService {
     private final Billing billing;
     private final Parameters parameters;
     private final vn.fpt.campusstay.service.auth.UserDirectory users;
+    private final JdbcStays stays;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public CheckOutFurnitureService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope,
             CheckOutCharges charges, Inventory inventory, Billing billing, Parameters parameters,
-            vn.fpt.campusstay.service.auth.UserDirectory users, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            vn.fpt.campusstay.service.auth.UserDirectory users, JdbcStays stays, ApplicationEventPublisher events,
+            AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -98,6 +106,7 @@ public class CheckOutFurnitureService {
         this.billing = billing;
         this.parameters = parameters;
         this.users = users;
+        this.stays = stays;
         this.events = events;
         this.audit = audit;
         this.clock = clock;
@@ -116,11 +125,17 @@ public class CheckOutFurnitureService {
      * asks them to agree on the app. Any change asks for a new agreement.
      */
     @Transactional
-    public Charges record(String allocationId, List<Answer> answers, boolean studentPresent) {
+    public Charges record(String allocationId, List<Answer> answers, boolean studentPresent, BigDecimal electricity,
+            BigDecimal water) {
         AuthenticatedUser me = currentUser.require(Permission.DESK);
         Target t = target(allocationId, true);
         if ("COMPLETED".equals(t.status())) {
             throw ApiException.conflict("ALREADY_CHECKED_OUT", "This student has already checked out.");
+        }
+        if (electricity != null && water != null) {
+            billing.readingProblem(t.roomId(), electricity, water).ifPresent(msg -> {
+                throw FieldErrors.single("electricity", msg);
+            });
         }
         Map<Long, Answer> byItem = new HashMap<>();
         for (Answer a : answers == null ? List.<Answer>of() : answers) {
@@ -185,11 +200,15 @@ public class CheckOutFurnitureService {
                 total += amount;
             }
         }
+        boolean allGood = lines.stream().allMatch(l -> "GOOD".equals(l.now()));
         jdbc.sql("""
                 UPDATE asg_check_out SET damage_charge = :total, student_present = :present, student_agreed_at = NULL,
-                       version = version + 1
+                       electricity = coalesce(:electricity, electricity), water = coalesce(:water, water),
+                       condition_good = :good, updated_at = :now, version = version + 1
                 WHERE id = :id
-                """).param("total", total).param("present", studentPresent).param("id", checkOutId).update();
+                """).param("total", total).param("present", studentPresent)
+                .param("electricity", electricity).param("water", water).param("good", allGood)
+                .param("now", Timestamp.from(Instant.now(clock))).param("id", checkOutId).update();
         audit.record("CHECK_OUT_FURNITURE_RECORDED", AuditLog.Tone.INFO, "Allocation", t.allocationId(),
                 "Room " + t.roomCode() + " · Bed " + t.bedLabel(), Map.of("charge", total));
         if (studentPresent) {
@@ -409,11 +428,21 @@ public class CheckOutFurnitureService {
                     s != null ? (s.overrideReason() != null ? s.overrideReason() : s.note()) : l.note(), review,
                     s == null ? null : s.reviewNote()));
         }
-        record Meta(Boolean present, Instant agreed) {
+        record Meta(Boolean present, Instant agreed, BigDecimal electricity, BigDecimal water, String status,
+                Long held, String period, Long share, Long unpaid, Long damage, Long settled) {
         }
-        Meta meta = checkOutId.map(id -> jdbc.sql("SELECT student_present, student_agreed_at FROM asg_check_out WHERE id = :id")
+        Meta meta = checkOutId.map(id -> jdbc.sql("""
+                SELECT student_present, student_agreed_at, electricity, water, status, deposit_held, share_period,
+                       utility_share, unpaid_utility, damage_charge, settled_amount
+                FROM asg_check_out WHERE id = :id
+                """)
                 .param("id", id).query((rs, i) -> new Meta(rs.getObject("student_present", Boolean.class),
-                        HandoverCore.instant(rs, "student_agreed_at"))).single()).orElse(new Meta(null, null));
+                        HandoverCore.instant(rs, "student_agreed_at"), rs.getBigDecimal("electricity"),
+                        rs.getBigDecimal("water"), rs.getString("status"), rs.getObject("deposit_held", Long.class),
+                        rs.getString("share_period"), rs.getObject("utility_share", Long.class),
+                        rs.getObject("unpaid_utility", Long.class), rs.getObject("damage_charge", Long.class),
+                        rs.getObject("settled_amount", Long.class))).single())
+                .orElse(new Meta(null, null, null, null, null, null, null, null, null, null, null));
         List<Claim> claims = jdbc.sql("""
                 SELECT id, furniture_item_id, condition, status, amount, due_at FROM asg_damage_claim
                 WHERE allocation_id = :a ORDER BY id
@@ -428,8 +457,38 @@ public class CheckOutFurnitureService {
                             status.charAt(0) + status.substring(1).toLowerCase(), rs.getLong("amount"),
                             rs.getTimestamp("due_at").toInstant());
                 }).list();
+        Map<String, Integer> loss = inventory.conditionLoss();
+        Map<String, Integer> conditionRates = new java.util.LinkedHashMap<>();
+        conditionRates.put("Good", loss.getOrDefault("GOOD", 0));
+        conditionRates.put("Worn", loss.getOrDefault("WORN", 25));
+        conditionRates.put("Damaged", loss.getOrDefault("DAMAGED", 50));
+        conditionRates.put("Missing", loss.getOrDefault("MISSING", 100));
+        SettlementPreview settlement = "COMPLETED".equals(meta.status())
+                ? new SettlementPreview(meta.held() == null ? 0 : meta.held(), meta.period(),
+                        meta.share() == null ? 0 : meta.share(), meta.unpaid() == null ? 0 : meta.unpaid(),
+                        meta.damage() == null ? total : meta.damage(), meta.settled() == null ? 0 : meta.settled())
+                : estimateSettlement(t, meta.electricity(), meta.water(), total);
         return new Charges(String.valueOf(t.allocationId()), t.roomCode(), t.bedLabel(), items, total,
-                Boolean.TRUE.equals(meta.present()), meta.agreed(), recorded, claims);
+                Boolean.TRUE.equals(meta.present()), meta.agreed(), recorded, claims, conditionRates,
+                meta.electricity(), meta.water(), settlement);
+    }
+
+    private SettlementPreview estimateSettlement(Target t, BigDecimal electricity, BigDecimal water, long damage) {
+        List<Long> beds = inventory.bedsOfRoom(t.roomId()).stream().map(Inventory.BedSlot::bedId).toList();
+        int residents = beds.isEmpty() ? 1 : Math.max(1, jdbc.sql("""
+                SELECT count(*) FROM asg_allocation
+                WHERE term_id = :term AND status = 'ACTIVE' AND resident_at IS NOT NULL AND bed_id IN (:beds)
+                """).param("term", t.termId()).param("beds", beds).query(Integer.class).single());
+        List<Long> stayIds = stays.allocationsOfStay(t.allocationId());
+        Billing.Settlement s;
+        try {
+            s = billing.estimateCheckOut(new Billing.SettlementRequest(t.termId(), t.studentId(), t.allocationId(),
+                    stayIds, t.roomId(), t.roomCode(), t.buildingId(), electricity, water, damage, residents));
+        } catch (ApiException e) {
+            s = billing.estimateCheckOut(new Billing.SettlementRequest(t.termId(), t.studentId(), t.allocationId(),
+                    stayIds, t.roomId(), t.roomCode(), t.buildingId(), null, null, damage, residents));
+        }
+        return new SettlementPreview(s.held(), s.periodLabel(), s.share(), s.unpaid(), s.damage(), s.refund());
     }
 
     private Map<Long, Saved> saved(long checkOutId) {
