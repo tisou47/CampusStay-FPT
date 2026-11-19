@@ -62,9 +62,20 @@ function buildUrl(path, query) {
  * registers a confirmer (a dialog) that resolves true to send the change again with X-Shift-Acknowledged.
  */
 let shiftConfirmer = null
+// Changes refused at the same moment share one question, so a second one never replaces the first dialog.
+let pendingConfirm = null
 
 export function setShiftConfirmer(fn) {
   shiftConfirmer = fn
+}
+
+function confirmShift(details) {
+  if (!pendingConfirm) {
+    pendingConfirm = Promise.resolve(shiftConfirmer(details)).finally(() => {
+      pendingConfirm = null
+    })
+  }
+  return pendingConfirm
 }
 
 export async function request(path, { method = 'GET', query, body, signal, headers } = {}) {
@@ -100,7 +111,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
     window.dispatchEvent(new Event('campusstay:setup-required'))
   }
   if (res.status === 428 && data?.code === 'SHIFT_CONFIRM_REQUIRED' && shiftConfirmer && !headers?.['X-Shift-Acknowledged']) {
-    if (await shiftConfirmer({ message: data.message, ...data.details })) {
+    if (await confirmShift({ message: data.message, ...data.details })) {
       return request(path, { method, query, body, signal, headers: { ...headers, 'X-Shift-Acknowledged': 'true' } })
     }
     throw new ApiError(t('Cancelled: nothing was changed.'), { status: 428, code: 'SHIFT_CANCELLED' })

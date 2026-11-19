@@ -300,6 +300,9 @@ public class BlockStaffService {
         }
         List<StaffShifts.Shift> clean = new ArrayList<>();
         for (StaffShifts.Shift s : list) {
+            if (s == null || s.start() == null || s.end() == null) {
+                throw FieldErrors.single("shifts", "Enter each shift's start and end as HH:mm.");
+            }
             java.time.LocalTime start;
             java.time.LocalTime end;
             try {
@@ -393,12 +396,12 @@ public class BlockStaffService {
             }
             blockScope.check(item.buildingId());
             if (!blockIds(receiver.id()).contains(item.buildingId())) {
-                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_IN_BLOCK",
+                throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "NOT_IN_BLOCK",
                         receiver.name() + " does not work in Block " + blocks.codesByIds(List.of(item.buildingId()))
                                 .getOrDefault(item.buildingId(), "") + ".");
             }
             if (!receiver.handles().contains(TYPE_HANDLES.get(type))) {
-                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "HANDLE_MISMATCH",
+                throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "HANDLE_MISMATCH",
                         receiver.name() + " does not handle this type of work.");
             }
             items.add(item);
