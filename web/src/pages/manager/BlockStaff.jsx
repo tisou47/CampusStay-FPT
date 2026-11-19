@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { ArrowRightLeft, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -10,7 +10,7 @@ import { Button, IconButton } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Avatar } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -56,50 +56,100 @@ function shiftSummary(shifts) {
     .join(' · ')
 }
 
-/** A Staff member's weekly shifts: one row per shift; an end before the start runs past midnight. */
+const PRESETS = [
+  { key: 'morning', label: 'Morning', start: '07:00', end: '15:00' },
+  { key: 'afternoon', label: 'Afternoon', start: '15:00', end: '23:00' },
+  { key: 'night', label: 'Night', start: '23:00', end: '07:00' },
+]
+const TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+
+/**
+ * A Staff member's weekly shifts as a week: one line per day with its shifts as chips. A shift is added from the
+ * day's list (Morning, Afternoon, Night or custom hours, 24-hour clock); an end before the start runs past midnight.
+ */
 function ShiftEditor({ shifts, onChange }) {
-  const set = (i, patch) => onChange(shifts.map((s, j) => (j === i ? { ...s, ...patch } : s)))
-  const add = (days, start = '07:00', end = '15:00') => onChange([...shifts, ...days.map((weekday) => ({ weekday, start, end }))])
+  const [custom, setCustom] = useState(null)
+  const add = (days, start, end) => {
+    const fresh = days.filter((d) => !shifts.some((s) => s.weekday === d && s.start === start)).map((weekday) => ({ weekday, start, end }))
+    if (fresh.length) onChange([...shifts, ...fresh])
+  }
+  const remove = (x) => onChange(shifts.filter((s) => s !== x))
+  const span = (s) => `${s.start}–${s.end}`
   return (
-    <fieldset className="flex flex-col gap-2">
+    <fieldset className="flex flex-col gap-3">
       <legend className="mb-1 text-base font-medium text-fg">{t('Weekly shifts')}</legend>
       <p className="text-sm text-fg-secondary">
         {t('Outside these hours, every change this person makes asks them to confirm and is marked in the staff activity log. No shift = always outside.')}
       </p>
-      {shifts.length === 0 && <p className="text-sm text-fg-tertiary">{t('No shift yet.')}</p>}
-      {shifts.map((s, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <Select
-            aria-label={t('Weekday')}
-            wrapperClassName="w-28"
-            value={s.weekday}
-            onChange={(e) => set(i, { weekday: Number(e.target.value) })}
-            options={WEEKDAYS.map((d, k) => ({ value: k + 1, label: t(d) }))}
-          />
-          <Input aria-label={t('Start')} type="time" className="w-32" value={s.start} onChange={(e) => set(i, { start: e.target.value })} />
-          <span aria-hidden="true">–</span>
-          <Input aria-label={t('End')} type="time" className="w-32" value={s.end} onChange={(e) => set(i, { end: e.target.value })} />
-          {s.end && s.start && s.end < s.start && <Tag>{t('Overnight')}</Tag>}
-          <Button variant="text" onClick={() => onChange(shifts.filter((_, j) => j !== i))}>
-            Remove
+      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-subtle px-3 py-2">
+        <span className="text-sm font-medium text-fg">{t('Mon–Fri:')}</span>
+        {PRESETS.map((p) => (
+          <Button key={p.key} size="sm" onClick={() => add([1, 2, 3, 4, 5], p.start, p.end)}>
+            {`${t(p.label)} ${p.start}–${p.end}`}
           </Button>
-        </div>
-      ))}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => add([1])}>
-          Add a shift
-        </Button>
-        <Button size="sm" onClick={() => add([1, 2, 3, 4, 5])}>
-          Mon–Fri 07:00–15:00
-        </Button>
-        <Button size="sm" onClick={() => add([1, 2, 3, 4, 5], '15:00', '23:00')}>
-          Mon–Fri 15:00–23:00
-        </Button>
+        ))}
         {shifts.length > 0 && (
-          <Button size="sm" variant="text" onClick={() => onChange([])}>
+          <Button size="sm" variant="text" className="ml-auto" onClick={() => onChange([])}>
             Clear all
           </Button>
         )}
+      </div>
+      <div className="flex flex-col rounded-lg border border-line">
+        {WEEKDAYS.map((name, i) => {
+          const day = i + 1
+          const mine = shifts.filter((s) => s.weekday === day).sort((a, b) => a.start.localeCompare(b.start))
+          return (
+            <div key={day} className="flex flex-col gap-2 border-b border-line px-3 py-2 last:border-b-0">
+              <div className="flex items-center gap-3">
+                <span className="w-9 shrink-0 font-medium text-fg">{t(name)}</span>
+                <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                  {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
+                  {mine.map((s) => (
+                    <span key={`${s.start}-${s.end}`} className="inline-flex h-7 items-center gap-1 rounded-full bg-primary-subtle pr-1 pl-2.5 text-sm font-medium text-fg-brand tabular">
+                      {span(s)}
+                      {s.end < s.start && <span className="font-normal text-fg-secondary">({t('overnight')})</span>}
+                      <button type="button" onClick={() => remove(s)} aria-label={t('Remove {span}', { span: span(s) })} className="rounded-full p-0.5 hover:bg-primary/15">
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <Select
+                  aria-label={t('Add a shift on {day}', { day: t(name) })}
+                  wrapperClassName="w-44 shrink-0"
+                  value=""
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === 'custom') setCustom({ weekday: day, start: '08:00', end: '17:00' })
+                    else {
+                      const p = PRESETS.find((x) => x.key === v)
+                      if (p) add([day], p.start, p.end)
+                    }
+                  }}
+                  options={[
+                    { value: '', label: t('+ Add a shift') },
+                    ...PRESETS.map((p) => ({ value: p.key, label: `${t(p.label)} ${p.start}–${p.end}` })),
+                    { value: 'custom', label: t('Custom hours…') },
+                  ]}
+                />
+              </div>
+              {custom?.weekday === day && (
+                <div className="flex flex-wrap items-center gap-2 pl-12">
+                  <Select aria-label={t('Start')} wrapperClassName="w-24 shrink-0" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })} options={TIMES} />
+                  <span aria-hidden="true">–</span>
+                  <Select aria-label={t('End')} wrapperClassName="w-24 shrink-0" value={custom.end} onChange={(e) => setCustom({ ...custom, end: e.target.value })} options={TIMES} />
+                  {custom.end < custom.start && <span className="text-sm text-fg-secondary">({t('overnight')})</span>}
+                  <Button size="sm" variant="primary" disabled={custom.start === custom.end} onClick={() => (add([day], custom.start, custom.end), setCustom(null))}>
+                    Add
+                  </Button>
+                  <Button size="sm" variant="text" onClick={() => setCustom(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </fieldset>
   )
