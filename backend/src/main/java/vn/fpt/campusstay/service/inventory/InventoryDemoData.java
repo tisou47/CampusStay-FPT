@@ -39,6 +39,13 @@ class InventoryDemoData implements DemoData {
         jdbc.execute("DELETE FROM inv_door_code_task");
         jdbc.execute("DELETE FROM inv_door_code");
         jdbc.execute("DELETE FROM inv_room_class_term");
+        // Damage recorded while trying a stage (inspections, inventories, check-outs) goes with the business data:
+        // the base data has no broken item.
+        jdbc.execute("""
+                UPDATE inv_furniture_item SET status = CASE WHEN room_id IS NULL THEN 'IN_STORE' ELSE 'IN_USE' END,
+                       updated_at = now(), version = version + 1
+                WHERE status IN ('BROKEN', 'IN_REPAIR')
+                """);
     }
 
     @Override
