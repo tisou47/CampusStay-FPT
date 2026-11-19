@@ -374,6 +374,11 @@ class InspectionIT {
                 .param("c", request).query().singleRow();
         assertThat(mr).containsEntry("category", "FURNITURE").containsEntry("item", furniture.substring("furniture-".length()))
                 .containsEntry("description", "Door hinge broken");
+        getAs("/maintenance-requests/" + request, bearer(mvc, MANAGER_A))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inspectionFinding.condition").value("Damaged"))
+                .andExpect(jsonPath("$.inspectionFinding.note").value("Door hinge broken"))
+                .andExpect(jsonPath("$.inspectionFinding.runId").value(run));
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
                 .andExpect(jsonPath("$.items[?(@.room == 'A-405')].status").value(hasItem("In progress")));
         putAs("/inspection-runs/" + run + "/rooms/A-405", staff, "{\"results\":[" + items + "]}")

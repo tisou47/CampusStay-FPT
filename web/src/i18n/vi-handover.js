@@ -465,4 +465,5 @@ export default {
   "Lower than the last reading ({value} {unit}). Read the meter again.": "Thấp hơn chỉ số lần trước ({value} {unit}). Hãy đọc lại công tơ.",
   "Print Report 1 forms": "In phiếu Báo cáo 1 (giấy)",
   "Could not print the forms": "Không in được phiếu",
+  "Found in the inspection": "Phát hiện khi kiểm tra phòng",
 }

@@ -90,7 +90,39 @@ public class MaintenanceDeskService {
             String location, Instant reportedAt, Reporter reporter, String urgency, String priority,
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
             String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
-            Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions) {
+            Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions,
+            InspectionFinding inspectionFinding) {
+    }
+
+    /**
+     * What the inspection that created the request found: the furniture item's condition (Worn, Damaged, Missing) or
+     * the checklist item's Fail, its note, the run and when the Room was inspected. Null for other requests.
+     */
+    public record InspectionFinding(String condition, String result, String note, String runId, Instant inspectedAt) {
+    }
+
+    private static final Map<String, String> FINDING_CONDITIONS = Map.of("GOOD", "Good", "WORN", "Worn", "DAMAGED",
+            "Damaged", "MISSING", "Missing");
+    private static final Map<String, String> FINDING_RESULTS = Map.of("PASS", "Pass", "FAIL", "Fail", "NOT_CHECKED",
+            "Not checked");
+
+    /** The inspection answer that created the request (a Room check or a checklist item), if any. */
+    private InspectionFinding finding(long requestId) {
+        return jdbc.sql("""
+                SELECT c.condition, c.result, c.note, r.run_id, r.inspected_at
+                FROM mnt_inspection_room_check c JOIN mnt_inspection_room r ON r.id = c.inspection_room_id
+                WHERE c.created_request_id = :id
+                UNION ALL
+                SELECT NULL, x.result, x.note, r.run_id, r.inspected_at
+                FROM mnt_inspection_result x JOIN mnt_inspection_room r ON r.id = x.inspection_room_id
+                WHERE x.created_request_id = :id
+                LIMIT 1
+                """).param("id", requestId)
+                .query((rs, i) -> new InspectionFinding(FINDING_CONDITIONS.get(rs.getString("condition")),
+                        FINDING_RESULTS.get(rs.getString("result")), rs.getString("note"),
+                        InspectionScheduleService.code(rs.getLong("run_id")),
+                        rs.getTimestamp("inspected_at") == null ? null : rs.getTimestamp("inspected_at").toInstant()))
+                .optional().orElse(null);
     }
 
     private static final Map<String, String> ROLES = Map.of("STUDENT", "Student", "STAFF", "Staff", "MANAGER",
@@ -267,7 +299,7 @@ public class MaintenanceDeskService {
                 history.stream().map(e -> new DeskEvent(e.actorId() == null ? "CampusStay" : names.get(e.actorId()),
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
-                room, r.slaDueAt(), item, furniture);
+                room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null);
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */

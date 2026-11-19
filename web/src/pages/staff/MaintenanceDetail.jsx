@@ -16,7 +16,7 @@ import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { campusToday, formatDateTime } from '@/lib/format'
-import { typeName } from '@/lib/furniture'
+import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
@@ -25,7 +25,8 @@ import { t, tr } from '@/i18n'
 //   reporter: { name, role }, urgency, priority, staffMayEnter, description, photos: [{ url, name }],
 //   assignee: { id, name } | null, suggestedAssigneeId, visitWindow,
 //   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm },
-//   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }] }
+//   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }],
+//   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null }
 // PATCH /maintenance-requests/:id { priority, furnitureItemId, assigneeId, visitWindow, status }
 // POST /maintenance-requests/:id/updates { message, internal }
 
@@ -86,6 +87,33 @@ function FurnitureItem({ r }) {
         onChange={(e) => save.run(e.target.value)}
       />
     </Fact>
+  )
+}
+
+/**
+ * What the inspection that created the request found (Report 1): the item's condition, kept apart from the request's
+ * own status, with the inspector's note, the run and the time.
+ */
+function InspectionFinding({ finding, item }) {
+  if (!finding) return null
+  const label = finding.condition ? conditionName(finding.condition) : t(finding.result ?? 'Fail')
+  const tone = finding.condition ? conditionTone[finding.condition] ?? 'neutral' : 'error'
+  return (
+    <div className="flex flex-col gap-1.5 rounded-md border border-line bg-subtle/60 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-fg">{t('Found in the inspection')}</span>
+        <Tag tone={tone}>{label}</Tag>
+        {item?.assetCode && (
+          <span className="text-sm text-fg-secondary">
+            {typeName(item)} · {item.assetCode}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-fg-secondary">
+        {[finding.runId, finding.inspectedAt ? formatDateTime(finding.inspectedAt) : null].filter(Boolean).join(' · ')}
+        {finding.note ? <span className="text-fg"> · {finding.note}</span> : null}
+      </p>
+    </div>
   )
 }
 
@@ -221,6 +249,7 @@ function RequestDetail({ r, staff, priorities }) {
         <div className="flex min-h-0 flex-col gap-4">
           {/* What the student reported */}
           <Card className="flex shrink-0 flex-col gap-4">
+            <InspectionFinding finding={r.inspectionFinding} item={r.furnitureItem} />
             {r.description && <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{r.description}</p>}
             {r.photos?.length > 0 && (
               <ul className="flex flex-wrap gap-2" aria-label={t('Photos')}>
