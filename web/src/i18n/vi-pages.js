@@ -1,4 +1,5 @@
-﻿/*
+﻿import roomHandover from './vi-handover.js'
+/*
  * Vietnamese texts of the screens (ADR-25), grouped by portal. Keys are the English texts of the code and of the
  * API's display labels; {name} marks a value. See ./vi.js for the glossary.
  */
@@ -1844,6 +1845,28 @@ const manager = {
   "All rooms": "Tất cả phòng",
   "Occupied Rooms": "Phòng có người ở",
   "Empty Rooms": "Phòng trống",
+  "Rooms new residents will receive (pre-arrival)": "Phòng đón sinh viên mới",
+  "Once": "Một lần",
+  "One-off (started)": "Đã phát sinh (1 lần)",
+  "Front Desk Officer": "Nhân viên quầy tiếp nhận",
+  "Inspection runs": "Các đợt thực thi kiểm tra",
+  "Actual execution runs generated from the schedules above (code, assigned staff, room progress and failed items).": "Các đợt kiểm tra thực tế phát sinh từ lịch phía trên (mã đợt, nhân viên phụ trách, tiến độ phòng và số mục không đạt).",
+  "Pre-arrival check Block {code} (demo)": "Kiểm tra phòng trước nhận phòng · Tòa {code}",
+  "Pre-arrival check Block {code}": "Kiểm tra phòng trước nhận phòng · Tòa {code}",
+  "Pre-arrival check (demo)": "Kiểm tra phòng trước nhận phòng · Tòa A",
+  "Pre-arrival check": "Kiểm tra phòng trước nhận phòng",
+  "Room turnover check · v{v}": "Kiểm tra bàn giao & chuyển kỳ · v{v}",
+  "Room turnover check": "Kiểm tra bàn giao & chuyển kỳ",
+  "Room safety check · v{v}": "Kiểm tra an toàn phòng ở · v{v}",
+  "Room safety check": "Kiểm tra an toàn phòng ở",
+  "Lights and sockets work": "Đèn chiếu sáng và ổ cắm điện hoạt động tốt",
+  "Taps, shower and toilet work without leaks": "Vòi nước, vòi sen và bồn cầu hoạt động tốt, không rò rỉ",
+  "Door lock and windows close properly": "Khóa cửa chính và cửa sổ đóng mở chắc chắn",
+  "Smoke detector works": "Đầu báo khói và thiết bị báo cháy hoạt động tốt",
+  "No leaks under the sink or in the shower": "Không rò rỉ nước dưới bồn rửa và khu vực tắm",
+  "Air conditioner cools and drains": "Máy điều hòa làm mát tốt, thoát nước bình thường",
+  "Beds, desks and wardrobes are intact": "Giường, bàn học và tủ quần áo nguyên vẹn",
+  "Room is clean": "Phòng ở sạch sẽ, gọn gàng",
   "{name} no longer works in this Block. Choose another assignee.": "{name} không còn làm ở tòa này. Hãy chọn người xử lý khác.",
   "{name} is off duty today and the rule has no fallback.": "{name} nghỉ hôm nay và quy tắc không có người dự phòng.",
   "{name} is off duty today and so is the fallback.": "{name} nghỉ hôm nay và người dự phòng cũng nghỉ.",
@@ -4796,6 +4819,16 @@ const managerOverview = {
   "Every decision that needs a manager, the most urgent first": "Mọi quyết định cần quản lý, việc khẩn cấp nhất ở trước",
   "{stage} · {n} days left": "{stage} · còn {n} ngày",
   "{n}/{total} beds": "{n}/{total} giường",
+  "Shared · {full} ÷ {n} residents": "Đồ chung · {full} ÷ {n} thành viên",
+  "Shared item: {full} ÷ {n} residents; roommates get an invoice for their share": "Đồ chung: {full} ÷ {n} thành viên (các thành viên còn lại nhận hóa đơn phần của mình)",
+  "Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.": "Phí hư hỏng nội thất chung được chia đều cho các thành viên đang ở; các thành viên còn lại sẽ nhận hóa đơn và thông báo cho phần của mình.",
+  "Print all unfinished forms": "Tải / In toàn bộ phiếu chưa làm",
+  "Print all completed forms": "Tải / In toàn bộ phiếu đã làm",
+  "Unfinished inspection forms · {run}": "Phiếu kiểm tra chưa làm · {run}",
+  "Completed inspection forms · {run}": "Phiếu kiểm tra đã làm · {run}",
+  "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
+  "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
+  "Page {n} / {total}": "Trang {n} / {total}",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview }
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

@@ -204,4 +204,26 @@ class AdminFurnitureIT {
         mvc.perform(get("/admin/furniture-types").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.conditions[*].percent", contains(100, 75, 50, 0)));
     }
+
+    /**
+     * TC-INV-027: the four condition levels the room handover records its conditions on (Intact, Partly damaged, More
+     * than half damaged, Completely damaged) cannot be removed; renaming them or changing their value is allowed.
+     */
+    @Test
+    void handoverLevelsStay() throws Exception {
+        String admin = bearer(mvc, ADMIN);
+        String three = "{\"code\":\"INTACT\",\"name\":\"Intact\",\"nameVi\":\"Nguyên vẹn\",\"percent\":100},"
+                + "{\"code\":\"PARTLY_DAMAGED\",\"name\":\"Partly damaged\",\"nameVi\":\"Hư một phần\",\"percent\":75},"
+                + "{\"code\":\"MOSTLY_DAMAGED\",\"name\":\"More than half damaged\",\"nameVi\":\"Hư hơn một nửa\",\"percent\":50}";
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.items")
+                        .value("Keep the first four levels: inspections, check-in inventories and check-outs use them."));
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three
+                        + ",{\"code\":\"DESTROYED\",\"name\":\"Lost or destroyed\",\"nameVi\":\"Mất hoặc hư hoàn toàn\",\"percent\":0}]}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(json(put("/admin/furniture-conditions"), admin, "{\"items\":[" + three
+                        + ",{\"code\":\"DESTROYED\",\"name\":\"Completely damaged\",\"nameVi\":\"Hư hoàn toàn\",\"percent\":0}]}"))
+                .andExpect(status().isNoContent());
+    }
 }

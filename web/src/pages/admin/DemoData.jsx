@@ -123,10 +123,10 @@ export default function DemoData() {
             <THead>
               <tr>
                 <Th className="w-16">ID</Th>
-                <Th className="w-72">Account</Th>
-                <Th className="w-24">Role</Th>
-                <Th>Scenario</Th>
-                <Th className="w-96">Where</Th>
+                <Th className="w-56">Account</Th>
+                <Th className="w-32">Role</Th>
+                <Th className="min-w-112">Scenario</Th>
+                <Th className="w-64">Where</Th>
               </tr>
             </THead>
             <TBody>
@@ -139,8 +139,8 @@ export default function DemoData() {
                       {s.role}
                     </Tag>
                   </Td>
-                  <Td>{vi ? s.scenarioVi : s.scenario}</Td>
-                  <Td className="text-fg-secondary">{vi ? s.whereVi : s.where}</Td>
+                  <Td wrap className="min-w-112">{vi ? s.scenarioVi : s.scenario}</Td>
+                  <Td wrap className="text-fg-secondary">{vi ? s.whereVi : s.where}</Td>
                 </Tr>
               ))}
             </TBody>

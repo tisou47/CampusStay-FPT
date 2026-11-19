@@ -77,6 +77,12 @@ UPDATE inv_room SET status = 'OUT_OF_SERVICE', oos_since = '2026-10-10 02:00:00+
                     oos_note = 'Water leak under the bathroom sink'
 WHERE code = 'A-305' AND status = 'IN_SERVICE';
 
+-- Price of one new item (V75), used by the check-out charges; a price a test has set is kept.
+UPDATE inv_furniture_type t SET unit_price = v.price, updated_at = now()
+FROM (VALUES ('BED', 2000000), ('WRD', 2500000), ('DESK', 1500000), ('FAN', 800000), ('AC', 8000000),
+             ('WH', 3500000), ('FRG', 5000000)) AS v(code, price)
+WHERE t.code = v.code AND t.unit_price IS NULL;
+
 -- ---------- furniture: Room Class requirements and items ----------
 -- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
 INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)
@@ -229,3 +235,7 @@ UPDATE auth_user SET locale = 'en' WHERE locale <> 'en' AND email LIKE '%campuss
 
 -- ---------- the seed accounts are fictional (O-3: their emails may go to the demo mailbox) ----------
 UPDATE auth_user SET demo = TRUE WHERE NOT demo AND email LIKE '%campusstay.test';
+
+-- The check-in inventory gate (V78) is off in the tests that do not exercise it: residents receive their door code
+-- when they pay, as before. HandoverIT turns it on for its own tests.
+UPDATE cfg_parameter SET value = 'false' WHERE key = 'handover.required';

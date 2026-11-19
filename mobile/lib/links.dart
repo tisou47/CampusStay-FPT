@@ -6,6 +6,7 @@ import 'screens/account.dart';
 import 'screens/applications.dart';
 import 'screens/apply.dart';
 import 'screens/family_day.dart';
+import 'screens/handover.dart';
 import 'screens/notifications.dart';
 import 'screens/payments.dart';
 import 'screens/registration.dart';
@@ -43,6 +44,7 @@ Future<void> openLink(BuildContext context, String? link) async {
     'requests' when at(1) == 'room-change' => const NewRoomChangeScreen(),
     'requests' when at(1) == 'swap' && at(2) == 'invitations' && p.length > 3 => SwapInvitationScreen(id: at(3)),
     'requests' when at(1) == 'swap' => SwapScreen(board: at(2) == 'board'),
+    'room' when at(1) == 'inventory' => const HandoverScreen(),
     'family-days' when p.length > 1 => FamilyDayScreen(id: at(1)),
     'family-days' => const FamilyDaysScreen(),
     'notifications' => const NotificationsScreen(),

@@ -152,36 +152,47 @@ function ConditionsDrawer({ conditions, onClose }) {
         </div>
         {rows.map((r) => (
           <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2">
-            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="vd. Trầy xước" />
+            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="e.g. Scratched" />
             <Input aria-label={t('Value (%)')} inputMode="numeric" value={r.percent} onChange={(e) => setRow(r.key, 'percent', e.target.value.replace(/\D/g, '').slice(0, 3))} />
-            <IconButton icon={Trash2} aria-label={t('Remove level')} onClick={() => remove(r.key)} disabled={rows.length === 1} />
+            <IconButton icon={Trash2} aria-label={t('Remove level')} onClick={() => remove(r.key)} disabled={rows.length === 1 || HANDOVER_LEVELS.includes(r.code)} />
           </div>
         ))}
         <Button icon={Plus} onClick={add} className="self-start">
           Add level
         </Button>
       </div>
+      <p className="mt-4 text-sm text-fg-secondary">
+        {t('Inspections, check-in inventories and check-outs use the first four levels: Good is Intact, Worn is Partly damaged, Damaged is More than half damaged and Missing is Completely damaged. At check-out a student pays the share of the real price lost since their check-in inventory.')}
+      </p>
     </Drawer>
   )
 }
+
+// Levels the room handover records its conditions on (backend Inventory.conditionLoss): they cannot be removed.
+const HANDOVER_LEVELS = ['INTACT', 'PARTLY_DAMAGED', 'MOSTLY_DAMAGED', 'DESTROYED']
 
 // The condition levels: what share of its real price an item in each is still worth. Chips wrap, so any number fits.
 function ConditionsCard({ conditions, onEdit }) {
   const { lang } = useI18n()
   return (
-    <Card padding="sm" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
-      <h2 className="text-base font-semibold text-fg">{t('Condition levels')}</h2>
-      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        {conditions.map((c) => (
-          <li key={c.code} className="inline-flex items-center gap-2 rounded-full border border-line bg-subtle py-1 pr-1 pl-3 text-sm">
-            <span className="text-fg">{lang === 'vi' ? c.nameVi : c.name}</span>
-            <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-fg tabular">{c.percent} %</span>
-          </li>
-        ))}
-      </ul>
-      <Button size="sm" icon={Pencil} onClick={onEdit}>
-        Edit levels
-      </Button>
+    <Card padding="sm" className="flex shrink-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h2 className="text-base font-semibold text-fg">{t('Condition levels')}</h2>
+        <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          {conditions.map((c) => (
+            <li key={c.code} className="inline-flex items-center gap-2 rounded-full border border-line bg-subtle py-1 pr-1 pl-3 text-sm">
+              <span className="text-fg">{lang === 'vi' ? c.nameVi : c.name}</span>
+              <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-fg tabular">{c.percent} %</span>
+            </li>
+          ))}
+        </ul>
+        <Button size="sm" icon={Pencil} onClick={onEdit}>
+          Edit levels
+        </Button>
+      </div>
+      <p className="text-xs text-fg-secondary">
+        {t('Share of the asset’s remaining usable value; the percentage lost compared to 100% is used to calculate compensation at check-out.')}
+      </p>
     </Card>
   )
 }

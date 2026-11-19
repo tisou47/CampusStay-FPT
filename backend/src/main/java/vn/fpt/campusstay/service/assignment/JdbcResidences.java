@@ -123,4 +123,17 @@ class JdbcResidences implements Residences {
                 .query((rs, i) -> Map.entry(rs.getLong("bed_id"), rs.getLong("student_id"))).list().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
     }
+
+    @Override
+    public Set<Long> awaitingArrival(Collection<Long> bedIds) {
+        if (bedIds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(jdbc.sql("""
+                SELECT DISTINCT a.bed_id FROM asg_allocation a
+                WHERE a.status = 'ACTIVE' AND a.resident_at IS NULL AND a.bed_id IN (:beds)
+                  AND NOT EXISTS (SELECT 1 FROM asg_allocation p
+                                  WHERE p.id = a.previous_allocation_id AND p.bed_id = a.bed_id)
+                """).param("beds", List.copyOf(bedIds)).query(Long.class).list());
+    }
 }

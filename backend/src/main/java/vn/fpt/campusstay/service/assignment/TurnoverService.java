@@ -59,13 +59,18 @@ public class TurnoverService {
     public record Mover(Person student, String from, String to, String fee, boolean moved) {
     }
 
+    /** The Room's latest reading and date, shown to Staff/Manager when entering a turnover meter reading. */
+    public record PreviousMeters(BigDecimal electricity, BigDecimal water, LocalDate date) {
+    }
+
     /**
      * @param doorCodeReady the Room's code is confirmed with no change waiting (residents can receive it)
      * @param matches       the Room's furniture matches its Room Class of the next Term
      * @param lastMeterCut  the day of its latest meter reading; {@code lastElectricity}, {@code lastWater} its values
      */
     public record RoomChange(String room, String block, int leaving, int arriving, boolean doorCodeReady,
-            String roomClass, boolean matches, LocalDate lastMeterCut, BigDecimal lastElectricity, BigDecimal lastWater) {
+            String roomClass, boolean matches, LocalDate lastMeterCut, BigDecimal lastElectricity, BigDecimal lastWater,
+            PreviousMeters previousMeters) {
     }
 
     public record Counts(long leavers, long checkedOut, long overdue, long movers, long staying, long arriving,
@@ -205,9 +210,12 @@ public class TurnoverService {
             Inventory.BedSlot b = roomBeds.get(id);
             int[] c = changes.get(id);
             Billing.MeterCut cut = cuts.get(id);
+            PreviousMeters previousMeters = billing.lastReading(id)
+                    .map(r -> new PreviousMeters(r.electricity(), r.water(), r.date())).orElse(null);
             return new RoomChange(b.roomCode(), b.block(), c[0], c[1], ready.contains(id),
                     classNames.get(classes.classOf(id, w.termId())), matches.getOrDefault(id, true),
-                    cut == null ? null : cut.day(), cut == null ? null : cut.electricity(), cut == null ? null : cut.water());
+                    cut == null ? null : cut.day(), cut == null ? null : cut.electricity(), cut == null ? null : cut.water(),
+                    previousMeters);
         }).sorted(Comparator.comparing(RoomChange::room)).toList();
         leavers.sort(Comparator.comparing((Leaver l) -> l.status().equals("Checked out")).thenComparing(Leaver::room)
                 .thenComparing(Leaver::bed));

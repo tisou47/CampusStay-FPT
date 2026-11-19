@@ -86,9 +86,9 @@ class DeskController {
     @GetMapping("/check-out")
     DeskService.CheckOutPage checkOutList(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block, @RequestParam(required = false) String q,
-            @RequestParam(required = false) String reason, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return desk.checkOutList(termId, block, q, reason, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String reason, @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return desk.checkOutList(termId, block, q, reason, status, PageQuery.of(page, pageSize));
     }
 
     @GetMapping("/check-out/{allocationId}")

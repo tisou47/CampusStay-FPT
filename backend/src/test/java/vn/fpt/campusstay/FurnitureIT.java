@@ -209,6 +209,51 @@ class FurnitureIT {
                 .andExpect(jsonPath("$.item.plannedMove").value((Object) null));
     }
 
+    /**
+     * TC-INV-028 (business rule): the stock per Block counts the store, the Rooms and broken items and values the
+     * store at the types' real prices; another Block is refused to Staff. A personal item that leaves its Room loses
+     * its Bed and gets a free Bed of the Room it is moved back to.
+     */
+    @Test
+    void stockAndPersonalItemsFollowTheirBed() throws Exception {
+        String staff = bearer(mvc, STAFF_A);
+        String fridge = String.valueOf(typeId("FRG"));
+        String stock = mvc.perform(get("/furniture/stock").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blocks", contains("A")))
+                .andExpect(jsonPath("$.rows[?(@.typeId == '" + fridge + "')].inStore").value(hasItem(
+                        org.hamcrest.Matchers.greaterThanOrEqualTo(1))))
+                .andReturn().getResponse().getContentAsString();
+        List<Integer> inStore = JsonPath.read(stock, "$.rows[?(@.typeId == '" + fridge + "')].inStore");
+        List<Integer> value = JsonPath.read(stock, "$.rows[?(@.typeId == '" + fridge + "')].storeValue");
+        long price = jdbc.sql("SELECT coalesce(unit_price, 0) FROM inv_furniture_type WHERE code = 'FRG'")
+                .query(Long.class).single();
+        org.assertj.core.api.Assertions.assertThat(value.getFirst().longValue()).isEqualTo(price * inStore.getFirst());
+        mvc.perform(get("/furniture/stock").header(HttpHeaders.AUTHORIZATION, bearer(mvc, STAFF_B2)).param("block", "A"))
+                .andExpect(status().isForbidden());
+
+        // Two desks registered into A-109 (a 6-bed Room without desks) take Beds A and B.
+        send(post("/furniture"), bearer(mvc, MANAGER_B), "{\"typeId\":\"%d\",\"block\":\"A\",\"room\":\"A-109\",\"quantity\":2}"
+                .formatted(typeId("DESK"))).andExpect(status().isOk());
+        record Linked(long id, long bedId, String room, String bed) {
+        }
+        List<Linked> desks = jdbc.sql("""
+                SELECT i.id, i.bed_id, r.code, b.label FROM inv_furniture_item i JOIN inv_room r ON r.id = i.room_id
+                JOIN inv_bed b ON b.id = i.bed_id JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                WHERE r.code = 'A-109' AND t.code = 'DESK' ORDER BY b.label
+                """).query((rs, i) -> new Linked(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4))).list();
+        org.assertj.core.api.Assertions.assertThat(desks).extracting(Linked::bed).containsExactly("A", "B");
+        Linked linked = desks.getFirst();
+        send(post("/furniture/moves"), staff, "{\"items\":[\"%d\"],\"toStore\":\"A\",\"reason\":\"Repaint\",\"planned\":false}"
+                .formatted(linked.id())).andExpect(status().isOk());
+        org.assertj.core.api.Assertions.assertThat(jdbc.sql("SELECT bed_id IS NULL FROM inv_furniture_item WHERE id = :id")
+                .param("id", linked.id()).query(Boolean.class).single()).isTrue();
+        send(post("/furniture/moves"), staff, "{\"items\":[\"%d\"],\"toRoom\":\"%s\",\"reason\":\"Back\",\"planned\":false}"
+                .formatted(linked.id(), linked.room())).andExpect(status().isOk());
+        org.assertj.core.api.Assertions.assertThat(jdbc.sql("SELECT bed_id FROM inv_furniture_item WHERE id = :id")
+                .param("id", linked.id()).query(Long.class).single()).isEqualTo(linked.bedId());
+    }
+
     /** TC-INV-018 (validation): status changes follow the place, Disposed is final, and every change is recorded. */
     @Test
     void changesStatus() throws Exception {

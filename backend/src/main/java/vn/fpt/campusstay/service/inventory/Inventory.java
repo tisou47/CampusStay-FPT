@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.inventory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -72,10 +73,43 @@ public interface Inventory {
     /** The items in the Room that are not disposed, by type then asset code. */
     List<RoomFurniture> furnitureOf(long roomId);
 
-    /** A condition level of furniture: the share of the real price an item in that condition is still worth. */
-    record ConditionLevel(String code, String name, String nameVi, int percent) {
+    /**
+     * A furniture item of a Room with what the check-in inventory and check-out need.
+     *
+     * @param personal the item belongs to one Bed ({@code bedId}, null while it is not linked to one)
+     * @param status   {@code IN_USE}, {@code BROKEN} or {@code IN_REPAIR}
+     */
+    record FurnitureLine(long id, String assetCode, long typeId, String type, String typeVi, boolean personal,
+            Long bedId, String bedLabel, String status, String condition) {
     }
 
-    /** The condition levels, best first (Admin › Furniture types sets them). */
+    /** One Admin condition level with its handover key (Good/Worn/Damaged/Missing) and remaining/loss %. */
+    record ConditionLevel(String code, String handoverKey, String name, String nameVi, int remainingPercent,
+            int lossPercent) {
+    }
+
+    /** The Room's items that are not disposed, shared ones first, then by Bed, type and asset code. */
+    List<FurnitureLine> furnitureLines(long roomId);
+
+    /** Furniture type id → the price of one new item (Admin › Furniture types, V75); types without a price are left out. */
+    Map<Long, Long> furniturePrices();
+
+    /**
+     * The share of an item's price lost in each condition an inspection, an inventory or a check-out records, from
+     * the condition levels of Admin › Furniture types (100 − the value the level keeps): {@code GOOD} is Intact,
+     * {@code WORN} Partly damaged, {@code DAMAGED} More than half damaged and {@code MISSING} Completely damaged.
+     *
+     * @return condition → percent of the price (0–100)
+     */
+    Map<String, Integer> conditionLoss();
+
+    /** The Admin-configured condition levels mapped to handover keys, ordered best first. */
     List<ConditionLevel> conditionLevels();
+
+    /**
+     * Plans a move of an item of the type from the Block's store to the Room (a missing item found in an inspection
+     * or an inventory). Runs in the caller's transaction. @return the asset code of the planned item, or empty when
+     * the store has none free
+     */
+    Optional<String> planRestock(long roomId, long furnitureTypeId, String reason, long by);
 }

@@ -37,7 +37,8 @@ public class StaffActivityService {
 
     static {
         // In the order of the Staff menu.
-        for (String p : List.of("/check-in", "/check-out", "/late-check-ins")) {
+        // "/check-out" also covers the check-out furniture ("/check-outs/…"); "/handovers" are the check-in inventories.
+        for (String p : List.of("/check-in", "/check-out", "/late-check-ins", "/handovers")) {
             HANDLE_BY_PATH.put(p, "DESK");
         }
         HANDLE_BY_PATH.put("/family-day-visitors", "FAMILY_DAY");

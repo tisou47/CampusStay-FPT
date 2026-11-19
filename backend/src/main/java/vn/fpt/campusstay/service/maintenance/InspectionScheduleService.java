@@ -23,11 +23,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.InspectionAssigned;
 import vn.fpt.campusstay.service.assignment.Residences;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
 import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
+import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 import vn.fpt.campusstay.dto.setting.TermSummary;
@@ -52,17 +54,27 @@ public class InspectionScheduleService {
     public record Options(List<Option> checklists, List<Option> scopes, List<Option> repeats, List<Option> assignees) {
     }
 
-    /** @param scope and {@code repeat} are option values; {@code assignee} a user id; {@code status} Active or Paused */
+    /** @param scope and {@code repeat} are option values; {@code assignee} a user id; {@code status} Active, Paused or Completed */
     public record ScheduleItem(String id, String name, String checklistId, String scope, String scopeLabel,
             String repeat, String repeatLabel, String assignee, int dueWithinDays, boolean createRequests,
-            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt) {
+            boolean notifyResidents, Instant nextRunAt, String status, Instant createdAt, String block,
+            boolean latestRunSubmitted) {
     }
 
-    /** @param status Planned, In progress or Done */
-    public record RunItem(String id, String assigneeName, int inspected, int rooms, int failed, String status) {
+    /**
+     * @param status Planned, In progress or Done; {@code unreachable} Rooms not reached; {@code overdue} not sent by
+     *               its due date
+     */
+    public record RunItem(String id, String assigneeName, int inspected, int rooms, int failed, String status,
+            String block, String scheduleName, LocalDate date, Instant dueAt, int unreachable, boolean overdue) {
     }
 
-    public record Page(List<ScheduleItem> items, List<RunItem> runs, Options options) {
+    /**
+     * @param block   the Block shown, null for every Block in scope
+     * @param options null for every Block: a schedule is created and changed in its own Block
+     * @param blocks  the Blocks in scope, for the filter
+     */
+    public record Page(List<ScheduleItem> items, List<RunItem> runs, Options options, String block, List<String> blocks) {
     }
 
     public record Created(String id) {
@@ -86,7 +98,7 @@ public class InspectionScheduleService {
     private static final Map<String, String> SCOPES = new LinkedHashMap<>();
     private static final Map<String, String> REPEATS = new LinkedHashMap<>();
     static final Map<String, String> RUN_STATUSES = Map.of("SCHEDULED", "Planned", "IN_PROGRESS", "In progress",
-            "SUBMITTED", "Done");
+            "SUBMITTED", "Completed");
     /** Runs start at this hour, campus time. */
     static final int START_HOUR = 6;
     private static final int MAX_DUE_DAYS = 60;
@@ -96,6 +108,7 @@ public class InspectionScheduleService {
         SCOPES.put("ALL_ROOMS", "All Rooms");
         SCOPES.put("OCCUPIED", "Occupied Rooms");
         SCOPES.put("EMPTY", "Empty Rooms");
+        SCOPES.put("INCOMING", "Rooms new residents will receive (pre-arrival)");
         REPEATS.put("ONCE", "Once");
         REPEATS.put("WEEKLY", "Every week");
         REPEATS.put("MONTHLY", "Every month");
@@ -113,10 +126,13 @@ public class InspectionScheduleService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final BlockDirectory blockCodes;
 
     public InspectionScheduleService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope,
             UserDirectory users, Inventory inventory, Residences residences, TermCatalog terms,
-            ChecklistService checklists, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ChecklistService checklists, ApplicationEventPublisher events, AuditLog audit, Clock clock,
+            BlockDirectory blockCodes) {
+        this.blockCodes = blockCodes;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -132,37 +148,73 @@ public class InspectionScheduleService {
 
     // ---------------------------------------------------------------- screen
 
+    /**
+     * The schedules and recent runs of one Block, or of every Block in scope when {@code block} is blank or
+     * {@code all} (then without the editor options: a schedule is changed in its own Block).
+     */
     @Transactional(readOnly = true)
     public Page list(String block) {
         currentUser.require(Permission.MANAGE_BLOCK);
-        long building = building(block);
-        List<Schedule> schedules = jdbc.sql("SELECT * FROM mnt_inspection_schedule WHERE building_id = :b ORDER BY name, id")
-                .param("b", building).query(InspectionScheduleService::schedule).list();
-        record Run(long id, Long inspectorId, String status, int rooms, int inspected, int failed) {
+        boolean every = block == null || block.isBlank() || "all".equalsIgnoreCase(block.trim());
+        BlockSelection selection = blockScope.resolve(every ? null : block);
+        if (!every && !selection.single()) {
+            throw FieldErrors.single("block", "Choose a Block.");
+        }
+        List<Long> buildings = List.copyOf(selection.ids());
+        Map<Long, String> codes = blockCodes.codesByIds(selection.ids());
+        List<Schedule> schedules = jdbc.sql("""
+                SELECT * FROM mnt_inspection_schedule WHERE building_id IN (:b)
+                ORDER BY (kind = 'PRE_ARRIVAL' OR scope = 'INCOMING') DESC, (status = 'ACTIVE') DESC,
+                         (status = 'PAUSED') DESC, name, id
+                """).param("b", buildings).query(InspectionScheduleService::schedule).list();
+        Set<Long> submittedSchedules = schedules.isEmpty() ? Set.of() : Set.copyOf(jdbc.sql("""
+                SELECT DISTINCT r.schedule_id FROM mnt_inspection_run r
+                WHERE r.schedule_id IN (:ids) AND r.status = 'SUBMITTED'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM mnt_inspection_run r2
+                      WHERE r2.schedule_id = r.schedule_id AND r2.status <> 'SUBMITTED' AND r2.id > r.id
+                  )
+                """).param("ids", schedules.stream().map(Schedule::id).toList()).query(Long.class).list());
+        record Run(long id, long buildingId, Long inspectorId, String status, int rooms, int inspected, int failed,
+                int unreachable, String scheduleName, LocalDate date, Instant dueAt) {
         }
         List<Run> recent = jdbc.sql("""
-                SELECT r.id, r.inspector_id, r.status,
+                SELECT r.id, r.building_id, r.inspector_id, r.status, r.run_date, r.due_at, s.name AS schedule_name,
                        (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id) AS rooms,
                        (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id AND x.status = 'INSPECTED')
                            AS inspected,
-                       (SELECT count(*) FROM mnt_inspection_result s JOIN mnt_inspection_room x
-                               ON x.id = s.inspection_room_id WHERE x.run_id = r.id AND s.result = 'FAIL') AS failed
-                FROM mnt_inspection_run r WHERE r.building_id = :b
-                ORDER BY r.run_date DESC, r.id DESC LIMIT :limit
-                """).param("b", building).param("limit", RECENT_RUNS)
-                .query((rs, i) -> new Run(rs.getLong("id"), rs.getObject("inspector_id", Long.class),
-                        rs.getString("status"), rs.getInt("rooms"), rs.getInt("inspected"), rs.getInt("failed")))
+                       (SELECT count(*) FROM mnt_inspection_room x WHERE x.run_id = r.id AND x.status = 'UNREACHABLE')
+                           AS unreachable,
+                       (SELECT count(*) FROM mnt_inspection_result s2 JOIN mnt_inspection_room x
+                               ON x.id = s2.inspection_room_id WHERE x.run_id = r.id AND s2.result = 'FAIL')
+                       + (SELECT count(*) FROM mnt_inspection_room_check c JOIN mnt_inspection_room x
+                               ON x.id = c.inspection_room_id WHERE x.run_id = r.id AND c.result = 'FAIL') AS failed
+                FROM mnt_inspection_run r LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
+                WHERE r.building_id IN (:b)
+                ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC, (r.status <> 'SUBMITTED') DESC,
+                         r.run_date DESC, r.id DESC
+                LIMIT :limit
+                """).param("b", buildings).param("limit", every ? RECENT_RUNS * 3 : RECENT_RUNS)
+                .query((rs, i) -> new Run(rs.getLong("id"), rs.getLong("building_id"),
+                        rs.getObject("inspector_id", Long.class), rs.getString("status"), rs.getInt("rooms"),
+                        rs.getInt("inspected"), rs.getInt("failed"), rs.getInt("unreachable"),
+                        rs.getString("schedule_name"), rs.getObject("run_date", LocalDate.class),
+                        rs.getTimestamp("due_at").toInstant()))
                 .list();
         Map<Long, String> inspectors = users.displayNames(recent.stream().map(Run::inspectorId)
                 .filter(Objects::nonNull).collect(Collectors.toSet()));
+        Instant now = Instant.now(clock);
         List<RunItem> runs = recent.stream().map(r -> new RunItem(code(r.id()),
                 r.inspectorId() == null ? null : inspectors.get(r.inspectorId()), r.inspected(), r.rooms(), r.failed(),
-                RUN_STATUSES.get(r.status()))).toList();
+                RUN_STATUSES.get(r.status()), codes.get(r.buildingId()), r.scheduleName(), r.date(), r.dueAt(),
+                r.unreachable(), !r.status().equals("SUBMITTED") && r.dueAt().isBefore(now))).toList();
         return new Page(schedules.stream().map(s -> new ScheduleItem(String.valueOf(s.id()), s.name(), s.family(),
                 s.scopeValue(), scopeLabel(s.scope(), s.floor()), s.repeat(), REPEATS.get(s.repeat()),
                 s.assigneeId() == null ? null : String.valueOf(s.assigneeId()), s.dueWithinDays(), s.createRequests(),
-                s.notifyResidents(), s.nextRunAt(), s.status().equals("ACTIVE") ? "Active" : "Paused", s.createdAt()))
-                .toList(), runs, options(building));
+                s.notifyResidents(), s.nextRunAt(), scheduleStatusLabel(s.status()), s.createdAt(),
+                codes.get(s.buildingId()), submittedSchedules.contains(s.id())))
+                .toList(), runs, every ? null : options(selection.singleId()),
+                every ? null : codes.get(selection.singleId()), codes.values().stream().sorted().toList());
     }
 
     // ---------------------------------------------------------------- changes
@@ -188,8 +240,9 @@ public class InspectionScheduleService {
         long id = jdbc.sql("""
                 INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, floors, repeat,
                                                      assignee_id, due_within_days, create_requests, notify_residents,
-                                                     next_run_at, created_at)
-                VALUES (:b, :name, :family, :scope, :floors, :repeat, :assignee, :due, :requests, :notify, :now, :now)
+                                                     next_run_at, created_at, kind)
+                VALUES (:b, :name, :family, :scope, :floors, :repeat, :assignee, :due, :requests, :notify, :now, :now,
+                        :kind)
                 RETURNING id
                 """)
                 .param("b", building).param("name", name).param("family", family).param("scope", scope[0])
@@ -197,6 +250,7 @@ public class InspectionScheduleService {
                 .param("repeat", repeat).param("assignee", assignee).param("due", due)
                 .param("requests", !Boolean.FALSE.equals(body.get("createRequests")))
                 .param("notify", !Boolean.FALSE.equals(body.get("notifyResidents"))).param("now", Timestamp.from(now))
+                .param("kind", scope[0].equals("INCOMING") ? "PRE_ARRIVAL" : "PERIODIC")
                 .query(Long.class).single();
         audit.record("INSPECTION_SCHEDULE_CREATED", AuditLog.Tone.INFO, "Inspection schedule", id, name, null);
         start(find(id, true), now);
@@ -222,8 +276,10 @@ public class InspectionScheduleService {
         String status = s.status();
         if (body.containsKey("status")) {
             String value = text(body.get("status"));
-            status = value.equalsIgnoreCase("Active") ? "ACTIVE" : value.equalsIgnoreCase("Paused") ? "PAUSED" : null;
-            errors.check(status != null, "status", "Choose Active or Paused.");
+            status = value.equalsIgnoreCase("Active") ? "ACTIVE"
+                    : value.equalsIgnoreCase("Paused") ? "PAUSED"
+                    : value.equalsIgnoreCase("Completed") ? "COMPLETED" : null;
+            errors.check(status != null, "status", "Choose Active, Paused or Completed.");
         }
         errors.throwIfAny();
         if (status.equals("ACTIVE") && !s.status().equals("ACTIVE") && checklists.published(family).isEmpty()) {
@@ -232,7 +288,9 @@ public class InspectionScheduleService {
         jdbc.sql("""
                 UPDATE mnt_inspection_schedule SET name = :name, checklist_family = :family, scope = :scope,
                        floors = :floors, repeat = :repeat, assignee_id = :assignee, due_within_days = :due,
-                       create_requests = :requests, notify_residents = :notify, status = :status, version = version + 1
+                       create_requests = :requests, notify_residents = :notify, status = :status,
+                       next_run_at = CASE WHEN :status = 'COMPLETED' THEN NULL ELSE next_run_at END,
+                       kind = CASE WHEN :scope = 'INCOMING' THEN 'PRE_ARRIVAL' ELSE 'PERIODIC' END, version = version + 1
                 WHERE id = :id
                 """)
                 .param("name", name).param("family", family).param("scope", scope[0])
@@ -243,8 +301,33 @@ public class InspectionScheduleService {
                 .param("notify", body.containsKey("notifyResidents") ? !Boolean.FALSE.equals(body.get("notifyResidents"))
                         : s.notifyResidents())
                 .param("status", status).param("id", s.id()).update();
+        if (assignee != null) {
+            jdbc.sql("""
+                    UPDATE mnt_inspection_run SET inspector_id = :assignee
+                    WHERE schedule_id = :id AND status <> 'SUBMITTED'
+                    """).param("assignee", assignee).param("id", s.id()).update();
+            if (!Objects.equals(assignee, s.assigneeId())) {
+                jdbc.sql("""
+                        SELECT id, due_at FROM mnt_inspection_run
+                        WHERE schedule_id = :id AND status <> 'SUBMITTED'
+                        ORDER BY id DESC LIMIT 1
+                        """).param("id", s.id())
+                        .query((rs, i) -> new Object[] { rs.getLong("id"), rs.getTimestamp("due_at").toInstant() })
+                        .optional()
+                        .ifPresent(r -> events.publishEvent(
+                                new InspectionAssigned(assignee, name, code((Long) r[0]), (Instant) r[1])));
+            }
+        }
         audit.record("INSPECTION_SCHEDULE_UPDATED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), name,
-                Map.of("status", status.equals("ACTIVE") ? "Active" : "Paused"));
+                Map.of("status", scheduleStatusLabel(status)));
+    }
+
+    private static String scheduleStatusLabel(String status) {
+        return switch (status) {
+            case "ACTIVE" -> "Active";
+            case "COMPLETED" -> "Completed";
+            default -> "Paused";
+        };
     }
 
     // ---------------------------------------------------------------- runs
@@ -276,6 +359,8 @@ public class InspectionScheduleService {
         LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
         List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
         Map<Long, Long> occupied = residences.residentsOfBeds(beds.stream().map(Inventory.BedSlot::bedId).toList());
+        Set<Long> incoming = s.scope().equals("INCOMING")
+                ? residences.awaitingArrival(beds.stream().map(Inventory.BedSlot::bedId).toList()) : Set.of();
         Map<Long, List<Inventory.BedSlot>> rooms = beds.stream()
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, LinkedHashMap::new, Collectors.toList()));
         List<Long> inScope = new ArrayList<>();
@@ -285,6 +370,7 @@ public class InspectionScheduleService {
             boolean take = switch (s.scope()) {
                 case "OCCUPIED" -> !residents.isEmpty();
                 case "EMPTY" -> residents.isEmpty();
+                case "INCOMING" -> roomBeds.stream().anyMatch(b -> incoming.contains(b.bedId()));
                 case "FLOORS" -> s.floors().contains(roomBeds.getFirst().floor());
                 default -> true;
             };
@@ -307,6 +393,9 @@ public class InspectionScheduleService {
             for (long room : inScope) {
                 jdbc.sql("INSERT INTO mnt_inspection_room (run_id, room_id) VALUES (:run, :room)")
                         .param("run", run).param("room", room).update();
+            }
+            if (s.assigneeId() != null) {
+                events.publishEvent(new InspectionAssigned(s.assigneeId(), s.name(), code(run), dueAt));
             }
             if (s.notifyResidents() && !students.isEmpty()) {
                 events.publishEvent(new InspectionScheduled(run, code(run), List.copyOf(students), today, dueAt));

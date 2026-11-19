@@ -44,4 +44,10 @@ public interface Residences {
 
     /** Bed id → resident living in it now (an active Allocation of any Term), for the given Beds. */
     Map<Long, Long> residentsOfBeds(Collection<Long> bedIds);
+
+    /**
+     * The given Beds that new residents will move into: an active Allocation that does not live there yet and is not
+     * a continuing resident on the same Bed (pre-arrival inspections).
+     */
+    Set<Long> awaitingArrival(Collection<Long> bedIds);
 }

@@ -107,7 +107,8 @@ export const backOffice = {
       {
         title: 'Desk',
         items: [
-          { label: 'Check-in', icon: LogIn, to: '/staff/check-in' },
+          { label: 'Check-in', icon: LogIn, to: '/staff/check-in', end: true },
+          { label: 'Check-in inventories', icon: ClipboardList, to: '/staff/check-in/inventories' },
           { label: 'Check-out', icon: LogOut, to: '/staff/check-out' },
         ],
       },
@@ -176,6 +177,7 @@ export const backOffice = {
             tabs: [
               { label: 'Decisions', to: '/manager/approvals' },
               { label: 'Terminations', to: '/manager/terminations' },
+              { label: 'Check-out charges', to: '/manager/approvals/check-out-charges' },
             ],
           },
           {
@@ -211,6 +213,7 @@ export const backOffice = {
           { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
+          { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
           { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
           {
             label: 'Block settings',

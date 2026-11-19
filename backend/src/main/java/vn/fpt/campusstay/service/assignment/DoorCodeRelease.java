@@ -22,12 +22,14 @@ import vn.fpt.campusstay.common.audit.Actor;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.setting.TermSummary;
+import vn.fpt.campusstay.event.CheckInAvailable;
 import vn.fpt.campusstay.event.DoorCodeActivated;
 import vn.fpt.campusstay.event.DoorCodeReleased;
 import vn.fpt.campusstay.event.PaymentConfirmed;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
@@ -42,7 +44,8 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
 @Component
 public class DoorCodeRelease {
 
-    private record Waiting(long id, long termId, long studentId, long bedId, String renewal, boolean feePaid) {
+    private record Waiting(long id, long termId, long studentId, long bedId, String renewal, boolean feePaid,
+            Long previousBedId, boolean eligible) {
     }
 
     private final JdbcClient jdbc;
@@ -53,9 +56,11 @@ public class DoorCodeRelease {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final Parameters parameters;
 
     DoorCodeRelease(JdbcClient jdbc, JdbcStays stays, Billing billing, Inventory inventory, TermCatalog terms,
-            ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ApplicationEventPublisher events, AuditLog audit, Clock clock, Parameters parameters) {
+        this.parameters = parameters;
         this.jdbc = jdbc;
         this.stays = stays;
         this.billing = billing;
@@ -96,11 +101,45 @@ public class DoorCodeRelease {
         return release(null, List.of());
     }
 
-    /** @param by {@code allocation_id_list}, {@code bed_list} or null for every waiting Allocation */
+    /**
+     * The student starts the check-in inventory (they are at the Room): their code is released if (a)–(c) hold, even
+     * though they need an inventory. Runs in the caller's transaction. @return whether the code was released
+     */
+    boolean releaseForInventory(long allocationId) {
+        return release("allocation_id_list", List.of(allocationId), allocationId) > 0;
+    }
+
+    /**
+     * Whether a new resident must file a check-in inventory before receiving the code: the setting is on and they
+     * move into this Room (a first Allocation, or a next-Term Allocation in another Room).
+     */
+    boolean needsInventory(Long previousBedId, long bedId) {
+        if (!parameters.boolValue("handover.required")) {
+            return false;
+        }
+        if (previousBedId == null) {
+            return true;
+        }
+        Map<Long, Inventory.BedSlot> both = inventory.beds(List.of(previousBedId, bedId));
+        Inventory.BedSlot before = both.get(previousBedId);
+        Inventory.BedSlot now = both.get(bedId);
+        return before == null || now == null || before.roomId() != now.roomId();
+    }
+
     private int release(String by, List<Long> ids) {
+        return release(by, ids, null);
+    }
+
+    /**
+     * @param by     {@code allocation_id_list}, {@code bed_list} or null for every waiting Allocation
+     * @param forced the Allocation whose student started the inventory: released although it needs one
+     */
+    private int release(String by, List<Long> ids, Long forced) {
         String filter = by == null ? "" : by.equals("bed_list") ? " AND a.bed_id IN (:ids)" : " AND a.id IN (:ids)";
         var spec = jdbc.sql("""
-                SELECT a.id, a.term_id, a.student_id, a.bed_id, a.renewal, a.fee_paid_at IS NOT NULL AS fee_paid
+                SELECT a.id, a.term_id, a.student_id, a.bed_id, a.renewal, a.fee_paid_at IS NOT NULL AS fee_paid,
+                       (SELECT p.bed_id FROM asg_allocation p WHERE p.id = a.previous_allocation_id) AS previous_bed,
+                       a.eligible_at IS NOT NULL AS eligible
                 FROM asg_allocation a
                 WHERE a.status = 'ACTIVE' AND a.code_released_at IS NULL
                   AND NOT EXISTS (SELECT 1 FROM asg_termination t WHERE t.allocation_id = a.id AND t.status = 'OVERDUE')
@@ -109,7 +148,8 @@ public class DoorCodeRelease {
             spec = spec.param("ids", ids);
         }
         List<Waiting> waiting = spec.query((rs, i) -> new Waiting(rs.getLong("id"), rs.getLong("term_id"),
-                rs.getLong("student_id"), rs.getLong("bed_id"), rs.getString("renewal"), rs.getBoolean("fee_paid")))
+                rs.getLong("student_id"), rs.getLong("bed_id"), rs.getString("renewal"), rs.getBoolean("fee_paid"),
+                rs.getObject("previous_bed", Long.class), rs.getBoolean("eligible")))
                 .list().stream()
                 // A next-Term Allocation waits for its next-Term fee (spec §6.8 (a)).
                 .filter(w -> w.renewal() == null || w.feePaid())
@@ -136,6 +176,22 @@ public class DoorCodeRelease {
             Inventory.BedSlot bed = beds.get(w.bedId());
             if (bed == null || !ready.contains(bed.roomId())) {
                 continue;
+            }
+            if (!Long.valueOf(w.id()).equals(forced) && needsInventory(w.previousBedId(), w.bedId())) {
+                // The student receives the code when they start the check-in inventory at the Room.
+                if (!w.eligible()) {
+                    jdbc.sql("""
+                            UPDATE asg_allocation SET eligible_at = :now, handover_needed = TRUE, version = version + 1
+                            WHERE id = :id
+                            """).param("now", Timestamp.from(now)).param("id", w.id()).update();
+                    events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
+                            parameters.intValue("handover.submit_hours")));
+                }
+                continue;
+            }
+            if (Long.valueOf(w.id()).equals(forced)) {
+                jdbc.sql("UPDATE asg_allocation SET handover_needed = TRUE, eligible_at = coalesce(eligible_at, :now) "
+                        + "WHERE id = :id").param("now", Timestamp.from(now)).param("id", w.id()).update();
             }
             jdbc.sql("""
                     UPDATE asg_allocation SET code_released_at = :now, resident_at = coalesce(resident_at, :now),

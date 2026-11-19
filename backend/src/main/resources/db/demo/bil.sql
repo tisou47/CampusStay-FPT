@@ -152,7 +152,7 @@ SELECT s.id, 'INV-' || t.x_code || '-' || lpad(s.id::text, greatest(6, length(s.
        ap.term_price - ap.deposit_amount + cfg.utility_deposit, cfg.utility_deposit,
        CASE WHEN s.status = 'FORFEITED' THEN 'VOID' WHEN s.balance = 'PAID' THEN 'PAID' ELSE 'UNPAID' END,
        'CSTAY' || lpad(s.id::text, greatest(6, length(s.id::text)), '0'), t.x_results,
-       CASE WHEN s.late = 'APPROVED' THEN ((t.x_start + 10) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+       CASE WHEN s.late = 'APPROVED' THEN ((t.x_ci_end + 6) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
             ELSE t.x_balance_due END,
        CASE WHEN s.balance = 'PAID' THEN least(t.x_results + interval '1 hour' * (5 + s.h * 2), t.now - interval '1 hour') END,
        CASE WHEN s.balance = 'PAID' THEN 'TRANSFER' END,

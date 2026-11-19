@@ -24,8 +24,10 @@ import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
  * Admin › System parameters: typed key/value settings grouped into sections. A
- * PUT sends the sections back; only {@code value} is read from it. Parameters of a settings group (deadlines,
- * refunds and terminations, stay and renewal) are edited on their own screens ({@link AdminSettingsService}).
+ * PUT sends the sections back; only {@code value} is read from it. Parameters
+ * of a settings group (deadlines,
+ * refunds and terminations, stay and renewal) are edited on their own screens
+ * ({@link AdminSettingsService}).
  */
 @Service
 public class SystemParameterService {
@@ -33,9 +35,12 @@ public class SystemParameterService {
     public record Option(String value, String label) {
     }
 
-    /** {@code value} is a number for whole-number parameters, else text; {@code options} only for choices. */
+    /**
+     * {@code value} is a number for whole-number parameters, else text;
+     * {@code options} only for choices.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Field(String key, String label, Object value, String helper, List<Option> options) {
+    public record Field(String key, String label, Object value, String helper, List<Option> options, String type) {
     }
 
     public record Section(String title, List<Field> fields) {
@@ -72,7 +77,7 @@ public class SystemParameterService {
                     : json.readValue(r.options(), new TypeReference<List<Option>>() {
                     });
             sections.computeIfAbsent(r.section(), s -> new ArrayList<>())
-                    .add(new Field(r.key(), r.label(), typed(r.type(), r.value()), r.helper(), options));
+                    .add(new Field(r.key(), r.label(), typed(r.type(), r.value()), r.helper(), options, r.type()));
         }
         List<Section> result = new ArrayList<>();
         sections.forEach((title, fields) -> result.add(new Section(title, fields)));
@@ -100,6 +105,7 @@ public class SystemParameterService {
                 }
             }
         }
+        validateVisitHours(known, updates, errors);
         errors.throwIfAny();
         Map<String, Object> change = new LinkedHashMap<>();
         Timestamp now = Timestamp.from(Instant.now(clock));
@@ -114,6 +120,41 @@ public class SystemParameterService {
                     "System Parameters", change);
         }
         return get();
+    }
+
+    private static void validateVisitHours(Map<String, Row> known, Map<String, String> updates, FieldErrors errors) {
+        String fromKey = "handover.visit_from_hour";
+        String toKey = "handover.visit_to_hour";
+        Row fromRow = known.get(fromKey);
+        Row toRow = known.get(toKey);
+        if (fromRow == null || toRow == null) {
+            return;
+        }
+        String fromText = updates.getOrDefault(fromKey, fromRow.value());
+        String toText = updates.getOrDefault(toKey, toRow.value());
+        Integer fromHour = parseHour(fromText);
+        Integer toHour = parseHour(toText);
+        if (fromHour == null || fromHour < 1 || fromHour > 24) {
+            errors.add(fromKey, "Enter an hour from 1 to 24.");
+        }
+        if (toHour == null || toHour < 1 || toHour > 24) {
+            errors.add(toKey, "Enter an hour from 1 to 24.");
+        }
+        if (fromHour != null && toHour != null && fromHour >= 1 && fromHour <= 24 && toHour >= 1 && toHour <= 24
+                && fromHour >= toHour) {
+            errors.add(fromKey, "Visit start hour must be earlier than end hour.");
+        }
+    }
+
+    private static Integer parseHour(String text) {
+        if (text == null || !text.matches("\\d{1,7}")) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private List<Row> rows() {
@@ -136,7 +177,10 @@ public class SystemParameterService {
         };
     }
 
-    /** The stored text for a submitted value, or null when it is not valid for the parameter's type. */
+    /**
+     * The stored text for a submitted value, or null when it is not valid for the
+     * parameter's type.
+     */
     private String normalize(Row row, Object value) {
         String text = value == null ? "" : String.valueOf(value).trim();
         switch (row.type()) {
@@ -155,7 +199,8 @@ public class SystemParameterService {
                 }
             }
             case "BOOL" -> {
-                return text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false") ? text.toLowerCase(Locale.ROOT) : null;
+                return text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false") ? text.toLowerCase(Locale.ROOT)
+                        : null;
             }
             case "CHOICE" -> {
                 List<Option> options = json.readValue(row.options(), new TypeReference<List<Option>>() {
