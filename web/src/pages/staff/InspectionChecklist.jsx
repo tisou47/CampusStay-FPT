@@ -115,7 +115,7 @@ function Checklist({ run, room }) {
     <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
       <div className="flex shrink-0 flex-col gap-0.5">
         <h2 className="text-h3 font-semibold text-fg">
-          {room.room} · {run.checklist?.name}
+          {room.room} · {tr(run.checklist?.name)}
         </h2>
         <p className="text-sm text-fg-secondary">
           {t('Checklist {version} set by admin · {n} items', { version: run.checklist?.version, n: items.length })}
@@ -135,7 +135,7 @@ function Checklist({ run, room }) {
             const r = results[item.id]
             return (
               <Tr key={item.id} className="[&>td]:h-11">
-                <Td className="py-1.5">{item.label}</Td>
+                <Td className="py-1.5">{tr(item.label)}</Td>
                 <Td>
                   {item.furniture ? (
                     done ? (
@@ -343,7 +343,7 @@ function Run({ run }) {
     <>
       <PageHeader
         title="Inspections"
-        description={[formatDate(run.date), run.scheduleName, tr(run.scope)].filter(Boolean).join(' · ')}
+        description={[formatDate(run.date), tr(run.scheduleName), tr(run.scope)].filter(Boolean).join(' · ')}
         actions={
           <>
             <Button icon={CalendarDays} onClick={() => setCalendar(true)}>
@@ -406,7 +406,7 @@ function Run({ run }) {
             <ul className="flex flex-col gap-2">
               {d.items.map((u) => (
                 <li key={u.id} className="flex justify-between gap-4 text-base">
-                  <span className="text-fg">{[u.scheduleName, tr(u.scope)].filter(Boolean).join(' · ')}</span>
+                  <span className="text-fg">{[tr(u.scheduleName), tr(u.scope)].filter(Boolean).join(' · ')}</span>
                   <span className="text-fg-secondary">{formatDate(u.date)}</span>
                 </li>
               ))}

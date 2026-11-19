@@ -84,7 +84,7 @@ function Editor({ checklist, categories, severities, onArchived }) {
     <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 flex-col gap-0.5">
         <h2 className="text-h3 font-semibold text-fg">
-          {checklist.name} · v{checklist.version}
+          {tr(checklist.name)} · v{checklist.version}
           {dirty && <span className="font-normal text-fg-tertiary"> {t('(edited)')}</span>}
         </h2>
         <p className="text-sm text-fg-secondary">
@@ -107,7 +107,7 @@ function Editor({ checklist, categories, severities, onArchived }) {
           {items.map((item, i) => (
             <Tr key={`${item.label}-${i}`} className="group [&>td]:h-10">
               <Td className="tabular">{i + 1}</Td>
-              <Td>{item.label}</Td>
+              <Td>{tr(item.label)}</Td>
               <Td>{tr(item.category)}</Td>
               <Td>{tr(item.severity)}</Td>
               <Td>
@@ -236,7 +236,7 @@ export default function InspectionChecklists() {
                           className={cx('flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors', on ? 'bg-primary-subtle' : 'hover:bg-subtle')}
                         >
                           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="truncate text-base font-medium text-fg">{c.name}</span>
+                            <span className="truncate text-base font-medium text-fg">{tr(c.name)}</span>
                             <span className="text-sm text-fg-tertiary">
                               v{c.version} · {c.status === 'Draft' ? t('not published') : t('updated {date}', { date: formatDate(c.updatedAt) })}
                             </span>

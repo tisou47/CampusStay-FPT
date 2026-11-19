@@ -182,10 +182,24 @@ FROM auth_user u JOIN inv_building b
   ON u.email ~ ('^staff' || lower(b.code) || '0[1-4]@fpt\.edu\.vn$')
 ON CONFLICT DO NOTHING;
 
--- What each person handles is set by a Manager (Staff).
-INSERT INTO auth_staff_profile (user_id)
-SELECT u.id FROM auth_user u WHERE u.role = 'STAFF' AND u.email ~ '^staff[a-h]0[1-4]@fpt\.edu\.vn$'
-ON CONFLICT (user_id) DO NOTHING;
+-- What each person handles matches their role in the Block:
+--   01 Residence Life Officer : applications, room changes/swaps, desk handover
+--   02 Maintenance Technician : maintenance, room inspections, meter readings
+--   03 Front Desk Officer     : check-in/check-out desk, payments
+--   04 Maintenance Technician : maintenance, room inspections, meter readings
+INSERT INTO auth_staff_profile (user_id, handles, on_duty)
+SELECT u.id,
+       CASE
+           WHEN u.email ~ '^staff[a-h]01@' THEN '{DESK,APPLICATIONS,ROOM_CHANGES}'::text[]
+           WHEN u.email ~ '^staff[a-h]02@' THEN '{MAINTENANCE,INSPECTIONS,METER_READINGS}'::text[]
+           WHEN u.email ~ '^staff[a-h]03@' THEN '{DESK,PAYMENTS}'::text[]
+           ELSE '{MAINTENANCE,INSPECTIONS,METER_READINGS}'::text[]
+       END,
+       u.email ~ '^staff[a-h]0[1-3]@'
+FROM auth_user u WHERE u.role = 'STAFF' AND u.email ~ '^staff[a-h]0[1-4]@fpt\.edu\.vn$'
+ON CONFLICT (user_id) DO UPDATE
+SET handles = CASE WHEN auth_staff_profile.handles = '{}' THEN EXCLUDED.handles ELSE auth_staff_profile.handles END,
+    on_duty = CASE WHEN auth_staff_profile.handles = '{}' THEN EXCLUDED.on_duty ELSE auth_staff_profile.on_duty END;
 
 -- ---------- students (mock SIS directory) ----------
 -- Cohorts K18 (entered 2022) … K22 (2026); 58% male. Codes SE/SS/SA + cohort + number, e.g. SE190421.
@@ -265,3 +279,50 @@ UPDATE auth_user SET demo = TRUE
 WHERE NOT demo
   AND (email ~ '^(admin0[1-4]|manager0[1-4]|staff[a-h]0[1-4])@fpt\.edu\.vn$'
        OR email IN (SELECT lower(code) || '@fpt.edu.vn' FROM t_student));
+
+-- ---------- published dormitory inspection checklists & clean schedule names ----------
+UPDATE mnt_checklist SET name = 'Kiểm tra bàn giao & chuyển kỳ'
+WHERE family_key = 'DEMO_TURNOVER' AND name = 'Room turnover check';
+
+INSERT INTO mnt_checklist (family_key, name, version, status, published_at, updated_at)
+SELECT v.family_key, v.name, 1, 'PUBLISHED', now() - interval '30 days', now() - interval '30 days'
+FROM (VALUES ('DEMO_TURNOVER',        'Kiểm tra bàn giao & chuyển kỳ'),
+             ('CL_FIRE_SAFETY',       'Kiểm tra an toàn PCCC & điện'),
+             ('CL_PLUMBING_AC',       'Kiểm tra điện lạnh & cấp thoát nước'),
+             ('CL_HYGIENE_FURNITURE', 'Kiểm tra nội thất & vệ sinh định kỳ')) v (family_key, name)
+WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist c WHERE c.family_key = v.family_key);
+
+INSERT INTO mnt_checklist_item (checklist_id, label, category, severity, sort_order)
+SELECT c.id, v.label, v.category, v.severity, v.n
+FROM mnt_checklist c
+JOIN (VALUES ('DEMO_TURNOVER', 1, 'Đèn chiếu sáng và ổ cắm điện hoạt động tốt', 'ELECTRICAL', 'MAJOR'),
+             ('DEMO_TURNOVER', 2, 'Vòi nước, vòi sen và bồn cầu hoạt động tốt, không rò rỉ', 'PLUMBING', 'MAJOR'),
+             ('DEMO_TURNOVER', 3, 'Khóa cửa chính và cửa sổ đóng mở chắc chắn', 'OTHER', 'MINOR'),
+             ('CL_FIRE_SAFETY', 1, 'Đầu báo khói và thiết bị báo cháy hoạt động tốt', 'ELECTRICAL', 'CRITICAL'),
+             ('CL_FIRE_SAFETY', 2, 'Aptomat, ổ cắm và công tắc điện an toàn, không đánh lửa', 'ELECTRICAL', 'MAJOR'),
+             ('CL_FIRE_SAFETY', 3, 'Không có thiết bị nấu nướng hoặc vật dễ cháy nổ trái quy định', 'OTHER', 'CRITICAL'),
+             ('CL_FIRE_SAFETY', 4, 'Lối thoát hiểm và cửa ban công thông thoáng', 'OTHER', 'MAJOR'),
+             ('CL_PLUMBING_AC', 1, 'Máy điều hòa làm mát tốt, ống thoát nước không rò rỉ', 'AIR_CONDITIONING', 'MAJOR'),
+             ('CL_PLUMBING_AC', 2, 'Bình nóng lạnh và quạt trần vận hành êm, an toàn', 'ELECTRICAL', 'MAJOR'),
+             ('CL_PLUMBING_AC', 3, 'Phễu thoát sàn nhà tắm và bồn rửa thoát nước nhanh', 'PLUMBING', 'MINOR'),
+             ('CL_HYGIENE_FURNITURE', 1, 'Giường tầng, bàn học, ghế và tủ quần áo nguyên vẹn, chắc chắn', 'FURNITURE', 'MINOR'),
+             ('CL_HYGIENE_FURNITURE', 2, 'Phòng ở, nhà vệ sinh và ban công sạch sẽ, gọn gàng', 'CLEANING', 'TRIVIAL'),
+             ('CL_HYGIENE_FURNITURE', 3, 'Tường, trần và sàn phòng không ẩm mốc hoặc bong tróc', 'OTHER', 'MINOR'))
+     v (family_key, n, label, category, severity) ON v.family_key = c.family_key
+WHERE NOT EXISTS (SELECT 1 FROM mnt_checklist_item i WHERE i.checklist_id = c.id);
+
+UPDATE mnt_inspection_schedule s
+SET name = 'Kiểm tra phòng trước nhận phòng · Tòa ' || b.code,
+    assignee_id = coalesce((SELECT u.id FROM auth_user u WHERE u.email = 'staff' || lower(b.code) || '02@fpt.edu.vn'), s.assignee_id)
+FROM inv_building b
+WHERE b.id = s.building_id
+  AND (s.name = 'Pre-arrival check (demo)'
+       OR s.name LIKE 'Pre-arrival check Block % (demo)'
+       OR s.name LIKE 'Kiểm tra phòng trước nhận phòng%');
+
+UPDATE mnt_inspection_run r
+SET inspector_id = s.assignee_id
+FROM mnt_inspection_schedule s
+WHERE r.schedule_id = s.id
+  AND s.name LIKE 'Kiểm tra phòng trước nhận phòng%'
+  AND r.inspector_id IS DISTINCT FROM s.assignee_id;

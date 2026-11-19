@@ -61,7 +61,7 @@ function Editor({ item, options, block, onCreated }) {
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-h3 font-semibold text-fg">{form.name || t('New schedule')}</h2>
+        <h2 className="text-h3 font-semibold text-fg">{tr(form.name) || t('New schedule')}</h2>
         <p className="text-sm text-fg-secondary">{item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : t('Not saved yet')}</p>
       </div>
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
@@ -124,10 +124,10 @@ export default function InspectionSchedule() {
               <TableStatus query={query} colSpan={5} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to staff." />
               {items.map((s) => (
                 <Tr key={s.id} selected={s.id === selected?.id} onClick={() => setSelectedId(s.id)} className="[&>td]:h-15.5">
-                  <Td className="font-medium text-fg-brand">{s.name}</Td>
+                  <Td className="font-medium text-fg-brand">{tr(s.name)}</Td>
                   <Td>{tr(s.scopeLabel)}</Td>
                   <Td>{tr(s.repeatLabel)}</Td>
-                  <Td>{formatDate(s.nextRunAt)}</Td>
+                  <Td>{s.nextRunAt ? formatDate(s.nextRunAt) : s.repeat === 'ONCE' ? <span className="text-sm text-fg-tertiary">{t('One-off (started)')}</span> : '—'}</Td>
                   <Td>
                     <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>
                   </Td>
@@ -135,33 +135,41 @@ export default function InspectionSchedule() {
               ))}
             </TBody>
           </Table>
-          <Table className="max-h-60 shrink-0">
-            <THead>
-              <tr>
-                <Th className="w-48">Run</Th>
-                <Th>Assigned to</Th>
-                <Th className="w-30">Progress</Th>
-                <Th className="w-28">Failed items</Th>
-                <Th className="w-25">Status</Th>
-              </tr>
-            </THead>
-            <TBody>
-              <TableStatus query={query} colSpan={5} rows={query.data?.runs} emptyTitle="No runs yet" />
-              {(query.data?.runs ?? []).map((r) => (
-                <Tr key={r.id} className="[&>td]:h-11">
-                  <Td className="font-medium text-fg-brand">{r.id}</Td>
-                  <Td>{r.assigneeName}</Td>
-                  <Td className="tabular">
-                    {r.inspected} / {r.rooms}
-                  </Td>
-                  <Td className="tabular">{r.failed}</Td>
-                  <Td>
-                    <Tag tone={tone[r.status] ?? 'neutral'}>{r.status}</Tag>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-0.5">
+              <h2 className="text-base font-semibold text-fg">{t('Inspection runs')}</h2>
+              <p className="text-sm text-fg-tertiary">
+                {t('Actual execution runs generated from the schedules above (code, assigned staff, room progress and failed items).')}
+              </p>
+            </div>
+            <Table className="max-h-56 shrink-0">
+              <THead>
+                <tr>
+                  <Th className="w-48">Run</Th>
+                  <Th>Assigned to</Th>
+                  <Th className="w-30">Progress</Th>
+                  <Th className="w-28">Failed items</Th>
+                  <Th className="w-25">Status</Th>
+                </tr>
+              </THead>
+              <TBody>
+                <TableStatus query={query} colSpan={5} rows={query.data?.runs} emptyTitle="No runs yet" />
+                {(query.data?.runs ?? []).map((r) => (
+                  <Tr key={r.id} className="[&>td]:h-11">
+                    <Td className="font-medium text-fg-brand">{r.id}</Td>
+                    <Td>{r.assigneeName}</Td>
+                    <Td className="tabular">
+                      {r.inspected} / {r.rooms}
+                    </Td>
+                    <Td className="tabular">{r.failed}</Td>
+                    <Td>
+                      <Tag tone={tone[r.status] ?? 'neutral'}>{r.status}</Tag>
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          </div>
         </div>
         {selected ? (
           <Editor key={selected.id ?? 'new'} item={selected} options={query.data?.options} block={block} onCreated={setSelectedId} />
