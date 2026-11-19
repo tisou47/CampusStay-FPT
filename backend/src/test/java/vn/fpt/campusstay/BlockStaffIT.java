@@ -93,7 +93,7 @@ class BlockStaffIT {
                 .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath(person("Nguyen Van Binh") + ".title").value(hasItem("Residence Life Officer")))
                 .andExpect(jsonPath(person("Nguyen Van Binh") + ".handles[*]").value(
-                        contains("Desk (Check-in / Check-out)", "Applications", "Room changes and swaps")))
+                        contains("Check-in and check-out desk", "Room changes, swaps and moves", "Term transition requests")))
                 .andExpect(jsonPath(person("Huynh Gia Bao") + ".blocks[*]").value(contains("A", "B")))
                 .andExpect(jsonPath(person("Vo Thanh Tung") + ".open").value(hasItem(1)))
                 .andExpect(jsonPath("$.items[*].name", not(hasItem("Le Hoang Nam"))))
@@ -102,7 +102,7 @@ class BlockStaffIT {
                 .andExpect(jsonPath("$.summary.onDuty").value(3))
                 .andExpect(jsonPath("$.summary.deskOnDuty").value(1))
                 .andExpect(jsonPath("$.summary.averageOpen").value(0.3))
-                .andExpect(jsonPath("$.handleOptions", hasSize(7)))
+                .andExpect(jsonPath("$.handleOptions", hasSize(8)))
                 .andExpect(jsonPath("$.roleOptions", contains("Staff", "Manager")));
 
         list(bearer(mvc, STAFF_A)).andExpect(status().isForbidden());
@@ -116,11 +116,11 @@ class BlockStaffIT {
     void updatesHandlesAndDuty() throws Exception {
         String manager = bearer(mvc, MANAGER_A);
         long ab = stay.userId(STAFF_AB);
-        update(manager, ab, "{\"handles\":[\"Payments\",\"Meter readings\"]}").andExpect(status().isNoContent());
-        list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
+        update(manager, ab, "{\"handles\":[\"Rooms, door codes and furniture\",\"Meter readings\"]}").andExpect(status().isNoContent());
+        list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Rooms, door codes and furniture",
                 "Meter readings")));
         update(manager, ab, "{}").andExpect(status().isNoContent());
-        list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Payments",
+        list(manager).andExpect(jsonPath(person("Huynh Gia Bao") + ".handles[*]").value(contains("Rooms, door codes and furniture",
                 "Meter readings")));
         mvc.perform(get("/admin/audit-log").param("action", "Staff profile updated")
                 .header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))

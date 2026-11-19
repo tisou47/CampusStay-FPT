@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.fpt.campusstay.service.auth.BlockStaffService;
 import vn.fpt.campusstay.service.auth.StaffActivityService;
 import vn.fpt.campusstay.service.auth.StaffShifts;
+import vn.fpt.campusstay.service.auth.WeekScheduleService;
 
 /** Manager › Staff and workload: handles, duty and work of the Block's staff, and requests for new accounts. */
 @RestController
@@ -44,11 +45,16 @@ class BlockStaffController {
             @Size(max = 254) String email, @Size(max = 20) String role, @Size(max = 20) String block) {
     }
 
+    record SendWeekRequest(@Size(max = 20) String block) {
+    }
+
     private final BlockStaffService staff;
     private final StaffActivityService activity;
+    private final WeekScheduleService schedule;
 
-    BlockStaffController(BlockStaffService staff, StaffActivityService activity) {
+    BlockStaffController(BlockStaffService staff, StaffActivityService activity, WeekScheduleService schedule) {
         this.activity = activity;
+        this.schedule = schedule;
         this.staff = staff;
     }
 
@@ -85,6 +91,18 @@ class BlockStaffController {
     @PutMapping("/block-staff/{id}/shifts")
     ShiftsResponse setShifts(@PathVariable String id, @Valid @RequestBody ShiftsRequest body) {
         return new ShiftsResponse(staff.setShifts(id, body.shifts()));
+    }
+
+    /** Whether next week's schedule was sent to the Staff of the chosen Blocks. */
+    @GetMapping("/week-schedule")
+    WeekScheduleService.NextWeek nextWeek(@RequestParam(required = false) String block) {
+        return schedule.nextWeek(block);
+    }
+
+    /** Sends next week's schedule to every Staff member of the chosen Blocks: { block? }. */
+    @PostMapping("/week-schedule/send")
+    WeekScheduleService.Sent sendWeek(@RequestBody(required = false) SendWeekRequest body) {
+        return schedule.send(body == null ? null : body.block());
     }
 
     /** What the Staff of the Manager's Blocks changed, newest first; {@code flagged} keeps those outside shift or work. */

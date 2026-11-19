@@ -36,22 +36,21 @@ public class StaffActivityService {
     private static final Map<String, String> HANDLE_BY_PATH = new LinkedHashMap<>();
 
     static {
-        for (String p : List.of("/check-in", "/check-out", "/late-check-ins", "/family-day-visitors", "/door-codes")) {
+        // In the order of the Staff menu.
+        for (String p : List.of("/check-in", "/check-out", "/late-check-ins")) {
             HANDLE_BY_PATH.put(p, "DESK");
         }
-        for (String p : List.of("/applications", "/stay-requests", "/next-term-requests")) {
-            HANDLE_BY_PATH.put(p, "APPLICATIONS");
-        }
-        for (String p : List.of("/payment-claims", "/payments", "/refunds", "/invoices", "/finance")) {
-            HANDLE_BY_PATH.put(p, "PAYMENTS");
-        }
-        for (String p : List.of("/maintenance-requests", "/rooms/")) {
-            HANDLE_BY_PATH.put(p, "MAINTENANCE");
-        }
-        for (String p : List.of("/room-changes", "/swaps", "/swap-board", "/moves", "/operational-moves",
-                "/room-class-changes")) {
+        HANDLE_BY_PATH.put("/family-day-visitors", "FAMILY_DAY");
+        for (String p : List.of("/room-changes", "/swaps", "/swap-board", "/moves", "/operational-moves")) {
             HANDLE_BY_PATH.put(p, "ROOM_CHANGES");
         }
+        for (String p : List.of("/stay-requests", "/next-term-requests", "/room-class-changes")) {
+            HANDLE_BY_PATH.put(p, "NEXT_TERM");
+        }
+        for (String p : List.of("/door-codes", "/rooms/", "/furniture")) {
+            HANDLE_BY_PATH.put(p, "ROOMS");
+        }
+        HANDLE_BY_PATH.put("/maintenance-requests", "MAINTENANCE");
         HANDLE_BY_PATH.put("/inspection-runs", "INSPECTIONS");
         for (String p : List.of("/meter-periods", "/meter-readings", "/turnover/meter-cuts")) {
             HANDLE_BY_PATH.put(p, "METER_READINGS");
