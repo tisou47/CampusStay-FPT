@@ -2,10 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useMutation, useQuery } from '@/api/hooks'
+import { useQuery } from '@/api/hooks'
 import { backOffice, isNavActive } from '@/app/navigation'
 import { useSession } from '@/app/session'
-import { useToast } from '@/app/toast'
 import { Avatar } from '@/components/ui/Display'
 import { Popover } from '@/components/ui/Popover'
 import { InfoTip, Tooltip, isTruncated } from '@/components/ui/Tooltip'
@@ -14,6 +13,7 @@ import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { FlowTrail } from './FlowTrail'
 import { SectionTabs } from './SectionTabs'
+import { ShiftConfirmHost } from './ShiftConfirm'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -115,7 +115,7 @@ function Sidebar({ role }) {
             </button>
           </Tooltip>
         ) : (
-          <DutyIndicator />
+          <DutyIndicator role={role} />
         )}
         <Tooltip label={t('Sign out')} align="end">
           <button
@@ -345,23 +345,12 @@ function QuickSearch({ role }) {
 }
 
 /**
- * The person's shift (A-60): routing gives new requests to people on duty first, so Staff say when they start and
- * end work. Signing in is not the same as being on duty: an off-duty person may still look things up.
+ * The person's duty (A-60): it follows their sign-in. Signing in puts Staff and Managers on duty, signing out (or not
+ * using the app for a while) takes them off; routing gives new requests to people on duty first. Read only.
  */
-function DutyIndicator() {
-  const { notify, notifyError } = useToast()
+function DutyIndicator({ role }) {
   const me = useQuery(['me-duty'], ({ signal }) => api.blockStaff.me(undefined, { signal }))
   const onDuty = me.data?.onDuty
-  const change = useMutation((next) => api.blockStaff.setDuty({ onDuty: next }), {
-    invalidates: ['me-duty', 'block-staff', 'routing'],
-    onSuccess: (r) =>
-      notify({
-        type: 'info',
-        title: r.onDuty ? 'Shift started' : 'Shift ended',
-        message: r.onDuty ? 'New requests of your types can be routed to you.' : 'New requests go to colleagues on duty; your open requests stay yours.',
-      }),
-    onError: (e) => notifyError(e, 'Could not change your shift'),
-  })
   if (!me.data) return null
   return (
     <Tooltip
@@ -370,26 +359,32 @@ function DutyIndicator() {
         <span className="flex flex-col">
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className={cx('size-1.5 rounded-full', onDuty ? 'bg-green-500' : 'bg-red-500')} />
-            {onDuty ? t('Recording your shift') : t('Shift off')}
+            {onDuty ? t('On duty while you are signed in') : t('Off duty')}
           </span>
-          <span className="font-normal text-white/70">{onDuty ? t('Click to end your shift') : t('Click to start your shift')}</span>
+          {role === 'staff' && (
+            <span className="font-normal text-white/70">
+              {me.data.inShift
+                ? t('Inside your shift today ({spans})', { spans: me.data.shiftToday })
+                : me.data.shiftToday
+                  ? t('Outside your shift (today {spans}): changes ask you to confirm', { spans: me.data.shiftToday })
+                  : t('No shift now: changes ask you to confirm')}
+            </span>
+          )}
+          <span className="font-normal text-white/70">{t('Signing out ends your shift.')}</span>
         </span>
       }
     >
-      <button
-        type="button"
-        role="switch"
-        aria-checked={!!onDuty}
-        onClick={() => change.run(!onDuty)}
-        disabled={change.pending}
-        aria-label={onDuty ? t('On duty: new requests can be routed to you. Click to end your shift.') : t('Off duty: new requests are not routed to you. Click to start your shift.')}
-        className="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-subtle disabled:opacity-60"
+      <span
+        role="status"
+        tabIndex={0}
+        aria-label={onDuty ? t('On duty: new requests can be routed to you. Signing out ends your shift.') : t('Off duty')}
+        className="flex size-7 items-center justify-center rounded-lg"
       >
         <span aria-hidden="true" className="relative flex size-2.5">
           {onDuty && <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />}
           <span className={cx('relative inline-flex size-2.5 rounded-full ring-2', onDuty ? 'bg-success ring-success-bg' : 'bg-error ring-error-bg')} />
         </span>
-      </button>
+      </span>
     </Tooltip>
   )
 }
@@ -445,6 +440,7 @@ export function BackOfficeLayout({ role }) {
           <FlowTrail role={role} />
           <SectionTabs role={role} />
           <Outlet />
+          <ShiftConfirmHost />
         </main>
       </div>
     </div>

@@ -90,8 +90,6 @@ public class EscalationService {
     /** Handled escalations stay on the screen this long. */
     private static final Duration SHOW_HANDLED = Duration.ofDays(7);
     private static final Map<String, String> TONES = Map.of("INFO", "info", "WARNING", "warning", "DANGER", "error");
-    private static final Map<String, String> ASKS = Map.of("SAME", "another Room", "CLASS", "another Room Class",
-            "TYPE", "another Room Type");
 
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
@@ -103,13 +101,15 @@ public class EscalationService {
     private final MaintenanceRequests maintenance;
     private final Moves moves;
     private final RoutingService routing;
+    private final RoomChangeAssignments assignments;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
 
     public EscalationService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             UserDirectory users, Lookups lookups, Parameters parameters, MaintenanceRequests maintenance, Moves moves,
-            RoutingService routing, ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            RoutingService routing, RoomChangeAssignments assignments, ApplicationEventPublisher events,
+            AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -120,6 +120,7 @@ public class EscalationService {
         this.maintenance = maintenance;
         this.moves = moves;
         this.routing = routing;
+        this.assignments = assignments;
         this.events = events;
         this.audit = audit;
         this.clock = clock;
@@ -170,7 +171,7 @@ public class EscalationService {
                     : null;
             Moves.Placement p = from.get(c.allocationId());
             Source source = new Source(ROOM_CHANGE, c.id(), c.code(), c.buildingId(), c.termId(), c.submittedAt(),
-                    names.get(c.studentId()) + " asks for " + ASKS.get(c.kind()),
+                    RoomChangeAssignments.title(names.get(c.studentId()), c.kind()),
                     label("ROOM_CHANGE_REASON", c.reason()), p == null ? null : p.room(), c.assigneeId(), null);
             opened += sync(source, reason, now);
         }
@@ -318,14 +319,8 @@ public class EscalationService {
             String name = users.displayNames(List.of(assignee)).get(assignee);
             if (e.sourceType().equals(MAINTENANCE)) {
                 maintenance.assign(e.sourceId(), assignee, "escalation");
-            } else {
-                int changed = jdbc.sql("""
-                        UPDATE req_room_change SET assignee_id = :a, version = version + 1
-                        WHERE id = :id AND status IN ('SUBMITTED', 'PENDING')
-                        """).param("a", assignee).param("id", e.sourceId()).update();
-                if (changed == 0) {
-                    throw ApiException.conflict("REQUEST_CLOSED", "This request is no longer open.");
-                }
+            } else if (!assignments.reassign(e.sourceId(), assignee)) {
+                throw ApiException.conflict("REQUEST_CLOSED", "This request is no longer open.");
             }
             handle(e, "REASSIGN", assignee, text, now);
             event(e.id(), "Reassigned to " + name, now);

@@ -51,6 +51,7 @@ const RegistrationPeriod = () => import('@/pages/student/RegistrationPeriod')
 
 // Staff — 06 Web – Staff
 const StaffDashboard = () => import('@/pages/staff/StaffDashboard')
+const MySchedule = () => import('@/pages/staff/MySchedule')
 const ApplicationQueue = () => import('@/pages/staff/ApplicationQueue')
 const ApplicationReview = () => import('@/pages/staff/ApplicationReview')
 const Payments = () => import('@/pages/staff/Payments')
@@ -86,6 +87,7 @@ const Students = () => import('@/pages/manager/Students')
 const StudentHub = () => import('@/pages/manager/StudentHub')
 const StudentImport = () => import('@/pages/manager/StudentImport')
 const StaffAccounts = () => import('@/pages/manager/StaffAccounts')
+const StaffActivity = () => import('@/pages/manager/StaffActivity')
 const TermDashboard = () => import('@/pages/manager/TermDashboard')
 const PaymentClaims = () => import('@/pages/manager/PaymentClaims')
 const Terminations = () => import('@/pages/manager/Terminations')
@@ -213,6 +215,7 @@ export const router = createBrowserRouter([
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, ...page(StaffDashboard) },
+        { path: 'schedule', ...page(MySchedule) },
         { path: 'inventory', ...page(Inventory) },
         { path: 'rooms/:code', ...page(RoomHub) },
         { path: 'door-codes', ...page(DoorCodes) },
@@ -283,6 +286,7 @@ export const router = createBrowserRouter([
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },
         { path: 'staff-accounts', ...page(StaffAccounts) },
+        { path: 'staff-activity', ...page(StaffActivity) },
         { path: 'term-requests', ...page(TermRequests) },
         { path: 'terms', ...page(TermDashboard) },
         { path: 'terms/:id', ...page(TermDashboard) },

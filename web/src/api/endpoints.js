@@ -379,13 +379,26 @@ export const api = {
     update: (id, body) => http.put(`/staff-accounts/${id}`, body),
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
+  weekSchedule: {
+    /** { block? } → { start, end, sentBlocks, pendingBlocks, sentAt, sentBy }: next week's schedule handover. */
+    next: g('/week-schedule'),
+    /** { block? } → { start, notified, blocks }: tells every Staff member of the Blocks their shifts. */
+    send: (body) => http.post('/week-schedule/send', body),
+  },
   blockStaff: {
     /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
     me: g('/block-staff/me'),
-    /** { onDuty } → the same: starts or ends the signed-in person's shift. */
-    setDuty: (body) => http.put('/block-staff/me/duty', body),
     list: g('/block-staff'),
+    /** { shifts: [{ weekday 1-7, start 'HH:mm', end 'HH:mm' }] } → the same: replaces a Staff member's weekly shifts. */
+    setShifts: (id, body) => http.put(`/block-staff/${id}/shifts`, body),
+    /** { block?, staffId?, flagged?, from?, to?, page?, pageSize? } → { items, total, summary, staffOptions }. */
+    activity: g('/staff-activity'),
+    /** { handles }: what the person handles. Duty follows sign-in. */
     update: (id, body) => http.put(`/block-staff/${id}`, body),
+    /** The person's open work → { items: [{ type, id, code, title, roomCode, status, openedAt, dueAt, overdue, link }], total }. */
+    work: (id, opts) => http.get(`/block-staff/${id}/work`, undefined, opts),
+    /** { items: [{ type, id }], toStaffId, note } → { moved }: all or none. */
+    reassign: (id, body) => http.post(`/block-staff/${id}/work/reassign`, body),
     requestAccount: (body) => http.post('/staff-account-requests', body),
   },
   routing: {

@@ -6,6 +6,7 @@ import {
   Building,
   Calendar,
   CalendarClock,
+  CalendarDays,
   CalendarRange,
   ChartColumn,
   Check,
@@ -97,7 +98,12 @@ export const backOffice = {
     portal: 'Staff portal',
     roleTitle: 'Block staff',
     sections: [
-      { items: [{ label: 'Today', icon: LayoutDashboard, to: '/staff', end: true }] },
+      {
+        items: [
+          { label: 'Today', icon: LayoutDashboard, to: '/staff', end: true },
+          { label: 'My schedule', icon: CalendarDays, to: '/staff/schedule' },
+        ],
+      },
       {
         title: 'Desk',
         items: [
@@ -236,6 +242,7 @@ export const backOffice = {
             tabs: [
               { label: 'Staff and workload', to: '/manager/staff' },
               { label: 'Staff accounts', to: '/manager/staff-accounts' },
+              { label: 'Staff activity', to: '/manager/staff-activity' },
             ],
           },
         ],

@@ -137,10 +137,10 @@ ON CONFLICT DO NOTHING;
 INSERT INTO auth_staff_profile (user_id, handles, on_duty)
 SELECT u.id,
        CASE u.email
-         WHEN 'staff.a1@campusstay.test' THEN '{DESK,APPLICATIONS,ROOM_CHANGES}'::text[]
+         WHEN 'staff.a1@campusstay.test' THEN '{DESK,ROOM_CHANGES,NEXT_TERM}'::text[]
          WHEN 'staff.a2@campusstay.test' THEN '{MAINTENANCE,INSPECTIONS,METER_READINGS}'::text[]
-         WHEN 'staff.b1@campusstay.test' THEN '{DESK,APPLICATIONS,MAINTENANCE,ROOM_CHANGES}'::text[]
-         ELSE '{PAYMENTS}'::text[] END,
+         WHEN 'staff.b1@campusstay.test' THEN '{DESK,MAINTENANCE,ROOM_CHANGES}'::text[]
+         ELSE '{ROOMS}'::text[] END,
        TRUE
 FROM auth_user u WHERE u.role = 'STAFF'
 ON CONFLICT (user_id) DO NOTHING;
