@@ -194,6 +194,7 @@ Scope, review rules and errors: C-21; payment filters, summary and confirmation 
 - `GET /furniture?block&room&location=room|store&typeId&status&q&page&pageSize` → `{ items: [{ id, assetCode, typeId, type, typeVi, category, status, location: { kind: 'Room'|'Store', room, block }, note, plannedMove: { id, to, reason } | null, updatedAt }], total, counts: { [status]: n }, options: { types: [{ id, name, nameVi }], statuses, blocks } }`
 - `GET /furniture/{id}` → `{ item, history: [{ at, kind, from, to, reason, by }] }` · `PUT /furniture/{id}` `{ status?, note?, reason? }` → the item
 - `POST /furniture` `{ typeId, block, room?, quantity, note? }` → `{ assetCodes }` (Managers)
+- `GET /furniture/stock?block` → `{ rows: [{ block, typeId, type, typeVi, category, use, unitPrice, inStore, inRooms, broken, plannedMoves, storeValue }], totals: { inStore, inRooms, broken, plannedMoves, storeValue, unpriced }, blocks }`: the stock of each furniture type per Block in scope (disposed items left out), the store valued at the type's real price (A-72; `unitPrice` null = not set, valued 0)
 - `GET /furniture/moves?block&status=Planned|Done|Cancelled&page&pageSize` → `{ items: [{ id, itemId, assetCode, type, typeVi, from, to, reason, status, createdBy, createdAt, closedBy, closedAt }], total, statuses }` · `POST /furniture/moves` `{ items: [id], toRoom | toStore, reason, planned? }` → `{ moved, planned }` · `POST /furniture/moves/{id}/done` · `POST /furniture/moves/{id}/cancel`
 - Statuses: In use, Broken, In repair, In store, Disposed. Moves to another Block: Managers only (`403 CROSS_BLOCK`). See A-24.
 
@@ -233,13 +234,13 @@ Staff see their Blocks, Managers every Block (C-43).
 
 ### Desk
 
-- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null }` (`expected` = every Allocation of the Term in the Blocks; A-63)
+- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, studentCode, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null, waitingList, blockedList }` (`expected` = every Allocation of the Term in the Blocks; A-63; `waitingList` / `blockedList`: up to 30 students not checked in, paid / still owing, same shape as `recent` with `at` null, A-81)
 - `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
 - `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
 - `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
 - `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }`
 - The list carries `checkOutBy`, `overdueCount` and `items[].overdue`; `POST /check-out/{allocationId}` takes `damages: [{ itemId, amount, note? }]` (A-52)
-- `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
+- `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned?, damageCharge, draft }` (`keyReturned` is no longer asked: Rooms open with a door code; left out = true, A-81) → `{ refund, refundStatus }`
 - The URL carries the Allocation id, never the student code (personal data, B-01). Check-in rules, the pass and the Utility Deposit settlement: C-23 (`allocation.pass`, A-11).
 
 ### Meter readings
@@ -256,6 +257,8 @@ Meter readings, Utility Invoices and Admin › Utility: C-29.
 
 - Rooms of a run carry `checks: [{ id, kind: people | furniture, expected, assetCode, type, typeVi }]`, answered in `results` like checklist items; a Room is Done when both are answered (A-51, B-11)
 
+- `GET /inspection-runs?block` → `{ items: [run] }`: the runs Staff can open, open ones (their own first) then the ones sent in the last 30 days; each run as below plus `status` (Open | Submitted), `block`, `mine`, `overdue` (A-74) · `GET /inspection-runs/{id}` → `{ run }`
+- `POST /inspection-runs/{id}/rooms/{room}/photos` (multipart `photo`, `itemId` "furniture-<id>", none = the meters; JPEG/PNG, at most `handover.max_photos` each) → `{ id, itemId, url }` · `DELETE …/photos/{photoId}` → 204; a Room of `GET …/rooms` also gives `photos: [{ id, itemId, url }]` and `inspectedAt` (A-74)
 - `GET /inspection-runs/current?termId&block` → `{ run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName, checklist: { name, version, items: [{ id, label, category, severity }] } } | null }`
 - `GET /inspection-runs/{id}/rooms?page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result: 'Pass'|'Fail'|'Not checked', note }] }], total }`
 - `PUT /inspection-runs/{id}/rooms/{room}` `{ results }` → `{ createdRequests: [id] }`. A failed item creates a Maintenance Request; its severity sets the request priority.
@@ -301,9 +304,12 @@ Dashboards and approval counts: C-36.
 - `GET /invoices?termId&block&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }`
 
 Late check-ins, refunds, overdue Invoices and reminders: C-28.
-- `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
-- `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }` · `PUT /block-staff/me/duty` `{ onDuty }` → the same (Staff and Managers start and end their own shift; A-60)
-- `PUT /block-staff/{id}` `{ handles, onDuty }` · `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
+- `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, openByType: { Maintenance, Room change, Inspection }, overdue, oldestOpenAt, resolved7d, onDuty, overloaded }], summary: { total, shared, averageOpen, onDuty, deskOnDuty, open, overdue, overloaded, maxOpen }, queue: [{ type, label, count, link }], handleOptions, roleOptions }` (most open work first; A-77)
+- `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }` (A-60; `onDuty` follows sign-in and sign-out, nobody sets it by hand: B-17)
+- `PUT /block-staff/{id}` `{ handles }` (B-17) · `GET /block-staff/{id}/work` → `{ items: [{ type, id, code, title, roomCode, status, openedAt, dueAt, overdue, link }], total }` · `POST /block-staff/{id}/work/reassign` `{ items: [{ type, id }], toStaffId, note }` → `{ moved }` (A-77) · `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
+- `PUT /block-staff/{id}/shifts` `{ shifts: [{ weekday, start, end }] }` → `{ shifts }` · `GET /staff-activity?block&staffId&flagged&from&to&page&pageSize` → `{ items, total, summary: { total, outOfShift, roleMismatch }, staffOptions }` · a Staff member's change outside the shift or their work answers `428 SHIFT_CONFIRM_REQUIRED` until sent with `X-Shift-Acknowledged: true` (A-78)
+- `GET /week-schedule?block` → `{ start, end, sentBlocks, pendingBlocks, sentAt, sentBy }` · `POST /week-schedule/send` `{ block? }` → `{ start, notified, blocks }` (next week's schedule to the Staff; Sunday reminder to Managers; A-79)
+- `GET /week-schedule/plan?block&week` → `{ start, end, editable, nextWeek, staff: [{ id, name, title, blocks, shifts, planned }], sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }` · `PUT`/`DELETE /week-schedule/plan/{staffId}?week` (`{ shifts }`; DELETE = back to the default) → `{ shifts }` · `GET /week-schedule/me` → `{ thisWeek, nextWeek, inShift, shiftToday }` (A-80)
 - `GET /routing-rules?block` → `{ rules: [{ id, type, scope, condition, assigneeId, assigneeName, fallbackId, fallbackName, active }], staff: [{ id, name }], types, categories, gaps: [{ ruleId, title, message }], timers: { urgent, normal, roomChange }, timerOptions: { urgent, normal, roomChange } }`
 - `POST /routing-rules` · `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }` · `PUT /routing-rules/timers` `{ block, urgent, normal, roomChange }`
 - `GET /escalations?termId&block` → `{ items: [{ id, kind, title, subtitle, room, why, tone, openFor, ownerName, handled: { action, at, note } | null, events: [{ text, at }], suggestedAssigneeId, link, canOfferTemporaryBed }], assignees: [{ id, name }] }`

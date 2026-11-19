@@ -103,6 +103,20 @@ public interface Billing {
     /** Room id → its latest meter cut (check-in, check-out, move, turnover); Rooms without one left out. */
     Map<Long, MeterCut> lastMeterCuts(Collection<Long> roomIds);
 
+    /** A Room's meters on a day. */
+    record MeterValue(LocalDate date, BigDecimal electricity, BigDecimal water) {
+    }
+
+    /** The Room's latest reading (a cut at a resident change or a monthly reading); empty when it has none. */
+    Optional<MeterValue> lastReading(long roomId);
+
+    /**
+     * {@link #recordMeterCut} on a given day (a check-in inventory read the meters before it was confirmed). The
+     * reading may not be lower than the latest one.
+     */
+    void recordMeterCutOn(long roomId, String room, LocalDate day, BigDecimal electricity, BigDecimal water,
+            String reason, Long allocationId, long recordedBy);
+
     /** Issues the next-Term room fee "Room fee · Term · Room" and tells the student. */
     IssuedInvoice issueTermFee(TermFeeRequest request);
 

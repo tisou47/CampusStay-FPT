@@ -37,14 +37,16 @@ public class SessionService {
     private final AuthProperties props;
     private final Clock clock;
     private final BlockDirectory blocks;
+    private final DutyPresence duty;
 
     public SessionService(SessionRepository sessions, JdbcClient jdbc, AuthProperties props, Clock clock,
-            BlockDirectory blocks) {
+            BlockDirectory blocks, DutyPresence duty) {
         this.sessions = sessions;
         this.jdbc = jdbc;
         this.props = props;
         this.clock = clock;
         this.blocks = blocks;
+        this.duty = duty;
     }
 
     @Transactional
@@ -54,6 +56,7 @@ public class SessionService {
         Instant expiresAt = now.plus(ttl(remember));
         SessionEntity session = sessions.save(new SessionEntity(Tokens.sha256Hex(token), userId, remember, method, now,
                 expiresAt, RequestInfo.userAgent(), RequestInfo.ip()));
+        duty.active(userId);
         return new NewSession(token, session.getId(), expiresAt);
     }
 
@@ -108,11 +111,14 @@ public class SessionService {
     @Transactional
     public void revoke(long sessionId) {
         sessions.revoke(sessionId, Instant.now(clock));
+        jdbc.sql("SELECT user_id FROM auth_session WHERE id = :id").param("id", sessionId).query(Long.class).optional()
+                .ifPresent(duty::signedOut);
     }
 
     @Transactional
     public void revokeAll(long userId) {
         sessions.revokeAllOfUser(userId, Instant.now(clock));
+        duty.signedOut(userId);
     }
 
     @Transactional
@@ -139,6 +145,9 @@ public class SessionService {
                 .param("exp", Timestamp.from(newExpiry))
                 .param("id", row.sessionId())
                 .update();
+        if (row.role() == Role.STAFF || row.role() == Role.MANAGER) {
+            duty.active(row.userId()); // using the app again after going idle puts the person back on duty
+        }
     }
 
     private Duration ttl(boolean remember) {

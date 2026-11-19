@@ -223,8 +223,17 @@ class DeskIT {
      */
     @Test
     void checkOutSettlesTheDeposit() throws Exception {
-        Placed p = allocate(14).getFirst();
         String staff = bearer(mvc, STAFF_A);
+        Placed notCheckedIn = allocate(18).getFirst();
+        getAs("/check-out?termId=" + termId + "&q=" + notCheckedIn.studentCode(), staff)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+        postJson("/check-out/" + notCheckedIn.allocationId(), staff,
+                "{\"electricity\":100,\"water\":10,\"conditionGood\":true}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("NOT_CHECKED_IN"));
+
+        Placed p = allocate(14).getFirst();
         flow.pay(p.auth(), p.balanceInvoiceId());
         postJson("/check-in", staff, "{\"studentCode\":\"%s\",\"items\":[\"Room key\"]}".formatted(p.studentCode()))
                 .andExpect(status().isOk());
@@ -265,11 +274,8 @@ class DeskIT {
                 .andExpect(jsonPath("$.settlement.periodLabel").value(since))
                 .andExpect(jsonPath("$.settlement.share").value(250_000))
                 .andExpect(jsonPath("$.settlement.damage").value(50_000));
-        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":false}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.keyReturned").value("Collect the Room key before you confirm."));
-        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"keyReturned\":true,"
-                + "\"damageCharge\":50000}")
+        // Rooms open with a door code: no key is asked at check-out.
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"damageCharge\":50000}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.refund").value(300_000))
                 .andExpect(jsonPath("$.refundStatus").value("Pending"));
@@ -285,6 +291,10 @@ class DeskIT {
                 .andExpect(jsonPath("$.code").value("ALREADY_CHECKED_OUT"));
         getAs("/students/me/allocation?termId=" + termId, p.auth())
                 .andExpect(jsonPath("$.allocation").value((Object) null));
+        getAs("/notifications", p.auth())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unread").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.items[0].link").value("/student/invoices"));
         assertThat(jdbc.sql("""
                 SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = 300000
                   AND status = 'PENDING'
@@ -306,8 +316,8 @@ class DeskIT {
         Placed p = allocate(17).getFirst();
         String staff = bearer(mvc, STAFF_A);
         flow.pay(p.auth(), p.balanceInvoiceId());
-        // A resident (the door code was released): no desk check-in, so the desk's count of today stays as it is.
-        jdbc.sql("UPDATE asg_allocation SET resident_at = now() WHERE id = :id")
+        // A resident who checked in two days ago: eligible for check-out without affecting today's check-in count.
+        jdbc.sql("UPDATE asg_allocation SET resident_at = now() - interval '2 days', checked_in_at = now() - interval '2 days' WHERE id = :id")
                 .param("id", Long.parseLong(p.allocationId())).update();
         jdbc.sql("""
                 INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason)
@@ -352,6 +362,8 @@ class DeskIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rooms").value(1));
         getAs("/check-out/" + p.allocationId(), staff).andExpect(jsonPath("$.reading.electricity").value(130));
+        jdbc.sql("UPDATE asg_allocation SET status = 'ENDED', ended_at = now(), end_reason = 'CHECK_OUT' WHERE id = :id")
+                .param("id", Long.parseLong(p.allocationId())).update();
     }
 
     /** TC-ASG-023: when the charges exceed the Utility Deposit, the rest is invoiced to the student. */

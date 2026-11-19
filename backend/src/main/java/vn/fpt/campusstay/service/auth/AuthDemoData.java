@@ -30,6 +30,7 @@ class AuthDemoData implements DemoData {
         jdbc.execute("DELETE FROM auth_reconciliation");
         jdbc.execute("DELETE FROM auth_student_import_row");
         jdbc.execute("DELETE FROM auth_student_import");
+        jdbc.execute("DELETE FROM auth_staff_activity"); // shifts stay: a Manager set them, like handles
         // Fictional students go back to their base state (active, verified, enrolled); real accounts are never touched.
         jdbc.execute("UPDATE auth_user SET status = 'ACTIVE', failed_attempts = 0, locked_until = NULL WHERE demo AND role = 'STUDENT' AND (status <> 'ACTIVE' OR failed_attempts > 0 OR locked_until IS NOT NULL)");
         jdbc.execute("UPDATE auth_student s SET verification = 'VERIFIED', verification_note = NULL, enrollment_status = 'ENROLLED' FROM auth_user u WHERE u.id = s.user_id AND u.demo AND (s.verification <> 'VERIFIED' OR s.enrollment_status <> 'ENROLLED' OR s.verification_note IS NOT NULL)");

@@ -162,8 +162,22 @@ function MeterInput({ meter, value, onChange, low, failed, field, label, closed,
         disabled={closed}
         className={numberInput(Boolean(low || failed))}
       />
-      <div className="flex max-w-40 min-w-0 flex-col text-sm leading-4 whitespace-nowrap">
-        <span className="truncate text-fg-tertiary tabular">{t('previous: {n}', { n: meter?.previous == null ? '—' : formatNumber(meter.previous) })}</span>
+      <div className="flex max-w-44 min-w-0 flex-col text-sm leading-4 whitespace-nowrap">
+        <span
+          className="truncate text-fg-tertiary tabular"
+          title={
+            meter?.previous != null && meter?.previousDate
+              ? t('Previous reading: {value} (recorded {date})', {
+                  value: formatNumber(meter.previous),
+                  date: formatDate(meter.previousDate),
+                })
+              : undefined
+          }
+        >
+          {meter?.previous != null && meter?.previousDate
+            ? t('Previous: {n} ({date})', { n: formatNumber(meter.previous), date: formatDate(meter.previousDate) })
+            : t('previous: {n}', { n: meter?.previous == null ? '—' : formatNumber(meter.previous) })}
+        </span>
         {low ? (
           <span className="truncate font-medium text-error-fg">{t('Lower than previous')}</span>
         ) : delta != null ? (
@@ -458,10 +472,34 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
             )}
             {editing ? (
               <div className="flex gap-3">
-                <Field label="Electricity (kWh)" helper={t('Previous {n}', { n: formatNumber(d.electricity.previous) })} className="flex-1" error={e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}>
+                <Field
+                  label="Electricity (kWh)"
+                  helper={
+                    d.electricity.previousDate
+                      ? t('Previous reading: {value} kWh (recorded {date})', {
+                          value: formatNumber(d.electricity.previous),
+                          date: formatDate(d.electricity.previousDate),
+                        })
+                      : t('Previous {n}', { n: formatNumber(d.electricity.previous) })
+                  }
+                  className="flex-1"
+                  error={e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}
+                >
                   {(id) => <Input id={id} value={e} onChange={(ev) => setE(ev.target.value)} inputMode="numeric" disabled={closed} />}
                 </Field>
-                <Field label="Water (m³)" helper={t('Previous {n}', { n: formatNumber(d.water.previous) })} className="flex-1" error={w && wNum < d.water.previous ? 'Lower than previous' : undefined}>
+                <Field
+                  label="Water (m³)"
+                  helper={
+                    d.water.previousDate
+                      ? t('Previous reading: {value} m³ (recorded {date})', {
+                          value: formatNumber(d.water.previous),
+                          date: formatDate(d.water.previousDate),
+                        })
+                      : t('Previous {n}', { n: formatNumber(d.water.previous) })
+                  }
+                  className="flex-1"
+                  error={w && wNum < d.water.previous ? 'Lower than previous' : undefined}
+                >
                   {(id) => <Input id={id} value={w} onChange={(ev) => setW(ev.target.value)} inputMode="numeric" disabled={closed} />}
                 </Field>
               </div>

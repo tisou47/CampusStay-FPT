@@ -8,11 +8,26 @@
 UPDATE auth_student SET verification = 'PENDING', verified_at = NULL, verified_by = NULL
 WHERE student_code = 'SE220006';
 
+-- Ensure every Block's 4 staff accounts have handles and duty aligned with their job titles.
+INSERT INTO auth_staff_profile (user_id, handles, on_duty)
+SELECT u.id,
+       CASE
+           WHEN u.email ~ '^staff[a-h]01@' THEN '{DESK,NEXT_TERM,ROOM_CHANGES}'::text[]
+           WHEN u.email ~ '^staff[a-h]02@' THEN '{MAINTENANCE,INSPECTIONS,METER_READINGS}'::text[]
+           WHEN u.email ~ '^staff[a-h]03@' THEN '{DESK,FAMILY_DAY}'::text[]
+           ELSE '{MAINTENANCE,INSPECTIONS,METER_READINGS}'::text[]
+       END,
+       u.email ~ '^staff[a-h]0[1-3]@'
+FROM auth_user u WHERE u.demo AND u.role = 'STAFF' AND u.email ~ '^staff[a-h]0[1-4]@fpt\.edu\.vn$'
+ON CONFLICT (user_id) DO UPDATE
+SET handles = EXCLUDED.handles,
+    on_duty = EXCLUDED.on_duty;
+
 INSERT INTO auth_reconciliation (term_id, kind, file_name, rows_read, created_by, created_at)
 SELECT t.x_id, 'ENROLLED', 'enrolled-' || lower(t.x_code) || '.csv',
        (SELECT count(*) FROM demo_res) + (SELECT count(*) FROM demo_app) + 1,
        (SELECT id FROM demo_staff WHERE account = 'manager01'), t.x_m5 - interval '2 days'
-FROM demo_t t WHERE t.stage IN ('B', 'C');
+FROM demo_t t WHERE t.stage IN ('B', 'C', 'D');
 
 INSERT INTO auth_reconciliation_item (reconciliation_id, grp, student_id, student_code, student_name, roles,
                                       file_status, directory_status, line_no, status, outcome, note, resolved_by,

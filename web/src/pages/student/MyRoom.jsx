@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Bed, KeyRound, Package } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
@@ -12,6 +12,8 @@ import { formatDate, formatDateRange, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 import { NextTermCard } from './room/NextTermCard'
+import { StayActivityLogCard, StayContractCard } from './room/StayContractCard'
+import { HandoverBanner } from './room/HandoverBanner'
 import { BalanceCard, CheckInHeaderWidget, DoorCodeCard, LateCheckInCard, RoomQuickLinksCard } from './room/RoomAccessAndFinance'
 import { FurnitureCard, RoomHeroCard, RoommatesCard } from './room/RoomHeroAndDetails'
 
@@ -80,6 +82,7 @@ function Room({ data }) {
 
   return (
     <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+      <HandoverBanner />
       {termination && (
         <Alert type="error" title={termination.status === 'Checked out' ? 'Stay ended' : 'Your stay is terminated'} className="shrink-0">
           {t('Reason: {reason}.', { reason: tr(termination.reason) })}
@@ -95,7 +98,7 @@ function Room({ data }) {
 
       <RoomSegmentedTabs items={tabs} value={tab} onChange={setTab} />
 
-      {/* Tab 1: Tổng quan phòng */}
+      {/* Tab 1: Room overview */}
       {tab === 'overview' && (
         <div
           id="room-panel-overview"
@@ -113,7 +116,7 @@ function Room({ data }) {
         </div>
       )}
 
-      {/* Tab 2: Nội thất & Thiết bị */}
+      {/* Tab 2: Furniture & equipment */}
       {tab === 'furniture' && (
         <div
           id="room-panel-furniture"
@@ -125,7 +128,7 @@ function Room({ data }) {
         </div>
       )}
 
-      {/* Tab 3: Hợp đồng & Tiện ích */}
+      {/* Tab 3: Contract & utilities */}
       {tab === 'contract' && (
         <div
           id="room-panel-contract"
@@ -134,6 +137,8 @@ function Room({ data }) {
           className="grid animate-fade-in grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6 lg:overflow-y-auto"
         >
           <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+            <StayContractCard data={data} />
+            <StayActivityLogCard data={data} />
             <NextTermCard data={data} />
           </div>
           <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">

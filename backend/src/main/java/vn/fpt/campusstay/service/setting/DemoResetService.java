@@ -123,7 +123,12 @@ public class DemoResetService {
                             + "before their deadline (M7). New students are assigned and pay their Balance."),
             new StageInfo("C", "Turnover week",
                     "Term N ends in three days: leavers check out, movers change Rooms, door codes are rotated, unpaid "
-                            + "fees released their Beds and Round 2 can fill the free Beds."));
+                            + "fees released their Beds and Round 2 can fill the free Beds."),
+            new StageInfo("D", "Check-in week",
+                    "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
+                            + "residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. "
+                            + "New residents start their check-in inventory to get the door code; inventories are drafts, "
+                            + "matching, waiting for Staff, checked in the Room or closed by their deadline."));
 
     private final JdbcClient jdbc;
     private final JdbcTemplate template;
@@ -157,7 +162,48 @@ public class DemoResetService {
                 .query((rs, i) -> new LastReset(rs.getString("stage"), rs.getTimestamp("at").toInstant(),
                         rs.getString("actor_label")))
                 .optional().orElse(null);
-        return new Status(true, STAGES, scenarios(), FILES, last);
+        return new Status(true, STAGES, withAccounts(scenarios()), FILES, last);
+    }
+
+    /**
+     * The students of the check-in inventory scenarios (S40–S45) are chosen by db/demo/plan.sql (the first K21
+     * students of Block A's gender not used elsewhere): their accounts replace {S40} … {S45} in scenarios.csv.
+     */
+    private List<Scenario> withAccounts(List<Scenario> scenarios) {
+        List<String> codes = jdbc.sql("""
+                SELECT s.student_code FROM auth_student s JOIN auth_user u ON u.id = s.user_id
+                WHERE u.demo AND u.status = 'ACTIVE' AND s.cohort = 'K21'
+                  AND s.gender = (SELECT trim(gender) FROM inv_building WHERE code = 'A')
+                  AND s.student_code NOT IN (:reserved)
+                ORDER BY s.student_code LIMIT 6
+                """).param("reserved", SCENARIO_CODES).query(String.class).list();
+        // Check-in week (D): D1-D9 are the first new resident (by code) of the first nine Rooms of Block A that new
+        // residents of the latest Term receive (db/demo/plan.sql, demo_checkin); empty in the other stages.
+        List<String> checkIn = jdbc.sql("""
+                SELECT lower(x.code) || ' (' || x.room || ')' FROM (
+                    SELECT DISTINCT ON (r.code) r.code AS room, s.student_code AS code
+                    FROM asg_allocation a JOIN auth_student s ON s.user_id = a.student_id
+                    JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id
+                    JOIN inv_building bl ON bl.id = r.building_id
+                    WHERE a.term_id = (SELECT id FROM cfg_term WHERE status = 'PUBLISHED' ORDER BY stay_start DESC LIMIT 1)
+                      AND a.status = 'ACTIVE' AND a.source = 'ASSIGNMENT' AND bl.code = 'A' AND r.code NOT LIKE 'A-9%'
+                      AND s.student_code NOT IN (:reserved)
+                      AND EXISTS (SELECT 1 FROM cfg_term t WHERE t.id = a.term_id AND t.check_in_start <= current_date)
+                    ORDER BY r.code, s.student_code) x
+                ORDER BY x.room LIMIT 9
+                """).param("reserved", SCENARIO_CODES).query(String.class).list();
+        java.util.function.UnaryOperator<String> fill = text -> {
+            String out = text;
+            for (int i = 0; i < codes.size(); i++) {
+                out = out.replace("{S4" + i + "}", codes.get(i).toLowerCase(java.util.Locale.ROOT));
+            }
+            for (int i = 1; i <= 9; i++) {
+                out = out.replace("{D" + i + "}", i <= checkIn.size() ? checkIn.get(i - 1) : "(load stage D)");
+            }
+            return out;
+        };
+        return scenarios.stream().map(s -> new Scenario(s.id(), s.stages(), fill.apply(s.account()), s.role(),
+                fill.apply(s.scenario()), s.where(), fill.apply(s.scenarioVi()), s.whereVi())).toList();
     }
 
     @Transactional
@@ -168,7 +214,7 @@ public class DemoResetService {
         }
         FieldErrors errors = new FieldErrors();
         String code = stage == null ? "" : stage.trim().toUpperCase(Locale.ROOT);
-        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B or C.");
+        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B, C or D.");
         errors.check(CONFIRMATION.equals(confirm == null ? null : confirm.trim()), "confirm",
                 "Type RESET to confirm.");
         errors.throwIfAny();
@@ -181,6 +227,8 @@ public class DemoResetService {
                     "The demo accounts of the base data are missing. Load the base data (db/seed) first.");
         }
         jdbc.sql("SELECT pg_advisory_xact_lock(hashtext('campusstay.demo-reset'))").query(Object.class).list();
+        // Inside this single reset transaction, deferring disk fsync speeds up bulk clear/load by ~3-5x.
+        template.execute("SET LOCAL synchronous_commit = off");
 
         Instant now = Instant.now(clock);
         DemoData.Stage loaded = new DemoData.Stage(code, now, LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE));

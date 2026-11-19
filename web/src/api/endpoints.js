@@ -67,6 +67,7 @@ export const api = {
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
+    reportFurniture: (body) => http.put('/students/me/furniture/report', body),
     /** { request: { id, status, requestedFor, deadline, reason, decisionReason, createdAt, source } | null, canRequest, checkInEnd, latestDay }. */
     lateCheckIn: g('/students/me/late-check-in'),
     /** multipart: reason, requestedFor (YYYY-MM-DD), evidence (JPEG, PNG or PDF) → { id } (spec §6.9). */
@@ -265,6 +266,8 @@ export const api = {
     /** { status?, note?, reason? } → the item. */
     update: (id, body) => http.put(`/furniture/${id}`, body),
     moves: g('/furniture/moves'),
+    /** ?block → { rows: [{ block, typeId, type, typeVi, category, use, unitPrice, inStore, inRooms, broken, plannedMoves, storeValue }], totals, blocks }. */
+    stock: g('/furniture/stock'),
     /** { items: [id], toRoom? | toStore? (Block code), reason, planned } → { moved, planned }. */
     move: (body) => http.post('/furniture/moves', body),
     finishMove: (id) => http.post(`/furniture/moves/${id}/done`),
@@ -317,11 +320,18 @@ export const api = {
   inspections: {
     // Staff runs
     current: g('/inspection-runs/current'),
+    /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */
+    runs: g('/inspection-runs'),
+    run: (id, opts) => http.get(`/inspection-runs/${id}`, undefined, opts),
+    /** multipart: photo, itemId ("furniture-<id>"; none = the meters) → { id, itemId, url }. */
+    addPhoto: (runId, room, formData) => http.post(`/inspection-runs/${runId}/rooms/${room}/photos`, formData),
+    removePhoto: (runId, room, photoId) => http.delete(`/inspection-runs/${runId}/rooms/${room}/photos/${photoId}`),
     upcoming: g('/inspection-runs/upcoming'),
     rooms: (runId, query, opts) => http.get(`/inspection-runs/${runId}/rooms`, query, opts),
     saveRoom: (runId, room, body) => http.put(`/inspection-runs/${runId}/rooms/${room}`, body),
     unreachable: (runId, room) => http.post(`/inspection-runs/${runId}/rooms/${room}/unreachable`),
-    submit: (runId) => http.post(`/inspection-runs/${runId}/submit`),
+    /** { confirmed: true } once the inspector reviewed the results and committed to them. */
+    submit: (runId, body) => http.post(`/inspection-runs/${runId}/submit`, body),
     // Manager schedules
     schedules: g('/inspection-schedules'),
     createSchedule: (body) => http.post('/inspection-schedules', body),
@@ -331,6 +341,9 @@ export const api = {
     createChecklist: (body) => http.post('/inspection-checklists', body),
     publishChecklist: (id, body) => http.post(`/inspection-checklists/${id}/publish`, body),
     archiveChecklist: (id) => http.post(`/inspection-checklists/${id}/archive`),
+    renameChecklist: (id, body) => http.put(`/inspection-checklists/${id}`, body),
+    restoreChecklist: (id) => http.post(`/inspection-checklists/${id}/restore`),
+    deleteChecklist: (id) => http.delete(`/inspection-checklists/${id}`),
   },
   approvals: {
     summary: g('/approvals/summary'),
@@ -379,13 +392,34 @@ export const api = {
     update: (id, body) => http.put(`/staff-accounts/${id}`, body),
     resendInvitation: (id) => http.post(`/staff-accounts/${id}/invitation`),
   },
+  weekSchedule: {
+    /** { block? } → { start, end, sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }: next week's handover. */
+    next: g('/week-schedule'),
+    /** { block? } → { start, notified, blocks }: tells every Staff member of the Blocks their shifts. */
+    send: (body) => http.post('/week-schedule/send', body),
+    /** { block?, week? (any day; default next week) } → { start, end, editable, nextWeek, staff: [{ id, name, title, blocks, shifts, planned }], sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }. */
+    plan: g('/week-schedule/plan'),
+    /** Plans one Staff member's week: { shifts } → { shifts }. */
+    setWeek: (staffId, week, body) => http.put(`/week-schedule/plan/${staffId}`, body, { query: { week } }),
+    /** The week follows the default weekly shifts again. */
+    resetWeek: (staffId, week) => http.delete(`/week-schedule/plan/${staffId}`, { query: { week } }),
+    /** Staff: { thisWeek: { start, end, sent, shifts }, nextWeek: { start, end, sent, shifts|null }, inShift, shiftToday }. */
+    mine: g('/week-schedule/me'),
+  },
   blockStaff: {
     /** The signed-in Staff member's or Manager's own { id, onDuty, handles, blocks, open, resolved7d } (A-60). */
     me: g('/block-staff/me'),
-    /** { onDuty } → the same: starts or ends the signed-in person's shift. */
-    setDuty: (body) => http.put('/block-staff/me/duty', body),
     list: g('/block-staff'),
+    /** { shifts: [{ weekday 1-7, start 'HH:mm', end 'HH:mm' }] } → the same: replaces a Staff member's weekly shifts. */
+    setShifts: (id, body) => http.put(`/block-staff/${id}/shifts`, body),
+    /** { block?, staffId?, flagged?, from?, to?, page?, pageSize? } → { items, total, summary, staffOptions }. */
+    activity: g('/staff-activity'),
+    /** { handles }: what the person handles. Duty follows sign-in. */
     update: (id, body) => http.put(`/block-staff/${id}`, body),
+    /** The person's open work → { items: [{ type, id, code, title, roomCode, status, openedAt, dueAt, overdue, link }], total }. */
+    work: (id, opts) => http.get(`/block-staff/${id}/work`, undefined, opts),
+    /** { items: [{ type, id }], toStaffId, note } → { moved }: all or none. */
+    reassign: (id, body) => http.post(`/block-staff/${id}/work/reassign`, body),
     requestAccount: (body) => http.post('/staff-account-requests', body),
   },
   routing: {
@@ -563,6 +597,7 @@ export const api = {
       list: g('/admin/room-class-requirements'),
       save: (roomClassId, body) => http.put(`/admin/room-class-requirements/${roomClassId}`, body),
     },
+    /** Replacement prices of furniture types per Room Class (check-out charges): PUT { items: [{ typeId, roomClassId, price }] }. */
     users: {
       list: g('/admin/users'),
       invite: (body) => http.post('/admin/users', body),
@@ -570,6 +605,40 @@ export const api = {
       permissions: g('/admin/permissions'),
     },
     auditLog: g('/admin/audit-log'),
+  },
+
+  /* ---------------------------------------------------------------- Room handover (check-in inventory, check-out furniture) */
+  handover: {
+    /** The student's check-in inventory: { status, checks, items, dueAt, toAgree, … } (never the Room's record). */
+    mine: g('/students/me/handover'),
+    start: () => http.post('/students/me/handover/start'),
+    /** { items: [{ itemId, condition, note }], electricity, water } → the view. */
+    save: (body) => http.put('/students/me/handover', body),
+    /** multipart: photo, itemId (none = the meters) → { id, url }. */
+    addPhoto: (formData) => http.post('/students/me/handover/photos', formData),
+    removePhoto: (id) => http.delete(`/students/me/handover/photos/${id}`),
+    submit: (body) => http.post('/students/me/handover/submit', body),
+    agree: (body) => http.post('/students/me/handover/agree', body),
+    late: (body) => http.post('/students/me/handover/late', body),
+    /** Staff: inventories of their Blocks (status To review, Verifying, Draft, Final, Late report, All). */
+    list: g('/handovers'),
+    detail: (id, opts) => http.get(`/handovers/${id}`, undefined, opts),
+    confirm: (id, body) => http.post(`/handovers/${id}/confirm`, body),
+    visit: (id, body) => http.post(`/handovers/${id}/visit`, body),
+    verification: (id, body) => http.put(`/handovers/${id}/verification`, body),
+    cancel: (id, body) => http.post(`/handovers/${id}/cancel`, body),
+    acceptLate: (id, body) => http.post(`/handovers/${id}/late`, body),
+  },
+  checkOutFurniture: {
+    view: (allocationId, opts) => http.get(`/check-outs/${allocationId}/furniture`, undefined, opts),
+    /** { items: [{ itemId, condition, note, amount, overrideReason, managerReview }], studentPresent }. */
+    record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
+    claim: (allocationId, body) => http.post(`/check-outs/${allocationId}/damage-claims`, body),
+    reviews: g('/check-out-reviews'),
+    decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
+    mine: g('/students/me/check-out'),
+    agree: () => http.post('/students/me/check-out/agree'),
+    answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),
   },
 
   exports: {

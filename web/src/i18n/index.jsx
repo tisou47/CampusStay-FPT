@@ -59,6 +59,17 @@ export function loadLanguage(lang) {
   return pagesLoaded
 }
 
+if (current === 'vi') loadLanguage('vi')
+
+if (import.meta.hot) {
+  import.meta.hot.accept('./vi-pages', (mod) => {
+    if (mod?.default) {
+      Object.assign(vi, mod.default)
+      patterns = null
+    }
+  })
+}
+
 const fill = (text, vars) =>
   vars ? text.replace(/\{(\w+)\}/g, (whole, name) => (vars[name] == null ? whole : String(vars[name]))) : text
 

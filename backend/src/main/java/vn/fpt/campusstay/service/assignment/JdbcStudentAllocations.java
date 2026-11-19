@@ -30,16 +30,31 @@ class JdbcStudentAllocations implements StudentAllocations {
 
     @Override
     public Optional<Placement> ofApplication(long applicationId) {
-        return jdbc.sql("""
+        return toPlacement(jdbc.sql("""
                 SELECT id, bed_id, allocated_at, resident_at FROM asg_allocation
                 WHERE application_id = :app AND status = 'ACTIVE' ORDER BY id DESC LIMIT 1
                 """).param("app", applicationId)
                 .query((rs, i) -> new Row(rs.getLong("id"), rs.getLong("bed_id"), instant(rs.getTimestamp("allocated_at")),
                         instant(rs.getTimestamp("resident_at"))))
-                .optional()
-                .flatMap(row -> Optional.ofNullable(inventory.beds(List.of(row.bedId())).get(row.bedId()))
-                        .map(bed -> new Placement(row.id(), bed.roomCode(), bed.bedLabel(), bed.block(), bed.floor(),
-                                row.allocatedAt(), row.residentAt())));
+                .optional());
+    }
+
+    @Override
+    public Optional<Placement> ofStudent(long studentId, long termId) {
+        return toPlacement(jdbc.sql("""
+                SELECT id, bed_id, allocated_at, resident_at FROM asg_allocation
+                WHERE student_id = :student AND term_id = :term AND status = 'ACTIVE'
+                ORDER BY id DESC LIMIT 1
+                """).param("student", studentId).param("term", termId)
+                .query((rs, i) -> new Row(rs.getLong("id"), rs.getLong("bed_id"), instant(rs.getTimestamp("allocated_at")),
+                        instant(rs.getTimestamp("resident_at"))))
+                .optional());
+    }
+
+    private Optional<Placement> toPlacement(Optional<Row> found) {
+        return found.flatMap(row -> Optional.ofNullable(inventory.beds(List.of(row.bedId())).get(row.bedId()))
+                .map(bed -> new Placement(row.id(), bed.roomCode(), bed.bedLabel(), bed.block(), bed.floor(),
+                        row.allocatedAt(), row.residentAt())));
     }
 
     @Override

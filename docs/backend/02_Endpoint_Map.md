@@ -182,10 +182,20 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 
 | Module | Method | Path | Priority | Status | Note |
 |---|---|---|---|---|---|
-| AUTH | GET | `/block-staff` | Should | Verified | C-32; TC-AUTH-019 |
-| AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32; TC-AUTH-020 |
+| AUTH | GET | `/block-staff` | Should | Verified | C-32, A-77; TC-AUTH-019, 062…065 |
+| AUTH | PUT | `/block-staff/{id}` | Should | Verified | C-32, A-77, B-17; TC-AUTH-020, 061 |
+| AUTH | GET | `/block-staff/{id}/work` | Should | Verified | A-77; TC-AUTH-066, 067 |
+| AUTH | POST | `/block-staff/{id}/work/reassign` | Should | Verified | A-77; TC-AUTH-068…070 |
+| AUTH | PUT | `/block-staff/{id}/shifts` | Should | Verified | A-78; TC-AUTH-071 |
+| AUTH | GET | `/staff-activity` | Should | Verified | A-78; TC-AUTH-072…075 |
+| AUTH | GET | `/week-schedule` | Should | Verified | A-79; TC-AUTH-076 |
+| AUTH | POST | `/week-schedule/send` | Should | Verified | A-79; TC-AUTH-076, 077 |
+| AUTH | GET | `/week-schedule/plan` | Should | Verified | A-80; TC-AUTH-080 |
+| AUTH | PUT | `/week-schedule/plan/{staffId}` | Should | Verified | A-80; TC-AUTH-080…082 |
+| AUTH | DELETE | `/week-schedule/plan/{staffId}` | Should | Verified | A-80; TC-AUTH-080 |
+| AUTH | GET | `/week-schedule/me` | Should | Verified | A-80; TC-AUTH-081 |
 | AUTH | GET | `/block-staff/me` | Should | Verified | A-60; TC-AUTH-057 |
-| AUTH | PUT | `/block-staff/me/duty` | Should | Verified | A-60; TC-AUTH-057 |
+| AUTH | PUT | `/block-staff/me/duty` | Should | Removed | A-60, removed by B-17 (duty follows sign-in) |
 | AUTH | GET | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058 |
 | AUTH | PUT | `/students/me/refund-account` | Must | Verified | A-62; TC-AUTH-058, TC-APP-025 |
 | AUTH | GET | `/students/me/contacts` | Should | Verified | A-70; TC-AUTH-060 |
@@ -246,6 +256,10 @@ Removed in v2 phase 5 (ADR-22, B-07): `POST /webhooks/sepay` (A-07) and the paym
 | MNT | POST | `/inspection-checklists/{id}/archive` | Could | Verified | C-34; pauses the schedules: TC-MNT-004, 006 |
 | MNT | POST | `/inspection-checklists/{id}/publish` | Could | Verified | A-14, C-34; TC-MNT-004, 006 |
 | MNT | GET | `/inspection-runs/current` | Could | Verified | C-34; TC-MNT-005, 007 |
+| MNT | GET | `/inspection-runs` | Should | Verified | A-74; every run Staff can open; TC-MNT-010 |
+| MNT | GET | `/inspection-runs/{id}` | Should | Verified | A-74; TC-MNT-010 |
+| MNT | POST | `/inspection-runs/{id}/rooms/{room}/photos` | Should | Verified | A-74; V82; TC-MNT-010 |
+| MNT | DELETE | `/inspection-runs/{id}/rooms/{room}/photos/{photoId}` | Should | Verified | A-74; TC-MNT-010 |
 | MNT | GET | `/inspection-runs/upcoming` | Could | Verified | C-34; TC-MNT-005 |
 | MNT | GET | `/inspection-runs/{id}/rooms` | Could | Verified | C-34; TC-MNT-005 |
 | MNT | PUT | `/inspection-runs/{id}/rooms/{room}` | Could | Verified | C-34; a failed item creates a Maintenance Request: TC-MNT-005 |
@@ -315,6 +329,7 @@ Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | INV | GET | `/furniture/{id}` | Must | Verified | A-24; history; TC-INV-015, 016, 017, 018 |
 | INV | POST | `/furniture` | Must | Verified | A-24; Managers register items; TC-INV-016 |
 | INV | PUT | `/furniture/{id}` | Must | Verified | A-24; TC-INV-018 |
+| INV | GET | `/furniture/stock` | Should | Verified | A-81; stock per Block at the real prices; TC-INV-028 |
 | INV | GET | `/furniture/moves` | Must | Verified | A-24; TC-INV-017 |
 | INV | POST | `/furniture/moves` | Must | Verified | A-24; transfers between Blocks by Managers; TC-INV-017 |
 | INV | POST | `/furniture/moves/{id}/done` | Must | Verified | A-24; TC-INV-017 |

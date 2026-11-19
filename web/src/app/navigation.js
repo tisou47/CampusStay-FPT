@@ -6,6 +6,7 @@ import {
   Building,
   Calendar,
   CalendarClock,
+  CalendarDays,
   CalendarRange,
   ChartColumn,
   Check,
@@ -97,11 +98,17 @@ export const backOffice = {
     portal: 'Staff portal',
     roleTitle: 'Block staff',
     sections: [
-      { items: [{ label: 'Today', icon: LayoutDashboard, to: '/staff', end: true }] },
+      {
+        items: [
+          { label: 'Today', icon: LayoutDashboard, to: '/staff', end: true },
+          { label: 'My schedule', icon: CalendarDays, to: '/staff/schedule' },
+        ],
+      },
       {
         title: 'Desk',
         items: [
-          { label: 'Check-in', icon: LogIn, to: '/staff/check-in' },
+          { label: 'Check-in', icon: LogIn, to: '/staff/check-in', end: true },
+          { label: 'Check-in inventories', icon: ClipboardList, to: '/staff/check-in/inventories' },
           { label: 'Check-out', icon: LogOut, to: '/staff/check-out' },
         ],
       },
@@ -170,6 +177,7 @@ export const backOffice = {
             tabs: [
               { label: 'Decisions', to: '/manager/approvals' },
               { label: 'Terminations', to: '/manager/terminations' },
+              { label: 'Check-out charges', to: '/manager/approvals/check-out-charges' },
             ],
           },
           {
@@ -205,6 +213,7 @@ export const backOffice = {
           { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
+          { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
           { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
           {
             label: 'Block settings',
@@ -235,7 +244,9 @@ export const backOffice = {
             to: '/manager/staff',
             tabs: [
               { label: 'Staff and workload', to: '/manager/staff' },
+              { label: 'Work schedule', to: '/manager/staff-schedule' },
               { label: 'Staff accounts', to: '/manager/staff-accounts' },
+              { label: 'Staff activity', to: '/manager/staff-activity' },
             ],
           },
         ],

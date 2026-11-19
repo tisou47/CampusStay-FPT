@@ -7,6 +7,7 @@ import '../api.dart';
 import '../common.dart';
 import '../files.dart';
 import 'applications.dart';
+import 'handover.dart';
 import 'apply.dart';
 import 'payments.dart';
 import 'requests.dart';
@@ -174,6 +175,7 @@ class _Room extends StatelessWidget {
               ),
             ],
           ),
+        const HandoverCard(),
         if (checkIn?.str('checkedInAt') == null && !resident) const _LateCheckInCard(),
         _NextTermCard(data: data, reload: reload),
         if (roommates.isNotEmpty || data.number('roommateCapacity') != null)

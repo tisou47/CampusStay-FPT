@@ -78,6 +78,9 @@ public class AdminFurnitureService {
     static final Map<String, String> CATEGORIES = categories();
     static final Map<String, String> USES = Map.of("PERSONAL", "Personal", "SHARED", "Shared");
     private static final int MAX_QUANTITY = 20;
+
+    /** Condition levels the Room handover maps its conditions to (INV's {@code Inventory.conditionLoss}). */
+    private static final List<String> USED_LEVELS = List.of("INTACT", "PARTLY_DAMAGED", "MOSTLY_DAMAGED", "DESTROYED");
     private static final long MAX_PRICE = 1_000_000_000L;
 
     private record Type(long id, String code, String name, String nameVi, String category, boolean definesClass,
@@ -88,12 +91,15 @@ public class AdminFurnitureService {
     private final CurrentUser currentUser;
     private final Catalog catalog;
     private final AuditLog audit;
+    private final FurnitureBeds beds;
 
-    public AdminFurnitureService(JdbcClient jdbc, CurrentUser currentUser, Catalog catalog, AuditLog audit) {
+    public AdminFurnitureService(JdbcClient jdbc, CurrentUser currentUser, Catalog catalog, AuditLog audit,
+            FurnitureBeds beds) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.catalog = catalog;
         this.audit = audit;
+        this.beds = beds;
     }
 
     @Transactional(readOnly = true)
@@ -168,6 +174,9 @@ public class AdminFurnitureService {
                     .param("price", v.price()).param("id", id)
                     .update();
             audit.record("FURNITURE_TYPE_UPDATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), change);
+            if (!before.use().equals(v.use())) {
+                beds.relink(null);
+            }
         }
         return id;
     }
@@ -266,6 +275,10 @@ public class AdminFurnitureService {
                 break;
             }
             clean.add(new ConditionValue(code, name, nameVi, c.percent()));
+        }
+        // Inspections, check-in inventories and check-outs record their conditions on these four levels.
+        if (!errors.has("items") && USED_LEVELS.stream().anyMatch(l -> before.containsKey(l) && !codes.contains(l))) {
+            errors.add("items", "Keep the first four levels: inspections, check-in inventories and check-outs use them.");
         }
         errors.throwIfAny();
         Map<String, Object> change = new LinkedHashMap<>();

@@ -183,7 +183,9 @@ public class StudentApplicationQueries {
             due = summary.next().map(i -> new DueInvoice(i.code(), i.type(), i.title(), i.amount(), i.dueAt()))
                     .orElse(null);
         }
-        Optional<StudentAllocations.Placement> placement = app.flatMap(a -> allocations.ofApplication(a.id()));
+        Optional<StudentAllocations.Placement> placement = term == null ? Optional.empty()
+                : allocations.ofStudent(me.userId(), term.id())
+                        .or(() -> app.flatMap(a -> allocations.ofApplication(a.id())));
         String[] words = me.name().trim().split("\\s+");
         return new Home(words[words.length - 1], TermView.of(term),
                 app.map(a -> new HomeApplication(a.code(), ApplicationStore.label(a.status()), names.type(a.roomTypeId()),
@@ -203,6 +205,9 @@ public class StudentApplicationQueries {
                 .map(a -> byId.get(a.termId()))
                 .filter(t -> t != null && !today.isAfter(t.stayEnd()))
                 .findFirst()
+                .or(() -> published.stream()
+                        .filter(t -> !today.isAfter(t.stayEnd()) && allocations.holdsBed(studentId, t.id()))
+                        .findFirst())
                 .or(() -> published.stream().filter(TermSummary::registrationOpen).findFirst())
                 .or(() -> published.stream().filter(TermSummary::current).findFirst())
                 .orElse(null);

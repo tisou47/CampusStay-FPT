@@ -39,6 +39,7 @@ const MyInvoices = () => import('@/pages/student/MyInvoices')
 const InvoicePayment = () => import('@/pages/student/InvoicePayment')
 const InvoiceDetail = () => import('@/pages/student/InvoiceDetail')
 const MyRoom = () => import('@/pages/student/MyRoom')
+const CheckInInventory = () => import('@/pages/student/CheckInInventory')
 const MyRequests = () => import('@/pages/student/MyRequests')
 const Notifications = () => import('@/pages/student/Notifications')
 const NewMaintenanceRequest = () => import('@/pages/student/NewMaintenanceRequest')
@@ -51,6 +52,7 @@ const RegistrationPeriod = () => import('@/pages/student/RegistrationPeriod')
 
 // Staff — 06 Web – Staff
 const StaffDashboard = () => import('@/pages/staff/StaffDashboard')
+const MySchedule = () => import('@/pages/staff/MySchedule')
 const ApplicationQueue = () => import('@/pages/staff/ApplicationQueue')
 const ApplicationReview = () => import('@/pages/staff/ApplicationReview')
 const Payments = () => import('@/pages/staff/Payments')
@@ -69,12 +71,14 @@ const OperationalMoves = () => import('@/pages/staff/OperationalMoves')
 const TermTransition = () => import('@/pages/transition/TermTransition')
 const CheckInDesk = () => import('@/pages/staff/CheckInDesk')
 const CheckOutDesk = () => import('@/pages/staff/CheckOutDesk')
+const HandoverReview = () => import('@/pages/staff/HandoverReview')
 const MeterReadings = () => import('@/pages/staff/MeterReadings')
 const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
 
 // Manager — 07 Web – Manager
 const ManagerDashboard = () => import('@/pages/manager/ManagerDashboard')
 const Approvals = () => import('@/pages/manager/Approvals')
+const CheckOutReviews = () => import('@/pages/manager/CheckOutReviews')
 const BlockFinance = () => import('@/pages/manager/BlockFinance')
 const BlockStaff = () => import('@/pages/manager/BlockStaff')
 const RoutingRules = () => import('@/pages/manager/RoutingRules')
@@ -86,6 +90,8 @@ const Students = () => import('@/pages/manager/Students')
 const StudentHub = () => import('@/pages/manager/StudentHub')
 const StudentImport = () => import('@/pages/manager/StudentImport')
 const StaffAccounts = () => import('@/pages/manager/StaffAccounts')
+const StaffActivity = () => import('@/pages/manager/StaffActivity')
+const StaffSchedule = () => import('@/pages/manager/StaffSchedule')
 const TermDashboard = () => import('@/pages/manager/TermDashboard')
 const PaymentClaims = () => import('@/pages/manager/PaymentClaims')
 const Terminations = () => import('@/pages/manager/Terminations')
@@ -196,6 +202,7 @@ export const router = createBrowserRouter([
         { path: 'invoices/:id', ...page(InvoiceDetail) },
         { path: 'invoices/:id/pay', ...page(InvoicePayment) },
         { path: 'room', ...page(MyRoom) },
+        { path: 'room/inventory', ...page(CheckInInventory) },
         { path: 'requests', ...page(MyRequests) },
         { path: 'requests/maintenance/new', ...page(NewMaintenanceRequest) },
         { path: 'requests/room-change/new', ...page(NewRoomChangeRequest) },
@@ -213,6 +220,7 @@ export const router = createBrowserRouter([
       // Staff work for their Blocks: desk, rooms, maintenance, inspections and meters (ADR-19).
       portal('staff', <BackOfficeLayout role="staff" />, [
         { index: true, ...page(StaffDashboard) },
+        { path: 'schedule', ...page(MySchedule) },
         { path: 'inventory', ...page(Inventory) },
         { path: 'rooms/:code', ...page(RoomHub) },
         { path: 'door-codes', ...page(DoorCodes) },
@@ -227,6 +235,7 @@ export const router = createBrowserRouter([
         { path: 'next-term/:tab', ...page(TermTransition) },
         { path: 'moves', ...page(OperationalMoves) },
         { path: 'check-in', ...page(CheckInDesk) },
+        { path: 'check-in/inventories', ...page(HandoverReview) },
         { path: 'check-out', ...page(CheckOutDesk) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
@@ -245,6 +254,7 @@ export const router = createBrowserRouter([
         { index: true, ...page(ManagerDashboard) },
         { path: 'approvals', ...page(Approvals, { tab: 'late-check-in' }) },
         { path: 'approvals/late-check-in', ...page(Approvals, { tab: 'late-check-in' }) },
+        { path: 'approvals/check-out-charges', ...page(CheckOutReviews) },
         { path: 'applications', ...page(ApplicationQueue) },
         { path: 'applications/:id', ...page(ApplicationReview) },
         { path: 'assignment', ...page(AssignmentRuns) },
@@ -271,6 +281,7 @@ export const router = createBrowserRouter([
         { path: 'maintenance', ...page(MaintenanceQueue) },
         { path: 'maintenance/:id', ...page(MaintenanceDetail) },
         { path: 'inspections', ...page(InspectionSchedule) },
+        { path: 'check-in/inventories', ...page(HandoverReview) },
         { path: 'finance', ...page(BlockFinance) },
         { path: 'staff', ...page(BlockStaff) },
         { path: 'routing-rules', ...page(RoutingRules) },
@@ -283,6 +294,8 @@ export const router = createBrowserRouter([
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },
         { path: 'staff-accounts', ...page(StaffAccounts) },
+        { path: 'staff-activity', ...page(StaffActivity) },
+        { path: 'staff-schedule', ...page(StaffSchedule) },
         { path: 'term-requests', ...page(TermRequests) },
         { path: 'terms', ...page(TermDashboard) },
         { path: 'terms/:id', ...page(TermDashboard) },

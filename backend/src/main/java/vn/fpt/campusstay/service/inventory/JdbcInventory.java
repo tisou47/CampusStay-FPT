@@ -6,10 +6,12 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.dto.setting.TermSummary;
@@ -30,8 +32,10 @@ class JdbcInventory implements Inventory {
 
     private final JdbcClient jdbc;
     private final TermCatalog terms;
+    private final java.time.Clock clock;
 
-    JdbcInventory(JdbcClient jdbc, TermCatalog terms) {
+    JdbcInventory(JdbcClient jdbc, TermCatalog terms, java.time.Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
         this.terms = terms;
     }
@@ -139,12 +143,112 @@ class JdbcInventory implements Inventory {
                 .list();
     }
 
+
+    @Override
+    public List<FurnitureLine> furnitureLines(long roomId) {
+        return jdbc.sql("""
+                SELECT i.id, i.asset_code, t.id AS type_id, t.name, t.name_vi, t.use_scope, i.bed_id, b.label AS bed_label,
+                       i.status, i.condition
+                FROM inv_furniture_item i JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                LEFT JOIN inv_bed b ON b.id = i.bed_id
+                WHERE i.room_id = :room AND i.status <> 'DISPOSED'
+                ORDER BY (t.use_scope = 'PERSONAL'), b.label NULLS FIRST, t.sort_order, i.asset_code
+                """).param("room", roomId)
+                .query((rs, i) -> new FurnitureLine(rs.getLong("id"), rs.getString("asset_code"), rs.getLong("type_id"),
+                        rs.getString("name"), rs.getString("name_vi"), "PERSONAL".equals(rs.getString("use_scope")),
+                        rs.getObject("bed_id", Long.class), rs.getString("bed_label"), rs.getString("status"),
+                        rs.getString("condition")))
+                .list();
+    }
+
+    /** Fallback real price (VND) when a furniture type has no price configured yet. */
+    private static final Map<String, Long> DEFAULT_TYPE_PRICES = Map.of(
+            "BED", 2_000_000L, "WRD", 2_500_000L, "DESK", 1_500_000L,
+            "FAN", 800_000L, "AC", 8_000_000L, "WH", 3_500_000L, "FRG", 5_000_000L);
+    private static final long FALLBACK_TYPE_PRICE = 1_500_000L;
+
+    /** Fallback condition loss (%) when {@code inv_furniture_condition} is missing any of the four handover levels. */
+    private static final Map<String, Integer> DEFAULT_CONDITION_LOSS = Map.of(
+            "GOOD", 0, "WORN", 25, "DAMAGED", 50, "MISSING", 100);
+
+    @Override
+    public Map<Long, Long> furniturePrices() {
+        Map<Long, Long> prices = new LinkedHashMap<>();
+        jdbc.sql("SELECT id, code, unit_price FROM inv_furniture_type")
+                .query((rs, i) -> {
+                    long id = rs.getLong("id");
+                    String code = rs.getString("code");
+                    Long p = rs.getObject("unit_price", Long.class);
+                    long resolved = p != null ? p : DEFAULT_TYPE_PRICES.getOrDefault(code, FALLBACK_TYPE_PRICE);
+                    return Map.entry(id, resolved);
+                }).list()
+                .forEach(e -> prices.put(e.getKey(), e.getValue()));
+        return prices;
+    }
+
+    @Override
+    public Map<String, Integer> conditionLoss() {
+        Map<String, Integer> loss = new LinkedHashMap<>(DEFAULT_CONDITION_LOSS);
+        jdbc.sql("""
+                SELECT m.observed, 100 - c.value_percent AS loss
+                FROM (VALUES ('GOOD', 'INTACT'), ('WORN', 'PARTLY_DAMAGED'), ('DAMAGED', 'MOSTLY_DAMAGED'),
+                             ('MISSING', 'DESTROYED')) AS m(observed, level)
+                JOIN inv_furniture_condition c ON c.code = m.level
+                """).query((rs, i) -> Map.entry(rs.getString("observed"), rs.getInt("loss"))).list()
+                .forEach(e -> loss.put(e.getKey(), Math.max(0, Math.min(100, e.getValue()))));
+        return loss;
+    }
+
+    private static final Map<String, String> LEVEL_TO_HANDOVER = Map.of(
+            "INTACT", "Good",
+            "PARTLY_DAMAGED", "Worn",
+            "MOSTLY_DAMAGED", "Damaged",
+            "DESTROYED", "Missing");
+
     @Override
     public List<ConditionLevel> conditionLevels() {
-        return jdbc.sql("SELECT code, name, name_vi, value_percent FROM inv_furniture_condition ORDER BY sort_order, code")
-                .query((rs, i) -> new ConditionLevel(rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
-                        rs.getInt("value_percent")))
-                .list();
+        List<ConditionLevel> rows = jdbc.sql("""
+                SELECT code, name, name_vi, value_percent
+                FROM inv_furniture_condition
+                ORDER BY value_percent DESC, sort_order
+                """).query((rs, i) -> {
+                    String code = rs.getString("code");
+                    int remaining = Math.max(0, Math.min(100, rs.getInt("value_percent")));
+                    return new ConditionLevel(code, LEVEL_TO_HANDOVER.get(code), rs.getString("name"),
+                            rs.getString("name_vi"), remaining, 100 - remaining);
+                }).list();
+        if (rows.isEmpty()) {
+            return List.of(
+                    new ConditionLevel("INTACT", "Good", "Intact", "Nguyên vẹn", 100, 0),
+                    new ConditionLevel("PARTLY_DAMAGED", "Worn", "Partly damaged", "Hư một phần", 75, 25),
+                    new ConditionLevel("MOSTLY_DAMAGED", "Damaged", "More than half damaged", "Hư hơn một nửa", 50, 50),
+                    new ConditionLevel("DESTROYED", "Missing", "Completely damaged", "Hư hoàn toàn", 0, 100));
+        }
+        return rows;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<String> planRestock(long roomId, long furnitureTypeId, String reason, long by) {
+        record Spare(long id, String assetCode, long store) {
+        }
+        Optional<Spare> spare = jdbc.sql("""
+                SELECT i.id, i.asset_code, i.store_building_id FROM inv_furniture_item i
+                JOIN inv_room r ON r.building_id = i.store_building_id
+                WHERE r.id = :room AND i.furniture_type_id = :type AND i.status = 'IN_STORE'
+                  AND NOT EXISTS (SELECT 1 FROM inv_furniture_move m WHERE m.item_id = i.id AND m.status = 'PLANNED')
+                ORDER BY i.asset_code LIMIT 1 FOR UPDATE OF i SKIP LOCKED
+                """).param("room", roomId).param("type", furnitureTypeId)
+                .query((rs, i) -> new Spare(rs.getLong("id"), rs.getString("asset_code"), rs.getLong("store_building_id")))
+                .optional();
+        spare.ifPresent(s -> jdbc.sql("""
+                INSERT INTO inv_furniture_move (item_id, from_store_building_id, to_room_id, reason, status, created_by,
+                                                created_at)
+                VALUES (:item, :store, :room, :reason, 'PLANNED', :by, :now)
+                """).param("item", s.id()).param("store", s.store()).param("room", roomId)
+                .param("reason", reason.length() > 300 ? reason.substring(0, 300) : reason).param("by", by)
+                .param("now", java.sql.Timestamp.from(clock.instant())).update());
+        return spare.map(Spare::assetCode);
     }
 
     /** The current Term (stay includes today, else the next to start); null when nothing is published. */

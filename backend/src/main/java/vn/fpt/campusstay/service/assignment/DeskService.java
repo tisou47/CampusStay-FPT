@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.CheckOutCompleted;
 import vn.fpt.campusstay.event.FurnitureDamaged;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.security.AuthenticatedUser;
@@ -67,7 +68,9 @@ public class DeskService {
 
     // ---------------------------------------------------------------- check-in records
 
-    public record Recent(String name, String bed, Instant at) {
+    /** A student of the desk's side lists; {@code studentCode} opens them at the desk. */
+    public record Recent(String name, String studentCode, String bed, Instant at, String handoverId,
+            String handoverStatus, String handoverComparison, boolean doorCodeReleased, Instant utilityFrom) {
     }
 
     /**
@@ -77,10 +80,19 @@ public class DeskService {
      */
     public record Today(LocalDate date, String block, long expected, long checkedIn, long waiting, long blocked,
             List<Recent> recent, String termId, String termName, LocalDate checkInStart, LocalDate checkInEnd,
-            String window) {
+            String window, List<Recent> waitingList, List<Recent> blockedList, long inProgress,
+            List<Recent> inProgressList, List<Recent> checkedInList) {
     }
 
-    public record Check(String label, boolean passed) {
+    /** How many students each side list of the check-in desk shows. */
+    private static final int SIDE_LIST = 30;
+
+    /** {@code hint}: what to do while the check is not passed (null when nothing to add). */
+    public record Check(String label, boolean passed, String hint) {
+
+        public Check(String label, boolean passed) {
+            this(label, passed, null);
+        }
     }
 
     public record Owes(long balance, long utilityDeposit) {
@@ -88,7 +100,10 @@ public class DeskService {
 
     /** {@code status}: ready, blocked, checked-in or not-allocated. */
     public record Person(String name, String studentCode, String room, String bed, String block, Integer floor,
-            String status, List<Check> checks, Owes owes, Instant checkedInAt, List<String> handOverItems) {
+            String status, List<Check> checks, Owes owes, Instant checkedInAt, List<String> handOverItems,
+            String handoverId, String handoverStatus, String handoverComparison, String handoverSource,
+            boolean doorCodeReleased, Instant doorCodeReleasedAt, Instant utilityFrom, BigDecimal electricity,
+            BigDecimal water) {
     }
 
     public record Lookup(Person student) {
@@ -107,7 +122,7 @@ public class DeskService {
 
     /** @param checkOutBy the day leavers of the Term must have checked out */
     public record CheckOutPage(LocalDate date, long pendingCount, List<String> reasons, List<CheckOutRow> items,
-            long total, LocalDate checkOutBy, long overdueCount) {
+            long total, LocalDate checkOutBy, long overdueCount, Map<String, Long> statusCounts) {
     }
 
     /** Damage to one furniture item of the Room; {@code amount} VND. */
@@ -125,13 +140,26 @@ public class DeskService {
     public record Reading(BigDecimal electricity, BigDecimal water) {
     }
 
+    /** The Room's latest reading and date before check-out, shown to Staff as a reference note. */
+    public record PreviousReading(BigDecimal electricity, BigDecimal water, LocalDate date) {
+    }
+
     public record SettlementView(long held, String periodLabel, long share, long unpaid, long damage, long refund) {
+    }
+
+    public record HandoverReportItem(String itemId, String assetCode, String type, String typeVi, String bed,
+            String condition, String note, boolean preExisting) {
+    }
+
+    public record HandoverReport(String id, String source, String status, Instant finalizedAt, Instant utilityFrom,
+            BigDecimal electricity, BigDecimal water, String comparison, String comparisonNote,
+            String staffName, Instant studentSubmittedAt, List<HandoverReportItem> items) {
     }
 
     public record CheckOutDetail(String allocationId, String studentCode, String name, String room, String bed,
             String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
-            Reading reading, SettlementView settlement, String refundStatus, List<DamageItem> furniture,
-            List<Inventory.ConditionLevel> conditions) {
+            Reading reading, PreviousReading previousReading, SettlementView settlement, String refundStatus,
+            List<DamageItem> furniture, List<Inventory.ConditionLevel> conditions, HandoverReport handoverReport) {
     }
 
     /** @param damages per furniture item; when sent, the damage charge is their sum */
@@ -145,7 +173,12 @@ public class DeskService {
     // ---------------------------------------------------------------- internal rows
 
     private record Alloc(long id, long termId, long studentId, long bedId, String status, Instant checkedInAt,
-            List<String> handOverItems, Instant residentAt) {
+            List<String> handOverItems, Instant residentAt, Instant codeReleasedAt, Instant utilityFrom) {
+    }
+
+    private record HandoverSummary(long id, long allocationId, String status, String source, String comparison,
+            Instant openedAt, Instant submittedAt, Instant finalizedAt, Instant utilityFrom, BigDecimal electricity,
+            BigDecimal water) {
     }
 
     /** An Allocation with its Bed and, for check-out, its check-out record. */
@@ -179,11 +212,17 @@ public class DeskService {
     private final TerminationService terminations;
     private final JdbcStays stays;
     private final Clock clock;
+    private final DoorCodeRelease doorCodes;
+
+    private final CheckOutFurnitureService furnitureCharges;
 
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
             UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events,
-            TerminationService terminations, JdbcStays stays, Clock clock) {
+            TerminationService terminations, JdbcStays stays, Clock clock, DoorCodeRelease doorCodes,
+            CheckOutFurnitureService furnitureCharges) {
+        this.furnitureCharges = furnitureCharges;
+        this.doorCodes = doorCodes;
         this.stays = stays;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
@@ -210,25 +249,60 @@ public class DeskService {
         BlockSelection scope = blockScope.resolve(block);
         TermSummary term = term(termId);
         List<Placed> placed = active(term.id(), scope.ids());
-        Map<Long, Billing.CheckInDue> dues = billing.checkInDues(placed.stream().map(p -> p.alloc().id()).toList());
-        long checkedIn = placed.stream().filter(p -> p.alloc().checkedInAt() != null).count();
-        long blocked = placed.stream()
-                .filter(p -> p.alloc().checkedInAt() == null && dues.containsKey(p.alloc().id())).count();
+        List<Long> allocIds = placed.stream().map(p -> p.alloc().id()).toList();
+        Map<Long, Billing.CheckInDue> dues = billing.checkInDues(allocIds);
+        Map<Long, HandoverSummary> handoverMap = handovers(allocIds);
+        List<Placed> checkedInAll = placed.stream().filter(p -> p.alloc().checkedInAt() != null)
+                .sorted(Comparator.comparing((Placed p) -> p.alloc().checkedInAt()).reversed()).toList();
+        long checkedIn = checkedInAll.size();
         LocalDate today = today();
         Instant start = today.atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
-        List<Placed> recent = placed.stream()
-                .filter(p -> p.alloc().checkedInAt() != null && !p.alloc().checkedInAt().isBefore(start))
-                .sorted(Comparator.comparing((Placed p) -> p.alloc().checkedInAt()).reversed())
-                .limit(8).toList();
-        Map<Long, String> names = users.displayNames(recent.stream().map(p -> p.alloc().studentId()).toList());
+        List<Placed> recentToday = checkedInAll.stream()
+                .filter(p -> !p.alloc().checkedInAt().isBefore(start)).limit(8).toList();
+        List<Placed> recent = recentToday.isEmpty() ? checkedInAll.stream().limit(8).toList() : recentToday;
+        List<Placed> checkedInList = checkedInAll.stream().limit(SIDE_LIST).toList();
+        // Not checked in yet: in room doing/awaiting inventory report, waiting at desk (paid), or blocked (still owing).
+        Comparator<Placed> byBed = Comparator.comparing((Placed p) -> p.bed().code());
+        List<Placed> inProgressAll = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id())
+                        && (handoverMap.containsKey(p.alloc().id()) || p.alloc().codeReleasedAt() != null))
+                .sorted(byBed).toList();
+        List<Placed> inProgressList = inProgressAll.stream().limit(SIDE_LIST).toList();
+        List<Placed> waitingAll = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id())
+                        && !handoverMap.containsKey(p.alloc().id()) && p.alloc().codeReleasedAt() == null)
+                .sorted(byBed).toList();
+        List<Placed> waitingList = waitingAll.stream().limit(SIDE_LIST).toList();
+        List<Placed> blockedAll = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && dues.containsKey(p.alloc().id()))
+                .sorted(byBed).toList();
+        List<Placed> blockedList = blockedAll.stream().limit(SIDE_LIST).toList();
+        Map<Long, UserDirectory.Student> students = users.students(java.util.stream.Stream
+                .of(recent, checkedInList, inProgressList, waitingList, blockedList)
+                .flatMap(List::stream).map(p -> p.alloc().studentId()).distinct().toList());
+        java.util.function.Function<Placed, Recent> side = p -> {
+            UserDirectory.Student s = students.get(p.alloc().studentId());
+            HandoverSummary h = handoverMap.get(p.alloc().id());
+            Instant at = p.alloc().checkedInAt() != null ? p.alloc().checkedInAt()
+                    : h != null && h.submittedAt() != null ? h.submittedAt()
+                    : h != null ? h.openedAt() : p.alloc().codeReleasedAt();
+            String hStatus = h != null ? h.status() : p.alloc().checkedInAt() != null ? "Final" : null;
+            Instant utilFrom = p.alloc().utilityFrom() != null ? p.alloc().utilityFrom()
+                    : h == null ? null : h.utilityFrom();
+            return new Recent(s == null ? null : s.name(), s == null ? null : s.studentCode(), p.bed().code(),
+                    at, h == null ? null : HandoverCore.code(h.id()), hStatus, h == null ? null : h.comparison(),
+                    p.alloc().codeReleasedAt() != null || h != null, utilFrom);
+        };
         String code = scope.single() ? blocks.codesByIds(scope.ids()).get(scope.singleId()) : null;
         String window = term.checkInStart() == null || term.checkInEnd() == null ? null
                 : today.isBefore(term.checkInStart()) ? "UPCOMING"
                 : today.isAfter(term.checkInEnd()) ? "CLOSED" : "OPEN";
-        return new Today(today, code, placed.size(), checkedIn, placed.size() - checkedIn - blocked, blocked,
-                recent.stream().map(p -> new Recent(names.get(p.alloc().studentId()), p.bed().code(),
-                        p.alloc().checkedInAt())).toList(),
-                String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window);
+        return new Today(today, code, placed.size(), checkedIn, waitingAll.size(), blockedAll.size(),
+                recent.stream().map(side).toList(),
+                String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window,
+                waitingList.stream().map(side).toList(), blockedList.stream().map(side).toList(),
+                inProgressAll.size(), inProgressList.stream().map(side).toList(),
+                checkedInList.stream().map(side).toList());
     }
 
     /** @param q a student code, a name or the pass payload {@code CSTAY-PASS:<allocationId>} */
@@ -258,7 +332,7 @@ public class DeskService {
                 return new Lookup(null);
             }
             return new Lookup(new Person(student.name(), student.studentCode(), null, null, null, null, "not-allocated",
-                    List.of(), null, null, List.of()));
+                    List.of(), null, null, List.of(), null, null, null, null, false, null, null, null, null));
         }
         Alloc a = alloc.get();
         Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
@@ -327,13 +401,85 @@ public class DeskService {
                     .orElseGet(() -> new Check("Within the check-in window (" + SHORT_DAY.format(term.checkInStart())
                             + " – " + DAY.format(term.checkInEnd()) + ")", inWindow)));
         }
+        inventoryCheck(a).ifPresent(checks::add);
         String status = a.checkedInAt() != null ? "checked-in"
                 : checks.stream().allMatch(Check::passed) ? "ready" : "blocked";
         List<String> items = a.checkedInAt() != null ? a.handOverItems()
                 : lookups.list("HAND_OVER_ITEM").stream().map(Lookups.Lookup::label).toList();
+        HandoverSummary h = handovers(List.of(a.id())).get(a.id());
+        String handoverStatus = h != null ? h.status() : a.checkedInAt() != null ? "Final" : null;
+        String handoverSource = h == null || h.source() == null ? null : switch (h.source()) {
+            case "AUTO" -> "Deadline passed";
+            case "VERIFIED" -> "Checked in the Room";
+            default -> "As filed";
+        };
+        Instant doorCodeAt = a.codeReleasedAt() != null ? a.codeReleasedAt() : h == null ? null : h.openedAt();
+        Instant utilFrom = a.utilityFrom() != null ? a.utilityFrom() : h == null ? null : h.utilityFrom();
         return new Person(student == null ? null : student.name(), student == null ? null : student.studentCode(),
                 bed.roomCode(), bed.bedLabel(), "Block " + bed.block(), bed.floor(), status, checks,
-                due.map(d -> new Owes(d.balance(), d.utilityDeposit())).orElse(null), a.checkedInAt(), items);
+                due.map(d -> new Owes(d.balance(), d.utilityDeposit())).orElse(null), a.checkedInAt(), items,
+                h == null ? null : HandoverCore.code(h.id()), handoverStatus, h == null ? null : h.comparison(),
+                handoverSource, doorCodeAt != null, doorCodeAt, utilFrom,
+                h == null ? null : h.electricity(), h == null ? null : h.water());
+    }
+
+    private Map<Long, HandoverSummary> handovers(List<Long> allocationIds) {
+        if (allocationIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, HandoverSummary> map = new HashMap<>();
+        jdbc.sql("""
+                SELECT DISTINCT ON (allocation_id) id, allocation_id, status, source, comparison, opened_at,
+                       submitted_at, finalized_at, utility_from,
+                       coalesce(verified_electricity, electricity, baseline_electricity) AS electricity,
+                       coalesce(verified_water, water, baseline_water) AS water
+                FROM asg_handover
+                WHERE allocation_id IN (:ids) AND status <> 'CANCELLED'
+                ORDER BY allocation_id, id DESC
+                """).param("ids", allocationIds)
+                .query((rs, i) -> new HandoverSummary(rs.getLong("id"), rs.getLong("allocation_id"),
+                        HandoverCore.STATUSES.getOrDefault(rs.getString("status"), rs.getString("status")),
+                        rs.getString("source"),
+                        rs.getString("comparison") == null ? null
+                                : HandoverCore.COMPARISONS.getOrDefault(rs.getString("comparison"),
+                                        rs.getString("comparison")),
+                        instant(rs, "opened_at"), instant(rs, "submitted_at"), instant(rs, "finalized_at"),
+                        instant(rs, "utility_from"), rs.getBigDecimal("electricity"), rs.getBigDecimal("water")))
+                .list().forEach(h -> map.put(h.allocationId(), h));
+        return map;
+    }
+
+    /**
+     * A new resident (Admin › System parameters › Room handover on) checks in by their check-in inventory: the desk
+     * waits until it is final, so they never become a resident whose Room condition and meters are not recorded.
+     * Empty when no inventory is needed (the setting is off, or they stay in the same Room).
+     */
+    private Optional<Check> inventoryCheck(Alloc a) {
+        if (a.checkedInAt() != null) {
+            return Optional.empty();
+        }
+        Optional<String> status = jdbc.sql("""
+                SELECT status FROM asg_handover WHERE allocation_id = :id AND status <> 'CANCELLED'
+                ORDER BY id DESC LIMIT 1
+                """).param("id", a.id()).query(String.class).optional();
+        if (status.isPresent()) {
+            String hint = switch (status.get()) {
+                case "DRAFT" -> "The student started it but has not submitted it yet.";
+                case "SUBMITTED" -> "Waiting for Staff: confirm it or set a Room visit in Check-in inventories.";
+                case "VERIFYING" -> "Staff check the Room with the student; it is final once the student agrees.";
+                default -> null;
+            };
+            return Optional.of(new Check("Check-in inventory confirmed", "FINAL".equals(status.get()), hint));
+        }
+        Long previousBed = jdbc.sql("""
+                SELECT p.bed_id FROM asg_allocation a JOIN asg_allocation p ON p.id = a.previous_allocation_id
+                WHERE a.id = :id
+                """).param("id", a.id()).query(Long.class).optional().orElse(null);
+        return doorCodes.needsInventory(previousBed, a.bedId())
+                ? Optional.of(new Check("Check-in inventory filed", false,
+                        "At the Room the student starts it on the app (My room › Check-in inventory) and gets the door"
+                                + " code; the check-in is recorded once it is final."))
+                : Optional.empty();
     }
 
     private Optional<LocalDate> lateDeadline(long allocationId, LocalDate today) {
@@ -380,7 +526,7 @@ public class DeskService {
     // ---------------------------------------------------------------- check-out
 
     @Transactional(readOnly = true)
-    public CheckOutPage checkOutList(Long termId, String block, String q, String reason, PageQuery page) {
+    public CheckOutPage checkOutList(Long termId, String block, String q, String reason, String status, PageQuery page) {
         currentUser.require(Permission.DESK);
         BlockSelection scope = blockScope.resolve(block);
         TermSummary term = term(termId);
@@ -401,18 +547,40 @@ public class DeskService {
         String reasonCode = reason == null || reason.isBlank() ? null
                 : lookups.find("CHECK_OUT_REASON", reason.trim())
                         .orElseThrow(() -> FieldErrors.single("reason", "Choose a reason from the list.")).code();
-        List<CheckOutRow> items = rows.stream()
-                .filter(p -> reasonCode == null || reasonCode.equals(p.reason()))
+        Comparator<CheckOutRow> byNaturalRoom = Comparator
+                .comparing((CheckOutRow r) -> r.status().equals("Checked out"))
+                .thenComparing((CheckOutRow r) -> !r.overdue())
+                .thenComparing((CheckOutRow r) -> r.room().replaceAll("\\d+", ""))
+                .thenComparingLong(r -> Long.parseLong("0" + r.room().replaceAll("\\D+", "")))
+                .thenComparing(CheckOutRow::room)
+                .thenComparing(CheckOutRow::bed)
+                .thenComparing(CheckOutRow::studentCode, Comparator.nullsLast(Comparator.naturalOrder()));
+        List<CheckOutRow> filtered = rows.stream()
+                .filter(p -> reasonCode == null
+                        || reasonCode.equals(p.reason() == null ? DEFAULT_REASON : p.reason()))
                 .map(p -> row(p, students.get(p.alloc().studentId()), names, late))
                 .filter(r -> needle == null || fold(r.name()).contains(needle) || fold(r.studentCode()).contains(needle)
                         || fold(r.room()).contains(needle))
-                .sorted(Comparator.comparing((CheckOutRow r) -> r.status().equals("Checked out"))
-                        .thenComparing(CheckOutRow::room).thenComparing(CheckOutRow::bed))
+                .sorted(byNaturalRoom)
                 .toList();
+        Map<String, Long> statusCounts = new LinkedHashMap<>();
+        statusCounts.put("All", (long) filtered.size());
+        statusCounts.put("Pending", filtered.stream().filter(r -> "Pending".equals(r.status())).count());
+        statusCounts.put("Draft", filtered.stream().filter(r -> "Draft".equals(r.status())).count());
+        statusCounts.put("Checked out", filtered.stream().filter(r -> "Checked out".equals(r.status())).count());
+        statusCounts.put("Overdue", filtered.stream().filter(CheckOutRow::overdue).count());
+        String state = status == null || status.isBlank() ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
+        List<CheckOutRow> items = switch (state) {
+            case "PENDING" -> filtered.stream().filter(r -> "Pending".equals(r.status())).toList();
+            case "DRAFT" -> filtered.stream().filter(r -> "Draft".equals(r.status())).toList();
+            case "CHECKED OUT", "CHECKED_OUT" -> filtered.stream().filter(r -> "Checked out".equals(r.status())).toList();
+            case "OVERDUE" -> filtered.stream().filter(CheckOutRow::overdue).toList();
+            default -> filtered;
+        };
         return new CheckOutPage(today(), pending,
                 lookups.list("CHECK_OUT_REASON").stream().map(Lookups.Lookup::label).toList(),
                 items.stream().skip(page.offset()).limit(page.limit()).toList(), items.size(), checkOutBy,
-                items.stream().filter(CheckOutRow::overdue).count());
+                filtered.stream().filter(CheckOutRow::overdue).count(), statusCounts);
     }
 
     @Transactional(readOnly = true)
@@ -456,9 +624,73 @@ public class DeskService {
                     d == null ? 0 : d.amount(),
                     d == null ? null : d.note());
         }).toList();
+        HandoverReport handoverReport = handoverReport(p.alloc().id(), p.bed().roomId());
+        PreviousReading previousReading = billing.lastReading(p.bed().roomId())
+                .map(r -> new PreviousReading(r.electricity(), r.water(), r.date()))
+                .orElseGet(() -> handoverReport != null && handoverReport.electricity() != null
+                        && handoverReport.water() != null
+                        ? new PreviousReading(handoverReport.electricity(), handoverReport.water(),
+                                LocalDate.ofInstant(handoverReport.utilityFrom() != null
+                                        ? handoverReport.utilityFrom()
+                                        : handoverReport.finalizedAt(), TimeConfig.CAMPUS_ZONE))
+                        : null);
         return new CheckOutDetail(row.allocationId(), row.studentCode(), row.name(), row.room(), row.bed(),
                 row.roomTypeName(), row.roomClassName(), row.reason(), row.status(), row.checkedOutAt(), reading,
-                settlement, refundStatus, furniture, inventory.conditionLevels());
+                previousReading, settlement, refundStatus, furniture, inventory.conditionLevels(), handoverReport);
+    }
+
+    private HandoverReport handoverReport(long allocationId, long roomId) {
+        record HoRow(long id, String source, String status, Instant finalizedAt, Instant utilityFrom,
+                BigDecimal electricity, BigDecimal water, String comparison, String comparisonNote,
+                Long staffId, Instant submittedAt) {
+        }
+        HoRow ho = jdbc.sql("""
+                SELECT id, source, status, finalized_at, utility_from,
+                       coalesce(verified_electricity, electricity, baseline_electricity) AS electricity,
+                       coalesce(verified_water, water, baseline_water) AS water,
+                       comparison, comparison_note, verify_requested_by, submitted_at
+                FROM asg_handover
+                WHERE allocation_id = :a AND status = 'FINAL'
+                ORDER BY id DESC LIMIT 1
+                """).param("a", allocationId)
+                .query((rs, i) -> new HoRow(rs.getLong("id"), rs.getString("source"), rs.getString("status"),
+                        instant(rs, "finalized_at"), instant(rs, "utility_from"),
+                        rs.getBigDecimal("electricity"), rs.getBigDecimal("water"),
+                        rs.getString("comparison"), rs.getString("comparison_note"),
+                        rs.getObject("verify_requested_by", Long.class), instant(rs, "submitted_at")))
+                .optional().orElse(null);
+        if (ho == null) {
+            return null;
+        }
+        String staffName = ho.staffId() == null ? null : users.displayNames(List.of(ho.staffId())).get(ho.staffId());
+        Map<Long, Inventory.FurnitureLine> byId = new HashMap<>();
+        inventory.furnitureLines(roomId).forEach(l -> byId.put(l.id(), l));
+        List<HandoverReportItem> items = jdbc.sql("""
+                SELECT furniture_item_id, coalesce(verified_condition, condition, baseline_condition) AS cond,
+                       note, pre_existing
+                FROM asg_handover_item
+                WHERE handover_id = :h
+                ORDER BY furniture_item_id
+                """).param("h", ho.id())
+                .query((rs, i) -> {
+                    long itemId = rs.getLong("furniture_item_id");
+                    Inventory.FurnitureLine line = byId.get(itemId);
+                    String rawCond = rs.getString("cond");
+                    String cond = switch (rawCond == null ? "GOOD" : rawCond) {
+                        case "WORN" -> "Worn";
+                        case "DAMAGED" -> "Damaged";
+                        case "MISSING" -> "Missing";
+                        default -> "Good";
+                    };
+                    return new HandoverReportItem(String.valueOf(itemId),
+                            line == null ? String.valueOf(itemId) : line.assetCode(),
+                            line == null ? "Item" : line.type(),
+                            line == null ? null : line.typeVi(),
+                            line != null && line.personal() ? line.bedLabel() : null,
+                            cond, rs.getString("note"), rs.getBoolean("pre_existing"));
+                }).list();
+        return new HandoverReport(HandoverCore.code(ho.id()), ho.source(), ho.status(), ho.finalizedAt(), ho.utilityFrom(),
+                ho.electricity(), ho.water(), ho.comparison(), ho.comparisonNote(), staffName, ho.submittedAt(), items);
     }
 
     @Transactional
@@ -472,14 +704,20 @@ public class DeskService {
         errors.check(cmd.electricity() != null, "electricity", "Enter the electricity reading.");
         errors.check(cmd.water() != null, "water", "Enter the water reading.");
         errors.check(cmd.conditionGood() != null, "conditionGood", "Say whether the Room is in good condition.");
-        errors.check(cmd.keyReturned() != null, "keyReturned", "Say whether the key was returned.");
-        if (!cmd.draft() && Boolean.FALSE.equals(cmd.keyReturned())) {
-            errors.add("keyReturned", "Collect the Room key before you confirm.");
-        }
+        // Rooms open with a door code (rotated when the student leaves, ResidentLeftRoom): there is no key to collect,
+        // so keyReturned is no longer asked (left out = nothing to return, stored as true).
         Map<Long, Damage> damages = damages(cmd.damages(), p.bed().roomId(), errors);
         errors.throwIfAny();
+        FurnitureRecord furniture = furnitureRecord(p.alloc().id());
+        if (!cmd.draft() && cmd.damages() == null && furniture.recorded() && furniture.studentPresent()
+                && furniture.agreedAt() == null) {
+            throw ApiException.conflict("STUDENT_NOT_AGREED",
+                    "The student has not agreed with the furniture charges yet. Ask them to agree on the app.");
+        }
+        // Furniture recorded by condition (CheckOutFurnitureService) sets the charge; lines a Manager reviews wait.
         long damage = cmd.damages() != null
                 ? damages.values().stream().mapToLong(Damage::amount).sum()
+                : furniture.recorded() ? furniture.total()
                 : cmd.damageCharge() == null ? 0 : cmd.damageCharge();
         Reading reading = new Reading(cmd.electricity(), cmd.water());
         Billing.SettlementRequest request = request(p, reading, damage);
@@ -499,6 +737,14 @@ public class DeskService {
         String where = "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel();
         damages.forEach((itemId, d) -> events.publishEvent(new FurnitureDamaged(itemId,
                 "Damaged at the check-out of " + where + (d.note() == null ? "" : ": " + d.note()), user.userId())));
+        if (cmd.damages() == null) {
+            furniture.worse().forEach(w -> events.publishEvent(new FurnitureDamaged(w.itemId(), w.condition(),
+                    "Condition " + w.condition() + " at the check-out of " + where, user.userId())));
+            // Shared items' damage split among the residents: the roommates' shares become their Invoices.
+            if (furniture.recorded()) {
+                furnitureCharges.chargeRoommates(p.alloc().id(), null);
+            }
+        }
         jdbc.sql("""
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1
                 WHERE id = :id AND status = 'ACTIVE'
@@ -515,6 +761,8 @@ public class DeskService {
                 .forEach(id -> stays.cancel(id, terminated ? "TERMINATED" : "END_OF_STAY"));
         stays.endIfLeft(p.alloc().studentId(), terminated);
         long refund = settled.settlement().refund();
+        events.publishEvent(new CheckOutCompleted(p.alloc().studentId(), p.bed().roomCode(), refund,
+                settled.refundId().isPresent()));
         audit.record("CHECKED_OUT", AuditLog.Tone.SUCCESS, "Allocation", p.alloc().id(),
                 "Room " + p.bed().roomCode() + " · Bed " + p.bed().bedLabel(),
                 Map.of("refund", refund, "damage", damage, "conditionGood", cmd.conditionGood()));
@@ -523,8 +771,9 @@ public class DeskService {
 
     // ---------------------------------------------------------------- final meter readings, Room by Room
 
-    /** A Room with leavers waiting: the reading saved on their drafts (null when none yet). */
-    public record RoomReading(String room, int students, BigDecimal electricity, BigDecimal water) {
+    /** A Room with leavers waiting: the reading saved on their drafts (null when none yet) and its previous reading. */
+    public record RoomReading(String room, int students, BigDecimal electricity, BigDecimal water,
+            PreviousReading previousReading) {
     }
 
     public record RoomReadings(List<RoomReading> items) {
@@ -553,8 +802,11 @@ public class DeskService {
         rooms.forEach((room, placed) -> {
             OutRecord saved = placed.stream().map(p -> outRecord(p.alloc().id()).orElse(null))
                     .filter(r -> r != null && r.electricity() != null).findFirst().orElse(null);
+            PreviousReading previous = placed.isEmpty() ? null
+                    : billing.lastReading(placed.getFirst().bed().roomId())
+                            .map(r -> new PreviousReading(r.electricity(), r.water(), r.date())).orElse(null);
             items.add(new RoomReading(room, placed.size(), saved == null ? null : saved.electricity(),
-                    saved == null ? null : saved.water()));
+                    saved == null ? null : saved.water(), previous));
         });
         return new RoomReadings(items);
     }
@@ -734,6 +986,43 @@ public class DeskService {
         return damages;
     }
 
+    /**
+     * The furniture recorded by condition for the check-out: whether any, the charge (lines a Manager reviews or
+     * dropped left out), whether the student is present and agreed, and the items that got worse.
+     */
+    private record WorseItem(long itemId, String condition) {
+    }
+
+    private record FurnitureRecord(boolean recorded, long total, boolean studentPresent, Instant agreedAt,
+            List<WorseItem> worse) {
+    }
+
+    private FurnitureRecord furnitureRecord(long allocationId) {
+        record Raw(long item, long amount, String condition, String baseline, String review) {
+        }
+        List<Raw> lines = jdbc.sql("""
+                SELECT d.furniture_item_id, d.amount, d.condition, d.baseline_condition, d.manager_review
+                FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
+                WHERE c.allocation_id = :a AND d.condition IS NOT NULL
+                """).param("a", allocationId)
+                .query((rs, i) -> new Raw(rs.getLong("furniture_item_id"), rs.getLong("amount"),
+                        rs.getString("condition"), rs.getString("baseline_condition"), rs.getString("manager_review")))
+                .list();
+        record Meta(Boolean present, Timestamp agreed) {
+        }
+        Meta meta = jdbc.sql("SELECT student_present, student_agreed_at FROM asg_check_out WHERE allocation_id = :a")
+                .param("a", allocationId).query((rs, i) -> new Meta(rs.getObject("student_present", Boolean.class),
+                        rs.getTimestamp("student_agreed_at"))).optional().orElse(new Meta(null, null));
+        long total = lines.stream().filter(l -> l.review() == null || l.review().equals("KEPT"))
+                .mapToLong(Raw::amount).sum();
+        List<WorseItem> worse = lines.stream()
+                .filter(l -> (l.condition().equals("WORN") || l.condition().equals("DAMAGED")
+                        || l.condition().equals("MISSING")) && !l.condition().equals(l.baseline()))
+                .map(l -> new WorseItem(l.item(), l.condition())).toList();
+        return new FurnitureRecord(!lines.isEmpty(), total, Boolean.TRUE.equals(meta.present()),
+                meta.agreed() == null ? null : meta.agreed().toInstant(), worse);
+    }
+
     /** Replaces the check-out's damage lines; null leaves them as they are (an older client). */
     private void saveDamages(long allocationId, Map<Long, Damage> damages) {
         if (damages == null) {
@@ -778,7 +1067,7 @@ public class DeskService {
                 """)
                 .param("allocation", allocationId).param("reason", reason).param("status", status)
                 .param("electricity", cmd.electricity()).param("water", cmd.water())
-                .param("good", cmd.conditionGood()).param("key", cmd.keyReturned()).param("damage", damage)
+                .param("good", cmd.conditionGood()).param("key", cmd.keyReturned() == null || cmd.keyReturned()).param("damage", damage)
                 .param("refundAmount", s == null ? null : Math.max(0, s.refund()))
                 .param("refundStatus", refundStatus)
                 .param("completedAt", done ? Timestamp.from(now) : null).param("completedBy", done ? by : null)
@@ -806,8 +1095,24 @@ public class DeskService {
     /** A resident's or a checked-out Allocation in the user's scope. */
     private Placed checkOutTarget(String allocationId, boolean lock) {
         long id = parseId(allocationId).orElseThrow(() -> ApiException.notFound("This Allocation does not exist."));
-        Placed p = checkOutRows(null, null, id).stream().findFirst()
-                .orElseThrow(() -> ApiException.notFound("This student does not live in the Room."));
+        Optional<Placed> found = checkOutRows(null, null, id).stream().findFirst();
+        if (found.isEmpty()) {
+            record Pending(long bedId, long termId, String status, Instant checkedInAt) {
+            }
+            Pending pending = jdbc.sql("SELECT bed_id, term_id, status, checked_in_at FROM asg_allocation WHERE id = :id")
+                    .param("id", id).query((rs, i) -> new Pending(rs.getLong("bed_id"), rs.getLong("term_id"),
+                            rs.getString("status"), instant(rs, "checked_in_at")))
+                    .optional().orElse(null);
+            if (pending != null && "ACTIVE".equals(pending.status()) && pending.checkedInAt() == null) {
+                Inventory.BedSlot bed = inventory.beds(pending.termId(), List.of(pending.bedId())).get(pending.bedId());
+                if (bed != null && blockScope.resolve(null).ids().contains(bed.buildingId())) {
+                    throw ApiException.badRequest("NOT_CHECKED_IN",
+                            "This student has not checked in yet and cannot check out.");
+                }
+            }
+            throw ApiException.notFound("This student does not live in the Room.");
+        }
+        Placed p = found.get();
         blockScope.check(p.bed().buildingId());
         if (lock) {
             jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).single();
@@ -821,7 +1126,7 @@ public class DeskService {
         List<Object[]> raw = jdbc.sql("""
                 SELECT a.*, c.reason AS out_reason, c.status AS out_status, c.completed_at AS out_completed
                 FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
-                WHERE %s AND ((a.status = 'ACTIVE' AND a.resident_at IS NOT NULL)
+                WHERE %s AND ((a.status = 'ACTIVE' AND a.checked_in_at IS NOT NULL)
                               OR (a.status = 'ENDED' AND a.end_reason = 'CHECK_OUT'))
                 """.formatted(where))
                 .params(allocationId != null ? Map.of("id", allocationId) : Map.of("term", termId))
@@ -932,7 +1237,8 @@ public class DeskService {
         List<String> list = items == null ? List.of() : Arrays.asList((String[]) items.getArray());
         return new Alloc(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"), rs.getLong("bed_id"),
                 rs.getString("status"), instant(rs, "checked_in_at"), List.copyOf(list.stream().filter(Objects::nonNull)
-                        .toList()), instant(rs, "resident_at"));
+                        .toList()), instant(rs, "resident_at"), instant(rs, "code_released_at"),
+                instant(rs, "utility_from"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

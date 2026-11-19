@@ -16,9 +16,9 @@ import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
 import { Segmented, Tabs } from '@/components/ui/Tabs'
-import { StatusTag } from '@/components/ui/Tag'
-import { typeName } from '@/lib/furniture'
-import { formatDateTime, formatNumber } from '@/lib/format'
+import { StatusTag, Tag } from '@/components/ui/Tag'
+import { conditionName, conditionTone, typeName } from '@/lib/furniture'
+import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-INV-13 Furniture (Change Spec v2 phase 3, spec §6.19). Shared by Staff (their Blocks: status, store, moves
@@ -310,7 +310,14 @@ function Items({ manages }) {
                   <TwoLine primary={typeName(i)} secondary={tr(i.category)} />
                 </Td>
                 <Td>
-                  <StatusTag status={i.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusTag status={i.status} />
+                    {i.condition && i.condition !== 'Good' && (
+                      <Tag tone={conditionTone[i.condition] ?? 'neutral'}>
+                        {conditionName(i.condition, d?.options?.conditionLevels)}
+                      </Tag>
+                    )}
+                  </div>
                 </Td>
                 <Td>{placeLabel(i.location)}</Td>
                 <Td className="text-sm text-fg-secondary">{i.plannedMove ? t('To {place}', { place: placeLabel(i.plannedMove.to) }) : '—'}</Td>
@@ -433,6 +440,74 @@ function Moves() {
   )
 }
 
+// The stock of each furniture type per Block: store, rooms, broken or in repair, planned moves, and what the store is
+// worth at the real prices of Admin › Furniture types (the prices check-out charges use).
+function Stock() {
+  const { block } = useSession()
+  const request = { block: block ?? undefined }
+  const query = useQuery(['furniture-stock', request], ({ signal }) => api.furniture.stock(request, { signal }))
+  const d = query.data
+  const totals = d?.totals
+  const tiles = totals
+    ? [
+        { label: 'In stores', value: formatNumber(totals.inStore) },
+        { label: 'In rooms', value: formatNumber(totals.inRooms) },
+        { label: 'Broken or in repair', value: formatNumber(totals.broken) },
+        { label: 'Store value', value: formatVnd(totals.storeValue) },
+      ]
+    : []
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {totals && (
+        <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
+          {tiles.map((x) => (
+            <div key={x.label} className="rounded-lg border border-line bg-surface p-4">
+              <p className="text-sm text-fg-secondary">{t(x.label)}</p>
+              <p className="mt-1 text-h3 font-semibold text-fg tabular">{x.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {totals?.unpriced > 0 && (
+        <Note className="shrink-0">{t('{n} furniture types have no real price yet: their store value counts 0 and a damaged item of them is not charged at check-out. An Admin sets it in Furniture types.', { n: totals.unpriced })}</Note>
+      )}
+      <Table fill>
+        <THead>
+          <tr>
+            <Th className="w-20">Block</Th>
+            <Th>Type</Th>
+            <Th className="w-28">Used by</Th>
+            <Th className="w-36 text-right">Real price</Th>
+            <Th className="w-24 text-right">In stores</Th>
+            <Th className="w-24 text-right">In rooms</Th>
+            <Th className="w-28 text-right">Broken or in repair</Th>
+            <Th className="w-28 text-right">Planned moves</Th>
+            <Th className="w-40 text-right">Store value</Th>
+          </tr>
+        </THead>
+        <TBody>
+          <TableStatus query={query} colSpan={9} rows={d?.rows} emptyIcon={Package} emptyTitle="No furniture in these blocks" />
+          {(d?.rows ?? []).map((r) => (
+            <Tr key={`${r.block}-${r.typeId}`} className="[&>td]:h-12">
+              <Td className="font-medium">{r.block}</Td>
+              <Td>
+                <TwoLine primary={typeName(r)} secondary={tr(r.category)} />
+              </Td>
+              <Td>{tr(r.use)}</Td>
+              <Td className="text-right tabular">{r.unitPrice == null ? <span className="text-fg-tertiary">{t('Not set')}</span> : formatVnd(r.unitPrice)}</Td>
+              <Td className="text-right tabular">{formatNumber(r.inStore)}</Td>
+              <Td className="text-right tabular">{formatNumber(r.inRooms)}</Td>
+              <Td className="text-right tabular">{formatNumber(r.broken)}</Td>
+              <Td className="text-right tabular">{formatNumber(r.plannedMoves)}</Td>
+              <Td className="text-right font-medium tabular">{formatVnd(r.storeValue)}</Td>
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+    </div>
+  )
+}
+
 export default function Furniture() {
   const { user } = useSession()
   const manages = user?.role === 'manager'
@@ -450,9 +525,10 @@ export default function Furniture() {
         items={[
           { key: 'items', label: 'Furniture items' },
           { key: 'moves', label: 'Planned moves' },
+          { key: 'stock', label: 'Stock by block' },
         ]}
       />
-      {tab === 'items' ? <Items manages={manages} /> : <Moves />}
+      {tab === 'items' ? <Items manages={manages} /> : tab === 'moves' ? <Moves /> : <Stock />}
     </>
   )
 }

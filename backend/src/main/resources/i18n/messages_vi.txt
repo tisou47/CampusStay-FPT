@@ -73,6 +73,7 @@ Choose Active or Inactive. ⟶ Hãy chọn Đang dùng hoặc Ngưng dùng.
 Choose Personal or Shared. ⟶ Hãy chọn Cá nhân hoặc Dùng chung.
 Enter a price from 0 to 1,000,000,000 VND. ⟶ Nhập giá từ 0 đến 1.000.000.000 ₫.
 Keep at least one condition level. ⟶ Hãy giữ ít nhất một mức tình trạng.
+Keep the first four levels: inspections, check-in inventories and check-outs use them. ⟶ Hãy giữ bốn mức đầu tiên: kiểm tra phòng, kiểm kê nhận phòng và trả phòng dùng các mức này.
 This condition level does not exist. ⟶ Mức tình trạng này không tồn tại.
 Enter a name of at most 60 characters. ⟶ Hãy nhập tên tối đa 60 ký tự.
 Give each condition level its own name. ⟶ Mỗi mức tình trạng cần một tên riêng.
@@ -878,7 +879,7 @@ Enter a damage amount of 0 or more. ⟶ Hãy nhập tiền hư hỏng từ 0 tr�
 Keep each damage note under 300 characters. ⟶ Mỗi ghi chú hư hỏng không quá 300 ký tự.
 The file has more than 5,000 Room codes. ⟶ Tệp có hơn 5.000 mã phòng.
 The file has no Room codes below its header line. ⟶ Tệp không có mã phòng nào dưới dòng tiêu đề.
-Choose stage 0, A, B or C. ⟶ Hãy chọn giai đoạn 0, A, B hoặc C.
+Choose stage 0, A, B, C or D. ⟶ Hãy chọn giai đoạn 0, A, B, C hoặc D.
 Type RESET to confirm. ⟶ Hãy gõ RESET để xác nhận.
 The demo tools are off on this server. ⟶ Công cụ demo đang tắt trên máy chủ này.
 The demo accounts of the base data are missing. Load the base data (db/seed) first. ⟶ Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước.
@@ -1024,3 +1025,86 @@ Only a published Family Day has guests inside. ⟶ Chỉ Ngày thăm thân đã 
 No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation. ⟶ Không có khách nào cần nhắc: không ai còn ở lại quá giờ mà chưa được xác nhận.
 None of your guests is inside after their time slot, so there is nothing to confirm. ⟶ Không có người thân nào của bạn còn ở lại quá giờ nên không cần xác nhận.
 This Family Day was cancelled, so it has no statistics. ⟶ Ngày thăm thân này đã bị hủy nên không có số liệu thống kê.
+
+# ---------- Manager › Staff and workload ----------
+Say why you change this person's duty. ⟶ Hãy ghi lý do thay đổi ca trực của người này.
+Say why you move this work. ⟶ Hãy ghi lý do chuyển công việc này.
+Choose the work to move (at most 100 items). ⟶ Hãy chọn công việc cần chuyển (tối đa 100 mục).
+Choose who receives the work. ⟶ Hãy chọn người nhận công việc.
+Choose someone other than the current holder. ⟶ Hãy chọn người khác với người đang giữ công việc.
+Choose the work to move from the list. ⟶ Hãy chọn công việc cần chuyển trong danh sách.
+Some of this work was closed or moved meanwhile. Reload the list and try again. ⟶ Một số công việc vừa được đóng hoặc chuyển đi. Hãy tải lại danh sách rồi thử lại.
+{0} does not work in Block {1}. ⟶ {0} không làm việc ở Tòa {1}.
+{0} does not handle this type of work. ⟶ {0} không phụ trách loại công việc này.
+This work is no longer open. ⟶ Công việc này không còn mở.
+
+# ---------- Staff shifts and the record of changes ----------
+You are outside your shift. Confirm to go on: this action is recorded for your Manager. ⟶ Bạn đang ngoài ca làm. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+This is not the work your Manager gave you. Confirm to go on: this action is recorded for your Manager. ⟶ Đây không phải công việc Quản lý phân cho bạn. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+You are outside your shift, and this is not the work your Manager gave you. Confirm to go on: this action is recorded for your Manager. ⟶ Bạn đang ngoài ca làm và đây không phải công việc Quản lý phân cho bạn. Bấm xác nhận để tiếp tục: thao tác này được ghi lại cho Quản lý.
+Only Staff members have shifts. ⟶ Chỉ nhân viên mới có ca làm.
+Give at most 21 shifts a week. ⟶ Mỗi tuần tối đa 21 ca.
+Enter each shift's start and end as HH:mm. ⟶ Nhập giờ bắt đầu và kết thúc của mỗi ca theo dạng HH:mm.
+Choose a weekday for each shift. ⟶ Chọn ngày trong tuần cho mỗi ca.
+A shift must end at another time than it starts. ⟶ Giờ kết thúc ca phải khác giờ bắt đầu.
+Choose a week from 4 weeks ago to 4 weeks ahead. ⟶ Hãy chọn một tuần trong khoảng 4 tuần trước đến 4 tuần tới.
+A past week can no longer be changed. ⟶ Không thể sửa lịch của tuần đã qua.
+
+# ---------- room handover: inspections, check-in inventory, check-out furniture ----------
+Choose Good, Worn, Damaged or Missing. ⟶ Hãy chọn Tốt, Hao mòn, Hư hỏng hoặc Thiếu.
+Only furniture items take a condition. ⟶ Chỉ món nội thất mới có tình trạng.
+Enter the electricity reading (kWh). ⟶ Hãy nhập chỉ số điện (kWh).
+Enter the water reading (m³). ⟶ Hãy nhập chỉ số nước (m³).
+You have no Room to receive with a check-in inventory. ⟶ Bạn không có phòng nào cần kiểm kê khi nhận.
+Your check-in inventory is already started. ⟶ Bạn đã bắt đầu kiểm kê nhận phòng rồi.
+You cannot receive the Room yet: {0}. ⟶ Bạn chưa thể nhận phòng: {0}.
+The door code cannot be released yet. Try again later. ⟶ Chưa thể cấp mã cửa. Hãy thử lại sau.
+Choose an item of your inventory. ⟶ Hãy chọn một món trong biên bản của bạn.
+Add at most {0} photos per item. ⟶ Mỗi món chỉ thêm tối đa {0} ảnh.
+Choose a photo. ⟶ Hãy chọn một ảnh.
+This photo does not exist. ⟶ Ảnh này không tồn tại.
+Answer every item before you submit. ⟶ Hãy khai đủ mọi món trước khi nộp.
+Add a photo of the meters. ⟶ Hãy thêm ảnh công tơ.
+Add a photo of every Damaged or Missing item. ⟶ Hãy thêm ảnh cho mọi món Hư hỏng hoặc Thiếu.
+You have no inventory. ⟶ Bạn không có biên bản kiểm kê nào.
+Staff have not sent you the checked inventory yet. ⟶ Nhân viên chưa gửi biên bản đã kiểm cho bạn.
+Keep your comment under 500 characters. ⟶ Ý kiến không quá 500 ký tự.
+Only an inventory closed by its deadline takes a late report. ⟶ Chỉ biên bản đã chốt do quá hạn mới nhận báo cáo trễ.
+You already sent a late report. ⟶ Bạn đã gửi báo cáo trễ rồi.
+Describe what you found in at most 500 characters. ⟶ Hãy mô tả điều bạn phát hiện, tối đa 500 ký tự.
+Start the check-in inventory first. ⟶ Hãy bắt đầu kiểm kê nhận phòng trước.
+Your check-in inventory is already submitted. ⟶ Biên bản kiểm kê của bạn đã được nộp.
+Answer only the items of your inventory. ⟶ Chỉ khai các món trong biên bản của bạn.
+Keep each note under 300 characters. ⟶ Mỗi ghi chú không quá 300 ký tự.
+This check-in inventory does not exist. ⟶ Biên bản kiểm kê này không tồn tại.
+Only a submitted inventory can be confirmed. ⟶ Chỉ biên bản đã nộp mới xác nhận được.
+Write why you confirm an inventory with a major difference. ⟶ Hãy ghi lý do xác nhận biên bản bị lệch lớn.
+Keep the reason under 500 characters. ⟶ Lý do không quá 500 ký tự.
+Only a submitted inventory can be checked in the Room. ⟶ Chỉ biên bản đã nộp mới hẹn kiểm tra tại phòng được.
+Ask for a visit before recording what you find. ⟶ Hãy hẹn xuống phòng trước khi ghi nhận thực tế.
+Record only the items of this inventory. ⟶ Chỉ ghi nhận các món của biên bản này.
+A final inventory cannot be cancelled. ⟶ Biên bản đã chốt không hủy được.
+Write why the inventory is cancelled (at most 300 characters). ⟶ Hãy ghi lý do hủy biên bản (tối đa 300 ký tự).
+The student sent no late report. ⟶ Sinh viên chưa gửi báo cáo trễ.
+Choose items of this inventory. ⟶ Hãy chọn các món của biên bản này.
+Accept items as Damaged or Missing. ⟶ Chỉ chấp nhận món là Hư hỏng hoặc Thiếu.
+The student has not agreed with the furniture charges yet. Ask them to agree on the app. ⟶ Sinh viên chưa đồng ý với khoản đền nội thất. Hãy nhờ sinh viên bấm đồng ý trên app.
+Record only the items this student answers for. ⟶ Chỉ ghi nhận các món sinh viên này chịu trách nhiệm.
+Enter a charge of 0 or more. ⟶ Hãy nhập số tiền từ 0 trở lên.
+Choose Damaged or Missing. ⟶ Hãy chọn Hư hỏng hoặc Thiếu.
+Choose an item of the student's Room. ⟶ Hãy chọn một món trong phòng của sinh viên.
+Personal items are charged at check-out; choose a shared item. ⟶ Đồ riêng được tính khi trả phòng; hãy chọn một món đồ chung.
+Keep the note under 300 characters. ⟶ Ghi chú không quá 300 ký tự.
+Write the reason of your decision (at most 300 characters). ⟶ Hãy ghi lý do quyết định (tối đa 300 ký tự).
+No check-out to review. ⟶ Không có lần trả phòng nào cần xem.
+This item is not waiting for a Manager. ⟶ Món này không chờ Manager quyết định.
+Staff have not recorded your check-out yet. ⟶ Nhân viên chưa ghi nhận việc trả phòng của bạn.
+This damage record does not exist. ⟶ Ghi nhận hư hỏng này không tồn tại.
+This damage record does not exist or can no longer be answered. ⟶ Ghi nhận hư hỏng này không tồn tại hoặc đã hết hạn trả lời.
+This Allocation does not exist. ⟶ Chỗ ở này không tồn tại.
+Choose Personal or Shared. ⟶ Hãy chọn Riêng hoặc Chung.
+Send at least one price. ⟶ Hãy gửi ít nhất một mức giá.
+An inventory with a major difference is checked in the Room with the student: set a visit. ⟶ Biên bản lệch lớn phải được kiểm tra tại phòng cùng sinh viên: hãy hẹn giờ xuống phòng.
+Choose when you come to the Room. ⟶ Hãy chọn thời gian xuống phòng.
+Choose a time from {0}:00 to {1}:00, from now until {2}. ⟶ Hãy chọn giờ từ {0}:00 đến {1}:00, từ bây giờ đến hết ngày {2}.
+The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again. ⟶ Chỉ số không được thấp hơn chỉ số công tơ gần nhất. Hãy kiểm tra lại đồng hồ tại phòng.
