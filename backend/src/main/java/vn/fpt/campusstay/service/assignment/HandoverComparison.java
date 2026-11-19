@@ -10,7 +10,8 @@ import java.util.Set;
 /**
  * Compares a student's check-in inventory with the Room's record before it (an inspection, another inventory or a
  * check-out). Good and Worn count as the same; an item the record does not know is never a difference. The meters
- * may have moved by at most {@code max(tolerance, use per resident and hour × hours since the reading × residents)}.
+ * may have moved by at most {@code max(tolerance, use per resident and hour × the person-hours lived in the Room since
+ * the reading)} (the caller adds up each resident's hours since their arrival or the reading, whichever is later).
  * <ul>
  * <li>Matched: every item agrees and the meters are within the limit;</li>
  * <li>Major: an item the record had in the Room is reported Missing, a meter is beyond the limit, or at least

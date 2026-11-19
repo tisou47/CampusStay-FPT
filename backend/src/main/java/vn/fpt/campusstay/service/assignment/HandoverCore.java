@@ -247,8 +247,10 @@ class HandoverCore {
                     line == null ? "Item " + i.itemId() : line.type() + " " + line.assetCode(), i.condition(),
                     i.baseline()));
         }
-        long hours = h.baselineAt() == null ? 0 : Math.max(0, Duration.between(h.baselineAt(), Instant.now(clock)).toHours());
-        int residents = Math.max(1, residences.residents(h.roomId(), a.termId()));
+        // The Room may stay empty for days between the inspection and the first arrival: only the hours someone lived
+        // there can have used the meters, so the limit counts person-hours since each resident's arrival.
+        long hours = personHours(h.roomId(), h.baselineAt(), Instant.now(clock));
+        int residents = 1;
         HandoverComparison.Limits limits = new HandoverComparison.Limits(
                 parameters.decimalValue("handover.electricity_tolerance"),
                 parameters.decimalValue("handover.electricity_per_person_hour"),
@@ -263,6 +265,30 @@ class HandoverCore {
                         : note)
                 .param("id", h.id()).update();
         return result;
+    }
+
+    /**
+     * The hours each resident of the Room lived there since the baseline reading, added up (a resident counts from
+     * the later of their arrival and the reading). Without a baseline time: 0.
+     */
+    long personHours(long roomId, Instant baselineAt, Instant now) {
+        if (baselineAt == null) {
+            return 0;
+        }
+        List<Long> beds = inventory.bedsOfRoom(roomId).stream().map(Inventory.BedSlot::bedId).toList();
+        if (beds.isEmpty()) {
+            return 0;
+        }
+        List<Instant> arrivals = jdbc.sql("""
+                SELECT resident_at FROM asg_allocation
+                WHERE bed_id IN (:beds) AND status = 'ACTIVE' AND resident_at IS NOT NULL
+                """).param("beds", beds).query((rs, i) -> rs.getTimestamp(1).toInstant()).list();
+        long total = 0;
+        for (Instant arrival : arrivals) {
+            Instant from = arrival.isAfter(baselineAt) ? arrival : baselineAt;
+            total += Math.max(0, Duration.between(from, now).toHours());
+        }
+        return total;
     }
 
     /**
