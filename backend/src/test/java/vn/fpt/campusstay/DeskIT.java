@@ -265,11 +265,8 @@ class DeskIT {
                 .andExpect(jsonPath("$.settlement.periodLabel").value(since))
                 .andExpect(jsonPath("$.settlement.share").value(250_000))
                 .andExpect(jsonPath("$.settlement.damage").value(50_000));
-        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":false}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.keyReturned").value("Collect the Room key before you confirm."));
-        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"keyReturned\":true,"
-                + "\"damageCharge\":50000}")
+        // Rooms open with a door code: no key is asked at check-out.
+        postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"damageCharge\":50000}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.refund").value(300_000))
                 .andExpect(jsonPath("$.refundStatus").value("Pending"));

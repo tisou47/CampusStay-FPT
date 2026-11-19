@@ -44,7 +44,7 @@ const statusTag = {
 }
 
 /** Visual green/red status tile for each check-in eligibility prerequisite. */
-function EligibilityCheckTile({ ok, label }) {
+function EligibilityCheckTile({ ok, label, hint }) {
   const Glyph = ok ? CircleCheck : CircleX
   return (
     <div
@@ -61,7 +61,10 @@ function EligibilityCheckTile({ ok, label }) {
       >
         <Glyph size={17} aria-hidden="true" />
       </span>
-      <span className="min-w-0 flex-1 text-sm leading-snug font-semibold text-fg">{tr(label)}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm leading-snug font-semibold text-fg">{tr(label)}</span>
+        {!ok && hint && <span className="text-xs leading-snug font-normal text-fg-secondary">{tr(hint)}</span>}
+      </span>
     </div>
   )
 }
@@ -206,9 +209,9 @@ function StudentPanel({ person, onDone }) {
                 })}
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {(person.checks ?? []).map((c) => (
-                <EligibilityCheckTile key={c.label} ok={c.passed} label={c.label} />
+                <EligibilityCheckTile key={c.label} ok={c.passed} label={c.label} hint={c.hint} />
               ))}
             </div>
           </section>
@@ -347,6 +350,28 @@ function StudentPanel({ person, onDone }) {
   )
 }
 
+const sideTitles = { recent: 'Recent check-ins', waiting: 'Waiting at desk', blocked: 'Blocked (unpaid)' }
+const sideEmpty = { recent: 'No check-ins yet today.', waiting: 'Nobody is waiting.', blocked: 'Nobody is blocked.' }
+
+/** A count of the desk's side panel; a click lists its students below. */
+function SideTile({ label, value, tone, active, onClick }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cx(
+        'flex items-center justify-between rounded-lg px-3 py-2 text-left ring-primary transition-colors',
+        tone === 'error' ? 'bg-error-bg/60 hover:bg-error-bg' : 'bg-subtle/60 hover:bg-subtle',
+        active && 'ring-2',
+      )}
+    >
+      <span className="text-fg-secondary">{t(label)}</span>
+      <span className={cx('font-semibold tabular', tone === 'error' ? 'text-error-fg' : 'text-fg')}>{value}</span>
+    </button>
+  )
+}
+
 export function DeskModeSwitch({ mode }) {
   return (
     <>
@@ -375,6 +400,13 @@ export default function CheckInDesk() {
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
   const d0 = today.data
   const person = search ? lookup.data?.student : null
+  // The side list: recent check-ins, students waiting at the desk or blocked; a click opens the student here.
+  const [side, setSide] = useState('recent')
+  const sideRows = (side === 'waiting' ? d0?.waitingList : side === 'blocked' ? d0?.blockedList : d0?.recent) ?? []
+  const openStudent = (code) => {
+    setQ(code)
+    setSearch(code)
+  }
 
   return (
     <>
@@ -438,22 +470,11 @@ export default function CheckInDesk() {
             <QueryState query={today} compact>
               {(d) => (
                 <>
-                  <dl className="flex flex-col gap-2 text-sm">
-                    <div className="flex items-center justify-between rounded-lg bg-subtle/60 px-3 py-2">
-                      <dt className="text-fg-secondary">{t('Checked in')}</dt>
-                      <dd className="font-semibold text-fg tabular">
-                        {t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg bg-subtle/60 px-3 py-2">
-                      <dt className="text-fg-secondary">{t('Waiting at desk')}</dt>
-                      <dd className="font-semibold text-fg tabular">{formatNumber(d.waiting)}</dd>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg bg-error-bg/60 px-3 py-2">
-                      <dt className="text-fg-secondary">{t('Blocked (unpaid)')}</dt>
-                      <dd className="font-semibold text-error-fg tabular">{formatNumber(d.blocked)}</dd>
-                    </div>
-                  </dl>
+                  <div className="flex flex-col gap-2 text-sm">
+                    <SideTile label="Checked in" value={t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })} active={side === 'recent'} onClick={() => setSide('recent')} />
+                    <SideTile label="Waiting at desk" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
+                    <SideTile label="Blocked (unpaid)" value={formatNumber(d.blocked)} tone="error" active={side === 'blocked'} onClick={() => setSide('blocked')} />
+                  </div>
                   <ProgressBar value={d.checkedIn} max={d.expected || 1} tone="success" />
                 </>
               )}
@@ -461,18 +482,30 @@ export default function CheckInDesk() {
           </Card>
 
           <Card className="flex min-h-40 flex-1 flex-col gap-2.5">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Recent check-ins')}</h2>
+            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t(sideTitles[side])}</h2>
+            <p className="shrink-0 text-xs text-fg-secondary">{t('Click a student to open them at the desk.')}</p>
             <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
-              {(d0?.recent ?? []).map((r) => (
-                <li key={`${r.bed}-${r.at}`} className="flex items-center gap-2.5 rounded-lg bg-subtle/40 px-3 py-2">
-                  <Clock size={15} aria-hidden="true" className="shrink-0 text-fg-brand" />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">
-                    {r.name} · {r.bed}
-                  </span>
-                  <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>
+              {sideRows.map((r) => (
+                <li key={`${r.studentCode ?? r.name}-${r.bed}`}>
+                  <button
+                    type="button"
+                    onClick={() => r.studentCode && openStudent(r.studentCode)}
+                    disabled={!r.studentCode}
+                    className={cx(
+                      'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors',
+                      person?.studentCode === r.studentCode ? 'bg-brand-subtle' : 'bg-subtle/40 hover:bg-subtle',
+                    )}
+                  >
+                    <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm font-medium text-fg">{r.name}</span>
+                      <span className="truncate text-xs text-fg-secondary">{[r.studentCode, r.bed].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    {r.at && <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>}
+                  </button>
                 </li>
               ))}
-              {d0 && !d0.recent?.length && <li className="text-sm text-fg-secondary">{t('No check-ins yet today.')}</li>}
+              {d0 && !sideRows.length && <li className="text-sm text-fg-secondary">{t(sideEmpty[side])}</li>}
             </ul>
           </Card>
         </div>

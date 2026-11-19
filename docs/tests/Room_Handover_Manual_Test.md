@@ -94,8 +94,8 @@ $env:JAVA_TOOL_OPTIONS = "-Dsun.nio.ch.PipeImpl.noUnixDomainSockets=true -Djdk.n
 |---|---|---|---|
 | 2.12 | `staffa01` › Biên bản kiểm kê › tab **Cần xem** | S42 ở đầu danh sách, nhãn **Lệch lớn** | [ ] |
 | 2.13 | Mở S42 | Hai cột "Gốc của phòng" và "Sinh viên"; dòng lệch tô màu; ghi chú "Wardrobe: Good → Missing", "Electricity +43.5 kWh" | [ ] |
-| 2.14 | Bấm **Xác nhận biên bản** | Bắt buộc nhập lý do (vì lệch lớn) | [ ] |
-| 2.15 | Thay vào đó bấm **Chờ xác minh tại phòng**, chọn giờ | Trạng thái Verifying; S42 nhận thông báo "Nhân viên sẽ xuống kiểm tra phòng" | [ ] |
+| 2.14 | Tìm nút **Xác nhận biên bản** | Không có (lệch lớn); API trả `409 MAJOR_NEEDS_VISIT` | [ ] |
+| 2.15 | Bấm **Kiểm tra phòng cùng sinh viên**, chọn giờ gợi ý (chỉ 08:00–16:00, trong 3 ngày) | Trạng thái Verifying; S42 nhận thông báo "Nhân viên sẽ xuống kiểm tra phòng" | [ ] |
 | 2.16 | S44: Staff mở, **Ghi nhận thực tế**, sửa bàn học / công tơ, **Gửi cho sinh viên** | S44 thấy "Đồng ý với biên bản đã kiểm" | [ ] |
 | 2.17 | S44 nhập ý kiến, bấm **Đồng ý kèm ý kiến** | Đã chốt – "Đã kiểm cùng nhân viên"; ý kiến hiện ở chi tiết; **không có nút phản đối** | [ ] |
 | 2.18 | Bàn học Hư hỏng ở 2.16 | Có yêu cầu bảo trì nội thất mới; món này **không** tính tiền cho S44 sau này | [ ] |
@@ -150,7 +150,7 @@ Mỗi Block có một đợt "Pre-arrival check Block X (demo)" đã gửi; kho�
 | D.4 | D2 | Mở biên bản nháp | Còn ~18 giờ; khai nốt, nộp | [ ] |
 | D.5 | `staffa01` | Biên bản kiểm kê › Cần xem | D3 **Lệch lớn** (thiếu tủ, +45 kWh) ở đầu; D4 **Lệch nhỏ** (bàn học) | [ ] |
 | D.6 | `staffa01` | D4 › Xác nhận biên bản | Đã chốt; bàn học ghi "có từ trước"; có yêu cầu bảo trì mới | [ ] |
-| D.7 | `staffa01` | D3 › Xác nhận | Bắt buộc lý do → chọn **Chờ xác minh tại phòng** | [ ] |
+| D.7 | `staffa01` | D3 | Không có nút Xác nhận; **Kiểm tra phòng cùng sinh viên** → hẹn giờ trong khung làm việc; thông báo của sinh viên mở thẳng biên bản | [ ] |
 | D.8 | `staffa01` → D5 | Tab Xuống phòng › D5 (hẹn 16:00 hôm nay) › Ghi nhận thực tế › Gửi | D5 bấm **Đồng ý kèm ý kiến** → Đã chốt, không có nút phản đối | [ ] |
 | D.9 | D7 | Mở biên bản | **Đã chốt – Quá hạn**; gửi **báo cáo trễ** một lần; Staff tab Báo cáo trễ chấp nhận một món | [ ] |
 | D.10 | D8 | Phòng của tôi | **Đang chờ**: "mã cửa của phòng chưa đặt" (đến khi làm D.2) | [ ] |

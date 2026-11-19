@@ -4,6 +4,10 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.common.file.FileLinks;
+import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.event.CheckInToAgree;
 import vn.fpt.campusstay.event.CheckInVisit;
@@ -29,6 +34,7 @@ import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.inventory.Inventory;
+import vn.fpt.campusstay.service.setting.Parameters;
 
 /**
  * Staff › Check-in › Inventories: the check-in inventories of the Blocks. Staff compare the student's answers with
@@ -65,7 +71,15 @@ public class HandoverDeskService {
 
     public record Detail(Row row, List<String> differences, Meter electricity, Meter water, List<Photo> meterPhotos,
             List<Item> items, String studentComment, String confirmReason, String source, Instant finalizedAt,
-            Instant utilityFrom, String lateNote, String cancelledReason, boolean sentToStudent) {
+            Instant utilityFrom, String lateNote, String cancelledReason, boolean sentToStudent,
+            VisitWindow visitWindow) {
+    }
+
+    /**
+     * When a Room visit may be set (System parameters › Room handover): from {@code fromHour} to before
+     * {@code toHour} on the campus clock, from now to {@code lastDay}; {@code suggestions} are the next free hours.
+     */
+    public record VisitWindow(int fromHour, int toHour, LocalDate lastDay, List<Instant> suggestions) {
     }
 
     public record VerifyItem(String itemId, String condition, String note) {
@@ -79,6 +93,8 @@ public class HandoverDeskService {
             boolean lateAccepted, long total) {
     }
 
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
     private final BlockScope blockScope;
@@ -89,10 +105,12 @@ public class HandoverDeskService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final Parameters parameters;
 
     public HandoverDeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, HandoverCore core,
             Inventory inventory, UserDirectory users, FileLinks links, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            Clock clock, Parameters parameters) {
+        this.parameters = parameters;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -183,10 +201,13 @@ public class HandoverDeskService {
         if (!h.status().equals("SUBMITTED")) {
             throw ApiException.conflict("NOT_TO_REVIEW", "Only a submitted inventory can be confirmed.");
         }
-        String why = reason == null || reason.isBlank() ? null : reason.trim();
-        if ("MAJOR".equals(h.comparison()) && why == null) {
-            throw FieldErrors.single("reason", "Write why you confirm an inventory with a major difference.");
+        // A major difference (an item Missing, too many items or a meter beyond the limit) is never confirmed from the
+        // desk: Staff check the Room with the student.
+        if ("MAJOR".equals(h.comparison())) {
+            throw ApiException.conflict("MAJOR_NEEDS_VISIT",
+                    "An inventory with a major difference is checked in the Room with the student: set a visit.");
         }
+        String why = reason == null || reason.isBlank() ? null : reason.trim();
         if (why != null && why.length() > 500) {
             throw FieldErrors.single("reason", "Keep the reason under 500 characters.");
         }
@@ -197,7 +218,10 @@ public class HandoverDeskService {
         return detail(core.byId(h.id(), false).orElseThrow());
     }
 
-    /** Staff will check the Room with the student; {@code visitAt} (optional) is when they come. */
+    /**
+     * Staff will check the Room with the student at {@code visitAt}: within the office hours and the days of
+     * {@link #visitWindow()}. Nothing is recorded for Staff until they record what they find in the Room.
+     */
     @Transactional
     public Detail requestVisit(String id, Instant visitAt) {
         AuthenticatedUser me = currentUser.require(Permission.DESK);
@@ -206,18 +230,24 @@ public class HandoverDeskService {
             throw ApiException.conflict("NOT_TO_REVIEW", "Only a submitted inventory can be checked in the Room.");
         }
         Instant now = Instant.now(clock);
+        VisitWindow window = visitWindow();
+        if (visitAt == null) {
+            throw FieldErrors.single("visitAt", "Choose when you come to the Room.");
+        }
+        ZonedDateTime at = visitAt.atZone(TimeConfig.CAMPUS_ZONE);
+        if (visitAt.isBefore(now) || at.toLocalDate().isAfter(window.lastDay()) || at.getHour() < window.fromHour()
+                || at.getHour() >= window.toHour()) {
+            throw FieldErrors.single("visitAt", "Choose a time from " + window.fromHour() + ":00 to "
+                    + window.toHour() + ":00, from now until " + DAY.format(window.lastDay()) + ".");
+        }
         jdbc.sql("""
                 UPDATE asg_handover SET status = 'VERIFYING', verify_requested_at = :now, verify_requested_by = :by,
                        visit_at = :visit, version = version + 1
                 WHERE id = :id
                 """).param("now", Timestamp.from(now)).param("by", me.userId())
-                .param("visit", visitAt == null ? null : Timestamp.from(visitAt)).param("id", h.id()).update();
-        // Staff start from the student's answers and change what they find different.
-        jdbc.sql("""
-                UPDATE asg_handover_item SET verified_condition = condition, verified_note = NULL WHERE handover_id = :h
-                """).param("h", h.id()).update();
-        jdbc.sql("UPDATE asg_handover SET verified_electricity = electricity, verified_water = water WHERE id = :id")
-                .param("id", h.id()).update();
+                .param("visit", Timestamp.from(visitAt)).param("id", h.id()).update();
+        // Nothing is copied into Staff's columns: they stay empty until Staff record what they find in the Room (an
+        // item they leave out keeps the student's answer: readers take coalesce(verified, student)).
         HandoverCore.Alloc a = core.allocation(h.allocationId()).orElseThrow();
         audit.record("CHECK_IN_VISIT_REQUESTED", AuditLog.Tone.WARNING, "Check-in inventory", h.id(),
                 HandoverCore.code(h.id()), null);
@@ -404,6 +434,27 @@ public class HandoverDeskService {
                     case "AUTO" -> "Deadline passed";
                     case "VERIFIED" -> "Checked in the Room";
                     default -> "As filed";
-                }, h.finalizedAt(), h.utilityFrom(), h.lateNote(), h.cancelledReason(), h.verifiedAt() != null);
+                }, h.finalizedAt(), h.utilityFrom(), h.lateNote(), h.cancelledReason(), h.verifiedAt() != null,
+                h.status().equals("SUBMITTED") ? visitWindow() : null);
+    }
+
+    /** The office hours and days a Room visit may be set in, and the next free hours (every 2 hours). */
+    VisitWindow visitWindow() {
+        int from = Math.clamp(parameters.intValue("handover.visit_from_hour"), 0, 23);
+        int to = Math.clamp(parameters.intValue("handover.visit_to_hour"), from + 1, 24);
+        int days = Math.max(0, parameters.intValue("handover.visit_within_days"));
+        ZonedDateTime now = Instant.now(clock).atZone(TimeConfig.CAMPUS_ZONE);
+        LocalDate last = now.toLocalDate().plusDays(days);
+        List<Instant> suggestions = new ArrayList<>();
+        ZonedDateTime slot = now.truncatedTo(ChronoUnit.HOURS).plusHours(1);
+        while (suggestions.size() < 4 && !slot.toLocalDate().isAfter(last)) {
+            if (slot.getHour() >= from && slot.getHour() < to) {
+                suggestions.add(slot.toInstant());
+                slot = slot.plusHours(2);
+            } else {
+                slot = slot.plusHours(1);
+            }
+        }
+        return new VisitWindow(from, to, last, suggestions);
     }
 }

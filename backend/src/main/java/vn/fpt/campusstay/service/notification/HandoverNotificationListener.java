@@ -39,13 +39,13 @@ class HandoverNotificationListener {
     @EventListener
     void on(CheckInAvailable e) {
         notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "hours", String.valueOf(e.hours())),
-                "/student/room");
+                "/student/room/inventory");
     }
 
     @EventListener
     void on(CheckInInventoryDue e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_DUE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
-                "/student/room");
+                "/student/room/inventory");
     }
 
     @EventListener
@@ -53,37 +53,37 @@ class HandoverNotificationListener {
         for (long staff : e.staffIds()) {
             notifier.notify(staff, "CHECK_IN_INVENTORY_SUBMITTED",
                     Map.of("name", e.name(), "room", e.room(), "comparison", e.comparison()),
-                    "/staff/check-in?tab=inventories");
+                    "/staff/check-in/inventories");
         }
     }
 
     @EventListener
     void on(CheckInVisit e) {
         notifier.notify(e.studentId(), "CHECK_IN_VISIT",
-                Map.of("room", e.room(), "visitAt", e.visitAt() == null ? "soon" : when(e.visitAt())), "/student/room");
+                Map.of("room", e.room(), "visitAt", e.visitAt() == null ? "soon" : when(e.visitAt())), "/student/room/inventory");
     }
 
     @EventListener
     void on(CheckInToAgree e) {
-        notifier.notify(e.studentId(), "CHECK_IN_TO_AGREE", Map.of("room", e.room()), "/student/room");
+        notifier.notify(e.studentId(), "CHECK_IN_TO_AGREE", Map.of("room", e.room()), "/student/room/inventory");
     }
 
     @EventListener
     void on(CheckInInventoryFinal e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_FINAL",
-                Map.of("room", e.room(), "from", when(e.utilityFrom())), "/student/room");
+                Map.of("room", e.room(), "from", when(e.utilityFrom())), "/student/room/inventory");
     }
 
     @EventListener
     void on(DamageToAcknowledge e) {
         notifier.notify(e.studentId(), "DAMAGE_TO_ACKNOWLEDGE", Map.of("item", e.item(), "room", e.room(),
-                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room");
+                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/inventory");
     }
 
     @EventListener
     void on(CheckOutToAgree e) {
         notifier.notify(e.studentId(), "CHECK_OUT_TO_AGREE", Map.of("room", e.room(), "amount", money(e.amount())),
-                "/student/room");
+                "/student/room/inventory");
     }
 
     private static String when(Instant at) {

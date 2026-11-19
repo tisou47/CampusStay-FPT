@@ -126,7 +126,7 @@ Mật khẩu mọi tài khoản: `123`. Tài khoản sinh viên là `<mã>@fpt.e
    - Hai cột "Gốc của phòng" và "Sinh viên" đặt cạnh nhau.
    - Dòng tủ quần áo tô màu: **Tốt → Thiếu**.
    - Ghi chú **"Wardrobe: Good → Missing"** và **"Electricity +45 kWh (allowed 6 kWh)"**: gốc 1733, sinh viên khai 1778.
-3. ❌ Bấm **Xác nhận biên bản** không ghi lý do: lỗi **"Hãy ghi lý do xác nhận biên bản bị lệch lớn."**. Bấm Quay lại, chọn **Chờ xác minh tại phòng**, hẹn giờ. Kết quả đúng: **Đang xác minh**; sinh viên nhận thông báo "Nhân viên sẽ xuống kiểm tra phòng".
+3. ❌ Biên bản **lệch lớn** không có nút **Xác nhận biên bản** (gọi API: `409 MAJOR_NEEDS_VISIT`, "Biên bản lệch lớn phải được kiểm tra tại phòng cùng sinh viên"); khung đỏ giải thích lý do. Bấm **Kiểm tra phòng cùng sinh viên**: popup có **giờ gợi ý** và ô chọn giờ chỉ cho chọn **08:00–16:00**, từ hôm nay đến **3 ngày** sau (Tham số hệ thống › Room handover). Chọn một giờ gợi ý, bấm **Hẹn xuống phòng**. Kết quả đúng: **Đang xác minh**; khung **Báo cáo Final** vẫn trống; sinh viên nhận thông báo trên chuông "Nhân viên sẽ xuống kiểm tra phòng", bấm vào mở thẳng biên bản.
 4. Mở **A-104 (D4)**:
    - Ghi chú **"Desk: Worn → Damaged"**, **Lệch nhỏ**; điện 1487 so với gốc 1485, trong ngưỡng.
    - Bấm **Xác nhận biên bản**. Kết quả đúng: **Đã chốt**, bàn học ghi **"có từ trước"** (không bao giờ tính tiền cho `se220406`), và có yêu cầu bảo trì **`MR-…`** mới cho bàn học.
@@ -197,7 +197,7 @@ Mật khẩu mọi tài khoản: `123`. Tài khoản sinh viên là `<mã>@fpt.e
 | Sinh viên không thấy gốc của Staff | 4.5 |
 | Khai đủ mọi món; công tơ không đi lùi | 6 |
 | Lệch lớn: có món Thiếu, ≥ 3 món lệch, hoặc công tơ vượt ngưỡng | 5, 8 |
-| Lệch lớn: xác nhận phải có lý do, hoặc xuống phòng xác minh | 8.3 |
+| Lệch lớn: không xác nhận tại quầy, bắt buộc hẹn xuống phòng trong giờ làm việc | 8.3 |
 | Sau khi kiểm cùng nhân viên chỉ còn nút Đồng ý | 9 |
 | Quá 48 giờ tự chốt theo gốc; báo cáo trễ đúng 1 lần | 10.1–10.3 |
 | Bàn nhận phòng chờ biên bản chốt | 7 |

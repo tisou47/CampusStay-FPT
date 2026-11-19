@@ -1079,3 +1079,6 @@ This damage record does not exist or can no longer be answered. ⟶ Ghi nhận h
 This Allocation does not exist. ⟶ Chỗ ở này không tồn tại.
 Choose Personal or Shared. ⟶ Hãy chọn Riêng hoặc Chung.
 Send at least one price. ⟶ Hãy gửi ít nhất một mức giá.
+An inventory with a major difference is checked in the Room with the student: set a visit. ⟶ Biên bản lệch lớn phải được kiểm tra tại phòng cùng sinh viên: hãy hẹn giờ xuống phòng.
+Choose when you come to the Room. ⟶ Hãy chọn thời gian xuống phòng.
+Choose a time from {0}:00 to {1}:00, from now until {2}. ⟶ Hãy chọn giờ từ {0}:00 đến {1}:00, từ bây giờ đến hết ngày {2}.

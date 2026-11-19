@@ -67,7 +67,8 @@ public class DeskService {
 
     // ---------------------------------------------------------------- check-in records
 
-    public record Recent(String name, String bed, Instant at) {
+    /** A student of the desk's side lists; {@code studentCode} opens them at the desk. */
+    public record Recent(String name, String studentCode, String bed, Instant at) {
     }
 
     /**
@@ -77,10 +78,18 @@ public class DeskService {
      */
     public record Today(LocalDate date, String block, long expected, long checkedIn, long waiting, long blocked,
             List<Recent> recent, String termId, String termName, LocalDate checkInStart, LocalDate checkInEnd,
-            String window) {
+            String window, List<Recent> waitingList, List<Recent> blockedList) {
     }
 
-    public record Check(String label, boolean passed) {
+    /** How many students each side list of the check-in desk shows. */
+    private static final int SIDE_LIST = 30;
+
+    /** {@code hint}: what to do while the check is not passed (null when nothing to add). */
+    public record Check(String label, boolean passed, String hint) {
+
+        public Check(String label, boolean passed) {
+            this(label, passed, null);
+        }
     }
 
     public record Owes(long balance, long utilityDeposit) {
@@ -217,15 +226,29 @@ public class DeskService {
                 .filter(p -> p.alloc().checkedInAt() != null && !p.alloc().checkedInAt().isBefore(start))
                 .sorted(Comparator.comparing((Placed p) -> p.alloc().checkedInAt()).reversed())
                 .limit(8).toList();
-        Map<Long, String> names = users.displayNames(recent.stream().map(p -> p.alloc().studentId()).toList());
+        // Not checked in yet: waiting at the desk (paid) or blocked (still owing), by Room and Bed.
+        Comparator<Placed> byBed = Comparator.comparing((Placed p) -> p.bed().code());
+        List<Placed> waitingList = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id()))
+                .sorted(byBed).limit(SIDE_LIST).toList();
+        List<Placed> blockedList = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && dues.containsKey(p.alloc().id()))
+                .sorted(byBed).limit(SIDE_LIST).toList();
+        Map<Long, UserDirectory.Student> students = users.students(java.util.stream.Stream
+                .of(recent, waitingList, blockedList).flatMap(List::stream).map(p -> p.alloc().studentId()).toList());
+        java.util.function.Function<Placed, Recent> side = p -> {
+            UserDirectory.Student s = students.get(p.alloc().studentId());
+            return new Recent(s == null ? null : s.name(), s == null ? null : s.studentCode(), p.bed().code(),
+                    p.alloc().checkedInAt());
+        };
         String code = scope.single() ? blocks.codesByIds(scope.ids()).get(scope.singleId()) : null;
         String window = term.checkInStart() == null || term.checkInEnd() == null ? null
                 : today.isBefore(term.checkInStart()) ? "UPCOMING"
                 : today.isAfter(term.checkInEnd()) ? "CLOSED" : "OPEN";
         return new Today(today, code, placed.size(), checkedIn, placed.size() - checkedIn - blocked, blocked,
-                recent.stream().map(p -> new Recent(names.get(p.alloc().studentId()), p.bed().code(),
-                        p.alloc().checkedInAt())).toList(),
-                String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window);
+                recent.stream().map(side).toList(),
+                String.valueOf(term.id()), term.name(), term.checkInStart(), term.checkInEnd(), window,
+                waitingList.stream().map(side).toList(), blockedList.stream().map(side).toList());
     }
 
     /** @param q a student code, a name or the pass payload {@code CSTAY-PASS:<allocationId>} */
@@ -348,14 +371,22 @@ public class DeskService {
                 ORDER BY id DESC LIMIT 1
                 """).param("id", a.id()).query(String.class).optional();
         if (status.isPresent()) {
-            return Optional.of(new Check("Check-in inventory final", "FINAL".equals(status.get())));
+            String hint = switch (status.get()) {
+                case "DRAFT" -> "The student started it but has not submitted it yet.";
+                case "SUBMITTED" -> "Waiting for Staff: confirm it or set a Room visit in Check-in inventories.";
+                case "VERIFYING" -> "Staff check the Room with the student; it is final once the student agrees.";
+                default -> null;
+            };
+            return Optional.of(new Check("Check-in inventory confirmed", "FINAL".equals(status.get()), hint));
         }
         Long previousBed = jdbc.sql("""
                 SELECT p.bed_id FROM asg_allocation a JOIN asg_allocation p ON p.id = a.previous_allocation_id
                 WHERE a.id = :id
                 """).param("id", a.id()).query(Long.class).optional().orElse(null);
         return doorCodes.needsInventory(previousBed, a.bedId())
-                ? Optional.of(new Check("Check-in inventory filed by the student (My Room)", false))
+                ? Optional.of(new Check("Check-in inventory filed", false,
+                        "At the Room the student starts it on the app (My room › Check-in inventory) and gets the door"
+                                + " code; the check-in is recorded once it is final."))
                 : Optional.empty();
     }
 
@@ -494,10 +525,8 @@ public class DeskService {
         errors.check(cmd.electricity() != null, "electricity", "Enter the electricity reading.");
         errors.check(cmd.water() != null, "water", "Enter the water reading.");
         errors.check(cmd.conditionGood() != null, "conditionGood", "Say whether the Room is in good condition.");
-        errors.check(cmd.keyReturned() != null, "keyReturned", "Say whether the key was returned.");
-        if (!cmd.draft() && Boolean.FALSE.equals(cmd.keyReturned())) {
-            errors.add("keyReturned", "Collect the Room key before you confirm.");
-        }
+        // Rooms open with a door code (rotated when the student leaves, ResidentLeftRoom): there is no key to collect,
+        // so keyReturned is no longer asked (left out = nothing to return, stored as true).
         Map<Long, Damage> damages = damages(cmd.damages(), p.bed().roomId(), errors);
         errors.throwIfAny();
         FurnitureRecord furniture = furnitureRecord(p.alloc().id());
@@ -844,7 +873,7 @@ public class DeskService {
                 """)
                 .param("allocation", allocationId).param("reason", reason).param("status", status)
                 .param("electricity", cmd.electricity()).param("water", cmd.water())
-                .param("good", cmd.conditionGood()).param("key", cmd.keyReturned()).param("damage", damage)
+                .param("good", cmd.conditionGood()).param("key", cmd.keyReturned() == null || cmd.keyReturned()).param("damage", damage)
                 .param("refundAmount", s == null ? null : Math.max(0, s.refund()))
                 .param("refundStatus", refundStatus)
                 .param("completedAt", done ? Timestamp.from(now) : null).param("completedBy", done ? by : null)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Camera, CircleCheck, ClipboardList, KeyRound, Trash2 } from 'lucide-react'
+import { Camera, CircleCheck, ClipboardList, KeyRound, Printer, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -9,7 +9,8 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
-import { typeName } from '@/lib/furniture'
+import { cx } from '@/lib/cx'
+import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatCurrency, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
@@ -25,8 +26,6 @@ import { StudentPage } from './shared'
 // GET /students/me/check-out → { items, total, studentPresent, agreedAt, saved, claims } · POST …/check-out/agree
 // POST /students/me/damage-claims/:id { acknowledge }
 
-const conditions = ['Good', 'Worn', 'Damaged', 'Missing']
-const conditionTone = { Good: 'success', Worn: 'info', Damaged: 'error', Missing: 'warning' }
 
 function PhotoStrip({ photos, onRemove }) {
   if (!photos?.length) return null
@@ -160,12 +159,12 @@ function Form({ data }) {
                   aria-label={t('Condition of {item}', { item: i.assetCode })}
                   value={a.condition}
                   onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...s[i.itemId], condition: e.target.value } }))}
-                  options={[{ value: '', label: 'Choose' }, ...conditions]}
+                  options={[{ value: '', label: 'Choose' }, ...conditionOptions()]}
                 />
               </div>
               {i.roommateCondition && (
                 <p className="text-sm text-fg-secondary">
-                  {t('Your roommate recorded it as {condition}. Choose the same if it is right, or what you see.', { condition: t(i.roommateCondition) })}
+                  {t('Your roommate recorded it as {condition}. Choose the same if it is right, or what you see.', { condition: conditionName(i.roommateCondition) })}
                 </p>
               )}
               {(a.condition === 'Damaged' || a.condition === 'Missing' || a.condition === 'Worn') && (
@@ -227,11 +226,26 @@ function Summary({ data }) {
     onError: (e) => notifyError(e, 'Could not send the late report'),
   })
   const tone = data.status === 'Final' ? 'success' : 'info'
+  // Staff's answers are shown only after a Room visit (the API sends them once Staff recorded what they found).
+  const visited = data.staffElectricity != null || data.items.some((i) => i.staffCondition)
+  const steps = [
+    { label: 'Started (door code received)', at: data.openedAt },
+    { label: 'Submitted', at: data.submittedAt },
+    { label: 'Room visit with Staff', at: data.visitAt },
+    { label: 'Final', at: data.finalizedAt },
+  ].filter((s) => s.at)
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-4 print:border-0 print:p-0">
       <CardHeader
         title={t('Check-in inventory · Room {room}', { room: data.room })}
-        actions={<Tag tone={tone}>{data.status}</Tag>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Tag tone={tone}>{data.status}</Tag>
+            <Button size="sm" icon={Printer} onClick={() => window.print()} className="print:hidden" tip="Print it or save it as PDF to show Staff.">
+              Print
+            </Button>
+          </div>
+        }
         description={
           data.status === 'Final'
             ? t('Recorded {how} on {date}. Utility is counted from {from}.', { how: t(data.source), date: formatDateTime(data.finalizedAt), from: formatDateTime(data.utilityFrom) })
@@ -242,27 +256,63 @@ function Summary({ data }) {
               : t('Submitted {date}. Staff are looking at it.', { date: formatDateTime(data.submittedAt) })
         }
       />
-      <ul className="flex flex-col divide-y divide-line">
-        {data.items.map((i) => (
-          <li key={i.itemId} className="flex flex-wrap items-center justify-between gap-2 py-2">
-            <span className="text-base text-fg">
-              {typeName(i)} <span className="text-fg-secondary">· {i.assetCode}</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              {i.condition && <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{i.condition}</Tag>}
-              {i.staffCondition && i.staffCondition !== i.condition && (
-                <>
-                  <span className="text-fg-tertiary">→</span>
-                  <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{i.staffCondition}</Tag>
-                </>
+      {steps.length > 0 && (
+        <ol className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg bg-subtle/50 px-4 py-3">
+          {steps.map((s) => (
+            <li key={s.label} className="flex flex-col">
+              <span className="text-xs text-fg-secondary">{t(s.label)}</span>
+              <span className="text-sm font-medium text-fg tabular">{formatDateTime(s.at)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className="overflow-hidden rounded-lg border border-line">
+        <div className={cx('grid gap-2 border-b border-line bg-subtle/60 px-4 py-2 text-xs font-semibold text-fg-secondary', visited ? 'grid-cols-[minmax(0,1fr)_7rem_7rem]' : 'grid-cols-[minmax(0,1fr)_7rem]')}>
+          <span>{t('Item')}</span>
+          <span>{t('You recorded')}</span>
+          {visited && <span>{t('Checked with Staff')}</span>}
+        </div>
+        <ul className="flex flex-col divide-y divide-line">
+          {data.items.map((i) => (
+            <li key={i.itemId} className="flex flex-col gap-1.5 px-4 py-2.5">
+              <div className={cx('grid items-center gap-2', visited ? 'grid-cols-[minmax(0,1fr)_7rem_7rem]' : 'grid-cols-[minmax(0,1fr)_7rem]')}>
+                <span className="min-w-0 text-base text-fg">
+                  {typeName(i)}{' '}
+                  <span className="text-sm text-fg-secondary">
+                    · {i.assetCode} · {i.personal ? t('Your Bed {bed}', { bed: i.bed }) : t('Shared')}
+                  </span>
+                </span>
+                <span>{i.condition ? <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{conditionName(i.condition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                {visited && (
+                  <span>{i.staffCondition ? <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{conditionName(i.staffCondition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                )}
+              </div>
+              {(i.note || i.staffNote) && (
+                <p className="text-sm text-fg-secondary">
+                  {[i.note && t('Your note: {note}', { note: i.note }), i.staffNote && t('Staff: {note}', { note: i.staffNote })].filter(Boolean).join(' · ')}
+                </p>
               )}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-sm text-fg-secondary">
-        {t('Meters: {e} kWh · {w} m³', { e: data.staffElectricity ?? data.electricity ?? '—', w: data.staffWater ?? data.water ?? '—' })}
-      </p>
+              {i.photos?.length > 0 ? <PhotoStrip photos={i.photos} /> : <span className="text-xs text-fg-tertiary">{t('No photo')}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-base font-medium text-fg">{t('Meters of the Room')}</span>
+        <dl className="grid grid-cols-2 gap-3 sm:max-w-md">
+          <div className="rounded-lg bg-subtle/60 px-3 py-2">
+            <dt className="text-xs text-fg-secondary">{t('Electricity (kWh)')}</dt>
+            <dd className="text-base font-semibold text-fg tabular">{data.electricity ?? '—'}</dd>
+            {visited && data.staffElectricity != null && <dd className="text-xs text-fg-secondary">{t('Checked with Staff: {value}', { value: data.staffElectricity })}</dd>}
+          </div>
+          <div className="rounded-lg bg-subtle/60 px-3 py-2">
+            <dt className="text-xs text-fg-secondary">{t('Water (m³)')}</dt>
+            <dd className="text-base font-semibold text-fg tabular">{data.water ?? '—'}</dd>
+            {visited && data.staffWater != null && <dd className="text-xs text-fg-secondary">{t('Checked with Staff: {value}', { value: data.staffWater })}</dd>}
+          </div>
+        </dl>
+        {data.meterPhotos?.length > 0 ? <PhotoStrip photos={data.meterPhotos} /> : <span className="text-xs text-fg-tertiary">{t('No photo of the meters')}</span>}
+      </div>
       {data.toAgree && (
         <div className="flex flex-col gap-2">
           <Field label="Comment (optional)" hint="If you still see something differently, write it here: it is kept with the inventory and read at check-out.">
@@ -316,7 +366,7 @@ function FurnitureCharges() {
       {pending.map((c) => (
         <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${c.type} ${c.assetCode}` })}>
           <div className="flex flex-col gap-2">
-            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: t(c.condition), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
+            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: conditionName(c.condition), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => answer.run(c.id, false)} disabled={answer.pending}>
                 Decline
@@ -334,7 +384,7 @@ function FurnitureCharges() {
             {d.items.map((i) => (
               <li key={i.itemId} className="flex flex-wrap items-center justify-between gap-2 py-2 text-base">
                 <span className="text-fg">
-                  {typeName(i)} <span className="text-fg-secondary">· {i.atCheckIn ?? t('Good')} → {i.atCheckOut ?? '—'}</span>
+                  {typeName(i)} <span className="text-fg-secondary">· {conditionName(i.atCheckIn ?? 'Good')} → {i.atCheckOut ? conditionName(i.atCheckOut) : '—'}</span>
                 </span>
                 <span className="text-fg">
                   {formatCurrency(i.amount)}

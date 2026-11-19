@@ -236,13 +236,13 @@ Staff see their Blocks, Managers every Block (C-43).
 
 ### Desk
 
-- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null }` (`expected` = every Allocation of the Term in the Blocks; A-63)
+- `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, studentCode, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null, waitingList, blockedList }` (`expected` = every Allocation of the Term in the Blocks; A-63; `waitingList` / `blockedList`: up to 30 students not checked in, paid / still owing, same shape as `recent` with `at` null, A-73)
 - `GET /check-in/lookup?termId&q` → `{ student: { name, studentCode, room, bed, block, floor, status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null, checkedInAt, handOverItems: [string] } | null }`. `q` is a student code, a name or the QR pass payload typed by a scanner.
 - `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
 - `GET /check-out?termId&block&q&reason&page&pageSize` → `{ date, pendingCount, reasons, items: [{ allocationId, studentCode, name, room, bed, roomTypeName, roomClassName, reason, status, checkedOutAt }], total }`
 - `GET /check-out/{allocationId}` → `{ …row, reading: { electricity, water }, settlement: { held, periodLabel, share, unpaid, damage, refund }, refundStatus, furniture: [{ itemId, assetCode, type, typeVi, amount, note }] }`
 - The list carries `checkOutBy`, `overdueCount` and `items[].overdue`; `POST /check-out/{allocationId}` takes `damages: [{ itemId, amount, note? }]` (A-52)
-- `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
+- `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned?, damageCharge, draft }` (`keyReturned` is no longer asked: Rooms open with a door code; left out = true, A-73) → `{ refund, refundStatus }`
 - The URL carries the Allocation id, never the student code (personal data, B-01). Check-in rules, the pass and the Utility Deposit settlement: C-23 (`allocation.pass`, A-11).
 
 ### Meter readings

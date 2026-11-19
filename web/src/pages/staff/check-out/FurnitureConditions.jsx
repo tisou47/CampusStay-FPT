@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Field, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Tag } from '@/components/ui/Tag'
-import { typeName } from '@/lib/furniture'
+import { conditionName, conditionOptions, typeName } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { t } from '@/i18n'
 
@@ -18,7 +18,6 @@ import { t } from '@/i18n'
 //   agreedAt, saved, claims }
 // PUT …/furniture { items: [{ itemId, condition, note, managerReview }], studentPresent } · POST …/damage-claims
 
-const conditions = ['Good', 'Worn', 'Damaged', 'Missing']
 const reviewTone = { Pending: 'warning', Kept: 'error', Dropped: 'success' }
 
 /** @param query the furniture query (owned by the panel, which also uses its total) */
@@ -77,7 +76,7 @@ export function FurnitureConditions({ allocationId, query, done }) {
                     {typeName(i)} · {i.personal ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
                   </span>
                   <span className="truncate font-mono text-[11px] text-fg-tertiary">
-                    {i.assetCode} · {t('At check-in: {c}', { c: t(i.atCheckIn ?? 'Good') })}
+                    {i.assetCode} · {t('At check-in: {c}', { c: conditionName(i.atCheckIn ?? 'Good') })}
                     {i.preExisting ? ` · ${t('there before')}` : ''}
                   </span>
                 </div>
@@ -91,7 +90,7 @@ export function FurnitureConditions({ allocationId, query, done }) {
                     aria-label={t('Condition of {item}', { item: i.assetCode })}
                     value={a.condition}
                     onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...a, condition: e.target.value } }))}
-                    options={conditions}
+                    options={conditionOptions()}
                   />
                 </div>
               </div>
@@ -146,7 +145,7 @@ export function FurnitureConditions({ allocationId, query, done }) {
         {claim && (
           <div className="flex flex-col gap-3">
             <Field label="Condition of the item">
-              <Select value={claim.condition} onChange={(e) => setClaim({ ...claim, condition: e.target.value })} options={['Damaged', 'Missing']} />
+              <Select value={claim.condition} onChange={(e) => setClaim({ ...claim, condition: e.target.value })} options={conditionOptions().filter((o) => o.value === 'Damaged' || o.value === 'Missing')} />
             </Field>
             <Field label="What happened">
               <Textarea rows={2} value={claim.note} onChange={(e) => setClaim({ ...claim, note: e.target.value })} />

@@ -6,7 +6,7 @@ import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { Checkbox, Radio } from '@/components/ui/Choice'
+import { Radio } from '@/components/ui/Choice'
 import { Alert, Card } from '@/components/ui/Display'
 import { Modal } from '@/components/ui/Overlay'
 import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
@@ -169,8 +169,6 @@ function CheckOutPanel({ d }) {
   const done = d.status === 'Checked out'
   const [electricity, setElectricity] = useState(formatNumber(d.reading?.electricity))
   const [water, setWater] = useState(formatNumber(d.reading?.water))
-  // Key returned is false by default; staff must collect key and check
-  const [key, setKey] = useState(done ? Boolean(d.keyReturned) : false)
   // Damage per furniture item of the Room: { [itemId]: { amount, note } }; a damaged item becomes Broken.
   const initialDamages = () =>
     Object.fromEntries((d.furniture ?? []).filter((f) => f.amount > 0 || f.note).map((f) => [f.itemId, { amount: formatNumber(f.amount), note: f.note ?? '' }]))
@@ -201,7 +199,6 @@ function CheckOutPanel({ d }) {
         electricity: toNumber(electricity),
         water: toNumber(water),
         conditionGood: condition === 'good',
-        keyReturned: key,
         damages: byCondition && !lines.length ? undefined : lines.map(([itemId, v]) => ({ itemId, amount: toNumber(v.amount), note: v.note.trim() || undefined })),
         draft,
       }),
@@ -223,7 +220,7 @@ function CheckOutPanel({ d }) {
   return (
     <Card
       padding="none"
-      className="flex h-full min-h-0 w-110 shrink-0 flex-col overflow-hidden xl:w-120"
+      className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       aria-label={t('Check-out {name}', { name: d.name })}
     >
       {/* 1. PINNED HEADER: Student Identity & Room Badge */}
@@ -248,8 +245,9 @@ function CheckOutPanel({ d }) {
         </div>
       </div>
 
-      {/* 2. SCROLLABLE INSPECTION BODY: Meter Readings & Compact Damage Audit */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-3.5">
+      {/* 2. The work area (meters, condition, furniture) and, beside it on wide screens, the settlement. */}
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
         {/* Step 1: Final Meter Reading */}
         <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
           <div className="flex items-center gap-2">
@@ -299,13 +297,7 @@ function CheckOutPanel({ d }) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Checkbox
-              label="Key returned"
-              checked={key}
-              disabled={done}
-              onChange={(e) => setKey(e.target.checked)}
-            />
-            <div className="flex flex-col gap-1.5 border-t border-line/60 pt-2">
+            <div className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold text-fg-secondary">{t('Room condition')}</span>
               <Radio
                 name="room-condition"
@@ -332,12 +324,12 @@ function CheckOutPanel({ d }) {
 
               {/* Compact Mini-Table for Damage Audit */}
               <div className="overflow-hidden rounded-lg bg-surface">
-                <div className="grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
+                <div className="grid grid-cols-[minmax(0,1fr)_9rem_minmax(0,18rem)] items-center gap-1.5 border-b border-line bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
                   <span>{t('Furniture')}</span>
                   <span className="text-right">{t('Amount')} (₫)</span>
                   <span>{t('Note')}</span>
                 </div>
-                <div className="flex max-h-48 flex-col divide-y divide-line/60 overflow-y-auto">
+                <div className="flex flex-col divide-y divide-line/60">
                   {d.furniture.map((f) => {
                     const v = damages[f.itemId] ?? { amount: '', note: '' }
                     const hasCharge = toNumber(v.amount) > 0 || Boolean(v.note?.trim())
@@ -345,12 +337,12 @@ function CheckOutPanel({ d }) {
                       <div
                         key={f.itemId}
                         className={cx(
-                          'grid grid-cols-[minmax(0,1fr)_6.25rem_7.5rem] items-center gap-1.5 px-2.5 py-1.5 transition-colors',
+                          'grid grid-cols-[minmax(0,1fr)_9rem_minmax(0,18rem)] items-center gap-1.5 px-2.5 py-1.5 transition-colors',
                           hasCharge ? 'bg-brand-subtle/40' : 'hover:bg-subtle/40',
                         )}
                       >
                         <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-xs font-medium text-fg">{typeName(f)}</span>
+                          <span className="truncate text-sm font-medium text-fg">{typeName(f)}</span>
                           <span className="truncate font-mono text-[11px] text-fg-tertiary">{f.assetCode}</span>
                         </div>
                         <input
@@ -361,7 +353,7 @@ function CheckOutPanel({ d }) {
                           onChange={(e) => setDamage(f.itemId, { amount: e.target.value })}
                           inputMode="numeric"
                           placeholder="0"
-                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-right font-mono text-xs font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
+                          className="h-9 w-full rounded-md border border-line bg-surface px-2.5 text-right font-mono text-sm font-semibold text-fg tabular focus:border-primary focus:outline-none disabled:bg-subtle"
                         />
                         <input
                           type="text"
@@ -371,7 +363,7 @@ function CheckOutPanel({ d }) {
                           onChange={(e) => setDamage(f.itemId, { note: e.target.value })}
                           placeholder={t('What is damaged?')}
                           maxLength={300}
-                          className="h-7 w-full rounded-md border border-line bg-surface px-2 text-xs text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
+                          className="h-9 w-full rounded-md border border-line bg-surface px-2.5 text-sm text-fg focus:border-primary focus:outline-none disabled:bg-subtle"
                         />
                       </div>
                     )
@@ -385,8 +377,8 @@ function CheckOutPanel({ d }) {
         <FurnitureConditions allocationId={d.allocationId} query={furnitureQuery} done={done} />
       </div>
 
-      {/* 3. STICKY SETTLEMENT FOOTER: Realtime Calculation & Primary Actions */}
-      <div className="flex shrink-0 flex-col gap-2.5 border-t border-line bg-surface px-5 py-3.5 shadow-card">
+      {/* 3. Settlement and actions: a footer on narrow screens, a column beside the work area on wide ones. */}
+      <div className="flex shrink-0 flex-col gap-3 border-t border-line bg-surface px-5 py-4 shadow-card xl:w-88 xl:overflow-y-auto xl:border-t-0 xl:border-l xl:shadow-none">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <Receipt size={14} aria-hidden="true" className="text-fg-brand" />
@@ -446,12 +438,7 @@ function CheckOutPanel({ d }) {
           </div>
         ) : (
           <div className="flex flex-col gap-1.5 pt-0.5">
-            {!key && (
-              <p className="text-right text-xs font-medium text-error-fg">
-                {t('Collect the room key before you confirm.')}
-              </p>
-            )}
-            {key && !condition && (
+            {!condition && (
               <p className="text-right text-xs font-medium text-warning-fg">
                 {t('Please select the room condition before you confirm.')}
               </p>
@@ -468,7 +455,7 @@ function CheckOutPanel({ d }) {
               <Button
                 tip="Ends the student’s stay and frees the bed. A meter reading is taken."
                 variant="primary"
-                disabled={!key || !condition || submit.pending}
+                disabled={!condition || submit.pending}
                 onClick={() => setShowSummary(true)}
               >
                 Confirm check-out
@@ -476,6 +463,8 @@ function CheckOutPanel({ d }) {
             </div>
           </div>
         )}
+      </div>
+
       </div>
 
       {showSummary && (
@@ -620,38 +609,36 @@ export default function CheckOutDesk() {
           }}
           options={[{ value: '', label: 'Reason: All' }, ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: t('Reason: {r}', { r: tr(r) }) }))]}
         />
+        {/* Overdue leavers: a short notice beside the filters, so it never pushes the work area down. */}
+        {list.data?.overdueCount > 0 && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full bg-error-bg px-3 py-1 text-sm font-medium text-error-fg"
+            title={t('They still hold their bed. Managers see them on their dashboard.')}
+          >
+            <AlertTriangle size={14} aria-hidden="true" />
+            {t('{n} leavers are past the check-out date', { n: formatNumber(list.data.overdueCount) })}
+          </span>
+        )}
       </div>
 
-      {list.data?.overdueCount > 0 && (
-        <Alert type="error" title={t('{n} leavers are past the check-out date', { n: formatNumber(list.data.overdueCount) })} className="shrink-0">
-          They still hold their bed. Managers see them on their dashboard.
-        </Alert>
-      )}
-
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 w-104 shrink-0 flex-col gap-3">
           <Table fill>
             <THead>
               <tr>
-                <Th className="w-48">Student</Th>
-                <Th>Room / bed</Th>
-                <Th>Reason</Th>
-                <Th className="w-38">Status</Th>
+                <Th>Student</Th>
+                <Th className="w-34">Status</Th>
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={list} colSpan={4} emptyIcon={LogOut} emptyTitle="No allocations match these filters" />
+              <TableStatus query={list} colSpan={2} emptyIcon={LogOut} emptyTitle="No allocations match these filters" />
               {items.map((r) => (
                 <Tr key={r.allocationId} selected={r.allocationId === allocationId} onClick={() => setSelectedId(r.allocationId)} className="[&>td]:h-15.5">
                   <Td>
-                    <TwoLine primary={r.name} secondary={r.studentCode} />
+                    <TwoLine primary={r.name} secondary={[r.studentCode, t('{room} · Bed {bed}', { room: r.room, bed: r.bed }), tr(r.reason)].join(' · ')} />
                   </Td>
                   <Td>
-                    {t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}
-                  </Td>
-                  <Td>{tr(r.reason)}</Td>
-                  <Td>
-                    <span className="flex items-center gap-2">
+                    <span className="flex flex-col items-start gap-1">
                       <StatusTag status={r.status} tone={tones[r.status]} />
                       {r.overdue && <Tag tone="error">Overdue</Tag>}
                     </span>
@@ -675,11 +662,11 @@ export default function CheckOutDesk() {
         </div>
 
         {allocationId ? (
-          <QueryState query={detail} className="w-110 shrink-0 rounded-lg border border-line bg-surface xl:w-120">
+          <QueryState query={detail} className="min-w-0 flex-1 rounded-lg border border-line bg-surface">
             {(d) => <CheckOutPanel key={`${d.allocationId}-${d.status}`} d={d} />}
           </QueryState>
         ) : (
-          <Card className="flex w-110 shrink-0 flex-col xl:w-120">
+          <Card className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={LogOut} title="Select a student" />
           </Card>
         )}

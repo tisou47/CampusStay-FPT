@@ -266,12 +266,25 @@ class HandoverIT {
                 .andExpect(jsonPath("$.status").value("Submitted"));
 
         String staff = bearer(mvc, STAFF_A);
-        mvc.perform(get("/handovers/" + id).header(HttpHeaders.AUTHORIZATION, staff)).andExpect(status().isOk())
+        String detail = json(mvc.perform(get("/handovers/" + id).header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.row.comparison").value("Major difference"))
-                .andExpect(jsonPath("$.electricity.baseline").value(300.0));
-        send(post("/handovers/" + id + "/confirm"), staff, "{}").andExpect(status().isBadRequest());
-        send(post("/handovers/" + id + "/visit"), staff, "{}").andExpect(status().isOk())
-                .andExpect(jsonPath("$.row.status").value("Verifying"));
+                .andExpect(jsonPath("$.electricity.baseline").value(300.0))
+                .andExpect(jsonPath("$.visitWindow.fromHour").value(8))
+                .andExpect(jsonPath("$.visitWindow.toHour").value(17)));
+        // A major difference is never confirmed from the desk, even with a reason: Staff check the Room.
+        send(post("/handovers/" + id + "/confirm"), staff, "{\"reason\":\"Looks fine\"}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("MAJOR_NEEDS_VISIT"));
+        send(post("/handovers/" + id + "/visit"), staff, "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.visitAt").isString());
+        send(post("/handovers/" + id + "/visit"), staff, "{\"visitAt\":\"2020-01-01T03:00:00Z\"}")
+                .andExpect(status().isBadRequest());
+        String slot = JsonPath.read(detail, "$.visitWindow.suggestions[0]");
+        send(post("/handovers/" + id + "/visit"), staff, "{\"visitAt\":\"" + slot + "\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.row.status").value("Verifying"))
+                // Nothing is shown for Staff before they record what they find in the Room.
+                .andExpect(jsonPath("$.electricity.verified").value((Object) null))
+                .andExpect(jsonPath("$.items[0].verified").value((Object) null));
         send(put("/handovers/" + id + "/verification"), staff, "{\"electricity\":301,\"water\":30,\"send\":true}")
                 .andExpect(status().isOk());
 

@@ -181,7 +181,7 @@ JOIN (SELECT d.student_id,
 -- S40 asked online for a late arrival; a Manager approved it until the day after tomorrow.
 INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, window_closed_at, suggested_deadline, status,
                                deadline, decided_by, decided_at, created_at, source)
-SELECT al.id, 'Given a place after the check-in period: arriving from Can Tho this week.', t.today + 1,
+SELECT al.id, 'Được xếp chỗ sau đợt nhận phòng: tuần này em từ Cần Thơ lên.', t.today + 1,
        ((t.n_start + 4) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh', t.today + 2, 'APPROVED', t.today + 2,
        (SELECT id FROM demo_staff WHERE account = 'manager01'), t.now - interval '1 day', t.now - interval '2 days',
        'ONLINE'
@@ -209,7 +209,7 @@ SELECT al.id, h.room_id,
        CASE WHEN h.scenario = 'S44' THEN t.now - interval '20 hours' END,
        CASE WHEN h.scenario = 'S44' THEN (SELECT id FROM demo_staff WHERE account = 'staffa01') END,
        CASE WHEN h.scenario = 'S44' THEN (t.today + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
-       CASE WHEN h.scenario = 'S44' THEN h.meter_e + 0.8 END, CASE WHEN h.scenario = 'S44' THEN h.meter_w + 0.1 END,
+       NULL, NULL, -- Staff record their own readings only in the Room (none before the visit)
        al.utility_from, al.utility_from, CASE WHEN h.scenario = 'S41' THEN 0 ELSE 2 END
 FROM demo_handover h CROSS JOIN demo_t t JOIN asg_allocation al ON al.student_id = h.student_id AND al.term_id = t.n_id
 WHERE h.scenario <> 'S40';
@@ -223,10 +223,10 @@ SELECT ho.id, i.id,
             WHEN 'S42' THEN CASE WHEN ft.code = 'WRD' THEN 'MISSING' WHEN i.bed_id IS NULL THEN 'WORN' ELSE 'GOOD' END
             WHEN 'S44' THEN CASE WHEN ft.code = 'DESK' THEN 'DAMAGED' ELSE 'GOOD' END
             ELSE 'GOOD' END,
-       CASE WHEN h.scenario = 'S42' AND ft.code = 'WRD' THEN 'There is no wardrobe next to my bed.'
-            WHEN h.scenario = 'S44' AND ft.code = 'DESK' THEN 'The drawer of the desk is broken.' END,
+       CASE WHEN h.scenario = 'S42' AND ft.code = 'WRD' THEN 'Không có tủ quần áo cạnh giường em.'
+            WHEN h.scenario = 'S44' AND ft.code = 'DESK' THEN 'Ngăn kéo bàn học bị hỏng.' END,
        'GOOD', 'INSPECTION',
-       CASE WHEN h.scenario = 'S44' THEN CASE WHEN ft.code = 'DESK' THEN 'DAMAGED' ELSE 'GOOD' END END, FALSE
+       NULL, FALSE
 FROM asg_handover ho JOIN asg_allocation al ON al.id = ho.allocation_id
 JOIN demo_handover h ON h.student_id = al.student_id
 JOIN inv_furniture_item i ON i.room_id = h.room_id AND i.status <> 'DISPOSED'
@@ -237,7 +237,7 @@ JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id;
 -- charged at check-out) or decline it (nobody is charged).
 INSERT INTO asg_damage_claim (allocation_id, furniture_item_id, condition, note, status, amount, created_by, created_at,
                               due_at)
-SELECT al.id, i.id, 'DAMAGED', 'Cracked casing after it was knocked over.', 'PENDING',
+SELECT al.id, i.id, 'DAMAGED', 'Vỏ máy bị nứt do va đập.', 'PENDING',
        coalesce((SELECT ft.unit_price FROM inv_furniture_type ft WHERE ft.id = i.furniture_type_id), 0)
            * (100 - coalesce((SELECT value_percent FROM inv_furniture_condition WHERE code = 'MOSTLY_DAMAGED'), 50)) / 100,
        (SELECT id FROM demo_staff WHERE account = 'staffa01'), t.now - interval '4 hours', t.now + interval '44 hours'
@@ -319,7 +319,7 @@ SELECT x.id, c.room_id,
        CASE WHEN c.state = 'VERIFYING' THEN (SELECT id FROM demo_staff WHERE account = 'staff' || lower(c.block) || '01') END,
        CASE WHEN c.state = 'VERIFYING' AND c.named = 5 THEN (c.today + TIME '16:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
             WHEN c.state = 'VERIFYING' THEN ((c.today + 1) + TIME '10:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
-       CASE WHEN c.state = 'VERIFYING' THEN m.e + 38 END, CASE WHEN c.state = 'VERIFYING' THEN m.w + 0.1 END,
+       NULL, NULL, -- nothing recorded by Staff before the visit
        c.finalized, c.utility_from,
        CASE WHEN c.state = 'DRAFT' AND c.due < c.now + interval '24 hours' THEN 1 ELSE 0 END
 FROM demo_checkin_time c CROSS JOIN demo_t t
@@ -331,11 +331,11 @@ WHERE c.opened IS NOT NULL;
 INSERT INTO asg_handover_item (handover_id, furniture_item_id, condition, note, baseline_condition, baseline_source,
                                verified_condition, pre_existing)
 SELECT ho.id, i.item_id, a.answer,
-       CASE WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'The drawer of the desk is broken.'
-            WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'There is no wardrobe next to my bed.' END,
+       CASE WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'Ngăn kéo bàn học bị hỏng.'
+            WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'Không có tủ quần áo cạnh giường em.' END,
        CASE WHEN c.state = 'NO_RECORD' THEN NULL ELSE i.condition END,
        CASE WHEN c.state = 'NO_RECORD' THEN NULL ELSE 'INSPECTION' END,
-       CASE WHEN c.state = 'VERIFYING' THEN a.answer END,
+       NULL,
        ho.status = 'FINAL' AND coalesce(a.answer, i.condition) IN ('DAMAGED', 'MISSING')
 FROM asg_handover ho JOIN asg_allocation x ON x.id = ho.allocation_id
 JOIN demo_checkin_time c ON c.student_id = x.student_id

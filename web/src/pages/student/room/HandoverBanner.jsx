@@ -46,5 +46,20 @@ export function HandoverBanner() {
       </Alert>
     )
   }
+  // Filed or final: the inventory stays readable (what the student recorded, the meters, who confirmed it).
+  if (h?.status === 'Submitted') {
+    return (
+      <Alert type="info" title="Your check-in inventory is with Staff" action={open('View inventory')} className="shrink-0">
+        {t('Submitted {date}. Staff confirm it, or come to check the Room with you.', { date: formatDateTime(h.submittedAt) })}
+      </Alert>
+    )
+  }
+  if (h?.status === 'Final') {
+    return (
+      <Alert type="success" title="Check-in inventory final" action={open('View inventory')} className="shrink-0">
+        {t('Final on {date}. Open it to read what was recorded or show it to Staff.', { date: formatDateTime(h.finalizedAt) })}
+      </Alert>
+    )
+  }
   return null
 }
