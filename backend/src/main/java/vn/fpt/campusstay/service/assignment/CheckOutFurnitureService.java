@@ -35,16 +35,22 @@ import vn.fpt.campusstay.service.setting.Parameters;
  * student answers for (their Bed's items and the Room's shared items); the charges follow {@link CheckOutCharges}
  * and the student reads them on the app and agrees before Staff complete the check-out. An item the student does not
  * accept goes to a Manager, who keeps or drops it the same day; until then it is not charged. Shared items are
- * charged only for damage the student acknowledged ({@link #claim}). There is no dispute window afterwards.
+ * charged for damage the student acknowledged ({@link #claim}); damage Staff record on a shared item at the check-out
+ * is split evenly among the Room's residents, and the roommates' shares are invoiced when the check-out is completed
+ * ({@link #chargeRoommates}). There is no dispute window afterwards.
  */
 @Service
 public class CheckOutFurnitureService {
 
-    /** A line as screens show it; {@code review}: Pending, Kept or Dropped when a Manager was asked. */
+    /**
+     * A line as screens show it; {@code review}: Pending, Kept or Dropped when a Manager was asked. A shared item's
+     * damage split among the Room's residents: {@code sharedWith} residents (1: not split), {@code fullAmount} the
+     * whole charge, {@code amount} the leaver's share.
+     */
     public record Line(String itemId, String assetCode, String type, String typeVi, String bed, boolean personal,
             String atCheckIn, String atCheckOut, boolean preExisting, long unitPrice, int percent, long amount,
             String source, String note, String review, String reviewNote, String studentReportedCondition,
-            String studentReportedNote, Instant studentReportedAt) {
+            String studentReportedNote, Instant studentReportedAt, int sharedWith, long fullAmount) {
     }
 
     /** Settlement preview shown to the student when checking and confirming the check-out package. */
@@ -54,11 +60,12 @@ public class CheckOutFurnitureService {
     /**
      * @param total          what is charged now (lines a Manager is reviewing or dropped are left out)
      * @param studentPresent the student is at the desk and must agree
+     * @param residents      the Room's residents a shared item's damage is split among (the student and roommates)
      */
     public record Charges(String allocationId, String room, String bed, List<Line> items, long total,
             boolean studentPresent, Instant agreedAt, boolean saved, List<Claim> claims,
             Map<String, Integer> conditionRates, BigDecimal electricity, BigDecimal water,
-            SettlementPreview settlement, CheckInReport checkInReport) {
+            SettlementPreview settlement, CheckInReport checkInReport, int residents) {
     }
 
     /**
@@ -86,7 +93,8 @@ public class CheckOutFurnitureService {
     }
 
     private record Saved(long itemId, String condition, String baseline, long amount, Long unitPrice, Integer percent,
-            String source, String note, String overrideReason, String review, String reviewNote) {
+            String source, String note, String overrideReason, String review, String reviewNote, Integer sharedWith,
+            Long fullAmount) {
     }
 
     private final JdbcClient jdbc;
@@ -193,16 +201,19 @@ public class CheckOutFurnitureService {
             Saved previous = before.get(l.itemId());
             String review = a != null && Boolean.TRUE.equals(a.managerReview()) && amount > 0 ? "PENDING"
                     : previous != null && previous.review() != null && previous.amount() == amount ? previous.review() : null;
+            // A shared item's damage split among the residents (not when Staff override the charge).
+            boolean split = !"OVERRIDE".equals(source) && l.sharedWith() > 1;
             jdbc.sql("""
                     INSERT INTO asg_check_out_damage (check_out_id, furniture_item_id, amount, note, condition,
                                                       baseline_condition, unit_price, percent, source, override_reason,
-                                                      manager_review, review_note)
+                                                      manager_review, review_note, shared_with, full_amount)
                     VALUES (:c, :item, :amount, :note, :condition, :baseline, :price, :percent, :source, :reason,
-                            :review, :reviewNote)
+                            :review, :reviewNote, :shared, :full)
                     """).param("c", checkOutId).param("item", l.itemId()).param("amount", amount).param("note", note)
                     .param("condition", l.now()).param("baseline", l.start()).param("price", l.unitPrice())
                     .param("percent", l.percent()).param("source", source).param("reason", reason)
                     .param("review", review).param("reviewNote", previous == null ? null : previous.reviewNote())
+                    .param("shared", split ? l.sharedWith() : null).param("full", split ? l.fullAmount() : null)
                     .update();
             if (review == null || review.equals("KEPT")) {
                 total += amount;
@@ -263,6 +274,69 @@ public class CheckOutFurnitureService {
                 StudentHandoverService.label(c), due, amount));
         return new Claim(String.valueOf(id), "furniture-" + item, line.assetCode(), line.type(),
                 StudentHandoverService.label(c), "Pending", amount, due);
+    }
+
+    /**
+     * Invoices each roommate their share of the shared items' damage split at this check-out: one DAMAGE Invoice per
+     * roommate and item, due in 7 days like a charge a Manager keeps after the check-out, which tells them on the
+     * app; unpaid, it becomes Overdue like every other charge. Called when the check-out is completed (lines a Manager
+     * has not kept are left out) and when a Manager keeps a line afterwards ({@code onlyItem}).
+     *
+     * @return the Invoices issued
+     */
+    @Transactional
+    public int chargeRoommates(long allocationId, Long onlyItem) {
+        Target t = targetOf(allocationId);
+        record Split(long itemId, int sharedWith, long full) {
+        }
+        List<Split> splits = jdbc.sql("""
+                SELECT d.furniture_item_id, d.shared_with, d.full_amount
+                FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
+                WHERE c.allocation_id = :a AND d.shared_with > 1 AND d.full_amount > 0
+                  AND coalesce(d.source, '') <> 'OVERRIDE'
+                  AND (d.manager_review IS NULL OR d.manager_review = 'KEPT')
+                  AND (CAST(:item AS BIGINT) IS NULL OR d.furniture_item_id = :item)
+                ORDER BY d.furniture_item_id
+                """).param("a", allocationId).param("item", onlyItem)
+                .query((rs, i) -> new Split(rs.getLong("furniture_item_id"), rs.getInt("shared_with"),
+                        rs.getLong("full_amount")))
+                .list();
+        if (splits.isEmpty()) {
+            return 0;
+        }
+        record Roommate(long allocationId, long studentId) {
+        }
+        List<Long> roommateIds = charges.roommates(allocationId, t.termId(), t.roomId());
+        List<Roommate> roommates = roommateIds.isEmpty() ? List.of() : jdbc.sql("""
+                SELECT id, student_id FROM asg_allocation WHERE id IN (:ids) ORDER BY id
+                """).param("ids", roommateIds)
+                .query((rs, i) -> new Roommate(rs.getLong("id"), rs.getLong("student_id"))).list();
+        Map<Long, Inventory.FurnitureLine> furniture = new HashMap<>();
+        inventory.furnitureLines(t.roomId()).forEach(l -> furniture.put(l.id(), l));
+        Instant now = Instant.now(clock);
+        int days = 7; // as a charge a Manager keeps after the check-out (decide)
+        int issued = 0;
+        for (Split split : splits) {
+            long share = CheckOutCharges.roommateShare(split.full(), split.sharedWith());
+            if (share <= 0) {
+                continue;
+            }
+            Inventory.FurnitureLine line = furniture.get(split.itemId());
+            String item = line == null ? "Furniture item " + split.itemId() : line.type() + " " + line.assetCode();
+            for (Roommate r : roommates) {
+                billing.issueCharge(new Billing.ChargeRequest(t.termId(), r.studentId(), r.allocationId(), t.buildingId(),
+                        "DAMAGE", "Shared furniture damage · Room " + t.roomCode(), share,
+                        List.of(new Billing.ChargeLine(item + " · split among " + split.sharedWith() + " residents",
+                                share)),
+                        now.plus(Duration.ofDays(days)),
+                        "SHARED-" + allocationId + "-" + split.itemId() + "-" + r.allocationId()));
+                issued++;
+            }
+            audit.record("SHARED_DAMAGE_SPLIT", AuditLog.Tone.INFO, "Allocation", allocationId,
+                    item + " · Room " + t.roomCode(), Map.of("full", split.full(), "residents", split.sharedWith(),
+                            "share", share, "roommates", roommates.size()));
+        }
+        return issued;
     }
 
     // ---------------------------------------------------------------- Managers
@@ -332,6 +406,7 @@ public class CheckOutFurnitureService {
                         t.buildingId(), "DAMAGE", "Furniture charge · Room " + t.roomCode(), line.amount(),
                         List.of(new Billing.ChargeLine("Furniture item " + item, line.amount())),
                         now.plus(Duration.ofDays(7)), "CHECK_OUT-" + t.allocationId() + "-" + item));
+                chargeRoommates(t.allocationId(), item);
             } else {
                 jdbc.sql("UPDATE asg_check_out SET damage_charge = damage_charge + :a WHERE id = :id")
                         .param("a", line.amount()).param("id", checkOutId).update();
@@ -448,7 +523,9 @@ public class CheckOutFurnitureService {
                     s != null ? (s.overrideReason() != null ? s.overrideReason() : s.note()) : l.note(), review,
                     s == null ? null : s.reviewNote(),
                     rep == null ? null : StudentHandoverService.label(rep.condition()),
-                    rep == null ? null : rep.note(), rep == null ? null : rep.at()));
+                    rep == null ? null : rep.note(), rep == null ? null : rep.at(),
+                    s != null && recorded ? (s.sharedWith() == null ? 1 : s.sharedWith()) : l.sharedWith(),
+                    s != null && recorded ? (s.fullAmount() == null ? s.amount() : s.fullAmount()) : l.fullAmount()));
         }
         record Meta(Boolean present, Instant agreed, BigDecimal electricity, BigDecimal water, String status,
                 Long held, String period, Long share, Long unpaid, Long damage, Long settled) {
@@ -492,7 +569,8 @@ public class CheckOutFurnitureService {
                 : estimateSettlement(t, meta.electricity(), meta.water(), total);
         return new Charges(String.valueOf(t.allocationId()), t.roomCode(), t.bedLabel(), items, total,
                 Boolean.TRUE.equals(meta.present()), meta.agreed(), recorded, claims, conditionRates,
-                meta.electricity(), meta.water(), settlement, checkInReport(t.allocationId()));
+                meta.electricity(), meta.water(), settlement, checkInReport(t.allocationId()),
+                charges.roommates(t.allocationId(), t.termId(), t.roomId()).size() + 1);
     }
 
     private CheckInReport checkInReport(long allocationId) {
@@ -534,7 +612,8 @@ public class CheckOutFurnitureService {
                 .query((rs, i) -> new Saved(rs.getLong("furniture_item_id"), rs.getString("condition"),
                         rs.getString("baseline_condition"), rs.getLong("amount"), rs.getObject("unit_price", Long.class),
                         rs.getObject("percent", Integer.class), rs.getString("source"), rs.getString("note"),
-                        rs.getString("override_reason"), rs.getString("manager_review"), rs.getString("review_note")))
+                        rs.getString("override_reason"), rs.getString("manager_review"), rs.getString("review_note"),
+                        rs.getObject("shared_with", Integer.class), rs.getObject("full_amount", Long.class)))
                 .list().forEach(s -> result.put(s.itemId(), s));
         return result;
     }

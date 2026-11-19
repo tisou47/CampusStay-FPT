@@ -33,11 +33,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.service.assignment.HandoverJobService;
+import vn.fpt.campusstay.service.billing.FinanceService;
 
 /**
  * The check-in inventory (room handover): the four conditions, the door code at the start, the comparison with the
  * Room's record kept from the student, Staff's review and visit, the deadline, and the furniture charges at
- * check-out (TC-ASG-053…059).
+ * check-out (TC-ASG-053…059, 062).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -54,6 +55,9 @@ class HandoverIT {
 
     @Autowired
     HandoverJobService jobs;
+
+    @Autowired
+    FinanceService finance;
 
     StayFlow stay;
 
@@ -424,5 +428,66 @@ class HandoverIT {
                 .andExpect(jsonPath("$.claims[?(@.id == '" + again + "')].status").value(hasItem("Acknowledged")));
         mvc.perform(get("/check-outs/" + allocation + "/furniture").header(HttpHeaders.AUTHORIZATION, bearer(mvc,
                 MANAGER_A))).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(Matchers.greaterThan(0)));
+    }
+
+    /**
+     * TC-ASG-062: damage Staff record on a shared item at a check-out is split evenly among the Room's residents: the
+     * leaver's line carries their share (with the rounding remainder), and when the check-out is completed each
+     * roommate gets a DAMAGE Invoice for theirs, which becomes Overdue like any charge when it is not paid in time.
+     */
+    @Test
+    void sharedDamageIsSplitAmongTheResidents() throws Exception {
+        List<String> beds = jdbc.sql("""
+                SELECT b.label FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE r.code = 'A-208' ORDER BY b.label
+                """).query(String.class).list();
+        assertThat(beds).hasSizeGreaterThanOrEqualTo(2);
+        stay.livesIn(40, "A-208", beds.get(0), true);
+        stay.livesIn(41, "A-208", beds.get(1), true);
+        long leaver = jdbc.sql("""
+                SELECT a.id FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id
+                WHERE u.email = :e AND a.status = 'ACTIVE' AND a.term_id = :t
+                """).param("e", StayFlow.student(40)).param("t", stay.termId()).query(Long.class).single();
+        long roommate = jdbc.sql("""
+                SELECT a.id FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id
+                WHERE u.email = :e AND a.status = 'ACTIVE' AND a.term_id = :t
+                """).param("e", StayFlow.student(41)).param("t", stay.termId()).query(Long.class).single();
+        record Shared(String id, long price) {
+        }
+        Shared item = jdbc.sql("""
+                SELECT 'furniture-' || i.id AS id, t.unit_price FROM inv_furniture_item i
+                JOIN inv_room r ON r.id = i.room_id JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                WHERE r.code = 'A-208' AND i.bed_id IS NULL AND t.unit_price > 0 ORDER BY i.id LIMIT 1
+                """).query((rs, i) -> new Shared(rs.getString("id"), rs.getLong("unit_price"))).single();
+        String staff = bearer(mvc, STAFF_A);
+
+        String view = json(send(put("/check-outs/" + leaver + "/furniture"), staff,
+                "{\"items\":[{\"itemId\":\"" + item.id() + "\",\"condition\":\"Damaged\"}],\"studentPresent\":false}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.itemId == '" + item.id() + "')].sharedWith").value(hasItem(2))));
+        List<Integer> percents = JsonPath.read(view, "$.items[?(@.itemId == '" + item.id() + "')].percent");
+        List<Number> fulls = JsonPath.read(view, "$.items[?(@.itemId == '" + item.id() + "')].fullAmount");
+        long full = item.price() * percents.getFirst() / 100;
+        assertThat(full).isPositive();
+        assertThat(fulls.getFirst().longValue()).isEqualTo(full);
+        assertThat(((Number) JsonPath.read(view, "$.total")).longValue()).isEqualTo(full - full / 2);
+        send(post("/check-out/" + leaver), staff,
+                "{\"electricity\":10,\"water\":1,\"conditionGood\":false,\"draft\":false}")
+                .andExpect(status().isOk());
+
+        String reference = "SHARED-" + leaver + "-" + item.id().substring("furniture-".length()) + "-" + roommate;
+        record Issued(String type, long amount, String status) {
+        }
+        Issued invoice = jdbc.sql("SELECT type, amount, status FROM bil_invoice WHERE reference = :r")
+                .param("r", reference).query((rs, i) -> new Issued(rs.getString("type"), rs.getLong("amount"),
+                        rs.getString("status"))).single();
+        assertThat(invoice).isEqualTo(new Issued("DAMAGE", full / 2, "UNPAID"));
+        mvc.perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, bearer(mvc, StayFlow.student(41))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isNotEmpty());
+
+        jdbc.sql("UPDATE bil_invoice SET due_at = now() - interval '1 day' WHERE reference = :r").param("r", reference)
+                .update();
+        finance.markOverdue();
+        assertThat(jdbc.sql("SELECT status FROM bil_invoice WHERE reference = :r").param("r", reference)
+                .query(String.class).single()).isEqualTo("OVERDUE");
     }
 }

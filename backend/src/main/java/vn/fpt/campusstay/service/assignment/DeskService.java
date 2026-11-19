@@ -210,10 +210,14 @@ public class DeskService {
     private final Clock clock;
     private final DoorCodeRelease doorCodes;
 
+    private final CheckOutFurnitureService furnitureCharges;
+
     public DeskService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             Buildings buildings, TermCatalog terms, Inventory inventory, Catalog catalog, Lookups lookups,
             UserDirectory users, Billing billing, AuditLog audit, ApplicationEventPublisher events,
-            TerminationService terminations, JdbcStays stays, Clock clock, DoorCodeRelease doorCodes) {
+            TerminationService terminations, JdbcStays stays, Clock clock, DoorCodeRelease doorCodes,
+            CheckOutFurnitureService furnitureCharges) {
+        this.furnitureCharges = furnitureCharges;
         this.doorCodes = doorCodes;
         this.stays = stays;
         this.jdbc = jdbc;
@@ -731,6 +735,10 @@ public class DeskService {
         if (cmd.damages() == null) {
             furniture.worse().forEach(itemId -> events.publishEvent(new FurnitureDamaged(itemId,
                     "Damaged at the check-out of " + where, user.userId())));
+            // Shared items' damage split among the residents: the roommates' shares become their Invoices.
+            if (furniture.recorded()) {
+                furnitureCharges.chargeRoommates(p.alloc().id(), null);
+            }
         }
         jdbc.sql("""
                 UPDATE asg_allocation SET status = 'ENDED', ended_at = :now, end_reason = 'CHECK_OUT', version = version + 1

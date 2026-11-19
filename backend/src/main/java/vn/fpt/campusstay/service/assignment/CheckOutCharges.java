@@ -19,7 +19,11 @@ import vn.fpt.campusstay.service.inventory.Inventory;
  * against its condition in their final check-in inventory (without one: Good). Charge = the price of one new item of
  * its type × (share lost in the condition now − share lost in the condition at check-in), never below 0. An item
  * recorded as there before the student is never charged;</li>
- * <li>a shared item: only damage the student acknowledged ({@code asg_damage_claim}); otherwise the dorm bears it.</li>
+ * <li>a shared item: damage the student acknowledged ({@code asg_damage_claim}); or damage Staff record at the
+ * check-out, priced as for a personal item and split evenly among the Room's residents (the leaver and the roommates
+ * still living there): the leaver's line carries their share (with the rounding remainder), each roommate is invoiced
+ * theirs when the check-out is completed ({@link CheckOutFurnitureService#chargeRoommates}). Otherwise the dorm
+ * bears it.</li>
  * </ul>
  * Prices and shares come from Admin › Furniture types (INV's {@code furniturePrices}, {@code conditionLoss}). No
  * dispute window: the student agrees at the desk.
@@ -33,9 +37,38 @@ class CheckOutCharges {
      * @param start     the condition at check-in (null: no inventory, counted as Good)
      * @param now       the condition at check-out (Staff's answer, or the worst during the stay when worse)
      * @param source    {@code PERSONAL}, {@code ACKNOWLEDGED} or {@code NONE} (shared item not acknowledged)
+     * @param sharedWith the residents a shared item's damage is split among (1: not split)
+     * @param fullAmount the whole charge before the split (equals {@code amount} when not split)
      */
     record Line(long itemId, String assetCode, String type, String typeVi, String bed, boolean personal, String start,
-            String now, boolean preExisting, long unitPrice, int percent, long amount, String source, String note) {
+            String now, boolean preExisting, long unitPrice, int percent, long amount, String source, String note,
+            int sharedWith, long fullAmount) {
+    }
+
+    /** The leaver's share of a charge split among {@code residents}: an even part plus the rounding remainder. */
+    static long leaverShare(long full, int residents) {
+        return residents <= 1 ? full : full - (residents - 1) * (full / residents);
+    }
+
+    /** A roommate's share of a charge split among {@code residents}. */
+    static long roommateShare(long full, int residents) {
+        return residents <= 1 ? 0 : full / residents;
+    }
+
+    /**
+     * The other residents of the Room in the Term (living there, Allocation active), not counting {@code allocationId}.
+     */
+    List<Long> roommates(long allocationId, long termId, long roomId) {
+        List<Long> beds = inventory.bedsOfRoom(roomId).stream().map(Inventory.BedSlot::bedId).toList();
+        if (beds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                SELECT id FROM asg_allocation
+                WHERE term_id = :term AND status = 'ACTIVE' AND resident_at IS NOT NULL AND bed_id IN (:beds)
+                  AND id <> :a
+                ORDER BY id
+                """).param("term", termId).param("beds", beds).param("a", allocationId).query(Long.class).list();
     }
 
     private final JdbcClient jdbc;
@@ -85,6 +118,7 @@ class CheckOutCharges {
                 }).list();
         Map<Long, String> worst = residentAt == null ? Map.of() : inspections.worstSince(roomId, residentAt);
         Map<Long, Long> prices = inventory.furniturePrices();
+        int residents = roommates(allocationId, termId, roomId).size() + 1;
         List<Line> lines = new ArrayList<>();
         for (Inventory.FurnitureLine f : inventory.furnitureLines(roomId)) {
             boolean personal = f.personal() && f.bedId() != null;
@@ -102,7 +136,7 @@ class CheckOutCharges {
                 boolean before = pre.getOrDefault(f.id(), false);
                 int pct = before ? 0 : Math.max(0, percent(found) - percent(at == null ? "GOOD" : at));
                 lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), f.bedLabel(), true, at, found, before,
-                        price, pct, price * pct / 100, "PERSONAL", null));
+                        price, pct, price * pct / 100, "PERSONAL", null, 1, price * pct / 100));
             } else {
                 long amount = acknowledged.getOrDefault(f.id(), 0L);
                 String claimed = acknowledgedCondition.get(f.id());
@@ -111,13 +145,16 @@ class CheckOutCharges {
                 if (staffRecorded) {
                     boolean before = pre.getOrDefault(f.id(), false);
                     int pct = before ? 0 : Math.max(0, percent(found) - percent(at == null ? "GOOD" : at));
+                    long full = price * pct / 100;
+                    int split = full > 0 ? residents : 1;
                     lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at, found, before,
-                            price, pct, price * pct / 100, "PERSONAL", null));
+                            price, pct, leaverShare(full, split), "PERSONAL",
+                            split > 1 ? "Shared item: split among " + split + " residents" : null, split, full));
                 } else {
                     lines.add(new Line(f.id(), f.assetCode(), f.type(), f.typeVi(), null, false, at,
                             claimed != null ? claimed : found, pre.getOrDefault(f.id(), false), price,
                             claimed == null ? 0 : percent(claimed), amount, claimed == null ? "NONE" : "ACKNOWLEDGED",
-                            claimed == null ? null : "Acknowledged by the student"));
+                            claimed == null ? null : "Acknowledged by the student", 1, amount));
                 }
             }
         }

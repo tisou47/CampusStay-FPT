@@ -466,4 +466,5 @@ export default {
   "Print Report 1 forms": "In phiếu Báo cáo 1 (giấy)",
   "Could not print the forms": "Không in được phiếu",
   "Found in the inspection": "Phát hiện khi kiểm tra phòng",
+  "Shared item: {full} ÷ {n} residents; roommates get an invoice for their share": "Tài sản chung: {full} ÷ {n} người ở; các bạn cùng phòng nhận hóa đơn phần của mình",
 }

@@ -16,7 +16,9 @@ import { t, tr } from '@/i18n'
 // Check-out › furniture by condition (V78): the student's Bed items and the Room's shared items.
 // GET /check-outs/:allocationId/furniture → { items: [{ itemId, assetCode, type, typeVi, bed, personal, atCheckIn,
 //   atCheckOut, preExisting, unitPrice, percent, amount, source, note, review, reviewNote }], total, studentPresent,
-//   agreedAt, saved, claims, conditionRates, electricity, water, settlement }
+//   agreedAt, saved, claims, conditionRates, electricity, water, settlement, residents }
+// A shared item's damage Staff record is split evenly among the Room's residents (items[].sharedWith, fullAmount): the
+// leaver pays their share with the rounding remainder, each roommate gets an Invoice for theirs at check-out.
 // PUT …/furniture { items: [{ itemId, condition, note, managerReview }], studentPresent, electricity, water }
 // POST …/damage-claims
 
@@ -107,10 +109,14 @@ export function FurnitureConditions({
   // Compute live lines and live total
   const items = data?.items ?? []
   const studentReportedItems = items.filter((i) => i.studentReportedCondition)
+  const residents = Math.max(1, data?.residents ?? 1)
   const computedLines = items.map((i) => {
     const a = answers[i.itemId] ?? { condition: i.atCheckOut ?? i.atCheckIn ?? 'Good', note: '' }
     const effCondition = condition === 'good' ? (i.atCheckIn ?? 'Good') : a.condition
-    const calc = computeFurnitureCharge(i, effCondition, rates)
+    const whole = computeFurnitureCharge(i, effCondition, rates)
+    // A shared item (not acknowledged by the student) is split among the residents: the leaver's share here.
+    const split = !i.personal && i.source !== 'Acknowledged' && i.source !== 'Override' && whole.amount > 0 ? residents : 1
+    const calc = { ...whole, fullAmount: whole.amount, split, amount: whole.amount - (split - 1) * Math.floor(whole.amount / split) }
     const effectiveReview = i.review === 'Dropped' || i.review === 'Kept' ? i.review : null
     const countedInTotal = effectiveReview !== 'Dropped'
     return {
@@ -245,7 +251,7 @@ export function FurnitureConditions({
           </p>
 
           <ul className="flex flex-col gap-2.5">
-            {computedLines.map(({ item: i, answer: a, deltaPct, nowPct, amount, effectiveReview }) => {
+            {computedLines.map(({ item: i, answer: a, deltaPct, nowPct, amount, fullAmount, split, effectiveReview }) => {
               const hasIssue = a.condition !== 'Good'
               return (
                 <li
@@ -291,6 +297,11 @@ export function FurnitureConditions({
                                 ? `${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}% (${nowPct}% − ${nowPct - deltaPct}%)`
                                 : `${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}%`}
                           </span>
+                          {split > 1 && (
+                            <span className="text-[11px] font-medium text-fg-secondary tabular">
+                              {t('Shared item: {full} ÷ {n} residents; roommates get an invoice for their share', { full: formatVnd(fullAmount), n: split })}
+                            </span>
+                          )}
                         </div>
                       )}
                       {effectiveReview && <Tag tone={reviewTone[effectiveReview] ?? 'neutral'}>{t(effectiveReview)}</Tag>}
