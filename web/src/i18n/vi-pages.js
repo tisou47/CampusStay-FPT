@@ -1,4 +1,4 @@
-﻿import roomHandover from './vi-handover.js'
+import roomHandover from './vi-handover.js'
 /*
  * Vietnamese texts of the screens (ADR-25), grouped by portal. Keys are the English texts of the code and of the
  * API's display labels; {name} marks a value. See ./vi.js for the glossary.
@@ -4829,6 +4829,9 @@ const managerOverview = {
   "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
   "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
   "Page {n} / {total}": "Trang {n} / {total}",
+  "View stats & details": "Xem thống kê & chi tiết",
+  "Complete schedule": "Kết thúc lịch",
+  "Submitted": "Đã nộp kết quả",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
