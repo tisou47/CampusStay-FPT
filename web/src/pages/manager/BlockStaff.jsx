@@ -37,6 +37,7 @@ function oldest(at) {
 }
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 /** "Mon–Fri 07:00–15:00 · Sat 07:00–12:00": shifts with the same hours grouped. */
 function shiftSummary(shifts) {
@@ -389,6 +390,10 @@ function WeekHandover({ block }) {
   if (!w) return null
   const week = `${formatDate(w.start)} – ${formatDate(w.end)}`
   const pending = w.pendingBlocks.length > 0
+  const reminder =
+    w.reminderDay >= 1 && w.reminderDay <= 7
+      ? t('Managers are reminded on {day} at {hour}.', { day: t(FULL_DAYS[w.reminderDay - 1]), hour: `${String(w.reminderHour).padStart(2, '0')}:00` })
+      : t('The reminder is off (Admin › System parameters).')
   return (
     <Alert
       type={pending ? 'warning' : 'success'}
@@ -400,7 +405,7 @@ function WeekHandover({ block }) {
       }
     >
       {pending
-        ? t('Check each person’s shifts and work, then send: every Staff member is told their shifts. Not sent: Blocks {list}. You are reminded on Sunday.', { list: w.pendingBlocks.join(', ') })
+        ? `${t('Check each person’s shifts and work, then send: every Staff member is told their shifts. Not sent: Blocks {list}.', { list: w.pendingBlocks.join(', ') })} ${reminder}`
         : t('Sent by {by} on {at}.', { by: w.sentBy, at: formatDateTime(w.sentAt) })}
     </Alert>
   )

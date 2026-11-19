@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.TestAuth.MANAGER_A;
@@ -31,7 +32,7 @@ import vn.fpt.campusstay.service.auth.WeekScheduleService;
 
 /**
  * The weekly schedule handover (a Manager sends next week's schedule, Managers are reminded on Sunday) and the Staff
- * handle list that follows the Staff portal (TC-AUTH-076…078).
+ * handle list that follows the Staff portal, and the reminder day Admin chooses (TC-AUTH-076…079).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -90,6 +91,39 @@ class WeekScheduleIT {
         assertThat(schedule.remind(sunday)).isTrue();
         assertThat(schedule.remind(sunday.plusHours(1))).isFalse();
         assertThat(notices(MANAGER_A, "WEEK_SCHEDULE_REMINDER")).isEqualTo(before + 1);
+    }
+
+    /**
+     * TC-AUTH-079: Admin chooses the reminder's day and hour in System parameters (or turns it off); the reminder
+     * follows them, and a day outside the list is refused.
+     */
+    @Test
+    void adminChoosesTheReminderDay() throws Exception {
+        String admin = bearer(mvc, TestAuth.ADMIN);
+        String body = "{\"sections\":[{\"title\":\"Staff\",\"fields\":[{\"key\":\"workload.schedule_reminder_day\",\"value\":\"%s\"},"
+                + "{\"key\":\"workload.schedule_reminder_hour\",\"value\":\"%s\"}]}]}";
+        var wednesday = LocalDateTime.of(2030, 2, 6, 7, 30).atZone(TimeConfig.CAMPUS_ZONE); // a Wednesday
+        try {
+            mvc.perform(put("/admin/system-parameters").header(HttpHeaders.AUTHORIZATION, admin)
+                    .contentType(MediaType.APPLICATION_JSON).content(body.formatted("8", "7")))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.details.fields['workload.schedule_reminder_day']").exists());
+            mvc.perform(put("/admin/system-parameters").header(HttpHeaders.AUTHORIZATION, admin)
+                    .contentType(MediaType.APPLICATION_JSON).content(body.formatted("3", "7")))
+                    .andExpect(status().isOk());
+            mvc.perform(get("/week-schedule").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)))
+                    .andExpect(jsonPath("$.reminderDay").value(3)).andExpect(jsonPath("$.reminderHour").value(7));
+            assertThat(schedule.remind(wednesday.plusDays(4))).isFalse(); // the Sunday after: no longer the day
+            assertThat(schedule.remind(wednesday.withHour(6))).isFalse();
+            assertThat(schedule.remind(wednesday)).isTrue();
+            mvc.perform(put("/admin/system-parameters").header(HttpHeaders.AUTHORIZATION, admin)
+                    .contentType(MediaType.APPLICATION_JSON).content(body.formatted("0", "7")))
+                    .andExpect(status().isOk());
+            assertThat(schedule.remind(wednesday.plusWeeks(1))).isFalse(); // turned off
+        } finally {
+            jdbc.sql("UPDATE cfg_parameter SET value = '7' WHERE key = 'workload.schedule_reminder_day'").update();
+            jdbc.sql("UPDATE cfg_parameter SET value = '9' WHERE key = 'workload.schedule_reminder_hour'").update();
+        }
     }
 
     /** TC-AUTH-078: what Staff handle follows the Staff portal; each Staff screen's changes belong to one kind. */

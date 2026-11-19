@@ -37,7 +37,8 @@ import vn.fpt.campusstay.service.setting.Parameters;
 
 /**
  * The weekly handover of the Staff schedule: shifts repeat every week, and a Manager sends next week's schedule to the
- * Staff of their Blocks (each Staff member is told their shifts). On Sunday, from {@code workload.schedule_reminder_hour},
+ * Staff of their Blocks (each Staff member is told their shifts). On the day and from the hour Admin chose
+ * ({@code workload.schedule_reminder_day}, 0 = no reminder; {@code workload.schedule_reminder_hour}),
  * the Managers are reminded once while some Block's schedule is not sent.
  */
 @Service
@@ -48,9 +49,12 @@ public class WeekScheduleService {
     private static final String[] DAYS_EN = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
     private static final String[] DAYS_VI = { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
 
-    /** Next week's handover in the Manager's Blocks; {@code sentAt}/{@code sentBy} the latest send. */
+    /**
+     * Next week's handover in the Manager's Blocks; {@code sentAt}/{@code sentBy} the latest send; {@code reminderDay}
+     * 1 = Monday … 7 = Sunday, 0 = no reminder, at {@code reminderHour}.
+     */
     public record NextWeek(LocalDate start, LocalDate end, List<String> sentBlocks, List<String> pendingBlocks,
-            Instant sentAt, String sentBy) {
+            Instant sentAt, String sentBy, int reminderDay, int reminderHour) {
     }
 
     public record Sent(LocalDate start, int notified, List<String> blocks) {
@@ -127,7 +131,8 @@ public class WeekScheduleService {
                 by = (String) s[1];
             }
         }
-        return new NextWeek(monday, monday.plusDays(6), done, pending, last, by);
+        return new NextWeek(monday, monday.plusDays(6), done, pending, last, by,
+                parameters.intValue("workload.schedule_reminder_day"), parameters.intValue("workload.schedule_reminder_hour"));
     }
 
     /** Sends next week's schedule to every Staff member of the selected Blocks; sending again sends it again. */
@@ -162,7 +167,7 @@ public class WeekScheduleService {
         return new Sent(monday, staff.size(), codes);
     }
 
-    /** Every hour: on Sunday from the reminder hour, reminds the Managers once while a Block's schedule is not sent. */
+    /** Every hour: on the reminder day from its hour, reminds the Managers once while a Block's schedule is not sent. */
     @Scheduled(cron = "0 5 * * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void remindJob() {
@@ -172,7 +177,9 @@ public class WeekScheduleService {
     /** The reminder at {@code at}; returns whether the Managers were reminded. */
     @Transactional
     public boolean remind(ZonedDateTime at) {
-        if (at.getDayOfWeek() != DayOfWeek.SUNDAY || at.getHour() < parameters.intValue("workload.schedule_reminder_hour")) {
+        int day = parameters.intValue("workload.schedule_reminder_day");
+        if (day < 1 || day > 7 || at.getDayOfWeek().getValue() != day
+                || at.getHour() < parameters.intValue("workload.schedule_reminder_hour")) {
             return false;
         }
         LocalDate monday = nextMonday(at);
