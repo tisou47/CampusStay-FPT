@@ -307,7 +307,8 @@ Built on `feat/v2-phase3`, merged into `main` and deployed on 25/10/2026 (ADR-27
 | INV | GET | `/inventory/rooms/{code}/details` | Must | Verified | A-23; TC-INV-009, 014, 017, 018 |
 | INV | GET | `/admin/furniture-types` | Must | Verified | A-24; TC-INV-013 |
 | INV | POST | `/admin/furniture-types` | Must | Verified | A-24; TC-INV-013 |
-| INV | PUT | `/admin/furniture-types/{id}` | Must | Verified | A-24; `409 TYPE_REQUIRED`; TC-INV-013 |
+| INV | PUT | `/admin/furniture-types/{id}` | Must | Verified | A-24; `409 TYPE_REQUIRED`; TC-INV-013; use and price A-72, TC-INV-026 |
+| INV | PUT | `/admin/furniture-conditions` | Should | Verified | A-72; TC-INV-026 |
 | INV | GET | `/admin/room-class-requirements` | Must | Verified | A-24; TC-INV-014 |
 | INV | PUT | `/admin/room-class-requirements/{roomClassId}` | Must | Verified | A-24; TC-INV-014 |
 | INV | GET | `/furniture` | Must | Verified | A-24; TC-INV-015, 016, 018 |

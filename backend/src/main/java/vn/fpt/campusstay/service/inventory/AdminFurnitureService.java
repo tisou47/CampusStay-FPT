@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.service.inventory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,17 +31,34 @@ import vn.fpt.campusstay.service.setting.Catalog;
 @Service
 public class AdminFurnitureService {
 
-    /** @param items items of the type that are not disposed */
+    /**
+     * @param use   Personal (one per Bed) or Shared (by the Room)
+     * @param price the real price of one item in VND, null while not set
+     * @param items items of the type that are not disposed
+     */
     public record TypeItem(String id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status, long items) {
+            String status, String use, Long price, long items) {
     }
 
-    public record TypePage(List<TypeItem> items, List<String> categories) {
+    /**
+     * {@code conditions}: the condition levels, best first, with the share of the price an item in each is still
+     * worth; the Admin sets the shares ({@link #setConditions}).
+     */
+    public record TypePage(List<TypeItem> items, List<String> categories, List<String> uses,
+            List<Condition> conditions) {
+    }
+
+    public record Condition(String code, String name, String nameVi, int percent) {
+    }
+
+    /** {@code code}: an existing level's, or empty for a new one. */
+    public record ConditionValue(String code, String name, String nameVi, Integer percent) {
     }
 
     public record TypeValues(String code, String name, String nameVi, String category, Boolean definesClass,
-            String status) {
+            String status, String use, Long price) {
     }
+
 
     public record Requirement(String typeId, String type, String typeVi, int quantity) {
     }
@@ -58,10 +76,12 @@ public class AdminFurnitureService {
     }
 
     static final Map<String, String> CATEGORIES = categories();
+    static final Map<String, String> USES = Map.of("PERSONAL", "Personal", "SHARED", "Shared");
     private static final int MAX_QUANTITY = 20;
+    private static final long MAX_PRICE = 1_000_000_000L;
 
     private record Type(long id, String code, String name, String nameVi, String category, boolean definesClass,
-            String status) {
+            String status, String use, Long price) {
     }
 
     private final JdbcClient jdbc;
@@ -85,9 +105,10 @@ public class AdminFurnitureService {
                 .forEach(e -> counts.put(e.getKey(), e.getValue()));
         List<TypeItem> items = allTypes().stream()
                 .map(t -> new TypeItem(String.valueOf(t.id()), t.code(), t.name(), t.nameVi(), CATEGORIES.get(t.category()),
-                        t.definesClass(), statusLabel(t.status()), counts.getOrDefault(t.id(), 0L)))
+                        t.definesClass(), statusLabel(t.status()), USES.get(t.use()), t.price(),
+                        counts.getOrDefault(t.id(), 0L)))
                 .toList();
-        return new TypePage(items, List.copyOf(CATEGORIES.values()));
+        return new TypePage(items, List.copyOf(CATEGORIES.values()), List.of("Personal", "Shared"), conditions());
     }
 
     @Transactional
@@ -95,16 +116,22 @@ public class AdminFurnitureService {
         currentUser.require(Permission.MANAGE_BUILDINGS);
         Valid v = validate(values, null);
         long id = jdbc.sql("""
-                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, sort_order)
-                VALUES (:code, :name, :nameVi, :category, :defines, :status,
+                INSERT INTO inv_furniture_type (code, name, name_vi, category, defines_class, status, use_scope, unit_price,
+                                                sort_order)
+                VALUES (:code, :name, :nameVi, :category, :defines, :status, :use, :price,
                         (SELECT coalesce(max(sort_order), 0) + 1 FROM inv_furniture_type))
                 RETURNING id
                 """)
                 .param("code", v.code()).param("name", v.name()).param("nameVi", v.nameVi())
                 .param("category", v.category()).param("defines", v.definesClass()).param("status", v.status())
+                .param("use", v.use()).param("price", v.price())
                 .query(Long.class).single();
-        audit.record("FURNITURE_TYPE_CREATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(),
-                Map.of("code", v.code(), "definesClass", v.definesClass()));
+        Map<String, Object> created = new LinkedHashMap<>();
+        created.put("code", v.code());
+        created.put("definesClass", v.definesClass());
+        created.put("use", USES.get(v.use()));
+        created.put("price", v.price() == null ? "—" : v.price());
+        audit.record("FURNITURE_TYPE_CREATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), created);
         return id;
     }
 
@@ -127,14 +154,18 @@ public class AdminFurnitureService {
         put(change, "category", CATEGORIES.get(before.category()), CATEGORIES.get(v.category()));
         put(change, "definesClass", before.definesClass(), v.definesClass());
         put(change, "status", statusLabel(before.status()), statusLabel(v.status()));
+        put(change, "use", USES.get(before.use()), USES.get(v.use()));
+        put(change, "price", before.price() == null ? "—" : before.price(), v.price() == null ? "—" : v.price());
         if (!change.isEmpty()) {
             jdbc.sql("""
                     UPDATE inv_furniture_type SET name = :name, name_vi = :nameVi, category = :category,
-                           defines_class = :defines, status = :status, updated_at = now(), version = version + 1
+                           defines_class = :defines, status = :status, use_scope = :use, unit_price = :price,
+                           updated_at = now(), version = version + 1
                     WHERE id = :id
                     """)
                     .param("name", v.name()).param("nameVi", v.nameVi()).param("category", v.category())
-                    .param("defines", v.definesClass()).param("status", v.status()).param("id", id)
+                    .param("defines", v.definesClass()).param("status", v.status()).param("use", v.use())
+                    .param("price", v.price()).param("id", id)
                     .update();
             audit.record("FURNITURE_TYPE_UPDATED", AuditLog.Tone.INFO, "Furniture type", id, v.name(), change);
         }
@@ -198,9 +229,105 @@ public class AdminFurnitureService {
                 Map.of("requirements", described.isEmpty() ? "None" : described));
     }
 
+    /**
+     * Replaces the condition levels: a level sent with its code is renamed or revalued, one without a code is added,
+     * one left out is removed. Each needs its own Vietnamese name (the English one is optional) and a value from 0 to
+     * 100 %; at least one stays. They are listed by value, best first.
+     */
+    @Transactional
+    public void setConditions(List<ConditionValue> values) {
+        currentUser.require(Permission.MANAGE_BUILDINGS);
+        Map<String, Condition> before = conditions().stream()
+                .collect(Collectors.toMap(Condition::code, c -> c, (x, y) -> x, LinkedHashMap::new));
+        List<ConditionValue> list = values == null ? List.of() : values.stream().filter(Objects::nonNull).toList();
+        FieldErrors errors = new FieldErrors();
+        errors.check(!list.isEmpty(), "items", "Keep at least one condition level.");
+        Set<String> codes = new HashSet<>();
+        Set<String> names = new HashSet<>();
+        Set<String> namesVi = new HashSet<>();
+        List<ConditionValue> clean = new ArrayList<>();
+        for (ConditionValue c : list) {
+            String code = c.code() == null || c.code().isBlank() ? null : c.code().trim().toUpperCase(Locale.ROOT);
+            String nameVi = c.nameVi() == null ? "" : c.nameVi().trim();
+            // The English name is optional: a level keeps its own, a new one takes the Vietnamese name.
+            String sentName = c.name() == null ? "" : c.name().trim();
+            String name = !sentName.isEmpty() ? sentName
+                    : code != null && before.containsKey(code) ? before.get(code).name() : nameVi;
+            if (code != null && (!before.containsKey(code) || !codes.add(code))) {
+                errors.add("items", "This condition level does not exist.");
+            } else if (name.isEmpty() || name.length() > 60 || nameVi.isEmpty() || nameVi.length() > 60) {
+                errors.add("items", "Enter a name of at most 60 characters.");
+            } else if (!names.add(name.toLowerCase(Locale.ROOT)) || !namesVi.add(nameVi.toLowerCase(Locale.ROOT))) {
+                errors.add("items", "Give each condition level its own name.");
+            } else if (c.percent() == null || c.percent() < 0 || c.percent() > 100) {
+                errors.add("items", "Enter a value from 0 to 100 %.");
+            }
+            if (errors.has("items")) {
+                break;
+            }
+            clean.add(new ConditionValue(code, name, nameVi, c.percent()));
+        }
+        errors.throwIfAny();
+        Map<String, Object> change = new LinkedHashMap<>();
+        for (Condition c : before.values()) {
+            if (!codes.contains(c.code())) {
+                jdbc.sql("DELETE FROM inv_furniture_condition WHERE code = :c").param("c", c.code()).update();
+                change.put(c.name(), List.of(c.percent() + " %", "removed"));
+            }
+        }
+        // Best first: by value, ties in the order sent.
+        List<ConditionValue> sorted = new ArrayList<>(clean);
+        sorted.sort(Comparator.comparing(ConditionValue::percent).reversed());
+        int order = 1;
+        for (ConditionValue c : sorted) {
+            Condition old = c.code() == null ? null : before.get(c.code());
+            if (old == null) {
+                jdbc.sql("""
+                        INSERT INTO inv_furniture_condition (code, name, name_vi, value_percent, sort_order)
+                        VALUES (:code, :name, :nameVi, :p, :order)
+                        """).param("code", newConditionCode()).param("name", c.name()).param("nameVi", c.nameVi())
+                        .param("p", c.percent()).param("order", order).update();
+                change.put(c.name(), List.of("added", c.percent() + " %"));
+            } else {
+                jdbc.sql("""
+                        UPDATE inv_furniture_condition SET name = :name, name_vi = :nameVi, value_percent = :p,
+                               sort_order = :order, updated_at = now()
+                        WHERE code = :code
+                        """).param("name", c.name()).param("nameVi", c.nameVi()).param("p", c.percent())
+                        .param("order", order).param("code", old.code()).update();
+                if (old.percent() != c.percent() || !old.name().equals(c.name()) || !old.nameVi().equals(c.nameVi())) {
+                    change.put(c.name(), List.of(old.name() + " " + old.percent() + " %", c.name() + " " + c.percent() + " %"));
+                }
+            }
+            order++;
+        }
+        if (!change.isEmpty()) {
+            audit.record("FURNITURE_CONDITIONS_SET", AuditLog.Tone.INFO, "Furniture condition", null,
+                    "Condition levels", change);
+        }
+    }
+
+    /** LEVEL_1, LEVEL_2, … : the first code no level has. */
+    private String newConditionCode() {
+        Set<String> taken = new HashSet<>(jdbc.sql("SELECT code FROM inv_furniture_condition").query(String.class).list());
+        for (int i = 1; ; i++) {
+            if (!taken.contains("LEVEL_" + i)) {
+                return "LEVEL_" + i;
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- helpers
 
-    private record Valid(String code, String name, String nameVi, String category, boolean definesClass, String status) {
+    private List<Condition> conditions() {
+        return jdbc.sql("SELECT code, name, name_vi, value_percent FROM inv_furniture_condition ORDER BY value_percent DESC, sort_order")
+                .query((rs, i) -> new Condition(rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
+                        rs.getInt("value_percent")))
+                .list();
+    }
+
+    private record Valid(String code, String name, String nameVi, String category, boolean definesClass, String status,
+            String use, Long price) {
     }
 
     private Valid validate(TypeValues values, Type before) {
@@ -233,8 +360,19 @@ public class AdminFurnitureService {
         String status = values.status() == null || values.status().isBlank() ? "ACTIVE"
                 : values.status().trim().toUpperCase(Locale.ROOT);
         errors.check(status.equals("ACTIVE") || status.equals("INACTIVE"), "status", "Choose Active or Inactive.");
+        // Not sent: an existing type keeps its use; a new one follows its category (furniture belongs to a Bed).
+        String sentUse = values.use() == null ? "" : values.use().trim();
+        String use = sentUse.isEmpty()
+                ? (before != null ? before.use() : "FURNITURE".equals(category) || category == null ? "PERSONAL" : "SHARED")
+                : USES.entrySet().stream()
+                        .filter(e -> e.getValue().equalsIgnoreCase(sentUse) || e.getKey().equalsIgnoreCase(sentUse))
+                        .map(Map.Entry::getKey).findFirst().orElse(null);
+        errors.check(use != null, "use", "Choose Personal or Shared.");
+        Long price = values.price();
+        errors.check(price == null || price >= 0 && price <= MAX_PRICE, "price",
+                "Enter a price from 0 to 1,000,000,000 VND.");
         errors.throwIfAny();
-        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status);
+        return new Valid(code, name, nameVi, category, Boolean.TRUE.equals(values.definesClass()), status, use, price);
     }
 
     private List<Type> allTypes() {
@@ -243,7 +381,8 @@ public class AdminFurnitureService {
 
     private static Type type(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new Type(rs.getLong("id"), rs.getString("code"), rs.getString("name"), rs.getString("name_vi"),
-                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"));
+                rs.getString("category"), rs.getBoolean("defines_class"), rs.getString("status"),
+                rs.getString("use_scope"), rs.getObject("unit_price", Long.class));
     }
 
     private static void put(Map<String, Object> change, String key, Object before, Object after) {
