@@ -202,6 +202,71 @@ public class ChecklistService {
                 current.name(), Map.of("schedulesPaused", paused));
     }
 
+    /** Renames a checklist family across its versions. */
+    @Transactional
+    public void rename(String id, String name) {
+        currentUser.require(Permission.CONFIGURE);
+        Version current = current(id);
+        String text = name == null ? "" : name.trim();
+        if (text.isEmpty() || text.length() > 150) {
+            throw FieldErrors.single("name", "Enter a name of at most 150 characters.");
+        }
+        boolean taken = jdbc.sql("""
+                SELECT count(*) FROM mnt_checklist c
+                WHERE lower(c.name) = lower(:name) AND c.status IN ('DRAFT', 'PUBLISHED')
+                  AND upper(c.family_key) <> upper(:f)
+                """).param("name", text).param("f", current.family()).query(Long.class).single() > 0;
+        if (taken) {
+            throw FieldErrors.single("name", "A checklist with this name already exists.");
+        }
+        jdbc.sql("UPDATE mnt_checklist SET name = :name, updated_at = :now WHERE family_key = :f")
+                .param("name", text).param("now", Timestamp.from(Instant.now(clock)))
+                .param("f", current.family()).update();
+        audit.record("CHECKLIST_RENAMED", AuditLog.Tone.INFO, "Inspection checklist", current.family(), text, null);
+    }
+
+    /** Restores an archived checklist back to Active (or Draft if it has no items yet). */
+    @Transactional
+    public void restore(String id) {
+        currentUser.require(Permission.CONFIGURE);
+        Version current = current(id);
+        if (!current.status().equals("ARCHIVED")) {
+            throw ApiException.conflict("NOT_ARCHIVED", "Only an archived checklist can be restored.");
+        }
+        boolean hasItems = jdbc.sql("SELECT count(*) FROM mnt_checklist_item WHERE checklist_id = :id")
+                .param("id", current.id()).query(Long.class).single() > 0;
+        String nextStatus = hasItems ? "PUBLISHED" : "DRAFT";
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                UPDATE mnt_checklist SET status = :status, archived_at = NULL, updated_at = :now,
+                       published_at = coalesce(published_at, :now)
+                WHERE id = :id
+                """).param("status", nextStatus).param("now", Timestamp.from(now)).param("id", current.id()).update();
+        audit.record("CHECKLIST_RESTORED", AuditLog.Tone.INFO, "Inspection checklist", current.family(),
+                current.name(), Map.of("status", nextStatus));
+    }
+
+    /** Permanently deletes a checklist that has never been used by any schedule or run. */
+    @Transactional
+    public void delete(String id) {
+        currentUser.require(Permission.CONFIGURE);
+        Version current = current(id);
+        boolean usedInRuns = jdbc.sql("""
+                SELECT count(*) FROM mnt_inspection_run r JOIN mnt_checklist c ON c.id = r.checklist_id
+                WHERE c.family_key = :f
+                """).param("f", current.family()).query(Long.class).single() > 0;
+        boolean usedInSchedules = jdbc.sql("""
+                SELECT count(*) FROM mnt_inspection_schedule WHERE checklist_family = :f
+                """).param("f", current.family()).query(Long.class).single() > 0;
+        if (usedInRuns || usedInSchedules) {
+            throw ApiException.conflict("CHECKLIST_IN_USE",
+                    "This checklist has already been used in inspection schedules or runs and cannot be deleted. Archive it instead to preserve history.");
+        }
+        jdbc.sql("DELETE FROM mnt_checklist WHERE family_key = :f").param("f", current.family()).update();
+        audit.record("CHECKLIST_DELETED", AuditLog.Tone.WARNING, "Inspection checklist", current.family(),
+                current.name(), null);
+    }
+
     // ---------------------------------------------------------------- used by inspections
 
     /** The published version of a checklist family. */

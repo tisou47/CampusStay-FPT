@@ -356,6 +356,9 @@ export const api = {
     createChecklist: (body) => http.post('/inspection-checklists', body),
     publishChecklist: (id, body) => http.post(`/inspection-checklists/${id}/publish`, body),
     archiveChecklist: (id) => http.post(`/inspection-checklists/${id}/archive`),
+    renameChecklist: (id, body) => http.put(`/inspection-checklists/${id}`, body),
+    restoreChecklist: (id) => http.post(`/inspection-checklists/${id}/restore`),
+    deleteChecklist: (id) => http.delete(`/inspection-checklists/${id}`),
   },
   approvals: {
     summary: g('/approvals/summary'),

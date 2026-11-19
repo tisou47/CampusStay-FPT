@@ -391,6 +391,9 @@ UPDATE demo_checkin c SET state = 'WAITING'
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8);
 UPDATE demo_checkin c SET state = CASE WHEN c.state IN ('MINOR', 'MAJOR', 'VERIFYING') THEN 'MATCHED' ELSE c.state END
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9);
+-- Everyone in the two clean demo rooms (D1's room and S12's A-603) starts READY from scratch (no handover yet).
+UPDATE demo_checkin c SET state = 'READY'
+WHERE c.room_id IN (SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12');
 -- A late arrival whose Balance is not paid yet (S17) is waiting for the payment.
 UPDATE demo_checkin SET state = 'WAITING' WHERE scenario = 'S17';
 
@@ -402,3 +405,19 @@ SELECT i.id AS item_id, i.room_id, i.bed_id, ft.code AS type_code,
                                                     ELSE 'GOOD' END AS condition
 FROM inv_furniture_item i JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id
 WHERE i.status <> 'DISPOSED' AND i.room_id IN (SELECT room_id FROM demo_checkin);
+
+CREATE INDEX ix_demo_res_student ON demo_res (student_id);
+CREATE INDEX ix_demo_res_room ON demo_res (room_id);
+CREATE INDEX ix_demo_app_student ON demo_app (student_id);
+CREATE INDEX ix_demo_checkin_student ON demo_checkin (student_id);
+CREATE INDEX ix_demo_checkin_room ON demo_checkin (room_id);
+CREATE INDEX ix_demo_checkin_item_room ON demo_checkin_item (room_id);
+CREATE INDEX ix_demo_room_meter_room ON demo_room_meter (room_id);
+CREATE INDEX ix_demo_util_share_student ON demo_util_share (student_id);
+ANALYZE demo_res;
+ANALYZE demo_app;
+ANALYZE demo_checkin;
+ANALYZE demo_checkin_item;
+ANALYZE demo_room_meter;
+ANALYZE demo_util_room;
+ANALYZE demo_util_share;

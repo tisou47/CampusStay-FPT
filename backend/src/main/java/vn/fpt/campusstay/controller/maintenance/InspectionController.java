@@ -77,6 +77,24 @@ class InspectionController {
         checklists.archive(id);
     }
 
+    @PutMapping("/inspection-checklists/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void renameChecklist(@PathVariable String id, @Valid @RequestBody NameRequest body) {
+        checklists.rename(id, body.name());
+    }
+
+    @PostMapping("/inspection-checklists/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void restoreChecklist(@PathVariable String id) {
+        checklists.restore(id);
+    }
+
+    @DeleteMapping("/inspection-checklists/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteChecklist(@PathVariable String id) {
+        checklists.delete(id);
+    }
+
     // ---------------------------------------------------------------- schedules
 
     @GetMapping("/inspection-schedules")

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Camera, CalendarDays, CircleCheck, Download, FileText, ImageOff, Trash2 } from 'lucide-react'
+import { CalendarDays, CircleCheck, Download, FileText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
-import { Button, IconButton } from '@/components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Alert, Card } from '@/components/ui/Display'
 import { Checkbox } from '@/components/ui/Choice'
@@ -66,66 +66,18 @@ function roomItems(run, room) {
   ]
 }
 
-function PhotoStrip({ photos, onRemove }) {
-  if (!photos?.length) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-fg-tertiary">
-        <ImageOff size={13} aria-hidden="true" />
-        {t('No photo')}
-      </span>
-    )
-  }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {photos.map((p) => (
-        <div key={p.id} className="relative size-12 overflow-hidden rounded-md border border-line">
-          <a href={p.url} target="_blank" rel="noreferrer">
-            <img src={p.url} alt={t('Photo')} className="size-full object-cover" />
-          </a>
-          {onRemove && (
-            <IconButton icon={Trash2} size="sm" aria-label={t('Remove photo')} className="absolute top-0 right-0 bg-surface" onClick={() => onRemove(p.id)} />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function PhotoButton({ runId, room, itemId }) {
-  const { notifyError } = useToast()
-  const upload = useMutation(
-    (file) => {
-      const form = new FormData()
-      form.append('photo', file)
-      if (itemId) form.append('itemId', itemId)
-      return api.inspections.addPhoto(runId, room, form)
-    },
-    { invalidates: ['inspections'], onError: (e) => notifyError(e, 'Could not add the photo') },
-  )
-  return (
-    <label className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-fg-brand">
-      <Camera size={14} aria-hidden="true" />
-      {upload.pending ? t('Uploading…') : t('Add photo')}
-      <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && upload.run(e.target.files[0])} />
-    </label>
-  )
-}
-
 /** The Room's inspection as a document: printed, or saved as PDF, to keep or show. */
 function printRoom(run, room) {
   const items = roomItems(run, room)
   const results = Object.fromEntries((room.results ?? []).map((r) => [r.itemId, r]))
-  const photos = (id) => (room.photos ?? []).filter((p) => (id ? p.itemId === id : !p.itemId))
   const cls = (r) => (r?.condition === 'Damaged' || r?.result === 'Fail' ? 'bad' : r?.condition === 'Missing' ? 'warn' : r?.result === 'Pass' ? 'ok' : '')
   const answer = (it, r) => (it.furniture ? conditionName(r?.condition) || t(r?.result ?? 'Not checked') : t(r?.result ?? 'Not checked'))
   const rows = items
     .map((it) => {
       const r = results[it.id]
-      const pics = photos(it.id).map((p) => `<img src="${h(p.url)}" alt="">`).join('')
-      return `<tr><td>${h(it.label)}</td><td><span class="tag ${cls(r)}">${h(answer(it, r))}</span></td><td>${h(r?.note ?? '')}</td><td>${pics || `<span class="muted">${h(t('No photo'))}</span>`}</td></tr>`
+      return `<tr><td>${h(it.label)}</td><td><span class="tag ${cls(r)}">${h(answer(it, r))}</span></td><td>${h(r?.note ?? '')}</td></tr>`
     })
     .join('')
-  const meterPics = photos(null).map((p) => `<img src="${h(p.url)}" alt="">`).join('')
   const body = `
     <h1>${h(t('Room inspection report · {room}', { room: room.room }))}</h1>
     <p class="muted">${h(t('Report 1 · Room’s record: new residents’ check-in inventories are compared with it.'))}</p>
@@ -139,12 +91,11 @@ function printRoom(run, room) {
       <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
     </div>
     <h2>${h(t('Meters'))}</h2>
-    <table><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th><th>${h(t('Photos'))}</th></tr>
+    <table><tr><th>${h(t('Electricity (kWh)'))}</th><th>${h(t('Water (m³)'))}</th><th>${h(t('Previous reading'))}</th></tr>
       <tr><td>${h(room.meters?.electricity ?? '—')}</td><td>${h(room.meters?.water ?? '—')}</td>
-      <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td>
-      <td>${meterPics || `<span class="muted">${h(t('No photo'))}</span>`}</td></tr></table>
+      <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></table>
     <h2>${h(t('Items'))}</h2>
-    <table><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th><th style="width:170px">${h(t('Photos'))}</th></tr>${rows}</table>
+    <table><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th></tr>${rows}</table>
     <div class="sign"><div><b>${h(t('Inspector'))}</b><br><span class="muted">${h(run.inspectorName ?? '')}</span></div><div><b>${h(t('Manager'))}</b></div></div>`
   return printDocument(t('Room inspection report · {room}', { room: room.room }), body)
 }
@@ -169,7 +120,6 @@ function Checklist({ run, room }) {
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
-  const photosOf = (id) => (room.photos ?? []).filter((p) => (id ? p.itemId === id : !p.itemId))
 
   const setCondition = (id, condition) =>
     setResults((rs) => ({ ...rs, [id]: { ...rs[id], condition, result: !condition ? 'Not checked' : condition === 'Good' || condition === 'Worn' ? 'Pass' : 'Fail' } }))
@@ -204,10 +154,6 @@ function Checklist({ run, room }) {
     onSuccess: () => notify({ type: 'info', title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next inspection run.' }),
     onError: (e) => notifyError(e, 'Could not update the room'),
   })
-  const removePhoto = useMutation((id) => api.inspections.removePhoto(run.id, room.room, id), {
-    invalidates: ['inspections'],
-    onError: (e) => notifyError(e, 'Could not remove the photo'),
-  })
 
   return (
     <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
@@ -238,7 +184,6 @@ function Checklist({ run, room }) {
             <Th>Item</Th>
             <Th className="w-48">Condition or result</Th>
             <Th className="w-64">Note</Th>
-            <Th className="w-44">Photos</Th>
           </tr>
         </THead>
         <TBody>
@@ -290,16 +235,6 @@ function Checklist({ run, room }) {
                     <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
                   )}
                 </Td>
-                <Td>
-                  {item.furniture ? (
-                    <div className="flex flex-col gap-1">
-                      <PhotoStrip photos={photosOf(item.id)} onRemove={sent ? undefined : (id) => removePhoto.run(id)} />
-                      {!sent && photosOf(item.id).length < 3 && <PhotoButton runId={run.id} room={room.room} itemId={item.id} />}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-fg-tertiary">—</span>
-                  )}
-                </Td>
               </Tr>
             )
           })}
@@ -327,10 +262,6 @@ function Checklist({ run, room }) {
           <div className="pt-7">
             <Checkbox label="Meter replaced" disabled={done} checked={!!meters.replaced} onChange={(e) => setMeters((m) => ({ ...m, replaced: e.target.checked }))} />
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <PhotoStrip photos={photosOf(null)} onRemove={sent ? undefined : (id) => removePhoto.run(id)} />
-          {!sent && photosOf(null).length < 3 && <PhotoButton runId={run.id} room={room.room} />}
         </div>
         {room.metersNeeded && <p className="text-sm text-fg-tertiary">{t('Pre-arrival inspection: the Room is done once its meters are read.')}</p>}
       </section>

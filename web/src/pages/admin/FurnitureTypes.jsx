@@ -175,19 +175,24 @@ const HANDOVER_LEVELS = ['INTACT', 'PARTLY_DAMAGED', 'MOSTLY_DAMAGED', 'DESTROYE
 function ConditionsCard({ conditions, onEdit }) {
   const { lang } = useI18n()
   return (
-    <Card padding="sm" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
-      <h2 className="text-base font-semibold text-fg">{t('Condition levels')}</h2>
-      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        {conditions.map((c) => (
-          <li key={c.code} className="inline-flex items-center gap-2 rounded-full border border-line bg-subtle py-1 pr-1 pl-3 text-sm">
-            <span className="text-fg">{lang === 'vi' ? c.nameVi : c.name}</span>
-            <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-fg tabular">{c.percent} %</span>
-          </li>
-        ))}
-      </ul>
-      <Button size="sm" icon={Pencil} onClick={onEdit}>
-        Edit levels
-      </Button>
+    <Card padding="sm" className="flex shrink-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h2 className="text-base font-semibold text-fg">{t('Condition levels')}</h2>
+        <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          {conditions.map((c) => (
+            <li key={c.code} className="inline-flex items-center gap-2 rounded-full border border-line bg-subtle py-1 pr-1 pl-3 text-sm">
+              <span className="text-fg">{lang === 'vi' ? c.nameVi : c.name}</span>
+              <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-fg tabular">{c.percent} %</span>
+            </li>
+          ))}
+        </ul>
+        <Button size="sm" icon={Pencil} onClick={onEdit}>
+          Edit levels
+        </Button>
+      </div>
+      <p className="text-xs text-fg-secondary">
+        {t('Share of the asset’s remaining usable value; the percentage lost compared to 100% is used to calculate compensation at check-out.')}
+      </p>
     </Card>
   )
 }

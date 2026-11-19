@@ -17,7 +17,13 @@ export default function SystemParameters() {
     onSaved: () => notify({ title: 'System parameters saved', message: 'New values apply to new sessions and invoices.' }),
   })
   const sections = cfg.draft?.sections ?? []
-  const isBad = (f) => !f.options && !/^\d+$/.test(String(f.value ?? '').trim())
+  const isBool = (f) => f.type === 'BOOL' || typeof f.value === 'boolean' || f.value === 'true' || f.value === 'false'
+  const isDecimal = (f) => f.type === 'DECIMAL' || (!f.options && !isBool(f) && String(f.value ?? '').includes('.'))
+  const isBad = (f) => {
+    if (f.options || isBool(f)) return false
+    const v = String(f.value ?? '').trim()
+    return isDecimal(f) ? !/^\d+(\.\d+)?$/.test(v) : !/^\d+$/.test(v)
+  }
   const invalid = sections.some((s) => s.fields.some(isBad))
   const savedValue = (si, key) => cfg.saved?.sections?.[si]?.fields?.find((f) => f.key === key)?.value
   const setField = (si, key, value) =>
@@ -88,10 +94,27 @@ export default function SystemParameters() {
                         <div className="flex flex-col gap-1">
                           {f.options ? (
                             <Select id={id} value={f.value} onChange={(e) => setField(si, f.key, e.target.value)} options={f.options} />
+                          ) : isBool(f) ? (
+                            <Select
+                              id={id}
+                              value={String(f.value)}
+                              onChange={(e) => setField(si, f.key, e.target.value)}
+                              options={[
+                                { value: 'true', label: t('On') },
+                                { value: 'false', label: t('Off') },
+                              ]}
+                            />
                           ) : (
-                            <Input id={id} value={f.value ?? ''} onChange={(e) => setField(si, f.key, e.target.value)} inputMode="numeric" invalid={bad} className="text-right tabular" />
+                            <Input
+                              id={id}
+                              value={f.value ?? ''}
+                              onChange={(e) => setField(si, f.key, e.target.value)}
+                              inputMode={isDecimal(f) ? 'decimal' : 'numeric'}
+                              invalid={bad}
+                              className="text-right tabular"
+                            />
                           )}
-                          {bad && <p className="text-sm text-error-fg">{t('Enter a whole number')}</p>}
+                          {bad && <p className="text-sm text-error-fg">{t(isDecimal(f) ? 'Enter a valid number' : 'Enter a whole number')}</p>}
                         </div>
                       </div>
                     )}

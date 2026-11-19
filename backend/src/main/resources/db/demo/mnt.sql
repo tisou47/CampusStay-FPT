@@ -222,7 +222,8 @@ FROM (SELECT DISTINCT room_id, building_id FROM demo_checkin) r CROSS JOIN demo_
 JOIN mnt_inspection_run ru ON ru.building_id = r.building_id AND ru.run_date = t.n_end + 1
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_room_meter m ON m.room_id = r.room_id
-WHERE t.stage = 'D';
+WHERE t.stage = 'D'
+  AND r.room_id NOT IN (SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12');
 
 INSERT INTO mnt_inspection_result (inspection_room_id, item_id, result)
 SELECT ir.id, ci.id, 'PASS'

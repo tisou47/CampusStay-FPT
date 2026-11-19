@@ -35,7 +35,7 @@ public class SystemParameterService {
 
     /** {@code value} is a number for whole-number parameters, else text; {@code options} only for choices. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Field(String key, String label, Object value, String helper, List<Option> options) {
+    public record Field(String key, String label, Object value, String helper, List<Option> options, String type) {
     }
 
     public record Section(String title, List<Field> fields) {
@@ -72,7 +72,7 @@ public class SystemParameterService {
                     : json.readValue(r.options(), new TypeReference<List<Option>>() {
                     });
             sections.computeIfAbsent(r.section(), s -> new ArrayList<>())
-                    .add(new Field(r.key(), r.label(), typed(r.type(), r.value()), r.helper(), options));
+                    .add(new Field(r.key(), r.label(), typed(r.type(), r.value()), r.helper(), options, r.type()));
         }
         List<Section> result = new ArrayList<>();
         sections.forEach((title, fields) -> result.add(new Section(title, fields)));

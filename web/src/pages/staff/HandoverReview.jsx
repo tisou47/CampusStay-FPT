@@ -517,7 +517,11 @@ function Detail({ id }) {
                         {d.electricity?.baselineAt ? ` · ${formatDateTime(d.electricity.baselineAt)}` : ''}
                       </span>
                     </div>
-                    <Photos photos={d.baselineMeterPhotos} />
+                    {d.baselineMeterPhotos?.length ? (
+                      <Photos photos={d.baselineMeterPhotos} />
+                    ) : (
+                      <span className="text-xs text-fg-tertiary">{t('Web baseline record (no photos required)')}</span>
+                    )}
                   </div>
                   <ul className="flex flex-col divide-y divide-line">
                     {d.items.map((i) => (
@@ -534,7 +538,7 @@ function Detail({ id }) {
                             <span className="text-fg-tertiary">{t('No note')}</span>
                           )}
                         </div>
-                        <Photos photos={i.baselinePhotos} />
+                        <Photos photos={i.baselinePhotos} empty={false} />
                       </li>
                     ))}
                   </ul>
