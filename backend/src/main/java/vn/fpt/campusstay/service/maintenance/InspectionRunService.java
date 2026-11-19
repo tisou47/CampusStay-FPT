@@ -386,14 +386,26 @@ public class InspectionRunService {
     /** Sends the results to the Block Manager; Rooms not visited stay as they are. */
     @Transactional
     public void submit(String id) {
+        submit(id, false);
+    }
+
+    /**
+     * Sends the results; {@code confirmed}: the inspector reviewed them and commits to them. The Audit Log keeps the
+     * commitment and how many Rooms were left unfinished.
+     */
+    @Transactional
+    public void submit(String id, boolean confirmed) {
         currentUser.require(Permission.PROCESS_MAINTENANCE);
         Run run = run(id, true);
         open(run);
         jdbc.sql("UPDATE mnt_inspection_run SET status = 'SUBMITTED', submitted_at = :now WHERE id = :id")
                 .param("now", Timestamp.from(Instant.now(clock))).param("id", run.id()).update();
-        long inspected = roomRows(run.id()).stream().filter(r -> r.status().equals("INSPECTED")).count();
-        audit.record("INSPECTION_SUBMITTED", AuditLog.Tone.SUCCESS, "Inspection run", run.id(),
-                InspectionScheduleService.code(run.id()), Map.of("inspected", inspected));
+        List<RoomRow> rows = roomRows(run.id());
+        long inspected = rows.stream().filter(r -> r.status().equals("INSPECTED")).count();
+        long unfinished = rows.stream().filter(r -> r.status().equals("PENDING")).count();
+        audit.record("INSPECTION_SUBMITTED", unfinished > 0 ? AuditLog.Tone.WARNING : AuditLog.Tone.SUCCESS,
+                "Inspection run", run.id(), InspectionScheduleService.code(run.id()),
+                Map.of("inspected", inspected, "unfinished", unfinished, "confirmed", confirmed));
     }
 
     /** The next run of each active schedule in the Blocks, soonest first. */

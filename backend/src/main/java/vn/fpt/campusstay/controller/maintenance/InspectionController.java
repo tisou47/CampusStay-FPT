@@ -121,9 +121,13 @@ class InspectionController {
         runs.unreachable(id, room);
     }
 
+    /** {@code confirmed}: the inspector reviewed the results and commits to them (kept in the Audit Log). */
+    record SubmitRequest(Boolean confirmed) {
+    }
+
     @PostMapping("/inspection-runs/{id}/submit")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void submit(@PathVariable String id) {
-        runs.submit(id);
+    void submit(@PathVariable String id, @RequestBody(required = false) SubmitRequest body) {
+        runs.submit(id, body != null && Boolean.TRUE.equals(body.confirmed()));
     }
 }

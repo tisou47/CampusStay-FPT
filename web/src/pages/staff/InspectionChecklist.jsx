@@ -223,19 +223,119 @@ function Checklist({ run, room }) {
   )
 }
 
+/**
+ * The review before the results are sent: every Room of the run with its state, what is still missing (Rooms not
+ * visited, meters not read in a pre-arrival run), the items found Damaged or Missing, and the inspector's commitment.
+ * Once sent, the run cannot be changed and Rooms not visited move to the next run.
+ */
+function SubmitReview({ run, onClose, onSubmit, pending }) {
+  const [committed, setCommitted] = useState(false)
+  const all = useQuery(['inspections', 'rooms', run.id, 'review'], ({ signal }) => api.inspections.rooms(run.id, { page: 1, pageSize: 100 }, { signal }))
+  const rooms = all.data?.items ?? []
+  const notDone = rooms.filter((r) => r.status === 'To do' || r.status === 'In progress')
+  const noMeters = rooms.filter((r) => r.metersNeeded && r.status !== 'Not reachable' && !r.meters)
+  const unreachable = rooms.filter((r) => r.status === 'Not reachable')
+  const found = rooms.flatMap((r) =>
+    (r.results ?? [])
+      .filter((x) => x.condition === 'Damaged' || x.condition === 'Missing' || x.result === 'Fail')
+      .map((x) => {
+        const check = (r.checks ?? []).find((c) => c.id === x.itemId)
+        const item = run.checklist?.items?.find((i) => String(i.id) === String(x.itemId))
+        return { room: r.room, label: check ? `${typeName(check)} · ${check.assetCode}` : item?.label ?? x.itemId, condition: x.condition ?? x.result, note: x.note }
+      }),
+  )
+  const blocking = notDone.length > 0 || noMeters.length > 0
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      width={640}
+      title="Review before sending"
+      description="Check the results of every Room. Once sent, they cannot be changed: Rooms not visited move to the next run and the record of each Room is what new residents' inventories are compared with."
+      footer={
+        <>
+          <Button onClick={onClose}>Back to the Rooms</Button>
+          <Button variant="primary" disabled={!committed || pending || all.loading} onClick={onSubmit}>
+            Send results
+          </Button>
+        </>
+      }
+    >
+      <QueryState query={all} compact>
+        {() => (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-subtle p-2">
+                <p className="text-h3 font-semibold text-fg tabular">{formatNumber(rooms.length - notDone.length - unreachable.length)}</p>
+                <p className="text-xs text-fg-secondary">{t('Rooms inspected')}</p>
+              </div>
+              <div className="rounded-lg bg-subtle p-2">
+                <p className="text-h3 font-semibold text-fg tabular">{formatNumber(notDone.length)}</p>
+                <p className="text-xs text-fg-secondary">{t('Rooms not finished')}</p>
+              </div>
+              <div className="rounded-lg bg-subtle p-2">
+                <p className="text-h3 font-semibold text-fg tabular">{formatNumber(found.length)}</p>
+                <p className="text-xs text-fg-secondary">{t('Items failed, damaged or missing')}</p>
+              </div>
+            </div>
+            {notDone.length > 0 && (
+              <Alert type="error" title={t('{n} Rooms are not finished', { n: notDone.length })}>
+                {notDone.map((r) => r.room).join(', ')}. {t('If you send now they are not inspected: new residents of these Rooms have no record to be compared with.')}
+              </Alert>
+            )}
+            {noMeters.length > 0 && (
+              <Alert type="warning" title={t('Meters not read in {n} Rooms', { n: noMeters.length })}>
+                {noMeters.map((r) => r.room).join(', ')}
+              </Alert>
+            )}
+            {unreachable.length > 0 && (
+              <Alert type="info" title={t('{n} Rooms not reachable', { n: unreachable.length })}>
+                {unreachable.map((r) => r.room).join(', ')}
+              </Alert>
+            )}
+            {found.length > 0 && (
+              <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-2">
+                {found.map((f, i) => (
+                  <div key={`${f.room}-${i}`} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="text-fg">
+                      {f.room} · {f.label}
+                      {f.note ? <span className="text-fg-secondary"> · {f.note}</span> : null}
+                    </span>
+                    <Tag tone={conditionTone[f.condition] ?? 'error'}>{f.condition}</Tag>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Checkbox
+              label={blocking ? 'I checked the list and still send it with the Rooms above not finished' : 'I inspected these Rooms myself and the conditions and meters are correct'}
+              description="Your name and the time are kept with the results."
+              checked={committed}
+              onChange={(e) => setCommitted(e.target.checked)}
+            />
+          </div>
+        )}
+      </QueryState>
+    </Modal>
+  )
+}
+
 function Run({ run }) {
   const { notify, notifyError } = useToast()
   const [page, setPage] = useState(1)
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [calendar, setCalendar] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const rooms = useQuery(['inspections', 'rooms', run.id, page], ({ signal }) => api.inspections.rooms(run.id, { page, pageSize: 20 }, { signal }))
   const upcoming = useQuery(['inspections', 'upcoming'], ({ signal }) => api.inspections.upcoming(undefined, { signal }), { enabled: calendar })
   const items = rooms.data?.items ?? []
   const selected = items.find((r) => r.room === selectedRoom) ?? items[0]
   const total = run.checklist?.items?.length ?? 0
-  const submit = useMutation(() => api.inspections.submit(run.id), {
+  const submit = useMutation(() => api.inspections.submit(run.id, { confirmed: true }), {
     invalidates: ['inspections'],
-    onSuccess: () => notify({ title: 'Results submitted', message: 'Sent to the managers. Unvisited rooms move to the next run.' }),
+    onSuccess: () => {
+      setReviewing(false)
+      notify({ title: 'Results submitted', message: 'Sent to the managers. Unvisited rooms move to the next run.' })
+    },
     onError: (e) => notifyError(e, 'Could not submit the results'),
   })
 
@@ -249,7 +349,7 @@ function Run({ run }) {
             <Button icon={CalendarDays} onClick={() => setCalendar(true)}>
               Calendar
             </Button>
-            <Button variant="primary" onClick={() => submit.run()} disabled={submit.pending}>
+            <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
               Submit results
             </Button>
           </>
@@ -299,6 +399,7 @@ function Run({ run }) {
         )}
       </div>
 
+      {reviewing && <SubmitReview run={run} pending={submit.pending} onClose={() => setReviewing(false)} onSubmit={() => submit.run()} />}
       <Modal open={calendar} onClose={() => setCalendar(false)} title="Upcoming inspections" description="Scheduled by the managers." footer={<Button onClick={() => setCalendar(false)}>Close</Button>}>
         <QueryState query={upcoming} compact empty={<p className="text-base text-fg-secondary">No inspections scheduled.</p>}>
           {(d) => (

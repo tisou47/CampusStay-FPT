@@ -336,7 +336,8 @@ export const api = {
     rooms: (runId, query, opts) => http.get(`/inspection-runs/${runId}/rooms`, query, opts),
     saveRoom: (runId, room, body) => http.put(`/inspection-runs/${runId}/rooms/${room}`, body),
     unreachable: (runId, room) => http.post(`/inspection-runs/${runId}/rooms/${room}/unreachable`),
-    submit: (runId) => http.post(`/inspection-runs/${runId}/submit`),
+    /** { confirmed: true } once the inspector reviewed the results and committed to them. */
+    submit: (runId, body) => http.post(`/inspection-runs/${runId}/submit`, body),
     // Manager schedules
     schedules: g('/inspection-schedules'),
     createSchedule: (body) => http.post('/inspection-schedules', body),
