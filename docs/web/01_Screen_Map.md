@@ -55,7 +55,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | Code | Screen | Route | Figma | API calls | Page |
 |---|---|---|---|---|---|
 | SCR-HOME-02 | Staff Dashboard | `/staff` | — | `GET /dashboards/staff` | [staff/StaffDashboard.jsx](../../web/src/pages/staff/StaffDashboard.jsx) |
-| — | Staff › My schedule | `/staff/schedule` | — | `GET /block-staff/me` | [staff/MySchedule.jsx](../../web/src/pages/staff/MySchedule.jsx) |
+| — | Staff › My schedule | `/staff/schedule` | — | `GET /week-schedule/me`<br>`GET /block-staff/me` | [staff/MySchedule.jsx](../../web/src/pages/staff/MySchedule.jsx) |
 | SCR-INV-10 | Room and Bed Inventory | `/staff/inventory` | 37:2075 | `GET /inventory/structure`<br>`GET /inventory/rooms`<br>`GET /inventory/rooms/:code`<br>`POST /inventory/rooms/:code/out-of-service`<br>`POST /inventory/rooms/:code/back-in-service` | [staff/Inventory.jsx](../../web/src/pages/staff/Inventory.jsx) |
 | SCR-INV-14 | Room hub | `/staff/rooms/:code` | — | `GET /inventory/rooms/:code/hub` | [staff/RoomHub.jsx](../../web/src/pages/staff/RoomHub.jsx) |
 | SCR-INV-12 | Door codes | `/staff/door-codes` | — | `GET /door-codes`<br>`POST /door-codes/:room`<br>`POST /door-codes/:room/confirm`<br>`POST /door-codes/:room/cancel`<br>`POST /door-codes/:room/reveal`<br>`POST /door-codes/import` | [staff/DoorCodes.jsx](../../web/src/pages/staff/DoorCodes.jsx) |
@@ -127,6 +127,7 @@ Every route of the web app with its screen code, its Figma frame and the API cal
 | SCR-AUTH-15 | Import student list | `/manager/student-import` | — | `GET /student-imports/template`<br>`POST /student-imports`<br>`GET /student-imports/:id`<br>`POST /student-imports/:id/confirm`<br>`GET /student-imports` | [manager/StudentImport.jsx](../../web/src/pages/manager/StudentImport.jsx) |
 | SCR-AUTH-16 | Staff accounts | `/manager/staff-accounts` | — | `GET /staff-accounts`<br>`POST /staff-accounts`<br>`PUT /staff-accounts/:id`<br>`POST /staff-accounts/:id/invitation` | [manager/StaffAccounts.jsx](../../web/src/pages/manager/StaffAccounts.jsx) |
 | — | Manager › Staff › Staff activity | `/manager/staff-activity` | — | `GET /staff-activity` | [manager/StaffActivity.jsx](../../web/src/pages/manager/StaffActivity.jsx) |
+| — | Manager › Staff › Work schedule | `/manager/staff-schedule` | — | `GET /week-schedule/plan`<br>`PUT /week-schedule/plan/:staffId`<br>`DELETE /week-schedule/plan/:staffId`<br>`POST /week-schedule/send` | [manager/StaffSchedule.jsx](../../web/src/pages/manager/StaffSchedule.jsx) |
 | SCR-CFG-22 | Registration-period requests | `/manager/term-requests` | — | `GET /term-requests`<br>`GET /term-requests/:id`<br>`POST /term-requests`<br>`PUT /term-requests/:id`<br>`POST /term-requests/:id/comments`<br>`POST /term-requests/:id/decision`<br>`POST /admin/terms/drafts` | [registration/TermRequests.jsx](../../web/src/pages/registration/TermRequests.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |
 | SCR-RPT-11 | Term dashboard | `/manager/terms/:id` | — | `GET /dashboards/term` | [manager/TermDashboard.jsx](../../web/src/pages/manager/TermDashboard.jsx) |

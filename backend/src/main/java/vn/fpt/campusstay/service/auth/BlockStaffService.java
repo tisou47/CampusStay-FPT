@@ -51,7 +51,8 @@ public class BlockStaffService {
      */
     public record Item(String id, String name, String title, List<String> handles, List<String> blocks, long open,
             Map<String, Long> openByType, long overdue, Instant oldestOpenAt, long resolved7d, boolean onDuty,
-            boolean overloaded, List<StaffShifts.Shift> shifts, boolean inShift, String role) {
+            boolean overloaded, List<StaffShifts.Shift> shifts, boolean inShift, String role,
+            List<StaffShifts.Shift> weekShifts) {
     }
 
     /** @param open open items of everyone listed; {@code maxOpen} the overload limit */
@@ -178,7 +179,8 @@ public class BlockStaffService {
         int maxOpen = parameters.intValue("workload.max_open_per_staff");
         Map<String, String> labels = handles.labels();
         Map<Long, List<StaffShifts.Shift>> shiftsOf = shifts.of(ids);
-        var now = shifts.now();
+        Map<Long, List<StaffShifts.Shift>> thisWeek = shifts.forWeek(ids, StaffShifts.mondayOf(shifts.now().toLocalDate()));
+        Map<Long, StaffShifts.Now> nowOf = shifts.nowOf(ids);
         List<Item> items = people.stream().map(p -> {
             StaffWorkload.Load l = load.getOrDefault(p.id(), StaffWorkload.Load.NONE);
             Map<String, Long> byType = new LinkedHashMap<>();
@@ -188,8 +190,8 @@ public class BlockStaffService {
                     p.title() != null ? p.title() : AdminUserService.roleLabel(p.role()),
                     p.handles().stream().map(h -> labels.getOrDefault(h, h)).toList(),
                     blockCodes.getOrDefault(p.id(), List.of()), l.open(), byType, l.overdue(), l.oldestOpenAt(),
-                    l.resolved(), p.onDuty(), l.open() > maxOpen, mine, StaffShifts.inside(mine, now),
-                    AdminUserService.roleLabel(p.role()));
+                    l.resolved(), p.onDuty(), l.open() > maxOpen, mine, nowOf.get(p.id()).inShift(),
+                    AdminUserService.roleLabel(p.role()), thisWeek.getOrDefault(p.id(), List.of()));
         }).sorted(Comparator.comparingLong(Item::open).reversed().thenComparing(Item::name)
                 .thenComparing(Item::id)).toList();
         Double averageOpen = items.isEmpty() ? null
@@ -271,21 +273,20 @@ public class BlockStaffService {
     private Me me(Person p) {
         StaffWorkload.Load l = load(List.of(p.id())).getOrDefault(p.id(), StaffWorkload.Load.NONE);
         Map<String, String> labels = handles.labels();
-        List<StaffShifts.Shift> mine = shifts.of(p.id());
-        var now = shifts.now();
+        List<StaffShifts.Shift> week = shifts.forWeek(List.of(p.id()), StaffShifts.mondayOf(shifts.now().toLocalDate()))
+                .getOrDefault(p.id(), List.of());
+        StaffShifts.Now now = shifts.nowOf(p.id());
         return new Me(String.valueOf(p.id()), p.onDuty(), p.handles().stream().map(h -> labels.getOrDefault(h, h)).toList(),
                 blockCodes(List.of(p.id())).getOrDefault(p.id(), List.of()), l.open(), l.resolved(),
-                StaffShifts.inside(mine, now), StaffShifts.today(mine, now), mine);
+                now.inShift(), now.today(), week);
     }
 
     // ---------------------------------------------------------------- shifts
 
-    private static final int MAX_SHIFTS = 21;
-
     /**
-     * Replaces a Staff member's weekly shifts: each a weekday (1 = Monday … 7 = Sunday) and {@code HH:mm} start and end
-     * (an end before the start runs past midnight). An empty list leaves the person with no shift: every change they
-     * make is then outside their shift.
+     * Replaces a Staff member's default weekly shifts, used by every week a Manager did not plan: each a weekday
+     * (1 = Monday … 7 = Sunday) and {@code HH:mm} start and end (an end before the start runs past midnight). An empty
+     * list leaves the person with no default shift.
      */
     @Transactional
     public List<StaffShifts.Shift> setShifts(String id, List<StaffShifts.Shift> wanted) {
@@ -294,45 +295,15 @@ public class BlockStaffService {
         if (p.role() != Role.STAFF) {
             throw FieldErrors.single("shifts", "Only Staff members have shifts.");
         }
-        List<StaffShifts.Shift> list = wanted == null ? List.of() : wanted;
-        if (list.size() > MAX_SHIFTS) {
-            throw FieldErrors.single("shifts", "Give at most 21 shifts a week.");
-        }
-        List<StaffShifts.Shift> clean = new ArrayList<>();
-        for (StaffShifts.Shift s : list) {
-            if (s == null || s.start() == null || s.end() == null) {
-                throw FieldErrors.single("shifts", "Enter each shift's start and end as HH:mm.");
-            }
-            java.time.LocalTime start;
-            java.time.LocalTime end;
-            try {
-                start = java.time.LocalTime.parse(s.start().trim());
-                end = java.time.LocalTime.parse(s.end().trim());
-            } catch (RuntimeException e) {
-                throw FieldErrors.single("shifts", "Enter each shift's start and end as HH:mm.");
-            }
-            if (s.weekday() < 1 || s.weekday() > 7) {
-                throw FieldErrors.single("shifts", "Choose a weekday for each shift.");
-            }
-            if (start.equals(end)) {
-                throw FieldErrors.single("shifts", "A shift must end at another time than it starts.");
-            }
-            clean.add(new StaffShifts.Shift(s.weekday(), start.format(StaffShifts.HH_MM), end.format(StaffShifts.HH_MM)));
-        }
+        List<StaffShifts.Shift> clean = StaffShifts.clean(wanted);
         List<StaffShifts.Shift> before = shifts.of(p.id());
         shifts.replace(p.id(), clean);
         List<StaffShifts.Shift> after = shifts.of(p.id());
         if (!after.equals(before)) {
             audit.record("STAFF_SHIFTS_UPDATED", AuditLog.Tone.INFO, "User", p.id(), p.name(),
-                    Map.of("shifts", Arrays.asList(shiftText(before), shiftText(after))));
+                    Map.of("shifts", Arrays.asList(StaffShifts.text(before), StaffShifts.text(after))));
         }
         return after;
-    }
-
-    private static String shiftText(List<StaffShifts.Shift> list) {
-        String[] days = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-        return list.isEmpty() ? "none"
-                : String.join(", ", list.stream().map(s -> days[s.weekday() - 1] + " " + s.start() + "–" + s.end()).toList());
     }
 
     // ---------------------------------------------------------------- one person's work

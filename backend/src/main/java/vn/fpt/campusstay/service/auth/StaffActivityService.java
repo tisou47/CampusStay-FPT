@@ -59,7 +59,7 @@ public class StaffActivityService {
 
     /** Paths never checked nor recorded: the person's own account, notifications, devices, and Manager or Admin screens. */
     private static final List<String> OPEN = List.of("/auth/", "/notifications", "/devices", "/block-staff", "/search",
-            "/files", "/error", "/staff-account-requests", "/staff-accounts", "/admin");
+            "/files", "/error", "/staff-account-requests", "/staff-accounts", "/admin", "/week-schedule");
 
     /** The result of the check before a change. */
     public record Check(boolean inShift, boolean roleMatch, String handle, String handleLabel, String shiftToday) {
@@ -112,14 +112,13 @@ public class StaffActivityService {
     /** Checks the Staff member's shift now and whether they handle the endpoint's kind of work. */
     @Transactional(readOnly = true)
     public Check check(long userId, String path) {
-        List<StaffShifts.Shift> mine = shifts.of(userId);
-        ZonedDateTime now = shifts.now();
+        StaffShifts.Now now = shifts.nowOf(userId);
         String handle = handleOf(path);
         boolean roleMatch = handle == null || jdbc.sql("""
                 SELECT count(*) FROM auth_staff_profile WHERE user_id = :id AND :h = ANY (handles)
                 """).param("id", userId).param("h", handle).query(Long.class).single() > 0;
-        return new Check(StaffShifts.inside(mine, now), roleMatch, handle,
-                handle == null ? null : handles.labels().getOrDefault(handle, handle), StaffShifts.today(mine, now));
+        return new Check(now.inShift(), roleMatch, handle,
+                handle == null ? null : handles.labels().getOrDefault(handle, handle), now.today());
     }
 
     /** Records a change, in its own transaction so a change that failed is recorded too. */

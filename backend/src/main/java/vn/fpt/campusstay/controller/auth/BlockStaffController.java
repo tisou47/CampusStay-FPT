@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -97,6 +98,32 @@ class BlockStaffController {
     @GetMapping("/week-schedule")
     WeekScheduleService.NextWeek nextWeek(@RequestParam(required = false) String block) {
         return schedule.nextWeek(block);
+    }
+
+    /** A week of the Staff schedule ({@code week}: any day of it; default next week). */
+    @GetMapping("/week-schedule/plan")
+    WeekScheduleService.Plan plan(@RequestParam(required = false) String block,
+            @RequestParam(required = false) LocalDate week) {
+        return schedule.plan(block, week);
+    }
+
+    /** Plans one Staff member's week: { shifts } (an empty list is a week off). */
+    @PutMapping("/week-schedule/plan/{staffId}")
+    ShiftsResponse planWeek(@PathVariable String staffId, @RequestParam(required = false) LocalDate week,
+            @Valid @RequestBody ShiftsRequest body) {
+        return new ShiftsResponse(schedule.setWeek(staffId, week, body.shifts()));
+    }
+
+    /** The week follows the person's default weekly shifts again. */
+    @DeleteMapping("/week-schedule/plan/{staffId}")
+    ShiftsResponse resetWeek(@PathVariable String staffId, @RequestParam(required = false) LocalDate week) {
+        return new ShiftsResponse(schedule.resetWeek(staffId, week));
+    }
+
+    /** The signed-in Staff member's schedule: this week, and next week once it was sent. */
+    @GetMapping("/week-schedule/me")
+    WeekScheduleService.Mine mySchedule() {
+        return schedule.mine();
     }
 
     /** Sends next week's schedule to every Staff member of the chosen Blocks: { block? }. */

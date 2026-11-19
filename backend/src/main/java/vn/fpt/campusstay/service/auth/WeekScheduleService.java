@@ -28,6 +28,9 @@ import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.WeekScheduleReminderDue;
 import vn.fpt.campusstay.event.WeekScheduleSent;
+import vn.fpt.campusstay.exception.ApiException;
+import vn.fpt.campusstay.exception.FieldErrors;
+import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
@@ -105,8 +108,12 @@ public class WeekScheduleService {
     public NextWeek nextWeek(String block) {
         currentUser.require(Permission.MANAGE_BLOCK);
         BlockSelection selection = blockScope.resolve(block);
-        LocalDate monday = nextMonday(now());
-        Map<Long, String> codes = blocks.codesByIds(staffBlocks(selection.ids()));
+        return status(selection.ids(), nextMonday(now()));
+    }
+
+    /** Whether the week starting {@code monday} was sent, per Block among {@code buildingIds} that has Staff. */
+    private NextWeek status(Set<Long> buildingIds, LocalDate monday) {
+        Map<Long, String> codes = blocks.codesByIds(staffBlocks(buildingIds));
         Map<Long, Object[]> sent = new LinkedHashMap<>();
         jdbc.sql("""
                 SELECT s.building_id, s.sent_at, u.display_name FROM auth_schedule_send s
@@ -155,7 +162,7 @@ public class WeekScheduleService {
                 WHERE u.role = 'STAFF' AND u.status = 'ACTIVE' AND b.building_id IN (:b)
                 """).param("b", List.copyOf(buildingIds))
                 .query((rs, i) -> new Person(rs.getLong("id"), rs.getString("locale"))).list();
-        Map<Long, List<StaffShifts.Shift>> all = shifts.of(staff.stream().map(Person::id).toList());
+        Map<Long, List<StaffShifts.Shift>> all = shifts.forWeek(staff.stream().map(Person::id).toList(), monday);
         String week = weekText(monday);
         for (Person p : staff) {
             events.publishEvent(new WeekScheduleSent(p.id(), week,
@@ -206,6 +213,144 @@ public class WeekScheduleService {
                 String.join(", ", blocks.codesByIds(pending).values())));
         log.info("Reminded {} Managers to send the schedule of the week of {}", managers.size(), monday);
         return true;
+    }
+
+    // ---------------------------------------------------------------- planning one week
+
+    /** How many weeks ahead a Manager may plan, and look back. */
+    static final int WEEKS_AHEAD = 4;
+    static final int WEEKS_BACK = 4;
+
+    /** One Staff member's row of the plan; {@code planned} false = the week uses the default weekly shifts. */
+    public record PlanRow(String id, String name, String title, List<String> blocks, List<StaffShifts.Shift> shifts,
+            boolean planned) {
+    }
+
+    /**
+     * A week of the Staff schedule; {@code editable} for this week and later; {@code sent*} and {@code pendingBlocks}
+     * say whether the week's schedule was sent to the Staff.
+     */
+    public record Plan(LocalDate start, LocalDate end, boolean editable, boolean nextWeek, List<PlanRow> staff,
+            List<String> sentBlocks, List<String> pendingBlocks, Instant sentAt, String sentBy, int reminderDay,
+            int reminderHour) {
+    }
+
+    /** The Staff member's own schedule: this week, and next week once it was sent. */
+    public record Mine(Week thisWeek, Week nextWeek, boolean inShift, String shiftToday) {
+    }
+
+    /** {@code shifts} null while the week was not sent. */
+    public record Week(LocalDate start, LocalDate end, boolean sent, List<StaffShifts.Shift> shifts) {
+    }
+
+    private LocalDate week(LocalDate wanted, boolean edit) {
+        LocalDate thisMonday = StaffShifts.mondayOf(now().toLocalDate());
+        LocalDate monday = wanted == null ? thisMonday.plusWeeks(1) : StaffShifts.mondayOf(wanted);
+        if (monday.isAfter(thisMonday.plusWeeks(WEEKS_AHEAD)) || monday.isBefore(thisMonday.minusWeeks(WEEKS_BACK))) {
+            throw FieldErrors.single("week", "Choose a week from 4 weeks ago to 4 weeks ahead.");
+        }
+        if (edit && monday.isBefore(thisMonday)) {
+            throw FieldErrors.single("week", "A past week can no longer be changed.");
+        }
+        return monday;
+    }
+
+    /** The schedule of the week holding {@code wanted} (default: next week) for the Staff of the selected Blocks. */
+    @Transactional(readOnly = true)
+    public Plan plan(String block, LocalDate wanted) {
+        currentUser.require(Permission.MANAGE_BLOCK);
+        BlockSelection selection = blockScope.resolve(block);
+        LocalDate monday = week(wanted, false);
+        LocalDate thisMonday = StaffShifts.mondayOf(now().toLocalDate());
+        List<StaffRow> people = selection.ids().isEmpty() ? List.of() : jdbc.sql("""
+                SELECT DISTINCT u.id, u.display_name, u.title FROM auth_user u JOIN auth_user_block b ON b.user_id = u.id
+                WHERE u.role = 'STAFF' AND u.status = 'ACTIVE' AND b.building_id IN (:b) ORDER BY u.display_name, u.id
+                """).param("b", List.copyOf(selection.ids()))
+                .query((rs, i) -> new StaffRow(rs.getLong("id"), rs.getString("display_name"), rs.getString("title")))
+                .list();
+        List<Long> ids = people.stream().map(StaffRow::id).toList();
+        Map<Long, List<StaffShifts.Shift>> week = shifts.forWeek(ids, monday);
+        Set<Long> planned = shifts.planned(ids, monday);
+        Map<Long, List<Long>> buildingsOf = new LinkedHashMap<>();
+        if (!ids.isEmpty()) {
+            jdbc.sql("SELECT user_id, building_id FROM auth_user_block WHERE user_id IN (:ids)").param("ids", ids)
+                    .query((rs, i) -> buildingsOf.computeIfAbsent(rs.getLong("user_id"), k -> new ArrayList<>())
+                            .add(rs.getLong("building_id")))
+                    .list();
+        }
+        Map<Long, String> codes = blocks.codesByIds(buildingsOf.values().stream().flatMap(List::stream).toList());
+        List<PlanRow> rows = people.stream().map(p -> new PlanRow(String.valueOf(p.id()), p.name(), p.title(),
+                buildingsOf.getOrDefault(p.id(), List.of()).stream().map(b -> codes.getOrDefault(b, "")).sorted().toList(),
+                week.getOrDefault(p.id(), List.of()), planned.contains(p.id()))).toList();
+        NextWeek status = status(selection.ids(), monday);
+        return new Plan(monday, monday.plusDays(6), !monday.isBefore(thisMonday), monday.equals(thisMonday.plusWeeks(1)),
+                rows, status.sentBlocks(), status.pendingBlocks(), status.sentAt(), status.sentBy(), status.reminderDay(),
+                status.reminderHour());
+    }
+
+    private record StaffRow(long id, String name, String title) {
+    }
+
+    /** Plans one Staff member's week (an empty list is a week off); the default weekly shifts stay as they are. */
+    @Transactional
+    public List<StaffShifts.Shift> setWeek(String staffId, LocalDate wanted, List<StaffShifts.Shift> list) {
+        AuthenticatedUser manager = currentUser.require(Permission.MANAGE_BLOCK);
+        LocalDate monday = week(wanted, true);
+        long id = staffOf(staffId);
+        List<StaffShifts.Shift> clean = StaffShifts.clean(list);
+        List<StaffShifts.Shift> before = shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
+        shifts.replaceWeek(id, monday, clean, manager.userId());
+        List<StaffShifts.Shift> after = shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
+        audit.record("STAFF_WEEK_PLANNED", AuditLog.Tone.INFO, "User", id, nameOf(id), Map.of("week", weekText(monday),
+                "shifts", java.util.Arrays.asList(StaffShifts.text(before), StaffShifts.text(after))));
+        return after;
+    }
+
+    /** Drops the plan of one Staff member's week: it follows the default weekly shifts again. */
+    @Transactional
+    public List<StaffShifts.Shift> resetWeek(String staffId, LocalDate wanted) {
+        currentUser.require(Permission.MANAGE_BLOCK);
+        LocalDate monday = week(wanted, true);
+        long id = staffOf(staffId);
+        shifts.resetWeek(id, monday);
+        audit.record("STAFF_WEEK_RESET", AuditLog.Tone.INFO, "User", id, nameOf(id), Map.of("week", weekText(monday)));
+        return shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
+    }
+
+    /** The signed-in Staff member's schedule: this week, and next week once a Manager sent it to one of their Blocks. */
+    @Transactional(readOnly = true)
+    public Mine mine() {
+        AuthenticatedUser user = currentUser.require(Role.STAFF);
+        LocalDate thisMonday = StaffShifts.mondayOf(now().toLocalDate());
+        LocalDate next = thisMonday.plusWeeks(1);
+        boolean sent = jdbc.sql("""
+                SELECT count(*) FROM auth_schedule_send s JOIN auth_user_block b ON b.building_id = s.building_id
+                WHERE s.week_start = :w AND b.user_id = :u
+                """).param("w", Date.valueOf(next)).param("u", user.userId()).query(Long.class).single() > 0;
+        long me = user.userId();
+        List<StaffShifts.Shift> current = shifts.forWeek(List.of(me), thisMonday).getOrDefault(me, List.of());
+        List<StaffShifts.Shift> coming = sent ? shifts.forWeek(List.of(me), next).getOrDefault(me, List.of()) : null;
+        StaffShifts.Now now = shifts.nowOf(me);
+        return new Mine(new Week(thisMonday, thisMonday.plusDays(6), true, current),
+                new Week(next, next.plusDays(6), sent, coming), now.inShift(), now.today());
+    }
+
+    /** An active Staff member who shares a Block with the Manager; anyone else answers 404. */
+    private long staffOf(String staffId) {
+        Set<Long> mine = currentUser.get().blockIds();
+        String v = staffId == null ? "" : staffId.trim();
+        if (v.isEmpty() || v.length() > 18 || !v.chars().allMatch(Character::isDigit) || mine.isEmpty()) {
+            throw ApiException.notFound("This staff member does not exist.");
+        }
+        return jdbc.sql("""
+                SELECT u.id FROM auth_user u WHERE u.id = :id AND u.role = 'STAFF' AND u.status = 'ACTIVE'
+                  AND EXISTS (SELECT 1 FROM auth_user_block b WHERE b.user_id = u.id AND b.building_id IN (:mine))
+                """).param("id", Long.parseLong(v)).param("mine", List.copyOf(mine)).query(Long.class).optional()
+                .orElseThrow(() -> ApiException.notFound("This staff member does not exist."));
+    }
+
+    private String nameOf(long id) {
+        return jdbc.sql("SELECT display_name FROM auth_user WHERE id = :id").param("id", id).query(String.class).single();
     }
 
     /** The Blocks among {@code ids} that have at least one active Staff member. */

@@ -3,6 +3,7 @@ package vn.fpt.campusstay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -12,6 +13,7 @@ import static vn.fpt.campusstay.TestAuth.MANAGER_A;
 import static vn.fpt.campusstay.TestAuth.STAFF_A;
 import static vn.fpt.campusstay.TestAuth.bearer;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
@@ -32,7 +34,7 @@ import vn.fpt.campusstay.service.auth.WeekScheduleService;
 
 /**
  * The weekly schedule handover (a Manager sends next week's schedule, Managers are reminded on Sunday) and the Staff
- * handle list that follows the Staff portal, and the reminder day Admin chooses (TC-AUTH-076…079).
+ * handle list that follows the Staff portal, the reminder day Admin chooses, and the schedule planned per week (TC-AUTH-076…082).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -124,6 +126,96 @@ class WeekScheduleIT {
             jdbc.sql("UPDATE cfg_parameter SET value = '7' WHERE key = 'workload.schedule_reminder_day'").update();
             jdbc.sql("UPDATE cfg_parameter SET value = '9' WHERE key = 'workload.schedule_reminder_hour'").update();
         }
+    }
+
+    private static final String MON_FRI = "{\"shifts\":[" + String.join(",", java.util.stream.IntStream.rangeClosed(1, 5)
+            .mapToObj(d -> "{\"weekday\":" + d + ",\"start\":\"07:00\",\"end\":\"15:00\"}").toList()) + "]}";
+    private static final String ALWAYS = "{\"shifts\":[" + String.join(",", java.util.stream.IntStream.rangeClosed(1, 7)
+            .mapToObj(d -> "{\"weekday\":" + d + ",\"start\":\"00:00\",\"end\":\"23:59\"},{\"weekday\":" + d
+                    + ",\"start\":\"23:59\",\"end\":\"00:00\"}").toList()) + "]}";
+
+    private LocalDate thisMonday() {
+        return vn.fpt.campusstay.service.auth.StaffShifts.mondayOf(LocalDate.now(TimeConfig.CAMPUS_ZONE));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions planWeek(String auth, long staffId, LocalDate week,
+            String body) throws Exception {
+        return mvc.perform(put("/week-schedule/plan/" + staffId).param("week", week.toString())
+                .header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private long userId(String email) {
+        return jdbc.sql("SELECT id FROM auth_user WHERE email = :e").param("e", email).query(Long.class).single();
+    }
+
+    /**
+     * TC-AUTH-080: a Manager plans a Staff member's next week without changing this week, can put it back to the
+     * default weekly shifts, and cannot plan a past week or a week too far ahead.
+     */
+    @Test
+    void managerPlansNextWeekOnly() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        long a1 = userId(STAFF_A);
+        LocalDate next = thisMonday().plusWeeks(1);
+        planWeek(manager, a1, next, MON_FRI).andExpect(status().isOk()).andExpect(jsonPath("$.shifts.length()").value(5));
+        mvc.perform(get("/week-schedule/plan").param("block", "A").param("week", next.plusDays(3).toString())
+                .header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.start").value(next.toString()))
+                .andExpect(jsonPath("$.nextWeek").value(true))
+                .andExpect(jsonPath("$.staff[?(@.id == '" + a1 + "')].planned").value(hasItem(true)))
+                .andExpect(jsonPath("$.staff[?(@.id == '" + a1 + "')].shifts.length()").value(hasItem(5)));
+        mvc.perform(get("/week-schedule/plan").param("block", "A").param("week", thisMonday().toString())
+                .header(HttpHeaders.AUTHORIZATION, manager))
+                .andExpect(jsonPath("$.staff[?(@.id == '" + a1 + "')].planned").value(hasItem(false)));
+        mvc.perform(delete("/week-schedule/plan/" + a1).param("week", next.toString())
+                .header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk());
+        assertThat(jdbc.sql("SELECT count(*) FROM auth_staff_week WHERE user_id = :u").param("u", a1)
+                .query(Long.class).single()).isZero();
+        planWeek(manager, a1, thisMonday().minusWeeks(1), MON_FRI).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.week").exists());
+        planWeek(manager, a1, thisMonday().plusWeeks(5), MON_FRI).andExpect(status().isBadRequest());
+        planWeek(manager, userId(TestAuth.MANAGER_B), next, MON_FRI).andExpect(status().isNotFound());
+        planWeek(bearer(mvc, STAFF_A), a1, next, MON_FRI).andExpect(status().isForbidden());
+    }
+
+    /** TC-AUTH-081: a Staff member sees next week's shifts only once a Manager sent their Block's schedule. */
+    @Test
+    void staffSeeNextWeekOnceSent() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        String b2 = "staff.b2@campusstay.test";
+        planWeek(manager, userId(b2), thisMonday().plusWeeks(1), MON_FRI).andExpect(status().isOk());
+        String staff = bearer(mvc, b2);
+        mvc.perform(get("/week-schedule/me").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.thisWeek.start").value(thisMonday().toString()))
+                .andExpect(jsonPath("$.nextWeek.sent").value(false))
+                .andExpect(jsonPath("$.nextWeek.shifts").doesNotExist());
+        mvc.perform(post("/week-schedule/send").header(HttpHeaders.AUTHORIZATION, manager)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"block\":\"B\"}")).andExpect(status().isOk());
+        mvc.perform(get("/week-schedule/me").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(jsonPath("$.nextWeek.sent").value(true))
+                .andExpect(jsonPath("$.nextWeek.shifts.length()").value(5));
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = 'WEEK_SCHEDULE_SENT' AND n.body LIKE '%07:00–15:00%'
+                """).param("e", b2).query(Long.class).single()).isPositive();
+    }
+
+    /** TC-AUTH-082: in or out of shift follows this week's plan, not the default weekly shifts. */
+    @Test
+    void inShiftFollowsThisWeeksPlan() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        long a2 = userId("staff.a2@campusstay.test");
+        String staff = bearer(mvc, "staff.a2@campusstay.test");
+        planWeek(manager, a2, thisMonday(), ALWAYS).andExpect(status().isOk());
+        mvc.perform(get("/block-staff/me").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(jsonPath("$.inShift").value(true));
+        planWeek(manager, a2, thisMonday(), "{\"shifts\":[]}").andExpect(status().isOk());
+        mvc.perform(get("/block-staff/me").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(jsonPath("$.inShift").value(false));
+        mvc.perform(delete("/week-schedule/plan/" + a2).param("week", thisMonday().toString())
+                .header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk());
     }
 
     /** TC-AUTH-078: what Staff handle follows the Staff portal; each Staff screen's changes belong to one kind. */

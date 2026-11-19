@@ -1047,3 +1047,5 @@ Give at most 21 shifts a week. ⟶ Mỗi tuần tối đa 21 ca.
 Enter each shift's start and end as HH:mm. ⟶ Nhập giờ bắt đầu và kết thúc của mỗi ca theo dạng HH:mm.
 Choose a weekday for each shift. ⟶ Chọn ngày trong tuần cho mỗi ca.
 A shift must end at another time than it starts. ⟶ Giờ kết thúc ca phải khác giờ bắt đầu.
+Choose a week from 4 weeks ago to 4 weeks ahead. ⟶ Hãy chọn một tuần trong khoảng 4 tuần trước đến 4 tuần tới.
+A past week can no longer be changed. ⟶ Không thể sửa lịch của tuần đã qua.
