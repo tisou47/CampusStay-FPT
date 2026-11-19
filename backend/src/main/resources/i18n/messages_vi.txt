@@ -783,7 +783,8 @@ Choose a Room of your Blocks. ⟶ Hãy chọn một phòng thuộc tòa của b�
 Choose a Room the Term uses. ⟶ Hãy chọn một phòng được dùng trong học kỳ.
 Choose at least one request. ⟶ Hãy chọn ít nhất một yêu cầu.
 Choose follow or keep. ⟶ Hãy chọn đi theo hoặc giữ nguyên.
-Choose room-change, swap, room-class-change or extension. ⟶ Hãy chọn đổi phòng, hoán đổi, đổi hạng phòng hoặc gia hạn.
+Choose room-change, swap or extension. ⟶ Hãy chọn đổi phòng, hoán đổi hoặc gia hạn.
+Choose another Room of the same kind or another Room Type. ⟶ Hãy chọn một phòng khác cùng loại hoặc một loại phòng khác.
 Choose the Term the list is for. ⟶ Hãy chọn học kỳ của danh sách.
 Choose the enrolled list or a leavers list. ⟶ Hãy chọn danh sách đang học hoặc danh sách thôi học.
 Choose the next Term. ⟶ Hãy chọn học kỳ tiếp theo.

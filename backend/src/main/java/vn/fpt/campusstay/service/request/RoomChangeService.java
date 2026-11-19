@@ -122,10 +122,9 @@ public class RoomChangeService {
      * One line of the student's requests screen ({@code kind=room-changes}).
      *
      * @param invitationId a swap invitation the student can answer
-     * @param consentId    a Room Class change the student is asked to consent to
      */
     public record StudentItem(String id, String typeLabel, String summary, Instant submittedAt, String status,
-            StudentDecision decision, String invoiceId, String invitationId, String consentId) {
+            StudentDecision decision, String invoiceId, String invitationId) {
     }
 
     public record StudentDecision(String note, Instant at) {
@@ -243,18 +242,16 @@ public class RoomChangeService {
         }
         FieldErrors errors = new FieldErrors();
         String kind = cmd.kind() == null ? null : KINDS.get(cmd.kind().trim().toLowerCase(Locale.ROOT));
-        errors.check(kind != null, "kind", "Choose the kind of change.");
+        // A room change keeps the Room Class (user decision 19/11/2026: no more Room Class changes); older requests
+        // of kind CLASS stay readable.
+        errors.check(kind != null && !"CLASS".equals(kind), "kind",
+                "Choose another Room of the same kind or another Room Type.");
         long typeId = p.roomTypeId();
         long classId = p.roomClassId();
-        if ("CLASS".equals(kind)) {
-            errors.check(cmd.roomClassId() != null && cmd.roomClassId() != p.roomClassId(), "roomClassId",
-                    "Choose a Room Class other than your current one.");
-            classId = cmd.roomClassId() == null ? classId : cmd.roomClassId();
-        } else if ("TYPE".equals(kind)) {
+        if ("TYPE".equals(kind)) {
             errors.check(cmd.roomTypeId() != null && cmd.roomTypeId() != p.roomTypeId(), "roomTypeId",
                     "Choose a Room Type other than your current one.");
             typeId = cmd.roomTypeId() == null ? typeId : cmd.roomTypeId();
-            classId = cmd.roomClassId() == null ? classId : cmd.roomClassId();
         }
         String reason = lookups.find("ROOM_CHANGE_REASON", cmd.reason() == null ? "" : cmd.reason().trim())
                 .map(Lookups.Lookup::code).orElse(null);
@@ -311,7 +308,7 @@ public class RoomChangeService {
                     : term + current + names.type(r.typeId()) + " · " + names.roomClass(r.classId()),
                     r.submittedAt(), STATUSES.get(r.status()),
                     r.decidedAt() == null ? null : new StudentDecision(decisionText(r), r.decidedAt()),
-                    null, null, null);
+                    null, null);
         }).toList();
     }
 

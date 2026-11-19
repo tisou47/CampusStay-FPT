@@ -198,7 +198,7 @@ public class DemoResetService {
         counts.put("applications", count("app_application"));
         counts.put("allocations", count("asg_allocation"));
         counts.put("invoices", count("bil_invoice"));
-        counts.put("requests", count("req_room_change") + count("req_swap") + count("req_room_class_change")
+        counts.put("requests", count("req_room_change") + count("req_swap")
                 + count("req_stay_request"));
         counts.put("maintenance", count("mnt_request"));
         audit.record(ACTION, AuditLog.Tone.WARNING, "Demo data", code, "Stage " + code,

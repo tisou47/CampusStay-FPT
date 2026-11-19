@@ -96,8 +96,12 @@ public interface Billing {
      */
     Optional<String> readingProblem(long roomId, BigDecimal electricity, BigDecimal water);
 
-    /** Room id → the day of its latest meter cut (check-in, check-out, move, turnover); Rooms without one left out. */
-    Map<Long, LocalDate> lastMeterCuts(Collection<Long> roomIds);
+    /** A meter cut: the day and the electricity (kWh) and water (m³) read then. */
+    record MeterCut(LocalDate day, BigDecimal electricity, BigDecimal water) {
+    }
+
+    /** Room id → its latest meter cut (check-in, check-out, move, turnover); Rooms without one left out. */
+    Map<Long, MeterCut> lastMeterCuts(Collection<Long> roomIds);
 
     /** Issues the next-Term room fee "Room fee · Term · Room" and tells the student. */
     IssuedInvoice issueTermFee(TermFeeRequest request);

@@ -47,8 +47,12 @@ public class TurnoverService {
     public record Person(String name, String studentCode) {
     }
 
-    /** @param status {@code To check out}, {@code Checked out} or {@code Overdue} */
-    public record Leaver(String allocationId, Person student, String room, String bed, String block, String status) {
+    /**
+     * @param status {@code To check out}, {@code Checked out} or {@code Overdue}
+     * @param damage the furniture damage charged at the check-out (VND), null until the student checked out
+     */
+    public record Leaver(String allocationId, Person student, String room, String bed, String block, String status,
+            Long damage) {
     }
 
     /** @param fee the next-Term fee's status, null before the fees are issued */
@@ -58,9 +62,10 @@ public class TurnoverService {
     /**
      * @param doorCodeReady the Room's code is confirmed with no change waiting (residents can receive it)
      * @param matches       the Room's furniture matches its Room Class of the next Term
+     * @param lastMeterCut  the day of its latest meter reading; {@code lastElectricity}, {@code lastWater} its values
      */
     public record RoomChange(String room, String block, int leaving, int arriving, boolean doorCodeReady,
-            String roomClass, boolean matches, LocalDate lastMeterCut) {
+            String roomClass, boolean matches, LocalDate lastMeterCut, BigDecimal lastElectricity, BigDecimal lastWater) {
     }
 
     public record Counts(long leavers, long checkedOut, long overdue, long movers, long staying, long arriving,
@@ -124,6 +129,14 @@ public class TurnoverService {
         Map<Long, UserDirectory.Student> students = users.students(Stream.concat(residents.stream(), after.stream())
                 .map(Held::studentId).collect(Collectors.toSet()));
 
+        // The damage charged at each completed check-out of these residents (the desk records it per item).
+        Map<Long, Long> damages = new HashMap<>();
+        if (!residents.isEmpty()) {
+            jdbc.sql("SELECT allocation_id, damage_charge FROM asg_check_out WHERE status = 'COMPLETED' AND allocation_id IN (:ids)")
+                    .param("ids", residents.stream().map(Held::id).toList())
+                    .query((rs, i) -> Map.entry(rs.getLong("allocation_id"), rs.getLong("damage_charge"))).list()
+                    .forEach(e -> damages.put(e.getKey(), e.getValue()));
+        }
         List<Leaver> leavers = new ArrayList<>();
         List<Mover> movers = new ArrayList<>();
         long staying = 0;
@@ -143,7 +156,7 @@ public class TurnoverService {
                 String status = "CHECK_OUT".equals(h.endReason()) ? "Checked out"
                         : today.isAfter(w.previousCheckOutBy()) ? "Overdue" : "To check out";
                 leavers.add(new Leaver(String.valueOf(h.id()), person(students.get(h.studentId())), from.roomCode(),
-                        from.bedLabel(), from.block(), status));
+                        from.bedLabel(), from.block(), status, damages.get(h.id())));
                 changes.computeIfAbsent(from.roomId(), r -> new int[2])[0]++;
             } else if (to.roomId() != from.roomId()) {
                 if (!scope.contains(from.buildingId()) && !scope.contains(to.buildingId())) {
@@ -182,7 +195,7 @@ public class TurnoverService {
         List<Long> roomIds = List.copyOf(changes.keySet());
         Set<Long> ready = inventory.doorCodeReady(roomIds);
         Map<Long, Boolean> matches = classes.conforms(w.termId(), roomIds);
-        Map<Long, LocalDate> cuts = billing.lastMeterCuts(roomIds);
+        Map<Long, Billing.MeterCut> cuts = billing.lastMeterCuts(roomIds);
         Map<Long, String> classNames = catalog.roomClasses().stream()
                 .collect(Collectors.toMap(Catalog.RoomClassInfo::id, Catalog.RoomClassInfo::name));
         Map<Long, Inventory.BedSlot> roomBeds = new HashMap<>();
@@ -191,8 +204,10 @@ public class TurnoverService {
         List<RoomChange> rooms = roomIds.stream().map(id -> {
             Inventory.BedSlot b = roomBeds.get(id);
             int[] c = changes.get(id);
+            Billing.MeterCut cut = cuts.get(id);
             return new RoomChange(b.roomCode(), b.block(), c[0], c[1], ready.contains(id),
-                    classNames.get(classes.classOf(id, w.termId())), matches.getOrDefault(id, true), cuts.get(id));
+                    classNames.get(classes.classOf(id, w.termId())), matches.getOrDefault(id, true),
+                    cut == null ? null : cut.day(), cut == null ? null : cut.electricity(), cut == null ? null : cut.water());
         }).sorted(Comparator.comparing(RoomChange::room)).toList();
         leavers.sort(Comparator.comparing((Leaver l) -> l.status().equals("Checked out")).thenComparing(Leaver::room)
                 .thenComparing(Leaver::bed));

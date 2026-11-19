@@ -62,10 +62,20 @@ public interface Inventory {
      */
     Set<Long> doorCodeReady(Collection<Long> roomIds);
 
-    /** A furniture item in a Room, for the Maintenance Request form ({@code type} in English, {@code typeVi}). */
-    record RoomFurniture(long id, String assetCode, String type, String typeVi) {
+    /**
+     * A furniture item in a Room, for the Maintenance Request form and the check-out ({@code type} in English,
+     * {@code typeVi}; {@code unitPrice} VND, the real price of its type, null when not set).
+     */
+    record RoomFurniture(long id, String assetCode, String type, String typeVi, Long unitPrice) {
     }
 
     /** The items in the Room that are not disposed, by type then asset code. */
     List<RoomFurniture> furnitureOf(long roomId);
+
+    /** A condition level of furniture: the share of the real price an item in that condition is still worth. */
+    record ConditionLevel(String code, String name, String nameVi, int percent) {
+    }
+
+    /** The condition levels, best first (Admin › Furniture types sets them). */
+    List<ConditionLevel> conditionLevels();
 }

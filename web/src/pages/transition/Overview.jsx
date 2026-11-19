@@ -12,13 +12,12 @@ import { t, tr } from '@/i18n'
 
 // Term transition › Overview. GET /renewals/overview?termId → { term, previousTerm, opened, filing, feesIssued,
 //   milestones: [{ key, label, at, state (Done, Upcoming) }], counts: { continuing, awaitingExtension, feesIssued,
-//   feesPaid, ending: { label: n } }, requests: { roomChanges, swaps, roomClassChanges, extensions },
+//   feesPaid, ending: { label: n } }, requests: { roomChanges, swaps, extensions },
 //   reconciliation: { runs, openItems }, newStudentBeds: { total, heldByContinuing, free, reservedPercent, reserved } }
 
 const kinds = [
   ['roomChanges', 'Room changes'],
   ['swaps', 'Swaps'],
-  ['roomClassChanges', 'Room Class changes'],
   ['extensions', 'Extensions'],
 ]
 

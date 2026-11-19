@@ -423,11 +423,6 @@ class _NextTermCard extends StatelessWidget {
                   t('Swap Beds for next Term', 'Đổi chỗ kỳ sau'),
                   () => go(() => open(const SwapScreen())),
                 ),
-                _action(
-                  Icons.layers_outlined,
-                  t('Change the Room Class', 'Đổi hạng phòng'),
-                  () => go(() => open(const NewRoomClassChangeScreen())),
-                ),
               ],
               _action(
                 Icons.logout,

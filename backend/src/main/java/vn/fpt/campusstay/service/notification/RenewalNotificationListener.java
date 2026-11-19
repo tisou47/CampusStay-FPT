@@ -17,7 +17,6 @@ import vn.fpt.campusstay.event.NextTermRequestDecided;
 import vn.fpt.campusstay.event.RenewalWorkUndecided;
 import vn.fpt.campusstay.event.RequestsWindowOpened;
 import vn.fpt.campusstay.event.ResidentMoved;
-import vn.fpt.campusstay.event.RoomClassConsentAsked;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 
 /**
@@ -82,15 +81,6 @@ class RenewalNotificationListener {
         for (long student : e.studentIds()) {
             notifier.notify(student, "NEXT_TERM_REQUEST_DECIDED", Map.of("kind", e.kind(), "decision", e.decision(),
                     "note", e.note() == null ? "" : e.note()), "/student/requests");
-        }
-    }
-
-    @EventListener
-    void on(RoomClassConsentAsked e) {
-        for (long student : e.studentIds()) {
-            notifier.notify(student, "ROOM_CLASS_CONSENT_ASKED", Map.of("name", e.requesterName() == null ? "-"
-                    : e.requesterName(), "room", e.room(), "from", e.fromClass(), "to", e.toClass(), "term",
-                    e.termName()), "/student/requests");
         }
     }
 

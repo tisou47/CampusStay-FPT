@@ -114,8 +114,12 @@ public class DeskService {
     public record Damage(String itemId, Long amount, String note) {
     }
 
-    /** A furniture item of the Room with the damage recorded for it (0 when none). */
-    public record DamageItem(String itemId, String assetCode, String type, String typeVi, long amount, String note) {
+    /**
+     * A furniture item of the Room with the damage recorded for it (0 when none); {@code unitPrice} (VND, null when
+     * not set) lets the desk price the damage from the condition level found: price × (100 % − the level's value).
+     */
+    public record DamageItem(String itemId, String assetCode, String type, String typeVi, Long unitPrice, long amount,
+            String note) {
     }
 
     public record Reading(BigDecimal electricity, BigDecimal water) {
@@ -126,7 +130,8 @@ public class DeskService {
 
     public record CheckOutDetail(String allocationId, String studentCode, String name, String room, String bed,
             String roomTypeName, String roomClassName, String reason, String status, Instant checkedOutAt,
-            Reading reading, SettlementView settlement, String refundStatus, List<DamageItem> furniture) {
+            Reading reading, SettlementView settlement, String refundStatus, List<DamageItem> furniture,
+            List<Inventory.ConditionLevel> conditions) {
     }
 
     /** @param damages per furniture item; when sent, the damage charge is their sum */
@@ -447,12 +452,13 @@ public class DeskService {
         }
         List<DamageItem> furniture = inventory.furnitureOf(p.bed().roomId()).stream().map(f -> {
             Damage d = damages.get(f.id());
-            return new DamageItem(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi(), d == null ? 0 : d.amount(),
+            return new DamageItem(String.valueOf(f.id()), f.assetCode(), f.type(), f.typeVi(), f.unitPrice(),
+                    d == null ? 0 : d.amount(),
                     d == null ? null : d.note());
         }).toList();
         return new CheckOutDetail(row.allocationId(), row.studentCode(), row.name(), row.room(), row.bed(),
                 row.roomTypeName(), row.roomClassName(), row.reason(), row.status(), row.checkedOutAt(), reading,
-                settlement, refundStatus, furniture);
+                settlement, refundStatus, furniture, inventory.conditionLevels());
     }
 
     @Transactional

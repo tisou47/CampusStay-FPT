@@ -495,7 +495,7 @@ public class SwapService {
             return new RoomChangeService.StudentItem(s.code(), "Swap", summary, s.createdAt(), STATUSES.get(s.status()),
                     s.decidedAt() == null ? null : new RoomChangeService.StudentDecision(
                             s.decisionReason() != null ? s.decisionReason() : STATUSES.get(s.status()), s.decidedAt()),
-                    null, open ? s.code() : null, null);
+                    null, open ? s.code() : null);
         }).toList();
     }
 

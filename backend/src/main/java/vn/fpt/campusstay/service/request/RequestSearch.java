@@ -51,12 +51,6 @@ class RequestSearch implements SearchSource {
                 """).param("blocks", blocks).param("start", start).param("limit", limit)
                 .query((rs, i) -> new Row("stay-request", rs.getString("code"), rs.getLong("student_id"),
                         "EXTENSION".equals(rs.getString("kind")) ? "Extension" : "End of stay")).list());
-        rows.addAll(jdbc.sql("""
-                SELECT code FROM req_room_class_change WHERE building_id IN (:blocks) AND code ILIKE :start
-                ORDER BY submitted_at DESC LIMIT :limit
-                """).param("blocks", blocks).param("start", start).param("limit", limit)
-                .query((rs, i) -> new Row("room-class-change", rs.getString("code"), null, "Room Class change"))
-                .list());
         String digits = q.toUpperCase(Locale.ROOT).startsWith("SW-") ? q.substring(3).replaceFirst("^0+", "") : "";
         if (!digits.isEmpty() && digits.length() < 19 && digits.chars().allMatch(Character::isDigit)) {
             rows.addAll(jdbc.sql("""

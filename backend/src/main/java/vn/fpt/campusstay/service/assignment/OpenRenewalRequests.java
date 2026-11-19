@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public interface OpenRenewalRequests {
 
-    /** Open next-Term requests of the Term by kind: {@code roomChanges}, {@code swaps}, {@code roomClassChanges},
+    /** Open next-Term requests of the Term by kind: {@code roomChanges}, {@code swaps},
      * {@code extensions}; kinds without one are left out. */
     Map<String, Long> open(long termId);
 

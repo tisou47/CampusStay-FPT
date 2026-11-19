@@ -22,8 +22,7 @@ import { t, tr } from '@/i18n'
 // the new Bed with the next-Term fee. Nothing is charged or refunded now.
 
 const changeTypes = [
-  ['same', 'Same room type and room tier, different room'],
-  ['class', 'Different room tier'],
+  ['same', 'Same room type, different room'],
   ['type', 'Different room type'],
 ]
 
@@ -31,15 +30,15 @@ function Form({ opts }) {
   const navigate = useNavigate()
   const { notify } = useToast()
   const cur = opts.currentRoom
-  const [kind, setKind] = useState('class')
+  const [kind, setKind] = useState('same')
   const [newType, setNewType] = useState(opts.roomTypes.find((type) => type.id !== cur.roomTypeId)?.id ?? cur.roomTypeId)
-  const [newClass, setNewClass] = useState(opts.roomClasses.find((c) => c.id !== cur.roomClassId)?.id ?? cur.roomClassId)
   const [reason, setReason] = useState('')
   const [details, setDetails] = useState('')
   const [understood, setUnderstood] = useState(false)
 
   const targetType = kind === 'type' ? newType : cur.roomTypeId
-  const targetClass = kind === 'class' ? newClass : cur.roomClassId
+  // A room change keeps the room tier: only Managers set a room's tier per term.
+  const targetClass = cur.roomClassId
   const price = (type, c) => opts.prices.find((p) => p.roomTypeId === type && p.roomClassId === c)?.termPrice ?? null
   const current = price(cur.roomTypeId, cur.roomClassId)
   const next = price(targetType, targetClass)
@@ -97,17 +96,8 @@ function Form({ opts }) {
                 />
               )}
             </Field>
-            <Field label={kind === 'class' ? 'New room tier' : 'Room Class'} className="flex-1">
-              {(id) => (
-                <Select
-                  id={id}
-                  size="lg"
-                  disabled={kind !== 'class'}
-                  value={kind === 'class' ? newClass : cur.roomClassId}
-                  onChange={(e) => setNewClass(e.target.value)}
-                  options={opts.roomClasses.map((c) => ({ value: c.id, label: tr(c.name), disabled: kind === 'class' && c.id === cur.roomClassId }))}
-                />
-              )}
+            <Field label="Room Class" className="flex-1">
+              {(id) => <Select id={id} size="lg" disabled value={cur.roomClassId} options={opts.roomClasses.map((c) => ({ value: c.id, label: tr(c.name) }))} />}
             </Field>
           </div>
 

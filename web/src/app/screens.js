@@ -35,7 +35,6 @@ export const screens = [
   { code: 'MOB-NTF-01', title: 'Notifications (phone bell)', role: 'student', path: '/student/notifications' },
   { code: 'SCR-MNT-02', title: 'New Maintenance Request', role: 'student', path: '/student/requests/maintenance/new' },
   { code: 'SCR-REQ-02', title: 'New Room-Change Request (next Term)', role: 'student', path: '/student/requests/room-change/new' },
-  { code: 'SCR-REQ-08', title: 'Room tier change (next term)', role: 'student', path: '/student/requests/room-class/new' },
   { code: 'SCR-REQ-03', title: 'Room Swap – Specific Student', role: 'student', path: '/student/requests/swap/new' },
   { code: 'SCR-REQ-04', title: 'Swap Board', role: 'student', path: '/student/requests/swap/board' },
 

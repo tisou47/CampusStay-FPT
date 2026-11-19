@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bed, Calendar, CreditCard, Layers, Repeat, Users } from 'lucide-react'
+import { Bed, Calendar, CreditCard, Repeat, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -103,9 +103,6 @@ export function NextTermCard({ data }) {
               </Button>
               <Button tip="Invite another resident to exchange beds with you from next term." size="md" block icon={Users} to="/student/requests/swap/new">
                 Swap beds for next term
-              </Button>
-              <Button size="md" block icon={Layers} to="/student/requests/room-class/new">
-                Change the room tier
               </Button>
             </>
           )}

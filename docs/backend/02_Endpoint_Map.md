@@ -390,13 +390,13 @@ Built on `feat/v2-phase6` (ADR-21, ADR-27), in `main` and production since 27/10
 | ASG | GET | `/operational-moves/options` | Must | Verified | A-45; by student code or Allocation; Staff their Blocks; TC-ASG-043 |
 | ASG | POST | `/operational-moves` | Must | Verified | A-45; reason, both meter readings for a resident, the next-Term Bed follows or stays; after M6 only a Manager, same price when paid; TC-ASG-042…044 |
 | ASG | GET | `/operational-moves` | Must | Verified | A-45; TC-ASG-043 |
-| REQ | GET | `/room-class-changes/options` | Must | Verified | A-42; TC-REQ-020 |
-| REQ | POST | `/room-class-changes` | Must | Verified | A-42; a continuing resident for their Room, a Manager for any Room; TC-REQ-020, 021 |
-| REQ | POST | `/room-class-changes/{id}/consent` | Must | Verified | A-42; every other continuing resident; a refusal cancels; TC-REQ-020 |
-| REQ | GET | `/room-class-changes` | Must | Verified | A-42; TC-REQ-020 |
-| REQ | GET | `/room-class-changes/{id}` | Must | Verified | A-42; consents, prices, furniture check; TC-REQ-020 |
-| REQ | POST | `/room-class-changes/{id}/decision` | Must | Verified | A-42; consents first, furniture reserved from the Block store; TC-REQ-020 |
-| REQ | POST | `/room-class-changes/{id}/set-back` | Must | Verified | A-42; Managers; next-Term fees issued again or the difference charged or credited (spec §6.11 step 6); TC-REQ-020 |
+| REQ | GET | `/room-class-changes/options` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | POST | `/room-class-changes` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | POST | `/room-class-changes/{id}/consent` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | GET | `/room-class-changes` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | GET | `/room-class-changes/{id}` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | POST | `/room-class-changes/{id}/decision` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
+| REQ | POST | `/room-class-changes/{id}/set-back` | Must | Removed | A-42; removed 19/11/2026 (A-73): Room Class changes are no longer requested |
 | REQ | POST | `/students/me/stay/extension` | Must | Verified | A-43; approved at once when enrolled and nothing overdue, else Staff decide; TC-REQ-019, 021 |
 | REQ | POST | `/students/me/stay/end` | Must | Verified | A-43; the next-Term Bed is released at once; TC-REQ-019 |
 | REQ | GET | `/stay-requests` | Must | Verified | A-43; TC-REQ-019 |
