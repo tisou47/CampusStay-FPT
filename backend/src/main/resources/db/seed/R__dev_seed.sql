@@ -79,6 +79,13 @@ SELECT ro.id, chr(64 + s.n)
 FROM inv_room ro JOIN cfg_room_type rt ON rt.id = ro.room_type_id CROSS JOIN LATERAL generate_series(1, rt.beds) AS s(n)
 ON CONFLICT (room_id, label) DO NOTHING;
 
+-- Starting replacement prices per furniture type and Room Class (V76, check-out charges); an Admin changes them.
+INSERT INTO inv_furniture_price (furniture_type_id, room_class_id, price)
+SELECT t.id, c.id, CASE t.category WHEN 'APPLIANCE' THEN 2000000 WHEN 'FURNITURE' THEN 800000
+                                   WHEN 'FIXTURE' THEN 300000 ELSE 200000 END
+FROM inv_furniture_type t CROSS JOIN cfg_room_class c
+ON CONFLICT DO NOTHING;
+
 -- ---------- furniture (types: V39) ----------
 -- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
 INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)

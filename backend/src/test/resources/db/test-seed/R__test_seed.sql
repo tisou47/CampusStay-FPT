@@ -77,6 +77,13 @@ UPDATE inv_room SET status = 'OUT_OF_SERVICE', oos_since = '2026-10-10 02:00:00+
                     oos_note = 'Water leak under the bathroom sink'
 WHERE code = 'A-305' AND status = 'IN_SERVICE';
 
+-- Starting replacement prices per furniture type and Room Class (V76, check-out charges); an Admin changes them.
+INSERT INTO inv_furniture_price (furniture_type_id, room_class_id, price)
+SELECT t.id, c.id, CASE t.category WHEN 'APPLIANCE' THEN 2000000 WHEN 'FURNITURE' THEN 800000
+                                   WHEN 'FIXTURE' THEN 300000 ELSE 200000 END
+FROM inv_furniture_type t CROSS JOIN cfg_room_class c
+ON CONFLICT DO NOTHING;
+
 -- ---------- furniture: Room Class requirements and items ----------
 -- Basic: a ceiling fan; Standard: an air conditioner and a water heater; Premium: both and a fridge.
 INSERT INTO inv_room_class_requirement (room_class_id, furniture_type_id, quantity)
