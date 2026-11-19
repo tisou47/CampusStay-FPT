@@ -51,7 +51,6 @@ export default function StaffActivity() {
     <>
       <PageHeader
         title="Staff activity"
-        description="Every change Staff made, newest first. Changes made outside the person's shift or outside the work you gave them are marked; the person confirmed a warning before each of them."
       />
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="Changes" value={formatNumber(s?.total)} note={from || to ? 'In the days chosen' : 'All recorded'} />

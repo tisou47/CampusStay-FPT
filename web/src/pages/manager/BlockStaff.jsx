@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, CalendarDays, ClipboardList, History, Pencil, Route, ShieldCheck, UserCheck, UserPlus, Send, Users, X } from 'lucide-react'
+import { ArrowRightLeft, CalendarDays, ClipboardList, History, Pencil, Route, UserPlus, Send, Users, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -431,7 +431,6 @@ export default function BlockStaff() {
     <>
       <PageHeader
         title={block ? t('Staff and workload · Block {code}', { code: block }) : 'Staff and workload'}
-        description="Staff of the blocks in your scope, the work each person holds and who is on duty. Open a person's work to move it to someone else. Duty follows sign-in: staff are on duty while signed in and go off when they sign out or stop using the app for a while."
         actions={
           <>
             <Button icon={Route} to="/manager/routing-rules">
@@ -443,21 +442,6 @@ export default function BlockStaff() {
           </>
         }
       />
-      <div className="grid shrink-0 grid-cols-3 gap-4">
-        {[
-          { icon: Route, title: 'Who gets new requests', text: 'A new maintenance or room-change request goes to the person its routing rule names while they are on duty, else to the rule’s fallback.' },
-          { icon: UserCheck, title: 'Who works on a request', text: 'Only the person in charge changes a request’s status. A colleague who covers takes it over first; the history keeps both names.' },
-          { icon: ShieldCheck, title: 'What duty does not do', text: 'Off duty is not a lock: staff keep access to their blocks to look things up. To stop someone working, lock the account on staff accounts.' },
-        ].map((x) => (
-          <div key={x.title} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3.5">
-            <x.icon size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <p className="text-base font-medium text-fg">{t(x.title)}</p>
-              <p className="text-sm text-fg-secondary">{t(x.text)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
       <div className="flex shrink-0 gap-4">
         <KpiTile size="md" label="On duty now" value={s ? t('{n} of {total}', { n: s.onDuty, total: s.total }) : '—'} note={s?.deskOnDuty != null ? t('Check-in desk: {n}', { n: s.deskOnDuty }) : null} />
         <KpiTile size="md" label="Open (staff)" value={formatNumber(s?.open)} note={s?.averageOpen != null ? t('Now · {n} per person', { n: s.averageOpen.toFixed(1) }) : 'Now'} />

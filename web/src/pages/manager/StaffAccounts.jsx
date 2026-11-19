@@ -158,7 +158,6 @@ export default function StaffAccounts() {
     <>
       <PageHeader
         title="Staff accounts"
-        description="Staff of the dormitory and the blocks they work in. Managers and admins are managed by the admin."
         actions={
           <Button variant="primary" icon={Plus} disabled={!d} onClick={() => setEditing({})}>
             New staff account

@@ -150,7 +150,6 @@ export default function StaffSchedule() {
     <>
       <PageHeader
         title="Work schedule"
-        description="Plan each Staff member's shifts week by week. A week you do not plan uses the person's default weekly shifts. Planning next week never changes this week; Staff see next week once you send it."
       />
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <IconButton icon={ChevronLeft} variant="outline" aria-label={t('Previous week')} onClick={() => goTo(-1)} disabled={!d} />
