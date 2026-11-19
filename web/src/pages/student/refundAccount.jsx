@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Landmark } from 'lucide-react'
+﻿import { useEffect, useState } from 'react'
+import { Landmark, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -8,6 +8,8 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { t } from '@/i18n'
+import { cx } from '@/lib/cx'
+import { formatVnd } from '@/lib/format'
 
 /*
  * The bank account a student's refunds are paid to (A-62): asked when they withdraw from the waitlist, decline a
@@ -81,27 +83,48 @@ export function RefundAccountFields({ draft, setDraft, error, disabled, unchange
   )
 }
 
-/** Payments page card: the account refunds go to, editable at any time. */
-export function RefundAccountCard() {
+/**
+ * The account refunds go to, editable at any time. Shown once per page (Payments, Profile). With `pendingAmount`
+ * and no account yet, the card itself turns into the call to action, so the page never repeats the account.
+ */
+export function RefundAccountCard({ pendingAmount = 0, className }) {
   const { notify } = useToast()
   const account = useRefundAccount()
   const [editing, setEditing] = useState(false)
   if (!account.saved) return null
+  const blocking = pendingAmount > 0 && !account.complete
   return (
-    <Card padding="lg" className="flex flex-col gap-3">
-      <div className="flex items-start gap-3">
-        <Landmark size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
+    <Card
+      id="refund-account-section"
+      padding="lg"
+      className={cx('flex shrink-0 scroll-mt-4 flex-col gap-3 rounded-xl shadow-card', blocking && 'border-warning/50 bg-warning-bg', className)}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <span
+          aria-hidden="true"
+          className={cx('flex size-10 shrink-0 items-center justify-center rounded-lg', blocking ? 'bg-surface text-warning-fg' : 'bg-primary-subtle text-fg-brand')}
+        >
+          {blocking ? <TriangleAlert size={20} /> : <Landmark size={20} />}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{t('Refund account')}</h2>
-          <p className="text-sm text-fg-secondary">
-            {account.has
-              ? `${account.saved.holder} · ${account.saved.number} · ${account.saved.bank}`
-              : t('Not entered yet. A manager can only transfer a refund to you once you enter it.')}
-          </p>
+          <h2 className="text-h3 font-semibold text-fg">{t(blocking ? 'Enter your bank account to receive {amount}' : 'Refund account', { amount: formatVnd(pendingAmount) })}</h2>
+          {account.has ? (
+            <p className="flex flex-wrap items-center gap-x-2 text-base text-fg-secondary">
+              <span className="font-medium text-fg">{account.saved.bank}</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular">{account.saved.number}</span>
+              <span aria-hidden="true">·</span>
+              <span>{account.saved.holder}</span>
+            </p>
+          ) : (
+            <p className="text-base text-fg-secondary">
+              {t(blocking ? 'A refund is waiting for you. A manager can only transfer it once you enter the account.' : 'Not entered yet. A manager can only transfer a refund to you once you enter it.')}
+            </p>
+          )}
           {account.has && !account.complete && <p className="text-sm text-warning-fg">{t('Choose your bank from the list again and confirm the account.')}</p>}
         </div>
         {!editing && (
-          <Button variant="text" onClick={() => setEditing(true)}>
+          <Button variant={blocking ? 'primary' : 'default'} className="shrink-0 max-sm:w-full" onClick={() => setEditing(true)}>
             {account.has ? 'Change' : 'Enter account'}
           </Button>
         )}

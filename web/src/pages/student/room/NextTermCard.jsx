@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Bed, Calendar, CreditCard, Layers, Repeat, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
@@ -39,7 +39,30 @@ export function NextTermCard({ data }) {
     onSuccess: done,
     onError: () => {},
   })
-  if (!n) return null
+  if (!n) {
+    return (
+      <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Repeat size={16} aria-hidden="true" className="text-fg-secondary" />
+            <h2 className="text-h3 font-semibold text-fg">{t('Next term plan')}</h2>
+          </div>
+          <StatusTag status="Upcoming" tone="neutral" />
+        </div>
+        <p className="text-sm text-fg-secondary">
+          {t('Registration for the next term is not open yet. You will be notified when extension, room change, and swap requests become available before the current term ends.')}
+        </p>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <Button variant="default" size="sm" icon={Repeat} to="/student/requests">
+            {t('View submitted requests')}
+          </Button>
+          <Button variant="text" size="sm" to="/student/requests/room-change/new">
+            {t('Room change info')}
+          </Button>
+        </div>
+      </Card>
+    )
+  }
   const w = n.window
   const filing = Boolean(w?.filing)
   const left = data.stay ? Math.max(1, 9 - data.stay.committedTerms) : 8
