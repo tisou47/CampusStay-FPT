@@ -1,6 +1,6 @@
 # Vietnamese texts of the API's English messages (ADR-25). One "English ⟶ Vietnamese" pair per line.
 # {0}, {1} … stand for values inside a message; a value found in this file is translated too.
-# Glossary (docs/i18n-glossary.md): Term = học kỳ · Block = tòa · Floor = tầng · Room = phòng · Bed = giường ·
+# Glossary (web/src/i18n/glossary.md): Term = học kỳ · Block = tòa · Floor = tầng · Room = phòng · Bed = giường ·
 # Room Type = loại phòng · Room Class (room tier) = hạng phòng · Application = đơn đăng ký · Allocation = chỗ ở ·
 # Invoice = hóa đơn · Deposit = tiền đặt cọc · Balance = tiền phòng còn lại · Utility = điện nước ·
 # Check-in = nhận phòng · Check-out = trả phòng · Room-Change Request = yêu cầu đổi phòng · swap = hoán đổi ·

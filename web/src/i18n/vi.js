@@ -1,7 +1,7 @@
 /*
  * Vietnamese texts of the web app (ADR-25). Keys are the English texts used in the code; {name} marks a value.
  * Texts the API sends (statuses, labels, check results) are listed too, so tr() can show them in Vietnamese.
- * Glossary (docs/i18n-glossary.md, the one source): Term = học kỳ · Block = tòa · Floor = tầng · Room = phòng ·
+ * Glossary (web/src/i18n/glossary.md, the one source): Term = học kỳ · Block = tòa · Floor = tầng · Room = phòng ·
  * Bed = giường · Room type = loại phòng · Room tier = hạng phòng · Application = đơn đăng ký · Application ID = mã đơn ·
  * Invoice = hóa đơn · Deposit = tiền đặt cọc · Balance = tiền phòng còn lại · Utility = điện nước ·
  * Check-in = nhận phòng · Check-out = trả phòng · Room changes and swaps = đổi/hoán đổi phòng ·

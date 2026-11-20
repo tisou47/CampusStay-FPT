@@ -32,7 +32,6 @@ Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), Reac
 - Public password pages: `/forgot-password`, and the pages the emails link to, `/reset-password?token=…` and `/set-password?token=…` (invitation). Every role changes its password from the user menu (Student) or the key icon next to Sign out (back office).
 - Errors: a `400 VALIDATION_FAILED` lists its field messages in the error text (and under the inputs on the sign-in and password forms); a `409 STALE_DATA` reloads the data on screen.
 - Every list and panel shows a loading state, an error with **Retry**, or an empty state.
-- Every route, its screen code, Figma frame and API calls: [docs/web/01_Screen_Map.md](../docs/web/01_Screen_Map.md) (generated from the router, `src/app/screens.js` and the page header comments by `node docs/tools/generate-catalogs.mjs`; rerun it when you add or rename a page).
 
 ## Deploy (Vercel)
 
@@ -69,4 +68,4 @@ src/
   pages/        student/, staff/, manager/, admin/, auth/, common/
 ```
 
-The API contract lives in the repository's shared `docs/` folder, next to the backend design.
+The API contract is `tools/postman/api-contract.md`.
