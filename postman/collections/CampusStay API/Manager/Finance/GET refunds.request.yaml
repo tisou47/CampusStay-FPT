@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
 
-  Contract: `docs/api-contract.md` › Manager › Finance
+  Contract: `tools/postman/api-contract.md` › Manager › Finance
 queryParams:
   - key: termId
     value: '{{termId}}'

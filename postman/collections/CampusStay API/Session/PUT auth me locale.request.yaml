@@ -6,7 +6,7 @@ order: 4000
 description: |-
   PUT `/auth/me/locale` — request: `{ locale: 'vi'\|'en' }` — response: `204`: the account's language for notifications, push and emails (A-15)
 
-  Contract: `docs/api-contract.md` › Session and shared
+  Contract: `tools/postman/api-contract.md` › Session and shared
 headers:
   - key: Content-Type
     value: application/json

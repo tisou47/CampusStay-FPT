@@ -6,4 +6,4 @@ order: 10000
 description: |-
   `GET|PUT /admin/system-parameters` → `{ sections: [{ title, fields: [{ key, label, value, helper?, options? }] }] }`
 
-  Contract: `docs/api-contract.md` › Admin › Policies
+  Contract: `tools/postman/api-contract.md` › Admin › Policies

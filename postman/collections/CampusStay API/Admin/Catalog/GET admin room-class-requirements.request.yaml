@@ -6,4 +6,4 @@ order: 11000
 description: |-
   `GET /admin/room-class-requirements` → `{ items: [{ roomClassId, roomClass, status, requirements: [{ typeId, type, typeVi, quantity }] }], types: [{ id, name, nameVi }] }`
 
-  Contract: `docs/api-contract.md` › Admin › Catalog
+  Contract: `tools/postman/api-contract.md` › Admin › Catalog

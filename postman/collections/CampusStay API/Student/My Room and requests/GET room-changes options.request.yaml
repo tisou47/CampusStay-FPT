@@ -6,7 +6,7 @@ order: 14000
 description: |-
   `GET /room-changes/options?termId` → `{ currentRoom: { room, bed, roomTypeId, roomTypeName, roomClassId, roomClassName } | null (the next-Term Bed), roomTypes, roomClasses, prices: [{ roomTypeId, roomClassId, termPrice }] (the next Term's), window: { termId, termName, closesAt, decisionsDueAt } | null, reasons, hasOpenRequest, canAsk, unavailable }` (B-08)
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 queryParams:
   - key: termId
     value: '{{termId}}'

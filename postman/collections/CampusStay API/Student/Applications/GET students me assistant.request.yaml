@@ -6,4 +6,4 @@ order: 12000
 description: |-
   `GET /students/me/assistant` → `{ enabled }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications

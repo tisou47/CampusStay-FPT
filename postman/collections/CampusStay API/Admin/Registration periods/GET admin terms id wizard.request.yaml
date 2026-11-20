@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `GET /admin/terms/{id}/wizard` → the wizard document
 
-  Contract: `docs/api-contract.md` › Admin › Registration periods
+  Contract: `tools/postman/api-contract.md` › Admin › Registration periods
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /furniture?block&room&location=room|store&typeId&status&q&page&pageSize` → `{ items: [{ id, assetCode, typeId, type, typeVi, category, status, location: { kind: 'Room'|'Store', room, block }, note, plannedMove: { id, to, reason } | null, updatedAt }], total, counts: { [status]: n }, options: { types: [{ id, name, nameVi }], statuses, blocks } }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
 queryParams:
   - key: block
     value: '{{block}}'

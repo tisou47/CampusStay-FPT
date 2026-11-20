@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /assignment-runs/{runId}/commit` `{ block }` → `204` (sends the Block to its Manager)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
 pathVariables:
   - key: runId
     value: ''

@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /assignment-runs/{runId}/return` `{ block, comment }` → `204` (C-21)
 
-  Contract: `docs/api-contract.md` › Manager › Assignment approval
+  Contract: `tools/postman/api-contract.md` › Manager › Assignment approval
 pathVariables:
   - key: runId
     value: ''

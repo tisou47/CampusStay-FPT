@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `PUT /admin/terms/{id}`
 
-  Contract: `docs/api-contract.md` › Admin › Registration periods
+  Contract: `tools/postman/api-contract.md` › Admin › Registration periods
 pathVariables:
   - key: id
     value: ''

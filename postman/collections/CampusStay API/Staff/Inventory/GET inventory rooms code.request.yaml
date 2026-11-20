@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `GET /inventory/rooms/{code}` → `{ code, block, floor }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
 pathVariables:
   - key: code
     value: ''

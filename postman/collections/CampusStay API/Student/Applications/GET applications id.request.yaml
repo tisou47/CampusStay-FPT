@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /applications/{id}` (student view) → `{ id, status, termName, roomTypeName, roomClassName, surchargeRate, twoBed, roommate: { mode, studentCode, status, preferences } | null, allocation: { room, bed, block } | null, events: [{ title, at, state: 'done'|'current'|'upcoming', note }], invoices: [{ id, type, title, amount, status, dueAt, paidAt }], canCancel, cancelPolicy, resultsPublishedAt, registrationClosesAt, decisionNote }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications
 pathVariables:
   - key: id
     value: ''

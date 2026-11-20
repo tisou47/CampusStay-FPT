@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
 pathVariables:
   - key: allocationId
     value: ''

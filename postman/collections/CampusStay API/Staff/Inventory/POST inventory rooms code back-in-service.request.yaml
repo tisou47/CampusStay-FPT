@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /inventory/rooms/{code}/back-in-service`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
 pathVariables:
   - key: code
     value: ''

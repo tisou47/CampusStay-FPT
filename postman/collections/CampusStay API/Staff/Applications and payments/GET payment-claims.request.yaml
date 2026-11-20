@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `GET /payment-claims?termId&block&type&since&q&page&pageSize` → `{ items: [{ invoiceId, studentName, studentCode, type, typeLabel, title, amount, claimedAt, dueAt, timeLeftSeconds, reference, rejected, transferContent }], total, summary: { count, amount }, types }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
 queryParams:
   - key: termId
     value: '{{termId}}'

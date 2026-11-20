@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `POST /inspection-checklists` `{ name }`
 
-  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+  Contract: `tools/postman/api-contract.md` › Admin › Inspections, reports and audit
 headers:
   - key: Content-Type
     value: application/json

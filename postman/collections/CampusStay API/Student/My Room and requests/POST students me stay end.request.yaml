@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /students/me/stay/end` `{ reason? }` → `{ id, status, automatic, note }` (A-43, C-43)
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 headers:
   - key: Content-Type
     value: application/json

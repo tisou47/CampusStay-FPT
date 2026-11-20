@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve` `{ optionKey }` or `{ waitlist: true }` → `{ applicationId, bed, resolved, waitlisted }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
 pathVariables:
   - key: runId
     value: ''

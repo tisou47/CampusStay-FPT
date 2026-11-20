@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `PATCH /maintenance-requests/{id}` `{ priority?, furnitureItemId?, assigneeId?, visitWindow?, status? }` → `204` (only the fields sent change). A Staff member changes `status` only when the request is assigned to them (or unassigned); another Staff member sends `assigneeId` = themselves first, in the same body or before: `409 ASSIGNED_TO_SOMEONE_ELSE` otherwise. Managers may change any request (B-12)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
 pathVariables:
   - key: id
     value: ''

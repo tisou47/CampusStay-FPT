@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /applications/{id}/cancel` `{ reason? }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications
 pathVariables:
   - key: id
     value: ''

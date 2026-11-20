@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `GET /admin/users?q&role&block&status&page&pageSize` → `{ items: [{ id, name, email, role, scope, lastSignInAt, status }], total, roles, blocks, scopeOptions }`
 
-  Contract: `docs/api-contract.md` › Admin › Buildings and users
+  Contract: `tools/postman/api-contract.md` › Admin › Buildings and users
 queryParams:
   - key: q
     value: ''

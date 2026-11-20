@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /approvals/summary?termId&block` → `{ assignment, lateCheckIn, swaps, refunds }`
 
-  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+  Contract: `tools/postman/api-contract.md` › Manager › Dashboards and approvals
 queryParams:
   - key: termId
     value: '{{termId}}'

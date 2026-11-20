@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /dashboards/staff?termId&block` → `{ kpis: { toReview, submitted, underReview, paymentsToConfirm, proposal: { runId, proposed, requested, conflicts, waitlisted, committedBlocks, totalBlocks } | null, roomsOutOfService, firstOutOfService: { room, since } | null }, attention: [{ id, kind: 'proposal'|'payments'|'room'|'queue'|'expired'|'maintenance', severity, title, body, link, cta, values }], applicationsByStatus: [{ status, count }], applicationsTotal, checkInPlan: { start, end, days: [{ date, morning, afternoon }] } | null, bedsByBlock: [{ block, proposed, capacity }] }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Dashboard
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Dashboard
 queryParams:
   - key: termId
     value: '{{termId}}'

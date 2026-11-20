@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `POST /round2-offers/{id}/respond` `{ accept, optionId? }` → `{ balanceInvoiceId }` (C-27)
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications
 pathVariables:
   - key: id
     value: ''

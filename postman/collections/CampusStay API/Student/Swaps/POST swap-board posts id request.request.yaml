@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `POST /swap-board/posts/{id}/request` → `{ id }`
 
-  Contract: `docs/api-contract.md` › Student › Swaps
+  Contract: `tools/postman/api-contract.md` › Student › Swaps
 pathVariables:
   - key: id
     value: ''

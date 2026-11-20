@@ -4,7 +4,7 @@ method: PUT
 url: '{{baseUrl}}/check-out/readings?termId={{termId}}&block={{block}}'
 order: 9000
 description: |-
-  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `saveRoomReadings` of `desk-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `saveRoomReadings` of `desk-controller`). Add it to the contract or remove it from the backend.
 queryParams:
   - key: termId
     value: '{{termId}}'

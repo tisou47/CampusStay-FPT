@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /meter-periods/{id}/import` (multipart `file`, the template filled in: XLSX or CSV; headers room/phòng, electricity/điện, water/nước, or the first three columns) → `{ imported, skipped }` (lines with both readings blank are skipped) (A-59)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
 pathVariables:
   - key: id
     value: ''

@@ -1,7 +1,7 @@
 $kind: collection
 name: CampusStay API
 description: |-
-  Every endpoint of the CampusStay FPT backend, filed like `docs/api-contract.md` (Session, Student, Staff, Manager, Admin, Exports), plus **Smoke tests**: read-only checks of each role that are safe to run against any environment.
+  Every endpoint of the CampusStay FPT backend, filed like `tools/postman/api-contract.md` (Session, Student, Staff, Manager, Admin, Exports), plus **Smoke tests**: read-only checks of each role that are safe to run against any environment.
 
   ## Use it
   1. Pick an environment: **Local** (`mvn spring-boot:run`, dev base data) or **Production** (fill in `password` first; it is never committed).
@@ -18,7 +18,7 @@ description: |-
   Against production, pass the password without saving it: `--env-var "password=…"`.
 
   ## Keep it up to date
-  The role folders are generated from the backend's OpenAPI document (`/api/v3/api-docs`, Swagger UI at `/api/swagger-ui.html`) and the contract: with the backend running, `node docs/tools/generate-postman.mjs`. This file and **Smoke tests** are written by hand.
+  The role folders are generated from the backend's OpenAPI document (`/api/v3/api-docs`, Swagger UI at `/api/swagger-ui.html`) and the contract: with the backend running, `node tools/postman/generate-postman.mjs`. This file and **Smoke tests** are written by hand.
 auth:
   type: bearer
   credentials:
@@ -77,7 +77,7 @@ scripts:
         pm.collectionVariables.unset(pm.variables.get('cs.role') + 'Token');
       }
 
-      // The contract's conventions hold for every response (docs/api-contract.md › Conventions).
+      // The contract's conventions hold for every response (tools/postman/api-contract.md › Conventions).
       if ((pm.response.headers.get('Content-Type') || '').includes('json') && pm.response.text()) {
         const body = pm.response.json();
         if (pm.response.code >= 400) {

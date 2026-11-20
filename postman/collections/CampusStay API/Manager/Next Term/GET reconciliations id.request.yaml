@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `GET /reconciliations/{id}` → `{ run, term, items }`
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 pathVariables:
   - key: id
     value: ''

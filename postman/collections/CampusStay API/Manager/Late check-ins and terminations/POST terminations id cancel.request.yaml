@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /terminations/{id}/cancel { reason }` → `204` (A-37)
 
-  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+  Contract: `tools/postman/api-contract.md` › Manager › Late check-ins and terminations
 pathVariables:
   - key: id
     value: ''

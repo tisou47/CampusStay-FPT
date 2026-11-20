@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `PUT /admin/notification-templates/{key}`
 
-  Contract: `docs/api-contract.md` › Admin › Messages
+  Contract: `tools/postman/api-contract.md` › Admin › Messages
 pathVariables:
   - key: key
     value: ''

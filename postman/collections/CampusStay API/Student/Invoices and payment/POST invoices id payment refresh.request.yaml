@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /invoices/{id}/payment/refresh` → new `qr`
 
-  Contract: `docs/api-contract.md` › Student › Invoices and payment
+  Contract: `tools/postman/api-contract.md` › Student › Invoices and payment
 pathVariables:
   - key: id
     value: ''

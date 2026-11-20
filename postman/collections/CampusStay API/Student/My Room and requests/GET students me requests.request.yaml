@@ -6,7 +6,7 @@ order: 9000
 description: |-
   `GET /students/me/requests?kind=maintenance|room-changes&termId&page&pageSize` → `{ items, total, counts: { maintenance, roomChanges, consents }, room }`
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 queryParams:
   - key: kind
     value: ''

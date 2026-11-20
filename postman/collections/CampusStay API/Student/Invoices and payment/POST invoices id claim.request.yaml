@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `POST /invoices/{id}/claim` `{ reference? }` → the claim: the student's "I have transferred"; the Invoice waits for a Manager and its deadline stops (A-34, C-42).
 
-  Contract: `docs/api-contract.md` › Student › Invoices and payment
+  Contract: `tools/postman/api-contract.md` › Student › Invoices and payment
 pathVariables:
   - key: id
     value: ''

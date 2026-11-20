@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `GET /admin/audit-log?q&actor&action&role=Student|Staff|Manager|Admin|System&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
 
-  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+  Contract: `tools/postman/api-contract.md` › Admin › Inspections, reports and audit
 queryParams:
   - key: q
     value: ''

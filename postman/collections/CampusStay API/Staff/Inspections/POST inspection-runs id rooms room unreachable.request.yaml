@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /inspection-runs/{id}/rooms/{room}/unreachable`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
 pathVariables:
   - key: id
     value: ''

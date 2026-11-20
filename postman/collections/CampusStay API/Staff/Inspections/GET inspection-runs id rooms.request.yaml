@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /inspection-runs/{id}/rooms?page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result: 'Pass'|'Fail'|'Not checked', note }] }], total }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET|PUT /admin/fees` → `{ depositPercent, depositHours, balanceDays, policyConfirmed, rules: [{ id, when, refundPercent, approver, active }], approverOptions }` (B-05). `depositHours` here is only the default proposed for a new Term; each Term keeps its own.
 
-  Contract: `docs/api-contract.md` › Admin › Policies
+  Contract: `tools/postman/api-contract.md` › Admin › Policies
 headers:
   - key: Content-Type
     value: application/json

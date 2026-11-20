@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `PUT /inspection-runs/{id}/rooms/{room}` `{ results }` → `{ createdRequests: [id] }`. A failed item creates a Maintenance Request; its severity sets the request priority.
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
 pathVariables:
   - key: id
     value: ''

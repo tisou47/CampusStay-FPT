@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /room-class-changes/{id}/set-back` `{ note }` → detail (A-42)
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 pathVariables:
   - key: id
     value: ''

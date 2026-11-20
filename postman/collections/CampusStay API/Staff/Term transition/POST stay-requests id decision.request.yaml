@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `POST /stay-requests/{id}/decision` `{ decision, note? }` (A-43)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 pathVariables:
   - key: id
     value: ''

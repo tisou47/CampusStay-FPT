@@ -19,7 +19,7 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | File | Purpose |
 |---|---|
 | [docs/00_Project_Brief.md](docs/00_Project_Brief.md) | Scope, architecture baseline, schedule, open issues and the Decision Log |
-| [docs/api-contract.md](docs/api-contract.md) | The API the web and mobile apps call (request and response shapes) |
+| [tools/postman/api-contract.md](tools/postman/api-contract.md) | The API the web and mobile apps call (request and response shapes) |
 | [docs/backend/01_Backend_Architecture.md](docs/backend/01_Backend_Architecture.md) | Backend design (feeds Report 4) |
 | [docs/backend/02_Endpoint_Map.md](docs/backend/02_Endpoint_Map.md) | Every endpoint, its module, priority, slice and status |
 | [docs/backend/03_API_Contract_Changes.md](docs/backend/03_API_Contract_Changes.md) | Changes to the contract proposed by the backend, with the status of each side |
@@ -28,7 +28,7 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | [infra/prod/README.md](infra/prod/README.md) | Production runbook: setup, settings, operations, monitoring, Azure appendix |
 | [CLAUDE.md](CLAUDE.md), [backend/CLAUDE.md](backend/CLAUDE.md) | Working rules: delivery, layers, conventions |
 
-The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change. Likewise, after adding or changing an endpoint, run `node docs/tools/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
+The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change. Likewise, after adding or changing an endpoint, run `node tools/postman/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
 
 ## API from Postman
 

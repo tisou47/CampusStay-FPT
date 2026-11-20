@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /check-in` `{ studentCode, items, note? }` → `{ checkedInAt }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
 headers:
   - key: Content-Type
     value: application/json

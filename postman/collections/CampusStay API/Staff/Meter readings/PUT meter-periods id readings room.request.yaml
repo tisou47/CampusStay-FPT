@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `PUT /meter-periods/{id}/readings/{room}` `{ electricity, water }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
 pathVariables:
   - key: id
     value: ''

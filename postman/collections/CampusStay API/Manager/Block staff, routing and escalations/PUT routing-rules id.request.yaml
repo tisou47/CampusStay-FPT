@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 pathVariables:
   - key: id
     value: ''

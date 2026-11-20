@@ -6,4 +6,4 @@ order: 13000
 description: |-
   GET `/registration-periods/current` — request: — — response: `{ card: { termId, name, status: 'Opens soon'\|'Open'\|'Closed', opensAt, closesAt, countdownTo, stayStart, stayEnd, places, fromPrice } \| null }` (A-29)
 
-  Contract: `docs/api-contract.md` › Session and shared
+  Contract: `tools/postman/api-contract.md` › Session and shared

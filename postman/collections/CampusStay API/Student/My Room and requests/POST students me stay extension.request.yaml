@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /students/me/stay/extension` `{ terms, reason? }`
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 headers:
   - key: Content-Type
     value: application/json

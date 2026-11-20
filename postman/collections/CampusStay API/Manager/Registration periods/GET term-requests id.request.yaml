@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /term-requests/{id}` (proposal, `term`, `differences`, `history`, `actions`)
 
-  Contract: `docs/api-contract.md` › Manager › Registration periods
+  Contract: `tools/postman/api-contract.md` › Manager › Registration periods
 pathVariables:
   - key: id
     value: ''

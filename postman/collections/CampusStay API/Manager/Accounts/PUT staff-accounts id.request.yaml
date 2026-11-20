@@ -6,7 +6,7 @@ order: 10000
 description: |-
   `PUT /staff-accounts/{id} { name?, title?, blocks?, status? }` → the item
 
-  Contract: `docs/api-contract.md` › Manager › Accounts
+  Contract: `tools/postman/api-contract.md` › Manager › Accounts
 pathVariables:
   - key: id
     value: ''

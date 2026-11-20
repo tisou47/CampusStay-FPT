@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /dashboards/manager?termId&block` → `{ block, kpis: { allocated, residents, beds, invoiced, collected, outstanding, outstandingInvoices, collectionRate, slaRate, slaTarget, slaHours, refundsWaiting, escalationsWaiting }, floors: [{ floor, allocated, beds }], floorNote, waiting: [{ id, kind: 'refund'|'escalation'|'routing'|'check-out', severity, title, body, link, cta, values }], work: { toReview, submitted, underReview, paymentsToConfirm, proposal }, bedsByBlock: [{ block, proposed, capacity }] }` (A-63)
 
-  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+  Contract: `tools/postman/api-contract.md` › Manager › Dashboards and approvals
 queryParams:
   - key: termId
     value: '{{termId}}'

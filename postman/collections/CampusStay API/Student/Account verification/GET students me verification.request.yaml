@@ -6,4 +6,4 @@ order: 1000
 description: |-
   `GET /students/me/verification` → `{ status, locked, note, form: { studentCode, name, gender, dateOfBirth, major, cohort, phone }, options: { genders, majors } }`
 
-  Contract: `docs/api-contract.md` › Student › Account verification
+  Contract: `tools/postman/api-contract.md` › Student › Account verification

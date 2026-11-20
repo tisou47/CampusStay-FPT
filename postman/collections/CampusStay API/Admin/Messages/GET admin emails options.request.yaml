@@ -6,4 +6,4 @@ order: 4000
 description: |-
   `GET /admin/emails/options` → `{ templates: [{ key, name, subject }], groups: [{ key, label }], blocks, genders, channels: [{ value, label }], sendTimes: [{ value, label }] }`
 
-  Contract: `docs/api-contract.md` › Admin › Messages
+  Contract: `tools/postman/api-contract.md` › Admin › Messages

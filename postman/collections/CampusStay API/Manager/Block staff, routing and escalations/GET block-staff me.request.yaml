@@ -6,4 +6,4 @@ order: 3000
 description: |-
   `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations

@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `POST /room-class-changes/{id}/consent` `{ agree }` → `204` (A-42)
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 pathVariables:
   - key: id
     value: ''

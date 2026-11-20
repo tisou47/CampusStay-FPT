@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `GET /inventory/room-classes?termId&block&floor&roomClassId&match&q&page&pageSize` → `{ term: { id, name, stayStart, current, editable }, terms, items: [{ room, block, floor, roomType, roomClassId, roomClass, previousClass, setForTerm, locked, conformance: { status: 'Matches'|'Does not match', missing: [{ typeId, type, typeVi, quantity }], extra } }], total, summary: [{ roomClassId, roomClass, rooms }], roomClasses: [{ id, name }], blocks, note }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
 queryParams:
   - key: termId
     value: '{{termId}}'

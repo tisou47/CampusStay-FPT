@@ -6,7 +6,7 @@ order: 11000
 description: |-
   `GET /staff-accounts?q&block&status&page&pageSize` → `{ items: [{ id, name, email, title, blocks, status, lastSignInAt }], total, blocks, statuses }`
 
-  Contract: `docs/api-contract.md` › Manager › Accounts
+  Contract: `tools/postman/api-contract.md` › Manager › Accounts
 queryParams:
   - key: q
     value: ''

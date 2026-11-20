@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /late-check-ins?termId&block` → `{ items: [{ id, studentCode, name, allocation, reason, receivedBy, paid, payment, requestedFor, evidence: { name, url }, windowClosedAt, suggestedDeadline, decision: { status, deadline, reason } | null, source }] }` (`source` Online or Desk, A-36)
 
-  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+  Contract: `tools/postman/api-contract.md` › Manager › Late check-ins and terminations
 queryParams:
   - key: termId
     value: '{{termId}}'

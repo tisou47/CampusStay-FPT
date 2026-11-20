@@ -6,7 +6,7 @@ order: 9000
 description: |-
   `GET /stay-requests?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, studentName, studentCode, room, block, terms, committedTerms, termsUsed, reason, status, automatic, submittedAt, dueAt, decisionNote, decidedBy, decidedAt }], total, window }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 queryParams:
   - key: termId
     value: '{{termId}}'

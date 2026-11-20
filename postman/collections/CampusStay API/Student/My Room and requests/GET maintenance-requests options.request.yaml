@@ -6,7 +6,7 @@ order: 10000
 description: |-
   `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 queryParams:
   - key: for
     value: ''

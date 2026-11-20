@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `PUT /admin/terms/{id}/wizard/{general|timeline|rooms|prices|rules|information}` (that step's values, `reasons`, `changeReason`) → `{ id }`; publishing fixes the Term's prices, Deposit, Utility Deposit and rules; `409 TERM_NOT_READY`, `PRICES_LOCKED`, `RULES_FIXED` (A-27, C-41)
 
-  Contract: `docs/api-contract.md` › Admin › Registration periods
+  Contract: `tools/postman/api-contract.md` › Admin › Registration periods
 pathVariables:
   - key: id
     value: ''

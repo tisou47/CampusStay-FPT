@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `PUT /admin/furniture-types/{id}` `{ code, name, nameVi, category, definesClass, status }` → `{ id }`
 
-  Contract: `docs/api-contract.md` › Admin › Catalog
+  Contract: `tools/postman/api-contract.md` › Admin › Catalog
 pathVariables:
   - key: id
     value: ''

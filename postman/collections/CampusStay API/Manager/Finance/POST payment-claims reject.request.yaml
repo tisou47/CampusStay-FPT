@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `POST /payment-claims/reject { invoiceIds, reason }` → `{ rejected, cancelled, skipped }` (Managers, A-35)
 
-  Contract: `docs/api-contract.md` › Manager › Finance
+  Contract: `tools/postman/api-contract.md` › Manager › Finance
 headers:
   - key: Content-Type
     value: application/json

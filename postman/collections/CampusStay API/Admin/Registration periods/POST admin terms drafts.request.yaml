@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /admin/terms/drafts { name, stayStart, stayEnd, requestId? }` → `{ id }`
 
-  Contract: `docs/api-contract.md` › Admin › Registration periods
+  Contract: `tools/postman/api-contract.md` › Admin › Registration periods
 headers:
   - key: Content-Type
     value: application/json

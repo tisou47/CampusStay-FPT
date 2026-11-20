@@ -4,7 +4,7 @@ method: POST
 url: '{{baseUrl}}/family-days/:id/cancel'
 order: 3000
 description: |-
-  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `cancel_3` of `family-day-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `cancel_3` of `family-day-controller`). Add it to the contract or remove it from the backend.
 pathVariables:
   - key: id
     value: ''

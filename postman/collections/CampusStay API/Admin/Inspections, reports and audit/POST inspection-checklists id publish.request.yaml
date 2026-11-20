@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /inspection-checklists/{id}/publish` `{ items }` → `{ id, version }` (A-14)
 
-  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+  Contract: `tools/postman/api-contract.md` › Admin › Inspections, reports and audit
 pathVariables:
   - key: id
     value: ''

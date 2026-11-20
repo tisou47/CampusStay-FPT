@@ -6,4 +6,4 @@ order: 4000
 description: |-
   `GET /students/me/roommate-invitation` → `{ invitation: { id, fromName, expiresAt, termName, stayStart, stayEnd, roomTypeName, roomClassName, surchargeRate, termPrice, deposit, depositWindowHours, registrationClosesAt } | null }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications

@@ -6,7 +6,7 @@ order: 11000
 description: |-
   `GET /turnover?termId&block` → `{ term, previousTerm, checkOutBy, checkInStart, counts, leavers, movers, rooms }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 queryParams:
   - key: termId
     value: '{{termId}}'

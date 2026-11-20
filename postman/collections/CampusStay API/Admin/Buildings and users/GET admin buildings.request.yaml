@@ -6,4 +6,4 @@ order: 2000
 description: |-
   `GET /admin/buildings` → `{ items: [{ id, name, gender, status, floors: [{ floor, roomClassName, roomClasses: [{ name, rooms }], twoBed, fourBed, sixBed, rooms, beds, closedRooms }] }], genders, floorOptions, roomClasses: [{ id, name }], layoutNote }`
 
-  Contract: `docs/api-contract.md` › Admin › Buildings and users
+  Contract: `tools/postman/api-contract.md` › Admin › Buildings and users

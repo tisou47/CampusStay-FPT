@@ -6,7 +6,7 @@ order: 8000
 description: |-
   POST `/devices` · `/devices/unregister` — request: Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out — response: `204`; notifications are then also pushed (C-25)
 
-  Contract: `docs/api-contract.md` › Session and shared
+  Contract: `tools/postman/api-contract.md` › Session and shared
 headers:
   - key: Content-Type
     value: application/json

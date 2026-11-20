@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /admin/emails/preview` `{ mode, studentCode?, termId, group, block?, gender?, templateKey, subject }` → `{ count, preview: { recipientName, subject, lines } | null }`
 
-  Contract: `docs/api-contract.md` › Admin › Messages
+  Contract: `tools/postman/api-contract.md` › Admin › Messages
 headers:
   - key: Content-Type
     value: application/json

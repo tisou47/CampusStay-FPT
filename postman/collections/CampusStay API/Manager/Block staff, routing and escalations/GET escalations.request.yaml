@@ -6,7 +6,7 @@ order: 10000
 description: |-
   `GET /escalations?termId&block` → `{ items: [{ id, kind, title, subtitle, room, why, tone, openFor, ownerName, handled: { action, at, note } | null, events: [{ text, at }], suggestedAssigneeId, link, canOfferTemporaryBed }], assignees: [{ id, name }] }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 queryParams:
   - key: termId
     value: '{{termId}}'

@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /admin/notification-templates/{key}/test`
 
-  Contract: `docs/api-contract.md` › Admin › Messages
+  Contract: `tools/postman/api-contract.md` › Admin › Messages
 pathVariables:
   - key: key
     value: ''

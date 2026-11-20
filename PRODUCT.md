@@ -40,7 +40,7 @@ Built for one campus's real dormitory rules rather than a generic housing platfo
 
 ## Capabilities and Constraints
 
-- Scope and rules: `docs/01_Change_Spec_v2.md` (wins over the Brief), `docs/00_Project_Brief.md`, API contract `docs/api-contract.md`, screen map `docs/web/01_Screen_Map.md`.
+- Scope and rules: `docs/01_Change_Spec_v2.md` (wins over the Brief), `docs/00_Project_Brief.md`, API contract `tools/postman/api-contract.md`, screen map `docs/web/01_Screen_Map.md`.
 - Two languages: Vietnamese (default) and English across web, API messages, notifications and emails; saved on the account; VI/EN switch in the top bar and on sign-in. Dates `dd/MM/yyyy` (VI) or `d MMM yyyy` (EN); amounts `1.200.000 ₫` (VI) or `1,200,000 VND` (EN). Typed text stays as typed.
 - Menus per role are fixed by the spec §11.2; hub pages for Student, Room and Term dashboard; global search in the top bar.
 - Back office designed for 1366 px and wider; student portal phone-first.

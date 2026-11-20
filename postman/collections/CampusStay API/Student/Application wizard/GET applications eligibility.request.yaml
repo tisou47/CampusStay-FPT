@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /applications/eligibility?termId` → `{ term, eligible, checks: [{ title, detail, passed }] }`
 
-  Contract: `docs/api-contract.md` › Student › Application wizard
+  Contract: `tools/postman/api-contract.md` › Student › Application wizard
 queryParams:
   - key: termId
     value: '{{termId}}'

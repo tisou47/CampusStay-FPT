@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /round2/offers?termId&status&q&page&pageSize` (Managers) → `{ items: [{ id, applicationId, studentName, studentCode, requested, status: Pending|Accepted|Declined|Expired|Withdrawn|No offer, offeredAt, expiresAt, respondedAt, options: [{ block, roomTypeName, roomClassName, termPrice, difference, chosen }] }], total, counts: { pending, accepted, declined, expired, withdrawn, noOffer } }` (A-58)
 
-  Contract: `docs/api-contract.md` › Manager › Round 2
+  Contract: `tools/postman/api-contract.md` › Manager › Round 2
 queryParams:
   - key: termId
     value: '{{termId}}'

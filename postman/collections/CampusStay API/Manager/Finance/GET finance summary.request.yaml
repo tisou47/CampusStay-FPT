@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
 
-  Contract: `docs/api-contract.md` › Manager › Finance
+  Contract: `tools/postman/api-contract.md` › Manager › Finance
 queryParams:
   - key: termId
     value: '{{termId}}'

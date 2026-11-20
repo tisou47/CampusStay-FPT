@@ -6,4 +6,4 @@ order: 3000
 description: |-
   GET `/auth/me` — request: — — response: `user`
 
-  Contract: `docs/api-contract.md` › Session and shared
+  Contract: `tools/postman/api-contract.md` › Session and shared

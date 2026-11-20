@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /room-changes/{id}/matching-beds` → `{ items: [{ bedId, floor, roommates }] }` (free Beds of the next Term)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
 pathVariables:
   - key: id
     value: ''

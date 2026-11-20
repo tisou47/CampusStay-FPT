@@ -6,7 +6,7 @@ order: 12000
 description: |-
   `GET /reports/block?termId&block` → `{ allocated, weekly: [{ label, value }], notCheckedIn, followUpBy }`; exports `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 queryParams:
   - key: termId
     value: '{{termId}}'

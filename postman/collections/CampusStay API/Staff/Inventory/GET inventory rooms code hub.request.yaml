@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `GET /inventory/rooms/{code}/hub?termId` → `{ details, sections: { residents, meterReadings, maintenance, inspections: [{ kind, id, title, detail, status, at }] } }` (Room hub, A-48)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inventory
 pathVariables:
   - key: code
     value: ''

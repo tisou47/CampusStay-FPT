@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /next-term-requests/decision` `{ items: [{ kind, id }], decision, reason? }` → `{ decided, failed: [{ kind, id, message }] }` (A-44)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 headers:
   - key: Content-Type
     value: application/json

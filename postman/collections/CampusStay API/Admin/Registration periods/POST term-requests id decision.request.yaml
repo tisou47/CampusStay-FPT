@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `POST /term-requests/{id}/decision { status: 'In progress'|'Needs changes'|'Rejected', note }` → `204` (A-28)
 
-  Contract: `docs/api-contract.md` › Admin › Registration periods
+  Contract: `tools/postman/api-contract.md` › Admin › Registration periods
 pathVariables:
   - key: id
     value: ''

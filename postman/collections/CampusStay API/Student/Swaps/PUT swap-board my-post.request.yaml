@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `PUT /swap-board/my-post` `{ termId, block|null, roomTypeId, roomClassId }` → `204` (without `roomTypeId` the post comes down)
 
-  Contract: `docs/api-contract.md` › Student › Swaps
+  Contract: `tools/postman/api-contract.md` › Student › Swaps
 headers:
   - key: Content-Type
     value: application/json
