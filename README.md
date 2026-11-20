@@ -27,6 +27,18 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 
 After adding or changing an endpoint, run `node tools/postman/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
 
+## Sync documents with Google Drive
+
+The team Google Drive folder `DATN-FA26SE260-GFA26SE104 CampusStay` is the source of `docs/` (folders `Topic`, `SEP490_Report`, `SEP490_R2_BM04_Review2-Document`, `Diagrams`). Requires Google Drive for Desktop signed in to an account that sees the folder (a shared folder: "Add shortcut to Drive"); if it is not at `G:\My Drive\…`, set `CAMPUSSTAY_DRIVE_DIR` or pass `-DriveDir`.
+
+```powershell
+powershell -File tools/sync-docs.ps1                # preview Drive -> repo
+powershell -File tools/sync-docs.ps1 -Apply         # pull before committing docs
+powershell -File tools/sync-docs.ps1 -Push -Apply   # only for files edited in the repo
+```
+
+The script never deletes files that exist only on the destination side unless `-Force` is given (exit code 2), and skips Office lock files (`~$*`).
+
 ## API from Postman
 
 With the backend running, Swagger UI is at http://localhost:8080/api/swagger-ui.html. In Postman, open this repository's `postman/` folder, choose the **Local** or **Production** environment and send any request: the collection signs in as the role of the request's folder. The smoke tests run from the command line:
