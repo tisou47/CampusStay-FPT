@@ -26,7 +26,7 @@ public interface MaintenanceRequests {
      * @param category code of the {@code MAINTENANCE_CATEGORY} list; {@code urgency} {@code NORMAL} or {@code URGENT}
      */
     record OpenRequest(long id, String code, Long termId, long buildingId, String room, String title, String category,
-            String urgency, String status, Long assigneeId, Instant reportedAt, int reopenCount) {
+            String urgency, String status, Long assigneeId, Instant reportedAt, int reopenCount, Instant slaDueAt) {
     }
 
     /** Open requests of the Blocks, oldest first. */

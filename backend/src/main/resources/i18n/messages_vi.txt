@@ -1123,3 +1123,5 @@ The proposed Bed was taken since the run ⟶ Giường được đề xuất đ�
 This stay is being terminated. Cancel the termination before moving the student. ⟶ Chỗ ở này đang bị chấm dứt. Hãy hủy việc chấm dứt trước khi chuyển sinh viên.
 This termination is overdue: the next-Term Bed was released and the door code changed. Place the student again instead of cancelling. ⟶ Việc chấm dứt này đã quá hạn: giường học kỳ sau đã được trả và mã cửa đã đổi. Hãy xếp lại chỗ cho sinh viên thay vì hủy.
 Too many attempts from this device. Wait a few minutes and try again. ⟶ Thiết bị này đã thử quá nhiều lần. Hãy đợi vài phút rồi thử lại.
+Write which temporary Bed was arranged and until when. ⟶ Hãy ghi giường tạm đã sắp xếp và đến khi nào.
+Mark the request resolved before you close it. ⟶ Hãy đánh dấu yêu cầu đã xử lý xong trước khi đóng.

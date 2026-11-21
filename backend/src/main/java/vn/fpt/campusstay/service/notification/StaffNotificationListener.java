@@ -12,6 +12,7 @@ import vn.fpt.campusstay.event.InspectionAssigned;
 import vn.fpt.campusstay.event.MeterPeriodLate;
 import vn.fpt.campusstay.event.WeekScheduleReminderDue;
 import vn.fpt.campusstay.event.WeekScheduleSent;
+import vn.fpt.campusstay.event.TemporaryBedArranged;
 import vn.fpt.campusstay.event.WorkReassigned;
 
 /** Notices for Staff and Managers: work handed to them or overdue. */
@@ -30,6 +31,15 @@ class StaffNotificationListener {
     @EventListener
     void on(EscalationAssigned e) {
         notifier.notify(e.assigneeId(), "ESCALATION_ASSIGNED", Map.of("code", e.code(), "title", e.title()), e.link());
+    }
+
+    @EventListener
+    void on(TemporaryBedArranged e) {
+        Map<String, String> values = Map.of("code", e.code(), "note", e.note());
+        notifier.notify(e.studentId(), "TEMPORARY_BED_ARRANGED", values, "/student/requests");
+        if (e.ownerId() != null) {
+            notifier.notify(e.ownerId(), "TEMPORARY_BED_ARRANGED", values, "/staff/room-changes");
+        }
     }
 
     @EventListener

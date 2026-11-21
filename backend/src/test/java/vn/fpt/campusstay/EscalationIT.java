@@ -74,7 +74,12 @@ class EscalationIT {
 
     /** Moves the report back in time, as if it had waited that long. */
     private void reportedHoursAgo(String code, int hours) {
-        jdbc.sql("UPDATE mnt_request SET reported_at = now() - make_interval(hours => :h) WHERE code = :c")
+        // Time passes for the request: its stored deadline moves back with it (escalations read sla_due_at).
+        jdbc.sql("""
+                UPDATE mnt_request SET sla_due_at = sla_due_at - (reported_at - (now() - make_interval(hours => :h))),
+                       reported_at = now() - make_interval(hours => :h)
+                WHERE code = :c
+                """)
                 .param("h", hours).param("c", code).update();
     }
 
