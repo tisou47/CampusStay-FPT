@@ -137,10 +137,16 @@ void main() {
     });
     await show(tester, const PaymentsScreen());
     expect(find.text('900,000 VND'), findsWidgets);
-    expect(find.textContaining('transfers wait for a Manager'), findsOneWidget);
-    expect(find.text('Refunds and refund account'), findsOneWidget);
-    expect(find.text('Pay Deposit'), findsOneWidget);
-    await tester.tap(find.text('Deposit'));
+    expect(find.text('Transfers waiting for a Manager'), findsOneWidget);
+    expect(find.text('Refund account'), findsOneWidget);
+    expect(find.text('Invoices & fees (1)'), findsOneWidget);
+    // The Refund items tab lists the refunds (none here).
+    await tester.tap(find.text('Refund items (0)'));
+    await tester.pumpAndSettle();
+    expect(find.text('No refunds yet'), findsOneWidget);
+    await tester.tap(find.text('Invoices & fees (1)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deposit · 900,000 VND'));
     await tester.pumpAndSettle();
     expect(find.text('Pay with VietQR'), findsOneWidget);
   });
@@ -158,9 +164,14 @@ void main() {
       'POST /invoices/INV-1/claim': <String, Object>{},
     });
     await show(tester, const InvoiceScreen(id: 'INV-1'));
-    expect(find.text('Copy transfer content'), findsOneWidget);
-    expect(find.text('Or transfer manually'), findsOneWidget);
+    expect(find.text('CS INV1'), findsOneWidget);
+    expect(find.text('OR TRANSFER MANUALLY'), findsOneWidget);
     await tester.tap(find.text('I have transferred'));
+    await tester.pumpAndSettle();
+    // The student checks the amount and the transfer content before the claim is sent.
+    expect(find.text('Confirm transfer submission'), findsOneWidget);
+    expect(calls, isNot(contains('POST /invoices/INV-1/claim')));
+    await tester.tap(find.text('Yes, I have transferred'));
     await tester.pumpAndSettle();
     expect(calls, contains('POST /invoices/INV-1/claim'));
   });
@@ -198,17 +209,27 @@ void main() {
       '/students/me/late-check-in': {'request': null, 'canRequest': false},
     });
     await show(tester, const RoomScreen());
+    // Room overview: the Room, its details and the roommates.
     expect(find.text('A101 · Bed 1'), findsWidgets);
-    await tester.tap(find.text('Requests for next Term'));
+    expect(find.text('Trần Thị Mẫu'), findsOneWidget);
+    expect(find.text('1 × Bed'), findsOneWidget);
+    // Furniture & equipment: one tile per type, its count, and the report button.
+    await tester.tap(find.text('Furniture & equipment (1)'));
     await tester.pumpAndSettle();
+    expect(find.text('× 1'), findsOneWidget);
+    expect(find.text('Report broken equipment'), findsOneWidget);
+    // Contract & utilities: the contract, the milestones, the next Term with its requests, and the door code.
+    await tester.tap(find.text('Contract & utilities'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dormitory stay contract'), findsOneWidget);
+    expect(find.text('Stay milestones & activity'), findsOneWidget);
     expect(find.text('Extend my stay'), findsOneWidget);
+    expect(find.text('Change Room next Term'), findsOneWidget);
     expect(find.text('Change the Room Class'), findsNothing);
-    Navigator.of(tester.element(find.text('Extend my stay'))).pop();
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Show door code'), 300);
     await tester.tap(find.text('Show door code'));
     await tester.pumpAndSettle();
     expect(find.text('4821'), findsOneWidget);
-    expect(find.text('Trần Thị Mẫu · 2'), findsOneWidget);
   });
 
   testWidgets('Activity: applications, requests with their actions, and notifications', (tester) async {
@@ -398,17 +419,23 @@ void main() {
       },
     });
     await show(tester, const RegistrationPeriodScreen(termId: 'SP27'));
-    expect(find.text('Results published'), findsOneWidget);
+    // The steps of the period; the only date here is the results.
+    expect(find.text('Results'), findsOneWidget);
     expect(find.text('Apply now'), findsOneWidget);
-    await tester.tap(find.text('Prices'));
+    // Prices: the first Room Type and its first tier are open, with the fee breakdown.
+    await tester.tap(find.text('Prices (1)'));
     await tester.pumpAndSettle();
-    expect(find.text('3,000,000 VND'), findsOneWidget);
-    await tester.tap(find.text('Rules'));
+    expect(find.text('3,000,000 VND'), findsWidgets);
+    expect(find.text('Fee breakdown'.toUpperCase()), findsOneWidget);
+    expect(find.text('2,100,000 VND'), findsOneWidget);
+    await tester.tap(find.text('House rules'));
     await tester.pumpAndSettle();
     expect(find.text('Quiet hours from 23:00.'), findsOneWidget);
-    await tester.tap(find.text('FAQ'));
+    expect(find.text('Key financial rules'), findsOneWidget);
+    await tester.tap(find.text('FAQ (1)'));
     await tester.pumpAndSettle();
     expect(find.text('Can I cook?'), findsOneWidget);
+    expect(find.text('In the shared kitchen.'), findsOneWidget);
   });
 
   testWidgets('New maintenance request: category, title and description are required', (tester) async {
