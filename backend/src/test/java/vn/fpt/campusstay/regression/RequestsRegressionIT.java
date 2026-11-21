@@ -226,6 +226,18 @@ class RequestsRegressionIT {
                 .as("cancel OVERDUE → HTTP %d, next-Term Beds now %d", cancel, nextTermBeds(13)).isTrue();
     }
 
+    /** TC-ASG-074: My Room shows the longest stay allowed, so the extension options come from the server (WEB-STU-06). */
+    @Test
+    void allocationStayShowsMaxTerms() throws Exception {
+        openNextTermWindow();
+        continuingResident(16, "A-403");
+        int max = Integer.parseInt(jdbc.sql("SELECT value FROM cfg_parameter WHERE key = 'stay.max_terms'")
+                .query(String.class).single());
+        String json = RegressionSupport.body(r.getAs("/students/me/allocation", r.bearer(RegressionSupport.student(16))));
+        assertThat((Integer) JsonPath.read(json, "$.stay.maxTerms")).isEqualTo(max);
+        assertThat((Integer) JsonPath.read(json, "$.stay.committedTerms")).isEqualTo(2);
+    }
+
     /** TC-ASG-072 (Wave 1 regression): BE-ASG-09: a resident whose Bed is already taken in the next Term at M2 is told (not only an audit line). */
     @Test
     void beAsg09_residentWhoseNextTermBedIsTakenIsTold() throws Exception {

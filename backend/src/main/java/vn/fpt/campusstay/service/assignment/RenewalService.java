@@ -23,6 +23,7 @@ import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.PaymentClaimRejected;
 import vn.fpt.campusstay.event.PaymentConfirmed;
 import vn.fpt.campusstay.event.RenewalWorkUndecided;
+import vn.fpt.campusstay.event.NextTermBedTaken;
 import vn.fpt.campusstay.event.RequestsWindowOpened;
 import vn.fpt.campusstay.event.StudentNotEnrolled;
 import vn.fpt.campusstay.exception.ApiException;
@@ -195,6 +196,7 @@ public class RenewalService {
                 audit.record(Actor.SYSTEM, "NEXT_TERM_BED_TAKEN", AuditLog.Tone.WARNING, "Allocation", a.id(),
                         bed == null ? null : "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(),
                         Map.of("term", r.name()));
+                events.publishEvent(new NextTermBedTaken(a.studentId(), bed == null ? "-" : bed.roomCode(), r.name()));
                 continue;
             }
             if (state.equals("CONTINUING")) {

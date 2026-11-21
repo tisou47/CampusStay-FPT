@@ -1120,3 +1120,5 @@ The only free Bed of that kind is in a Block already committed. Choose another o
 {0} proposed Bed was taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
 {0} proposed Beds were taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
 The proposed Bed was taken since the run ⟶ Giường được đề xuất đã có người nhận sau lượt xếp
+This stay is being terminated. Cancel the termination before moving the student. ⟶ Chỗ ở này đang bị chấm dứt. Hãy hủy việc chấm dứt trước khi chuyển sinh viên.
+This termination is overdue: the next-Term Bed was released and the door code changed. Place the student again instead of cancelling. ⟶ Việc chấm dứt này đã quá hạn: giường học kỳ sau đã được trả và mã cửa đã đổi. Hãy xếp lại chỗ cho sinh viên thay vì hủy.

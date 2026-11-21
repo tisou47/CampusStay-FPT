@@ -166,6 +166,15 @@ class JdbcMoves implements Moves {
         if (rows.size() != ids.size()) {
             throw ApiException.conflict("ALLOCATION_ENDED", "This student no longer holds the Bed.");
         }
+        boolean terminating = jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM asg_termination WHERE allocation_id IN (:ids)
+                               AND status IN ('NOTICE_SENT', 'OVERDUE'))
+                """).param("ids", ids).query(Boolean.class).single();
+        if (terminating) {
+            // A move would orphan the termination and hand out a new door code (BE-ASG-05).
+            throw ApiException.conflict("TERMINATION_OPEN",
+                    "This stay is being terminated. Cancel the termination before moving the student.");
+        }
         return rows;
     }
 
