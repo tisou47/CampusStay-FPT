@@ -66,7 +66,8 @@ class AdminSettingsIT {
     /**
      * TC-CFG-024: each group lists its settings with where they act; an out-of-range value is refused; a saved
      * change is audited and announced to students; grouped settings left System parameters, and settings that are
-     * not deadlines (Family Day, meter period closing) are in System parameters; only the Admin edits.
+     * not deadlines or stay rules (Family Day, meter period closing, emergency contacts) are in System parameters;
+     * only the Admin edits.
      */
     @Test
     void groupedSettings() throws Exception {
@@ -90,7 +91,8 @@ class AdminSettingsIT {
         send("PUT", "/admin/settings/stay", admin, "{\"values\":{\"stay.max_terms\":6,\"stay.auto_extension\":false}}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.settings[?(@.key == 'stay.max_terms')].value", contains(6)))
-                .andExpect(jsonPath("$.settings[?(@.key == 'stay.auto_extension')].value", contains(false)));
+                .andExpect(jsonPath("$.settings[?(@.key == 'stay.auto_extension')].value", contains(false)))
+                .andExpect(jsonPath("$.settings[*].key", not(hasItem("student.emergency_contacts_max"))));
         send("PUT", "/admin/settings/deadlines", admin, "{\"values\":{\"fee.deposit_hours\":36}}")
                 .andExpect(status().isOk());
         mvc.perform(get("/admin/fees").header(HttpHeaders.AUTHORIZATION, admin))
@@ -105,6 +107,8 @@ class AdminSettingsIT {
                 .andExpect(jsonPath("$.sections[?(@.title == 'Family Day')].fields[*].key",
                         contains("family_day.early_minutes", "family_day.adult_age")))
                 .andExpect(jsonPath("$.sections[?(@.title == 'Utility')].fields[*].key", contains("utility.close_days")))
+                .andExpect(jsonPath("$.sections[?(@.title == 'Students')].fields[*].key",
+                        contains("student.emergency_contacts_max")))
                 .andExpect(jsonPath("$.sections[*].fields[?(@.key == 'handover.visit_from_hour')].label")
                         .value(hasItem("Room visits start at (hour, 1–24)")));
         mvc.perform(get("/admin/settings/nothing").header(HttpHeaders.AUTHORIZATION, admin))
