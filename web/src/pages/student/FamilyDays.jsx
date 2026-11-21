@@ -6,7 +6,7 @@ import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatDateTimeRange, formatTime } from '@/lib/format'
 import { t } from '@/i18n'
-import { StatusList, StatusRow, StudentPage } from './shared'
+import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 
 // SCR-VIS-04 Family Days — Student (ADR-29, contract A-69): the Family Days of the Block the student lives in, and
@@ -17,7 +17,12 @@ import { familyDayStatusLabel } from '@/lib/familyDayStatus'
 export default function FamilyDays() {
   const query = useQuery(['my-family-days'], ({ signal }) => api.me.familyDays(undefined, { signal }))
   return (
-    <StudentPage title="Family Days" description="Invite your family to visit you in the common area of your block." width="lg:max-w-3xl">
+    <StudentPage
+      title="Family Days"
+      description="Invite your family to visit you in the common area of your block."
+      width="lg:max-w-3xl"
+      phoneTop={<ActivitySwitch current="family-days" />}
+    >
       <QueryState
         query={query}
         isEmpty={(d) => d.items.length === 0}
