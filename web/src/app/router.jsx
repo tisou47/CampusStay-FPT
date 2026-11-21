@@ -116,6 +116,7 @@ const InspectionChecklists = () => import('@/pages/admin/InspectionChecklists')
 const NotificationTemplates = () => import('@/pages/admin/NotificationTemplates')
 const SendEmail = () => import('@/pages/admin/SendEmail')
 const SystemParameters = () => import('@/pages/admin/SystemParameters')
+const RoomHandoverSettings = () => import('@/pages/admin/RoomHandoverSettings')
 const DemoData = () => import('@/pages/admin/DemoData')
 const Buildings = () => import('@/pages/admin/Buildings')
 const UsersRoles = () => import('@/pages/admin/UsersRoles')
@@ -324,6 +325,7 @@ export const router = createBrowserRouter([
         { path: 'notifications', ...page(NotificationTemplates) },
         { path: 'notifications/send', ...page(SendEmail) },
         { path: 'system-parameters', ...page(SystemParameters) },
+        { path: 'handover-settings', ...page(RoomHandoverSettings) },
         { path: 'demo', ...page(DemoData) },
         { path: 'buildings', ...page(Buildings) },
         { path: 'furniture-types', ...page(FurnitureTypes) },

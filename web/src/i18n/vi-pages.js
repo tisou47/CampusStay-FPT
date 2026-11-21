@@ -2199,6 +2199,9 @@ const admin = {
   "A student proposes a swap": "Một sinh viên đề nghị hoán đổi",
   "System parameters saved": "Đã lưu tham số hệ thống",
   "New values apply to new sessions and invoices.": "Giá trị mới áp dụng cho phiên đăng nhập và hóa đơn mới.",
+  // Admin › Rules › Room handover (the "Room handover" section of the system parameters)
+  "The check-in inventory, meter tolerances and Room visits.": "Kiểm kê nhận phòng, mức sai lệch chỉ số điện nước và lịch xuống phòng.",
+  "New check-in inventories and visits use the new values.": "Các biên bản kiểm kê và lịch xuống phòng mới dùng giá trị mới.",
   "System Parameters": "Tham số hệ thống",
   "Global values used across CampusStay. Every change is written to the audit log.": "Các giá trị dùng chung trong CampusStay. Mọi thay đổi đều được ghi vào nhật ký kiểm tra.",
   "Enter a whole number": "Nhập một số nguyên",

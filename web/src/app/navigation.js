@@ -293,6 +293,7 @@ export const backOffice = {
           { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
           { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
+          { label: 'Room handover', icon: KeyRound, to: '/admin/handover-settings' },
         ],
       },
       {
