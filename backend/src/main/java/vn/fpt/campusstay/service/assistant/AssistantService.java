@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Duration;
@@ -11,12 +13,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -39,14 +45,19 @@ import vn.fpt.campusstay.security.Role;
 @Service
 public class AssistantService {
 
-    /** A turn of the conversation sent by the client: {@code user} or {@code assistant}. */
-    public record Turn(String role, String content) {
+    /**
+     * A turn of the conversation sent by the client: {@code user} or {@code assistant}. An assistant turn carries the
+     * {@code signature} the server returned with it; one without a valid signature was not written by the server and
+     * is dropped (BE-PLT-02).
+     */
+    public record Turn(String role, String content, String signature) {
     }
 
     public record Status(boolean enabled) {
     }
 
-    public record Reply(String reply) {
+    /** @param signature to send back with this answer as an assistant turn */
+    public record Reply(String reply, String signature) {
     }
 
     private static final Duration WINDOW = Duration.ofHours(1);
@@ -85,6 +96,8 @@ public class AssistantService {
     private final Clock clock;
     private final Map<String, String> guides = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Instant>> asked = new ConcurrentHashMap<>();
+    /** Signs the answers of this run of the server; after a restart older answers are simply left out. */
+    private final byte[] signingKey = new byte[32];
 
     AssistantService(AssistantModel model, StudentData data, AssistantProperties config,
             CurrentUser currentUser, Clock clock) {
@@ -93,6 +106,7 @@ public class AssistantService {
         this.config = config;
         this.currentUser = currentUser;
         this.clock = clock;
+        new SecureRandom().nextBytes(signingKey);
     }
 
     public Status status() {
@@ -114,12 +128,14 @@ public class AssistantService {
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
         String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
-            return new Reply(DOOR_CODE_ANSWERS.get(locale));
+            return reply(DOOR_CODE_ANSWERS.get(locale));
         }
 
         List<AssistantModel.Message> messages = new ArrayList<>();
         messages.add(new AssistantModel.Message("system", systemPrompt(user, locale)));
-        turns.subList(Math.max(0, turns.size() - MAX_TURNS), turns.size())
+        List<Turn> genuine = turns.stream()
+                .filter(t -> !"assistant".equals(t.role()) || sign(t.content()).equals(t.signature())).toList();
+        genuine.subList(Math.max(0, genuine.size() - MAX_TURNS), genuine.size())
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
 
@@ -133,7 +149,23 @@ public class AssistantService {
         if (text.isEmpty() || CJK.matcher(text).find()) {
             throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
         }
-        return new Reply(text);
+        return reply(text);
+    }
+
+    private Reply reply(String text) {
+        return new Reply(text, sign(text));
+    }
+
+    /** HMAC-SHA256 of an answer, Base64. */
+    String sign(String text) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(signingKey, "HmacSHA256"));
+            return Base64.getEncoder().encodeToString(mac.doFinal((text == null ? "" : text.strip())
+                    .getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /** Counts a question against the student's hourly limit. */

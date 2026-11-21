@@ -1125,3 +1125,5 @@ This termination is overdue: the next-Term Bed was released and the door code ch
 Too many attempts from this device. Wait a few minutes and try again. ⟶ Thiết bị này đã thử quá nhiều lần. Hãy đợi vài phút rồi thử lại.
 Write which temporary Bed was arranged and until when. ⟶ Hãy ghi giường tạm đã sắp xếp và đến khi nào.
 Mark the request resolved before you close it. ⟶ Hãy đánh dấu yêu cầu đã xử lý xong trước khi đóng.
+The stay must end on or after the last Check-in day saved in the timeline ({0}). ⟶ Thời gian ở phải kết thúc vào hoặc sau ngày nhận phòng cuối cùng đã lưu trong mốc thời gian ({0}).
+The stay must start on or before the Check-out deadline saved in the timeline ({0}). ⟶ Thời gian ở phải bắt đầu vào hoặc trước hạn trả phòng đã lưu trong mốc thời gian ({0}).

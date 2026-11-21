@@ -401,7 +401,7 @@ public class DashboardService {
                 """, p);
         long onTime = count("""
                 SELECT count(*) FROM rpt_v_maintenance WHERE building_id IN (:b) AND resolved_at >= :since
-                  AND resolved_at <= reported_at + make_interval(hours => :hours)
+                  AND resolved_at <= coalesce(sla_due_at, reported_at + make_interval(hours => :hours))
                 """, p);
         long refunds = count(PENDING_REFUNDS, p);
         long escalations = count("SELECT count(*) FROM rpt_v_escalation WHERE building_id IN (:b) AND status = 'OPEN'", p);
@@ -414,6 +414,9 @@ public class DashboardService {
                 WHERE b.building_id IN (:b) GROUP BY b.floor ORDER BY b.floor
                 """).params(p)
                 .query((rs, i) -> new FloorBeds(rs.getInt("floor"), rs.getLong("allocated"), rs.getLong("beds"))).list();
+        if (!blocks.single()) {
+            floors = List.of(); // floor N of every Block would add up into one bar (BE-PLT-11)
+        }
         long outOfService = count("""
                 SELECT count(DISTINCT room_id) FROM rpt_v_bed WHERE building_id IN (:b) AND room_status = 'OUT_OF_SERVICE'
                 """, p);

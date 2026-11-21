@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -53,6 +54,8 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
  */
 @Service
 public class TermWizardService {
+
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public record General(String code, String name, LocalDate stayStart, LocalDate stayEnd) {
     }
@@ -387,6 +390,17 @@ public class TermWizardService {
                 stepFields = GENERAL_FIELDS;
                 String name = text(b.name());
                 checkGeneral(name, b.stayStart(), b.stayEnd(), errors);
+                // New stay dates against the timeline already saved (the DB checks ck_term_checkin/checkout, BE-PLT-09).
+                TermPlan.Timeline saved = before.timeline();
+                if (saved != null && b.stayEnd() != null && saved.checkInEnd() != null) {
+                    errors.check(!saved.checkInEnd().isAfter(b.stayEnd()), "stayEnd", "The stay must end on or after "
+                            + "the last Check-in day saved in the timeline (" + DAY.format(saved.checkInEnd()) + ").");
+                }
+                if (saved != null && b.stayStart() != null && saved.checkOutBy() != null) {
+                    errors.check(!saved.checkOutBy().isBefore(b.stayStart()), "stayStart", "The stay must start on "
+                            + "or before the Check-out deadline saved in the timeline (" + DAY.format(saved.checkOutBy())
+                            + ").");
+                }
                 if (published) {
                     boolean started = !today(now).isBefore(before.stayStart());
                     errors.check(!started || Objects.equals(b.stayStart(), before.stayStart())
