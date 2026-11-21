@@ -26,7 +26,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $Folders = @('Topic', 'SEP490_Report', 'SEP490_R2_BM04_Review2-Document', 'Diagrams')
-$Exclude = @('~$*', '.~lock*', '*.tmp', 'desktop.ini', '.gitkeep')
+# Reference copies from the school stay on the team's machines only (not committed, not overwritten either way).
+$Exclude = @('~$*', '.~lock*', '*.tmp', 'desktop.ini', '.gitkeep', 'SEP490 StudentGuide_Fall 2023.docx')
 $RepoDocs = Join-Path (Split-Path -Parent $PSScriptRoot) 'docs'
 
 if (-not (Test-Path -LiteralPath $DriveDir -PathType Container)) {
