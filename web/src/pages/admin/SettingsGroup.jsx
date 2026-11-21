@@ -83,13 +83,14 @@ export function SettingsList({ form }) {
   )
 }
 
+/** One quiet line under the settings: from when a change applies (a box here only repeated the save message). */
 export function AppliesFrom({ appliesFrom }) {
   return (
-    <Alert title="When changes apply" className="shrink-0">
+    <p className="shrink-0 text-sm text-fg-tertiary">
       {appliesFrom
         ? t('A term keeps the values it opened with; a change applies from {term}, the next term to open, and to work started from now on. Students read it in an announcement.', { term: appliesFrom })
         : t('A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.')}
-    </Alert>
+    </p>
   )
 }
 
