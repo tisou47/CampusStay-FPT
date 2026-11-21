@@ -12,6 +12,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { ConfigPage, useConfigForm } from './shared'
 import { AppliesFrom, SettingsList, useSettingsGroup } from './SettingsGroup'
 import { t, tr } from '@/i18n'
+import { parseDecimal } from '@/lib/numbers'
 
 // SCR-CFG-25 Refunds, penalties and terminations (spec §9, D-25): the refund rule of every trigger and the settings
 // of Utility-debt terminations and late check-ins, on one screen.
@@ -29,7 +30,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!String(form.when).trim()} onClick={() => onSave({ ...form, refundPercent: Number(form.refundPercent) || 0 })}>
+          <Button variant="primary" icon={Check} disabled={!String(form.when).trim() || Number.isNaN(parseDecimal(form.refundPercent))} onClick={() => onSave({ ...form, refundPercent: parseDecimal(form.refundPercent) ?? 0 })}>
             Save rule
           </Button>
         </>

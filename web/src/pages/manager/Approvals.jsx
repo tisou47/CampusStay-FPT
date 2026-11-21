@@ -14,7 +14,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatVnd, toDateInput } from '@/lib/format'
+import { campusToday, formatDate, formatDateTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { DatePicker } from '@/components/ui/date-time'
 
@@ -106,7 +106,7 @@ function LateDecision({ req }) {
         </Alert>
       ) : (
         <>
-          <Field label="New check-in deadline">{(id) => <DatePicker id={id} clearable value={deadline} onChange={setDeadline} />}</Field>
+          <Field label="New check-in deadline">{(id) => <DatePicker id={id} clearable value={deadline} minDate={campusToday()} onChange={setDeadline} />}</Field>
           {!req.paid && (
             <Field
               label="Balance deadline"

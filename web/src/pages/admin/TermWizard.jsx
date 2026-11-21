@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { ArrowLeft, ArrowRight, Check, CircleCheck, ExternalLink, Plus, Rocket, Trash2, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -15,6 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateRange, formatVnd } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { DifferencesTable, ExcludedRoomsField, ReasonInput, TimelineFields, TimelineStrip, timelineBody, timelineForm } from '../registration/shared'
 import { termTone } from './Terms'
 import { t, tr } from '@/i18n'
@@ -369,7 +370,7 @@ function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
           <Field
             label="Beds kept for new students (%)"
             helper={reservedDiffers ? t('The request asked for {value}%.', { value: proposal.reservedNewPercent }) : t('{n} of {beds} beds now.', { n: w.rooms.reservedBeds, beds: w.rooms.beds })}
-            error={fields.reservedNewPercent}
+            error={Number.isNaN(parseDecimal(reserved)) ? t('Enter a number, e.g. 12,5') : fields.reservedNewPercent}
           >
             {(id) => <Input id={id} inputMode="decimal" value={reserved} disabled={!w.editable.rooms} onChange={(e) => setReserved(e.target.value)} />}
           </Field>
@@ -424,12 +425,12 @@ function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
         next
         onPrev={onPrev}
         stepIndex={stepIndex}
-        disabled={!w.editable.rooms}
+        disabled={!w.editable.rooms || Number.isNaN(parseDecimal(reserved))}
         onSave={() =>
           save.run({
             blockIds: [...used],
             excludedRooms: excluded,
-            reservedNewPercent: reserved === '' ? 0 : Number(reserved),
+            reservedNewPercent: parseDecimal(reserved) ?? 0,
             roomTypeIds: [...types],
             roomClassIds: [...classes],
             reasons: pick(reasons, ['blocks', 'excludedRooms', 'roomTypes', 'roomClasses', 'reservedNewPercent']),
@@ -533,7 +534,7 @@ function PricesStep({ w, onSaved, onPrev, stepIndex }) {
           <Field
             label="Deposit (% of the price)"
             helper={depositDiffers ? t('The request asked for {value}%.', { value: asked.depositPercent }) : t('Default {n}%.', { n: p.defaultDepositPercent })}
-            error={fields.depositPercent}
+            error={Number.isNaN(parseDecimal(deposit)) ? t('Enter a number, e.g. 12,5') : fields.depositPercent}
           >
             {(id) => <Input id={id} inputMode="decimal" value={deposit} disabled={!editable} onChange={(e) => setDeposit(e.target.value)} />}
           </Field>
@@ -557,11 +558,11 @@ function PricesStep({ w, onSaved, onPrev, stepIndex }) {
         next
         onPrev={onPrev}
         stepIndex={stepIndex}
-        disabled={!editable}
+        disabled={!editable || Number.isNaN(parseDecimal(deposit))}
         onSave={() =>
           save.run({
             prices: rows.map((r) => ({ roomTypeId: r.roomTypeId, roomClassId: r.roomClassId, price: r.value === '' ? null : Number(r.value) })),
-            depositPercent: deposit === '' ? null : Number(deposit),
+            depositPercent: parseDecimal(deposit),
             utilityDeposit: utility === '' ? null : Number(utility),
             reasons: Object.fromEntries(Object.entries(reasons).filter(([k]) => k.startsWith('price:') || k === 'depositPercent' || k === 'utilityDeposit')),
             changeReason,
@@ -922,11 +923,20 @@ export default function TermWizard() {
   const firstOpen = useMemo(() => (w ? (w.published ? 'review' : STEPS[Math.min(w.step ?? 1, 6)].key) : null), [w])
   const step = params.get('step') ?? firstOpen
   const goTo = (key) => setParams({ step: key })
+  // The next step opens once the wizard is read again after the save: its form starts from the saved data (WEB-ADM-21).
+  const [pendingStep, setPendingStep] = useState(null)
+  useEffect(() => {
+    if (pendingStep && !query.loading) {
+      setParams({ step: pendingStep })
+      setPendingStep(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w])
   if (w === undefined) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState />
   const index = STEPS.findIndex((s) => s.key === step)
   const next = () => {
+    if (index < STEPS.length - 1) setPendingStep(STEPS[index + 1].key)
     invalidate('term-wizard')
-    if (index < STEPS.length - 1) goTo(STEPS[index + 1].key)
   }
   const prev = () => {
     if (index > 0) goTo(STEPS[index - 1].key)
