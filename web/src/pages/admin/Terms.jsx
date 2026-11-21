@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { Calendar, ClipboardList, Plus } from 'lucide-react'
+import { Calendar, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
@@ -30,14 +30,9 @@ export default function Terms() {
         title="Terms"
         description="Build a term step by step and publish it. Students see a term, its prices and its rules once it is published."
         actions={
-          <>
-            <Button icon={ClipboardList} to="/admin/term-requests">
-              Requests from managers
-            </Button>
-            <Button variant="primary" icon={Plus} to="/admin/terms/new">
-              New term
-            </Button>
-          </>
+          <Button variant="primary" icon={Plus} to="/admin/terms/new">
+            New term
+          </Button>
         }
       />
       <Table fill>
