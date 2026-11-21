@@ -133,7 +133,7 @@ export default function RoomClasses() {
     <>
       <PageHeader
         title="Room tiers"
-        description="Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term."
+        description="Amenity levels defined by the furniture they require; each adds a surcharge to the base price."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
             New room tier
@@ -189,10 +189,7 @@ export default function RoomClasses() {
       </Table>
 
       <Card className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex shrink-0 items-center justify-between gap-4">
-          <h2 className="text-h3 font-semibold text-fg">{t('Price preview · Term price per bed (deposit {p}%)', { p: Math.round(rate * 100) })}</h2>
-          <span className="text-sm text-fg-tertiary">{t('Computed from room types × room tiers × deposit rate. Read-only.')}</span>
-        </div>
+        <h2 className="shrink-0 text-h3 font-semibold text-fg">{t('Price preview · Term price per bed (deposit {p}%)', { p: Math.round(rate * 100) })}</h2>
         <QueryState query={query} compact isEmpty={(d) => !d.roomTypes?.length || !active.length}>
           {(data) => (
             <Table fill>

@@ -2909,8 +2909,8 @@ const inventory = {
   "Only furniture types that define the room tier are listed (Furniture types).":
     "Chỉ liệt kê các loại nội thất quyết định hạng phòng (Loại nội thất).",
   "Room furniture is checked against the new list at once.": "Nội thất của các phòng được kiểm tra theo danh sách mới ngay lập tức.",
-  "Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term.":
-    "Các mức tiện nghi, xác định bởi nội thất yêu cầu. Mỗi hạng cộng phụ phí (%) vào giá gốc của loại phòng; mỗi phòng có hạng theo từng học kỳ.",
+  "Amenity levels defined by the furniture they require; each adds a surcharge to the base price.":
+    "Các mức tiện nghi, xác định bởi nội thất yêu cầu; mỗi hạng cộng phụ phí vào giá gốc.",
 
   // Admin › Buildings
   "Room tier of the new rooms": "Hạng của các phòng mới",
