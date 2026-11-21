@@ -2,7 +2,7 @@ import { Check } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Alert, Card } from '@/components/ui/Display'
+import { Card } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
 import { ConfigPage, useConfigForm } from './shared'
 import { t } from '@/i18n'
@@ -53,9 +53,6 @@ export default function FeesRules() {
               </p>
             </Card>
           </div>
-          <Alert title="Where the other settings are" className="shrink-0">
-            {t('The deposit and balance payment windows are in deadlines and reminders; refund rules in refunds, penalties and terminations; the utility deposit in utility.')}
-          </Alert>
         </>
       )}
     </ConfigPage>
