@@ -58,6 +58,24 @@ class CheckOutCharges {
     /**
      * The other residents of the Room in the Term (living there, Allocation active), not counting {@code allocationId}.
      */
+    /**
+     * The roommates who lived in the Room at {@code at} (the check-out): resident by then and not gone before. People
+     * who moved in later are never charged for damage they did not live with (BE-ASG-03).
+     */
+    List<Long> roommatesAt(long allocationId, long termId, long roomId, Instant at) {
+        List<Long> beds = inventory.bedsOfRoom(roomId).stream().map(Inventory.BedSlot::bedId).toList();
+        if (beds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                SELECT id FROM asg_allocation
+                WHERE term_id = :term AND status IN ('ACTIVE', 'ENDED') AND bed_id IN (:beds) AND id <> :a
+                  AND resident_at IS NOT NULL AND resident_at <= :at AND (ended_at IS NULL OR ended_at >= :at)
+                ORDER BY id
+                """).param("term", termId).param("beds", beds).param("a", allocationId)
+                .param("at", java.sql.Timestamp.from(at)).query(Long.class).list();
+    }
+
     List<Long> roommates(long allocationId, long termId, long roomId) {
         List<Long> beds = inventory.bedsOfRoom(roomId).stream().map(Inventory.BedSlot::bedId).toList();
         if (beds.isEmpty()) {

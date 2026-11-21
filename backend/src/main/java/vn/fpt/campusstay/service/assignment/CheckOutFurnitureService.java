@@ -308,7 +308,12 @@ public class CheckOutFurnitureService {
         }
         record Roommate(long allocationId, long studentId) {
         }
-        List<Long> roommateIds = charges.roommates(allocationId, t.termId(), t.roomId());
+        Instant checkedOutAt = jdbc.sql("""
+                SELECT completed_at FROM asg_check_out WHERE allocation_id = :a AND completed_at IS NOT NULL
+                ORDER BY completed_at DESC LIMIT 1
+                """).param("a", allocationId).query(java.sql.Timestamp.class).optional().map(java.sql.Timestamp::toInstant)
+                .orElse(Instant.now(clock));
+        List<Long> roommateIds = charges.roommatesAt(allocationId, t.termId(), t.roomId(), checkedOutAt);
         List<Roommate> roommates = roommateIds.isEmpty() ? List.of() : jdbc.sql("""
                 SELECT id, student_id FROM asg_allocation WHERE id IN (:ids) ORDER BY id
                 """).param("ids", roommateIds)
