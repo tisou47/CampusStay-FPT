@@ -17,6 +17,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
@@ -32,7 +33,6 @@ import { t, tr } from '@/i18n'
 //   → { refund, refundStatus } — the damage charge is the sum of the items' damages (spec §6.16)
 
 const tones = { Pending: 'warning', Draft: 'info', 'Checked out': 'success', 'Pending check-out': 'warning', 'Settlement due': 'error' }
-const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
 
 const statusSegments = [
   { key: 'All', label: 'All' },
@@ -197,8 +197,13 @@ function RoomReadingsModal({ open, onClose, scope }) {
 export function CheckOutPanel({ d, embedded = false }) {
   const { notify, notifyError } = useToast()
   const done = d.status === 'Checked out'
-  const [electricity, setElectricity] = useState(formatNumber(d.reading?.electricity))
-  const [water, setWater] = useState(formatNumber(d.reading?.water))
+  // Raw text: a reading keeps its decimals ("1360,5"); formatNumber would add thousands dots (WEB-OPS-01).
+  const [electricity, setElectricity] = useState(d.reading?.electricity != null ? String(d.reading.electricity) : '')
+  const [water, setWater] = useState(d.reading?.water != null ? String(d.reading.water) : '')
+  const eValue = parseDecimal(electricity)
+  const wValue = parseDecimal(water)
+  const readingsInvalid = Number.isNaN(eValue) || Number.isNaN(wValue)
+  const [fresh, setFresh] = useState(null)
   // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)
   const [condition, setCondition] = useState(() => {
     if (done) return (d.settlement?.damage ?? 0) > 0 || (d.furniture ?? []).some((f) => f.amount > 0) ? 'damaged' : 'good'
@@ -213,8 +218,8 @@ export function CheckOutPanel({ d, embedded = false }) {
   const fData = furnitureQuery.data
   const byCondition = Boolean(fData?.saved)
   useEffect(() => {
-    setElectricity(d.reading?.electricity != null ? formatNumber(d.reading.electricity) : '')
-    setWater(d.reading?.water != null ? formatNumber(d.reading.water) : '')
+    setElectricity(d.reading?.electricity != null ? String(d.reading.electricity) : '')
+    setWater(d.reading?.water != null ? String(d.reading.water) : '')
   }, [d.allocationId, d.reading?.electricity, d.reading?.water])
   useEffect(() => {
     if (!fData) return
@@ -224,7 +229,8 @@ export function CheckOutPanel({ d, embedded = false }) {
     }
   }, [fData, condition])
 
-  const s = d.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
+  // The summary reads the settlement of the readings now on screen (saved as a draft just before), WEB-OPS-02.
+  const s = (showSummary && fresh) || d.settlement || { held: 0, share: 0, unpaid: 0, damage: 0 }
   const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
   const damageLines = done
@@ -256,14 +262,34 @@ export function CheckOutPanel({ d, embedded = false }) {
         }))
   const hasSharedSplit = damageLines.some((l) => l.split > 1)
 
+  // Confirm first saves the readings on screen as a draft and reads the settlement back, so the summary read aloud
+  // matches what the check-out will settle (WEB-OPS-02).
+  const review = useMutation(
+    async () => {
+      if (condition && furnitureSummary?.dirty) {
+        await api.checkOutFurniture.record(d.allocationId, furnitureSummary.payload)
+      }
+      await api.desk.checkOut(d.allocationId, { electricity: eValue, water: wValue, conditionGood: condition === 'good', draft: true })
+      return api.desk.checkOutDetail(d.allocationId)
+    },
+    {
+      invalidates: ['check-out', 'check-out-furniture'],
+      onSuccess: (detail) => {
+        setFresh(detail?.settlement ?? null)
+        setShowSummary(true)
+      },
+      onError: (e) => notifyError(e, 'Could not save the check-out'),
+    },
+  )
+
   const submit = useMutation(
     async (draft) => {
       if (!done && condition && furnitureSummary?.dirty) {
         await api.checkOutFurniture.record(d.allocationId, furnitureSummary.payload)
       }
       return api.desk.checkOut(d.allocationId, {
-        electricity: toNumber(electricity),
-        water: toNumber(water),
+        electricity: eValue,
+        water: wValue,
         conditionGood: condition === 'good',
         draft,
       })
@@ -379,6 +405,7 @@ export function CheckOutPanel({ d, embedded = false }) {
           <div className="grid grid-cols-2 gap-3">
             <Field
               label="Electricity (kWh)"
+              error={Number.isNaN(eValue) ? t('Enter a number, e.g. 1360,5') : undefined}
               helper={
                 d.previousReading
                   ? t('Previous reading: {value} kWh (recorded {date})', {
@@ -394,13 +421,14 @@ export function CheckOutPanel({ d, embedded = false }) {
                   value={electricity}
                   onChange={(e) => setElectricity(e.target.value)}
                   disabled={done}
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className="font-semibold tabular"
                 />
               )}
             </Field>
             <Field
               label="Water (m³)"
+              error={Number.isNaN(wValue) ? t('Enter a number, e.g. 1360,5') : undefined}
               helper={
                 d.previousReading
                   ? t('Previous reading: {value} m³ (recorded {date})', {
@@ -416,7 +444,7 @@ export function CheckOutPanel({ d, embedded = false }) {
                   value={water}
                   onChange={(e) => setWater(e.target.value)}
                   disabled={done}
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className="font-semibold tabular"
                 />
               )}
@@ -530,15 +558,16 @@ export function CheckOutPanel({ d, embedded = false }) {
                   tip="Keep what you entered and finish the check-out later."
                   size="sm"
                   onClick={() => submit.run(true)}
-                  disabled={submit.pending}
+                  disabled={submit.pending || readingsInvalid}
                 >
                   Save draft
                 </Button>
                 <Button
                   tip="Ends the student’s stay and frees the bed. A meter reading is taken."
                   variant="primary"
-                  disabled={!condition || submit.pending}
-                  onClick={() => setShowSummary(true)}
+                  disabled={!condition || readingsInvalid || submit.pending || review.pending}
+                  loading={review.pending}
+                  onClick={() => review.run()}
                 >
                   Confirm check-out
                 </Button>
@@ -643,7 +672,7 @@ export function CheckOutPanel({ d, embedded = false }) {
       {showSummary && (
         <Modal
           open={showSummary}
-          onClose={() => setShowSummary(false)}
+          onClose={() => { setShowSummary(false); setFresh(null) }}
           title={t('Settlement summary · {name}', { name: d.name })}
           footer={
             <div className="flex items-center justify-end gap-2">
