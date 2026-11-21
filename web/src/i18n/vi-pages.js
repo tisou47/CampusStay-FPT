@@ -3427,11 +3427,12 @@ const registration = {
   "{n} student fails this now": "Hiện có {n} sinh viên chưa đạt",
   "{n} students fail this now": "Hiện có {n} sinh viên chưa đạt",
   "Who is placed first when beds are short?": "Ai được xếp trước khi thiếu giường?",
-  "Students of a higher group get a bed first; then the earlier deposit. Use the arrows to reorder.": "Sinh viên thuộc nhóm cao hơn được xếp giường trước; sau đó đến người nộp cọc sớm hơn. Dùng mũi tên để sắp xếp.",
+  "Students of a higher group get a bed first; then the earlier deposit. The order in which applications are taken is on Roommate matching.":
+    "Sinh viên thuộc nhóm cao hơn được xếp giường trước; sau đó đến người nộp cọc sớm hơn. Thứ tự xét đơn nằm ở trang Ghép bạn cùng phòng.",
   "{n} student in this group": "{n} sinh viên trong nhóm",
   "{n} students in this group": "{n} sinh viên trong nhóm",
-  "A term keeps the rules it opened with: publishing a term copies these rules into it. Disability status is sensitive data: only the group flag is stored, never the reason.":
-    "Mỗi học kỳ giữ quy định lúc mở: khi công bố, các quy định này được sao chép vào học kỳ. Tình trạng khuyết tật là dữ liệu nhạy cảm: chỉ lưu cờ nhóm, không lưu lý do.",
+  "Changes apply from the next term that opens. Disability status is sensitive data: only the group flag is stored, never the reason.":
+    "Thay đổi áp dụng từ học kỳ tiếp theo được mở. Tình trạng khuyết tật là dữ liệu nhạy cảm: chỉ lưu cờ nhóm, không lưu lý do.",
   "Students apply between the opening and the closing of the Term's registration": "Sinh viên đăng ký trong thời gian mở đăng ký của học kỳ",
   "A Manager or the imported student list confirmed the student's record": "Quản lý hoặc danh sách sinh viên đã nhập xác nhận hồ sơ của sinh viên",
   "Who is placed first when beds are short, and what roommates should share. Publishing a term fixes these rules for it.":
