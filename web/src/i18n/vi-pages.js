@@ -3439,7 +3439,8 @@ const registration = {
     "Ai được xếp trước khi thiếu giường và bạn cùng phòng nên giống nhau ở điểm nào. Khi công bố, các quy định này được cố định cho học kỳ.",
   "Always true": "Luôn đúng",
   "A bed that breaks any of these is never proposed.": "Giường vi phạm bất kỳ điều nào sẽ không bao giờ được đề xuất.",
-  "The engine takes the applications in this order. Use the arrows to reorder.": "Hệ thống xét đơn theo thứ tự này. Dùng mũi tên để sắp xếp.",
+  "The engine takes the applications in this order when beds are short. The priority groups are on Who may apply.":
+    "Khi thiếu giường, hệ thống xét đơn theo thứ tự này. Các nhóm ưu tiên nằm ở trang Điều kiện đăng ký.",
   "How are roommates matched?": "Bạn cùng phòng được ghép thế nào?",
   "For 4-bed and 6-bed rooms, and 2-bed students who chose automatic matching. Very important counts twice as much as Important.":
     "Cho phòng 4 giường, 6 giường và sinh viên phòng 2 giường chọn ghép tự động. Rất quan trọng có trọng số gấp đôi Quan trọng.",

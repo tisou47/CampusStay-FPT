@@ -124,8 +124,8 @@ export default function MatchingCriteria() {
             </Card>
             <Card className="flex shrink-0 flex-col gap-2.5">
               <div className="flex flex-col gap-0.5">
-                <h2 className="text-h3 font-semibold text-fg">{t('Who is placed first when beds are short?')}</h2>
-                <p className="text-sm text-fg-tertiary">{t('The engine takes the applications in this order. Use the arrows to reorder.')}</p>
+                <h2 className="text-h3 font-semibold text-fg">{t('Processing order')}</h2>
+                <p className="text-sm text-fg-tertiary">{t('The engine takes the applications in this order when beds are short. The priority groups are on Who may apply.')}</p>
               </div>
               <ol className="flex flex-col gap-2.5">
                 {(draft.order ?? []).map((o, i) => (
