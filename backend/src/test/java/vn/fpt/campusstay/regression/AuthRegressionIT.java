@@ -59,6 +59,25 @@ class AuthRegressionIT {
         assertThat(signIn("192.0.2.10", email, TestAuth.PASSWORD)).as("owner signs in from their own IP").isEqualTo(200);
     }
 
+    /** TC-AUTH-088: the limiter keys on the client address: one client's 20 failures do not throttle another client. */
+    @Test
+    void limiterKeysOnClientAddress() throws Exception {
+        for (int n = 41; n <= 60; n++) {
+            signIn("10.0.0.1", RegressionSupport.student(n), "Guess" + n + "!x");
+        }
+        assertThat(signIn("10.0.0.1", RegressionSupport.student(61), "Guess61!x")).isEqualTo(429);
+        assertThat(signIn("10.0.0.2", RegressionSupport.student(61), "Guess61!x")).isEqualTo(401);
+    }
+
+    /** TC-AUTH-089: a shared network (school NAT): 19 failed sign-ins, then a correct password still signs in. */
+    @Test
+    void nineteenFailuresThenCorrectPasswordSignsIn() throws Exception {
+        for (int n = 62; n <= 80; n++) {
+            signIn("10.0.0.3", RegressionSupport.student(n), "Guess" + n + "!x");
+        }
+        assertThat(signIn("10.0.0.3", TestAuth.MANAGER_A, TestAuth.PASSWORD)).isEqualTo(200);
+    }
+
     /** TC-AUTH-085 (Wave 1 regression): BE-AUTH-03: anonymous forgot-password requests from one client across many accounts are throttled. */
     @Test
     void beAuth03_forgotPasswordIsRateLimitedPerClient() throws Exception {

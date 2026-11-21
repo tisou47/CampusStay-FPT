@@ -12,6 +12,7 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -73,6 +74,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
         return badRequest("BAD_REQUEST_BODY", "The request could not be read. Check the values you entered.", null);
+    }
+
+    /** A wrong content type or HTTP method is the client's mistake, not a server error (BE-PLT-10). */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ApiError> handleMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ApiError.of("BAD_REQUEST_BODY",
+                "The request could not be read. Check the values you entered."));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
