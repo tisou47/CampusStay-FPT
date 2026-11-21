@@ -2883,8 +2883,8 @@ const inventory = {
   "Fixture": "Thiết bị gắn cố định",
 
   // Admin › Furniture types and Room Class requirements
-  "Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers).":
-    "Các loại nội thất ký túc xá theo dõi. Loại quyết định hạng phòng là thứ các hạng phòng yêu cầu (Hạng phòng).",
+  "Kinds of furniture the dormitory tracks, with their price and condition levels.":
+    "Các loại nội thất ký túc xá theo dõi, kèm giá và các mức tình trạng.",
   "New furniture type": "Loại nội thất mới",
   "Code": "Mã",
   "Defines the room tier": "Quyết định hạng phòng",
