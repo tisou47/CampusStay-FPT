@@ -37,7 +37,7 @@ powershell -File tools/sync-docs.ps1 -Apply         # pull before committing doc
 powershell -File tools/sync-docs.ps1 -Push -Apply   # only for files edited in the repo
 ```
 
-The script never deletes files that exist only on the destination side unless `-Force` is given (exit code 2), and skips Office lock files (`~$*`).
+With `-Apply`, the script stops (exit code 2) instead of deleting a file that exists only on the destination side or overwriting a destination copy that is newer or different; `-Force` replaces them. It skips Office lock files (`~$*`). Self-check: `powershell -File tools/tests/sync-docs.test.ps1`.
 
 ## API from Postman
 
