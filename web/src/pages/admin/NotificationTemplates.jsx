@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Check, Eye, Mail } from 'lucide-react'
+import { Bell, Check, Eye } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Choice'
 import { Alert, Card } from '@/components/ui/Display'
-import { Field, Input } from '@/components/ui/Field'
+import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { getLang, t, tr } from '@/i18n'
@@ -19,6 +19,21 @@ import { getLang, t, tr } from '@/i18n'
 
 const MAX_PUSH = 160
 const channels = (tpl) => [tpl.push && t('Push'), tpl.inApp && t('In-app')].filter(Boolean).join(' · ') || t('Off')
+
+/** Groups of the list, by the template's key; the first match wins, the rest go to Other. */
+const GROUPS = [
+  ['Applications and assignment', /^(APPLICATION_|ALLOCATION_|ROOMMATE_|ROUND2_|WAITLIST|STUDENT_VERIF)/],
+  ['Payments', /^(DEPOSIT_|INVOICE_|PAYMENT_|BALANCE_|REFUND_|NEXT_TERM_FEE|UTILITY_)/],
+  ['Check-in, check-out and room handover', /^(CHECK_IN|CHECK_OUT|DAMAGE_|DOOR_CODE_|LATE_CHECK_IN|RESIDENT_MOVED)/],
+  ['Requests and term transition', /^(ROOM_CHANGE_|ROOM_CLASS_|SWAP_|NEXT_TERM_|RENEWAL_|REQUESTS_WINDOW|STAY_|END_OF_STAY|TERMINATION_)/],
+  ['Maintenance and inspections', /^(MAINTENANCE_|INSPECTION_|ESCALATION_|METER_)/],
+  ['Terms', /^TERM_/],
+  ['Family Day', /^FAMILY_DAY_/],
+  ['Staff', /^(WEEK_SCHEDULE_|WORK_)/],
+]
+const groupOf = (key) => GROUPS.find(([, re]) => re.test(key))?.[0] ?? 'Other'
+/** Lower case without Vietnamese marks, so "thanh toan" finds "Thanh toán". */
+const fold = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
 
 function Editor({ template, sample }) {
   const { notify, notifyError } = useToast()
@@ -53,10 +68,10 @@ function Editor({ template, sample }) {
       <Field label="Title (EN)">{(id) => <Input id={id} value={form.titleEn} onChange={set('titleEn')} />}</Field>
       <Field label="Title (VI)">{(id) => <Input id={id} value={form.titleVi} onChange={set('titleVi')} />}</Field>
       <Field label="Message (EN)" helper={t('Max {max} characters for push · {n}/{max}', { max: MAX_PUSH, n: form.body.length })} error={tooLong ? t('Too long for push: {n}/{max} characters', { n: form.body.length, max: MAX_PUSH }) : undefined}>
-        {(id) => <Input id={id} value={form.body} onChange={set('body')} invalid={tooLong} />}
+        {(id) => <Textarea id={id} rows={3} value={form.body} onChange={set('body')} invalid={tooLong} />}
       </Field>
       <Field label="Message (VI)" helper={t('Max {max} characters for push · {n}/{max}', { max: MAX_PUSH, n: (form.bodyVi ?? '').length })} error={tooLongVi ? t('Too long for push: {n}/{max} characters', { n: (form.bodyVi ?? '').length, max: MAX_PUSH }) : undefined}>
-        {(id) => <Input id={id} value={form.bodyVi ?? ''} onChange={set('bodyVi')} invalid={tooLongVi} />}
+        {(id) => <Textarea id={id} rows={3} value={form.bodyVi ?? ''} onChange={set('bodyVi')} invalid={tooLongVi} />}
       </Field>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-sm text-fg-tertiary">{t('Variables:')}</span>
@@ -98,42 +113,57 @@ export default function NotificationTemplates() {
   const items = query.data?.items ?? []
   const [selectedKey, setSelectedKey] = useState(null)
   const selected = items.find((t) => t.key === selectedKey) ?? items[0]
+  const [q, setQ] = useState('')
+  const needle = fold(q.trim())
+  const shown = needle ? items.filter((x) => fold(tr(x.event)).includes(needle) || fold(x.key).includes(needle.replace(/\s+/g, '_'))) : items
+  // In the order of GROUPS, Other last; each group keeps the server's order.
+  const groups = [...GROUPS.map(([label]) => label), 'Other']
+    .map((label) => [label, shown.filter((x) => groupOf(x.key) === label)])
+    .filter(([, list]) => list.length > 0)
 
   return (
     <>
-      <PageHeader
-        title="Notification Templates"
-        description="Messages sent on each event. Push goes to the Android app; in-app appears in the web notification center."
-        actions={
-          <Button icon={Mail} to="/admin/notifications/send">
-            Send email
-          </Button>
-        }
-      />
+      <PageHeader title="Notification Templates" description="Push and in-app messages sent on each event." />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <Card padding="none" className="flex min-h-0 w-95 shrink-0 flex-col overflow-y-auto p-2">
-          <QueryState query={query} compact empty={<EmptyBlock icon={Bell} title="No templates" />}>
-            {(data) =>
-              data.items.map((t) => {
-                const active = t.key === selected?.key
-                return (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => setSelectedKey(t.key)}
-                    aria-pressed={active}
-                    className={cx('flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left transition-colors', active ? 'bg-primary-subtle' : 'hover:bg-subtle')}
-                  >
-                    <Bell size={16} aria-hidden="true" className={cx('shrink-0', active ? 'text-fg-brand' : 'text-fg-secondary')} />
-                    <span className="flex min-w-0 flex-col">
-                      <span className={cx('text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>{tr(t.event)}</span>
-                      <span className="text-sm text-fg-tertiary">{channels(t)}</span>
-                    </span>
-                  </button>
+        <Card padding="none" className="flex min-h-0 w-95 shrink-0 flex-col">
+          <div className="shrink-0 border-b border-line p-2">
+            <SearchInput aria-label={t('Search templates')} placeholder="Search templates" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            <QueryState query={query} compact empty={<EmptyBlock icon={Bell} title="No templates" />}>
+              {() =>
+                groups.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-sm text-fg-tertiary">{t('No template matches this search')}</p>
+                ) : (
+                  groups.map(([label, list]) => (
+                    <div key={label} className="flex flex-col gap-0.5 pb-2">
+                      <p className="px-3 pt-2 pb-1 text-sm font-semibold text-fg-tertiary">
+                        {t(label)} <span className="font-normal tabular">({list.length})</span>
+                      </p>
+                      {list.map((x) => {
+                        const active = x.key === selected?.key
+                        return (
+                          <button
+                            key={x.key}
+                            type="button"
+                            onClick={() => setSelectedKey(x.key)}
+                            aria-pressed={active}
+                            className={cx('flex items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors', active ? 'bg-primary-subtle' : 'hover:bg-subtle')}
+                          >
+                            <Bell size={16} aria-hidden="true" className={cx('shrink-0', active ? 'text-fg-brand' : 'text-fg-secondary')} />
+                            <span className="flex min-w-0 flex-col">
+                              <span className={cx('text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>{tr(x.event)}</span>
+                              <span className="text-sm text-fg-tertiary">{channels(x)}</span>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))
                 )
-              })
-            }
-          </QueryState>
+              }
+            </QueryState>
+          </div>
         </Card>
         {selected ? (
           <Editor key={selected.key} template={selected} sample={query.data?.sampleValues} />
