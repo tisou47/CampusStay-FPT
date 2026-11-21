@@ -8,7 +8,8 @@
   is never touched. Office lock and temp files are skipped.
 
   Without -Apply the script only previews (robocopy /L). With -Apply it copies; if the copy would delete files that
-  exist only on the destination side, it stops with exit code 2 unless -Force is given.
+  exist only on the destination side, or overwrite a destination copy that is newer or different, it stops with
+  exit code 2 unless -Force is given. Self-check: tools/tests/sync-docs.test.ps1.
 
 .EXAMPLE
   powershell -File tools/sync-docs.ps1                 # preview Drive -> repo
@@ -42,7 +43,7 @@ function Invoke-Mirror([string]$Folder, [bool]$ListOnly) {
   $dst = Join-Path $Target $Folder
   if (-not (Test-Path -LiteralPath $src -PathType Container)) {
     Write-Host "  skipped: '$Folder' does not exist on the source side ($src)" -ForegroundColor Yellow
-    return [pscustomobject]@{ Copy = @(); Delete = @() }
+    return [pscustomobject]@{ Copy = @(); Overwrite = @(); Delete = @() }
   }
   $rcArgs = @($src, $dst, '/MIR', '/FFT', '/R:1', '/W:1', '/NP', '/NJH', '/NJS', '/FP', '/XF') + $Exclude
   if ($ListOnly) { $rcArgs += '/L' }
@@ -53,8 +54,10 @@ function Invoke-Mirror([string]$Folder, [bool]$ListOnly) {
   }
   $lines = $out | Where-Object { $_ -match '\S' }
   [pscustomobject]@{
-    Copy   = @($lines | Where-Object { $_ -match '^\s*(New File|Newer|Older|Changed)\s' } | ForEach-Object { ($_ -replace '^\s*\S+( File)?\s+[\d.]+\s*[kmg]?\s+', '').Trim() })
-    Delete = @($lines | Where-Object { $_ -match '\*EXTRA (File|Dir)' } | ForEach-Object { ($_ -replace '^\s*\*EXTRA (File|Dir)\s+-?[\d.]+\s*[kmg]?\s+', '').Trim() })
+    Copy      = @($lines | Where-Object { $_ -match '^\s*(New File|Newer)\s' } | ForEach-Object { ($_ -replace '^\s*\S+( File)?\s+[\d.]+\s*[kmg]?\s+', '').Trim() })
+    # Older = the destination copy is newer; Changed = same time, different content: copying would lose that edit.
+    Overwrite = @($lines | Where-Object { $_ -match '^\s*(Older|Changed)\s' } | ForEach-Object { ($_ -replace '^\s*\S+\s+[\d.]+\s*[kmg]?\s+', '').Trim() })
+    Delete    = @($lines | Where-Object { $_ -match '\*(EXTRA (File|Dir)|MISMATCH)' } | ForEach-Object { ($_ -replace '^\s*\*(EXTRA (File|Dir)|MISMATCH)\s+-?[\d.]+\s*[kmg]?\s+', '').Trim() })
   }
 }
 
@@ -65,11 +68,14 @@ Write-Host "  to   $Target"
 $preview = @{}
 foreach ($f in $Folders) { $preview[$f] = Invoke-Mirror $f $true }
 $toCopy = @($Folders | ForEach-Object { $preview[$_].Copy }) | Where-Object { $_ }
+$toOverwrite = @($Folders | ForEach-Object { $preview[$_].Overwrite }) | Where-Object { $_ }
 $toDelete = @($Folders | ForEach-Object { $preview[$_].Delete }) | Where-Object { $_ }
 
 Write-Host ''
 Write-Host "Would copy: $($toCopy.Count)"
 $toCopy | ForEach-Object { Write-Host "  + $_" }
+Write-Host "Would overwrite a newer or different copy on the destination side: $($toOverwrite.Count)"
+$toOverwrite | ForEach-Object { Write-Host "  ! $_" -ForegroundColor Yellow }
 Write-Host "Would delete (exist only on the destination side): $($toDelete.Count)"
 $toDelete | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
 
@@ -78,12 +84,12 @@ if (-not $Apply) {
   Write-Host 'Preview only. Run again with -Apply to copy.'
   exit 0
 }
-if ($toDelete.Count -gt 0 -and -not $Force) {
+if (($toDelete.Count + $toOverwrite.Count) -gt 0 -and -not $Force) {
   Write-Host ''
-  Write-Host 'Stopped: the files above would be deleted. Copy them to the other side first, or run with -Force to delete them.' -ForegroundColor Red
+  Write-Host 'Stopped: the files marked ! or - would be overwritten or deleted on the destination side. Copy them to the other side first, or run with -Force to replace them.' -ForegroundColor Red
   exit 2
 }
-if ($toCopy.Count -eq 0 -and $toDelete.Count -eq 0) {
+if (($toCopy.Count + $toOverwrite.Count + $toDelete.Count) -eq 0) {
   Write-Host 'Already in sync.'
   exit 0
 }
@@ -91,5 +97,5 @@ foreach ($f in $Folders) {
   if (-not (Test-Path -LiteralPath (Join-Path $Target $f))) { New-Item -ItemType Directory -Path (Join-Path $Target $f) | Out-Null }
   [void](Invoke-Mirror $f $false)
 }
-Write-Host "Done: $($toCopy.Count) copied, $($toDelete.Count) deleted."
+Write-Host "Done: $($toCopy.Count + $toOverwrite.Count) copied, $($toDelete.Count) deleted."
 exit 0
