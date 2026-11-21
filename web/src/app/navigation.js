@@ -313,7 +313,8 @@ export const backOffice = {
           { label: 'Students', icon: GraduationCap, to: '/admin/students' },
           { label: 'Import student list', icon: Upload, to: '/admin/student-import' },
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
-          { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
+          // Shown only when the server has the demo tools on (DEMO_TOOLS=true): the sidebar asks /admin/demo.
+          { label: 'Demo data', icon: RotateCcw, to: '/admin/demo', demoTools: true },
           { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
         ],
       },

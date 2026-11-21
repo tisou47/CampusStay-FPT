@@ -67,6 +67,9 @@ function Sidebar({ role }) {
   const config = backOffice[role]
   const { user, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
+  // Demo data is listed only where the server has the demo tools on; hidden while unknown so it never flashes.
+  const demo = useQuery(['admin', 'demo'], ({ signal }) => api.admin.demo.status(undefined, { signal }), { enabled: role === 'admin' })
+  const listed = (item) => !item.demoTools || demo.data?.enabled === true
   return (
     <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
@@ -77,7 +80,7 @@ function Sidebar({ role }) {
               {section.title && (
                 <p className="px-3 pb-1 text-sm font-semibold text-fg-tertiary">{t(section.title)}</p>
               )}
-              {section.items.map((item) => {
+              {section.items.filter(listed).map((item) => {
                 const active = isNavActive(item, pathname)
                 const Glyph = item.icon
                 return (
