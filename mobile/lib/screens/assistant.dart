@@ -14,12 +14,12 @@ Future<bool> assistantEnabled() async {
 
 /// The CampusStay Assistant (web `AssistantChat`): answers from the user guide and the student's own records. The
 /// conversation lasts while the app runs; each question sends the last 20 turns.
-/// `POST /students/me/assistant/chat { messages: [{ role, content }] }` → `{ reply }`.
+/// `POST /students/me/assistant/chat { messages: [{ role, content, signature? }] }` → `{ reply, signature }`.
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
 
   /// The conversation, kept while the app runs (the web keeps it in the browser tab).
-  static final List<({String role, String content, bool error})> messages = [];
+  static final List<({String role, String content, bool error, String? signature})> messages = [];
 
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
@@ -30,7 +30,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final _scroll = ScrollController();
   bool _pending = false;
 
-  List<({String role, String content, bool error})> get _messages => AssistantScreen.messages;
+  List<({String role, String content, bool error, String? signature})> get _messages => AssistantScreen.messages;
 
   @override
   void dispose() {
@@ -48,11 +48,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
     if (question.isEmpty || _pending) return;
     final turns = [
       for (final m in _messages)
-        if (!m.error) {'role': m.role, 'content': m.content},
+        if (!m.error) {'role': m.role, 'content': m.content, if (m.signature != null) 'signature': m.signature},
       {'role': 'user', 'content': question},
     ];
     setState(() {
-      _messages.add((role: 'user', content: question, error: false));
+      _messages.add((role: 'user', content: question, error: false, signature: null));
       _draft.clear();
       _pending = true;
     });
@@ -61,9 +61,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
       final r = await Api.post('/students/me/assistant/chat', {
         'messages': turns.sublist(turns.length > 20 ? turns.length - 20 : 0),
       });
-      _messages.add((role: 'assistant', content: r.text('reply'), error: false));
+      // The server signs each answer; it goes back with its signature or is ignored (BE-PLT-02).
+      _messages.add((role: 'assistant', content: r.text('reply'), error: false, signature: r.str('signature')));
     } on ApiException catch (e) {
-      _messages.add((role: 'assistant', content: e.message, error: true));
+      _messages.add((role: 'assistant', content: e.message, error: true, signature: null));
     }
     if (mounted) setState(() => _pending = false);
     _toEnd();
