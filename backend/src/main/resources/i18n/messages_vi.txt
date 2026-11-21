@@ -1116,3 +1116,7 @@ This month has not ended yet. Close it from the first day of next month. ⟶ Th�
 Allow closing a meter period before its month ends ⟶ Cho phép chốt kỳ điện nước trước khi hết tháng
 For demonstrations only: Utility Invoices then miss the last days of the month. ⟶ Chỉ dùng khi trình diễn: hóa đơn điện nước sẽ thiếu những ngày cuối tháng.
 Meter readings: Close the month ⟶ Chỉ số điện nước: Chốt tháng
+The only free Bed of that kind is in a Block already committed. Choose another option or the waitlist. ⟶ Giường trống duy nhất thuộc loại này nằm trong một tòa đã chốt. Hãy chọn phương án khác hoặc danh sách chờ.
+{0} proposed Bed was taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
+{0} proposed Beds were taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
+The proposed Bed was taken since the run ⟶ Giường được đề xuất đã có người nhận sau lượt xếp

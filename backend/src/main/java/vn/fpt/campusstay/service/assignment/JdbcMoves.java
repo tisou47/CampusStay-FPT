@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -98,7 +99,8 @@ class JdbcMoves implements Moves {
         jdbc.sql("SELECT bed_id, student_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
                 .param("t", termId).query((rs, i) -> Map.entry(rs.getLong("bed_id"), rs.getLong("student_id"))).list()
                 .forEach(e -> occupied.put(e.getKey(), e.getValue()));
-        Set<Long> held = applications.heldRound2Beds(termId);
+        Set<Long> held = new HashSet<>(applications.heldRound2Beds(termId));
+        held.addAll(JdbcBedOccupancy.liveRunBeds(jdbc, termId)); // promised by a live run (BE-ASG-04)
         List<Inventory.BedSlot> assignable = inventory.assignableBeds(termId);
         Map<Long, Long> perRoom = assignable.stream().filter(b -> occupied.containsKey(b.bedId()))
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, Collectors.counting()));
