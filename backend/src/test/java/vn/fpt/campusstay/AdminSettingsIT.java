@@ -65,7 +65,8 @@ class AdminSettingsIT {
 
     /**
      * TC-CFG-024: each group lists its settings with where they act; an out-of-range value is refused; a saved
-     * change is audited and announced to students; grouped settings left System parameters; only the Admin edits.
+     * change is audited and announced to students; grouped settings left System parameters, and settings that are
+     * not deadlines (Family Day, meter period closing) are in System parameters; only the Admin edits.
      */
     @Test
     void groupedSettings() throws Exception {
@@ -77,7 +78,9 @@ class AdminSettingsIT {
                 .andExpect(jsonPath("$.settings[0].value").value(48))
                 .andExpect(jsonPath("$.settings[?(@.key == 'payment.reminder_first_days')].value", contains(3)))
                 .andExpect(jsonPath("$.settings[?(@.key == 'payment.reminder_first_days')].usedIn",
-                        contains("Balance and next-Term fee reminders")));
+                        contains("Balance and next-Term fee reminders")))
+                .andExpect(jsonPath("$.settings[*].key", not(hasItem("family_day.adult_age"))))
+                .andExpect(jsonPath("$.settings[*].key", not(hasItem("utility.close_days"))));
         mvc.perform(get("/admin/settings/refunds").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.settings[?(@.key == 'termination.debt_reaches_deposit')].value", contains(true)))
                 .andExpect(jsonPath("$.settings[?(@.key == 'late_check_in.max_days')].value", contains(14)));
@@ -99,6 +102,9 @@ class AdminSettingsIT {
                 .andExpect(jsonPath("$.items[?(@.title == 'Changed: Stay and renewal')].changes[0].after", contains("6")));
         mvc.perform(get("/admin/system-parameters").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.sections[*].fields[*].key", not(hasItem("stay.max_terms"))))
+                .andExpect(jsonPath("$.sections[?(@.title == 'Family Day')].fields[*].key",
+                        contains("family_day.early_minutes", "family_day.adult_age")))
+                .andExpect(jsonPath("$.sections[?(@.title == 'Utility')].fields[*].key", contains("utility.close_days")))
                 .andExpect(jsonPath("$.sections[*].fields[?(@.key == 'handover.visit_from_hour')].label")
                         .value(hasItem("Room visits start at (hour, 1–24)")));
         mvc.perform(get("/admin/settings/nothing").header(HttpHeaders.AUTHORIZATION, admin))
