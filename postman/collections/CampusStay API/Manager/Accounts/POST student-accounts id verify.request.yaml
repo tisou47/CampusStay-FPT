@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `POST /student-accounts/{id}/verify`
 
-  Contract: `docs/api-contract.md` › Manager › Accounts
+  Contract: `tools/postman/api-contract.md` › Manager › Accounts
 pathVariables:
   - key: id
     value: ''

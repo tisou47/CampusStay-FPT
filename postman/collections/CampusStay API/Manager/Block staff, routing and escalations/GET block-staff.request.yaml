@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 queryParams:
   - key: block
     value: '{{block}}'

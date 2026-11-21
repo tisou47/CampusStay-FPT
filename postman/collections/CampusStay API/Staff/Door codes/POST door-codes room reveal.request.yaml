@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /door-codes/{room}/reveal` → `{ room, active, proposed }` (audited)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
 pathVariables:
   - key: room
     value: ''

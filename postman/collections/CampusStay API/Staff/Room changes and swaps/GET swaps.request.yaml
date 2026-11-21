@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `GET /swaps?termId&block&kind&status&page&pageSize` → `{ items: [{ id, kind, agreedAt, crossBlock, status, a: { name, studentCode, room, bed, roomTypeName, roomClassName }, b: { … }, checks: [{ label, passed }], decision: { by, at, reason } | null, dueAt }], total, window }` (B-09)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
 queryParams:
   - key: termId
     value: '{{termId}}'

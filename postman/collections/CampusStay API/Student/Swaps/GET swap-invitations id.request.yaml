@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `GET /swap-invitations/{id}` → `{ id, status, expiresAt, crossBlock, termName, give: { room, bed, roomTypeName, roomClassName, block, termPrice }, get: { … } }` (B-09)
 
-  Contract: `docs/api-contract.md` › Student › Swaps
+  Contract: `tools/postman/api-contract.md` › Student › Swaps
 pathVariables:
   - key: id
     value: ''

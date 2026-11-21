@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `GET /approvals/assignment?termId&block` → `{ item: { runId, block, blockLabel, termName, submittedBy, submittedAt, bedsOffered, conflictsResolved, conflictsTotal, applications, allocated, toRound2, averageScore, status: 'Waiting'|'Approved'|'Returned', comment } | null }`
 
-  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+  Contract: `tools/postman/api-contract.md` › Manager › Dashboards and approvals
 queryParams:
   - key: termId
     value: '{{termId}}'

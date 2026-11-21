@@ -1,6 +1,6 @@
 # CampusStay FPT — backend
 
-REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 application (layered Spring MVC) on PostgreSQL 17. Design: `docs/backend/01_Backend_Architecture.md`.
+REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 application (layered Spring MVC) on PostgreSQL 17.
 
 ## Requirements
 | Tool | Version |
@@ -83,7 +83,6 @@ Staff approve Applications (`/applications`), start a run (`POST /assignment-run
 mvn test      # unit tests + LayeringTest (calls go controller → service → repository)
 mvn verify    # + integration tests (*IT) on a Testcontainers PostgreSQL 17 — Docker must be running
 ```
-Every test case with its `TC-` id: [docs/backend/04_Test_Catalog.md](../docs/backend/04_Test_Catalog.md) (regenerate with `node docs/tools/generate-catalogs.mjs` from the repository root after changing a test).
 
 ## Common errors
 | Symptom | Cause | Fix |

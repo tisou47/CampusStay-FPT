@@ -6,7 +6,7 @@ order: 10000
 description: |-
   `PUT /admin/room-class-requirements/{roomClassId}` `{ items: [{ typeId, quantity }] }` → `204`. See A-24.
 
-  Contract: `docs/api-contract.md` › Admin › Catalog
+  Contract: `tools/postman/api-contract.md` › Admin › Catalog
 pathVariables:
   - key: roomClassId
     value: ''

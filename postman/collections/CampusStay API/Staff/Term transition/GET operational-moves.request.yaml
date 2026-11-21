@@ -6,7 +6,7 @@ order: 12000
 description: |-
   `GET /operational-moves?termId&block&page&pageSize` → `{ items, total, reasons }` (A-45)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 queryParams:
   - key: termId
     value: '{{termId}}'

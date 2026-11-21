@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /next-term-fees?termId` → `{ term, dueAt, count, total, groups: [{ block, roomType, roomClass, count, total }], blockers: [{ code, text }], issued: { at, by, count, paid, total } | null, leavers }`
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 queryParams:
   - key: termId
     value: '{{termId}}'

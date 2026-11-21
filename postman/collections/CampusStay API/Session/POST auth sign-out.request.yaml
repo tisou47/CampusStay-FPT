@@ -6,4 +6,4 @@ order: 2000
 description: |-
   POST `/auth/sign-out` — request: — — response: `204`
 
-  Contract: `docs/api-contract.md` › Session and shared
+  Contract: `tools/postman/api-contract.md` › Session and shared

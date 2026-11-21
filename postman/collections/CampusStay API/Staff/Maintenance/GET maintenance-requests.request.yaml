@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize` → `{ items: [{ id, room, title, category, priority, reportedAt, assignee: { id, name } | null, status }], total, summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }`. `status=open` means Submitted, Assigned or In progress; `assigneeId=none` means unassigned.
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Maintenance
 queryParams:
   - key: termId
     value: '{{termId}}'

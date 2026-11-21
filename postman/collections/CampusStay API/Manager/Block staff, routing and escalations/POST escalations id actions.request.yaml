@@ -6,7 +6,7 @@ order: 11000
 description: |-
   `POST /escalations/{id}/actions` `{ action: 'reassign', assigneeId, note? }` or `{ action: 'temporary-bed', note? }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 9000
 description: |-
   `POST /admin/matching/preview` `{ order, weights, boost }` → `{ averageFit, sameMajorRate, toRound2, source, students, moved, inUse: { placed, averageFit, priorityPlaced, priorityStudents }, draft, example: { room, students, fit, attributes } }` (the draft next to the rules in use, A-33)
 
-  Contract: `docs/api-contract.md` › Admin › Policies
+  Contract: `tools/postman/api-contract.md` › Admin › Policies
 headers:
   - key: Content-Type
     value: application/json

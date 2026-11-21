@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `GET /invoices/{id}/receipt` → PDF file
 
-  Contract: `docs/api-contract.md` › Student › Invoices and payment
+  Contract: `tools/postman/api-contract.md` › Student › Invoices and payment
 pathVariables:
   - key: id
     value: ''

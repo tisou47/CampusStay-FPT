@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `GET /dashboards/term?termId` → `{ term, terms, requestCode, stayStart, stayEnd, milestones, applications, applicationsTotal, places: [{ roomType, roomClass, gender, beds, allocated, price }], money, checkedIn, residents }` (A-32, A-39)
 
-  Contract: `docs/api-contract.md` › Manager › Dashboards and approvals
+  Contract: `tools/postman/api-contract.md` › Manager › Dashboards and approvals
 queryParams:
   - key: termId
     value: '{{termId}}'

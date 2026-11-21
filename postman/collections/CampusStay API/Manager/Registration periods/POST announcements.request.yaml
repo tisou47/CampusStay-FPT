@@ -6,7 +6,7 @@ order: 9000
 description: |-
   `POST /announcements { category, audience, blocks?, termId?, title, body, pinned?, shownFrom?, shownUntil? }` → `201 { id }`
 
-  Contract: `docs/api-contract.md` › Manager › Registration periods
+  Contract: `tools/postman/api-contract.md` › Manager › Registration periods
 headers:
   - key: Content-Type
     value: application/json

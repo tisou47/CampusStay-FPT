@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /term-requests?status&q&page&pageSize` → `{ items: [{ id, code, termName, stayStart, stayEnd, status, requestedBy, requestedAt, updatedAt, comments, termId }], total, counts }`
 
-  Contract: `docs/api-contract.md` › Manager › Registration periods
+  Contract: `tools/postman/api-contract.md` › Manager › Registration periods
 queryParams:
   - key: status
     value: ''

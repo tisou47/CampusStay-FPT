@@ -6,4 +6,4 @@ order: 2000
 description: |-
   `GET /students/me/profile` → `{ name, studentCode, gender, major, cohort, hometown, contact: { phone, email, emergencyName, relationship, emergencyPhone } }`
 
-  Contract: `docs/api-contract.md` › Student › Home, profile, catalog
+  Contract: `tools/postman/api-contract.md` › Student › Home, profile, catalog

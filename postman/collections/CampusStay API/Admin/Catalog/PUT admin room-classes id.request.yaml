@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `PUT /admin/room-classes/{id}`. `usedIn` and `rooms`: the Rooms that have the class in the current Term (B-04).
 
-  Contract: `docs/api-contract.md` › Admin › Catalog
+  Contract: `tools/postman/api-contract.md` › Admin › Catalog
 pathVariables:
   - key: id
     value: ''

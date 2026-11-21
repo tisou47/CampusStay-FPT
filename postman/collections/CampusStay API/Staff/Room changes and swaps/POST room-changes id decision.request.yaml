@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /room-changes/{id}/decision` `{ decision: 'Approved', bedId }` or `{ decision: 'Rejected', reason, message? }` → `{ note }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Room changes and swaps
 pathVariables:
   - key: id
     value: ''

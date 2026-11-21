@@ -6,7 +6,7 @@ order: 13000
 description: |-
   `GET /block-settings?block` → `{ deskOpens, deskCloses, visitFrom, visitUntil, quiet, houseRules, editedAt, editedBy, limits: { visitWindow, quietStartsBy }, quietOptions }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 queryParams:
   - key: block
     value: '{{block}}'

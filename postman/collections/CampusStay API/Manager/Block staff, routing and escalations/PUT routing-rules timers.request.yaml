@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `PUT /routing-rules/timers` `{ block, urgent, normal, roomChange }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 headers:
   - key: Content-Type
     value: application/json

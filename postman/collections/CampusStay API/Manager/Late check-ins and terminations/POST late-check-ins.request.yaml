@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `POST /late-check-ins` (multipart, Staff at the desk) `studentCode, reason, requestedFor, evidence?` → `{ id }` (A-12)
 
-  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+  Contract: `tools/postman/api-contract.md` › Manager › Late check-ins and terminations
 body:
   type: formdata
   content:

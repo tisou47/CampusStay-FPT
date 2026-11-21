@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `GET /room-class-changes/{id}` → `{ item, termName, reason, fromPrice, toPrice, residents, furniture, decisionNote, decidedBy }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 pathVariables:
   - key: id
     value: ''

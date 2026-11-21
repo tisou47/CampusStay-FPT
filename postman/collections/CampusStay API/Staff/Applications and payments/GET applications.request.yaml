@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /applications?termId&block&q&status&roomTypeId&roomClassId&submittedWithin&page&pageSize` → `{ items: [{ id, studentName, studentCode, pair, roomTypeName, roomClassName, depositStatus, depositPaidAt, status }], total, counts: { [status]: number } }`. `status` may be a comma-separated list.
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
 queryParams:
   - key: termId
     value: '{{termId}}'

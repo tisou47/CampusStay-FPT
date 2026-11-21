@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /terminations { studentCode, reason, note }` → `{ id, moveOutBy }`
 
-  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+  Contract: `tools/postman/api-contract.md` › Manager › Late check-ins and terminations
 headers:
   - key: Content-Type
     value: application/json

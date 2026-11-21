@@ -40,7 +40,7 @@ Built for one campus's real dormitory rules rather than a generic housing platfo
 
 ## Capabilities and Constraints
 
-- Scope and rules: `docs/01_Change_Spec_v2.md` (wins over the Brief), `docs/00_Project_Brief.md`, API contract `docs/api-contract.md`, screen map `docs/web/01_Screen_Map.md`.
+- Scope and rules: Decision Log `docs/CHANGELOG.md` (the Change Specification v2 and the Brief are in git history before 20/11/2026), API contract `tools/postman/api-contract.md`.
 - Two languages: Vietnamese (default) and English across web, API messages, notifications and emails; saved on the account; VI/EN switch in the top bar and on sign-in. Dates `dd/MM/yyyy` (VI) or `d MMM yyyy` (EN); amounts `1.200.000 ₫` (VI) or `1,200,000 VND` (EN). Typed text stays as typed.
 - Menus per role are fixed by the spec §11.2; hub pages for Student, Room and Term dashboard; global search in the top bar.
 - Back office designed for 1366 px and wider; student portal phone-first.
@@ -58,7 +58,7 @@ Built for one campus's real dormitory rules rather than a generic housing platfo
 
 - Production demo: web https://campusstay-fpt-ten.vercel.app, API https://campusstay-api.eastasia.cloudapp.azure.com/api.
 - Base data: about 6,200 fictional student accounts with fictional `@fpt.edu.vn` addresses; buildings, rooms and Terms from the seed and the demo reset tool.
-- Submitted documents: Reports 1–7 in `docs/reports/`; diagrams in `docs/diagrams/`; Vietnamese demo guide in `docs/demo/`.
+- Submitted documents: Reports 1–7, workbooks and diagrams in `docs/` (SEP490 tree, mirrored from Google Drive).
 - Absent and never to be fabricated: real residents, testimonials, usage statistics, occupancy numbers from operation, partnerships or an FPT endorsement. Seeds and tests never hold real people's data.
 
 ## Product Principles

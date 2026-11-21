@@ -6,4 +6,4 @@ order: 9000
 description: |-
   `GET /students/me/refund-account` → `{ holder, number, bank, updatedAt }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications

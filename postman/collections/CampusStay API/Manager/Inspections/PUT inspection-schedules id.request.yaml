@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`)
 
-  Contract: `docs/api-contract.md` › Manager › Inspections
+  Contract: `tools/postman/api-contract.md` › Manager › Inspections
 pathVariables:
   - key: id
     value: ''

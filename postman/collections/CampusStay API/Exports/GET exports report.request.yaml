@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /exports/{report}` with the same filters as the screen: `applications`, `payments`, `maintenance`, `room-changes`, `inventory`, `assignment-proposal`, `block-finance`, `block-occupancy`, `block-collections`, `block-maintenance`, `block-residents`, `occupancy`, `financial`, `audit-log`. Reports and exports: C-37.
 
-  Contract: `docs/api-contract.md` › Exports
+  Contract: `tools/postman/api-contract.md` › Exports
 pathVariables:
   - key: report
     value: ''

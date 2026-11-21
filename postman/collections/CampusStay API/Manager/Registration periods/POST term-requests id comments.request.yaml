@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `POST /term-requests/{id}/comments { text }` → `204` (A-28; Managers request, Managers and the Admin comment)
 
-  Contract: `docs/api-contract.md` › Manager › Registration periods
+  Contract: `tools/postman/api-contract.md` › Manager › Registration periods
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `GET /invoices?termId&block&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }`
 
-  Contract: `docs/api-contract.md` › Manager › Finance
+  Contract: `tools/postman/api-contract.md` › Manager › Finance
 queryParams:
   - key: termId
     value: '{{termId}}'

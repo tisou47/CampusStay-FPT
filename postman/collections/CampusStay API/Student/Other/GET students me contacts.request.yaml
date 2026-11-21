@@ -4,4 +4,4 @@ method: GET
 url: '{{baseUrl}}/students/me/contacts'
 order: 1000
 description: |-
-  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `mine_1` of `student-contact-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `mine_1` of `student-contact-controller`). Add it to the contract or remove it from the backend.

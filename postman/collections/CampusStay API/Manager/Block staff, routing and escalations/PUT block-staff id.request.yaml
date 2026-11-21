@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `PUT /block-staff/{id}` `{ handles, onDuty }`
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `GET /payments?termId&block&q&type&status&method&date=today|7d|term&page&pageSize` → `{ items: [{ invoiceId, studentName, studentCode, type, typeLabel, amount, method, paidAt, dueAt, status, reference, transferContent, receipt: { name, size, url } | null }], total, summary: { collectedToday, collectedTodayCount, awaitingConfirmation, unpaidDeposits, depositsPaid, depositsSubmitted } }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
 queryParams:
   - key: termId
     value: '{{termId}}'

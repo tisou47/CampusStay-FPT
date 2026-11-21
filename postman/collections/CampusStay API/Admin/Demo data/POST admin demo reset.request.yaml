@@ -4,7 +4,7 @@ method: POST
 url: '{{baseUrl}}/admin/demo/reset'
 order: 1000
 description: |-
-  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `reset_1` of `demo-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `reset_1` of `demo-controller`). Add it to the contract or remove it from the backend.
 headers:
   - key: Content-Type
     value: application/json

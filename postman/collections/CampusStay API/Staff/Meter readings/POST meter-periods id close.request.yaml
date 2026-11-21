@@ -6,7 +6,7 @@ order: 7000
 description: |-
   `POST /meter-periods/{id}/close` → `{ invoicesIssued }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
 pathVariables:
   - key: id
     value: ''

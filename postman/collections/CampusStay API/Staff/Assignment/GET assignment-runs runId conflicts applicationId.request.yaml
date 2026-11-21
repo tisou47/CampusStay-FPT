@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `GET /assignment-runs/{runId}/conflicts/{applicationId}` → `{ applicationId, studentName, preference, bed, issue: { label, title, detail, tone }, options: [{ key, label, detail, recommended }] }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Assignment
 pathVariables:
   - key: runId
     value: ''

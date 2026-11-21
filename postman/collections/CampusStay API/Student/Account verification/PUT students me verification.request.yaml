@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `PUT /students/me/verification` (the form) → `204`: Pending verification; `409 ALREADY_VERIFIED` (A-18). Only a Verified account may apply (C-39).
 
-  Contract: `docs/api-contract.md` › Student › Account verification
+  Contract: `tools/postman/api-contract.md` › Student › Account verification
 headers:
   - key: Content-Type
     value: application/json

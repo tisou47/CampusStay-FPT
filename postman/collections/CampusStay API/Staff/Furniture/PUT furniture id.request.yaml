@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `PUT /furniture/{id}` `{ status?, note?, reason? }` → the item
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
 pathVariables:
   - key: id
     value: ''

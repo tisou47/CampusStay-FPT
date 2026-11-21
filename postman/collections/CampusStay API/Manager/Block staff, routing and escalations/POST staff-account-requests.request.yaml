@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /staff-account-requests` `{ name, email, role, block? }` → `{ id }` (A-13)
 
-  Contract: `docs/api-contract.md` › Manager › Block staff, routing and escalations
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 headers:
   - key: Content-Type
     value: application/json

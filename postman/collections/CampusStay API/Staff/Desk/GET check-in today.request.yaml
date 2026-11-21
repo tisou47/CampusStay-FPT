@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null }` (`expected` = every Allocation of the Term in the Blocks; A-63)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
 queryParams:
   - key: termId
     value: '{{termId}}'

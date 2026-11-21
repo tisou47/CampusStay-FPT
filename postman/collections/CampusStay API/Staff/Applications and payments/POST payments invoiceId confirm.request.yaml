@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /payments/{invoiceId}/confirm` (multipart) `reference?, receipt?` → `204` — the Invoice's claim, or a transfer not claimed yet (B-05)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Applications and payments
 pathVariables:
   - key: invoiceId
     value: ''

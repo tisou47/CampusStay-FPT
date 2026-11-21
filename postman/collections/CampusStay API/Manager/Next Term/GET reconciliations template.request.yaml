@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `GET /reconciliations/template?kind=enrolled|leavers` → XLSX
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 queryParams:
   - key: kind
     value: ''

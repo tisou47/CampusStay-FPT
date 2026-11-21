@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `PUT /student-accounts/{id}` (directory fields) → the hub
 
-  Contract: `docs/api-contract.md` › Manager › Accounts
+  Contract: `tools/postman/api-contract.md` › Manager › Accounts
 pathVariables:
   - key: id
     value: ''

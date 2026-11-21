@@ -6,7 +6,7 @@ order: 10000
 description: |-
   `POST /turnover/meter-cuts` `{ room, electricity, water }` → `204` (A-40)
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 headers:
   - key: Content-Type
     value: application/json

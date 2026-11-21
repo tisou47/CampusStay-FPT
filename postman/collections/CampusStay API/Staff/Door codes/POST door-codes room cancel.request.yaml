@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /door-codes/{room}/cancel` → `204`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Door codes
 pathVariables:
   - key: room
     value: ''

@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `POST /swaps` `{ studentCode, reason? }` → `{ id }`
 
-  Contract: `docs/api-contract.md` › Student › Swaps
+  Contract: `tools/postman/api-contract.md` › Student › Swaps
 headers:
   - key: Content-Type
     value: application/json

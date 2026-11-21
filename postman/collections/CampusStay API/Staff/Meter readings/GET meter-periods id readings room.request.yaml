@@ -6,7 +6,7 @@ order: 3000
 description: |-
   `GET /meter-periods/{id}/readings/{room}` → `{ …item, priceKwh, priceM3, roundingNote, segments: [{ from, to, residents, kwh, m3, electricityCost, waterCost }], shares: [{ label, amount }] }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Meter readings
 pathVariables:
   - key: id
     value: ''

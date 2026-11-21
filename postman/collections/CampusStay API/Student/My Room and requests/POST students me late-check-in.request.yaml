@@ -6,7 +6,7 @@ order: 8000
 description: |-
   `POST /students/me/late-check-in` (multipart) `reason, requestedFor, evidence` → `{ id }` (A-36)
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 body:
   type: formdata
   content:

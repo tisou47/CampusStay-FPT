@@ -6,7 +6,7 @@ order: 9000
 description: |-
   `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }`
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 body:
   type: formdata
   content:

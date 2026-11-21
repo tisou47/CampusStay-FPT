@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `GET /inspection-runs/upcoming?block` → `{ items: [{ id, date, scope, scheduleName }] }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
 queryParams:
   - key: block
     value: '{{block}}'

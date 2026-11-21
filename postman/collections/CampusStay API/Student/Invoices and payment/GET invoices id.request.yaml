@@ -6,7 +6,7 @@ order: 2000
 description: |-
   `GET /invoices/{id}` → `{ id, title, type, typeLabel, amount, status, issuedAt, dueAt, paidAt, room, utilityDeposit, lines: [{ label, amount }] | null, breakdown: { segments: [{ from, to, note, residents, kwh, m3, electricityCost, waterCost, share }], subtotal, roundingNote, priceKwh, priceM3 } | null }`
 
-  Contract: `docs/api-contract.md` › Student › Invoices and payment
+  Contract: `tools/postman/api-contract.md` › Student › Invoices and payment
 pathVariables:
   - key: id
     value: ''

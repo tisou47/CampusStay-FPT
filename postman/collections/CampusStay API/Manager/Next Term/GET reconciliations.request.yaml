@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }`
 
-  Contract: `docs/api-contract.md` › Manager › Next Term
+  Contract: `tools/postman/api-contract.md` › Manager › Next Term
 queryParams:
   - key: termId
     value: '{{termId}}'

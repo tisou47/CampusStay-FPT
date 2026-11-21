@@ -6,7 +6,7 @@ order: 1000
 description: |-
   `GET /students/me/applications?page&pageSize` → `{ items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications
 queryParams:
   - key: page
     value: '1'

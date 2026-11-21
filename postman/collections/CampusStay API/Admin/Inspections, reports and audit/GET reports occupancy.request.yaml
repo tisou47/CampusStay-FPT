@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 
-  Contract: `docs/api-contract.md` › Admin › Inspections, reports and audit
+  Contract: `tools/postman/api-contract.md` › Admin › Inspections, reports and audit
 queryParams:
   - key: termId
     value: '{{termId}}'

@@ -6,7 +6,7 @@ order: 11000
 description: |-
   `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 body:
   type: formdata
   content:

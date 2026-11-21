@@ -28,7 +28,7 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// The CampusStay API (`docs/api-contract.md`). Every call sends the bearer token and `Accept-Language` (the API
+/// The CampusStay API (`tools/postman/api-contract.md`). Every call sends the bearer token and `Accept-Language` (the API
 /// answers messages in Vietnamese or English); a `401` signs the student out.
 class Api {
   Api._();

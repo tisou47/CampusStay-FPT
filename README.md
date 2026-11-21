@@ -9,7 +9,8 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 | `backend/` | Spring Boot 4.1 REST API (Java 21, PostgreSQL 17, Flyway). See [backend/README.md](backend/README.md) and [backend/CLAUDE.md](backend/CLAUDE.md). |
 | `web/` | React 19 + Vite web app for Student, Staff, Manager and Admin. See [web/README.md](web/README.md). |
 | `mobile/` | Flutter app for students (built for Android): Home, My Room, Payments, Activity, push. See [mobile/README.md](mobile/README.md). |
-| `docs/` | Project Brief (source of truth), API contract, backend design, test catalog and web screen map; `docs/tools/` regenerates the catalogs. |
+| `docs/` | SEP490 documents (Topic, Reports 1–7 and workbooks, Review 2 forms, Diagrams), mirrored from the team Google Drive with `tools/sync-docs.ps1`; change history in `docs/CHANGELOG.md`. |
+| `tools/` | `postman/` (API contract and the Postman generator), `sync-docs.ps1`. |
 | `infra/` | Docker Compose for Postgres, Mailpit and the API; `infra/prod/` is the production stack (Postgres, API, Caddy). |
 | `.github/workflows/` | CI/CD: backend verify, image build and deploy to the VM. |
 | `postman/` | Postman collection `CampusStay API` (every endpoint by role, plus read-only smoke tests) and the Local and Production environments; see the collection's description. |
@@ -18,17 +19,25 @@ Dormitory Registration and Room-Scheduling Management System for FPT University'
 
 | File | Purpose |
 |---|---|
-| [docs/00_Project_Brief.md](docs/00_Project_Brief.md) | Scope, architecture baseline, schedule, open issues and the Decision Log |
-| [docs/api-contract.md](docs/api-contract.md) | The API the web and mobile apps call (request and response shapes) |
-| [docs/backend/01_Backend_Architecture.md](docs/backend/01_Backend_Architecture.md) | Backend design (feeds Report 4) |
-| [docs/backend/02_Endpoint_Map.md](docs/backend/02_Endpoint_Map.md) | Every endpoint, its module, priority, slice and status |
-| [docs/backend/03_API_Contract_Changes.md](docs/backend/03_API_Contract_Changes.md) | Changes to the contract proposed by the backend, with the status of each side |
-| [docs/backend/04_Test_Catalog.md](docs/backend/04_Test_Catalog.md) | Every automated test with its `TC-` id (feeds Report 5); generated |
-| [docs/web/01_Screen_Map.md](docs/web/01_Screen_Map.md) | Every web route with its screen code, Figma frame and API calls (feeds Reports 3, 4, 6); generated |
+| [docs/](docs/) | SEP490 deliverables, synced from Google Drive (see below) |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Change history: Record of Changes of the reports and the registration form, Decision Log (ADR-01…ADR-29) |
+| [tools/postman/api-contract.md](tools/postman/api-contract.md) | The API the web and mobile apps call (request and response shapes) |
 | [infra/prod/README.md](infra/prod/README.md) | Production runbook: setup, settings, operations, monitoring, Azure appendix |
 | [CLAUDE.md](CLAUDE.md), [backend/CLAUDE.md](backend/CLAUDE.md) | Working rules: delivery, layers, conventions |
 
-The two generated files come from the code: after changing a test's Javadoc, a page header or the router, run `node docs/tools/generate-catalogs.mjs` and commit the result with the change. Likewise, after adding or changing an endpoint, run `node docs/tools/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
+After adding or changing an endpoint, run `node tools/postman/generate-postman.mjs` with the backend running: it rebuilds the role folders of the Postman collection from `/api/v3/api-docs` and the contract.
+
+## Sync documents with Google Drive
+
+The team Google Drive folder `DATN-FA26SE260-GFA26SE104 CampusStay` is the source of `docs/` (folders `Topic`, `SEP490_Report`, `SEP490_R2_BM04_Review2-Document`, `Diagrams`). Requires Google Drive for Desktop signed in to an account that sees the folder (a shared folder: "Add shortcut to Drive"); if it is not at `G:\My Drive\…`, set `CAMPUSSTAY_DRIVE_DIR` or pass `-DriveDir`.
+
+```powershell
+powershell -File tools/sync-docs.ps1                # preview Drive -> repo
+powershell -File tools/sync-docs.ps1 -Apply         # pull before committing docs
+powershell -File tools/sync-docs.ps1 -Push -Apply   # only for files edited in the repo
+```
+
+The script never deletes files that exist only on the destination side unless `-Force` is given (exit code 2), and skips Office lock files (`~$*`).
 
 ## API from Postman
 

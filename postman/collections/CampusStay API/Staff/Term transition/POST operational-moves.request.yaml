@@ -6,7 +6,7 @@ order: 14000
 description: |-
   `POST /operational-moves` `{ allocationId, bedId, reason, note?, nextTerm: 'follow'|'keep', fromElectricity, fromWater, toElectricity, toWater }` → `{ allocationId, room, bed, nextTerm, note }`
 
-  Contract: `docs/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Term transition
 headers:
   - key: Content-Type
     value: application/json

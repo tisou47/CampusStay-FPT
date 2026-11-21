@@ -4,7 +4,7 @@ method: POST
 url: '{{baseUrl}}/family-day-visitors/:id/check-in'
 order: 5000
 description: |-
-  Not described in `docs/api-contract.md`: found only in the backend's OpenAPI document (operation `checkIn` of `visitor-desk-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `checkIn` of `visitor-desk-controller`). Add it to the contract or remove it from the backend.
 pathVariables:
   - key: id
     value: ''

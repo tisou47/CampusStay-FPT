@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `GET /admin/buildings/{id}/floors/{floor}/rooms` → `{ items: [{ code, roomTypeName, roomClassName, outOfService }] }`. A Floor's `roomClassName` is the class of its new Rooms; `roomClasses` and each Room's `roomClassName` are the classes in the current Term (C-40).
 
-  Contract: `docs/api-contract.md` › Admin › Buildings and users
+  Contract: `tools/postman/api-contract.md` › Admin › Buildings and users
 pathVariables:
   - key: id
     value: ''

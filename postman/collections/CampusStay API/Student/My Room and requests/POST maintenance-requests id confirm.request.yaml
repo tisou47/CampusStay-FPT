@@ -6,7 +6,7 @@ order: 13000
 description: |-
   `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
 
-  Contract: `docs/api-contract.md` › Student › My Room and requests
+  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 4000
 description: |-
   `GET /terminations?termId&block&status&page&pageSize` → `{ items: [{ id, studentName, studentCode, room, block, reason, note, status, moveOutBy, startedAt, startedBy, debt, endedAt, cancelReason }], total, counts: { noticeSent, overdue }, reasons, statuses }`
 
-  Contract: `docs/api-contract.md` › Manager › Late check-ins and terminations
+  Contract: `tools/postman/api-contract.md` › Manager › Late check-ins and terminations
 queryParams:
   - key: termId
     value: '{{termId}}'

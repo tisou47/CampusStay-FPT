@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`
 
-  Contract: `docs/api-contract.md` › Student › Applications
+  Contract: `tools/postman/api-contract.md` › Student › Applications
 pathVariables:
   - key: id
     value: ''

@@ -6,7 +6,7 @@ order: 5000
 description: |-
   `GET /student-imports`
 
-  Contract: `docs/api-contract.md` › Manager › Accounts
+  Contract: `tools/postman/api-contract.md` › Manager › Accounts
 queryParams:
   - key: page
     value: '1'

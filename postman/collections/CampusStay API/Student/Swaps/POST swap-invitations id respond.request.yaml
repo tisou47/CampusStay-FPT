@@ -6,7 +6,7 @@ order: 6000
 description: |-
   `POST /swap-invitations/{id}/respond` `{ accept }` → `204`
 
-  Contract: `docs/api-contract.md` › Student › Swaps
+  Contract: `tools/postman/api-contract.md` › Student › Swaps
 pathVariables:
   - key: id
     value: ''
