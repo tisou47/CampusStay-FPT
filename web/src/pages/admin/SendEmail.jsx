@@ -72,12 +72,9 @@ export default function SendEmail() {
       title="Send email"
       description="Send a template to one student or to a filtered group. Every send is written to the audit log."
       actions={
-        <>
-          <Button to="/admin/notifications">Templates</Button>
-          <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count}>
-            Send email
-          </Button>
-        </>
+        <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count}>
+          Send email
+        </Button>
       }
     >
       {o && (
@@ -145,10 +142,7 @@ export default function SendEmail() {
             </div>
           </Card>
           <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-2.5 overflow-y-auto">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="text-h3 font-semibold text-fg">{p?.recipientName ? t('Preview for {name}', { name: p.recipientName }) : t('Preview')}</h2>
-              <p className="text-sm text-fg-secondary">{t('Variables filled from the first recipient')}</p>
-            </div>
+            <h2 className="text-h3 font-semibold text-fg">{p?.recipientName ? t('Preview for {name}', { name: p.recipientName }) : t('Preview')}</h2>
             {!ready ? (
               <p className="text-base text-fg-secondary">{t('Choose the recipients and a template to see the preview.')}</p>
             ) : preview.data === undefined && preview.loading ? (
