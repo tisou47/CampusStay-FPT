@@ -101,7 +101,7 @@ function BulkModal({ block, floors, roomClasses, note, onClose }) {
           {(id) => <Select id={id} value={to} onChange={(e) => setTo(e.target.value)} options={floors.map(String)} />}
         </Field>
       </div>
-      <Field label="Room tier of the new rooms" helper="Each room keeps its own class per term afterwards (Manager › Room tiers).">
+      <Field label="Room tier of the new rooms" helper="Each room keeps its own class per term afterwards (Manager › Room tiers by term).">
         {(id) => (
           <Select
             id={id}
@@ -161,7 +161,7 @@ export default function Buildings() {
     <>
       <PageHeader
         title="Buildings"
-        description="Blocks, floors, rooms and beds. Each room has its room type, and its room tier per term (Manager › Room tiers); bulk-generate a floor layout to save time."
+        description="Blocks, floors, rooms and beds; bulk-generate a floor layout to save time."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setModal({ type: 'block', block: {} })} disabled={!query.data}>
             New block

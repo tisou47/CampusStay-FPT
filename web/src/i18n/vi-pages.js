@@ -2903,7 +2903,7 @@ const inventory = {
 
   // Admin › Buildings
   "Room tier of the new rooms": "Hạng của các phòng mới",
-  "Each room keeps its own class per term afterwards (Manager › Room tiers).":
+  "Each room keeps its own class per term afterwards (Manager › Room tiers by term).":
     "Sau đó mỗi phòng có hạng riêng theo từng học kỳ (Quản lý › Hạng phòng theo học kỳ).",
   "Keep each floor's class": "Giữ hạng của từng tầng",
   "Room tier (this term)": "Hạng phòng (học kỳ này)",
@@ -2913,8 +2913,8 @@ const inventory = {
     "Mỗi tầng giữ bố trí riêng; tầng mới sao chép bố trí và hạng phòng của cùng tầng ở Tòa {block}, ví dụ {rooms}. Phòng còn thiếu được thêm với mã <tòa>-<Tầng><nn>; phòng đã có được giữ nguyên và tầng đang có người được xếp sẽ được bỏ qua.",
   "No Floor has a layout yet, so each new Floor gets one Room of every active Room Type. Existing Rooms are kept and Floors with Allocations are skipped.":
     "Chưa tầng nào có bố trí, nên mỗi tầng mới có một phòng cho mỗi loại phòng đang hoạt động. Phòng đã có được giữ nguyên và tầng đang có người được xếp sẽ được bỏ qua.",
-  "Blocks, floors, rooms and beds. Each room has its room type, and its room tier per term (Manager › Room tiers); bulk-generate a floor layout to save time.":
-    "Tòa, tầng, phòng và giường. Mỗi phòng có loại phòng, và hạng phòng theo từng học kỳ (Quản lý › Hạng phòng theo học kỳ); tạo hàng loạt bố cục tầng để tiết kiệm thời gian.",
+  "Blocks, floors, rooms and beds; bulk-generate a floor layout to save time.":
+    "Tòa, tầng, phòng và giường; tạo hàng loạt bố cục tầng để tiết kiệm thời gian.",
 
   // Rooms and Beds panel
   "Next term": "Học kỳ sau",
