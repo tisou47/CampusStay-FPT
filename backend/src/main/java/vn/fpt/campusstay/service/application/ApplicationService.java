@@ -365,6 +365,12 @@ public class ApplicationService {
             return;
         }
         ApplicationStore.Application app = applications.find(payment.applicationId(), true).orElse(null);
+        if (app != null && Set.of("REJECTED", "CANCELLED", "EXPIRED").contains(app.status())) {
+            // The claim was confirmed after the Application ended: the money goes back in full (BE-APP-BIL-04).
+            billing.requestRefund(payment.invoiceId(), "APPLICATION_CANCEL", app.id(),
+                    "Deposit confirmed after Application " + app.code() + " ended", "APPLICATION_REJECTED");
+            return;
+        }
         if (app == null || !app.status().equals("AWAITING_DEPOSIT")) {
             return;
         }

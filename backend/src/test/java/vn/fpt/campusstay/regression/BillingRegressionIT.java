@@ -116,6 +116,21 @@ class BillingRegressionIT {
                 .query(String.class).single()).isEqualTo("PAID");
     }
 
+    /** TC-BIL-047: a refund is marked paid once; a second call (double submit) gets 409 REFUND_NOT_APPROVED. */
+    @Test
+    void markPaidTwiceIsRefused() throws Exception {
+        String id = refund(8, "CHECK_OUT", null);
+        String manager = r.manager();
+        r.postJson("/refunds/" + id + "/decision", manager, "{\"decision\":\"Approved\"}")
+                .andExpect(status().isNoContent());
+        r.postJson("/refunds/" + id + "/paid", manager, "{\"reference\":\"FT2611210002\"}")
+                .andExpect(status().isNoContent());
+        var second = r.postJson("/refunds/" + id + "/paid", manager, "{\"reference\":\"FT2611210002\"}")
+                .andReturn().getResponse();
+        assertThat(second.getStatus()).isEqualTo(409);
+        assertThat(second.getContentAsString()).contains("REFUND_NOT_APPROVED");
+    }
+
     /** TC-BIL-044 (Wave 1 regression):
      * BE-APP-BIL-04: an Application rejected (not enrolled) while its Deposit claim waits: once a Manager confirms
      * that claim the money must be refunded (or the claim must have been withdrawn).

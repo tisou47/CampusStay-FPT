@@ -55,6 +55,8 @@ class MeterIT {
 
     @BeforeEach
     void setUp() {
+        // These tests close the current month (readings and invoices); the end-of-month rule is BillingRegressionIT's.
+        jdbc.sql("UPDATE cfg_parameter SET value = 'true' WHERE key = 'utility.close_before_month_end'").update();
         ApplyFlow flow = new ApplyFlow(mvc, jdbc);
         stay = new StayFlow(mvc, jdbc, flow, flow.openTerm());
     }
