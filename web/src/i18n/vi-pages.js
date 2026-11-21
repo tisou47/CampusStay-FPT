@@ -2087,7 +2087,8 @@ const admin = {
   "Room-mates come from the same region": "Bạn cùng phòng đến từ cùng vùng",
   "Add item": "Thêm mục",
   "Edit item {n}": "Sửa mục {n}",
-  "Staff mark each item Pass or Fail. A failed item creates a maintenance request in this category.": "Nhân viên đánh dấu từng mục Đạt hoặc Không đạt. Mục không đạt sẽ tạo yêu cầu bảo trì trong hạng mục này.",
+  "Staff record each item as Good, Worn, Damaged or Missing. Damaged or Missing creates a maintenance request in this category.":
+    "Nhân viên ghi từng mục là Tốt, Hao mòn, Hư hỏng hoặc Thiếu. Mục Hư hỏng hoặc Thiếu sẽ tạo yêu cầu bảo trì trong hạng mục này.",
   "Remove item": "Xóa mục",
   "Save item": "Lưu mục",
   "e.g. Ceiling fan works": "Ví dụ: Quạt trần hoạt động",
@@ -2114,7 +2115,8 @@ const admin = {
   "archived {date}": "lưu trữ {date}",
   "Draft checklist created": "Đã tạo danh mục nháp",
   "Add its items, then publish.": "Hãy thêm các mục rồi công bố.",
-  "Checklists used by staff when managers schedule inspections. Failed items create maintenance requests.": "Danh mục nhân viên dùng khi Quản lý lên lịch kiểm tra. Mục không đạt tạo yêu cầu bảo trì.",
+  "Checklists used by staff when managers schedule inspections. Items found Damaged or Missing create maintenance requests.":
+    "Danh mục nhân viên dùng khi Quản lý lên lịch kiểm tra. Mục Hư hỏng hoặc Thiếu tạo yêu cầu bảo trì.",
   "New checklist": "Danh mục mới",
   "Items": "Số mục",
   "not published": "chưa công bố",

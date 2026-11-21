@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -94,7 +95,8 @@ class InspectionIT {
                 .andExpect(status().isOk()), "$.id");
         assertThat(id).startsWith("CL-");
         String item = "$.items[?(@.id == '" + id + "')]";
-        getAs("/inspection-checklists", admin).andExpect(jsonPath(item + ".status").value(hasItem("Draft")));
+        getAs("/inspection-checklists", admin).andExpect(jsonPath(item + ".status").value(hasItem("Draft")))
+                .andExpect(jsonPath(item + ".inUse").value(hasItem(false)));
 
         stay.postJson("/inspection-checklists/" + id + "/publish", admin, "{\"items\":[]}")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.fields.items").exists());
@@ -340,6 +342,11 @@ class InspectionIT {
         putAs("/inspection-schedules/" + id, manager, "{\"status\":\"Active\"}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CHECKLIST_NOT_PUBLISHED"));
         stay.postJson("/inspection-checklists/" + checklist + "/archive", admin, "{}").andExpect(status().isConflict());
+        // A schedule used it: the list says so (the editor hides Delete), and a delete is refused.
+        getAs("/inspection-checklists", admin)
+                .andExpect(jsonPath("$.items[?(@.id == '" + checklist + "')].inUse").value(hasItem(true)));
+        mvc.perform(delete("/inspection-checklists/" + checklist).header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CHECKLIST_IN_USE"));
     }
 
     /** TC-MNT-007 (permission): schedules are the Managers', for every Block (ADR-19); runs need Staff. */

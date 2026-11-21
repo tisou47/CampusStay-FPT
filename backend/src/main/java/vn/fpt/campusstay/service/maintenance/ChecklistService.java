@@ -7,10 +7,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -38,9 +40,12 @@ public class ChecklistService {
     public record Replaced(int version, int itemCount) {
     }
 
-    /** @param status Active, Draft or Archived */
+    /**
+     * @param status Active, Draft or Archived
+     * @param inUse  a schedule or a run has used it, so it can only be archived, never deleted
+     */
     public record Checklist(String id, String name, int version, String status, Instant updatedAt,
-            Instant archivedAt, List<Item> items, List<Replaced> replaced) {
+            Instant archivedAt, List<Item> items, List<Replaced> replaced, boolean inUse) {
     }
 
     public record Page(List<Checklist> items, List<String> categories, List<String> severities) {
@@ -101,6 +106,7 @@ public class ChecklistService {
         Map<Long, List<VersionItem>> items = items(versions.stream().map(Version::id).toList());
         Map<String, List<Version>> families = versions.stream()
                 .collect(Collectors.groupingBy(Version::family, LinkedHashMap::new, Collectors.toList()));
+        Set<String> used = usedFamilies();
         List<Checklist> result = new ArrayList<>();
         families.forEach((family, list) -> {
             Version current = list.getFirst();
@@ -109,7 +115,8 @@ public class ChecklistService {
                     items.getOrDefault(current.id(), List.of()).stream().map(this::item).toList(),
                     list.stream().filter(v -> v.status().equals("REPLACED"))
                             .map(v -> new Replaced(v.version(), items.getOrDefault(v.id(), List.of()).size()))
-                            .toList()));
+                            .toList(),
+                    used.contains(family)));
         });
         result.sort(Comparator.comparing((Checklist c) -> c.status().equals("Archived"))
                 .thenComparingInt(c -> priority(c.id(), c.name()))
@@ -275,20 +282,22 @@ public class ChecklistService {
     public void delete(String id) {
         currentUser.require(Permission.CONFIGURE);
         Version current = current(id);
-        boolean usedInRuns = jdbc.sql("""
-                SELECT count(*) FROM mnt_inspection_run r JOIN mnt_checklist c ON c.id = r.checklist_id
-                WHERE c.family_key = :f
-                """).param("f", current.family()).query(Long.class).single() > 0;
-        boolean usedInSchedules = jdbc.sql("""
-                SELECT count(*) FROM mnt_inspection_schedule WHERE checklist_family = :f
-                """).param("f", current.family()).query(Long.class).single() > 0;
-        if (usedInRuns || usedInSchedules) {
+        if (usedFamilies().contains(current.family())) {
             throw ApiException.conflict("CHECKLIST_IN_USE",
                     "This checklist has already been used in inspection schedules or runs and cannot be deleted. Archive it instead to preserve history.");
         }
         jdbc.sql("DELETE FROM mnt_checklist WHERE family_key = :f").param("f", current.family()).update();
         audit.record("CHECKLIST_DELETED", AuditLog.Tone.WARNING, "Inspection checklist", current.family(),
                 current.name(), null);
+    }
+
+    /** Checklist families a schedule names or a run used: they keep their history and are archived, not deleted. */
+    private Set<String> usedFamilies() {
+        return new HashSet<>(jdbc.sql("""
+                SELECT c.family_key FROM mnt_inspection_run r JOIN mnt_checklist c ON c.id = r.checklist_id
+                UNION
+                SELECT checklist_family FROM mnt_inspection_schedule
+                """).query(String.class).list());
     }
 
     // ---------------------------------------------------------------- used by inspections

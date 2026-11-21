@@ -17,7 +17,8 @@ import { t, tr } from '@/i18n'
 
 // SCR-CFG-21 Inspection Checklists (Figma 100:4252)
 // GET /inspection-checklists → { items: [{ id, name, version, status: 'Active'|'Draft'|'Archived', updatedAt, archivedAt,
-//   items: [{ label, category, severity }], replaced: [{ version, itemCount }] }], categories: [string], severities: [string] }
+//   items: [{ label, category, severity }], replaced: [{ version, itemCount }], inUse }], categories: [string], severities: [string] }
+//   (inUse: a schedule or a run used it; it can only be archived, so Delete is hidden)
 // POST /inspection-checklists { name } → { id } · POST /inspection-checklists/:id/publish { items } · POST /inspection-checklists/:id/archive
 // PUT /inspection-checklists/:id { name } · POST /inspection-checklists/:id/restore · DELETE /inspection-checklists/:id
 // Severity of a failed item sets the priority of the Maintenance Request it creates.
@@ -44,7 +45,7 @@ function ItemModal({ item, categories, severities, onClose, onSave, onRemove }) 
       open
       onClose={onClose}
       title={item.index == null ? 'Add item' : t('Edit item {n}', { n: item.index + 1 })}
-      description="Staff mark each item Pass or Fail. A failed item creates a maintenance request in this category."
+      description="Staff record each item as Good, Worn, Damaged or Missing. Damaged or Missing creates a maintenance request in this category."
       footer={
         <>
           {onRemove && (
@@ -209,9 +210,12 @@ function Editor({ checklist, categories, severities, onRemoved }) {
               Add item
             </Button>
           )}
-          <Button variant="danger-text" icon={Trash2} onClick={() => setDeleting(true)}>
-            {t('Delete checklist')}
-          </Button>
+          {/* A checklist a schedule or a run used keeps its history: it can only be archived. */}
+          {!checklist.inUse && (
+            <Button variant="danger-text" icon={Trash2} onClick={() => setDeleting(true)}>
+              {t('Delete checklist')}
+            </Button>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {isArchived ? (
@@ -338,7 +342,7 @@ export default function InspectionChecklists() {
     <>
       <PageHeader
         title="Inspection checklists"
-        description="Checklists used by staff when managers schedule inspections. Failed items create maintenance requests."
+        description="Checklists used by staff when managers schedule inspections. Items found Damaged or Missing create maintenance requests."
         actions={
           <Button variant="primary" onClick={() => setCreating('')}>
             New checklist
