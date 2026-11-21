@@ -180,9 +180,6 @@ export default function RoomTypes() {
           </span>
         </p>
       )}
-      <Alert title="Price changes apply to future terms" className="shrink-0">
-        A term that has opened registration keeps the prices it opened with, so issued invoices never change.
-      </Alert>
       {editing && <EditDrawer key={editId} type={editing} roomClasses={query.data?.roomClasses ?? []} onClose={() => setParams({})} />}
     </>
   )
