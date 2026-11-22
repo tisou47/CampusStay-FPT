@@ -1127,3 +1127,8 @@ Write which temporary Bed was arranged and until when. ⟶ Hãy ghi giường t�
 Mark the request resolved before you close it. ⟶ Hãy đánh dấu yêu cầu đã xử lý xong trước khi đóng.
 The stay must end on or after the last Check-in day saved in the timeline ({0}). ⟶ Thời gian ở phải kết thúc vào hoặc sau ngày nhận phòng cuối cùng đã lưu trong mốc thời gian ({0}).
 The stay must start on or before the Check-out deadline saved in the timeline ({0}). ⟶ Thời gian ở phải bắt đầu vào hoặc trước hạn trả phòng đã lưu trong mốc thời gian ({0}).
+Students live in or are placed in Block {0}, so its gender cannot change. ⟶ Tòa {0} đang có sinh viên ở hoặc đã được xếp chỗ, nên không thể đổi giới tính.
+Students live in or are placed in Block {0}, so its status cannot become Inactive. ⟶ Tòa {0} đang có sinh viên ở hoặc đã được xếp chỗ, nên không thể chuyển sang Ngừng hoạt động.
+Room {0}'s Room Type has no price in {1} for {2}. Choose another Room Class. ⟶ Loại phòng của phòng {0} chưa có giá ở {1} trong {2}. Hãy chọn hạng phòng khác.
+This Bed is no longer available. Ask Staff for another option. ⟶ Giường này không còn trống. Hãy hỏi nhân viên để chọn phương án khác.
+Beds of Room {0} are offered or given to students for a coming Term. Move or withdraw them before you set it out of service. ⟶ Giường của phòng {0} đã được đề nghị hoặc xếp cho sinh viên ở học kỳ tới. Hãy chuyển hoặc rút lại trước khi tạm ngừng phòng.
