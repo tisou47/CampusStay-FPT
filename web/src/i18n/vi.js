@@ -501,7 +501,7 @@ const vi = {
   "{p} of invoiced · {amount} unpaid ({n} invoices)": "{p} số đã lập hóa đơn · còn nợ {amount} ({n} hóa đơn)",
   "{n} beds held of {total} · {r} living in": "{n}/{total} giường đã giữ · {r} đang ở",
   "{n} beds held of {total}": "{n}/{total} giường đã giữ",
-  "Not in the funnel: {c} continuing residents (no application this term) · {w} waitlisted · {r} rejected · {e} expired": "Ngoài phễu: {c} cư dân ở tiếp (không nộp đơn học kỳ này) · {w} chờ · {r} bị từ chối · {e} hết hạn",
+  "Not in the funnel: {c} continuing residents (no application this term) · {w} waitlisted · {r} rejected · {e} expired": "Ngoài phiếu: {c} cư dân ở tiếp (không nộp đơn học kỳ này) · {w} chờ · {r} bị từ chối · {e} hết hạn",
   "Check-in opens {date} · {n} expected": "Mở nhận phòng ngày {date} · dự kiến {n} người",
   "{blocked} not paid yet": "{blocked} người chưa đóng tiền",
   "Opens {date} · {n} expected": "Mở ngày {date} · dự kiến {n}",
