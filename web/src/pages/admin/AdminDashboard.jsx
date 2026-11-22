@@ -6,12 +6,8 @@ import {
   Building,
   Calendar,
   ChevronRight,
-  CircleX,
   ClipboardList,
-  Hourglass,
-  RefreshCw,
   ScrollText,
-  TimerOff,
   User,
   Users,
 } from 'lucide-react'
@@ -30,17 +26,9 @@ import { t, tr } from '@/i18n'
 // SCR-HOME-04 Admin Dashboard
 // GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, kpis: { residents, beds, allocated, collected,
 //   invoiced, collectionRate, outstanding, outstandingInvoices, activeUsers, students, staff, managers },
-//   funnel: [{ label, value }], funnelOutside: { continuing, waitlisted, rejected, expired } }
-// The page shows the Term at a glance (four tiles), how its Applications moved through registration and the
-// screens an Admin opens most.
-
-/** Who the funnel leaves out, each with a line saying why. */
-const OUTSIDE = [
-  { key: 'continuing', icon: RefreshCw, label: 'Continuing residents', note: 'Kept their Bed from last Term, no new Application' },
-  { key: 'waitlisted', icon: Hourglass, label: 'Waitlisted', note: 'Waiting for a free Bed' },
-  { key: 'rejected', icon: CircleX, label: 'Rejected', note: 'Not approved by a Manager' },
-  { key: 'expired', icon: TimerOff, label: 'Deposits expired', note: 'Deposit not paid in time' },
-]
+//   funnel: [{ label, value }], blocks: [{ block, gender, allocated, beds }] }
+// The page shows the Term at a glance (four tiles), how its Applications moved through registration, how full
+// each Block is and the screens an Admin opens most.
 
 /** Screens an Admin opens most, with what each is for. */
 const SHORTCUTS = [
@@ -100,31 +88,48 @@ function Funnel({ steps }) {
   )
 }
 
-function Outside({ counts }) {
+/** One tile per Block: Beds held of the Beds in service, the share and the Beds still free. */
+function BlockOccupancy({ blocks }) {
+  const held = blocks.reduce((s, b) => s + b.allocated, 0)
+  const beds = blocks.reduce((s, b) => s + b.beds, 0)
   return (
-    <section aria-labelledby="funnel-outside" className="flex flex-col gap-3 border-t border-line pt-4">
-      <div className="flex flex-col gap-0.5">
-        <h3 id="funnel-outside" className="text-base font-semibold text-fg">{t('Not in the funnel')}</h3>
-        <p className="text-sm text-fg-tertiary">{t('Students of this Term the steps above do not count.')}</p>
+    <Card className="flex shrink-0 flex-col gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <CardHeader title="Occupancy by Block" description="Beds held this Term out of the Beds in service, per Block." />
+        {beds > 0 && (
+          <div className="flex shrink-0 flex-col items-end">
+            <span className="text-h2 font-semibold text-fg tabular">{floorPercent(held / beds)}</span>
+            <span className="text-sm text-fg-tertiary">{t('{n} beds held of {total}', { n: formatNumber(held), total: formatNumber(beds) })}</span>
+          </div>
+        )}
       </div>
       <ul className="grid grid-cols-4 gap-3">
-        {OUTSIDE.map(({ key, icon: Glyph, label, note }) => {
-          const n = counts?.[key] ?? 0
-          return (
-            <li key={key} className="flex min-w-0 items-start gap-3 rounded-lg border border-line px-4 py-3">
-              <span aria-hidden="true" className={cx('flex size-9 shrink-0 items-center justify-center rounded-md', n > 0 ? 'bg-primary-subtle text-fg-brand' : 'bg-subtle text-fg-tertiary')}>
-                <Glyph size={18} />
-              </span>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <p className={cx('text-h3 font-semibold tabular', n > 0 ? 'text-fg' : 'text-fg-tertiary')}>{formatNumber(n)}</p>
-                <p className="text-sm font-medium text-fg-secondary">{t(label)}</p>
-                <p className="text-sm text-fg-tertiary">{t(note)}</p>
-              </div>
-            </li>
-          )
-        })}
+        {[...blocks]
+          .sort((a, b) => a.block.localeCompare(b.block))
+          .map((b) => {
+            const free = Math.max(b.beds - b.allocated, 0)
+            const rate = b.beds ? b.allocated / b.beds : 0
+            return (
+              <li key={b.block} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-base font-semibold text-fg">{t('Block {code}', { code: b.block })}</span>
+                  {b.gender && (
+                    <span className={cx('rounded-full px-2 py-0.5 text-xs font-medium', b.gender === 'Female' ? 'bg-error-bg text-error-fg' : 'bg-info-bg text-info-fg')}>{tr(b.gender)}</span>
+                  )}
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-h2 font-semibold text-fg tabular">{floorPercent(rate)}</span>
+                  <span className="text-sm text-fg-secondary tabular">
+                    {formatNumber(b.allocated)}/{formatNumber(b.beds)}
+                  </span>
+                </div>
+                <Meter value={b.allocated} max={b.beds} tone={rate >= 0.95 ? 'warning' : 'accent'} label={t('Block {code} allocated Beds', { code: b.block })} className="h-1.5" />
+                <span className={cx('text-sm', free === 0 ? 'font-medium text-warning-fg' : 'text-fg-tertiary')}>{free === 0 ? t('Full') : t('{n} free', { n: formatNumber(free) })}</span>
+              </li>
+            )
+          })}
       </ul>
-    </section>
+    </Card>
   )
 }
 
@@ -227,14 +232,11 @@ export default function AdminDashboard() {
           )}
         </div>
         <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
-          {(data) => (
-            <>
-              <Funnel steps={data.funnel} />
-              <Outside counts={data.funnelOutside} />
-            </>
-          )}
+          {(data) => <Funnel steps={data.funnel} />}
         </QueryState>
       </Card>
+
+      {d?.blocks?.length > 0 && <BlockOccupancy blocks={d.blocks} />}
 
       <Shortcuts />
     </>
