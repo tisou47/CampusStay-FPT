@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -42,6 +43,24 @@ Future<List<Picked>> pickImages(int max) async {
     for (final f in result)
       if (f.path != null) (name: f.name, path: f.path!),
   ].take(max).toList();
+}
+
+/// Opens the back camera for one photo (the check-in inventory: the item or the meter as it is in the Room, like the
+/// web's `capture="environment"`); null when the student closes the camera. The photo is scaled down for the upload.
+Future<Picked?> takePhoto() async {
+  try {
+    final shot = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.rear,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      imageQuality: 85,
+    );
+    return shot == null ? null : (name: shot.name, path: shot.path);
+  } catch (_) {
+    toast(t('Could not open the camera.', 'Không mở được camera.'), error: true);
+    return null;
+  }
 }
 
 /// Lets the student pick one document: an image or a PDF (late check-in evidence).

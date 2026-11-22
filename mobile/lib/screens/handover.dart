@@ -700,15 +700,15 @@ class _FormState extends State<_Form> {
     if (_water.text.trim().isNotEmpty) 'water': num.tryParse(_water.text.trim()),
   };
 
-  /// Adds a photo of an item (or of the meters when [itemId] is null); the answers are saved first, so the reload
-  /// that shows the photo keeps them.
+  /// Takes a photo of an item (or of the meters when [itemId] is null) with the camera, as it is in the Room; the
+  /// answers are saved first, so the reload that shows the photo keeps them.
   Future<void> _photo(String? itemId) async {
-    final picked = await pickImages(1);
-    if (picked.isEmpty) return;
+    final shot = await takePhoto();
+    if (shot == null) return;
     setState(() => _uploading = itemId ?? 'meters');
     await attempt(() => Api.put('/students/me/handover', _body()));
     final done = await attempt(
-      () => Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', picked.first.path)]),
+      () => Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', shot.path)]),
       success: t('Photo added', 'Đã thêm ảnh'),
     );
     if (mounted) setState(() => _uploading = null);
@@ -756,7 +756,7 @@ class _FormState extends State<_Form> {
     icon: _uploading == (itemId ?? 'meters')
         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
         : const Icon(Icons.photo_camera_outlined, size: 18),
-    label: Text(_uploading == (itemId ?? 'meters') ? t('Uploading…', 'Đang tải lên…') : t('Add photo', 'Thêm ảnh')),
+    label: Text(_uploading == (itemId ?? 'meters') ? t('Uploading…', 'Đang tải lên…') : t('Take photo', 'Chụp ảnh')),
   );
 
   @override
@@ -1050,13 +1050,6 @@ class _SummaryState extends State<_Summary> {
             : Tag(_name(condition, levels), tone: _tone(condition)),
       ],
     );
-
-    Widget tag(String? condition) => condition == null
-        ? const Text('—', style: TextStyle(color: Tokens.fgTertiary))
-        : Align(
-            alignment: Alignment.centerLeft,
-            child: Tag(_name(condition, levels), tone: _tone(condition)),
-          );
 
     return Panel(
       child: Column(
