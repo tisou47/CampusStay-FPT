@@ -108,7 +108,6 @@ const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
-const FeesRules = () => import('@/pages/admin/FeesRules')
 const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
 const MatchingCriteria = () => import('@/pages/admin/MatchingCriteria')
@@ -316,7 +315,8 @@ export const router = createBrowserRouter([
         { path: 'profile', ...page(Profile, { role: 'admin' }) },
         { path: 'room-types', ...page(RoomTypes) },
         { path: 'room-classes', ...page(RoomClasses) },
-        { path: 'fees', ...page(FeesRules) },
+        // The Deposit is a section of System parameters since 22/11/2026; old links still land there.
+        { path: 'fees', element: <Navigate to="/admin/system-parameters#deposit" replace /> },
         { path: 'utility', ...page(UtilitySettings) },
         { path: 'eligibility', ...page(EligibilityRules) },
         { path: 'matching', ...page(MatchingCriteria) },

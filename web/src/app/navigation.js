@@ -280,7 +280,6 @@ export const backOffice = {
         items: [
           { label: 'Room types', icon: Bed, to: '/admin/room-types' },
           { label: 'Room tiers', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
           { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
       },

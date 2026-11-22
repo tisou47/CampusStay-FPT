@@ -1894,6 +1894,7 @@ const admin = {
   "Nothing unpaid": "Không còn khoản nợ",
   "Accounts that signed in during the last 30 days": "Tài khoản đã đăng nhập trong 30 ngày qua",
   "of {n} accounts": "trên {n} tài khoản",
+  "Could not save the deposit": "Không lưu được tiền đặt cọc",
   "Occupancy by Block": "Lấp đầy theo tòa",
   "Beds held this Term out of the Beds in service, per Block.": "Số giường đã giữ trong học kỳ trên số giường đang sử dụng, theo từng tòa.",
   "Shortcuts": "Lối tắt",
@@ -3402,9 +3403,6 @@ const registration = {
   "An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard.":
     "Đơn đăng ký chỉ đến Quản lý sau khi đã nộp cọc. Mỗi học kỳ có thể đặt tỷ lệ riêng trong trình tạo học kỳ.",
   "Payment confirmation": "Xác nhận thanh toán",
-  "Where the other settings are": "Các thiết lập khác ở đâu",
-  "The deposit and balance payment windows are in deadlines and reminders; refund rules in refunds, penalties and terminations; the utility deposit in utility.":
-    "Thời hạn nộp cọc và tiền phòng còn lại ở Thời hạn và nhắc nhở; quy tắc hoàn tiền ở Hoàn tiền, phạt và chấm dứt ở; tiền đặt cọc điện nước ở Điện nước.",
   "One rule per trigger; the approver decides the refunds that are not automatic.": "Mỗi trường hợp một quy tắc; người duyệt quyết định các khoản hoàn không tự động.",
   "Refunds, penalties and terminations saved": "Đã lưu hoàn tiền, phạt và chấm dứt ở",
   "Students read the change in an announcement; it is written to the audit log.": "Sinh viên đọc thay đổi trong thông báo; thay đổi được ghi vào nhật ký kiểm tra.",
@@ -3697,7 +3695,6 @@ const money = {
   'Each term is billed and paid on its own; the stay length is not a payment commitment.': 'Mỗi học kỳ được lập hóa đơn và thanh toán riêng; Gia hạn không phải là cam kết thanh toán.',
   'The balance was not paid in time, so the bed was released and the deposit is kept.': 'Tiền phòng còn lại không được thanh toán đúng hạn nên chỗ ở đã bị hủy và tiền đặt cọc không được hoàn.',
   'Semesters of a study programme (the stay length stops at the last one)': 'Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)',
-  'Students transfer and press I have transferred; a manager confirms each claim against the bank statement. The door code is released only once the balance is paid.': 'Sinh viên chuyển khoản và bấm Tôi đã chuyển khoản; Quản lý đối chiếu từng khoản với sao kê ngân hàng và xác nhận. Mã cửa chỉ được cấp sau khi thanh toán tiền phòng còn lại.',
   'Door code released · {n} checked in at the desk': 'Đã cấp mã cửa · {n} đã nhận phòng tại quầy',
   'Students said they transferred and wait for a Manager to confirm.': 'Sinh viên đã báo chuyển khoản và đang chờ Quản lý xác nhận.',
   'Students said they transferred and wait for a manager to confirm.': 'Sinh viên đã báo chuyển khoản và đang chờ Quản lý xác nhận.',
