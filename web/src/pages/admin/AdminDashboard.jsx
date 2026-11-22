@@ -19,7 +19,7 @@ import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Card, CardHeader } from '@/components/ui/Display'
 import { QueryState, StaleNotice } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
-import { daysFromToday, formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
+import { daysFromToday, formatCompactVnd, formatDate, formatNumber } from '@/lib/format'
 import { COLLECTED_RULE, floorPercent } from '@/lib/money'
 import { t, tr } from '@/i18n'
 
@@ -39,14 +39,12 @@ const SHORTCUTS = [
   { to: '/admin/audit-log', icon: ScrollText, label: 'Audit log', note: 'Who changed what, and when' },
 ]
 
-/** The registration steps in a row: count, a bar against the first step and the share of the step before. */
+/** The registration steps in a row: count and a bar against the first step. */
 function Funnel({ steps }) {
   const top = steps[0]?.value || 1
   return (
     <ol className="grid grid-cols-5 gap-x-6" aria-label={t('Application funnel')}>
       {steps.map((f, i) => {
-        const prev = i > 0 ? steps[i - 1].value : null
-        const rate = prev ? f.value / prev : null
         const last = i === steps.length - 1
         return (
           <li key={f.label} className="relative flex min-w-0">
@@ -55,7 +53,7 @@ function Funnel({ steps }) {
             )}
             <div
               className={cx('flex min-w-0 flex-1 flex-col gap-2 rounded-lg border p-4', last ? 'border-primary bg-primary-subtle' : 'border-line bg-canvas')}
-              title={`${tr(f.label)}: ${formatNumber(f.value)}${rate != null ? ` (${t('{p} of previous stage', { p: formatPercent(rate, 0) })})` : ''}`}
+              title={`${tr(f.label)}: ${formatNumber(f.value)}`}
             >
               <div className="flex items-center gap-2">
                 <span
@@ -71,7 +69,6 @@ function Funnel({ steps }) {
               </div>
               <p className="text-h1 font-semibold text-fg tabular">{formatNumber(f.value)}</p>
               <Meter value={f.value} max={top} tone={last ? 'accent' : 'accent-soft'} label={f.label} className="h-1.5" />
-              <p className="text-sm text-fg-tertiary">{rate != null ? t('{p} of previous stage', { p: formatPercent(rate, 0) }) : t('Starting point')}</p>
             </div>
           </li>
         )
