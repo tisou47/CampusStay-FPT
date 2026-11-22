@@ -57,6 +57,11 @@ cd web && npm install && npm run dev                       # web app on http://l
 
 Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must pass.
 
+Pull-request checklist:
+- `mvn verify` (backend), `npm test`, `npm run i18n:check` and `npm run build` (web) pass;
+- after an endpoint change, regenerate the Postman collection with the backend running (`node tools/postman/generate-postman.mjs`) and update `tools/postman/api-contract.md`;
+- a new user-facing error message has its Vietnamese line in `backend/src/main/resources/i18n/messages_vi.txt`.
+
 ## Deploy
 
 | | Production |
@@ -65,4 +70,4 @@ Before committing: `mvn verify` in `backend/` and `npm run build` in `web/` must
 | API | https://campusstay-api.eastasia.cloudapp.azure.com/api — Azure for Students VM, Docker Compose with Caddy (HTTPS) |
 | Database | Azure Database for PostgreSQL (Flexible Server) |
 
-Pushing to `main` deploys both (ADR-16): Vercel builds `web/`, and `.github/workflows/backend.yml` runs `mvn verify`, builds the image to GHCR and ships it to the VM over SSH. The server runs as a demo with the fictional base data (ADR-18); payments are claims confirmed by Managers (ADR-22); its email and Firebase settings are not set yet (architecture §14.1). One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).
+Pushing to `main` deploys both (ADR-16): Vercel builds `web/`, and `.github/workflows/backend.yml` runs `mvn verify`, builds the image to GHCR and ships it to the VM over SSH. The deploy backs up the running version first and keeps a week of images, so a bad build rolls back with `API_TAG=<previous sha>` (runbook §4). The server runs as a demo with the fictional base data (ADR-18); payments are claims confirmed by Managers (ADR-22); email (Gmail SMTP, demo addresses redirected to the team inbox) and Firebase push are set (27/10/2026). GitHub settings the workflow reads: secret `VM_SSH_KEY`; variables `VM_HOST`, `VM_USER`, `API_DOMAIN` and `VM_KNOWN_HOSTS` (the server's pinned host key). One-time setup and operations: [infra/prod/README.md](infra/prod/README.md).

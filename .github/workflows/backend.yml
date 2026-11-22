@@ -2,8 +2,10 @@
 # On main it also builds the image (linux/amd64), pushes it to GHCR and deploys it to the Ubuntu VPS.
 # Repository settings → Secrets and variables → Actions (runbook: infra/prod/README.md §1.8):
 #   variables VM_HOST, VM_USER, API_DOMAIN · secret VM_SSH_KEY. The deploy job is skipped until VM_HOST is set.
-#   Optional: VM_SSH_PORT (default 22); IMAGE_PLATFORM=linux/arm64 for an ARM VPS such as Azure's B2pts v2
-#   (built on GitHub's arm runner). A managed database needs no change here: it is set in the VPS's .env.
+#   Recommended: VM_KNOWN_HOSTS (the VPS host key, from `ssh-keyscan -p <port> <host>`; without it the key is trusted
+#   on first sight and the run warns). Optional: VM_SSH_PORT (default 22); IMAGE_PLATFORM=linux/arm64 for an ARM
+#   VPS such as Azure's B2pts v2 (built on GitHub's arm runner). A managed database needs no change here: it is set
+#   in the VPS's .env.
 name: backend
 
 on:
@@ -90,6 +92,7 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.VM_SSH_KEY }}
           VM_HOST: ${{ vars.VM_HOST }}
+          VM_KNOWN_HOSTS: ${{ vars.VM_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
           # A key copied on Windows may carry CR line ends, which OpenSSH cannot read.
@@ -101,7 +104,14 @@ jobs:
           fi
           # The fingerprint is public: compare it with `ssh-keygen -lf <deploy key>.pub` on the machine that made the key.
           echo "Deploy key: $(ssh-keygen -lf ~/.ssh/id_ed25519.pub)"
-          ssh-keyscan -p "$SSH_PORT" -H "$VM_HOST" >> ~/.ssh/known_hosts
+          # The VPS host key, pinned in the repository variable VM_KNOWN_HOSTS (`ssh-keyscan -p <port> <host>` run once
+          # from a trusted machine). Without it the key is taken on first sight, which a network attacker could fake.
+          if [ -n "$VM_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VM_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+          else
+            echo "::warning::VM_KNOWN_HOSTS is not set: trusting the host key ssh-keyscan returns (runbook 1.8)"
+            ssh-keyscan -p "$SSH_PORT" -H "$VM_HOST" >> ~/.ssh/known_hosts
+          fi
           # ssh and scp below use the VPS's SSH port and only this key.
           printf 'Host *\n  Port %s\n  IdentitiesOnly yes\n  IdentityFile ~/.ssh/id_ed25519\n  BatchMode yes\n  ServerAliveInterval 30\n' "$SSH_PORT" > ~/.ssh/config
       - name: Copy the stack files
@@ -112,9 +122,13 @@ jobs:
           GHCR_USER: ${{ github.actor }}
         run: |
           printf '%s' "$GHCR_TOKEN" | ssh "$TARGET" "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+          # Back up the running version first: the new image may run migrations (none on the very first deploy).
+          ssh "$TARGET" "cd $DEPLOY_DIR && if docker compose ps --status running --services | grep -qx api; then \
+            mkdir -p backups && sh backup.sh >> backups/backup.log 2>&1; fi"
+          # Images of the last week stay, so `API_TAG=<previous sha>` can roll back without a pull (runbook §4).
           ssh "$TARGET" "cd $DEPLOY_DIR && export API_IMAGE='$API_IMAGE' API_TAG='$API_TAG' \
             && docker compose pull api && docker compose up -d --remove-orphans; \
-            status=\$?; docker logout ghcr.io; docker image prune -af; exit \$status"
+            status=\$?; docker logout ghcr.io; docker image prune -af --filter until=168h; exit \$status"
       # Up to 5 minutes: the first start runs the migrations, loads the base data and gets the certificate.
       - name: Check health
         if: vars.API_DOMAIN != ''
