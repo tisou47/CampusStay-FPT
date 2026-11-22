@@ -11,7 +11,8 @@ import java.util.Set;
  * Compares a student's check-in inventory with the Room's record before it (an inspection, another inventory or a
  * check-out). Good and Worn count as the same; an item the record does not know is never a difference. The meters
  * may have moved by at most {@code max(tolerance, use per resident and hour × the person-hours lived in the Room since
- * the reading)} (the caller adds up each resident's hours since their arrival or the reading, whichever is later).
+ * the reading)} (the caller adds up each resident's hours since their arrival or the reading, whichever is later),
+ * and gone down by at most the lower tolerance (meters only go up: a lower reading is a misreading or a wrong record).
  * <ul>
  * <li>Matched: every item agrees and the meters are within the limit;</li>
  * <li>Major: an item the record had in the Room is reported Missing, a meter is beyond the limit, or at least
@@ -28,7 +29,14 @@ final class HandoverComparison {
 
     /** The parameters of section "Room handover". */
     record Limits(BigDecimal electricityTolerance, BigDecimal electricityPerPersonHour, BigDecimal waterTolerance,
-            BigDecimal waterPerPersonHour, int majorMismatches) {
+            BigDecimal waterPerPersonHour, int majorMismatches, BigDecimal electricityBelow, BigDecimal waterBelow) {
+
+        /** The limits without a lower tolerance: any reading below the record is a Major difference. */
+        Limits(BigDecimal electricityTolerance, BigDecimal electricityPerPersonHour, BigDecimal waterTolerance,
+                BigDecimal waterPerPersonHour, int majorMismatches) {
+            this(electricityTolerance, electricityPerPersonHour, waterTolerance, waterPerPersonHour, majorMismatches,
+                    BigDecimal.ZERO, BigDecimal.ZERO);
+        }
     }
 
     /**
@@ -82,20 +90,28 @@ final class HandoverComparison {
             major = true;
         }
         major |= meter("Electricity", "kWh", electricity, baseElectricity,
-                allowed(limits.electricityTolerance(), limits.electricityPerPersonHour(), hours, residents), notes);
+                allowed(limits.electricityTolerance(), limits.electricityPerPersonHour(), hours, residents),
+                limits.electricityBelow(), notes);
         major |= meter("Water", "m³", water, baseWater,
-                allowed(limits.waterTolerance(), limits.waterPerPersonHour(), hours, residents), notes);
+                allowed(limits.waterTolerance(), limits.waterPerPersonHour(), hours, residents),
+                limits.waterBelow(), notes);
         String level = major ? "MAJOR" : notes.isEmpty() ? "MATCHED" : "MINOR";
         return new Result(level, List.copyOf(notes), Set.copyOf(mismatched));
     }
 
-    /** @return the difference is beyond the limit */
+    /** @return the difference is beyond the limit, above or below the record */
     private static boolean meter(String name, String unit, BigDecimal value, BigDecimal base, BigDecimal allowed,
-            List<String> notes) {
+            BigDecimal below, List<String> notes) {
         if (value == null || base == null) {
             return false;
         }
         BigDecimal difference = value.subtract(base);
+        BigDecimal lowest = (below == null ? BigDecimal.ZERO : below.max(BigDecimal.ZERO)).negate();
+        if (difference.compareTo(lowest) < 0) {
+            notes.add(name + " " + difference.stripTrailingZeros().toPlainString() + " " + unit
+                    + " (lower than the record: meters only go up)");
+            return true;
+        }
         if (difference.compareTo(allowed) <= 0) {
             return false;
         }

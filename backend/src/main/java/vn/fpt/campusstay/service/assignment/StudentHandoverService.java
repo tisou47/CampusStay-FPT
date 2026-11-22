@@ -254,18 +254,9 @@ public class StudentHandoverService {
                     "Add a photo of every Damaged or Missing item.");
         }
         errors.throwIfAny();
-        // Never reveal the Room's baseline meter numbers or date to a student in the error response.
-        HandoverCore.Row filed = h;
-        billing.lastReading(filed.roomId()).ifPresent(last -> {
-            if (filed.electricity().compareTo(last.electricity()) < 0) {
-                throw FieldErrors.single("electricity",
-                        "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
-            }
-            if (filed.water().compareTo(last.water()) < 0) {
-                throw FieldErrors.single("water",
-                        "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
-            }
-        });
+        // Against Report 1 (Staff's inspection before arrival) and Billing's latest reading; never reveals the Room's
+        // baseline numbers or date to a student in the error response.
+        core.checkReadings(h, h.electricity(), h.water(), false);
         Instant now = Instant.now(clock);
         jdbc.sql("UPDATE asg_handover SET status = 'SUBMITTED', submitted_at = :now, version = version + 1 WHERE id = :id")
                 .param("now", Timestamp.from(now)).param("id", h.id()).update();

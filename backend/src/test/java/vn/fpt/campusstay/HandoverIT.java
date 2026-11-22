@@ -255,6 +255,36 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-063: Report 1 (Staff's inspection before arrival) bounds the student's meters even when Billing's latest
+     * reading is lower: a reading below it is refused, one far above the accepted use is refused as a typo, and one
+     * within the misreading allowance matches.
+     */
+    @Test
+    void readingsAreBoundedByReportOne() throws Exception {
+        newcomer(29, "A-205", "A");
+        doorCode("A-205");
+        meterCut("A-205", 100, 10);
+        String student = bearer(mvc, StayFlow.student(29));
+        String id = JsonPath.read(json(send(post("/students/me/handover/start"), student, "")), "$.id");
+        // Report 1: Staff read 1703 kWh and 45 m³ before the student arrived.
+        jdbc.sql("UPDATE asg_handover SET baseline_electricity = 1703, baseline_water = 45 WHERE id = :id")
+                .param("id", Long.parseLong(id.replace("HO-", ""))).update();
+        String view = json(mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student)));
+
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1450, 45))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.electricity").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1703, 40))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.water").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 9000, 45))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.electricity").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1703, 45))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("Final"));
+    }
+
+    /**
      * TC-ASG-061: with the student in the Room, Staff sign the Final report there: the inventory is final at once
      * (no agreement on the app), the student is checked in, and check-out compares with that Final report.
      */
