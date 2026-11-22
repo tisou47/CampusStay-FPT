@@ -4832,6 +4832,9 @@ const managerOverview = {
   "View stats & details": "Xem thống kê & chi tiết",
   "Complete schedule": "Kết thúc lịch",
   "Submitted": "Đã nộp kết quả",
+  "Take a request in the Unassigned tab, or wait for routing while you are on duty.": "Nhận yêu cầu ở tab Chưa có người nhận, hoặc chờ hệ thống phân công khi bạn đang trực.",
+  "No unassigned requests right now": "Hiện không có yêu cầu nào chưa có người nhận",
+  "View unassigned ({n})": "Xem yêu cầu chưa nhận ({n})",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
