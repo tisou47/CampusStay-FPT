@@ -187,29 +187,36 @@ export default function CheckOutOverviewPage() {
             {items.map((r) => (
               <Tr
                 key={r.allocationId}
+                tabIndex={0}
                 onClick={() => navigate(`/staff/check-out/${r.allocationId}`)}
-                className="cursor-pointer [&>td]:py-3"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    navigate(`/staff/check-out/${r.allocationId}`)
+                  }
+                }}
+                className="cursor-pointer transition-colors hover:bg-subtle/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus [&>td]:py-3"
               >
                 <Td>
                   <div className="flex items-center gap-3">
                     <Avatar name={r.name} size={36} />
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate font-semibold text-fg">{r.name}</span>
+                      <span className="truncate font-medium text-fg">{r.name}</span>
                       <span className="font-mono text-xs text-fg-tertiary">{r.studentCode}</span>
                     </div>
                   </div>
                 </Td>
                 <Td>
                   <div className="flex flex-col">
-                    <span className="font-medium text-fg">{t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}</span>
+                    <span className="font-medium text-fg tabular">{t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}</span>
                     <span className="text-xs text-fg-secondary">
-                      {[tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' · ')}
+                      {[tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' ')}
                     </span>
                   </div>
                 </Td>
                 <Td className="text-sm text-fg-secondary">{tr(r.reason)}</Td>
                 <Td>
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     <StatusTag status={r.status} tone={CHECKOUT_TONES[r.status]} />
                     {r.overdue && <Tag tone="error">Overdue</Tag>}
                   </div>
@@ -223,9 +230,9 @@ export default function CheckOutOverviewPage() {
                       navigate(`/staff/check-out/${r.allocationId}`)
                     }}
                   >
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1.5">
                       {r.status === 'Checked out' ? t('View details') : t('Process check-out')}
-                      <ArrowRight size={14} aria-hidden="true" />
+                      <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
                     </span>
                   </Button>
                 </Td>

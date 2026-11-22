@@ -245,40 +245,39 @@ export function useCheckOutWorkspace(allocationId) {
 export function CheckOutHeaderCard({ d, held, onOpenHandover }) {
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
-      <div className="flex min-w-0 items-center gap-3.5">
-        <Avatar name={d.name} size={48} />
-        <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar name={d.name} size={44} />
+        <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-h2 font-semibold text-fg">{d.name}</h1>
             <StatusTag status={d.status} tone={CHECKOUT_TONES[d.status]} />
             {d.overdue && <Tag tone="error">Overdue</Tag>}
           </div>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-secondary">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-fg-secondary">
             <span className="font-mono text-xs text-fg-tertiary">{d.studentCode}</span>
-            <span>·</span>
-            <span className="rounded-md bg-brand-subtle px-2 py-0.5 text-xs font-semibold text-fg-brand">
+            <span className="rounded-md bg-brand-subtle px-2 py-0.5 text-xs font-medium text-fg-brand">
               {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
             </span>
-            <span>·</span>
-            <span>
-              {tr(d.roomTypeName)} {tr(d.roomClassName)}
-            </span>
-            <span>·</span>
+            <span>{[tr(d.roomTypeName), tr(d.roomClassName)].filter(Boolean).join(' ')}</span>
+            <span className="text-fg-tertiary">·</span>
             <span className="font-medium text-fg">{tr(d.reason)}</span>
-            <span>·</span>
             <span className="rounded-md bg-subtle px-2 py-0.5 text-xs font-medium text-fg tabular">
               {t('Deposit held: {amount}', { amount: formatVnd(held) })}
             </span>
-          </p>
+          </div>
           {d.handoverReport && (
-            <p className="text-xs text-fg-secondary">
-              <span className="font-semibold text-fg">Report Final ({d.handoverReport.id})</span>
-              {d.handoverReport.finalizedAt ? ` · Chốt: ${formatDateTime(d.handoverReport.finalizedAt)}` : ''}
-              {d.handoverReport.electricity != null && d.handoverReport.water != null
-                ? ` · Điện ${formatNumber(d.handoverReport.electricity)} kWh · Nước ${formatNumber(d.handoverReport.water)} m³`
-                : ''}
-              {d.handoverReport.staffName ? ` · Staff duyệt: ${d.handoverReport.staffName}` : ''}
-            </p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-fg-secondary">
+              <span className="font-medium text-fg">Report Final ({d.handoverReport.id})</span>
+              {d.handoverReport.finalizedAt && (
+                <span className="tabular">{t('Finalized {date}', { date: formatDateTime(d.handoverReport.finalizedAt) })}</span>
+              )}
+              {d.handoverReport.electricity != null && d.handoverReport.water != null && (
+                <span className="font-medium text-fg tabular">
+                  {formatNumber(d.handoverReport.electricity)} kWh / {formatNumber(d.handoverReport.water)} m³
+                </span>
+              )}
+              {d.handoverReport.staffName && <span>{d.handoverReport.staffName}</span>}
+            </div>
           )}
         </div>
       </div>
@@ -288,7 +287,7 @@ export function CheckOutHeaderCard({ d, held, onOpenHandover }) {
             Xem hợp đồng / biên bản nhận phòng (Report Final)
           </Button>
         ) : (
-          <span className="rounded-md bg-subtle px-2.5 py-1.5 text-xs text-fg-tertiary">Không có Report Final</span>
+          <span className="rounded-md bg-subtle px-3 py-1.5 text-xs text-fg-tertiary">Không có Report Final</span>
         )}
       </div>
     </section>
@@ -318,12 +317,13 @@ export function CheckOutTopBar({ allocationId, active = 'overview', listQuery = 
             <Link
               key={item.key}
               to={item.to}
+              aria-current={isCurrent ? 'page' : undefined}
               className={cx(
-                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
                 isCurrent ? 'bg-primary font-semibold text-fg-on-brand' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
               )}
             >
-              <Icon size={13} aria-hidden="true" />
+              <Icon size={14} strokeWidth={1.5} aria-hidden="true" />
               <span>{t(item.label)}</span>
             </Link>
           )
@@ -452,7 +452,7 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
                   − {formatVnd(damageAmount)}
                 </SettlementRow>
                 {damageLines.length > 0 && (
-                  <div className="flex flex-col gap-1 border-l-2 border-warning/40 pl-3 text-[11px] text-fg-secondary">
+                  <div className="flex flex-col gap-1 border-l-2 border-warning/40 pl-3 text-xs text-fg-secondary">
                     {damageLines.map((l) => (
                       <div key={l.key} className="flex items-start justify-between gap-2">
                         <span className="min-w-0">
@@ -466,7 +466,7 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
                   </div>
                 )}
                 {hasSharedSplit && (
-                  <p className="rounded-lg bg-warning-bg/60 px-2.5 py-1.5 text-[11px] text-warning-fg">
+                  <p className="rounded-lg bg-warning-bg/60 px-3 py-2 text-xs text-warning-fg">
                     {t('Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.')}
                   </p>
                 )}

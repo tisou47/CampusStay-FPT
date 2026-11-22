@@ -4880,6 +4880,7 @@ const managerOverview = {
   "Review the utility deposit, unpaid invoices, and any furniture damage charges before confirming check-out.": "Đối chiếu tiền cọc điện nước, hóa đơn chưa thanh toán và phí hư hỏng nội thất trước khi xác nhận trả phòng.",
   "Go to Room & furniture": "Đi tới Kiểm tra nội thất",
   "Back to room & furniture": "Quay lại kiểm tra nội thất",
+  "Finalized {date}": "Chốt: {date}",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

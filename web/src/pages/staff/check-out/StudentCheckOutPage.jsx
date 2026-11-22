@@ -135,10 +135,10 @@ export default function StudentCheckOutPage() {
                 {done ? t('Completed') : refund >= 0 ? t('Refund {amount}', { amount: formatVnd(refund) }) : t('Owes {amount}', { amount: formatVnd(-refund) })}
               </Tag>
             </div>
-            <p className={cx('text-lg font-bold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
+            <p className={cx('text-lg font-semibold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
               {refund >= 0 ? t('Refund {amount}', { amount: formatVnd(refund) }) : t('Owes {amount}', { amount: formatVnd(-refund) })}
             </p>
-            <p className="text-xs text-fg-secondary">
+            <p className="text-xs text-fg-secondary tabular">
               {t('Utility deposit held')}: {formatVnd(s.held)} · {t('Damage charge')}: {formatVnd(damageAmount)}
             </p>
           </div>
