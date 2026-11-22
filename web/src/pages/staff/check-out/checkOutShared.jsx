@@ -47,9 +47,11 @@ export function clearCachedDraft(allocationId) {
 
 export function SettlementRow({ label, children, strong, tone }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1 text-base">
-      <dt className="text-fg-secondary">{t(label)}</dt>
-      <dd className={cx('tabular', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>{children}</dd>
+    <div className="flex items-center justify-between gap-4 py-1 text-sm sm:text-base">
+      <dt className="min-w-0 text-fg-secondary">{t(label)}</dt>
+      <dd className={cx('shrink-0 whitespace-nowrap tabular', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>
+        {children}
+      </dd>
     </div>
   )
 }
@@ -414,7 +416,9 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
     <Modal
       open={open}
       onClose={onClose}
+      width={640}
       title={t('Settlement summary · {name}', { name: d.name })}
+      description={t('Please read this settlement breakdown aloud to the student before finalizing:')}
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button onClick={onClose} disabled={submit.pending}>
@@ -427,18 +431,16 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
       }
     >
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-fg-secondary">
-          {t('Please read this settlement breakdown aloud to the student before finalizing:')}
-        </p>
-
         <div className="rounded-xl border border-line bg-subtle/50 p-4">
-          <div className="mb-3 flex items-center justify-between border-b border-line pb-2.5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
             <span className="font-semibold text-fg">
-              {d.name} ({d.studentCode})
+              {d.name} <span className="font-mono text-xs font-normal text-fg-tertiary">({d.studentCode})</span>
             </span>
-            <span className="text-xs text-fg-secondary">{t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}</span>
+            <span className="shrink-0 whitespace-nowrap text-xs font-medium text-fg-secondary">
+              {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
+            </span>
           </div>
-          <dl className="flex flex-col gap-2">
+          <dl className="flex flex-col gap-2 divide-y divide-line/60">
             <SettlementRow label="Utility deposit held" strong>
               {formatVnd(s.held)}
             </SettlementRow>
@@ -447,20 +449,25 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
             </SettlementRow>
             <SettlementRow label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</SettlementRow>
             {damageAmount > 0 && (
-              <>
+              <div className="flex flex-col gap-2 pt-2">
                 <SettlementRow label="Damage charge" tone="text-warning-fg" strong>
                   − {formatVnd(damageAmount)}
                 </SettlementRow>
                 {damageLines.length > 0 && (
-                  <div className="flex flex-col gap-1 border-l-2 border-warning/40 pl-3 text-xs text-fg-secondary">
+                  <div className="flex flex-col gap-1.5 border-l-2 border-warning/40 pl-3 text-xs text-fg-secondary">
                     {damageLines.map((l) => (
-                      <div key={l.key} className="flex items-start justify-between gap-2">
-                        <span className="min-w-0">
-                          {l.name} ({l.assetCode}) · {conditionName(l.condition)}
+                      <div key={l.key} className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="font-medium text-fg">{l.name}</span>{' '}
+                          <span className="font-mono text-fg-tertiary">({l.assetCode})</span> · {conditionName(l.condition)}
                           {l.percent > 0 ? ` ${l.percent}%` : ''}
-                          {l.split > 1 ? ` · ${t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}` : ''}
-                        </span>
-                        <span className="shrink-0 font-medium text-fg tabular">− {formatVnd(l.amount)}</span>
+                          {l.split > 1 && (
+                            <div className="text-fg-tertiary tabular">
+                              {t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}
+                            </div>
+                          )}
+                        </div>
+                        <span className="shrink-0 whitespace-nowrap font-semibold text-fg tabular">− {formatVnd(l.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -470,31 +477,31 @@ export function SettlementSummaryModal({ open, onClose, d, s, damageAmount, dama
                     {t('Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.')}
                   </p>
                 )}
-              </>
+              </div>
             )}
           </dl>
         </div>
 
         <div
           className={cx(
-            'flex items-center justify-between gap-3 rounded-xl p-4',
+            'flex items-center justify-between gap-4 rounded-xl p-4',
             refund >= 0 ? 'border border-success/30 bg-success-bg' : 'border border-error/30 bg-error-bg',
           )}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-3">
             {refund >= 0 ? (
-              <CheckCircle2 size={24} aria-hidden="true" className="shrink-0 text-success-fg" />
+              <CheckCircle2 size={24} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-success-fg" />
             ) : (
-              <AlertTriangle size={24} aria-hidden="true" className="shrink-0 text-error-fg" />
+              <AlertTriangle size={24} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-error-fg" />
             )}
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-fg">{t(refund >= 0 ? 'Refund to student' : 'Student still owes')}</p>
               <p className="text-xs text-fg-tertiary">
                 {t(refund >= 0 ? 'Refund goes to the manager for approval' : 'The balance will be invoiced to the student')}
               </p>
             </div>
           </div>
-          <span className={cx('text-2xl font-bold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
+          <span className={cx('shrink-0 whitespace-nowrap text-2xl font-semibold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
             {formatVnd(Math.abs(refund))}
           </span>
         </div>

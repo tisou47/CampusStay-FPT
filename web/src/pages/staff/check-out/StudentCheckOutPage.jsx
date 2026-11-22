@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, LogOut, Receipt, Save, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { DetailFacts } from '@/components/ui/DetailFacts'
@@ -23,6 +23,7 @@ import {
 
 export default function StudentCheckOutPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [activeSeg, setActiveSeg] = useState('overview')
   const [showHandover, setShowHandover] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
@@ -77,7 +78,7 @@ export default function StudentCheckOutPage() {
     <div className="flex flex-col gap-5 pb-8">
       {/* Sticky Header Segment Bar */}
       <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface/95 px-3 py-2 backdrop-blur-xs">
-        <Button size="sm" icon={ArrowLeft} to="/staff/check-out">
+        <Button size="sm" icon={ArrowLeft} onClick={() => navigate('/staff/check-out')}>
           {t('Check-out list')}
         </Button>
 
@@ -351,7 +352,7 @@ export default function StudentCheckOutPage() {
               </p>
             </div>
           </div>
-          <span className={cx('text-2xl font-semibold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
+          <span className={cx('shrink-0 whitespace-nowrap text-2xl font-semibold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
             {formatVnd(Math.abs(refund))}
           </span>
         </div>
