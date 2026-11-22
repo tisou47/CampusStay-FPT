@@ -168,7 +168,11 @@ function TierRoomsDrawer({ tier, onClose }) {
       footer={<Button onClick={onClose}>Close</Button>}
     >
       {blocks.length > 1 && (
-        <div role="tablist" className="grid shrink-0 gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(blocks.length, 4)}, minmax(0, 1fr))` }}>
+        <div
+          role="tablist"
+          className="grid shrink-0 gap-2"
+          style={{ gridTemplateColumns: `repeat(${blocks.length <= 5 ? blocks.length : Math.ceil(blocks.length / 2)}, minmax(0, 1fr))` }}
+        >
           {blocks.map((b) => {
             const active = b.block === block
             return (
@@ -183,7 +187,7 @@ function TierRoomsDrawer({ tier, onClose }) {
                   active ? 'border-primary bg-primary-subtle' : 'border-line hover:border-line-strong hover:bg-subtle',
                 )}
               >
-                <span className={cx('flex items-center gap-1.5 text-base font-medium', active ? 'text-fg-brand' : 'text-fg')}>
+                <span className={cx('flex items-center gap-1.5 text-base font-medium whitespace-nowrap', active ? 'text-fg-brand' : 'text-fg')}>
                   <Building2 aria-hidden="true" size={16} />
                   {t('Block {code}', { code: b.block })}
                 </span>
@@ -216,7 +220,7 @@ function TierRoomsDrawer({ tier, onClose }) {
                     <span className="rounded-full bg-subtle px-2 py-0.5 text-xs font-medium text-fg-secondary tabular">{t('{n} rooms', { n: formatNumber(onFloor.length) })}</span>
                     <span aria-hidden="true" className="h-px flex-1 bg-line" />
                   </div>
-                  <ul className="grid grid-cols-4 gap-2">
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(128px,1fr))] gap-2">
                     {onFloor.map((r) => {
                       const off = r.conformance?.status === 'Does not match'
                       return (
