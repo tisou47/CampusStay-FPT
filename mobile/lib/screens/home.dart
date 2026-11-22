@@ -7,6 +7,7 @@ import '../session.dart';
 import 'applications.dart';
 import 'apply.dart';
 import 'family_day.dart';
+import 'handover.dart';
 import 'notifications.dart';
 import 'payments.dart';
 import 'registration.dart';
@@ -41,6 +42,7 @@ class HomeScreen extends StatelessWidget {
     _optional('/registration-periods/current'),
     _optional('/students/me/roommate-invitation'),
     _optional('/notifications?limit=1'),
+    _optional('/students/me/handover'),
   ]);
 
   @override
@@ -58,6 +60,24 @@ class HomeScreen extends StatelessWidget {
         final requests = (home.number('openRequests') ?? 0).toInt();
         final left = timeLeft(card?.str('countdownTo'));
         final app = home.obj('application');
+        // The check-in inventory: shown once the student has a Room (or an inventory), with what it asks now.
+        final handover = data[5];
+        final checkIn = handover?.str('status');
+        final showCheckIn = checkIn != null && (checkIn != 'Not needed' || home.obj('allocation') != null);
+        final checkInTodo = switch (checkIn) {
+          'Ready' || 'Draft' => 1,
+          'Verifying' when handover!.flag('toAgree') => 1,
+          _ => 0,
+        };
+        final checkInNote = switch (checkIn) {
+          'Waiting' => t('Not yet', 'Chưa đến lúc'),
+          'Ready' => t('You can receive it', 'Có thể nhận phòng'),
+          'Draft' => t('Due ${day(handover!.str('dueAt'))}', 'Hạn ${day(handover.str('dueAt'))}'),
+          'Submitted' => t('With Staff', 'Đang chờ nhân viên'),
+          'Verifying' => handover!.flag('toAgree') ? t('Agree now', 'Cần đồng ý') : t('Room visit', 'Hẹn kiểm tra'),
+          'Final' => t('Final', 'Đã chốt'),
+          _ => null,
+        };
 
         Future<void> open(Widget page) async {
           await push(context, page);
@@ -123,6 +143,15 @@ class HomeScreen extends StatelessWidget {
             FeatureSection(
               title: t('Dormitory life', 'Sinh hoạt KTX'),
               tiles: [
+                if (showCheckIn)
+                  FeatureTile(
+                    icon: Icons.vpn_key_rounded,
+                    color: const Color(0xFFF97316),
+                    label: t('Check-in', 'Nhận phòng'),
+                    badge: checkInTodo,
+                    note: checkInNote,
+                    onTap: () => open(const HandoverScreen()),
+                  ),
                 FeatureTile(
                   icon: Icons.build_rounded,
                   color: const Color(0xFF10B981),

@@ -10,6 +10,7 @@ import 'package:campusstay_student/screens/applications.dart';
 import 'package:campusstay_student/screens/assistant.dart';
 import 'package:campusstay_student/screens/family_day.dart';
 import 'package:campusstay_student/screens/apply.dart';
+import 'package:campusstay_student/screens/handover.dart';
 import 'package:campusstay_student/screens/home.dart';
 import 'package:campusstay_student/screens/payments.dart';
 import 'package:campusstay_student/screens/registration.dart';
@@ -118,6 +119,26 @@ void main() {
     for (final tile in ['Notifications', 'Applications', 'Registration period', 'Dormitory board', 'Requests', 'Family Days', 'Payments']) {
       expect(find.text(tile), findsOneWidget, reason: tile);
     }
+  });
+
+  testWidgets('Home: a student with a Room has a Check-in tile that opens the inventory', (tester) async {
+    useApi({
+      '/students/me/home': {
+        'firstName': 'Demo',
+        'allocation': {'room': 'A902', 'bed': 'A', 'status': 'Resident'},
+        'invoices': {'due': 0, 'total': 0},
+        'openRequests': 0,
+      },
+      '/notifications': {'items': <Object>[], 'unread': 0},
+      '/students/me/handover': {'id': 'H1', 'status': 'Draft', 'room': 'A902', 'dueAt': '2026-12-31T10:00:00Z', 'items': <Object>[], 'meterPhotos': <Object>[]},
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+    });
+    await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
+    expect(find.text('Check-in'), findsOneWidget);
+    expect(find.textContaining('Due '), findsOneWidget);
+    await tester.tap(find.text('Check-in'));
+    await tester.pumpAndSettle();
+    expect(find.text('Check-in inventory · Room A902'), findsOneWidget);
   });
 
   testWidgets('Payments: outstanding, the invoices and an Invoice opening its detail', (tester) async {
@@ -545,6 +566,65 @@ void main() {
     await tester.pumpAndSettle();
     final keyboardTop = (4000 - 900) / tester.view.devicePixelRatio;
     expect(tester.getRect(find.byType(TextField)).bottom, lessThanOrEqualTo(keyboardTop));
+  });
+
+  testWidgets('Check-in inventory: conditions as chips, the guide, the count and photos', (tester) async {
+    useApi({
+      '/students/me/handover': {
+        'id': 'H1', 'status': 'Draft', 'room': 'A101', 'bed': '1', 'dueAt': _future,
+        'items': [
+          {'itemId': 'i1', 'assetCode': 'CH-1', 'type': 'Chair', 'typeVi': 'Ghế', 'bed': '1', 'personal': true, 'condition': null, 'photos': <Object>[]},
+          {'itemId': 'i2', 'assetCode': 'AC-1', 'type': 'Air conditioner', 'typeVi': 'Điều hoà', 'personal': false, 'condition': 'Good',
+            'photos': [{'id': 'p1', 'url': 'http://localhost/files/1'}]},
+        ],
+        'meterPhotos': <Object>[], 'photosRequired': true, 'maxPhotos': 3,
+      },
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+    });
+    await show(tester, const HandoverScreen());
+    expect(find.textContaining('1 of 2 items answered'), findsOneWidget);
+    // The guide explains each level for the item; picking there answers it.
+    await tester.tap(find.text('Which condition?').first);
+    await tester.pumpAndSettle();
+    expect(find.text('E.g. A loose or cracked leg, a broken seat or back.'), findsOneWidget);
+    await tester.tap(find.text('Broken or not working properly: it needs a repair.'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2 of 2 items answered'), findsOneWidget);
+    expect(find.text('What do you see?'), findsOneWidget);
+    // The photo shows as a thumbnail with a remove mark.
+    expect(find.byTooltip('Remove photo'), findsOneWidget);
+  });
+
+  testWidgets('Check-in inventory: the final record with its steps and what Staff checked', (tester) async {
+    useApi({
+      '/students/me/handover': {
+        'id': 'H1', 'status': 'Final', 'room': 'A101', 'source': 'Checked in the Room',
+        'openedAt': _past, 'submittedAt': _past, 'visitAt': _past, 'finalizedAt': _past, 'utilityFrom': _past,
+        'electricity': 120, 'water': 30, 'staffElectricity': 121, 'staffWater': 30,
+        'items': [
+          {'itemId': 'i1', 'assetCode': 'CH-1', 'type': 'Chair', 'personal': true, 'bed': '1', 'condition': 'Good',
+            'staffCondition': 'Worn', 'staffNote': 'Scratches', 'photos': <Object>[]},
+        ],
+        'meterPhotos': <Object>[],
+      },
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+    });
+    await show(tester, const HandoverScreen());
+    expect(find.text('Final report: your handover record until check-out'), findsOneWidget);
+    expect(find.text('Room visit with Staff'), findsOneWidget);
+    expect(find.text('Checked with Staff'), findsOneWidget);
+    expect(find.text('Worn'), findsOneWidget);
+    expect(find.text('Checked with Staff: 121'), findsOneWidget);
+  });
+
+  testWidgets('Check-in inventory: My Room keeps the way back to a final inventory', (tester) async {
+    useApi({
+      '/students/me/handover': {'status': 'Final', 'finalizedAt': _past},
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+    });
+    await show(tester, const HandoverCard());
+    expect(find.text('Check-in inventory final'), findsOneWidget);
+    expect(find.text('View inventory'), findsOneWidget);
   });
 
   testWidgets('Links open Family Day screens', (tester) async {
