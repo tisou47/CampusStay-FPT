@@ -4835,6 +4835,19 @@ const managerOverview = {
   "Take a request in the Unassigned tab, or wait for routing while you are on duty.": "Nhận yêu cầu ở tab Chưa có người nhận, hoặc chờ hệ thống phân công khi bạn đang trực.",
   "No unassigned requests right now": "Hiện không có yêu cầu nào chưa có người nhận",
   "View unassigned ({n})": "Xem yêu cầu chưa nhận ({n})",
+  "Deposit held: {amount}": "Cọc đang giữ: {amount}",
+  "Check-out steps": "Các bước trả phòng",
+  "Enter readings": "Nhập chỉ số",
+  "2. Room & furniture": "2. Tình trạng phòng & nội thất",
+  "3. Settlement & confirm": "3. Quyết toán & xác nhận",
+  "Not checked": "Chưa kiểm tra",
+  "Good condition": "Tình trạng tốt",
+  "Refund {amount}": "Hoàn {amount}",
+  "Owes {amount}": "Còn nợ {amount}",
+  "Estimated usage since last reading:": "Tiêu thụ tạm tính từ lần ghi trước:",
+  "Next: Room & furniture": "Tiếp theo: Tình trạng phòng",
+  "Next: Settlement": "Tiếp theo: Quyết toán cọc",
+  "Go to Step 2": "Sang Bước 2",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
