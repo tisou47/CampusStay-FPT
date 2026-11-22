@@ -48,7 +48,7 @@ public class StaffActivityService {
         for (String p : List.of("/stay-requests", "/next-term-requests")) {
             HANDLE_BY_PATH.put(p, "NEXT_TERM");
         }
-        for (String p : List.of("/door-codes", "/rooms/", "/furniture")) {
+        for (String p : List.of("/door-codes", "/inventory/rooms/", "/furniture")) {
             HANDLE_BY_PATH.put(p, "ROOMS");
         }
         HANDLE_BY_PATH.put("/maintenance-requests", "MAINTENANCE");

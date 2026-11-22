@@ -75,7 +75,8 @@ public class StudentAllocationService {
     }
 
     /** @param termsLeft Terms left on the Stay after the current one; {@code status} {@code Active} or {@code Ended} */
-    public record StayInfo(int committedTerms, int termsUsed, int termsLeft, String status) {
+    /** @param maxTerms the longest stay allowed (stay.max_terms): extensions may go up to it */
+    public record StayInfo(int committedTerms, int termsUsed, int termsLeft, String status, int maxTerms) {
     }
 
     /**
@@ -214,7 +215,8 @@ public class StudentAllocationService {
 
     private StayInfo stayInfo(long me) {
         return stays.stayOf(me).map(s -> new StayInfo(s.committedTerms(), s.termsUsed(),
-                Math.max(0, s.committedTerms() - s.termsUsed()), s.status().equals("ACTIVE") ? "Active" : "Ended"))
+                Math.max(0, s.committedTerms() - s.termsUsed()), s.status().equals("ACTIVE") ? "Active" : "Ended",
+                stays.maxStayTerms()))
                 .orElse(null);
     }
 

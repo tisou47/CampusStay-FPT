@@ -202,7 +202,7 @@ public class EmailCampaignService {
         jdbc.sql("UPDATE ntf_email_campaign SET queued_count = :n WHERE id = :id").param("n", queued)
                 .param("id", campaign).update();
         audit.record("EMAIL_CAMPAIGN_QUEUED", AuditLog.Tone.INFO, "Email campaign", campaign, subject,
-                Map.of("recipients", queued, "group", one ? "One student" : GROUPS.get(text(request.group())),
+                Map.of("recipients", queued, "group", one ? "One student" : GROUPS.get(text(request.group()).toLowerCase(Locale.ROOT)),
                         "sendAt", WHEN.format(sendAt)));
         return new Queued(queued);
     }

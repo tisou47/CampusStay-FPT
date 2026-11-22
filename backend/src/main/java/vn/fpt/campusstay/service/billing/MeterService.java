@@ -33,6 +33,7 @@ import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.billing.RoomStays;
 import vn.fpt.campusstay.service.setting.Catalog;
+import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.setting.UtilityPolicy;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.common.audit.AuditLog;
@@ -137,11 +138,13 @@ public class MeterService {
     private final UtilityPolicy utility;
     private final JdbcBilling billing;
     private final AuditLog audit;
+    private final Parameters parameters;
     private final Clock clock;
 
     public MeterService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, Inventory inventory,
             Catalog catalog, RoomStays stays, UserDirectory users, UtilityPolicy utility, JdbcBilling billing,
-            AuditLog audit, Clock clock) {
+            AuditLog audit, Parameters parameters, Clock clock) {
+        this.parameters = parameters;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -362,6 +365,11 @@ public class MeterService {
         AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER);
         Period p = period(periodId, true);
         open(p);
+        if (!LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE)).isAfter(p.end())
+                && !parameters.boolValue("utility.close_before_month_end")) {
+            throw ApiException.conflict("PERIOD_NOT_ENDED",
+                    "This month has not ended yet. Close it from the first day of next month.");
+        }
         Map<Long, Room> rooms = rooms(p.buildingId());
         ensureRows(p, rooms);
         List<Reading> rows = rows(p.id());

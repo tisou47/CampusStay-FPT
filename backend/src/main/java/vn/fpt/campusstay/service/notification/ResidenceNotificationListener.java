@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.LateCheckInRequested;
+import vn.fpt.campusstay.event.NextTermBedTaken;
 import vn.fpt.campusstay.event.TerminationCancelled;
 import vn.fpt.campusstay.event.TerminationOverdue;
 import vn.fpt.campusstay.event.TerminationStarted;
@@ -51,6 +52,15 @@ class ResidenceNotificationListener {
             all.put("name", p.name());
             outbox.enqueue("TERMINATION_NOTICE", p.email(), users.locale(e.studentId()), all);
         });
+    }
+
+    @EventListener
+    void on(NextTermBedTaken e) {
+        notifier.notify(e.studentId(), "NEXT_TERM_BED_TAKEN", Map.of("room", e.room(), "term", e.term()),
+                "/student/room");
+        String name = users.studentProfile(e.studentId()).map(UserDirectory.StudentProfile::name).orElse("-");
+        users.activeUserIds("MANAGER").forEach(u -> notifier.notify(u, "NEXT_TERM_BED_TAKEN_MANAGER",
+                Map.of("name", name, "room", e.room(), "term", e.term()), "/manager/next-term/requests"));
     }
 
     @EventListener

@@ -2,6 +2,7 @@ package vn.fpt.campusstay.service.notification;
 
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -10,12 +11,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import vn.fpt.campusstay.config.MailProperties;
 
 /**
- * Sends due outbox emails. {@code FOR UPDATE SKIP LOCKED} makes it safe if two
- * instances ever run; failures back off quadratically and stop at maxAttempts.
+ * Sends due outbox emails. A short transaction claims a batch ({@code FOR UPDATE SKIP LOCKED}, then a lease that
+ * pushes {@code not_before} on), the SMTP calls run outside any transaction (BE-PLT-05), and each email is then
+ * marked on its own. A crash mid-batch only delays those emails by the lease. Failures back off quadratically and
+ * stop at maxAttempts.
  */
 @Component
 class EmailOutboxDispatcher {
@@ -25,9 +29,15 @@ class EmailOutboxDispatcher {
     private final JdbcClient jdbc;
     private final EmailSender sender;
     private final MailProperties props;
+    private final TransactionTemplate tx;
     private final Clock clock;
 
-    EmailOutboxDispatcher(JdbcClient jdbc, EmailSender sender, MailProperties props, Clock clock) {
+    /** How long a claimed email waits before another run may take it again. */
+    private static final Duration LEASE = Duration.ofMinutes(10);
+
+    EmailOutboxDispatcher(JdbcClient jdbc, EmailSender sender, MailProperties props, PlatformTransactionManager tm,
+            Clock clock) {
+        this.tx = new TransactionTemplate(tm);
         this.jdbc = jdbc;
         this.sender = sender;
         this.props = props;
@@ -38,8 +48,14 @@ class EmailOutboxDispatcher {
     }
 
     @Scheduled(fixedDelayString = "${campusstay.mail.dispatch-interval:30s}")
-    @Transactional
     public void dispatch() {
+        List<Pending> due = tx.execute(s -> claim());
+        for (Pending p : due) {
+            send(p);
+        }
+    }
+
+    private List<Pending> claim() {
         List<Pending> due = jdbc.sql("""
                 SELECT id, to_email, subject, body_html, attempts, demo_recipient FROM ntf_email_outbox
                 WHERE status = 'PENDING' AND not_before <= :now
@@ -50,28 +66,35 @@ class EmailOutboxDispatcher {
                 .query((rs, i) -> new Pending(rs.getLong("id"), rs.getString("to_email"), rs.getString("subject"),
                         rs.getString("body_html"), rs.getInt("attempts"), rs.getBoolean("demo_recipient")))
                 .list();
-        for (Pending p : due) {
-            try {
-                sender.send(p.to(), p.subject(), p.body(), p.demo());
-                jdbc.sql("UPDATE ntf_email_outbox SET status = 'SENT', sent_at = :now, attempts = attempts + 1 WHERE id = :id")
-                        .param("now", Timestamp.from(Instant.now(clock))).param("id", p.id()).update();
-            } catch (Exception e) {
-                int attempts = p.attempts() + 1;
-                boolean giveUp = attempts >= props.maxAttempts();
-                Instant retryAt = Instant.now(clock).plus(props.retryBase().multipliedBy((long) attempts * attempts));
-                log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getMessage());
-                jdbc.sql("""
-                        UPDATE ntf_email_outbox SET attempts = :attempts, last_error = :error,
-                               status = :status, not_before = :retryAt WHERE id = :id
-                        """)
-                        .param("attempts", attempts)
-                        .param("error", e.getMessage() == null ? e.getClass().getSimpleName()
-                                : e.getMessage().substring(0, Math.min(1000, e.getMessage().length())))
-                        .param("status", giveUp ? "FAILED" : "PENDING")
-                        .param("retryAt", Timestamp.from(retryAt))
-                        .param("id", p.id())
-                        .update();
-            }
+        if (!due.isEmpty()) {
+            jdbc.sql("UPDATE ntf_email_outbox SET not_before = :lease WHERE id IN (:ids)")
+                    .param("lease", Timestamp.from(Instant.now(clock).plus(LEASE)))
+                    .param("ids", due.stream().map(Pending::id).toList()).update();
+        }
+        return due;
+    }
+
+    private void send(Pending p) {
+        try {
+            sender.send(p.to(), p.subject(), p.body(), p.demo());
+            jdbc.sql("UPDATE ntf_email_outbox SET status = 'SENT', sent_at = :now, attempts = attempts + 1 WHERE id = :id")
+                    .param("now", Timestamp.from(Instant.now(clock))).param("id", p.id()).update();
+        } catch (Exception e) {
+            int attempts = p.attempts() + 1;
+            boolean giveUp = attempts >= props.maxAttempts();
+            Instant retryAt = Instant.now(clock).plus(props.retryBase().multipliedBy((long) attempts * attempts));
+            log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getMessage());
+            jdbc.sql("""
+                    UPDATE ntf_email_outbox SET attempts = :attempts, last_error = :error,
+                           status = :status, not_before = :retryAt WHERE id = :id
+                    """)
+                    .param("attempts", attempts)
+                    .param("error", e.getMessage() == null ? e.getClass().getSimpleName()
+                            : e.getMessage().substring(0, Math.min(1000, e.getMessage().length())))
+                    .param("status", giveUp ? "FAILED" : "PENDING")
+                    .param("retryAt", Timestamp.from(retryAt))
+                    .param("id", p.id())
+                    .update();
         }
     }
 }

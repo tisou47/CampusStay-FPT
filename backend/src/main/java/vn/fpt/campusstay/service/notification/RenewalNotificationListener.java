@@ -105,7 +105,7 @@ class RenewalNotificationListener {
         Map<String, String> values = Map.of("term", e.termName(), "requests", String.valueOf(e.requests()),
                 "items", String.valueOf(e.reconciliationItems()), "dueAt", WHEN.format(e.dueAt()));
         users.activeUserIds("MANAGER").forEach(m -> notifier.notify(m, "RENEWAL_UNDECIDED", values,
-                "/manager/renewals"));
+                "/manager/next-term/requests"));
     }
 
     /** @param translated a value that is a system sentence: in Vietnamese for a Vietnamese reader */

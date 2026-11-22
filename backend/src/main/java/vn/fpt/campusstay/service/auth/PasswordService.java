@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.RequestInfo;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.event.PasswordResetRequested;
 import vn.fpt.campusstay.common.audit.Actor;
@@ -33,11 +34,13 @@ public class PasswordService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final AuthProperties props;
+    private final AuthRateLimiter limiter;
     private final Clock clock;
 
     public PasswordService(UserRepository users, ActionTokenRepository tokens, SessionService sessions,
             PasswordEncoder encoder, ApplicationEventPublisher events, AuditLog audit, AuthProperties props,
-            Clock clock) {
+            AuthRateLimiter limiter, Clock clock) {
+        this.limiter = limiter;
         this.users = users;
         this.tokens = tokens;
         this.sessions = sessions;
@@ -54,6 +57,9 @@ public class PasswordService {
      */
     @Transactional
     public void requestReset(String email) {
+        String client = RequestInfo.ip();
+        limiter.checkAllowed(AuthRateLimiter.Bucket.PASSWORD_FORGOT, client); // BE-AUTH-03: no flood of reset emails
+        limiter.record(AuthRateLimiter.Bucket.PASSWORD_FORGOT, client);
         users.findByEmailIgnoreCase(email.trim())
                 .filter(u -> u.getStatus() != UserEntity.Status.DISABLED)
                 .ifPresent(user -> {
@@ -77,6 +83,9 @@ public class PasswordService {
     /** Sets a new password from a reset or invitation link, then signs the user out everywhere. */
     @Transactional
     public void resetWithToken(String rawToken, String newPassword) {
+        String client = RequestInfo.ip();
+        limiter.checkAllowed(AuthRateLimiter.Bucket.PASSWORD_RESET, client);
+        limiter.record(AuthRateLimiter.Bucket.PASSWORD_RESET, client);
         Instant now = Instant.now(clock);
         ActionTokenEntity token = tokens.findForUpdate(Tokens.sha256Hex(rawToken))
                 .filter(t -> t.usableAt(now))

@@ -301,7 +301,7 @@ public class ApplicationReviewService {
     }
 
     private void decide(ApplicationStore.Application app, String code, String note, AuthenticatedUser user) {
-        decide(app, code, note, user, "CANCEL_BEFORE_RESULTS");
+        decide(app, code, note, user, "APPLICATION_REJECTED");
     }
 
     /** @param refundRule the refund rule of a paid Deposit when the Application is rejected */

@@ -323,6 +323,9 @@ class ReportIT {
             mvc.perform(get("/dashboards/manager").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
                     .andExpect(jsonPath("$.kpis.allocated").value(0))
                     .andExpect(jsonPath("$.kpis.refundsWaiting").value(0))
+                    .andExpect(jsonPath("$.floors").isEmpty()); // every Block: no floor chart (BE-PLT-11)
+            mvc.perform(get("/dashboards/manager").param("block", "A").header(HttpHeaders.AUTHORIZATION, manager))
+                    .andExpect(status().isOk())
                     .andExpect(jsonPath("$.floors[*].floor", contains(1, 2, 3, 4, 5)));
             mvc.perform(get("/approvals/summary").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
                     .andExpect(jsonPath("$.assignment").value(0))

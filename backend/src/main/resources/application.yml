@@ -28,6 +28,11 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 30MB
+  mail:
+    properties:   # an unreachable SMTP server must not hold a request or the dispatcher for minutes (BE-PLT-05)
+      "[mail.smtp.connectiontimeout]": 10000
+      "[mail.smtp.timeout]": 10000
+      "[mail.smtp.writetimeout]": 10000
 
 server:
   servlet:

@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -38,6 +40,8 @@ import vn.fpt.campusstay.service.setting.RegistrationPeriodService;
  */
 @Component
 class StudentData {
+
+    private static final Logger log = LoggerFactory.getLogger(StudentData.class);
 
     private static final int MAX_SECTION_CHARS = 4000;
     private static final Pattern INSTANT = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z");
@@ -88,6 +92,10 @@ class StudentData {
                 text = json.writeValueAsString(clean(json.convertValue(read.get(), Object.class), vnd));
             } catch (ApiException e) {
                 text = json.writeValueAsString(Map.of("error", e.getMessage()));
+            } catch (RuntimeException e) {
+                // One section failing must not break every answer (BE-PLT-04); the log names the section only.
+                log.warn("Assistant data section '{}' failed: {}", title, e.getClass().getSimpleName());
+                text = json.writeValueAsString(Map.of("error", "not available"));
             }
             if (text.length() > MAX_SECTION_CHARS) {
                 text = text.substring(0, MAX_SECTION_CHARS) + " …(cut)";
