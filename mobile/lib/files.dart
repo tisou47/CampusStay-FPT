@@ -35,12 +35,28 @@ Future<void> openReceipt(String invoiceId) async {
 /// A file the student picked: its name and its path on the phone.
 typedef Picked = ({String name, String path});
 
+/// What the API accepts (MOB-05): no HEIC or WebP, which the back office cannot show everywhere.
+const _imageTypes = ['jpg', 'jpeg', 'png'];
+
+/// The API's upload limit (MOB-06): a larger file is refused here instead of failing after a long upload.
+const maxUploadBytes = 5 * 1024 * 1024;
+
+bool _fits(({String name, String path}) f) {
+  if (File(f.path).lengthSync() <= maxUploadBytes) return true;
+  toast(
+    t('{name} is larger than 5 MB. Take the photo again at a lower resolution.', '{name} lớn hơn 5 MB. Hãy chụp lại ở độ phân giải thấp hơn.')
+        .replaceAll('{name}', f.name),
+    error: true,
+  );
+  return false;
+}
+
 /// Lets the student pick images (maintenance photos), up to [max].
 Future<List<Picked>> pickImages(int max) async {
-  final result = await FilePicker.pickFiles(type: FileType.image);
+  final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: _imageTypes);
   return [
     for (final f in result)
-      if (f.path != null) (name: f.name, path: f.path!),
+      if (f.path != null && _fits((name: f.name, path: f.path!))) (name: f.name, path: f.path!),
   ].take(max).toList();
 }
 
@@ -48,8 +64,8 @@ Future<List<Picked>> pickImages(int max) async {
 Future<Picked?> pickDocument() async {
   final f = await FilePicker.pickFile(
     type: FileType.custom,
-    allowedExtensions: ['jpg', 'jpeg', 'png', 'heic', 'webp', 'pdf'],
+    allowedExtensions: [..._imageTypes, 'pdf'],
   );
   final path = f?.path;
-  return path == null ? null : (name: f!.name, path: path);
+  return path == null || !_fits((name: f!.name, path: path)) ? null : (name: f.name, path: path);
 }

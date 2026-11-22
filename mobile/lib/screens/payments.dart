@@ -705,7 +705,19 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                     label: t('I have transferred', 'Tôi đã chuyển khoản'),
                     icon: Icons.send,
                     busy: _busy,
-                    onPressed: () => _run(() async {
+                    onPressed: () async {
+                      final ok = await confirm(
+                        context,
+                        title: t('Did you transfer the money?', 'Bạn đã chuyển khoản chưa?'),
+                        body: t(
+                          'A Manager checks it against the bank statement. A report rejected twice cancels a Deposit or a Balance.',
+                          'Quản lý sẽ đối chiếu với sao kê. Bị từ chối hai lần sẽ huỷ tiền cọc hoặc tiền phòng.',
+                        ),
+                        yes: t('I have transferred', 'Tôi đã chuyển khoản'),
+                        no: t('Not yet', 'Chưa'),
+                      );
+                      if (!ok) return;
+                      await _run(() async {
                       final reference = _reference.text.trim();
                       await Api.post('$_path/claim', reference.isEmpty ? {} : {'reference': reference});
                       toast(
@@ -715,7 +727,8 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         ),
                       );
                       await _load();
-                    }),
+                      });
+                    },
                   ),
                 ] else
                   Alert(

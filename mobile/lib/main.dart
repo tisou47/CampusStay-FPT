@@ -45,6 +45,7 @@ class _CampusStayAppState extends State<CampusStayApp> {
     Api.token = _session?.token;
     Api.onSignedOut = () async {
       AssistantScreen.messages.clear(); // the next student on this phone must not see it (MOB-01)
+      await Push.unregister(); // MOB-03: the device must not keep getting the previous student's pushes
       await widget.store.clear();
       _navigator.currentState?.popUntil((route) => route.isFirst);
       if (mounted) setState(() => _session = null);
@@ -144,9 +145,20 @@ class _ShellState extends State<Shell> {
       final title = message.notification?.title;
       if (title == null) return;
       final body = message.notification?.body;
-      toast(body == null ? title : '$title\n$body');
+      final link = message.data['link'] as String?;
+      toast(
+        body == null ? title : '$title\n$body',
+        actionLabel: link == null || link.isEmpty ? null : 'Open',
+        onAction: () => _openLink(link),
+      );
       _loadUnread();
     });
+    // A notification tapped in the system tray opens its screen (MOB-02).
+    Push.listenForTaps(_openLink);
+  }
+
+  void _openLink(String? link) {
+    if (mounted) openLink(context, link);
   }
 
   @override

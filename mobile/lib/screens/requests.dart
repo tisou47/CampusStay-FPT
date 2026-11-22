@@ -161,6 +161,33 @@ Widget _maintenanceStatus(String? status) => status == 'Resolved'
     ? Tag(t('Resolved · confirm the fix', 'Đã xử lý · hãy xác nhận'), tone: Tone.success)
     : StatusChip(status);
 
+/// Runs one answer at a time: [builder] gets whether one is running and the way to start one (MOB-25).
+class _OneAtATime extends StatefulWidget {
+  const _OneAtATime({required this.builder});
+
+  final Widget Function(bool busy, Future<void> Function(Future<void> Function() action) run) builder;
+
+  @override
+  State<_OneAtATime> createState() => _OneAtATimeState();
+}
+
+class _OneAtATimeState extends State<_OneAtATime> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_busy, _run);
+}
+
 class _SmallButton extends StatelessWidget {
   const _SmallButton(this.text, this.onPressed, {this.outlined = false});
 
@@ -364,27 +391,31 @@ class MaintenanceScreen extends StatelessWidget {
                   ],
                 ),
               if (status == 'Resolved')
-                Row(
-                  spacing: 8,
-                  children: [
-                    Expanded(
-                      child: BusyButton(
-                        label: t('Not fixed yet', 'Chưa sửa xong'),
-                        outlined: true,
-                        onPressed: () async {
-                          if (await confirmMaintenance(id, false)) await reload();
-                        },
+                _OneAtATime(
+                  builder: (busy, run) => Row(
+                    spacing: 8,
+                    children: [
+                      Expanded(
+                        child: BusyButton(
+                          label: t('Not fixed yet', 'Chưa sửa xong'),
+                          outlined: true,
+                          busy: busy,
+                          onPressed: () => run(() async {
+                            if (await confirmMaintenance(id, false)) await reload();
+                          }),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: BusyButton(
-                        label: t('Confirm the fix', 'Xác nhận đã sửa'),
-                        onPressed: () async {
-                          if (await confirmMaintenance(id, true)) await reload();
-                        },
+                      Expanded(
+                        child: BusyButton(
+                          label: t('Confirm the fix', 'Xác nhận đã sửa'),
+                          busy: busy,
+                          onPressed: () => run(() async {
+                            if (await confirmMaintenance(id, true)) await reload();
+                          }),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
             ],
           );
@@ -1301,8 +1332,36 @@ class SwapInvitationScreen extends StatelessWidget {
                 ],
               ),
               if (open) ...[
-                BusyButton(label: t('Accept swap', 'Đồng ý đổi'), onPressed: () => respond(true)),
-                BusyButton(label: t('Decline', 'Từ chối'), outlined: true, onPressed: () => respond(false)),
+                _OneAtATime(
+                  builder: (busy, run) => Column(
+                    spacing: 8,
+                    children: [
+                    BusyButton(
+                      label: t('Accept swap', 'Đồng ý đổi'),
+                      busy: busy,
+                      onPressed: () async {
+                        final ok = await confirm(
+                      context,
+                      title: t('Accept the swap?', 'Đồng ý đổi giường?'),
+                      body: t(
+                        'Once Staff approve it, your next-Term Bed is the one you get.',
+                        'Khi nhân viên duyệt, giường kỳ sau của bạn là giường bạn nhận.',
+                      ),
+                      yes: t('Accept swap', 'Đồng ý đổi'),
+                      no: t('Back', 'Quay lại'),
+                    );
+                        if (ok) await run(() => respond(true));
+                      },
+                    ),
+                    BusyButton(
+                      label: t('Decline', 'Từ chối'),
+                      outlined: true,
+                      busy: busy,
+                      onPressed: () => run(() => respond(false)),
+                    ),
+                  ],
+                ),
+              ),
               ],
             ],
           );
