@@ -103,10 +103,13 @@ public class StudentImportService {
     private static final TypeReference<Map<String, String>> VALUES = new TypeReference<>() {
     };
 
+    static final String GENDER_LOCKED = "The gender cannot change while the student holds a Bed or a live Application.";
+
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
     private final StudentFields fields;
     private final StudentCodes codes;
+    private final List<GenderLocks> locks;
     private final AuthProperties properties;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
@@ -114,11 +117,13 @@ public class StudentImportService {
     private final Clock clock;
 
     StudentImportService(JdbcClient jdbc, CurrentUser currentUser, StudentFields fields, StudentCodes codes,
+            List<GenderLocks> locks,
             AuthProperties properties, ApplicationEventPublisher events, AuditLog audit, JsonMapper json, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.fields = fields;
         this.codes = codes;
+        this.locks = locks;
         this.properties = properties;
         this.events = events;
         this.audit = audit;
@@ -450,6 +455,9 @@ public class StudentImportService {
         }
         if (!a.name().equals(name)) {
             changes.add("name");
+        }
+        if (!gender.equals(a.gender()) && locks.stream().anyMatch(l -> l.locked(a.id()))) {
+            return Evaluation.error(GENDER_LOCKED);
         }
         check(changes, "gender", a.gender(), gender);
         check(changes, "major", a.major(), major);

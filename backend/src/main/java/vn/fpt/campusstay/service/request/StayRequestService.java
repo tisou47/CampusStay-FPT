@@ -269,6 +269,12 @@ public class StayRequestService {
                 """).param("now", Timestamp.from(now)).param("a", allocationId).update();
     }
 
+    /** The Allocation moved to another Bed: a waiting extension follows the stay to the new Allocation. */
+    void allocationMoved(long fromAllocationId, long toAllocationId) {
+        jdbc.sql("UPDATE req_stay_request SET allocation_id = :to WHERE allocation_id = :from AND status = 'SUBMITTED'")
+                .param("to", toAllocationId).param("from", fromAllocationId).update();
+    }
+
     // ---------------------------------------------------------------- helpers
 
     /** Why an extension cannot be approved at once (D-30), empty when it can. */

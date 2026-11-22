@@ -3,6 +3,7 @@ package vn.fpt.campusstay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.fpt.campusstay.TestAuth.MANAGER_A;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -170,5 +172,42 @@ class UtilityDebtIT {
         jdbc.sql("UPDATE cfg_parameter SET value = 'true' WHERE key = 'termination.debt_reaches_deposit'").update();
         assertThat(debts.evaluateAll()).isEqualTo(1);
         assertThat(notifications(22, "TERMINATION_NOTICE")).isEqualTo(1);
+    }
+
+    /**
+     * TC-BIL-048 (BE-2ND-05): a Manager cancelling a Utility-debt termination gives the warnings back, with a new
+     * termination day, so the debt rule keeps working instead of staying silent for the rest of the stay.
+     */
+    @Test
+    void cancelledTerminationGivesTheWarningsBack() throws Exception {
+        stay.livesIn(23, "A-108", "A", true);
+        invoice(23, "B", "BALANCE", "Balance", 8_000_000, 600_000, "PAID", "-1 day");
+        invoice(23, "U", "UTILITY", "Utility · 10/2031", 200_000, 0, "OVERDUE", "-40 days");
+        invoice(23, "V", "UTILITY", "Utility · 11/2031", 200_000, 0, "OVERDUE", "-10 days");
+        debts.evaluateAll();
+        assertThat(jdbc.sql("""
+                UPDATE bil_utility_warning SET terminate_on = current_date
+                WHERE student_id = (SELECT id FROM auth_user WHERE email = :e) AND level = 'FINAL'
+                """).param("e", StayFlow.student(23)).update()).isEqualTo(1);
+        assertThat(debts.evaluateAll()).isEqualTo(1);
+        String manager = bearer(mvc, MANAGER_A);
+        java.util.List<String> ids = com.jayway.jsonpath.JsonPath.read(getAs("/terminations?status=Notice sent", manager)
+                .andReturn().getResponse().getContentAsString(), "$.items[?(@.studentCode == 'SE190023')].id");
+        String id = ids.getFirst();
+        mvc.perform(post("/terminations/" + id + "/cancel").header(HttpHeaders.AUTHORIZATION, manager)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"Payment plan agreed.\"}"))
+                .andExpect(status().isNoContent());
+
+        String open = """
+                SELECT count(*) FROM bil_utility_warning
+                WHERE student_id = (SELECT id FROM auth_user WHERE email = :e) AND closed_at IS NULL
+                """;
+        assertThat(jdbc.sql(open).param("e", StayFlow.student(23)).query(Long.class).single()).isEqualTo(2);
+        LocalDate terminateOn = jdbc.sql("""
+                SELECT terminate_on FROM bil_utility_warning
+                WHERE student_id = (SELECT id FROM auth_user WHERE email = :e) AND closed_at IS NULL AND level = 'FINAL'
+                """).param("e", StayFlow.student(23)).query(LocalDate.class).single();
+        assertThat(terminateOn).isAfter(LocalDate.now(TimeConfig.CAMPUS_ZONE));
+        assertThat(debts.evaluateAll()).as("a fresh grace period, not an instant second termination").isZero();
     }
 }

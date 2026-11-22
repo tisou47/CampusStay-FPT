@@ -244,4 +244,22 @@ class StudentAccountsIT {
         call(get("/applications/eligibility"), student)
                 .andExpect(jsonPath("$.checks[?(@.title == 'Account verified')]", hasSize(0)));
     }
+
+    /**
+     * TC-AUTH-094 (BE-3RD-09): a student who holds a Bed keeps their gender (Blocks and roommates were chosen by it);
+     * the other fields still change.
+     */
+    @Test
+    void genderIsLockedWhileTheStudentHoldsABed() throws Exception {
+        long id = stay.userId(StayFlow.student(8));
+        stay.livesIn(8, "A-103", "A", false);
+        String manager = bearer(mvc, MANAGER_A);
+        json(put("/student-accounts/" + id), manager, """
+                {"name":"Tran Van Tam","gender":"Female","major":"AI","cohort":"K20","enrollment":"Enrolled"}""")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("GENDER_LOCKED"));
+        json(put("/student-accounts/" + id), manager, """
+                {"name":"Tran Van Tam","gender":"Male","major":"AI","cohort":"K20","enrollment":"Enrolled"}""")
+                .andExpect(status().isOk());
+    }
 }

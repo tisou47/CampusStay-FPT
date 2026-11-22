@@ -258,7 +258,7 @@ public class TerminationService {
                 .param("a", r.allocationId()).update();
         audit.record("TERMINATION_CANCELLED", AuditLog.Tone.INFO, "Allocation", r.allocationId(),
                 "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(), Map.of("reason", why));
-        events.publishEvent(new TerminationCancelled(r.id(), r.studentId(), bed.roomCode()));
+        events.publishEvent(new TerminationCancelled(r.id(), r.allocationId(), r.studentId(), bed.roomCode()));
     }
 
     // ---------------------------------------------------------------- the move-out date and the desk

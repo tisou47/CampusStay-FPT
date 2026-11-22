@@ -436,12 +436,14 @@ public class SwapService {
             audit.record("SWAP_TO_MANAGER", AuditLog.Tone.INFO, "Swap", s.id(), s.code(), null);
             return;
         }
-        moves.swap(s.aAllocationId(), s.bAllocationId(), user.userId());
+        // Decided (and the others closed with the swap's own wording) before the swap, so the AllocationMoved
+        // listener finds nothing left to close (BE-2ND-06).
         jdbc.sql("""
                 UPDATE req_swap SET status = 'APPROVED', decided_by = :by, decided_at = :now, version = version + 1
                 WHERE id = :id
                 """).param("by", user.userId()).param("now", Timestamp.from(now)).param("id", s.id()).update();
         closeOthers(s, now);
+        moves.swap(s.aAllocationId(), s.bAllocationId(), user.userId());
         audit.record("SWAP_APPROVED", AuditLog.Tone.SUCCESS, "Swap", s.id(), s.code(),
                 Map.of("a", a.bedCode(), "b", b.bedCode(), "term",
                         terms.findPublished(s.termId()).map(TermSummary::name).orElse("")));
@@ -528,6 +530,17 @@ public class SwapService {
     void allocationCancelled(long allocationId, Instant now) {
         jdbc.sql("""
                 UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The student does not continue next Term.',
+                       decided_at = :now, version = version + 1
+                WHERE (a_allocation_id = :a OR b_allocation_id = :a) AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
+                """).param("now", Timestamp.from(now)).param("a", allocationId).update();
+        jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id = :a AND status = 'ACTIVE'")
+                .param("now", Timestamp.from(now)).param("a", allocationId).update();
+    }
+
+    /** The Allocation moved to another Bed: the swaps and board post made from it close (BE-2ND-06). */
+    void allocationMoved(long allocationId, Instant now) {
+        jdbc.sql("""
+                UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The next-Term Bed changed.',
                        decided_at = :now, version = version + 1
                 WHERE (a_allocation_id = :a OR b_allocation_id = :a) AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
                 """).param("now", Timestamp.from(now)).param("a", allocationId).update();

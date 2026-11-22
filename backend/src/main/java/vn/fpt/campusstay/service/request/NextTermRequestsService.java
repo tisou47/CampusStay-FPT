@@ -12,6 +12,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import vn.fpt.campusstay.dto.PageQuery;
+import vn.fpt.campusstay.event.AllocationMoved;
 import vn.fpt.campusstay.event.NextTermAllocationCancelled;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -185,5 +186,17 @@ public class NextTermRequestsService {
         roomChanges.allocationCancelled(e.allocationId(), now);
         swaps.allocationCancelled(e.allocationId(), now);
         stayRequests.allocationCancelled(e.allocationId(), now);
+    }
+
+    /**
+     * Assignment moved an Allocation to another Bed (BE-2ND-06): the room changes and swaps filed from the old one
+     * close (their Bed is not that one any more); a stay request follows the stay to the new Allocation.
+     */
+    @EventListener
+    void on(AllocationMoved e) {
+        Instant now = Instant.now(clock);
+        roomChanges.allocationMoved(e.fromAllocationId(), now);
+        swaps.allocationMoved(e.fromAllocationId(), now);
+        stayRequests.allocationMoved(e.fromAllocationId(), e.toAllocationId());
     }
 }
