@@ -12,8 +12,8 @@ import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-08 System Parameters (Figma 71:3286). Since 22/11/2026 it also holds the settings of the former Deposit
-// (SCR-CFG-04), Utility (SCR-CFG-20) and Deadlines and reminders (SCR-CFG-24) pages, each still read and saved
-// through its own resource:
+// (SCR-CFG-04), Utility (SCR-CFG-20) and Deadlines and reminders (SCR-CFG-24) pages and the terminations and late
+// check-ins of Refunds, penalties and terminations (SCR-CFG-25), each still read and saved through its own resource:
 // GET|PUT /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options, type }] }] }
 //   Number fields have no `options`; select fields list theirs.
 // GET|PUT /admin/fees → { depositPercent, … }: only depositPercent is edited here (the refund rules of the same
@@ -21,7 +21,7 @@ import { t, tr } from '@/i18n'
 // GET|PUT /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder,
 //   estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding,
 //   overdueReminder } }: Meter Readings and utility Invoices use these values from the next billing period.
-// GET /admin/settings/deadlines → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
+// GET /admin/settings/deadlines and /admin/settings/refunds → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
 //   PUT { values: { key: value } } with only what changed (SettingsGroup.jsx).
 
 const ROW = 'border-t border-line py-3 first-of-type:border-t-0'
@@ -145,10 +145,33 @@ export default function SystemParameters() {
   const deadlinesGroup = useSettingsGroup('deadlines', {
     onSaved: () => notify({ title: t('{title} saved', { title: t('Deadlines and reminders') }), message: 'Students read the change in an announcement.' }),
   })
+  const terminationsGroup = useSettingsGroup('refunds', {
+    onSaved: () => notify({ title: t('{title} saved', { title: t('Terminations and late check-ins') }), message: 'Students read the change in an announcement.' }),
+  })
   const deposit = fromConfig(feesForm)
   const utility = fromConfig(utilityForm)
   const deadlines = fromGroup(deadlinesGroup)
-  const forms = [fromConfig(cfg), deposit, utility, deadlines]
+  const terminations = fromGroup(terminationsGroup)
+  const forms = [fromConfig(cfg), deposit, utility, deadlines, terminations]
+
+  /** A settings group's own list: label, limits and where each setting acts. */
+  const groupFields = (group) =>
+    (group.query.data?.settings ?? []).map((s) => ({
+      key: s.key,
+      kind: s.type === 'BOOL' ? 'bool' : 'int',
+      min: s.min,
+      max: s.max,
+      label: s.label,
+      helper: s.usedIn ? t('Used in: {place}', { place: tr(s.usedIn) }) : null,
+    }))
+  /** When a group's changes apply (as the group pages said it). */
+  const appliesNote = (group) => (
+    <p className="border-t border-line pt-3 text-sm text-fg-tertiary">
+      {group.query.data?.appliesFrom
+        ? t('A term keeps the values it opened with; a change applies from {term}, the next term to open, and to work started from now on. Students read it in an announcement.', { term: group.query.data.appliesFrom })
+        : t('A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.')}
+    </p>
+  )
 
   /** Sections from other resources, each shown after the System parameters section titled `after`. */
   const extras = [
@@ -194,26 +217,20 @@ export default function SystemParameters() {
       },
     },
     {
+      id: 'terminations',
+      after: 'Utility',
+      title: 'Terminations and late check-ins',
+      form: terminations,
+      fields: groupFields(terminationsGroup),
+      footer: () => appliesNote(terminationsGroup),
+    },
+    {
       id: 'deadlines',
       after: 'Payments',
       title: 'Deadlines and reminders',
       form: deadlines,
-      // The group lists its own settings: label, limits and where each one acts.
-      fields: (deadlinesGroup.query.data?.settings ?? []).map((s) => ({
-        key: s.key,
-        kind: s.type === 'BOOL' ? 'bool' : 'int',
-        min: s.min,
-        max: s.max,
-        label: s.label,
-        helper: s.usedIn ? t('Used in: {place}', { place: tr(s.usedIn) }) : null,
-      })),
-      footer: () => (
-        <p className="border-t border-line pt-3 text-sm text-fg-tertiary">
-          {deadlinesGroup.query.data?.appliesFrom
-            ? t('A term keeps the values it opened with; a change applies from {term}, the next term to open, and to work started from now on. Students read it in an announcement.', { term: deadlinesGroup.query.data.appliesFrom })
-            : t('A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.')}
-        </p>
-      ),
+      fields: groupFields(deadlinesGroup),
+      footer: () => appliesNote(deadlinesGroup),
     },
   ].filter((x) => x.form.ready)
 
@@ -234,7 +251,8 @@ export default function SystemParameters() {
     [deposit, 'Could not save the deposit'],
     [utility, 'Could not save the utility settings'],
     [deadlines, 'Could not save the deadlines and reminders'],
-  ].filter(([f]) => f.saveError && !(f === deadlines && Object.keys(f.saveError.fields ?? {}).length))
+    [terminations, 'Could not save the terminations and late check-ins'],
+  ].filter(([f]) => f.saveError && !([deadlines, terminations].includes(f) && Object.keys(f.saveError.fields ?? {}).length))
   const savedValue = (si, key) => cfg.saved?.sections?.[si]?.fields?.find((f) => f.key === key)?.value
   const setField = (si, key, value) =>
     cfg.setValue(
