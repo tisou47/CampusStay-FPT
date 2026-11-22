@@ -422,58 +422,61 @@ export function FurnitureConditions({
       )}
 
       {/* End-of-section Summary of Damaged / Worn / Missing Items before sending to Student */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-fg">
+      <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-base font-semibold text-fg">
             {t('Summary of damaged / worn / missing items')}
           </span>
-          <span className="text-sm font-semibold text-fg tabular">
+          <span className="rounded-md border border-line bg-subtle/60 px-3 py-1 text-sm font-semibold text-fg tabular">
             {t('Total furniture charge: {amount}', { amount: formatVnd(liveTotal) })}
           </span>
         </div>
 
         {flaggedLines.length === 0 ? (
-          <p className="flex items-center gap-1.5 text-xs text-success-fg">
-            <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+          <p className="flex items-center gap-2 text-sm text-success-fg">
+            <CheckCircle2 size={16} strokeWidth={1.5} aria-hidden="true" className="shrink-0" />
             {t('All furniture items are in good condition. No furniture compensation charge.')}
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-line/70">
-            <div className="grid grid-cols-[minmax(0,1.3fr)_5.5rem_5.5rem_4rem_6rem] items-center gap-1.5 bg-subtle/80 px-2.5 py-1.5 text-[11px] font-semibold text-fg-tertiary uppercase">
-              <span>{t('Furniture')}</span>
-              <span>{t('Condition')}</span>
-              <span className="text-right">{t('Real price')}</span>
-              <span className="text-right">{t('Percent')}</span>
-              <span className="text-right">{t('Charge')}</span>
-            </div>
-            <div className="divide-y divide-line/60">
-              {flaggedLines.map(({ item: i, answer: a, deltaPct, amount, fullAmount, split, effectiveReview }) => (
-                <div key={i.itemId} className="flex flex-col gap-0.5 px-2.5 py-1.5 text-xs">
-                  <div className="grid grid-cols-[minmax(0,1.3fr)_5.5rem_5.5rem_4rem_6rem] items-center gap-1.5">
-                    <span className="truncate font-medium text-fg">
-                      {typeName(i)} <span className="font-mono text-[11px] text-fg-tertiary">({i.assetCode})</span>
-                    </span>
-                    <span>
-                      <Tag tone={conditionTone[a.condition] ?? 'warning'}>{conditionName(a.condition)}</Tag>
-                    </span>
-                    <span className="text-right font-mono text-fg-secondary tabular">{formatVnd(i.unitPrice ?? 0)}</span>
-                    <span className="text-right font-mono text-fg-secondary tabular">{deltaPct}%</span>
-                    <span className="text-right font-mono font-semibold text-fg tabular">
-                      {effectiveReview === 'Pending' ? t('Pending') : formatVnd(amount)}
-                    </span>
+          <div className="overflow-x-auto rounded-lg border border-line">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-[minmax(0,1.5fr)_8rem_7.5rem_5rem_7.5rem] items-center gap-3 bg-subtle/80 px-4 py-2.5 text-xs font-medium text-fg-secondary">
+                <span>{t('Furniture')}</span>
+                <span>{t('Condition')}</span>
+                <span className="text-right">{t('Real price')}</span>
+                <span className="text-right">{t('Percent')}</span>
+                <span className="text-right">{t('Charge')}</span>
+              </div>
+              <div className="divide-y divide-line/60">
+                {flaggedLines.map(({ item: i, answer: a, deltaPct, amount, fullAmount, split, effectiveReview }) => (
+                  <div key={i.itemId} className="flex flex-col gap-1.5 px-4 py-3 text-sm">
+                    <div className="grid grid-cols-[minmax(0,1.5fr)_8rem_7.5rem_5rem_7.5rem] items-center gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="font-semibold text-fg">{typeName(i)}</span>
+                        <span className="rounded bg-subtle px-1.5 py-0.5 font-mono text-xs text-fg-tertiary">{i.assetCode}</span>
+                      </div>
+                      <span>
+                        <Tag tone={conditionTone[a.condition] ?? 'warning'}>{conditionName(a.condition)}</Tag>
+                      </span>
+                      <span className="text-right text-sm text-fg-secondary tabular">{formatVnd(i.unitPrice ?? 0)}</span>
+                      <span className="text-right text-sm text-fg-secondary tabular">{deltaPct}%</span>
+                      <span className="text-right text-base font-semibold text-fg tabular">
+                        {effectiveReview === 'Pending' ? t('Pending') : formatVnd(amount)}
+                      </span>
+                    </div>
+                    {split > 1 && (
+                      <span className="text-xs font-medium text-fg-brand tabular">
+                        {t('Shared item: {full} ÷ {n} residents; roommates get an invoice for their share', { full: formatVnd(fullAmount), n: split })}
+                      </span>
+                    )}
+                    {a.note?.trim() && (
+                      <span className="text-xs text-fg-secondary">
+                        {t('Note')}: {a.note.trim()}
+                      </span>
+                    )}
                   </div>
-                  {split > 1 && (
-                    <span className="text-[11px] font-medium text-fg-brand tabular">
-                      {t('Shared item: {full} ÷ {n} residents; roommates get an invoice for their share', { full: formatVnd(fullAmount), n: split })}
-                    </span>
-                  )}
-                  {a.note?.trim() && (
-                    <span className="text-[11px] text-fg-tertiary">
-                      {t('Note')}: {a.note.trim()}
-                    </span>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -296,7 +296,7 @@ export default function StudentCheckOutPage() {
           </Tag>
         </div>
 
-        <dl className="flex flex-col gap-3 rounded-xl border border-line bg-subtle/40 p-5">
+        <dl className="flex flex-col gap-2 divide-y divide-line/60 rounded-xl border border-line bg-subtle/40 p-5">
           <SettlementRow label="Utility deposit held" strong>
             {formatVnd(s.held)}
           </SettlementRow>
@@ -305,20 +305,20 @@ export default function StudentCheckOutPage() {
           </SettlementRow>
           <SettlementRow label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</SettlementRow>
           {damageAmount > 0 && (
-            <>
+            <div className="flex flex-col gap-2 pt-2">
               <SettlementRow label="Damage charge" tone="text-warning-fg" strong>
                 − {formatVnd(damageAmount)}
               </SettlementRow>
               {damageLines.length > 0 && (
-                <div className="flex flex-col gap-1.5 border-l-2 border-warning/40 pl-3 text-xs text-fg-secondary">
+                <div className="flex flex-col gap-2 border-l-2 border-warning/40 pl-3 text-sm text-fg-secondary">
                   {damageLines.map((l) => (
-                    <div key={l.key} className="flex items-start justify-between gap-2">
+                    <div key={l.key} className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
-                        {l.name} ({l.assetCode}) · {conditionName(l.condition)}
+                        <strong className="font-medium text-fg">{l.name}</strong> ({l.assetCode}) · {conditionName(l.condition)}
                         {l.percent > 0 ? ` ${l.percent}%` : ''}
                         {l.split > 1 ? ` · ${t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}` : ''}
                       </span>
-                      <span className="shrink-0 font-medium text-fg tabular">− {formatVnd(l.amount)}</span>
+                      <span className="shrink-0 font-semibold text-fg tabular">− {formatVnd(l.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -328,7 +328,7 @@ export default function StudentCheckOutPage() {
                   {t('Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.')}
                 </p>
               )}
-            </>
+            </div>
           )}
         </dl>
 

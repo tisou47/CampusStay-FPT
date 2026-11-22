@@ -47,7 +47,7 @@ export function clearCachedDraft(allocationId) {
 
 export function SettlementRow({ label, children, strong, tone }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
+    <div className="flex items-center justify-between gap-4 py-1 text-base">
       <dt className="text-fg-secondary">{t(label)}</dt>
       <dd className={cx('tabular', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>{children}</dd>
     </div>
