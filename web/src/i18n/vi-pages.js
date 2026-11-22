@@ -4887,6 +4887,8 @@ const managerOverview = {
   "Select the actual condition on site for each item. Shared items with damage are split evenly among {n} residents in the room.": "Chọn tình trạng thực tế tại chỗ cho từng món. Nội thất dùng chung bị hư hỏng sẽ chia đều tiền đền cho {n} người đang ở trong phòng.",
   "Shared ({n} residents)": "Dùng chung ({n} người)",
   "residents": "người",
+  "Please select the room condition before confirming check-out.": "Vui lòng chọn tình trạng phòng trước khi xác nhận trả phòng.",
+  "{item}: {condition}, {status} ({amount})": "{item}: {condition}, {status} ({amount})",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
