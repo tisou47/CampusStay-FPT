@@ -18,6 +18,8 @@ import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
+import { useRoleBase } from '@/lib/useRoleBase'
+import { OverdueRequests, OverdueSwitch } from '@/pages/manager/Escalations'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-10 Room-Change Queue (Figma 60:2696) — next-Term Room-Change Requests of the requests window (Change Spec v2
@@ -324,6 +326,25 @@ function Review({ request: r, onReject }) {
 }
 
 export default function RoomChangeQueue() {
+  const base = useRoleBase()
+  const [params] = useSearchParams()
+  const manager = base === '/manager'
+  if (manager && params.get('view') === 'overdue') {
+    return (
+      <>
+        <PageHeader
+          title="Next-term room changes"
+          actions={<RoomChangeModeSwitch mode="changes" />}
+        />
+        <OverdueSwitch kind="room-change" />
+        <OverdueRequests kind="room-change" />
+      </>
+    )
+  }
+  return <RoomChangeList switcher={manager ? <OverdueSwitch kind="room-change" /> : null} />
+}
+
+function RoomChangeList({ switcher }) {
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
@@ -348,7 +369,6 @@ export default function RoomChangeQueue() {
     <>
       <PageHeader
         title="Next-term room changes"
-        description={query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-term bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-change requests of the next term, in your scope.'}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -358,6 +378,7 @@ export default function RoomChangeQueue() {
           </>
         }
       />
+      {switcher}
 
       <div className="flex shrink-0 items-center gap-3">
         <Select wrapperClassName="w-42" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />

@@ -284,10 +284,6 @@ export default function ProposalReview() {
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Assignment', to: `${base}/assignment` }, { label: runId }]} />}
         title={committed ? t('Assignment result · {id}', { id: runId }) : t('Proposal · {id}', { id: runId })}
-        description={
-          run &&
-          `${tr(run.kind)} · ${t('Started by {name} · {date}', { name: run.startedBy ?? '—', date: formatDateTime(run.startedAt) })} · ${t('{n} proposed', { n: formatNumber(run.proposed) })} · ${t('{c} conflicts · {w} waitlisted', { c: run.conflicts, w: run.waitlisted })}`
-        }
         badge={run && <Tag tone={run.statusTone ?? 'neutral'}>{run.status}</Tag>}
         actions={
           <>

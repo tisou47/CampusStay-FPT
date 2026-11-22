@@ -803,17 +803,6 @@ export default function CheckOutDesk() {
     <>
       <PageHeader
         title="Check-out desk"
-        description={
-          list.data
-            ? [
-                list.data.date && formatDate(list.data.date),
-                t('{n} allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
-                list.data.checkOutBy && t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }),
-              ]
-                .filter(Boolean)
-                .join(' · ')
-            : 'Allocations in Pending check-out.'
-        }
         actions={
           <>
             <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>

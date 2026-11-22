@@ -54,7 +54,6 @@ export default function FamilyDays({ role = 'manager' }) {
     <>
       <PageHeader
         title="Family Days"
-        description="Days on which residents' families visit a common area of their block."
         actions={
           manager && (
             <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>

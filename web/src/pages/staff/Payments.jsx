@@ -146,7 +146,6 @@ export default function Payments() {
     <>
       <PageHeader
         title="Payments"
-        description="Students report their transfer; a manager confirms it against the bank statement."
         actions={
           <>
             <Button to="/manager/payment-claims" icon={Check}>

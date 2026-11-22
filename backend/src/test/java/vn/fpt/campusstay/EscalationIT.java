@@ -112,7 +112,10 @@ class EscalationIT {
                 .andExpect(jsonPath(item + ".link").value(hasItem("/manager/maintenance/" + code)))
                 .andExpect(jsonPath(item + ".canOfferTemporaryBed").value(hasItem(false)))
                 .andExpect(jsonPath(item + ".events[0].text").value(hasItem("Escalated: No assignee after 1 hour")))
-                .andExpect(jsonPath("$.assignees[*].name").value(hasItem("Vo Thanh Tung")));
+                .andExpect(jsonPath("$.assignees[*].name").value(hasItem("Vo Thanh Tung")))
+                // the staff of the request's own Block to choose from, the suggested one first
+                .andExpect(jsonPath(item + ".candidates[0].id").value(hasItem(String.valueOf(a2))))
+                .andExpect(jsonPath(item + ".candidates[0].suggested").value(hasItem(true)));
 
         // Past the Block's 48-hour timer for normal requests: the same escalation becomes a breach.
         reportedHoursAgo(code, 50);

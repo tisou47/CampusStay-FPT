@@ -59,7 +59,15 @@ public class EscalationService {
     /** @param kind {@code maintenance} or {@code room-change}; {@code tone} info, warning or error */
     public record Item(String id, String kind, String title, String subtitle, String room, String why, String tone,
             String openFor, String ownerName, Handled handled, List<Event> events, String suggestedAssigneeId,
-            String link, boolean canOfferTemporaryBed) {
+            String link, boolean canOfferTemporaryBed, List<Candidate> candidates) {
+    }
+
+    /**
+     * A staff member of the request's Block who can take it over: on duty or not, whether they handle this kind of
+     * request, how many of them they have open, and whether they own it now. Suggested first, then the least busy.
+     */
+    public record Candidate(String id, String name, boolean onDuty, boolean handles, long open, boolean owner,
+            boolean suggested) {
     }
 
     public record Assignee(String id, String name) {
@@ -290,13 +298,15 @@ public class EscalationService {
             boolean change = r.sourceType().equals(ROOM_CHANGE);
             Handled handled = isOpen ? null : new Handled(handledLabel(r, names), r.handledAt(), r.handledNote());
             Instant start = r.sourceAt() != null ? r.sourceAt() : r.openedAt();
+            List<UserDirectory.StaffMember> blockStaff = staffByBlock.computeIfAbsent(r.buildingId(),
+                    b -> users.staffOf(List.of(b)));
+            Map<Long, Long> kindLoad = load.getOrDefault(r.sourceType(), Map.of());
+            String suggested = isOpen ? suggest(r, blockStaff, kindLoad) : null;
             return new Item(r.sourceCode(), change ? "room-change" : "maintenance", r.title(), r.subtitle(), r.room(),
                     r.why(), TONES.get(r.tone()), age(Duration.between(start, isOpen ? now : r.handledAt())),
                     r.ownerId() == null ? null : names.get(r.ownerId()), handled,
-                    timeline.getOrDefault(r.id(), List.of()),
-                    isOpen ? suggest(r, staffByBlock.computeIfAbsent(r.buildingId(), b -> users.staffOf(List.of(b))),
-                            load.getOrDefault(r.sourceType(), Map.of())) : null, r.link(),
-                    isOpen && change);
+                    timeline.getOrDefault(r.id(), List.of()), suggested, r.link(), isOpen && change,
+                    isOpen ? candidates(r, blockStaff, kindLoad, suggested) : List.of());
         }).toList();
         return new Page(items, staff.stream().map(m -> new Assignee(String.valueOf(m.userId()), m.name())).toList());
     }
@@ -404,6 +414,22 @@ public class EscalationService {
                 .query((rs, i) -> Map.entry(rs.getLong("assignee_id"), rs.getLong("n"))).list().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return Map.of(MAINTENANCE, repairs, ROOM_CHANGE, changes);
+    }
+
+    /** The staff of the request's Block as reassignment choices: the suggested one, then those who handle this kind, on duty, the least busy; the owner last. */
+    private static List<Candidate> candidates(Row r, List<UserDirectory.StaffMember> blockStaff, Map<Long, Long> load,
+            String suggested) {
+        String handle = r.sourceType().equals(MAINTENANCE) ? "MAINTENANCE" : "ROOM_CHANGES";
+        return blockStaff.stream().map(m -> {
+            String id = String.valueOf(m.userId());
+            return new Candidate(id, m.name(), m.onDuty(), m.handles().contains(handle), load.getOrDefault(m.userId(), 0L),
+                    Objects.equals(m.userId(), r.ownerId()), id.equals(suggested));
+        }).sorted(Comparator.comparing((Candidate c) -> !c.suggested())
+                .thenComparing(Candidate::owner)
+                .thenComparing(c -> !c.handles())
+                .thenComparing(c -> !c.onDuty())
+                .thenComparingLong(Candidate::open)
+                .thenComparing(Candidate::name)).toList();
     }
 
     /** On-duty staff of the request's Block who handle this kind of request, the least busy first; never the owner. */

@@ -76,7 +76,6 @@ export default function RoomHub() {
         breadcrumb={breadcrumb}
         title={t('Room {code}', { code: d.room })}
         badge={<StatusTag status={c.status} />}
-        description={[t('Block {code} · Floor {n}', { code: d.block, n: d.floor }), tr(d.roomType), d.term && t('{term}: {roomClass}', { term: d.term, roomClass: tr(d.roomClass) })].filter(Boolean).join(' · ')}
         actions={
           <>
             <Button icon={Package} to={`${base}/furniture?room=${d.room}`}>

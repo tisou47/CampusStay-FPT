@@ -562,7 +562,6 @@ export default function CheckInDesk() {
     <>
       <PageHeader
         title="Check-in desk"
-        description={`${d0?.date ? `${formatDate(d0.date)} · ` : ''}${t('Scan the student’s QR pass from the Android app or search by student code.')}`}
         actions={<DeskModeSwitch mode="in" />}
       />
 

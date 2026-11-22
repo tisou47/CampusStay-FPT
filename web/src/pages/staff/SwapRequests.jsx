@@ -137,7 +137,7 @@ export default function SwapRequests() {
 
   return (
     <>
-      <PageHeader title="Next-term swaps" description={query.data?.window ? t('{term} · Same-block swaps are approved here; cross-block swaps go to a manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-block swaps are approved here; cross-block swaps go to a manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
+      <PageHeader title="Next-term swaps" actions={<RoomChangeModeSwitch mode="swaps" />} />
       <div className="flex shrink-0 items-center gap-3">
         <Select
           wrapperClassName="w-60"

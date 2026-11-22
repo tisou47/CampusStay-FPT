@@ -218,7 +218,6 @@ export default function DoorCodes() {
     <>
       <PageHeader
         title="Door codes"
-        description="One 6-digit code per room. Set the new code on the lock, then confirm it here; residents are told without the code."
         actions={
           <Button icon={Upload} onClick={() => setModal({ type: 'import' })}>
             Import codes

@@ -278,6 +278,38 @@ function PeriodCard({ card, className }) {
   )
 }
 
+const NL = '\n'
+
+/** The table of what changed (prices, dates): fixed columns, values right-aligned so the amounts line up. */
+function Changes({ changes }) {
+  return (
+    <table className="w-full table-fixed text-xs">
+      <colgroup>
+        <col />
+        <col className="w-[27%]" />
+        <col className="w-[27%]" />
+      </colgroup>
+      <thead>
+        <tr className="text-fg-tertiary">
+          <th className="py-1.5 pr-2 text-left font-medium">{t('What changed')}</th>
+          <th className="py-1.5 pr-2 text-right font-medium">{t('Before')}</th>
+          <th className="py-1.5 text-right font-medium">{t('Now')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {changes.map((c, i) => (
+          <tr key={i} className="border-t border-line">
+            <td className="py-1.5 pr-2 text-fg">{tr(c.field)}</td>
+            <td className="py-1.5 pr-2 text-right whitespace-nowrap text-fg-tertiary tabular">{showValue(c.type, c.before)}</td>
+            <td className="py-1.5 text-right font-semibold whitespace-nowrap text-fg tabular">{showValue(c.type, c.after)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+/** One notice of the board; it opens in place (the board scrolls inside itself, so the page never grows). */
 function AnnouncementItem({ item, onRead }) {
   const [open, setOpen] = useState(false)
   const toggle = () => {
@@ -302,30 +334,9 @@ function AnnouncementItem({ item, onRead }) {
       </button>
       {open && (
         <div className="flex flex-col gap-2 pb-3 pl-4">
-          {item.changes?.length ? (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-fg-tertiary">
-                  <th className="py-1 font-medium">{t('What changed')}</th>
-                  <th className="py-1 font-medium">{t('Before')}</th>
-                  <th className="py-1 font-medium">{t('Now')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {item.changes.map((c, i) => (
-                  <tr key={i} className="border-t border-line">
-                    <td className="py-1 pr-2 text-fg">{tr(c.field)}</td>
-                    <td className="py-1 pr-2 text-fg-secondary">{showValue(c.type, c.before)}</td>
-                    <td className="py-1 font-medium text-fg">{showValue(c.type, c.after)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-sm whitespace-pre-wrap text-fg-secondary">{item.body}</p>
-          )}
-          {item.changes?.length > 0 && item.body.includes('\n') && (
-            <p className="text-xs whitespace-pre-wrap text-fg-tertiary">{item.body.split('\n').filter((l) => !l.startsWith('•')).slice(1).join('\n')}</p>
+          {item.changes?.length ? <Changes changes={item.changes} /> : <p className="text-sm whitespace-pre-wrap text-fg-secondary">{item.body}</p>}
+          {item.changes?.length > 0 && item.body.includes(NL) && (
+            <p className="text-xs whitespace-pre-wrap text-fg-tertiary">{item.body.split(NL).filter((l) => !l.startsWith('•')).slice(1).join(NL)}</p>
           )}
           {item.link && item.link !== '/student' && (
             <Link to={item.link} className="flex items-center gap-1 self-start text-xs font-medium text-fg-link hover:underline">
@@ -347,8 +358,6 @@ export function DormitoryBoard() {
   const card = period.data?.card
   const items = board.data?.items ?? []
   if (!card && items.length === 0) return null
-  // Limit to top 3 latest notices to prevent vertical page stretching
-  const shown = items.slice(0, 3)
 
   return (
     <section
@@ -359,12 +368,13 @@ export function DormitoryBoard() {
       <Card
         padding="lg"
         className={cx(
-          'flex min-w-0 flex-col justify-between gap-3 shadow-xs lg:h-full lg:p-6',
+          // As tall as the registration card beside it, never taller (h-0 + min-h-full): the notices scroll inside.
+          'flex min-w-0 flex-col gap-3 shadow-xs lg:h-0 lg:min-h-full lg:p-6',
           card ? 'lg:col-span-3' : 'lg:col-span-10',
         )}
       >
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="flex shrink-0 items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
               <Megaphone size={18} aria-hidden="true" className="text-fg-brand" />
               {t('Dormitory board')}
@@ -378,21 +388,13 @@ export function DormitoryBoard() {
           {items.length === 0 ? (
             <p className="text-sm text-fg-tertiary">{t('No announcements right now.')}</p>
           ) : (
-            <ul className="flex flex-col">
-              {shown.map((item) => (
+            <ul className="-mr-2 flex min-h-0 flex-1 flex-col overflow-y-auto pr-2 [scrollbar-gutter:stable]">
+              {items.map((item) => (
                 <AnnouncementItem key={item.id} item={item} onRead={(id) => read.run(id)} />
               ))}
             </ul>
           )}
         </div>
-        {items.length > 3 && (
-          <div className="border-t border-line pt-2.5">
-            <Link to="/student/notifications" className="inline-flex items-center gap-1 text-xs font-medium text-fg-link hover:underline">
-              {t('Show all {n}', { n: items.length })}
-              <ChevronRight size={14} aria-hidden="true" />
-            </Link>
-          </div>
-        )}
       </Card>
     </section>
   )

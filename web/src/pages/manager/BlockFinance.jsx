@@ -323,7 +323,6 @@ export default function BlockFinance() {
     <>
       <PageHeader
         title={block ? t('Finance · Block {code}', { code: block }) : 'Collections and refunds'}
-        description={`${term ? `${t('{term} invoices and refunds.', { term: term.name })} ` : ''}${t('Refunds follow admin rules; you approve exceptions and partial refunds.')}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export

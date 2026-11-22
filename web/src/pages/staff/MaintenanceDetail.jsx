@@ -190,12 +190,6 @@ function RequestDetail({ r, staff, priorities }) {
             <StatusTag status={r.status} />
           </span>
         }
-        description={
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
-            {[r.reporter?.name, r.reporter?.role ? tr(r.reporter.role) : null, formatDateTime(r.reportedAt)].filter(Boolean).join(' · ')}
-            {r.urgency === 'Urgent' && <StatusTag status={r.urgency} tone="error" />}
-          </span>
-        }
         actions={
           <>
             {someoneElse && r.status !== 'Closed' ? (

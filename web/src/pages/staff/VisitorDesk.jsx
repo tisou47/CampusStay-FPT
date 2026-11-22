@@ -325,7 +325,6 @@ export default function VisitorDesk() {
         }
         title="Visitor desk"
         badge={day.data && <StatusTag status={day.data.status}>{familyDayStatusLabel(day.data.status)}</StatusTag>}
-        description={day.data ? t('Block {block} · {area}', { block: day.data.block, area: day.data.area }) : undefined}
       />
 
       <div className="grid shrink-0 gap-4 lg:grid-cols-[minmax(0,26rem)_1fr]">

@@ -16,6 +16,7 @@ import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
+import { OverdueRequests, OverdueSwitch } from '@/pages/manager/Escalations'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-10 Maintenance Queue (Figma 42:2251). Shared with the Manager portal.
@@ -40,6 +41,22 @@ function FilterTile({ active, onClick, ...tile }) {
 }
 
 export default function MaintenanceQueue() {
+  const base = useRoleBase()
+  const [params] = useSearchParams()
+  const manager = base === '/manager'
+  if (manager && params.get('view') === 'overdue') {
+    return (
+      <>
+        <PageHeader title="Maintenance" />
+        <OverdueSwitch kind="maintenance" />
+        <OverdueRequests kind="maintenance" />
+      </>
+    )
+  }
+  return <MaintenanceList switcher={manager ? <OverdueSwitch kind="maintenance" /> : null} />
+}
+
+function MaintenanceList({ switcher }) {
   const navigate = useNavigate()
   const base = useRoleBase()
   const [params] = useSearchParams()
@@ -78,13 +95,13 @@ export default function MaintenanceQueue() {
     <>
       <PageHeader
         title="Maintenance"
-        description="Students set urgency; staff set the final priority."
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
           </Button>
         }
       />
+      {switcher}
 
       <div className="flex shrink-0 gap-4">
         <FilterTile

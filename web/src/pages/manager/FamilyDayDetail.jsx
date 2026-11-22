@@ -227,7 +227,6 @@ export default function FamilyDayDetail() {
             breadcrumb={<Breadcrumb items={[{ label: 'Family Days', to: `${base}/family-days` }, { label: day.title }]} />}
             title={day.title}
             badge={<StatusTag status={day.status}>{familyDayStatusLabel(day.status)}</StatusTag>}
-            description={t('Block {block} · {area}', { block: day.block, area: day.area })}
             actions={
               <>
                 {day.status !== 'Draft' && day.status !== 'Cancelled' && (

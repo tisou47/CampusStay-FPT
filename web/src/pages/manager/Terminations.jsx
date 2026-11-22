@@ -66,7 +66,6 @@ export default function Terminations() {
     <>
       <PageHeader
         title="Terminations"
-        description="Stays ended for utility debt, enrollment or a manager's decision, until the student checks out."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setStarting(true)}>
             Terminate a stay
