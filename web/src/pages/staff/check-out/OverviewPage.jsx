@@ -18,11 +18,11 @@ import { KpiTabs, ProgressSegmentBar } from '../checkin-reports/components/Repor
 import { CHECKOUT_TONES, RoomReadingsModal } from './checkOutShared'
 
 const STATUS_TABS = [
+  { key: 'All', label: 'All', hint: 'All leavers in the current scope' },
   { key: 'Pending', label: 'Pending', hint: 'Leavers waiting at the check-out desk' },
   { key: 'Draft', label: 'Draft', hint: 'Meter readings or condition saved as draft' },
   { key: 'Overdue', label: 'Overdue', hint: 'Past the check-out deadline and still holding a bed' },
   { key: 'Checked out', label: 'Checked out', hint: 'Completed check-out and settlement' },
-  { key: 'All', label: 'All', hint: 'All leavers in the current scope' },
 ]
 
 export default function CheckOutOverviewPage() {
@@ -30,7 +30,7 @@ export default function CheckOutOverviewPage() {
   const [params, setParams] = useSearchParams()
   const scope = useScopeQuery()
 
-  const status = STATUS_TABS.some((x) => x.key === params.get('status')) ? params.get('status') : 'Pending'
+  const status = STATUS_TABS.some((x) => x.key === params.get('status')) ? params.get('status') : 'All'
   const [q, setQ] = useState(params.get('q') ?? '')
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [reason, setReason] = useState(params.get('reason') ?? '')
@@ -49,7 +49,7 @@ export default function CheckOutOverviewPage() {
   const setStatusTab = (nextStatus) => {
     setParams((p) => {
       const next = new URLSearchParams(p)
-      if (nextStatus === 'Pending') next.delete('status')
+      if (nextStatus === 'All') next.delete('status')
       else next.set('status', nextStatus)
       return next
     })
