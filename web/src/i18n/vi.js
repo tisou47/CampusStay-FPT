@@ -541,6 +541,7 @@ const vi = {
   'Transfer {amount} to {name}, then mark it paid.': 'Hãy chuyển {amount} cho {name}, sau đó ghi nhận đã chuyển.',
   'Bank transfer reference': 'Mã tham chiếu chuyển khoản',
   'Mark paid': 'Ghi nhận đã chuyển',
+  'Could not mark the refund paid': 'Không ghi nhận được việc chuyển tiền hoàn',
   'Inspection schedule ended': 'Đã kết thúc lịch kiểm tra',
   'Staff submitted the inspection results': 'Nhân viên đã nộp kết quả kiểm tra',
   'Temporary bed arranged': 'Đã sắp xếp giường tạm',

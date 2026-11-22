@@ -54,6 +54,9 @@ function PaidModal({ refund, onClose }) {
         </>
       }
     >
+      {paid.error && !paid.error.fields?.reference && (
+        <Alert type="error" title="Could not mark the refund paid">{paid.error.message}</Alert>
+      )}
       <Field label="Bank transfer reference" required error={paid.error?.fields?.reference}>
         {(id) => <Input id={id} value={reference} maxLength={100} onChange={(e) => setReference(e.target.value)} placeholder="e.g. FT2611210001" />}
       </Field>
