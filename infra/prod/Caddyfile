@@ -3,5 +3,9 @@
 # path is /api. No access log: query strings may hold personal data (backend/CLAUDE.md).
 {$API_DOMAIN} {
 	encode zstd gzip
-	reverse_proxy api:8080
+	# Spring reads RFC 7239 Forwarded before X-Forwarded-For and trusts it: drop what clients send, so the
+	# API sees the real client address (the sign-in limiter keys on it; review finding of Wave 1).
+	reverse_proxy api:8080 {
+		header_up -Forwarded
+	}
 }

@@ -19,7 +19,10 @@ import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import vn.fpt.campusstay.service.application.Applications;
 import vn.fpt.campusstay.event.AllocationCreated;
@@ -89,12 +92,17 @@ public class AssignmentService {
     private final OpenRenewalRequests openRequests;
     private final Clock clock;
 
+    /** Writes that must stay when the caller answers 409 (taken Beds turned into conflicts). */
+    private final TransactionTemplate separately;
+
     public AssignmentService(JdbcClient jdbc, RunStore runs, EngineFactory engines, Applications applications,
             Inventory inventory, Catalog catalog, MatchingCriteria criteria, TermCatalog terms, FeePolicy fees,
             Billing billing, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             ApplicationEventPublisher events, AuditLog audit, Round2Offers round2, OpenRenewalRequests openRequests,
-            Clock clock) {
+            PlatformTransactionManager transactions, Clock clock) {
         this.jdbc = jdbc;
+        this.separately = new TransactionTemplate(transactions);
+        this.separately.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.openRequests = openRequests;
         this.runs = runs;
         this.engines = engines;
@@ -285,6 +293,13 @@ public class AssignmentService {
         AssignmentEngine.Placement placed = engine.placeSingle(applicant, kind[0], kind[1])
                 .orElseThrow(() -> ApiException.conflict("NO_BED_LEFT",
                         "No free Bed of that kind is left. Choose another option or the waitlist."));
+        if (placed.buildingId() != null) {
+            runs.block(run.id(), placed.buildingId(), false).filter(b -> !EDITABLE_BLOCK.contains(b.status()))
+                    .ifPresent(b -> {
+                        throw ApiException.conflict("BLOCK_SUBMITTED", "The only free Bed of that kind is in a Block "
+                                + "already committed. Choose another option or the waitlist.");
+                    });
+        }
         if (placed.buildingId() != null && !Objects.equals(placed.buildingId(), item.buildingId())) {
             jdbc.sql("INSERT INTO asg_run_block (run_id, building_id) VALUES (:run, :b) ON CONFLICT DO NOTHING")
                     .param("run", run.id()).param("b", placed.buildingId()).update();
@@ -311,6 +326,22 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound("Block " + blockCode + " has nothing in this run."));
         if (!EDITABLE_BLOCK.contains(block.status())) {
             throw ApiException.conflict("BLOCK_SUBMITTED", "Block " + blockCode + " was already submitted.");
+        }
+        List<Long> taken = jdbc.sql("""
+                SELECT i.id FROM asg_proposal_item i
+                JOIN asg_allocation a ON a.bed_id = i.bed_id AND a.term_id = :term AND a.status = 'ACTIVE'
+                WHERE i.run_id = :run AND i.building_id = :b AND NOT i.waitlisted
+                """).param("term", run.termId()).param("run", run.id()).param("b", building).query(Long.class).list();
+        if (!taken.isEmpty()) {
+            // Beds taken since the run (a move, a Round-2 offer): those items become conflicts to resolve (BE-ASG-04).
+            separately.executeWithoutResult(s -> jdbc.sql("""
+                    UPDATE asg_proposal_item SET bed_id = NULL, issue_code = 'NO_BED', issue_tone = 'WARNING',
+                           resolved = FALSE, resolution_key = NULL, reason = 'The proposed Bed was taken since the run'
+                    WHERE id IN (:ids)
+                    """).param("ids", taken).update());
+            throw ApiException.conflict("CONFLICTS_LEFT", taken.size() + (taken.size() == 1 ? " proposed Bed was"
+                    : " proposed Beds were") + " taken since the run. Resolve them in Block " + blockCode
+                    + " and commit again.");
         }
         long open = runs.items(run.id()).stream()
                 .filter(i -> Objects.equals(i.buildingId(), building) && i.blocking()).count();

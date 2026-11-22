@@ -52,7 +52,8 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
                 ORDER BY reported_at, id
                 """).param("b", List.copyOf(buildingIds)).query(RequestStore::request).list().stream()
                 .map(r -> new OpenRequest(r.id(), r.code(), r.termId(), r.buildingId(), r.roomCode(), r.title(),
-                        r.category(), r.urgency(), r.status(), r.assigneeId(), r.reportedAt(), r.reopenCount()))
+                        r.category(), r.urgency(), r.status(), r.assigneeId(), r.reportedAt(), r.reopenCount(),
+                        r.slaDueAt()))
                 .toList();
     }
 

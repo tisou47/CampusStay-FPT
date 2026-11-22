@@ -45,6 +45,7 @@ public enum Permission {
     MANAGE_STUDENTS("Import, verify, lock and edit student accounts", Role.MANAGER, Role.ADMIN),
     MANAGE_STAFF_ACCOUNTS("Create Staff accounts and choose their Blocks", Role.MANAGER, Role.ADMIN),
     VIEW_REPORTS("View reports and exports", Role.MANAGER, Role.ADMIN),
+    VIEW_FINANCE("View Block Finance, Invoices and refunds", Role.MANAGER, Role.ADMIN),
     REQUEST_TERMS("Request registration periods", Role.MANAGER),
     VIEW_REGISTRATION_PERIODS("Read and comment on registration-period requests; Term dashboards", Role.MANAGER,
             Role.ADMIN),

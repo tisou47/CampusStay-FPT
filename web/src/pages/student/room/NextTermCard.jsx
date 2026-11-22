@@ -65,7 +65,9 @@ export function NextTermCard({ data }) {
   }
   const w = n.window
   const filing = Boolean(w?.filing)
-  const left = data.stay ? Math.max(1, 9 - data.stay.committedTerms) : 8
+  // The longest stay comes from the server (stay.max_terms), not a number written here (WEB-STU-06).
+  const maxTerms = data.stay?.maxTerms ?? 9
+  const left = Math.max(1, maxTerms - (data.stay?.committedTerms ?? 1))
 
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-3.5">

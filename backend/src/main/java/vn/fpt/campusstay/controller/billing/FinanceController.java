@@ -29,6 +29,10 @@ class FinanceController {
             @Size(max = 500, message = "Keep the note under 500 characters.") String note) {
     }
 
+    record RefundPaidRequest(@Size(max = 100, message = "Keep the reference under 100 characters.") String reference,
+            @Size(max = 500, message = "Keep the note under 500 characters.") String note) {
+    }
+
     private final FinanceService finance;
 
     FinanceController(FinanceService finance) {
@@ -87,5 +91,11 @@ class FinanceController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void decideRefund(@PathVariable String id, @Valid @RequestBody RefundDecisionRequest body) {
         finance.decideRefund(id, body.decision(), body.note());
+    }
+
+    @PostMapping("/refunds/{id}/paid")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void markRefundPaid(@PathVariable String id, @Valid @RequestBody RefundPaidRequest body) {
+        finance.markRefundPaid(id, body.reference(), body.note());
     }
 }

@@ -579,11 +579,7 @@ public class FurnitureService {
         }
         Room room = jdbc.sql("SELECT r.id, r.code FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE b.id = :bed")
                 .param("bed", stay.bedId()).query((rs, i) -> new Room(rs.getLong("id"), rs.getString("code"))).single();
-        Long allocId = jdbc.sql("""
-                SELECT id FROM asg_allocation
-                WHERE student_id = :s AND status = 'ACTIVE'
-                ORDER BY allocated_at DESC LIMIT 1
-                """).param("s", currentUser.id()).query(Long.class).optional().orElse(null);
+        Long allocId = stay.allocationId(); // the current stay, not a next-Term Allocation (BE-OPS-01)
         record Report(String condition, String note, Instant at) {
         }
         Map<Long, Report> reports = new HashMap<>();
@@ -634,12 +630,7 @@ public class FurnitureService {
         currentUser.require(Role.STUDENT);
         BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
                 .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
-        long allocId = jdbc.sql("""
-                SELECT id FROM asg_allocation
-                WHERE student_id = :s AND status = 'ACTIVE'
-                ORDER BY allocated_at DESC LIMIT 1
-                """).param("s", currentUser.id()).query(Long.class).optional()
-                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
+        long allocId = stay.allocationId(); // the current stay, not a next-Term Allocation (BE-OPS-01)
         String rawId = itemId == null ? "" : itemId.trim().replaceFirst("^furniture-", "");
         long id;
         try {

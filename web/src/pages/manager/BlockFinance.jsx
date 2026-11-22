@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Alert } from '@/components/ui/Display'
-import { Field, Textarea } from '@/components/ui/Field'
+import { Field, Input, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -27,6 +27,44 @@ import { t, tr } from '@/i18n'
 // GET /finance/overdue?termId&block&page → { items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }
 // POST /finance/reminders { invoiceIds } · GET /invoices?termId&block&page → { items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }
 
+/** Records the bank transfer of an approved refund (Approved → Paid). */
+function PaidModal({ refund, onClose }) {
+  const { notify } = useToast()
+  const [reference, setReference] = useState('')
+  const [note, setNote] = useState('')
+  const paid = useMutation(() => api.finance.markRefundPaid(refund.id, { reference: reference.trim(), note: note.trim() || undefined }), {
+    invalidates: ['refunds', 'finance', 'approvals', 'dashboard'],
+    onSuccess: () => {
+      notify({ title: t('{id} marked paid', { id: refund.id }), message: t('{amount} was transferred to {name}.', { amount: formatVnd(refund.amount), name: refund.name }) })
+      onClose()
+    },
+    onError: () => {},
+  })
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={t('Mark {id} paid', { id: refund.id })}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={Check} disabled={!reference.trim() || paid.pending} loading={paid.pending} onClick={() => paid.run()}>
+            {t('Mark {amount} paid', { amount: formatVnd(refund.amount) })}
+          </Button>
+        </>
+      }
+    >
+      {paid.error && !paid.error.fields?.reference && (
+        <Alert type="error" title="Could not mark the refund paid">{paid.error.message}</Alert>
+      )}
+      <Field label="Bank transfer reference" required error={paid.error?.fields?.reference}>
+        {(id) => <Input id={id} value={reference} maxLength={100} onChange={(e) => setReference(e.target.value)} placeholder="e.g. FT2611210001" />}
+      </Field>
+      <Field label="Note">{(id) => <Textarea id={id} rows={2} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />}</Field>
+    </Modal>
+  )
+}
+
 function DecisionModal({ refund, decision, onClose }) {
   const { notify } = useToast()
   const [note, setNote] = useState('')
@@ -37,7 +75,7 @@ function DecisionModal({ refund, decision, onClose }) {
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
         title: t(decision === 'Approved' ? '{id} approved' : '{id} rejected', { id: refund.id }),
-        message: decision === 'Approved' ? t('{amount} is paid to {name}.', { amount: formatVnd(refund.amount), name: refund.name }) : t('{name} was notified.', { name: refund.name }),
+        message: decision === 'Approved' ? t('Transfer {amount} to {name}, then mark it paid.', { amount: formatVnd(refund.amount), name: refund.name }) : t('{name} was notified.', { name: refund.name }),
       })
       onClose()
     },
@@ -104,6 +142,7 @@ function RefundsTab({ scope }) {
     onError: (e) => notifyError(e, 'Could not send the reminder'),
   })
   const [deciding, setDeciding] = useState(null)
+  const [paying, setPaying] = useState(null)
   const [query, pagination] = usePaged(['refunds', scope], (p, signal) => api.finance.refunds({ ...scope, ...p }, { signal }))
   const highlight = params.get('refund')
   return (
@@ -161,8 +200,12 @@ function RefundsTab({ scope }) {
                       Approve
                     </Button>
                   </div>
+                ) : r.status === 'Approved' ? (
+                  <Button icon={Check} onClick={() => setPaying(r)}>
+                    Mark paid
+                  </Button>
                 ) : (
-                  <StatusTag status={r.status} tone={r.status === 'Approved' ? 'success' : 'error'} />
+                  <StatusTag status={r.status} tone={r.status === 'Paid' ? 'success' : 'error'} />
                 )}
               </Td>
             </Tr>
@@ -171,6 +214,7 @@ function RefundsTab({ scope }) {
       </Table>
       {pagination}
       {deciding && <DecisionModal {...deciding} onClose={() => setDeciding(null)} />}
+      {paying && <PaidModal refund={paying} onClose={() => setPaying(null)} />}
     </>
   )
 }

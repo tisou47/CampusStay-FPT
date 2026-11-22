@@ -34,28 +34,45 @@ class ResidenceJobs {
     @Scheduled(fixedDelayString = "${campusstay.asg.forfeit-interval:5m}",
             initialDelayString = "${campusstay.asg.forfeit-interval:5m}")
     void forfeit() {
-        int n = forfeits.forfeitDue();
-        if (n > 0) {
-            log.info("{} Allocations forfeited: Balance not paid by its deadline", n);
-        }
+        step("forfeit", () -> {
+            int n = forfeits.forfeitDue();
+            if (n > 0) {
+                log.info("{} Allocations forfeited: Balance not paid by its deadline", n);
+            }
+        });
     }
 
     @Scheduled(fixedDelayString = "${campusstay.asg.release-interval:15m}",
             initialDelayString = "${campusstay.asg.release-interval:15m}")
     void release() {
-        int released = release.releaseDue();
-        if (released > 0) {
-            log.info("{} door codes released", released);
-        }
-        int closed = handovers.closeDue();
-        if (closed > 0) {
-            log.info("{} check-in inventories closed by their deadline", closed);
-        }
-        handovers.remind();
-        furniture.expireClaims();
-        int overdue = terminations.markOverdue();
-        if (overdue > 0) {
-            log.info("{} terminations overdue", overdue);
+        step("door codes", () -> {
+            int released = release.releaseDue();
+            if (released > 0) {
+                log.info("{} door codes released", released);
+            }
+        });
+        step("check-in inventories", () -> {
+            int closed = handovers.closeDue();
+            if (closed > 0) {
+                log.info("{} check-in inventories closed by their deadline", closed);
+            }
+        });
+        step("inventory reminders", handovers::remind);
+        step("furniture claims", furniture::expireClaims);
+        step("terminations", () -> {
+            int overdue = terminations.markOverdue();
+            if (overdue > 0) {
+                log.info("{} terminations overdue", overdue);
+            }
+        });
+    }
+
+    /** One failing step is logged and the next steps still run (BE-ASG-08); each step is its own transaction. */
+    private static void step(String name, Runnable work) {
+        try {
+            work.run();
+        } catch (RuntimeException e) {
+            log.error("Residence job step '{}' failed", name, e);
         }
     }
 }

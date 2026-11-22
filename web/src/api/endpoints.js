@@ -355,6 +355,8 @@ export const api = {
     summary: g('/finance/summary'),
     refunds: g('/refunds'),
     decideRefund: (id, body) => http.post(`/refunds/${id}/decision`, body),
+    /** Approved → Paid after the bank transfer: { reference, note? } (BE-APP-BIL-03). */
+    markRefundPaid: (id, body) => http.post(`/refunds/${id}/paid`, body),
     /** R-19: in-app and push reminder to enter the refund bank account → { remindedAt }. */
     remindAccount: (id) => http.post(`/refunds/${id}/account-reminder`),
     overdue: g('/finance/overdue'),

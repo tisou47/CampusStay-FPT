@@ -55,10 +55,11 @@ class InAppNotifier {
                 .optional()
                 .orElseThrow(() -> new IllegalStateException("Missing notification template " + templateKey));
         Map<String, String> vi = vietnamese(values);
-        String title = Templates.render(template.titleEn(), values, false);
-        String body = Templates.render(template.bodyEn(), values, false);
-        String titleVi = Templates.render(template.titleVi(), vi, false);
-        String bodyVi = Templates.render(template.bodyVi(), vi, false);
+        // Cut to the columns: a long note in a long template must not roll back the action that notified (BE-PLT-08).
+        String title = cut(Templates.render(template.titleEn(), values, false), 200);
+        String body = cut(Templates.render(template.bodyEn(), values, false), 1000);
+        String titleVi = cut(Templates.render(template.titleVi(), vi, false), 200);
+        String bodyVi = cut(Templates.render(template.bodyVi(), vi, false), 1000);
         if (template.push()) {
             boolean inVietnamese = Locales.VI.equals(users.locale(userId));
             push.afterCommit(userId, inVietnamese ? titleVi : title, inVietnamese ? bodyVi : body, link);
@@ -79,6 +80,10 @@ class InAppNotifier {
                 .param("link", link)
                 .param("now", Timestamp.from(Instant.now(clock)))
                 .update();
+    }
+
+    private static String cut(String text, int max) {
+        return text == null || text.length() <= max ? text : text.substring(0, max - 1) + "…";
     }
 
     private Map<String, String> vietnamese(Map<String, String> values) {

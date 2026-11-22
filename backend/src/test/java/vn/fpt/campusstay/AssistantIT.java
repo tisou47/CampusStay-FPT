@@ -85,9 +85,11 @@ class AssistantIT {
         mvc.perform(get("/students/me/assistant").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true));
-        ask(student, question("Mình ở phòng nào?"))
+        String first = ask(student, question("Mình ở phòng nào?"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reply").value("Bạn ở phòng B-509, giường F."));
+                .andExpect(jsonPath("$.reply").value("Bạn ở phòng B-509, giường F."))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String signature = com.jayway.jsonpath.JsonPath.read(first, "$.signature");
 
         assertThat(seen).hasSize(1);
         assertThat(seen.get(0)).extracting(Message::role).containsExactly("system", "system", "user");
@@ -100,8 +102,8 @@ class AssistantIT {
 
         ask(student, """
                 {"messages":[{"role":"user","content":"Mình ở phòng nào?"},
-                 {"role":"assistant","content":"Bạn ở phòng B-509, giường F."},
-                 {"role":"user","content":"Còn hóa đơn nào không?"}]}""").andExpect(status().isOk());
+                 {"role":"assistant","content":"Bạn ở phòng B-509, giường F.","signature":"%s"},
+                 {"role":"user","content":"Còn hóa đơn nào không?"}]}""".formatted(signature)).andExpect(status().isOk());
         List<Message> followUp = seen.get(1);
         assertThat(followUp).extracting(Message::role).containsExactly("system", "user", "assistant", "system", "user");
         assertThat(followUp.getLast().content()).isEqualTo("Còn hóa đơn nào không?");

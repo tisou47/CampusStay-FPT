@@ -3335,8 +3335,6 @@ const registration = {
   "Results": "Kết quả",
   "Payment": "Đóng tiền",
   "Step {n}": "Bước {n}",
-  "In progress": "Đang diễn ra",
-  "Completed": "Đã hoàn thành",
   "Upcoming": "Sắp tới",
   "Current stage": "Giai đoạn hiện tại",
   "Window": "Khoảng thời gian",
