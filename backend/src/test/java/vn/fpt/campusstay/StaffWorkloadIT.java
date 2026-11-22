@@ -335,4 +335,46 @@ class StaffWorkloadIT {
                 .andExpect(jsonPath("$.code").value("ITEM_CLOSED"));
         assertThat(assignee(open)).isEqualTo(from);
     }
+
+    private void editStaff(long id, String body) throws Exception {
+        mvc.perform(put("/staff-accounts/" + id)
+                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().isOk());
+    }
+
+    private Long column(String sql, long id) {
+        return jdbc.sql(sql).param("id", id).query((rs, i) -> java.util.Optional.ofNullable(rs.getObject(1, Long.class)))
+                .single().orElse(null);
+    }
+
+    private String requestStatus(long id) {
+        return jdbc.sql("SELECT status FROM mnt_request WHERE id = :id").param("id", id).query(String.class).single();
+    }
+
+    /**
+     * TC-AUTH-095 (BE-3RD-01): a Staff member taken off Block A gives Block A's open work back to its queue (nobody in
+     * charge, audited), so nothing is left with someone who can no longer reach it.
+     */
+    @Test
+    void leavingABlockGivesItsWorkBackToTheQueue() throws Exception {
+        long s = staff("Pham Van Roi", "MAINTENANCE,INSPECTION", "B");
+        long request = maintenance(s, false);
+        long run = inspection(s);
+        editStaff(s, "{\"blocks\":[\"B\"]}");
+        assertThat(column("SELECT assignee_id FROM mnt_request WHERE id = :id", request)).isNull();
+        assertThat(requestStatus(request)).isEqualTo("SUBMITTED");
+        assertThat(column("SELECT inspector_id FROM mnt_inspection_run WHERE id = :id", run)).isNull();
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'WORK_RELEASED' AND object_id = :id")
+                .param("id", String.valueOf(request)).query(Long.class).single()).isEqualTo(1);
+    }
+
+    /** TC-AUTH-096 (BE-3RD-01): disabling a Staff member gives all their open work back to the Block queues. */
+    @Test
+    void disablingStaffGivesTheirWorkBack() throws Exception {
+        long s = staff("Pham Van Nghi", "MAINTENANCE");
+        long request = maintenance(s, true);
+        editStaff(s, "{\"status\":\"Disabled\"}");
+        assertThat(column("SELECT assignee_id FROM mnt_request WHERE id = :id", request)).isNull();
+        assertThat(requestStatus(request)).isEqualTo("SUBMITTED");
+    }
 }

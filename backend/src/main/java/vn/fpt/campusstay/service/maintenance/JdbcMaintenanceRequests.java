@@ -89,6 +89,18 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
     }
 
     @Override
+    public void unassign(long requestId, String why) {
+        RequestStore.Request r = requests.find(String.valueOf(requestId), true).orElse(null);
+        if (r == null || !r.open() || r.assigneeId() == null) {
+            return;
+        }
+        // An open request other than Submitted needs someone in charge (ck_mnt_assigned): it starts again from the queue.
+        jdbc.sql("UPDATE mnt_request SET assignee_id = NULL, status = 'SUBMITTED', version = version + 1 WHERE id = :id")
+                .param("id", r.id()).update();
+        requests.event(r.id(), null, null, "Back to the Block queue (" + why + ")", null, false, Instant.now(clock));
+    }
+
+    @Override
     public List<StudentItem> ofStudent(long studentId, Long termId) {
         List<RequestStore.Request> rows = jdbc.sql("SELECT * FROM mnt_request WHERE reporter_id = :student"
                 + (termId != null ? " AND term_id = :term" : "") + " ORDER BY reported_at DESC, id DESC")

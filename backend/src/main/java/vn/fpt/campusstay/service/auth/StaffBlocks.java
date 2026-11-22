@@ -12,16 +12,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.common.audit.AuditLog;
+
 /** The Blocks a Staff member works in ({@code auth_user_block}) and their staff profile, for Admin › Users and Manager › Staff accounts. */
 @Component
 class StaffBlocks {
 
     private final JdbcClient jdbc;
     private final BlockDirectory blocks;
+    private final List<StaffWork> works;
+    private final AuditLog audit;
 
-    StaffBlocks(JdbcClient jdbc, BlockDirectory blocks) {
+    StaffBlocks(JdbcClient jdbc, BlockDirectory blocks, List<StaffWork> works, AuditLog audit) {
         this.jdbc = jdbc;
         this.blocks = blocks;
+        this.works = works;
+        this.audit = audit;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -30,6 +36,25 @@ class StaffBlocks {
         for (Long blockId : blockIds) {
             jdbc.sql("INSERT INTO auth_user_block (user_id, building_id) VALUES (:id, :block)")
                     .param("id", userId).param("block", blockId).update();
+        }
+        releaseWork(userId, blockIds, "the person no longer works in this Block");
+    }
+
+    /**
+     * The person's open items outside {@code keepBlocks} go back to their Block's queue, audited one by one, so no
+     * work is left with someone who cannot reach it (BE-3RD-01). Disabling passes no Blocks.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void releaseWork(long userId, Set<Long> keepBlocks, String why) {
+        for (StaffWork work : works) {
+            for (StaffWork.Item item : work.openItems(userId)) {
+                if (keepBlocks.contains(item.buildingId())) {
+                    continue;
+                }
+                work.release(item.type(), Long.parseLong(item.id()), why);
+                audit.record("WORK_RELEASED", AuditLog.Tone.WARNING, BlockStaffService.TYPE_LABELS.get(item.type()),
+                        item.id(), item.code(), Map.of("from", userId, "note", why));
+            }
         }
     }
 
