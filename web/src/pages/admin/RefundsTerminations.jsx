@@ -21,6 +21,9 @@ import { parseDecimal } from '@/lib/numbers'
 
 function RuleModal({ rule, approvers, onClose, onSave }) {
   const [form, setForm] = useState({ when: '', refundPercent: 0, approver: approvers[0] ?? '', active: true, ...rule })
+  // A blank percent is an error, never a silent 0 % (M2).
+  const percent = parseDecimal(form.refundPercent)
+  const percentError = percent == null ? t('Enter a refund from 0 to 100%.') : Number.isNaN(percent) || percent < 0 || percent > 100 ? t('Enter a refund from 0 to 100%.') : null
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   return (
     <Modal
@@ -30,7 +33,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!String(form.when).trim() || Number.isNaN(parseDecimal(form.refundPercent))} onClick={() => onSave({ ...form, refundPercent: parseDecimal(form.refundPercent) ?? 0 })}>
+          <Button variant="primary" icon={Check} disabled={!String(form.when).trim() || percentError != null} onClick={() => onSave({ ...form, refundPercent: parseDecimal(form.refundPercent) })}>
             Save rule
           </Button>
         </>
@@ -38,7 +41,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
     >
       <Field label="When">{(id) => <Input id={id} value={form.when} onChange={set('when')} placeholder="e.g. student cancels during the stay" />}</Field>
       <div className="flex gap-3">
-        <Field label="Refund of paid amount (%)" className="flex-1">
+        <Field label="Refund of paid amount (%)" className="flex-1" required error={percentError}>
           {(id) => <Input id={id} value={form.refundPercent} onChange={set('refundPercent')} inputMode="numeric" />}
         </Field>
         <Field label="Approved by" className="flex-1">
