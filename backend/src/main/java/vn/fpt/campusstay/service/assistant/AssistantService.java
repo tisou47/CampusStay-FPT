@@ -145,13 +145,14 @@ public class AssistantService {
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
         String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
-            return reply(DOOR_CODE_ANSWERS.get(locale));
+            return reply(user, DOOR_CODE_ANSWERS.get(locale));
         }
 
         List<AssistantModel.Message> messages = new ArrayList<>();
         messages.add(new AssistantModel.Message("system", systemPrompt(user, locale)));
         List<Turn> genuine = turns.stream()
-                .filter(t -> !"assistant".equals(t.role()) || sign(t.content()).equals(t.signature())).toList();
+                .filter(t -> !"assistant".equals(t.role()) || sign(user.userId(), t.content()).equals(t.signature()))
+                .toList();
         history(genuine)
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
@@ -166,19 +167,19 @@ public class AssistantService {
         if (text.isEmpty() || CJK.matcher(text).find()) {
             throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
         }
-        return reply(text);
+        return reply(user, text);
     }
 
-    private Reply reply(String text) {
-        return new Reply(text, sign(text));
+    private Reply reply(AuthenticatedUser user, String text) {
+        return new Reply(text, sign(user.userId(), text));
     }
 
-    /** HMAC-SHA256 of an answer, Base64. */
-    String sign(String text) {
+    /** HMAC-SHA256 of {@code userId|answer}, Base64: an answer signed for one student is not valid for another (M6). */
+    String sign(long userId, String text) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(signingKey, "HmacSHA256"));
-            return Base64.getEncoder().encodeToString(mac.doFinal((text == null ? "" : text.strip())
+            return Base64.getEncoder().encodeToString(mac.doFinal((userId + "|" + (text == null ? "" : text.strip()))
                     .getBytes(StandardCharsets.UTF_8)));
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);

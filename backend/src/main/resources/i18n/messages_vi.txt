@@ -1134,3 +1134,5 @@ This Bed is no longer available. Ask Staff for another option. ⟶ Giường nà
 Beds of Room {0} are offered or given to students for a coming Term. Move or withdraw them before you set it out of service. ⟶ Giường của phòng {0} đã được đề nghị hoặc xếp cho sinh viên ở học kỳ tới. Hãy chuyển hoặc rút lại trước khi tạm ngừng phòng.
 The gender cannot change while the student holds a Bed or a live Application. ⟶ Không thể đổi giới tính khi sinh viên đang giữ giường hoặc có đơn đăng ký đang xử lý.
 The workbook is too large once unpacked. Keep only the list in it and upload it again. ⟶ Tệp quá lớn khi giải nén. Chỉ giữ lại danh sách trong tệp và tải lên lại.
+The refund of a rejected Application cannot be switched off. Change its percent instead. ⟶ Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.
+This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này không hợp lệ. Hãy bắt đầu cuộc trò chuyện mới.

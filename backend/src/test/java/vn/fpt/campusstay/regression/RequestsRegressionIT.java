@@ -348,4 +348,24 @@ class RequestsRegressionIT {
                 .query(String.class).single();
         assertThat(status).isEqualTo("CANCELLED");
     }
+
+    /**
+     * TC-ASG-076 (M5): a resident who already holds a next-Term Bed elsewhere (placed before M2) is not told that
+     * their Bed was taken: the conflict is on the student, not on the Bed.
+     */
+    @Test
+    void residentAlreadyPlacedNextTermIsNotToldTheBedWasTaken() throws Exception {
+        openNextTermWindow();
+        long next = jdbc.sql("SELECT id FROM cfg_term WHERE code = 'TT32'").query(Long.class).single();
+        jdbc.sql("""
+                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at)
+                SELECT :t, u.id, b.id, 'MANUAL', now() FROM auth_user u, inv_bed b JOIN inv_room ro ON ro.id = b.room_id
+                WHERE u.email = :e AND ro.code = 'A-406' AND b.label = 'A'
+                """).param("t", next).param("e", RegressionSupport.student(19)).update();
+        continuingResident(19, "A-405");
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification x JOIN auth_user u ON u.id = x.user_id
+                WHERE u.email = :e AND x.event_key = 'NEXT_TERM_BED_TAKEN'
+                """).param("e", RegressionSupport.student(19)).query(Long.class).single()).isZero();
+    }
 }

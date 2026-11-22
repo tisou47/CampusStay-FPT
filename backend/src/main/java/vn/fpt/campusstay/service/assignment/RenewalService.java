@@ -192,6 +192,13 @@ public class RenewalService {
                     .param("previous", a.id()).param("now", Timestamp.from(now)).param("stay", stay.id())
                     .param("state", state).update();
             if (rows == 0) {
+                boolean placed = jdbc.sql("""
+                        SELECT EXISTS (SELECT 1 FROM asg_allocation WHERE term_id = :t AND student_id = :s
+                                       AND status = 'ACTIVE')
+                        """).param("t", r.termId()).param("s", a.studentId()).query(Boolean.class).single();
+                if (placed) {
+                    continue; // the student already holds a next-Term Bed: their own Bed was not taken (M5)
+                }
                 Inventory.BedSlot bed = beds.get(a.bedId());
                 audit.record(Actor.SYSTEM, "NEXT_TERM_BED_TAKEN", AuditLog.Tone.WARNING, "Allocation", a.id(),
                         bed == null ? null : "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(),

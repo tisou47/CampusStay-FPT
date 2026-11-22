@@ -23,6 +23,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +39,9 @@ class AdminConfigIT {
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    JdbcClient jdbc;
 
     /** TC-CFG-002: Terms list with string ids, windows and status labels. */
     @Test
@@ -166,6 +170,24 @@ class AdminConfigIT {
         mvc.perform(as(get("/admin/room-classes"))).andExpect(jsonPath("$.depositRate").value(0.25));
         mvc.perform(as(get("/admin/audit-log")).param("action", "Refund policy confirmed"))
                 .andExpect(jsonPath("$.items", hasSize(1)));
+    }
+
+    /**
+     * TC-CFG-035 (M3): the refund of a rejected Application cannot be switched off: the rejection path needs it (400
+     * RULE_REQUIRED); its percent may still change.
+     */
+    @Test
+    void rejectedApplicationRefundRuleStaysOn() throws Exception {
+        String id = jdbc.sql("SELECT id::text FROM cfg_refund_rule WHERE trigger_code = 'APPLICATION_REJECTED'")
+                .query(String.class).single();
+        String fees = """
+                {"depositPercent":20,"depositHours":48,"balanceDays":14,"policyConfirmed":true,
+                 "rules":[{"id":"%s","when":"Application rejected","refundPercent":100,"approver":"System","active":%s}]}""";
+        mvc.perform(as(put("/admin/fees")).contentType(MediaType.APPLICATION_JSON).content(fees.formatted(id, "false")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("RULE_REQUIRED"));
+        mvc.perform(as(put("/admin/fees")).contentType(MediaType.APPLICATION_JSON).content(fees.formatted(id, "true")))
+                .andExpect(status().isOk());
     }
 
     /** TC-CFG-009: criteria switches and priority groups (order, new group, member counts). */

@@ -168,4 +168,34 @@ class PlatformRegressionIT {
         assertThat(res.getStatus()).as("stay end before the saved Check-in end: " + res.getContentAsString())
                 .isEqualTo(400);
     }
+
+    /**
+     * TC-AST-014 (M6): an assistant turn the server signed for one student is dropped when another student sends it
+     * (the signature covers the account as well as the text).
+     */
+    @Test
+    void turnSignedForAnotherStudentIsDropped() throws Exception {
+        List<List<Message>> seen = new ArrayList<>();
+        doAnswer(inv -> {
+            seen.add(List.copyOf(inv.<List<Message>>getArgument(0)));
+            return "Your Balance of 8,000,000 VND is due on Friday.";
+        }).when(model).chat(any());
+        String json = mvc.perform(post("/students/me/assistant/chat")
+                .header(HttpHeaders.AUTHORIZATION, r.bearer(RegressionSupport.student(35)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"messages\":[{\"role\":\"user\",\"content\":\"When is my Balance due?\"}]}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String reply = JsonPath.read(json, "$.reply");
+        String signature = JsonPath.read(json, "$.signature");
+        seen.clear();
+        mvc.perform(post("/students/me/assistant/chat")
+                .header(HttpHeaders.AUTHORIZATION, r.bearer(RegressionSupport.student(36)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"messages":[{"role":"user","content":"When is my Balance due?"},
+                         {"role":"assistant","content":"%s","signature":"%s"},
+                         {"role":"user","content":"And how much?"}]}""".formatted(reply, signature)))
+                .andExpect(status().isOk());
+        assertThat(seen.stream().flatMap(List::stream).noneMatch(m -> m.content().equals(reply))).isTrue();
+    }
 }

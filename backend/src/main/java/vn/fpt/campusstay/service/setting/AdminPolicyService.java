@@ -25,6 +25,7 @@ import vn.fpt.campusstay.common.audit.ActorResolver;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.event.PolicyChanged;
 import vn.fpt.campusstay.event.ValueChange;
+import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
@@ -135,6 +136,13 @@ public class AdminPolicyService {
                     which + "it no longer exists. Reload the page and try again.");
         }
         errors.throwIfAny();
+        // Rejecting an Application refunds its Deposit through this rule: with it off the money would stay held (M3).
+        Set<String> required = new HashSet<>(jdbc.sql(
+                "SELECT id::text FROM cfg_refund_rule WHERE trigger_code = 'APPLICATION_REJECTED'").query(String.class).list());
+        if (rules.stream().anyMatch(r -> Boolean.FALSE.equals(r.active()) && required.contains(r.id()))) {
+            throw ApiException.badRequest("RULE_REQUIRED",
+                    "The refund of a rejected Application cannot be switched off. Change its percent instead.");
+        }
 
         jdbc.sql("""
                 UPDATE cfg_fee_policy SET deposit_percent = :percent, deposit_hours = :hours, balance_days = :days,

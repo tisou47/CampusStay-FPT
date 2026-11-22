@@ -27,7 +27,7 @@ class AssistantController {
             @Pattern(regexp = "user|assistant", message = "Choose who wrote this message.") String role,
             @NotBlank(message = "Write your question.")
             @Size(max = 2000, message = "Use at most 2000 characters.") String content,
-            @Size(max = 100) String signature) {
+            @Size(max = 100, message = "This conversation is not valid. Start a new one.") String signature) {
     }
 
     record ChatRequest(

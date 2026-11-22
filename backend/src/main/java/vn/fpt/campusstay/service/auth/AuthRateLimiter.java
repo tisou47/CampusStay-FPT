@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,8 @@ import vn.fpt.campusstay.exception.ApiException;
  */
 @Component
 public class AuthRateLimiter {
+
+    private static final int SWEEP_EVERY = 1000;
 
     /** A bucket: how many events per window before the client gets 429. */
     public enum Bucket {
@@ -42,6 +45,8 @@ public class AuthRateLimiter {
     }
 
     private final Map<String, Deque<Instant>> events = new ConcurrentHashMap<>();
+    /** Records since the last sweep of clients whose events all expired. */
+    private final AtomicInteger sinceSweep = new AtomicInteger();
     private final Clock clock;
 
     public AuthRateLimiter(Clock clock) {
@@ -67,6 +72,10 @@ public class AuthRateLimiter {
             prune(times, bucket);
             times.addLast(Instant.now(clock));
         }
+        if (sinceSweep.incrementAndGet() >= SWEEP_EVERY) {
+            sinceSweep.set(0);
+            sweep();
+        }
     }
 
     /** Events of the bucket from the client within its window. */
@@ -86,6 +95,24 @@ public class AuthRateLimiter {
 
     public void clear(Bucket bucket, String client) {
         events.remove(key(bucket, client));
+    }
+
+    /** Drops the keys whose events all expired: one pass every {@value #SWEEP_EVERY} records (M4). */
+    private void sweep() {
+        events.forEach((key, times) -> {
+            Bucket bucket = Bucket.valueOf(key.substring(0, key.indexOf('|')));
+            synchronized (times) {
+                prune(times, bucket);
+                if (times.isEmpty()) {
+                    events.remove(key, times);
+                }
+            }
+        });
+    }
+
+    /** Keys held, for the tests. */
+    int keys() {
+        return events.size();
     }
 
     private void prune(Deque<Instant> times, Bucket bucket) {
