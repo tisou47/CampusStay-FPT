@@ -15,8 +15,6 @@ const one = {
   "{p} of invoiced · {amount} unpaid ({n} invoices)": "{p} of invoiced · {amount} unpaid ({n} invoice)",
   "{n} beds held of {total} · {r} living in": "{n} bed held of {total} · {r} living in",
   "{n} beds held of {total}": "{n} bed held of {total}",
-  "{amount} unpaid · {n} invoices": "{amount} unpaid · {n} invoice",
-  "of {n} accounts": "of {n} account",
   "Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.": "Set-up: {n} routing rule missing (Blocks {list}); those requests wait until someone takes them.",
   "Due in {n} days": "Due in {n} day",
   "Registration closes in {n} days": "Registration closes in {n} day",
@@ -149,6 +147,8 @@ const one = {
   "{n} rooms in {term}": "{n} room in {term}",
   "{n} rooms lack the furniture": "{n} room lacks the furniture",
   "View the {n} rooms of {name}": "View the {n} room of {name}",
+  "{n} beds in service": "{n} bed in service",
+  "{n} invoices not paid": "{n} invoice not paid",
 }
 
 export default one

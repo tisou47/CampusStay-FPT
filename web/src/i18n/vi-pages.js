@@ -1,4 +1,4 @@
-﻿import roomHandover from './vi-handover.js'
+import roomHandover from './vi-handover.js'
 /*
  * Vietnamese texts of the screens (ADR-25), grouped by portal. Keys are the English texts of the code and of the
  * API's display labels; {name} marks a value. See ./vi.js for the glossary.
@@ -1888,27 +1888,14 @@ const admin = {
   "{s} students · {st} staff · {m} managers": "{s} sinh viên · {st} nhân viên · {m} Quản lý",
   "{term} application funnel": "Phiếu đăng ký {term}",
   "Application funnel": "Phiếu đăng ký",
-  "Each step counts the Applications of the Term that reached it, in every Block.": "Mỗi bước đếm số đơn của học kỳ đã đi tới bước đó, ở tất cả các tòa.",
-  "of applicants have moved in": "người nộp đơn đã nhận phòng",
-  "{amount} unpaid · {n} invoices": "Còn nợ {amount} · {n} hóa đơn",
   "Nothing unpaid": "Không còn khoản nợ",
-  "Accounts that signed in during the last 30 days": "Tài khoản đã đăng nhập trong 30 ngày qua",
-  "of {n} accounts": "trên {n} tài khoản",
   "Could not save the deposit": "Không lưu được tiền đặt cọc",
   "Could not save the utility settings": "Không lưu được thiết lập điện nước",
   "Could not save the deadlines and reminders": "Không lưu được thời hạn và nhắc nhở",
   "Could not save the terminations and late check-ins": "Không lưu được thiết lập chấm dứt ở và nhận phòng muộn",
   "Could not save the stay and renewal settings": "Không lưu được thiết lập thời gian ở và gia hạn",
   "Enter a number from {min} to {max}": "Nhập số từ {min} đến {max}",
-  "Occupancy by Block": "Lấp đầy theo tòa",
-  "Beds held this Term out of the Beds in service, per Block.": "Số giường đã giữ trong học kỳ trên số giường đang sử dụng, theo từng tòa.",
   "Shortcuts": "Lối tắt",
-  "The screens you open most.": "Các trang bạn hay mở nhất.",
-  "Build, publish and follow each Term": "Tạo, công bố và theo dõi từng học kỳ",
-  "Managers' requests for a new Term": "Yêu cầu mở học kỳ mới của Quản lý",
-  "Blocks, floors, Rooms and Beds": "Tòa, tầng, phòng và giường",
-  "Manager and Staff accounts": "Tài khoản Quản lý và Nhân viên",
-  "Who changed what, and when": "Ai đã thay đổi gì và khi nào",
   "Deposits expired": "Cọc hết hạn",
   "Beds held": "Giường đã giữ",
   "Block {code} allocated Beds": "Giường đã xếp Tòa {code}",
@@ -4829,6 +4816,19 @@ const managerOverview = {
   "No rooms": "Không có phòng",
   "The room lacks furniture this tier requires": "Phòng thiếu nội thất mà hạng này yêu cầu",
   "View the {n} rooms of {name}": "Xem {n} phòng của {name}",
+  "{p} of the step before": "{p} của bước trước",
+  "Still free": "Còn trống",
+  "of beds held": "giường đã giữ",
+  "Held, not moved in yet": "Đã giữ, chưa vào ở",
+  "Beds this term": "Giường trong học kỳ",
+  "{n} beds in service": "{n} giường đang sử dụng",
+  "of invoiced": "số tiền đã lập hóa đơn",
+  "{n} inv.": "{n} HĐ",
+  "Accounts": "Tài khoản",
+  "Signed in during the last 30 days": "Đăng nhập trong 30 ngày qua",
+  "{p} have moved in": "{p} đã vào ở",
+  "{n} invoices not paid": "{n} hóa đơn chưa thanh toán",
+  "Managers": "Quản lý",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

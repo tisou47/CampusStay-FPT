@@ -379,7 +379,6 @@ const vi = {
   "Build the term": "Tạo học kỳ",
   "Publish": "Công bố",
   "Registration opens": "Mở đăng ký",
-  "Managers' requests": "Đề nghị của Quản lý",
   "Everything is ready": "Mọi thứ đã sẵn sàng",
   "{n} open": "{n} đang mở",
   "{name} is published": "Đã công bố {name}",
