@@ -18,6 +18,7 @@ import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 import { campusToday } from '@/lib/format'
+import { useFocusModeOn } from '@/app/focus'
 
 // Back-office shell (Change Specification v2 §11): the FPT-orange band across the top carries the logo, the Term
 // and Block scope, search (pages and records), language and notifications; below it a 248 px menu grouped by the
@@ -431,14 +432,16 @@ function BackOfficeTopBar({ role }) {
 // One-screen shell: the window never scrolls. Pages fill <main> and scroll inside their own lists and panels;
 // <main> only scrolls as a fallback when the window is smaller than the layout needs.
 export function BackOfficeLayout({ role }) {
+  // Focus mode (app/focus.js): a page reading reports side by side takes the sidebar's width.
+  const focus = useFocusModeOn()
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
       <BackOfficeTopBar role={role} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar role={role} />
+        {!focus && <Sidebar role={role} />}
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <FlowTrail role={role} />
-          <SectionTabs role={role} />
+          {!focus && <FlowTrail role={role} />}
+          {!focus && <SectionTabs role={role} />}
           <Outlet />
           <ShiftConfirmHost />
         </main>

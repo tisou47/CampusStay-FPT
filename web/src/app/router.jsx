@@ -71,7 +71,11 @@ const OperationalMoves = () => import('@/pages/staff/OperationalMoves')
 const TermTransition = () => import('@/pages/transition/TermTransition')
 const CheckInDesk = () => import('@/pages/staff/CheckInDesk')
 const CheckOutDesk = () => import('@/pages/staff/CheckOutDesk')
-const HandoverReview = () => import('@/pages/staff/HandoverReview')
+const CheckinOverview = () => import('@/pages/staff/checkin-reports/OverviewPage')
+const CheckinStudentReports = () => import('@/pages/staff/checkin-reports/StudentReportsPage')
+const CheckinReportDetail = () => import('@/pages/staff/checkin-reports/ReportDetailPage')
+const CheckinCompare = () => import('@/pages/staff/checkin-reports/ComparePage')
+const CheckinEvidence = () => import('@/pages/staff/checkin-reports/EvidencePage')
 const MeterReadings = () => import('@/pages/staff/MeterReadings')
 const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
 
@@ -140,6 +144,17 @@ function RootLayout() {
 function PageLoading() {
   return <LoadingState className="min-h-screen" />
 }
+
+// Staff and Manager › Check-in inventories (pages/staff/checkin-reports): the queue (…/bulk goes to ?mode=bulk),
+// one student's three reports, one report, the comparison and the student's photos.
+const checkinReportRoutes = [
+  { path: 'check-in/inventories', ...page(CheckinOverview) },
+  { path: 'check-in/inventories/bulk', ...page(CheckinOverview) },
+  { path: 'check-in/inventories/:id', ...page(CheckinStudentReports) },
+  { path: 'check-in/inventories/:id/report/:n', ...page(CheckinReportDetail) },
+  { path: 'check-in/inventories/:id/compare', ...page(CheckinCompare) },
+  { path: 'check-in/inventories/:id/evidence', ...page(CheckinEvidence) },
+]
 
 const RELOADED_KEY = 'campusstay-chunk-reload'
 
@@ -235,7 +250,7 @@ export const router = createBrowserRouter([
         { path: 'next-term/:tab', ...page(TermTransition) },
         { path: 'moves', ...page(OperationalMoves) },
         { path: 'check-in', ...page(CheckInDesk) },
-        { path: 'check-in/inventories', ...page(HandoverReview) },
+        ...checkinReportRoutes,
         { path: 'check-out', ...page(CheckOutDesk) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
@@ -281,7 +296,7 @@ export const router = createBrowserRouter([
         { path: 'maintenance', ...page(MaintenanceQueue) },
         { path: 'maintenance/:id', ...page(MaintenanceDetail) },
         { path: 'inspections', ...page(InspectionSchedule) },
-        { path: 'check-in/inventories', ...page(HandoverReview) },
+        ...checkinReportRoutes,
         { path: 'finance', ...page(BlockFinance) },
         { path: 'staff', ...page(BlockStaff) },
         { path: 'routing-rules', ...page(RoutingRules) },
