@@ -19,7 +19,7 @@ import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { downloadCsv, h, printDocument } from '@/lib/report'
-import { t, tr } from '@/i18n'
+import { getLang, t, tr } from '@/i18n'
 
 // SCR-MNT-12 Inspection Checklist (Figma 98:4293). A Room's inspection is Report 1: the record a new resident's
 // check-in inventory (Report 2) is compared with, so it records the same things: each furniture item's condition (Good,
@@ -113,8 +113,21 @@ function buildRoomSheetHtml(run, room, { pageIndex, totalPages } = {}) {
 
 /** The Room's inspection as a document: printed, or saved as PDF, to keep or show. */
 function printRoom(run, room) {
-  return printDocument(t('Room inspection report · {room}', { room: room.room }), buildRoomSheetHtml(run, room))
+  return printDocument(t('Room inspection report · {room}', { room: room.room }), buildRoomSheetHtml(run, room), printOptions())
 }
+
+/** The print window's words in the language in use (WEB-ADM-06). */
+const printOptions = () => ({
+  lang: getLang(),
+  words: {
+    print: t('Print / Save as PDF'),
+    previous: t('← Previous'),
+    next: t('Next →'),
+    page: t('Page {n} of {total}', { n: '{n}', total: '{total}' }),
+    printOne: t('Print this page'),
+    printAll: t('Print / Save as PDF ({n} pages)', { n: '{n}' }),
+  },
+})
 
 async function fetchAllRunRooms(runId) {
   const rooms = []
@@ -141,7 +154,7 @@ async function printBatchForms(run, mode) {
   const title = mode === 'todo'
     ? t('Unfinished inspection forms · {run}', { run: run.id })
     : t('Completed inspection forms · {run}', { run: run.id })
-  return { empty: false, opened: printDocument(title, sheets) }
+  return { empty: false, opened: printDocument(title, sheets, printOptions()) }
 }
 
 /**
@@ -183,7 +196,7 @@ async function printBlankForms(run) {
       </section>`
     })
     .join('')
-  return printDocument(t('Report 1 forms · {run}', { run: run.id }), sheets)
+  return printDocument(t('Report 1 forms · {run}', { run: run.id }), sheets, printOptions())
 }
 
 function Checklist({ run, room }) {

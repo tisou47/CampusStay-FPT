@@ -4886,6 +4886,16 @@ const wave2 = {
   '{id} is not in this list. Change the filters or the page, or pick another request.': '{id} không có trong danh sách này. Đổi bộ lọc hoặc trang, hoặc chọn đơn khác.',
   'Request not on this page': 'Đơn không có trên trang này',
   'Both students are told the reason.': 'Cả hai sinh viên được báo lý do.',
+  'Print / Save as PDF': 'In / Lưu PDF',
+  '← Previous': '← Trước',
+  'Next →': 'Sau →',
+  'Page {n} of {total}': 'Trang {n} / {total}',
+  'Print this page': 'In trang này',
+  'Print / Save as PDF ({n} pages)': 'In / Lưu PDF ({n} trang)',
+  'Discard the unsaved changes to this checklist?': 'Bỏ các thay đổi chưa lưu của danh mục này?',
+  'Managers can no longer schedule it, and its active schedules are paused. Runs already started keep working until they finish.': 'Quản lý không thể lên lịch với danh mục này nữa, và các lịch đang chạy bị tạm dừng. Các đợt kiểm tra đã bắt đầu vẫn tiếp tục đến khi xong.',
+  'Managers can schedule it again. Its schedules stay paused until a Manager resumes them.': 'Quản lý có thể lên lịch lại. Các lịch của danh mục vẫn tạm dừng cho đến khi một Quản lý tiếp tục chúng.',
+  'Choose at least one block.': 'Hãy chọn ít nhất một tòa.',
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover, ...wave2 }
