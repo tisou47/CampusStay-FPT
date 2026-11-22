@@ -22,7 +22,10 @@ import { StatusBadge } from './Badges'
 
 /* ------------------------------------------------------------------------------------------------- KPI tabs */
 
-/** The queue tabs as stat cards: a big count and a short hint; the selected one has a brand border and wash. */
+/**
+ * The queue tabs as one slim strip of counts: label and count on one line, the hint in a tooltip, so the table below
+ * keeps the height. The selected tab has a brand underline and wash.
+ */
 export function KpiTabs({ items, value, onChange, label }) {
   const move = (e, index) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
@@ -32,7 +35,7 @@ export function KpiTabs({ items, value, onChange, label }) {
     document.getElementById(`kpi-tab-${next.key}`)?.focus()
   }
   return (
-    <div role="tablist" aria-label={label} className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+    <div role="tablist" aria-label={label} className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-line bg-surface sm:grid-cols-3 lg:grid-cols-5">
       {items.map((item, index) => (
         <KpiTabCard key={item.key} item={item} selected={item.key === value} onSelect={() => onChange(item.key)} onKeyDown={(e) => move(e, index)} />
       ))}
@@ -42,23 +45,27 @@ export function KpiTabs({ items, value, onChange, label }) {
 
 export function KpiTabCard({ item, selected, onSelect, onKeyDown }) {
   return (
-    <button
-      id={`kpi-tab-${item.key}`}
-      type="button"
-      role="tab"
-      aria-selected={selected}
-      tabIndex={selected ? 0 : -1}
-      onClick={onSelect}
-      onKeyDown={onKeyDown}
-      className={cx(
-        'flex min-h-24 flex-col items-start gap-1 rounded-lg border bg-surface p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
-        selected ? 'border-line-brand bg-primary-subtle/60 ring-4 ring-primary-subtle' : 'border-line hover:border-line-strong hover:bg-subtle/40',
-      )}
-    >
-      <span className={cx('text-sm font-medium', selected ? 'text-fg-brand' : 'text-fg-secondary')}>{tx(item.label)}</span>
-      <span className="text-[28px] leading-9 font-semibold text-fg tabular-nums">{item.count == null ? '—' : formatNumber(item.count)}</span>
-      <span className="text-xs text-fg-secondary">{tx(item.hint)}</span>
-    </button>
+    <Tooltip label={tx(item.hint)} block>
+      <button
+        id={`kpi-tab-${item.key}`}
+        type="button"
+        role="tab"
+        aria-selected={selected}
+        aria-description={tx(item.hint)}
+        tabIndex={selected ? 0 : -1}
+        onClick={onSelect}
+        onKeyDown={onKeyDown}
+        className={cx(
+          '-mb-px flex h-14 w-full items-center justify-between gap-3 border-b-2 px-4 text-left transition-colors focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus',
+          selected ? 'border-b-primary bg-primary-subtle/60' : 'border-b-transparent hover:bg-subtle/50',
+        )}
+      >
+        <span className={cx('truncate text-sm font-medium', selected ? 'text-fg-brand' : 'text-fg-secondary')}>{tx(item.label)}</span>
+        <span className={cx('text-xl leading-7 font-semibold tabular-nums', selected ? 'text-fg-brand' : 'text-fg', item.count === 0 && !selected && 'text-fg-tertiary')}>
+          {item.count == null ? '—' : formatNumber(item.count)}
+        </span>
+      </button>
+    </Tooltip>
   )
 }
 
@@ -68,8 +75,38 @@ export function KpiTabCard({ item, selected, onSelect, onKeyDown }) {
  * One bar in several coloured parts with a legend (each part named: colour never stands alone).
  * segments: [{ key, label, value, className }] — className is the fill (bg-…).
  */
-export function ProgressSegmentBar({ title, done, total, segments, note, className }) {
+export function ProgressSegmentBar({ title, done, total, segments, note, compact = false, className }) {
   const sum = segments.reduce((n, s) => n + s.value, 0) || 1
+  const bar = (
+    <div role="img" aria-label={segments.map((s) => `${t(s.label)}: ${s.value}`).join(', ')} className={cx('flex w-full overflow-hidden rounded-full bg-subtle', compact ? 'h-1.5' : 'h-2.5')}>
+      {segments.map((s) => (s.value > 0 ? <span key={s.key} className={cx('h-full', s.className)} style={{ width: `${(s.value / sum) * 100}%` }} /> : null))}
+    </div>
+  )
+  if (compact) {
+    // One line beside the page's actions; the legend and the note are in the tooltip.
+    const legend = (
+      <span className="flex flex-col gap-1">
+        {note && <span className="font-medium">{note}</span>}
+        {segments.map((s) => (
+          <span key={s.key} className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className={cx('inline-block size-2 rounded-full', s.className)} />
+            {tx(s.label)}: <span className="tabular-nums">{formatNumber(s.value)}</span>
+          </span>
+        ))}
+      </span>
+    )
+    return (
+      <Tooltip label={legend} side="bottom" align="end">
+        <div tabIndex={0} className={cx('flex w-56 flex-col gap-1.5 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus', className)}>
+          <span className="text-sm text-fg-secondary">
+            <span className="font-semibold text-fg tabular-nums">{formatNumber(done)}</span>
+            <span className="tabular-nums"> / {formatNumber(total)}</span> {tx(title)}
+          </span>
+          {bar}
+        </div>
+      </Tooltip>
+    )
+  }
   return (
     <section className={cx('flex flex-col gap-3 rounded-lg border border-line bg-surface p-4', className)}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">

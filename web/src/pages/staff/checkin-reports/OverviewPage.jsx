@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { ArrowLeft, ClipboardCheck, ClipboardList, ListChecks, Play } from 'lucide-react'
+import { ArrowLeft, ArrowUpDown, ClipboardCheck, ClipboardList, ListChecks, Play } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Field'
+import { Segmented } from '@/components/ui/Tabs'
 import { EmptyBlock } from '@/components/ui/States'
 import { t } from '@/i18n'
 import { QueueTable } from './components/QueueTable'
@@ -21,19 +21,19 @@ import { TABS, severityOf, tabOf, useCounts, useQueue, useReportsBase, useShortc
 // ?mode=bulk: review the minor differences in bulk (…/bulk redirects here). The former ?id=HO-…&status=… links
 // (Check-in desk) open the student's reports.
 
+// One short line per empty tab: what the tab holds is already in its tooltip.
 const EMPTY = {
-  review: ['Nothing to review', 'Inventories that differ from the Room’s record wait here. Matching ones are final at once.'],
-  visit: ['No Room visit set', 'When you set a time to check a Room with the student, it shows here until you record what you found.'],
-  live: ['Nobody is filling in an inventory', 'Students who received their door code and have not submitted yet show here.'],
-  late: ['No late report', 'A student who missed the deadline can send one late report; it shows here.'],
-  done: ['No final inventory yet', 'Signed inventories are kept here until check-out.'],
+  review: 'Nothing to review',
+  visit: 'No Room visit set',
+  live: 'No inventory being filled in',
+  late: 'No late report',
+  done: 'No final inventory yet',
 }
 
 /** The queue: progress, KPI tabs, filters and the table. */
 function QueueView({ base }) {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const { term } = useSession()
 
   const tab = tabOf(params.get('tab')).key
   const severity = params.get('severity') ?? ''
@@ -55,67 +55,69 @@ function QueueView({ base }) {
   }, [rows, sort])
 
   const total = counts.review + counts.visit + counts.live + counts.done
-  const [emptyTitle, emptyText] = EMPTY[tab]
   const firstToReview = review.rows[0]?.id
 
   return (
     <>
       <PageHeader
-        breadcrumb={<span className="text-sm text-fg-secondary">{[term?.name ?? term?.code, t('Check-in')].filter(Boolean).join(' · ')}</span>}
+        compact
         title="Check-in inventories"
-        description="Students file the inventory of their Bed and the Room when they receive it. Matching inventories are final at once; the others wait for you here."
+        tip="Students file the inventory of their Bed and the Room when they receive it. Matching inventories are final at once; the others wait for you here."
         actions={
-          <Button variant="primary" icon={Play} disabled={!firstToReview} onClick={() => navigate(`${base}/${firstToReview}?from=review`)}>
-            {t('Start reviewing ({n})', { n: counts.review })}
-          </Button>
+          <>
+            <ProgressSegmentBar
+              compact
+              title="finalized"
+              done={counts.done}
+              total={total}
+              note={t('Inventories of the Term in your Blocks')}
+              segments={[
+                { key: 'done', label: 'Final', value: counts.done, className: 'bg-success' },
+                { key: 'review', label: 'To review', value: counts.review, className: 'bg-warning' },
+                { key: 'visit', label: 'Room visits', value: counts.visit, className: 'bg-info' },
+                { key: 'live', label: 'In progress', value: counts.live, className: 'bg-gray-300' },
+                // TODO(api): Beds whose new resident has not started the inventory are not counted by GET /handovers.
+              ]}
+            />
+            <Button variant="primary" icon={Play} disabled={!firstToReview} onClick={() => navigate(`${base}/${firstToReview}?from=review`)}>
+              {t('Start reviewing ({n})', { n: counts.review })}
+            </Button>
+          </>
         }
-      />
-
-      <ProgressSegmentBar
-        title="inventories final"
-        done={counts.done}
-        total={total}
-        note={t('Inventories of the Term in your Blocks')}
-        segments={[
-          { key: 'done', label: 'Final', value: counts.done, className: 'bg-success' },
-          { key: 'review', label: 'To review', value: counts.review, className: 'bg-warning' },
-          { key: 'visit', label: 'Room visits', value: counts.visit, className: 'bg-info' },
-          { key: 'live', label: 'In progress', value: counts.live, className: 'bg-gray-300' },
-          // TODO(api): Beds whose new resident has not started the inventory are not counted by GET /handovers.
-        ]}
       />
 
       <KpiTabs label={t('Inventory queues')} value={tab} onChange={(key) => set({ tab: key === 'review' ? null : key, severity: null })} items={TABS.map((x) => ({ ...x, count: counts[x.key] }))} />
 
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <Select
-          size="md"
-          wrapperClassName="w-48"
-          aria-label={t('Severity')}
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Segmented
           value={severity}
-          onChange={(e) => set({ severity: e.target.value })}
+          onChange={(v) => set({ severity: v })}
           options={[
-            { value: '', label: 'Every severity' },
+            { value: '', label: 'All' },
             { value: 'major', label: 'Major difference' },
             { value: 'minor', label: 'Minor difference' },
           ]}
         />
-        <Select
-          size="md"
-          wrapperClassName="w-56"
-          aria-label={t('Sort')}
-          value={sort}
-          onChange={(e) => set({ sort: e.target.value === 'severity' ? null : e.target.value })}
-          options={[
-            { value: 'severity', label: 'Major first, then longest waiting' },
-            { value: 'waiting', label: 'Longest waiting first' },
-          ]}
-        />
+        <label className="ml-1 inline-flex items-center gap-1.5 text-sm text-fg-secondary">
+          <ArrowUpDown size={14} aria-hidden="true" />
+          <span className="sr-only">{t('Sort')}</span>
+          <Select
+            size="sm"
+            wrapperClassName="w-44"
+            value={sort}
+            onChange={(e) => set({ sort: e.target.value === 'severity' ? null : e.target.value })}
+            options={[
+              { value: 'severity', label: 'Major first' },
+              { value: 'waiting', label: 'Longest waiting first' },
+            ]}
+          />
+        </label>
         {tab === 'review' && (
-          <Link to={`${base}?mode=bulk`} className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-fg-link hover:underline">
-            <ListChecks size={16} aria-hidden="true" />
-            {t('Review minor differences in bulk')}
-          </Link>
+          <div className="ml-auto">
+            <Button size="sm" variant="text" icon={ListChecks} to={`${base}?mode=bulk`} tip={t('Accept the minor differences in one go. Major differences are not selectable: open them one by one.')}>
+              {t('Bulk review')}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -126,11 +128,7 @@ function QueueView({ base }) {
         from={tab}
         waitingLabel={tab === 'visit' ? 'Room visit' : 'Waiting'}
         summaries={tab === 'review' || tab === 'visit'}
-        empty={
-          <EmptyBlock icon={tab === 'done' ? ClipboardCheck : ClipboardList} title={emptyTitle}>
-            {t(emptyText)}
-          </EmptyBlock>
-        }
+        empty={<EmptyBlock icon={tab === 'done' ? ClipboardCheck : ClipboardList} title={EMPTY[tab]} className="py-8" />}
       />
     </>
   )

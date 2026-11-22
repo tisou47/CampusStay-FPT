@@ -133,8 +133,10 @@ export function QueueTable({ query, rows, base, from, empty, selection, waitingL
                 </div>
               </Td>
               <Td>
-                <span className="tabular-nums">{r.room}</span>
-                <span className="text-fg-secondary"> · {t('Bed {bed}', { bed: r.bed })}</span>
+                <span className="flex flex-col">
+                  <span className="font-medium tabular-nums">{r.room}</span>
+                  <span className="text-xs text-fg-secondary">{t('Bed {bed}', { bed: r.bed })}</span>
+                </span>
               </Td>
               <Td wrap>{summaries && index < SUMMARY_ROWS ? <DiffSummary id={r.id} /> : <span className="text-fg-tertiary">—</span>}</Td>
               <Td>

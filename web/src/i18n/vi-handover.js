@@ -667,4 +667,11 @@ export default {
   "Key {k}": "Phím {k}",
   "Record: {value}": "Gốc: {value}",
   "Item condition": "Tình trạng",
+  "Major first": "Lệch lớn trước",
+  "Bulk review": "Duyệt hàng loạt",
+  "finalized": "đã chốt",
+  "No Room visit set": "Chưa có lịch xuống phòng",
+  "No inventory being filled in": "Không có biên bản đang điền",
+  "No late report": "Không có báo cáo trễ",
+  "No final inventory yet": "Chưa có biên bản đã chốt",
 }
