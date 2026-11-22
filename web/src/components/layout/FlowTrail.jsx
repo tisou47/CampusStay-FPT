@@ -76,7 +76,11 @@ export function FlowTrail({ role }) {
   )
 }
 
+/** Admin screens that do without the trail (their page says enough on its own). */
+const ADMIN_NO_TRAIL = ['/admin/term-requests']
+
 function adminTrail(pathname) {
+  if (ADMIN_NO_TRAIL.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null
   const at = flowPosition(pathname)
   if (!at) return null
   return {
