@@ -14,7 +14,6 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { DeskModeSwitch } from '../CheckInDesk'
 import { KpiTabs, ProgressSegmentBar } from '../checkin-reports/components/ReportUI'
 import { CHECKOUT_TONES, RoomReadingsModal } from './checkOutShared'
 
@@ -76,29 +75,34 @@ export default function CheckOutOverviewPage() {
   const totalCount = statusCounts.All ?? pendingCount + draftCount + checkedOutCount
 
   const firstActionable = items[0]
+  const tipText = list.data?.checkOutBy
+    ? t('Check out by {date}', { date: formatDate(list.data.checkOutBy) })
+    : t('Allocations in Pending check-out.')
 
   return (
     <>
       <PageHeader
         compact
         title="Check-out desk"
-        description={
-          list.data
-            ? [
-                list.data.date && formatDate(list.data.date),
-                t('{n} allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
-                list.data.checkOutBy && t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }),
-              ]
-                .filter(Boolean)
-                .join(' · ')
-            : 'Allocations in Pending check-out.'
-        }
+        tip={tipText}
         actions={
           <>
+            <ProgressSegmentBar
+              compact
+              title="checked out"
+              done={checkedOutCount}
+              total={totalCount}
+              note={list.data?.checkOutBy ? t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }) : null}
+              segments={[
+                { key: 'done', label: 'Checked out', value: checkedOutCount, className: 'bg-success' },
+                { key: 'draft', label: 'Draft', value: draftCount, className: 'bg-info' },
+                { key: 'overdue', label: 'Overdue', value: overdueCount, className: 'bg-error' },
+                { key: 'pending', label: 'Pending', value: Math.max(0, pendingCount - overdueCount), className: 'bg-warning' },
+              ]}
+            />
             <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>
               Readings by room
             </Button>
-            <DeskModeSwitch mode="out" />
             {firstActionable && (
               <Button
                 variant="primary"
@@ -113,19 +117,6 @@ export default function CheckOutOverviewPage() {
       />
       <RoomReadingsModal open={readingsOpen} onClose={() => setReadingsOpen(false)} scope={scope} />
 
-      <ProgressSegmentBar
-        title="checked out"
-        done={checkedOutCount}
-        total={totalCount}
-        note={list.data?.checkOutBy ? t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }) : null}
-        segments={[
-          { key: 'done', label: 'Checked out', value: checkedOutCount, className: 'bg-success' },
-          { key: 'draft', label: 'Draft', value: draftCount, className: 'bg-info' },
-          { key: 'overdue', label: 'Overdue', value: overdueCount, className: 'bg-error' },
-          { key: 'pending', label: 'Pending', value: Math.max(0, pendingCount - overdueCount), className: 'bg-warning' },
-        ]}
-      />
-
       <KpiTabs
         label={t('Check-out status')}
         value={status}
@@ -139,14 +130,14 @@ export default function CheckOutOverviewPage() {
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
-            wrapperClassName="w-80"
+            wrapperClassName="w-72"
             aria-label={t('Search')}
             placeholder="Search student code or room"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           <Select
-            wrapperClassName="w-60"
+            wrapperClassName="w-56"
             aria-label={t('Reason')}
             value={reason}
             onChange={(e) => {
@@ -162,10 +153,10 @@ export default function CheckOutOverviewPage() {
 
         {overdueCount > 0 && (
           <span
-            className="inline-flex items-center gap-1.5 rounded-full bg-error-bg px-3 py-1 text-sm font-medium text-error-fg"
+            className="inline-flex items-center gap-1.5 rounded-full bg-error-bg px-3 py-1 text-xs font-medium text-error-fg"
             title={t('They still hold their bed. Managers see them on their dashboard.')}
           >
-            <AlertTriangle size={14} aria-hidden="true" />
+            <AlertTriangle size={14} strokeWidth={1.5} aria-hidden="true" />
             {t('{n} leavers are past the check-out date', { n: formatNumber(overdueCount) })}
           </span>
         )}
@@ -179,7 +170,7 @@ export default function CheckOutOverviewPage() {
               <Th>Room · Bed</Th>
               <Th>Reason</Th>
               <Th className="w-40">Status</Th>
-              <Th className="w-44 text-right">Action</Th>
+              <Th className="w-40 text-right">Action</Th>
             </tr>
           </THead>
           <TBody>
