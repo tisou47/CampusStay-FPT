@@ -4821,6 +4821,14 @@ const managerOverview = {
   "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
   "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
   "Page {n} / {total}": "Trang {n} / {total}",
+  "Rooms · {name}": "Các phòng · {name}",
+  "{n} rooms in {term}": "{n} phòng trong {term}",
+  "Search room code": "Tìm mã phòng",
+  "{n} rooms lack the furniture": "{n} phòng thiếu nội thất",
+  "No room matches": "Không có phòng nào khớp",
+  "No rooms": "Không có phòng",
+  "The room lacks furniture this tier requires": "Phòng thiếu nội thất mà hạng này yêu cầu",
+  "View the {n} rooms of {name}": "Xem {n} phòng của {name}",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

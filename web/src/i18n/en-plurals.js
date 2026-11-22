@@ -146,6 +146,9 @@ const one = {
   "{n} registrations in all · {guests} guests of cancelled registrations": "{n} registration in all · {guests} guests of cancelled registrations",
   "{n} students told": "{n} student told",
   "{n} requests · most urgent first": "{n} request · most urgent first",
+  "{n} rooms in {term}": "{n} room in {term}",
+  "{n} rooms lack the furniture": "{n} room lacks the furniture",
+  "View the {n} rooms of {name}": "View the {n} room of {name}",
 }
 
 export default one
