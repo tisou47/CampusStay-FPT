@@ -4,13 +4,14 @@ import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Radio } from '@/components/ui/Choice'
+import { Checkbox, Radio } from '@/components/ui/Choice'
 import { Alert } from '@/components/ui/Display'
 import { Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionLossRates, conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { t, tr } from '@/i18n'
 
 // Check-out › furniture by condition (V78): the student's Bed items and the Room's shared items.
@@ -24,6 +25,12 @@ import { t, tr } from '@/i18n'
 
 const reviewTone = { Pending: 'warning', Kept: 'error', Dropped: 'success' }
 const DEFAULT_RATES = { Good: 0, Worn: 25, Damaged: 50, Missing: 100 }
+
+/** A meter reading as typed (Vietnamese or English separators); not a number = left out. */
+function reading(value) {
+  const n = parseDecimal(value)
+  return n == null || Number.isNaN(n) ? undefined : n
+}
 
 export function computeFurnitureCharge(item, chosenCondition, rates = DEFAULT_RATES) {
   if (!item.personal && item.source === 'Acknowledged' && chosenCondition === item.atCheckOut) {
@@ -72,6 +79,9 @@ export function FurnitureConditions({
   const levels = data?.conditionLevels
   const rates = conditionLossRates(levels, { ...DEFAULT_RATES, ...(data?.conditionRates ?? {}) })
   const [answers, setAnswers] = useState({})
+  // null = what the server last recorded (WEB-OPS-24)
+  const [present, setPresent] = useState(null)
+  const studentPresent = present ?? Boolean(data?.studentPresent)
 
   useEffect(() => {
     if (!data) return
@@ -166,8 +176,8 @@ export function FurnitureConditions({
           note: l.answer.note?.trim() || undefined,
         })),
         studentPresent: Boolean(data.studentPresent),
-        electricity: electricity !== '' && electricity != null ? Number(String(electricity).replace(/[^\d.]/g, '')) : undefined,
-        water: water !== '' && water != null ? Number(String(water).replace(/[^\d.]/g, '')) : undefined,
+        electricity: reading(electricity),
+        water: reading(water),
       },
     })
   }, [data, liveTotal, hasUnsavedAnswers, condition, answers, electricity, water, onLiveSummaryChange])
@@ -184,9 +194,9 @@ export function FurnitureConditions({
           condition: l.answer.condition,
           note: l.answer.note?.trim() || undefined,
         })),
-        studentPresent: false,
-        electricity: electricity !== '' && electricity != null ? Number(String(electricity).replace(/[^\d.]/g, '')) : undefined,
-        water: water !== '' && water != null ? Number(String(water).replace(/[^\d.]/g, '')) : undefined,
+        studentPresent,
+        electricity: reading(electricity),
+        water: reading(water),
       }),
     {
       invalidates: ['check-out', 'check-out-furniture'],
@@ -468,11 +478,13 @@ export function FurnitureConditions({
 
         {!done && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line/60 pt-2">
+            <Checkbox label="Student is at the desk" checked={studentPresent} onChange={(e) => setPresent(e.target.checked)} />
             <Button
               size="sm"
               variant="primary"
               icon={Save}
               onClick={() => {
+                if (data.agreedAt && !window.confirm(t('The student agreed to these conditions on {date}. Record them again?', { date: formatDateTime(data.agreedAt) }))) return
                 if (!condition) onConditionChange?.(flaggedLines.length > 0 ? 'damaged' : 'good')
                 save.run()
               }}

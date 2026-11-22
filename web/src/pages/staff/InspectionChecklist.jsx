@@ -97,7 +97,7 @@ function buildRoomSheetHtml(run, room, { pageIndex, totalPages } = {}) {
       <div><b>${h(t('Block'))}:</b> ${h(run.block ?? '')}</div>
       <div><b>${h(t('Room'))}:</b> ${h(room.room)} · ${h([tr(room.roomTypeName), tr(room.roomClassName)].filter(Boolean).join(' '))}</div>
       <div><b>${h(t('Status'))}:</b> ${h(t(room.status))}</div>
-      <div><b>${h(t('Inspector'))}:</b> ${h(run.assigneeName ?? run.inspectorName ?? '')}</div>
+      <div><b>${h(t('Inspector'))}:</b> ${h(run.inspectorName ?? '')}</div>
       <div><b>${h(t('Inspected at'))}:</b> ${h(room.inspectedAt ? formatDateTime(room.inspectedAt) : '—')}</div>
       <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
     </div>
@@ -107,7 +107,7 @@ function buildRoomSheetHtml(run, room, { pageIndex, totalPages } = {}) {
       <td>${room.previousMeters ? h(`${room.previousMeters.electricity} kWh · ${room.previousMeters.water} m³ (${formatDate(room.previousMeters.date)})`) : '—'}</td></tr></tbody></table>
     <h2>${h(t('Items'))}</h2>
     <table><thead><tr><th>${h(t('Item'))}</th><th style="width:120px">${h(t('Result'))}</th><th>${h(t('Note'))}</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="sign"><div><b>${h(t('Inspector'))}</b><br><span class="muted">${h(run.assigneeName ?? run.inspectorName ?? '')}</span></div><div><b>${h(t('Manager'))}</b></div></div>
+    <div class="sign"><div><b>${h(t('Inspector'))}</b><br><span class="muted">${h(run.inspectorName ?? '')}</span></div><div><b>${h(t('Manager'))}</b></div></div>
   </section>`
 }
 
@@ -172,7 +172,7 @@ async function printBlankForms(run) {
           <div><b>${h(t('Run'))}:</b> ${h(run.id)} · ${h(tr(run.scheduleName) ?? '')}</div>
           <div><b>${h(t('Block'))}:</b> ${h(run.block ?? '')}</div>
           <div><b>${h(t('Room'))}:</b> ${h(room.room)} · ${h([tr(room.roomTypeName), tr(room.roomClassName)].filter(Boolean).join(' '))}</div>
-          <div><b>${h(t('Inspector'))}:</b> ${h(run.assigneeName ?? run.inspectorName ?? '')}</div>
+          <div><b>${h(t('Inspector'))}:</b> ${h(run.inspectorName ?? '')}</div>
           <div><b>${h(t('Date'))}:</b> ....../....../..........</div>
           <div><b>${h(t('Checklist'))}:</b> ${h(tr(run.checklist?.name) ?? '')} ${h(run.checklist?.version ?? '')}</div>
         </div>
@@ -277,6 +277,21 @@ function Checklist({ run, room }) {
     },
   )
 
+  const unreachable = useMutation(() => api.inspections.unreachable(run.id, room.room), {
+    invalidates: ['inspections'],
+    onSuccess: () => notify({ title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next run.' }),
+    onError: (e) => notifyError(e, 'Could not mark the room'),
+  })
+  const addPhoto = useMutation(
+    ({ itemId, file }) => {
+      const data = new FormData()
+      data.set('photo', file)
+      data.set('itemId', itemId)
+      return api.inspections.addPhoto(run.id, room.room, data)
+    },
+    { invalidates: ['inspections'], onError: (e) => notifyError(e, 'Could not add the photo') },
+  )
+
   const checkedCount = items.filter((it) => {
     const r = results[it.id]
     return it.furniture ? Boolean(r?.condition) : r?.result && r.result !== 'Not checked'
@@ -294,7 +309,7 @@ function Checklist({ run, room }) {
             <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
             {room.createdRequests?.length > 0 && (
               <Tag tone="warning">
-                Đơn bảo trì: {room.createdRequests.join(', ')}
+                {t('Maintenance Requests: {codes}', { codes: room.createdRequests.join(', ') })}
               </Tag>
             )}
           </div>
@@ -304,6 +319,11 @@ function Checklist({ run, room }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {!done && room.status !== 'Not reachable' && (
+            <Button size="sm" disabled={unreachable.pending} onClick={() => unreachable.run()} tip="Nobody could open the Room: it moves to the next run.">
+              Not reachable
+            </Button>
+          )}
           <Button size="sm" icon={FileText} onClick={() => printRoom(run, room) || notify({ type: 'info', title: 'Allow pop-ups to print the report' })}>
             View and print report
           </Button>
@@ -450,7 +470,25 @@ function Checklist({ run, room }) {
                     {done ? (
                       <span className="text-sm text-fg">{r.note || '—'}</span>
                     ) : (
-                      <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
+                      <div className="flex flex-col gap-1">
+                        <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
+                        {r.result === 'Fail' && (
+                          <label className="flex cursor-pointer items-center gap-1 text-xs text-fg-brand">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="sr-only"
+                              disabled={addPhoto.pending}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ''
+                                if (file) addPhoto.run({ itemId: item.id, file })
+                              }}
+                            />
+                            {t('Add a photo ({n} so far)', { n: (room.photos ?? []).filter((p) => p.itemId === item.id).length })}
+                          </label>
+                        )}
+                      </div>
                     )}
                   </Td>
                 </Tr>
@@ -467,9 +505,9 @@ function Checklist({ run, room }) {
             <span className="font-medium text-fg">{t('This run was sent: read the Rooms, print a Room’s report or export the run.')}</span>
           ) : !mine ? (
             <span className="font-medium text-warning-fg">
-              {run.assigneeName
-                ? `Đợt kiểm tra này được giao cho ${run.assigneeName}. Bạn chỉ có thể xem hoặc xuất báo cáo.`
-                : 'Đợt kiểm tra này chưa được giao cho nhân viên nào.'}
+              {run.inspectorName
+                ? t('This run is assigned to {name}. You can only read or export it.', { name: run.inspectorName })
+                : t('This run is not assigned to anyone yet.')}
             </span>
           ) : (
             <span>
@@ -506,8 +544,9 @@ function Checklist({ run, room }) {
  */
 function SubmitReview({ run, onClose, onSubmit, pending }) {
   const [committed, setCommitted] = useState(false)
-  const all = useQuery(['inspections', 'rooms', run.id, 'review'], ({ signal }) => api.inspections.rooms(run.id, { page: 1, pageSize: 100 }, { signal }))
-  const rooms = all.data?.items ?? []
+  // Every Room of the run, not only the first page (WEB-OPS-22).
+  const all = useQuery(['inspections', 'rooms', run.id, 'review'], () => fetchAllRunRooms(run.id))
+  const rooms = all.data ?? []
   const notDone = rooms.filter((r) => r.status === 'To do' || r.status === 'In progress')
   const noMeters = rooms.filter((r) => r.metersNeeded && r.status !== 'Not reachable' && !r.meters)
   const unreachable = rooms.filter((r) => r.status === 'Not reachable')
@@ -772,7 +811,7 @@ function Run({ run, switcher, onSubmitted }) {
         {switcher}
         <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
           <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
-            Phụ trách: <strong className={mine ? 'text-fg-brand' : 'text-fg'}>{run.assigneeName ?? 'Chưa phân công'}</strong>
+            {t('Inspector')}: <strong className={mine ? 'text-fg-brand' : 'text-fg'}>{run.inspectorName ?? t('Not assigned')}</strong>
           </span>
           <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
             {t('Rooms in this run')}: <strong className="text-fg tabular">{formatNumber(run.rooms)}</strong>

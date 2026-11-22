@@ -72,7 +72,7 @@ export default function ManagerDashboard() {
   const query = useQuery(['dashboard', 'manager', scope], ({ signal }) => api.dashboards.manager(scope, { signal }))
   const approvals = useQuery(['dashboard', 'approvals', scope], ({ signal }) => api.approvals.summary(scope, { signal }))
   const round2 = useQuery(['round2', term?.id], ({ signal }) => api.assignment.round2(term?.id, { signal }), { enabled: Boolean(term) })
-  const claims = useQuery(['dashboard', 'claims', scope], ({ signal }) => api.paymentClaims.list({ ...scope, pageSize: 1 }, { signal }))
+  const claims = useQuery(['dashboard', 'claims', scope], ({ signal }) => api.paymentClaims.list({ block: scope.block, pageSize: 1 }, { signal }))
   const staff = useQuery(['block-staff', block], ({ signal }) => api.blockStaff.list({ block: block ?? undefined }, { signal }))
 
   const [activeTab, setActiveTab] = useState('blocks')
@@ -142,7 +142,7 @@ export default function ManagerDashboard() {
       tone: 'info',
       title: t('{n} swaps waiting for a manager', { n: formatNumber(a.swaps) }),
       meta: t('Both students agreed; the swap needs your decision'),
-      action: { label: t('Decide'), to: '/manager/room-changes/swaps', className: 'min-w-24 justify-center' },
+      action: { label: t('Decide'), to: '/manager/approvals?tab=swaps', className: 'min-w-24 justify-center' },
     },
     k?.escalationsWaiting > 0 && {
       id: 'escalations',
