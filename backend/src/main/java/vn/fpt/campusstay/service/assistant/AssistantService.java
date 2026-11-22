@@ -62,6 +62,8 @@ public class AssistantService {
 
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final int MAX_TURNS = 12;
+    /** Characters of conversation sent to the model, so a long chat cannot push the data out of its context. */
+    private static final int MAX_HISTORY_CHARS = 6000;
     /**
      * Put just before the student's latest question: the language and the rules sit thousands of tokens of English data
      * earlier, and Qwen models drift into Chinese in long answers.
@@ -114,6 +116,21 @@ public class AssistantService {
         return new Status(config.enabled());
     }
 
+
+    /**
+     * The last {@value #MAX_TURNS} turns within {@value #MAX_HISTORY_CHARS} characters, the oldest dropped first; the
+     * question (the last turn) is always kept (BE-PLT-03).
+     */
+    static List<Turn> history(List<Turn> turns) {
+        int from = turns.size() - 1;
+        int chars = turns.getLast().content().length();
+        while (from > 0 && turns.size() - from < MAX_TURNS
+                && chars + turns.get(from - 1).content().length() <= MAX_HISTORY_CHARS) {
+            from--;
+            chars += turns.get(from).content().length();
+        }
+        return turns.subList(from, turns.size());
+    }
     /** @param turns the conversation so far, ending with the student's question */
     public Reply chat(List<Turn> turns) {
         AuthenticatedUser user = currentUser.require(Role.STUDENT);
@@ -135,7 +152,7 @@ public class AssistantService {
         messages.add(new AssistantModel.Message("system", systemPrompt(user, locale)));
         List<Turn> genuine = turns.stream()
                 .filter(t -> !"assistant".equals(t.role()) || sign(t.content()).equals(t.signature())).toList();
-        genuine.subList(Math.max(0, genuine.size() - MAX_TURNS), genuine.size())
+        history(genuine)
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
 

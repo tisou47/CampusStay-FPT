@@ -50,55 +50,17 @@ class AdminConfigIT {
                 .andExpect(jsonPath("$.items[?(@.name == 'Fall 2026')].roommateHours", contains(48)));
     }
 
-    /** TC-CFG-003 (negative): missing and inconsistent windows are named per field. */
-    @Test
-    void termValidationNamesFields() throws Exception {
-        mvc.perform(as(post("/admin/terms")).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Summer 2031\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.details.fields.stayStart").value("Enter the first day of the stay."))
-                .andExpect(jsonPath("$.details.fields.checkOutBy").exists());
-        mvc.perform(as(post("/admin/terms")).contentType(MediaType.APPLICATION_JSON)
-                .content(term("Backwards 2031", "2031-08-20", "2031-05-10", "2031-05-06", "2031-05-09", null)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.stayEnd").value("The stay must end after it starts."));
-    }
-
     /**
-     * TC-CFG-004: a Draft is invisible to students and takes the default Deposit window; publishing shows it;
-     * a second publish and an overlapping Term are refused.
+     * TC-CFG-003 (BE-3RD-08): the one-form create and update of a Term are gone; Terms are built with the wizard
+     * (its per-field checks: TC-CFG-020; its publish rules: TC-CFG-034, which replaced TC-CFG-004).
      */
     @Test
-    void publishTermLifecycle() throws Exception {
-        int defaultHours = JsonPath.read(body(as(get("/admin/fees"))), "$.depositHours");
-        String id = JsonPath.read(body(as(post("/admin/terms")).contentType(MediaType.APPLICATION_JSON)
-                .content(term("Summer 2030", "2030-05-10", "2030-08-20", "2030-05-06", "2030-05-09", null))), "$.id");
-        mvc.perform(as(get("/admin/terms")))
-                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].status", contains("Draft")))
-                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].depositHours", contains(defaultHours)));
-        mvc.perform(as(get("/terms"))).andExpect(jsonPath("$.items[*].name", not(hasItem("Summer 2030"))));
-
-        mvc.perform(as(post("/admin/terms/" + id + "/publish")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id));
-        mvc.perform(as(get("/terms"))).andExpect(jsonPath("$.items[*].name", hasItem("Summer 2030")));
-        mvc.perform(as(get("/admin/terms")))
-                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].status", contains("Published")));
-        mvc.perform(as(post("/admin/terms/" + id + "/publish")))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("TERM_ALREADY_PUBLISHED"));
-
-        String overlapping = JsonPath.read(body(as(post("/admin/terms")).contentType(MediaType.APPLICATION_JSON)
-                .content(term("Overlap 2030", "2030-06-01", "2030-09-01", "2030-06-01", "2030-06-03", 24))), "$.id");
-        mvc.perform(as(post("/admin/terms/" + overlapping + "/publish")))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("TERM_OVERLAP"));
-        mvc.perform(as(put("/admin/terms/" + id)).contentType(MediaType.APPLICATION_JSON)
-                .content(term("Summer 2030", "2030-05-10", "2030-08-25", "2030-05-06", "2030-05-09", 36)))
-                .andExpect(status().isOk());
-        mvc.perform(as(get("/admin/terms")))
-                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].stayEnd", contains("2030-08-25")))
-                .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].depositHours", contains(36)));
+    void legacyTermFormIsGone() throws Exception {
+        mvc.perform(as(post("/admin/terms")).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Summer 2031\"}"))
+                .andExpect(status().is4xxClientError());
+        String id = JsonPath.read(body(as(get("/admin/terms"))), "$.items[0].id");
+        mvc.perform(as(put("/admin/terms/" + id)).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"X\"}"))
+                .andExpect(status().is4xxClientError());
     }
 
     /** TC-CFG-005: Room Types with inventory counts; mutual invite only for 2 Beds; names are unique. */
@@ -292,10 +254,13 @@ class AdminConfigIT {
                 .andExpect(jsonPath("$.priceKwh").value(3500))
                 .andExpect(jsonPath("$.rounding").value("ROUND_UP_1000"))
                 .andExpect(jsonPath("$.options.rounding[*].value").value(hasItem("NONE")))
-                .andExpect(jsonPath("$.options.paymentDueDays[*].value").value(hasItem("7")));
+                .andExpect(jsonPath("$.options.paymentDueDays[*].value").value(hasItem("7")))
+                // BE-3RD-07: nothing reads these two, so the page no longer offers them.
+                .andExpect(jsonPath("$.readingDay").doesNotExist())
+                .andExpect(jsonPath("$.options.overdueReminder").doesNotExist());
         String valid = """
-                {"priceKwh":3800,"priceM3":16000,"readingDay":25,"paymentDueDays":10,"rounding":"ROUND_UP_500",
-                 "overdueReminder":"WEEKLY","estimateMonthly":300000,"monthsHeld":2,"blockChangesWhenOverdue":true}""";
+                {"priceKwh":3800,"priceM3":16000,"paymentDueDays":10,"rounding":"ROUND_UP_500",
+                 "estimateMonthly":300000,"monthsHeld":2,"blockChangesWhenOverdue":true}""";
         mvc.perform(as(put("/admin/utility")).contentType(MediaType.APPLICATION_JSON)
                 .content(valid.replace("\"paymentDueDays\":10", "\"paymentDueDays\":9").replace("ROUND_UP_500", "HALF")))
                 .andExpect(status().isBadRequest())
@@ -342,16 +307,4 @@ class AdminConfigIT {
         return JsonPath.read(body(request), path);
     }
 
-    /** A complete Term; registration closes before the stay, results a week later, Balance due before Check-in. */
-    private static String term(String name, String stayStart, String stayEnd, String checkInStart, String checkInEnd,
-            Integer depositHours) {
-        String year = stayStart.substring(0, 4);
-        return """
-                {"name":"%s","stayStart":"%s","stayEnd":"%s",
-                 "registrationOpensAt":"%s-02-01T01:00:00Z","registrationClosesAt":"%s-03-01T16:59:00Z",
-                 "resultsPublishedAt":"%s-03-08T01:00:00Z","roommateHours":48,"depositHours":%s,
-                 "balanceDueAt":"%s-04-01T16:59:00Z","checkInStart":"%s","checkInEnd":"%s","checkOutBy":"%s"}"""
-                .formatted(name, stayStart, stayEnd, year, year, year, depositHours, year, checkInStart, checkInEnd,
-                        stayEnd);
-    }
 }

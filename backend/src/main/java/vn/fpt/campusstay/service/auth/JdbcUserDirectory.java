@@ -35,6 +35,17 @@ class JdbcUserDirectory implements UserDirectory {
     }
 
     @Override
+    public Map<Long, String> locales(Collection<Long> userIds) {
+        Map<Long, String> result = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            jdbc.sql("SELECT id, locale FROM auth_user WHERE id = ANY(:ids)").param("ids", userIds.toArray(Long[]::new))
+                    .query((rs, i) -> Map.entry(rs.getLong("id"), rs.getString("locale"))).list()
+                    .forEach(e -> result.put(e.getKey(), e.getValue() == null ? Locales.VI : e.getValue()));
+        }
+        return result;
+    }
+
+    @Override
     public Map<Long, String> displayNames(Collection<Long> userIds) {
         Map<Long, String> result = new HashMap<>();
         if (userIds == null || userIds.isEmpty()) {
@@ -170,8 +181,8 @@ class JdbcUserDirectory implements UserDirectory {
         if (emails == null || emails.isEmpty()) {
             return Set.of();
         }
-        return Set.copyOf(jdbc.sql("SELECT lower(email) FROM auth_user WHERE demo AND lower(email) IN (:emails)")
-                .param("emails", emails.stream().map(e -> e.trim().toLowerCase(Locale.ROOT)).distinct().toList())
+        return Set.copyOf(jdbc.sql("SELECT lower(email) FROM auth_user WHERE demo AND lower(email) = ANY(:emails)")
+                .param("emails", emails.stream().map(e -> e.trim().toLowerCase(Locale.ROOT)).distinct().toArray(String[]::new))
                 .query(String.class).list());
     }
 

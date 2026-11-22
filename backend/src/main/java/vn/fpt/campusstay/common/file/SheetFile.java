@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -31,7 +32,8 @@ import vn.fpt.campusstay.exception.FieldErrors;
  */
 public final class SheetFile {
 
-    private static final long MAX_PART_BYTES = 50L * 1024 * 1024;
+    /** What a workbook may unpack to in total: a small file can hold a huge compressed part. */
+    private static final long MAX_UNPACKED_BYTES = 50L * 1024 * 1024;
 
     private SheetFile() {
     }
@@ -122,28 +124,23 @@ public final class SheetFile {
     // ---------- XLSX ----------
 
     private static List<List<String>> xlsx(byte[] bytes) {
-        Map<String, byte[]> parts = new HashMap<>();
-        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
-            ZipEntry entry;
-            while ((entry = zip.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (name.equals("xl/workbook.xml") || name.equals("xl/_rels/workbook.xml.rels")
-                        || name.equals("xl/sharedStrings.xml") || name.startsWith("xl/worksheets/sheet")) {
-                    parts.put(name, readLimited(zip));
-                }
-            }
-        } catch (IOException e) {
-            throw FieldErrors.single("file", "The file could not be read. Save it as XLSX or CSV UTF-8 and try again.");
-        }
+        long[] total = { 0 };
         try {
-            String sheet = firstSheet(parts);
-            if (sheet == null || !parts.containsKey(sheet)) {
+            // Two passes over the zip: the workbook says which sheet is first, then only that sheet is unpacked, so
+            // other sheets (or padding parts) cost nothing; what is unpacked is capped in total (BE-2ND-07).
+            Map<String, byte[]> parts = parts(bytes, Set.of("xl/workbook.xml", "xl/_rels/workbook.xml.rels"), total);
+            String sheet = firstSheet(parts, bytes);
+            if (sheet == null) {
+                throw FieldErrors.single("file", "The workbook has no sheet.");
+            }
+            parts.putAll(parts(bytes, Set.of(sheet, "xl/sharedStrings.xml"), total));
+            if (!parts.containsKey(sheet)) {
                 throw FieldErrors.single("file", "The workbook has no sheet.");
             }
             List<String> shared = parts.containsKey("xl/sharedStrings.xml") ? sharedStrings(parts.get("xl/sharedStrings.xml"))
                     : List.of();
             return sheetRows(parts.get(sheet), shared);
-        } catch (XMLStreamException | RuntimeException e) {
+        } catch (IOException | XMLStreamException | RuntimeException e) {
             if (e instanceof ApiException api) {
                 throw api;
             }
@@ -151,15 +148,29 @@ public final class SheetFile {
         }
     }
 
-    private static byte[] readLimited(InputStream in) throws IOException {
+    /** The named parts of the zip, unpacked; {@code total} counts every byte unpacked across calls. */
+    private static Map<String, byte[]> parts(byte[] bytes, Set<String> names, long[] total) throws IOException {
+        Map<String, byte[]> parts = new HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (names.contains(entry.getName())) {
+                    parts.put(entry.getName(), readLimited(zip, total));
+                }
+            }
+        }
+        return parts;
+    }
+
+    private static byte[] readLimited(InputStream in, long[] total) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
-        long total = 0;
         int n;
         while ((n = in.read(buffer)) > 0) {
-            total += n;
-            if (total > MAX_PART_BYTES) {
-                throw new IOException("Part too large");
+            total[0] += n;
+            if (total[0] > MAX_UNPACKED_BYTES) {
+                throw ApiException.badRequest("FILE_TOO_LARGE",
+                        "The workbook is too large once unpacked. Keep only the list in it and upload it again.");
             }
             out.write(buffer, 0, n);
         }
@@ -174,7 +185,7 @@ public final class SheetFile {
     }
 
     /** The part of the workbook's first sheet, through the workbook relations. */
-    private static String firstSheet(Map<String, byte[]> parts) throws XMLStreamException {
+    private static String firstSheet(Map<String, byte[]> parts, byte[] bytes) throws XMLStreamException, IOException {
         String relId = null;
         if (parts.containsKey("xl/workbook.xml")) {
             XMLStreamReader r = xml(parts.get("xl/workbook.xml"));
@@ -198,7 +209,21 @@ public final class SheetFile {
                 }
             }
         }
-        return parts.keySet().stream().filter(k -> k.startsWith("xl/worksheets/sheet")).sorted().findFirst().orElse(null);
+        return sheetNames(bytes).stream().sorted().findFirst().orElse(null);
+    }
+
+    /** The worksheet parts of the zip, by name only (nothing unpacked). */
+    private static List<String> sheetNames(byte[] bytes) throws IOException {
+        List<String> names = new ArrayList<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entry.getName().startsWith("xl/worksheets/sheet")) {
+                    names.add(entry.getName());
+                }
+            }
+        }
+        return names;
     }
 
     private static List<String> sharedStrings(byte[] bytes) throws XMLStreamException {
