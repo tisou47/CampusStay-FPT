@@ -44,6 +44,7 @@ class _CampusStayAppState extends State<CampusStayApp> {
     _session = widget.store.load();
     Api.token = _session?.token;
     Api.onSignedOut = () async {
+      AssistantScreen.messages.clear(); // the next student on this phone must not see it (MOB-01)
       await widget.store.clear();
       _navigator.currentState?.popUntil((route) => route.isFirst);
       if (mounted) setState(() => _session = null);
@@ -65,6 +66,7 @@ class _CampusStayAppState extends State<CampusStayApp> {
   }
 
   Future<void> _signOut() async {
+    AssistantScreen.messages.clear(); // MOB-01
     await Push.unregister();
     try {
       await Api.post('/auth/sign-out');
