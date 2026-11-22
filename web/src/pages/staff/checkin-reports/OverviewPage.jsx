@@ -79,8 +79,8 @@ function QueueView({ base }) {
                 // TODO(api): Beds whose new resident has not started the inventory are not counted by GET /handovers.
               ]}
             />
-            <Button variant="primary" icon={Play} disabled={!firstToReview} onClick={() => navigate(`${base}/${firstToReview}?from=review`)}>
-              {t('Start reviewing ({n})', { n: counts.review })}
+            <Button variant="primary" icon={ClipboardCheck} disabled={!firstToReview} onClick={() => navigate(`${base}/${firstToReview}?from=review`)}>
+              {t('Review pending ({n})', { n: counts.review })}
             </Button>
           </>
         }

@@ -281,11 +281,16 @@ export default function StudentReportsPage() {
             actions={
               <>
                 {actions.can.visit && (
-                  <Button icon={CalendarClock} onClick={() => actions.open('visit')}>
+                  <Button
+                    variant="primary"
+                    icon={CalendarClock}
+                    onClick={() => actions.open('visit')}
+                    tip="Schedule a time to visit and inspect the Room on-site together with the student."
+                  >
                     Check the Room with the student
                   </Button>
                 )}
-                <Button variant="primary" icon={Columns3} to={`${here}/compare${from}`}>
+                <Button variant={actions.can.visit ? 'default' : 'primary'} icon={Columns3} to={`${here}/compare${from}`}>
                   {t('Compare the 3 reports')}
                 </Button>
               </>
@@ -348,11 +353,6 @@ export default function StudentReportsPage() {
                 }
                 actions={
                   <>
-                    {actions.can.visit && (
-                      <Button icon={CalendarClock} onClick={() => actions.open('visit')}>
-                        Check the Room with the student
-                      </Button>
-                    )}
                     {actions.can.verify && (
                       <Button variant="primary" onClick={() => actions.open('verify')}>
                         Record what I found

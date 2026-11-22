@@ -514,7 +514,7 @@ function CancelModal({ refile, onClose, onSave, pending }) {
       open
       onClose={onClose}
       title={refile ? 'Ask the student to file again' : 'Cancel this inventory'}
-      description={refile ? 'This inventory is cancelled and the student starts a new one from My Room. The reason is sent to them.' : 'Filed for the wrong Room or by mistake. The student can start a new one.'}
+      description={refile ? 'This inventory is cancelled and the student starts a new one from My Room. The reason is sent to them.' : 'Filed for the wrong Room. The student can start a new one.'}
       footer={
         <>
           <Button onClick={onClose}>Back</Button>
@@ -546,7 +546,10 @@ export function useReportActions(detail, { onDone, prefill } = {}) {
   const confirm = useMutation((reason) => api.handover.confirm(id, { reason: reason || undefined }), {
     invalidates: ['handovers', 'check-in'],
     onSuccess: () => {
-      notify({ title: 'Inventory confirmed', message: 'It is final: Utility counts from the student’s reading.' })
+      notify({
+        title: 'Inventory confirmed',
+        message: 'The student was present and confirmed. This Final report will be used as the final reference when checking out.',
+      })
       onDone?.('confirmed')
     },
     onError: (e) => notifyError(e, 'Could not confirm the inventory'),
@@ -581,7 +584,7 @@ export function useReportActions(detail, { onDone, prefill } = {}) {
     visit: status === 'Submitted',
     verify: status === 'Verifying',
     cancel: status === 'Draft' || status === 'Submitted' || status === 'Verifying',
-    refile: status === 'Submitted',
+    refile: false,
     late: Boolean(detail?.lateNote) && status === 'Final' && Boolean(detail?.row?.lateReport),
   }
   const dialogs = detail ? (
@@ -604,9 +607,16 @@ export function ReportActionPanel({ detail, actions, layout = 'stack' }) {
   const status = detail.row.status
   const stack = layout === 'stack'
   const buttons = []
-  if (can.visit) {
+  if (can.visit && stack) {
     buttons.push(
-      <Button key="visit" block={stack} variant={major ? 'primary' : 'default'} icon={CalendarClock} onClick={() => open('visit')}>
+      <Button
+        key="visit"
+        block={stack}
+        variant="primary"
+        icon={CalendarClock}
+        onClick={() => open('visit')}
+        tip="Schedule a time to visit and inspect the Room on-site together with the student."
+      >
         Check the Room with the student
       </Button>,
     )

@@ -41,7 +41,7 @@ function Stop({ label, when, value, unit, warn, missing }) {
 /** A meter across the three reports: Record → Student → Final, with the change or "Matched". */
 function MeterTrail({ meter, studentAt, finalAt }) {
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4">
+    <section className={cx('flex flex-col gap-2 rounded-lg border p-4', meter.isDiff ? 'border-warning bg-warning-bg/35' : 'border-line bg-surface')}>
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-fg">{t(meter.label)}</h3>
         {meter.isDiff ? <Tag tone="warning">{signedDelta(meter.delta, meter.unit)}</Tag> : <Tag tone="success">Matched</Tag>}
@@ -53,23 +53,30 @@ function MeterTrail({ meter, studentAt, finalAt }) {
         <ArrowRight size={16} aria-hidden="true" className="shrink-0 self-center text-fg-tertiary" />
         <Stop label="3 · Final" when={finalAt ? formatDate(finalAt) : null} value={meter.final} unit={meter.unit} missing={meter.final == null} />
       </div>
-      {meter.isDiff && meter.note && <p className="text-xs text-fg-secondary">{tx(meter.note)}</p>}
+      {meter.isDiff && meter.note && <p className="text-xs font-medium text-warning-fg">{tx(meter.note)}</p>}
     </section>
   )
 }
 
 const RESOLUTIONS = [
-  { value: 'base', label: 'Keep the record' },
-  { value: 'student', label: "Accept the student's" },
-  { value: 'visit', label: 'Check the Room' },
+  { value: 'student', label: 'Accept student answer', tone: 'accept' },
+  { value: 'visit', label: 'Check in the Room', tone: 'visit' },
 ]
 
-/** One conclusion for a difference: keep the record, accept the student's answer, or check the Room. */
+/** One conclusion for a difference: accept the student's answer or check in the Room. */
 function ResolutionChips({ value, onChange, label }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1">
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1.5">
       {RESOLUTIONS.map((r) => {
         const active = value === r.value
+        const activeCls =
+          r.tone === 'accept'
+            ? 'border-success bg-success font-semibold text-fg-on-brand shadow-xs'
+            : 'border-primary bg-primary font-semibold text-fg-on-brand shadow-xs'
+        const idleCls =
+          r.tone === 'accept'
+            ? 'border-line-strong bg-surface text-fg hover:border-success hover:bg-success-bg hover:text-success-fg'
+            : 'border-line-strong bg-surface text-fg hover:border-primary hover:bg-primary-subtle hover:text-fg-brand'
         return (
           <button
             key={r.value}
@@ -78,8 +85,8 @@ function ResolutionChips({ value, onChange, label }) {
             aria-checked={active}
             onClick={() => onChange(active ? null : r.value)}
             className={cx(
-              'min-h-7 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus',
-              active ? 'border-fg bg-fg text-surface' : 'border-line-strong bg-surface text-fg-secondary hover:border-fg hover:text-fg',
+              'min-h-7 rounded-full border px-3 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus',
+              active ? activeCls : idleCls,
             )}
           >
             {t(r.label)}
@@ -90,11 +97,11 @@ function ResolutionChips({ value, onChange, label }) {
   )
 }
 
-const GRID = 'grid grid-cols-[minmax(12rem,1.3fr)_minmax(9rem,1fr)_minmax(9rem,1fr)_minmax(9rem,1fr)_minmax(17rem,1.4fr)]'
+const GRID = 'grid grid-cols-[minmax(11rem,1.25fr)_minmax(7.5rem,0.9fr)_minmax(8rem,0.95fr)_minmax(7.5rem,0.85fr)_minmax(17.5rem,1.45fr)]'
 
-function Head({ label, by, at, bar }) {
+function Head({ label, by, at, bar, bgClass }) {
   return (
-    <div className="flex flex-col gap-0.5 border-t-4 px-3 py-2.5" style={{ borderTopColor: bar }}>
+    <div className={cx('flex h-full flex-col gap-0.5 border-t-4 px-3 py-2.5', bgClass)} style={{ borderTopColor: bar }}>
       <span className="text-sm font-semibold text-fg">{tx(label)}</span>
       <span className="text-xs text-fg-secondary">{[tx(by), at ? formatDateTime(at) : null].filter(Boolean).join(' · ')}</span>
     </div>
@@ -105,13 +112,16 @@ const meterValue = (v, unit) => (v == null ? <span className="text-fg-tertiary">
 
 function Row({ label, sub, base, student, final, diff, photosTo, resolution, onResolve }) {
   return (
-    <div role="row" className={cx(GRID, 'items-center border-b border-line text-sm', diff && 'border-l-2 border-l-amber-500 bg-warning-bg/50')}>
-      <div role="rowheader" className="flex min-w-0 flex-col px-3 py-2.5">
-        <span className="truncate font-medium text-fg">{label}</span>
-        {sub && <span className="text-xs text-fg-secondary">{sub}</span>}
+    <div role="row" className={cx(GRID, 'items-stretch divide-x divide-line/80 border-b border-l-4 border-line text-sm', diff ? 'border-l-amber-500 bg-warning-bg/50' : 'border-l-transparent')}>
+      <div role="rowheader" className="flex min-w-0 flex-col justify-center px-3 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className={cx('truncate font-medium', diff ? 'font-semibold text-fg' : 'text-fg')}>{label}</span>
+          {diff && <Tag tone="warning">{t('Differs')}</Tag>}
+        </div>
+        {sub && <span className={cx('text-xs', diff ? 'font-medium text-warning-fg' : 'text-fg-secondary')}>{sub}</span>}
       </div>
-      <div role="cell" className="px-3 py-2.5">{base}</div>
-      <div role="cell" className={cx('flex flex-col items-start gap-1 px-3 py-2.5', diff && 'bg-warning-bg')}>
+      <div role="cell" className={cx('flex items-center px-3 py-2.5', !diff && 'bg-subtle/25')}>{base}</div>
+      <div role="cell" className={cx('flex flex-col items-start justify-center gap-1 px-3 py-2.5', diff ? 'bg-warning-bg/85 font-medium' : 'bg-primary-subtle/20')}>
         {student}
         {photosTo && (
           <Link to={photosTo} className="inline-flex items-center gap-1 text-xs font-medium text-fg-link hover:underline">
@@ -120,8 +130,8 @@ function Row({ label, sub, base, student, final, diff, photosTo, resolution, onR
           </Link>
         )}
       </div>
-      <div role="cell" className="px-3 py-2.5">{final}</div>
-      <div role="cell" className="px-3 py-2.5">
+      <div role="cell" className="flex items-center bg-success-bg/25 px-3 py-2.5">{final}</div>
+      <div role="cell" className="flex items-center px-3 py-2.5">
         {diff ? (
           <ResolutionChips value={resolution} onChange={onResolve} label={t('Conclusion for {item}', { item: label })} />
         ) : (
@@ -137,7 +147,7 @@ function Row({ label, sub, base, student, final, diff, photosTo, resolution, onR
 
 function Group({ children }) {
   return (
-    <div role="row" className="border-b border-line bg-subtle/60 px-3 py-1.5 text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+    <div role="row" className="border-b border-l-4 border-line border-l-transparent bg-subtle/60 px-3 py-1.5 text-xs font-semibold tracking-wide text-fg-secondary uppercase">
       <span role="cell">{children}</span>
     </div>
   )
@@ -158,16 +168,19 @@ function CompareMatrix({ diff, detail, onlyDiff, resolutions, onResolve, photosF
   const finalAt = detail.finalizedAt ?? null
   return (
     <div className="min-h-0 overflow-x-auto rounded-lg border border-line bg-surface">
-      <div role="table" aria-label={t('Comparison of the three reports')} className="min-w-[1000px]">
-        <div role="row" className={cx(GRID, 'border-b border-line bg-subtle/40')}>
+      <div role="table" aria-label={t('Comparison of the three reports')} className="min-w-[860px]">
+        <div role="row" className={cx(GRID, 'divide-x divide-line border-b border-l-4 border-line border-l-transparent bg-subtle/40')}>
           <div role="columnheader" className="flex items-end px-3 py-2.5 text-sm font-semibold text-fg">
             {t('Item')}
             <span className="ml-1 font-normal text-fg-secondary">· {diff.meters.length + diff.items.length}</span>
           </div>
-          <div role="columnheader"><Head label="1 · Record" by="Staff, before arrival" at={detail.electricity?.baselineAt} bar="var(--color-neutral)" /></div>
-          <div role="columnheader"><Head label="2 · Student" by="Student, on the app" at={detail.row.submittedAt} bar="var(--color-primary)" /></div>
-          <div role="columnheader"><Head label="3 · Final" by={diff.final ? 'Staff, in the Room' : 'Not checked in the Room'} at={finalAt} bar="var(--color-success)" /></div>
-          <div role="columnheader" className="flex items-end px-3 py-2.5 text-sm font-semibold text-fg">{t('Conclusion')}</div>
+          <div role="columnheader"><Head label="1 · Record" by="Staff, before arrival" at={detail.electricity?.baselineAt} bar="var(--color-neutral)" bgClass="bg-subtle/50" /></div>
+          <div role="columnheader"><Head label="2 · Student" by="Student, on the app" at={detail.row.submittedAt} bar="var(--color-primary)" bgClass="bg-primary-subtle/35" /></div>
+          <div role="columnheader"><Head label="3 · Final" by={diff.final ? 'Staff, in the Room' : 'Not checked in the Room'} at={finalAt} bar="var(--color-success)" bgClass="bg-success-bg/35" /></div>
+          <div role="columnheader" className="flex flex-col justify-end px-3 py-2.5">
+            <span className="text-sm font-semibold text-fg">{t('Conclusion')}</span>
+            <span className="text-xs font-normal text-fg-secondary">{t('Pick how to handle each difference')}</span>
+          </div>
         </div>
         {meters.length > 0 && <Group>{t('Meters')}</Group>}
         {meters.map((m) => (
