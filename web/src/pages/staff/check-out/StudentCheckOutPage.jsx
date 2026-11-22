@@ -1,23 +1,20 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, LogOut, Receipt, Save, Zap } from 'lucide-react'
+import { ArrowLeft, ClipboardCheck, LogOut, Receipt, Save, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { DetailFacts } from '@/components/ui/DetailFacts'
-import { Alert } from '@/components/ui/Display'
-import { Field, Input } from '@/components/ui/Field'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { conditionName } from '@/lib/furniture'
-import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { CheckOutMetersSection } from './CheckOutMetersSection'
+import { CheckOutSettlementSection } from './CheckOutSettlementSection'
 import { FurnitureConditions } from './FurnitureConditions'
 import {
   CheckOutHeaderCard,
   HandoverReportModal,
-  SettlementRow,
   SettlementSummaryModal,
-  toNumber,
   useCheckOutWorkspace,
 } from './checkOutShared'
 
@@ -59,7 +56,6 @@ export default function StudentCheckOutPage() {
     submit,
   } = ws
 
-  const hasMeters = electricity !== '' && water !== ''
   const hasCondition = Boolean(condition)
 
   const jumpTo = (key, ref) => {
@@ -151,90 +147,15 @@ export default function StudentCheckOutPage() {
       </div>
 
       {/* Section 1: Final Meter Reading */}
-      <section ref={metersRef} className="flex scroll-mt-16 flex-col gap-4 rounded-lg border border-line bg-surface p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-          <div className="flex items-center gap-2">
-            <Zap size={18} strokeWidth={1.5} aria-hidden="true" className="text-fg-brand" />
-            <div>
-              <h2 className="text-h3 font-semibold text-fg">{t('1. Final meter reading')}</h2>
-              <p className="text-xs text-fg-secondary">
-                {t('Enter the final electricity and water readings for {room}.', { room: d.room })}
-              </p>
-            </div>
-          </div>
-          <Tag tone={hasMeters ? 'success' : 'warning'}>{hasMeters ? t('Entered') : t('Pending')}</Tag>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Field
-            label="Electricity (kWh)"
-            helper={
-              d.previousReading
-                ? t('Previous reading: {value} kWh (recorded {date})', {
-                    value: formatNumber(d.previousReading.electricity),
-                    date: formatDate(d.previousReading.date),
-                  })
-                : undefined
-            }
-          >
-            {(fieldId) => (
-              <Input
-                id={fieldId}
-                value={electricity}
-                onChange={(e) => setElectricity(e.target.value)}
-                inputMode="numeric"
-                className="text-right text-base tabular"
-                disabled={done}
-              />
-            )}
-          </Field>
-
-          <Field
-            label="Water (m³)"
-            helper={
-              d.previousReading
-                ? t('Previous reading: {value} m³ (recorded {date})', {
-                    value: formatNumber(d.previousReading.water),
-                    date: formatDate(d.previousReading.date),
-                  })
-                : undefined
-            }
-          >
-            {(fieldId) => (
-              <Input
-                id={fieldId}
-                value={water}
-                onChange={(e) => setWater(e.target.value)}
-                inputMode="numeric"
-                className="text-right text-base tabular"
-                disabled={done}
-              />
-            )}
-          </Field>
-        </div>
-
-        {d.previousReading && (electricity || water) && (
-          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-subtle/50 px-4 py-3 text-sm text-fg-secondary">
-            <span className="font-medium text-fg">{t('Estimated usage since last reading:')}</span>
-            {electricity && (
-              <span className="tabular">
-                {t('Electricity')}:{' '}
-                <strong className="font-semibold text-fg">
-                  {formatNumber(Math.max(0, toNumber(electricity) - (d.previousReading.electricity ?? 0)))} kWh
-                </strong>
-              </span>
-            )}
-            {water && (
-              <span className="tabular">
-                {t('Water')}:{' '}
-                <strong className="font-semibold text-fg">
-                  {formatNumber(Math.max(0, toNumber(water) - (d.previousReading.water ?? 0)))} m³
-                </strong>
-              </span>
-            )}
-          </div>
-        )}
-      </section>
+      <CheckOutMetersSection
+        ref={metersRef}
+        d={d}
+        done={done}
+        electricity={electricity}
+        setElectricity={setElectricity}
+        water={water}
+        setWater={setWater}
+      />
 
       {/* Section 2: Room & Furniture Inspection */}
       <section ref={furnitureRef} className="flex scroll-mt-16 flex-col gap-4 rounded-lg border border-line bg-surface p-6">
@@ -271,117 +192,26 @@ export default function StudentCheckOutPage() {
           }}
           electricity={electricity}
           water={water}
-          onLiveTotalChange={(total) => setLiveFurnitureTotal(total)}
-          onLiveSummaryChange={(summary) => setFurnitureSummary(summary)}
+          onLiveTotalChange={setLiveFurnitureTotal}
+          onLiveSummaryChange={setFurnitureSummary}
         />
       </section>
 
       {/* Section 3: Settlement & Confirm */}
-      <section ref={settlementRef} className="flex scroll-mt-16 flex-col gap-5 rounded-lg border border-line bg-surface p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-          <div className="flex items-center gap-2">
-            <Receipt size={18} strokeWidth={1.5} aria-hidden="true" className="text-fg-brand" />
-            <div>
-              <h2 className="text-h3 font-semibold text-fg">{t('3. Settlement & confirm')}</h2>
-              <p className="text-xs text-fg-secondary">
-                {t('Review the utility deposit, unpaid invoices, and any furniture damage charges before confirming check-out.')}
-              </p>
-            </div>
-          </div>
-          <Tag tone={done ? 'success' : refund >= 0 ? 'info' : 'error'}>
-            {done
-              ? t('Completed')
-              : refund >= 0
-                ? t('Refund {amount}', { amount: formatVnd(refund) })
-                : t('Owes {amount}', { amount: formatVnd(-refund) })}
-          </Tag>
-        </div>
-
-        <dl className="flex flex-col gap-2 divide-y divide-line/60 rounded-xl border border-line bg-subtle/40 p-5">
-          <SettlementRow label="Utility deposit held" strong>
-            {formatVnd(s.held)}
-          </SettlementRow>
-          <SettlementRow label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>
-            − {formatVnd(s.share)}
-          </SettlementRow>
-          <SettlementRow label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</SettlementRow>
-          {damageAmount > 0 && (
-            <div className="flex flex-col gap-2 pt-2">
-              <SettlementRow label="Damage charge" tone="text-warning-fg" strong>
-                − {formatVnd(damageAmount)}
-              </SettlementRow>
-              {damageLines.length > 0 && (
-                <div className="flex flex-col gap-2 border-l-2 border-warning/40 pl-3 text-sm text-fg-secondary">
-                  {damageLines.map((l) => (
-                    <div key={l.key} className="flex items-start justify-between gap-3">
-                      <span className="min-w-0">
-                        <strong className="font-medium text-fg">{l.name}</strong> ({l.assetCode}) · {conditionName(l.condition)}
-                        {l.percent > 0 ? ` ${l.percent}%` : ''}
-                        {l.split > 1 ? ` · ${t('Shared · {full} ÷ {n} residents', { full: formatVnd(l.fullAmount), n: l.split })}` : ''}
-                      </span>
-                      <span className="shrink-0 font-semibold text-fg tabular">− {formatVnd(l.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {hasSharedSplit && (
-                <p className="rounded-lg bg-warning-bg/60 px-3 py-2 text-xs text-warning-fg">
-                  {t('Shared furniture charges are split evenly among active residents; remaining roommates will receive an invoice and notification for their share.')}
-                </p>
-              )}
-            </div>
-          )}
-        </dl>
-
-        <div
-          className={cx(
-            'flex items-center justify-between gap-3 rounded-xl p-5',
-            refund >= 0 ? 'border border-success/30 bg-success-bg' : 'border border-error/30 bg-error-bg',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            {refund >= 0 ? (
-              <CheckCircle2 size={24} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-success-fg" />
-            ) : (
-              <AlertTriangle size={24} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-error-fg" />
-            )}
-            <div>
-              <p className="text-base font-semibold text-fg">{t(refund >= 0 ? 'Refund to student' : 'Student still owes')}</p>
-              <p className="text-xs text-fg-tertiary">
-                {t(refund >= 0 ? 'Refund goes to the manager for approval' : 'The balance will be invoiced to the student')}
-              </p>
-            </div>
-          </div>
-          <span className={cx('shrink-0 whitespace-nowrap text-2xl font-semibold tabular', refund >= 0 ? 'text-success-fg' : 'text-error-fg')}>
-            {formatVnd(Math.abs(refund))}
-          </span>
-        </div>
-
-        {!done && !condition && (
-          <Alert type="warning" title={t('Please select the room condition before confirming check-out.')}>
-            <div className="mt-2">
-              <Button size="sm" onClick={() => jumpTo('furniture', furnitureRef)}>
-                {t('Go to Room & furniture')}
-              </Button>
-            </div>
-          </Alert>
-        )}
-
-        {!done && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
-            <Button icon={Save} disabled={submit.pending} onClick={() => submit.run(true)}>
-              {t('Save draft')}
-            </Button>
-            <Button
-              variant="primary"
-              disabled={submit.pending || !condition}
-              onClick={() => setShowSummary(true)}
-            >
-              {t('Confirm check-out')}
-            </Button>
-          </div>
-        )}
-      </section>
+      <CheckOutSettlementSection
+        ref={settlementRef}
+        s={s}
+        done={done}
+        condition={condition}
+        damageAmount={damageAmount}
+        refund={refund}
+        damageLines={damageLines}
+        hasSharedSplit={hasSharedSplit}
+        submitPending={submit.pending}
+        onJumpFurniture={() => jumpTo('furniture', furnitureRef)}
+        onSaveDraft={() => submit.run(true)}
+        onOpenSummary={() => setShowSummary(true)}
+      />
 
       <SettlementSummaryModal
         open={showSummary}

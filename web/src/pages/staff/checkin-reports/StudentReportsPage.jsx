@@ -242,12 +242,11 @@ export default function StudentReportsPage() {
   })
 
   useShortcuts({
-    j: () => position.next && navigate(`${base}/${position.next}${from}`),
-    k: () => position.prev && navigate(`${base}/${position.prev}${from}`),
+    j: () => position.next && navigate(`${base}/${position.next}/report/2${from}`),
+    k: () => position.prev && navigate(`${base}/${position.prev}/report/2${from}`),
     1: () => navigate(`${here}/report/1${from}`),
     2: () => navigate(`${here}/report/2${from}`),
     3: () => navigate(`${here}/report/3${from}`),
-    c: () => navigate(`${here}/compare${from}`),
   })
 
   const tabLabel = tabOf(position.from).label
@@ -290,13 +289,10 @@ export default function StudentReportsPage() {
                     Check the Room with the student
                   </Button>
                 )}
-                <Button variant={actions.can.visit ? 'default' : 'primary'} icon={Columns3} to={`${here}/compare${from}`}>
-                  {t('Compare the 3 reports')}
-                </Button>
               </>
             }
           />
-          <DiffSummaryStrip diff={diff} compareTo={`${here}/compare${from}`} />
+          <DiffSummaryStrip diff={diff} />
           {detail.lateNote && (
             <Alert type="info" title="Late report from the student">
               {detail.lateNote}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Package, Save } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
@@ -150,13 +150,18 @@ export function FurnitureConditions({
           return l.answer.condition !== savedCond || (l.answer.note ?? '') !== savedNote
         }))
 
-  useEffect(() => {
-    onLiveTotalChange?.(liveTotal)
-  }, [liveTotal, onLiveTotalChange])
+  const totalCbRef = useRef(onLiveTotalChange)
+  const summaryCbRef = useRef(onLiveSummaryChange)
+  totalCbRef.current = onLiveTotalChange
+  summaryCbRef.current = onLiveSummaryChange
 
   useEffect(() => {
-    if (!data || !onLiveSummaryChange) return
-    onLiveSummaryChange({
+    totalCbRef.current?.(liveTotal)
+  }, [liveTotal])
+
+  useEffect(() => {
+    if (!data || !summaryCbRef.current) return
+    summaryCbRef.current({
       lines: chargedLines,
       dirty: hasUnsavedAnswers,
       payload: {
@@ -170,7 +175,7 @@ export function FurnitureConditions({
         water: water !== '' && water != null ? Number(String(water).replace(/[^\d.]/g, '')) : undefined,
       },
     })
-  }, [data, liveTotal, hasUnsavedAnswers, condition, answers, electricity, water, onLiveSummaryChange])
+  }, [data, liveTotal, hasUnsavedAnswers, condition, answers, electricity, water])
 
   const flaggedLines = computedLines.filter(
     (l) => l.answer.condition !== 'Good' || l.amount > 0,

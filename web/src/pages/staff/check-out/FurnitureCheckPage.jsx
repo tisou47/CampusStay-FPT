@@ -67,8 +67,8 @@ export default function FurnitureCheckPage() {
           }}
           electricity={electricity}
           water={water}
-          onLiveTotalChange={(total) => setLiveFurnitureTotal(total)}
-          onLiveSummaryChange={(summary) => setFurnitureSummary(summary)}
+          onLiveTotalChange={setLiveFurnitureTotal}
+          onLiveSummaryChange={setFurnitureSummary}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">

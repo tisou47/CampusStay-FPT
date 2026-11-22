@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { ArrowRight, CalendarClock, CameraOff, CircleCheck, ExternalLink, ImageOff, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
-import { useFocusMode } from '@/app/focus'
 import { Button, IconButton } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
@@ -106,7 +105,6 @@ function SideCard({ title, badge, tone, children }) {
 }
 
 export default function EvidencePage() {
-  useFocusMode()
   const { id } = useParams()
   const base = useReportsBase()
   const navigate = useNavigate()

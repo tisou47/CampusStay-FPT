@@ -82,6 +82,7 @@ const CheckinCompare = () => import('@/pages/staff/checkin-reports/ComparePage')
 const CheckinEvidence = () => import('@/pages/staff/checkin-reports/EvidencePage')
 const MeterReadings = () => import('@/pages/staff/MeterReadings')
 const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
+const InspectionRoomPage = () => import('@/pages/staff/inspections/InspectionRoomPage')
 
 // Manager — 07 Web – Manager
 const ManagerDashboard = () => import('@/pages/manager/ManagerDashboard')
@@ -248,6 +249,7 @@ export const router = createBrowserRouter([
         { path: 'maintenance', ...page(MaintenanceQueue) },
         { path: 'maintenance/:id', ...page(MaintenanceDetail) },
         { path: 'inspections', ...page(InspectionChecklist) },
+        { path: 'inspections/:runId/rooms/:roomCode', ...page(InspectionRoomPage) },
         { path: 'room-changes', ...page(RoomChangeQueue) },
         { path: 'room-changes/swaps', ...page(SwapRequests) },
         { path: 'next-term', ...page(TermTransition) },

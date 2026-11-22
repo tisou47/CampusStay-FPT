@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ArrowRight, CalendarClock, Check, CircleCheck, Images, RotateCcw } from 'lucide-react'
-import { useFocusMode } from '@/app/focus'
 import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Choice'
 import { ErrorState } from '@/components/ui/States'
@@ -242,7 +241,6 @@ function saveDraft(id, value) {
 }
 
 export default function ComparePage() {
-  useFocusMode()
   const { id } = useParams()
   const base = useReportsBase()
   const navigate = useNavigate()

@@ -1,5 +1,4 @@
 import { Link, useNavigate, useParams } from 'react-router'
-import { useFocusMode } from '@/app/focus'
 import { ErrorState } from '@/components/ui/States'
 import { Button } from '@/components/ui/Button'
 import { t } from '@/i18n'
@@ -64,7 +63,6 @@ function Timeline({ detail }) {
 }
 
 export default function ReportDetailPage() {
-  useFocusMode()
   const { id, n: raw } = useParams()
   const n = ['1', '2', '3'].includes(raw) ? raw : '2'
   const base = useReportsBase()
@@ -80,8 +78,8 @@ export default function ReportDetailPage() {
     1: () => navigate(`${here}/report/1${from}`),
     2: () => navigate(`${here}/report/2${from}`),
     3: () => navigate(`${here}/report/3${from}`),
-    c: () => navigate(`${here}/compare${from}`),
-    Escape: () => navigate(`${here}${from}`),
+    c: () => navigate(`${here}${from}`),
+    Escape: () => navigate(`${base}?tab=${position.from}`),
   })
 
   if (query.loading && !detail) return <div aria-busy="true" className="h-full min-h-96 animate-pulse rounded-lg bg-subtle" />
@@ -99,20 +97,50 @@ export default function ReportDetailPage() {
 
   return (
     <>
-      <FocusTopBar back={`${here}${from}`} detail={detail} current={n} reportTo={(k) => `${here}/report/${k}${from}`} compareTo={`${here}/compare${from}`} />
+      <FocusTopBar back={`${base}?tab=${position.from}`} detail={detail} current={n} reportTo={(k) => `${here}/report/${k}${from}`} compareTo={`${here}${from}`} />
       <div className="grid min-h-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <section className="flex flex-wrap items-end justify-between gap-4 rounded-lg border border-line bg-surface p-5">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold tracking-wide text-fg-brand uppercase">{t(meta.kicker)}</span>
-              <h1 className="text-h1 font-bold text-fg">{t(meta.title)}</h1>
-              <p className="text-sm text-fg-secondary">{[t(meta.by), at ? formatDateTime(at) : null].filter(Boolean).join(' · ')}</p>
+          <section className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold tracking-wide text-fg-brand uppercase">{t(meta.kicker)}</span>
+                <h1 className="text-h1 font-bold text-fg">{t(meta.title)}</h1>
+                <p className="text-sm text-fg-secondary">{[t(meta.by), at ? formatDateTime(at) : null].filter(Boolean).join(' · ')}</p>
+              </div>
+              {!missing && (
+                <div className="flex gap-8">
+                  <Number3 label="Items" value={diff.items.length} />
+                  <Number3 label="Differ from the record" value={differing} warn={differing > 0} />
+                  <Number3 label="Photos" value={n === '2' ? photoCount(detail) : 0} />
+                </div>
+              )}
             </div>
+
             {!missing && (
-              <div className="flex gap-8">
-                <Number3 label="Items" value={diff.items.length} />
-                <Number3 label="Differ from the record" value={differing} warn={differing > 0} />
-                <Number3 label="Photos" value={n === '2' ? photoCount(detail) : 0} />
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                  {diff.meters.map((m) => {
+                    const v = meterValue(m)
+                    return (
+                      <div key={m.key} className={cx('flex items-center justify-between gap-3 rounded-md px-3 py-2', n !== '1' && m.isDiff ? 'bg-warning-bg' : 'bg-subtle/60')}>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-fg-secondary">{t(m.label)}</span>
+                          <span className="text-base font-semibold text-fg tabular-nums">{v == null ? '—' : `${formatNumber(v, { decimals: Number.isInteger(v) ? 0 : 2 })} ${m.unit}`}</span>
+                        </div>
+                        {n === '2' && m.delta != null && (
+                          <span className={cx('text-xs tabular-nums', m.isDiff ? 'font-medium text-warning-fg' : 'text-fg-secondary')}>
+                            {t('{delta} vs. the record', { delta: signedDelta(m.delta, m.unit) })}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {shownPhotos && detail.meterPhotos?.length > 0 && (
+                  <Link to={`${here}/evidence${from}&item=meters`} className="shrink-0 text-sm font-medium text-fg-link hover:underline">
+                    {t('See the meter photos ({n})', { n: detail.meterPhotos.length })}
+                  </Link>
+                )}
               </div>
             )}
           </section>
@@ -185,30 +213,11 @@ export default function ReportDetailPage() {
         </div>
 
         <aside className="flex flex-col gap-4 xl:sticky xl:top-0">
-          <SideCard title="Meters">
-            <div className="grid grid-cols-2 gap-2">
-              {diff.meters.map((m) => {
-                const v = meterValue(m)
-                return (
-                  <div key={m.key} className={cx('flex flex-col rounded-md px-3 py-2.5', n !== '1' && m.isDiff ? 'bg-warning-bg' : 'bg-subtle/60')}>
-                    <span className="text-xs text-fg-secondary">{t(m.label)}</span>
-                    <span className="text-base font-semibold text-fg tabular-nums">{v == null ? '—' : `${formatNumber(v, { decimals: Number.isInteger(v) ? 0 : 2 })} ${m.unit}`}</span>
-                    {n === '2' && m.delta != null && <span className={cx('text-xs', m.isDiff ? 'font-medium text-warning-fg' : 'text-fg-secondary')}>{t('{delta} vs. the record', { delta: signedDelta(m.delta, m.unit) })}</span>}
-                  </div>
-                )
-              })}
-            </div>
-            {shownPhotos && detail.meterPhotos?.length > 0 && (
-              <Link to={`${here}/evidence${from}&item=meters`} className="text-sm font-medium text-fg-link hover:underline">
-                {t('See the meter photos ({n})', { n: detail.meterPhotos.length })}
-              </Link>
-            )}
+          <SideCard title="What to do">
+            <ReportActionPanel detail={detail} actions={actions} />
           </SideCard>
           <SideCard title="Timeline">
             <Timeline detail={detail} />
-          </SideCard>
-          <SideCard title="What to do">
-            <ReportActionPanel detail={detail} actions={actions} />
           </SideCard>
         </aside>
       </div>

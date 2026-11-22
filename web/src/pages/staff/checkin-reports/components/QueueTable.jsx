@@ -54,7 +54,7 @@ function SkeletonRows({ cols, rows = 5 }) {
  */
 export function QueueTable({ query, rows, base, from, empty, selection, waitingLabel = 'Waiting', summaries = true }) {
   const navigate = useNavigate()
-  const open = (id) => navigate(`${base}/${id}?from=${from}`)
+  const open = (id) => navigate(`${base}/${id}/report/2?from=${from}`)
   const cols = selection ? 7 : 6
   return (
     <Table fill>
