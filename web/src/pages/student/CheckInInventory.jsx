@@ -336,8 +336,9 @@ function Form({ data }) {
         </div>
       </Card>
 
-      <div className="flex min-h-0 flex-col gap-4">
-        <Card className="flex flex-col gap-3">
+      {/* The right column scrolls inside itself when the window is short, so the buttons are always reachable. */}
+      <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
+        <Card className="flex shrink-0 flex-col gap-3">
           <GroupHeader icon={Gauge} title={t('Meters of the Room')} hint={t('Read them now')} done={meters} total={2} />
           <div className="grid grid-cols-2 gap-3 px-1">
             <Field label={<span className="inline-flex items-center gap-1"><Zap size={14} aria-hidden="true" className="text-warning-fg" />{t('Electricity (kWh)')}</span>} required>
@@ -359,7 +360,7 @@ function Form({ data }) {
           </p>
         </Card>
 
-        <Card className="flex flex-col gap-3 lg:mt-auto">
+        <Card className="flex shrink-0 flex-col gap-3 lg:mt-auto">
           <h3 className="text-base font-semibold text-fg">{t('Your progress')}</h3>
           <div className="flex flex-col gap-2">
             {[
@@ -378,12 +379,12 @@ function Form({ data }) {
           <p className={cx('text-sm', complete ? 'text-success-fg' : 'text-fg-tertiary')}>
             {complete ? t('Everything is filled in: you can submit.') : t('Fill it in at the Room: a large difference with the Room’s record brings Staff to check it with you.')}
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+            <Button onClick={() => save.run()} disabled={save.pending}>
+              Save draft
+            </Button>
             <Button variant="primary" block onClick={() => submit.run()} disabled={submit.pending}>
               Submit inventory
-            </Button>
-            <Button block onClick={() => save.run()} disabled={save.pending}>
-              Save draft
             </Button>
           </div>
         </Card>
