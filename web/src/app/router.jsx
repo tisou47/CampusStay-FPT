@@ -70,7 +70,11 @@ const SwapRequests = () => import('@/pages/staff/SwapRequests')
 const OperationalMoves = () => import('@/pages/staff/OperationalMoves')
 const TermTransition = () => import('@/pages/transition/TermTransition')
 const CheckInDesk = () => import('@/pages/staff/CheckInDesk')
-const CheckOutDesk = () => import('@/pages/staff/CheckOutDesk')
+const CheckOutOverview = () => import('@/pages/staff/check-out/OverviewPage')
+const CheckOutStudent = () => import('@/pages/staff/check-out/StudentCheckOutPage')
+const CheckOutMeters = () => import('@/pages/staff/check-out/MeterReadingPage')
+const CheckOutFurniture = () => import('@/pages/staff/check-out/FurnitureCheckPage')
+const CheckOutSettlement = () => import('@/pages/staff/check-out/SettlementPage')
 const CheckinOverview = () => import('@/pages/staff/checkin-reports/OverviewPage')
 const CheckinStudentReports = () => import('@/pages/staff/checkin-reports/StudentReportsPage')
 const CheckinReportDetail = () => import('@/pages/staff/checkin-reports/ReportDetailPage')
@@ -251,7 +255,11 @@ export const router = createBrowserRouter([
         { path: 'moves', ...page(OperationalMoves) },
         { path: 'check-in', ...page(CheckInDesk) },
         ...checkinReportRoutes,
-        { path: 'check-out', ...page(CheckOutDesk) },
+        { path: 'check-out', ...page(CheckOutOverview) },
+        { path: 'check-out/:id', ...page(CheckOutStudent) },
+        { path: 'check-out/:id/meters', ...page(CheckOutMeters) },
+        { path: 'check-out/:id/furniture', ...page(CheckOutFurniture) },
+        { path: 'check-out/:id/settlement', ...page(CheckOutSettlement) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'family-days', ...page(FamilyDays) },
