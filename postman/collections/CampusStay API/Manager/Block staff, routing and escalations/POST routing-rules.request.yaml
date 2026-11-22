@@ -2,7 +2,7 @@ $kind: http-request
 name: '/routing-rules'
 method: POST
 url: '{{baseUrl}}/routing-rules'
-order: 9000
+order: 11000
 description: |-
   `POST /routing-rules`
 

@@ -1,0 +1,25 @@
+$kind: http-request
+name: '/inspection-runs/{id}/rooms/{room}/photos'
+method: POST
+url: '{{baseUrl}}/inspection-runs/:id/rooms/:room/photos'
+order: 3000
+description: |-
+  `POST /inspection-runs/{id}/rooms/{room}/photos` (multipart `photo`, `itemId` "furniture-<id>", none = the meters; JPEG/PNG, at most `handover.max_photos` each) → `{ id, itemId, url }`
+
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'
+body:
+  type: formdata
+  content:
+    - key: itemId
+      type: text
+      value: ''
+    - key: photo
+      type: file
+      src: ''

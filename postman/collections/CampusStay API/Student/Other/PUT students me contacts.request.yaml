@@ -2,9 +2,9 @@ $kind: http-request
 name: '/students/me/contacts'
 method: PUT
 url: '{{baseUrl}}/students/me/contacts'
-order: 6000
+order: 18000
 description: |-
-  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `save_1` of `student-contact-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `save_2` of `student-contact-controller`). Add it to the contract or remove it from the backend.
 headers:
   - key: Content-Type
     value: application/json

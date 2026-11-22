@@ -4,6 +4,6 @@ method: GET
 url: '{{baseUrl}}/admin/furniture-types'
 order: 8000
 description: |-
-  `GET /admin/furniture-types` → `{ items: [{ id, code, name, nameVi, category, definesClass, status, items }], categories }`
+  `GET /admin/furniture-types` → `{ items: [{ id, code, name, nameVi, category, definesClass, status, use (Personal, Shared), price (VND or null), items }], categories, uses, conditions: [{ code, name, nameVi, percent }] }`
 
   Contract: `tools/postman/api-contract.md` › Admin › Catalog

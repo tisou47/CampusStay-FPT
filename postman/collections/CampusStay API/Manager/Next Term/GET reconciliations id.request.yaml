@@ -2,7 +2,7 @@ $kind: http-request
 name: '/reconciliations/{id}'
 method: GET
 url: '{{baseUrl}}/reconciliations/:id'
-order: 7000
+order: 5000
 description: |-
   `GET /reconciliations/{id}` → `{ run, term, items }`
 

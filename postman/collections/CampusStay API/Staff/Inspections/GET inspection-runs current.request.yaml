@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/current'
 method: GET
 url: '{{baseUrl}}/inspection-runs/current?termId={{termId}}&block={{block}}'
-order: 1000
+order: 4000
 description: |-
   `GET /inspection-runs/current?termId&block` → `{ run: { id, date, dueAt, scheduleName, scope, rooms, inspected, failed, unreachable, inspectorName, checklist: { name, version, items: [{ id, label, category, severity }] } } | null }`
 

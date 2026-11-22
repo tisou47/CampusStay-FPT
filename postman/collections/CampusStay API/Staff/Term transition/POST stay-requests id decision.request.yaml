@@ -2,7 +2,7 @@ $kind: http-request
 name: '/stay-requests/{id}/decision'
 method: POST
 url: '{{baseUrl}}/stay-requests/:id/decision'
-order: 8000
+order: 5000
 description: |-
   `POST /stay-requests/{id}/decision` `{ decision, note? }` (A-43)
 

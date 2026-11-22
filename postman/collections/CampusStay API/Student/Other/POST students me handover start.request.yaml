@@ -1,0 +1,7 @@
+$kind: http-request
+name: '/students/me/handover/start'
+method: POST
+url: '{{baseUrl}}/students/me/handover/start'
+order: 6000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `start_1` of `handover-controller`). Add it to the contract or remove it from the backend.

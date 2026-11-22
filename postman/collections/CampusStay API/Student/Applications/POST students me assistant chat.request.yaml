@@ -17,7 +17,8 @@ body:
       "messages": [
         {
           "role": "",
-          "content": ""
+          "content": "",
+          "signature": ""
         }
       ]
     }

@@ -1,0 +1,9 @@
+$kind: http-request
+name: '/week-schedule/me'
+method: GET
+url: '{{baseUrl}}/week-schedule/me'
+order: 5000
+description: |-
+  `GET /week-schedule/me` → `{ thisWeek, nextWeek, inShift, shiftToday }` (A-80)
+
+  Contract: `tools/postman/api-contract.md` › Manager › Other

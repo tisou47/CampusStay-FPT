@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/{id}/rooms/{room}/unreachable'
 method: POST
 url: '{{baseUrl}}/inspection-runs/:id/rooms/:room/unreachable'
-order: 5000
+order: 8000
 description: |-
   `POST /inspection-runs/{id}/rooms/{room}/unreachable`
 

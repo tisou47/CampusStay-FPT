@@ -1,0 +1,7 @@
+$kind: http-request
+name: '/students/me/check-out'
+method: GET
+url: '{{baseUrl}}/students/me/check-out'
+order: 15000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `mine_7` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.

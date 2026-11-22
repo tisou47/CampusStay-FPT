@@ -1,0 +1,30 @@
+$kind: http-request
+name: '/staff-activity'
+method: GET
+url: '{{baseUrl}}/staff-activity?block={{block}}'
+order: 1000
+description: |-
+  `GET /staff-activity?block&staffId&flagged&from&to&page&pageSize` → `{ items, total, summary: { total, outOfShift, roleMismatch }, staffOptions }`
+
+  Contract: `tools/postman/api-contract.md` › Manager › Other
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: staffId
+    value: ''
+    disabled: true
+  - key: flagged
+    value: ''
+    disabled: true
+  - key: from
+    value: ''
+    disabled: true
+  - key: to
+    value: ''
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: pageSize
+    value: '20'
+    disabled: true

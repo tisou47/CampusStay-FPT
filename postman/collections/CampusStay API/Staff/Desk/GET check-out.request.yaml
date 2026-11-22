@@ -18,6 +18,9 @@ queryParams:
   - key: reason
     value: ''
     disabled: true
+  - key: status
+    value: ''
+    disabled: true
   - key: page
     value: '1'
     disabled: true

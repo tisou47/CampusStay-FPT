@@ -2,7 +2,7 @@ $kind: http-request
 name: '/students/me/door-code'
 method: GET
 url: '{{baseUrl}}/students/me/door-code'
-order: 18000
+order: 15000
 description: |-
   `GET /students/me/door-code` → `{ room, status: 'Ready'|'Not ready'|'Not set', note, changedAt }`
 

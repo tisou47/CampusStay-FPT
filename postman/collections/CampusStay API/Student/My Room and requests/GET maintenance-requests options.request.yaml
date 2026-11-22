@@ -2,7 +2,7 @@ $kind: http-request
 name: '/maintenance-requests/options'
 method: GET
 url: '{{baseUrl}}/maintenance-requests/options'
-order: 10000
+order: 7000
 description: |-
   `GET /maintenance-requests/options?for=student|staff` → `{ categories, locations, priorities, staff: [{ id, name, skills }] }`
 

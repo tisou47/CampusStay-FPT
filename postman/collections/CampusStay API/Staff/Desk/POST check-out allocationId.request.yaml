@@ -4,7 +4,7 @@ method: POST
 url: '{{baseUrl}}/check-out/:allocationId'
 order: 6000
 description: |-
-  `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned, damageCharge, draft }` → `{ refund, refundStatus }`
+  `POST /check-out/{allocationId}` `{ electricity, water, conditionGood, keyReturned?, damageCharge, draft }` (`keyReturned` is no longer asked: Rooms open with a door code; left out = true, A-81) → `{ refund, refundStatus }`
 
   Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
 pathVariables:

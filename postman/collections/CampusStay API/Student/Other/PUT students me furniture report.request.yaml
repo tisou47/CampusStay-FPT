@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/students/me/furniture/report'
+method: PUT
+url: '{{baseUrl}}/students/me/furniture/report'
+order: 2000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `report` of `student-room-controller`). Add it to the contract or remove it from the backend.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "itemId": "",
+      "condition": "",
+      "note": ""
+    }

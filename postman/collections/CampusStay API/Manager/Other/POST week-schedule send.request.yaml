@@ -1,0 +1,18 @@
+$kind: http-request
+name: '/week-schedule/send'
+method: POST
+url: '{{baseUrl}}/week-schedule/send'
+order: 2000
+description: |-
+  `POST /week-schedule/send` `{ block? }` → `{ start, notified, blocks }` (next week's schedule to the Staff; Sunday reminder to Managers; A-79)
+
+  Contract: `tools/postman/api-contract.md` › Manager › Other
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "block": "{{block}}"
+    }

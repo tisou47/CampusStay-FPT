@@ -1,0 +1,29 @@
+$kind: http-request
+name: '/week-schedule/plan/{staffId}'
+method: PUT
+url: '{{baseUrl}}/week-schedule/plan/:staffId'
+order: 6000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `planWeek` of `block-staff-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: staffId
+    value: ''
+queryParams:
+  - key: week
+    value: ''
+    disabled: true
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "shifts": [
+        {
+          "weekday": 0,
+          "start": "",
+          "end": ""
+        }
+      ]
+    }

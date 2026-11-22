@@ -2,7 +2,7 @@ $kind: http-request
 name: '/turnover/meter-cuts'
 method: POST
 url: '{{baseUrl}}/turnover/meter-cuts'
-order: 10000
+order: 7000
 description: |-
   `POST /turnover/meter-cuts` `{ room, electricity, water }` → `204` (A-40)
 

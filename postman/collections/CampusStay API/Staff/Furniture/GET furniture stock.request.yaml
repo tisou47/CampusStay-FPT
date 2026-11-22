@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/furniture/stock'
+method: GET
+url: '{{baseUrl}}/furniture/stock?block={{block}}'
+order: 4000
+description: |-
+  `GET /furniture/stock?block` → `{ rows: [{ block, typeId, type, typeVi, category, use, unitPrice, inStore, inRooms, broken, plannedMoves, storeValue }], totals: { inStore, inRooms, broken, plannedMoves, storeValue, unpriced }, blocks }`: the stock of each furniture type per Block in scope (disposed items left out), the store valued at the type's real price (A-72; `unitPrice` null = not set, valued 0)
+
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Furniture
+queryParams:
+  - key: block
+    value: '{{block}}'

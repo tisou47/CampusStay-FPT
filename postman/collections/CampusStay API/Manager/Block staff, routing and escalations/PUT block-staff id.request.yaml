@@ -2,9 +2,9 @@ $kind: http-request
 name: '/block-staff/{id}'
 method: PUT
 url: '{{baseUrl}}/block-staff/:id'
-order: 4000
+order: 3000
 description: |-
-  `PUT /block-staff/{id}` `{ handles, onDuty }`
+  `PUT /block-staff/{id}` `{ handles }` (B-17)
 
   Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 pathVariables:
@@ -18,6 +18,5 @@ body:
   type: json
   content: |-
     {
-      "handles": [],
-      "onDuty": false
+      "handles": []
     }

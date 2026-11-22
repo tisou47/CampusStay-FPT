@@ -2,7 +2,7 @@ $kind: http-request
 name: '/students/me/late-check-in'
 method: POST
 url: '{{baseUrl}}/students/me/late-check-in'
-order: 8000
+order: 5000
 description: |-
   `POST /students/me/late-check-in` (multipart) `reason, requestedFor, evidence` → `{ id }` (A-36)
 
