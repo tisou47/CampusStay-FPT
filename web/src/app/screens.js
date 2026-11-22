@@ -95,7 +95,6 @@ export const screens = [
   { code: 'SCR-CFG-22', title: 'Registration-period requests', role: 'admin', path: '/admin/term-requests' },
   { code: 'SCR-CFG-02', title: 'Room types', role: 'admin', path: '/admin/room-types' },
   { code: 'SCR-CFG-03', title: 'Room tiers', role: 'admin', path: '/admin/room-classes' },
-  { code: 'SCR-CFG-24', title: 'Deadlines and reminders', role: 'admin', path: '/admin/deadlines' },
   { code: 'SCR-CFG-25', title: 'Refunds, penalties and terminations', role: 'admin', path: '/admin/refunds' },
   { code: 'SCR-CFG-26', title: 'Stay and renewal', role: 'admin', path: '/admin/stay' },
   { code: 'SCR-CFG-05', title: 'Who may apply', role: 'admin', path: '/admin/eligibility' },

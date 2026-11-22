@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { formatNumber, formatVnd } from '@/lib/format'
+import { useSettingsGroup } from './SettingsGroup'
 import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-08 System Parameters (Figma 71:3286). Since 22/11/2026 it also holds the settings of the former Deposit
-// (SCR-CFG-04) and Utility (SCR-CFG-20) pages, each still read and saved through its own resource:
+// (SCR-CFG-04), Utility (SCR-CFG-20) and Deadlines and reminders (SCR-CFG-24) pages, each still read and saved
+// through its own resource:
 // GET|PUT /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options, type }] }] }
 //   Number fields have no `options`; select fields list theirs.
 // GET|PUT /admin/fees → { depositPercent, … }: only depositPercent is edited here (the refund rules of the same
@@ -19,6 +21,8 @@ import { t, tr } from '@/i18n'
 // GET|PUT /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder,
 //   estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding,
 //   overdueReminder } }: Meter Readings and utility Invoices use these values from the next billing period.
+// GET /admin/settings/deadlines → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
+//   PUT { values: { key: value } } with only what changed (SettingsGroup.jsx).
 
 const ROW = 'border-t border-line py-3 first-of-type:border-t-0'
 const digitsOf = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
@@ -44,28 +48,71 @@ function ParamRow({ id, label, helper, changed, children }) {
 }
 
 /**
- * A field of a form from another resource. kind: 'int' (whole number ≥ min), 'money' (whole ₫ shown with
- * separators, ≥ min), 'select' (options from the resource), 'bool' (On/Off).
+ * The one shape the page edits another resource through: { ready, draft, value(key), saved(key), set(key, value),
+ * dirty, saving, saveError, save(), reset(), serverError(key) }.
+ */
+function fromConfig(form) {
+  return {
+    ready: Boolean(form.draft),
+    draft: form.draft,
+    value: (key) => form.draft?.[key],
+    saved: (key) => form.saved?.[key],
+    set: (key, value) => form.setValue(key, value),
+    dirty: form.dirty,
+    saving: form.saving,
+    saveError: form.saveError,
+    save: () => form.save(),
+    reset: form.reset,
+    serverError: () => null,
+  }
+}
+
+/** A settings group (GET|PUT /admin/settings/:group, SettingsGroup.jsx): PUT sends only the values that changed. */
+function fromGroup(group) {
+  const saved = Object.fromEntries((group.query.data?.settings ?? []).map((s) => [s.key, s.value]))
+  return {
+    ready: Boolean(group.query.data && group.values),
+    draft: group.values,
+    value: (key) => group.values?.[key],
+    saved: (key) => saved[key],
+    set: group.set,
+    dirty: group.dirty,
+    saving: group.saving,
+    saveError: group.error,
+    save: () => group.save(),
+    reset: group.reset,
+    serverError: (key) => group.fields[key],
+  }
+}
+
+/**
+ * A field of another resource. kind: 'int' (whole number from min to max), 'money' (whole ₫ shown with separators,
+ * ≥ min), 'select' (options from the resource), 'bool' (On/Off).
  */
 function extraError(field, value) {
-  if (field.kind === 'int') return /^\d+$/.test(String(value ?? '').trim()) && Number(value) >= (field.min ?? 0) ? null : field.min ? t('Enter {n} or more', { n: field.min }) : t('Enter a whole number')
+  if (field.kind === 'int') {
+    const whole = /^\d+$/.test(String(value ?? '').trim())
+    if (whole && Number(value) >= (field.min ?? 0) && (field.max == null || Number(value) <= field.max)) return null
+    if (field.max != null) return t('Enter a number from {min} to {max}', { min: field.min ?? 0, max: field.max })
+    return field.min ? t('Enter {n} or more', { n: field.min }) : t('Enter a whole number')
+  }
   if (field.kind === 'money') return digitsOf(value) >= (field.min ?? 1) ? null : t('Enter {n} or more', { n: field.min ?? 1 })
   return null
 }
 
 function ExtraInput({ id, field, form }) {
-  const value = form.draft?.[field.key]
-  const bad = Boolean(extraError(field, value))
+  const value = form.value(field.key)
+  const bad = Boolean(extraError(field, value) || form.serverError(field.key))
   if (field.kind === 'select') {
     const options = field.options?.(form.draft) ?? []
-    return <Select id={id} value={value == null ? '' : String(value)} onChange={form.set(field.key)} options={options.length ? options : [String(value ?? '')]} />
+    return <Select id={id} value={value == null ? '' : String(value)} onChange={(e) => form.set(field.key, e.target.value)} options={options.length ? options : [String(value ?? '')]} />
   }
   if (field.kind === 'bool') {
-    return <Select id={id} value={String(Boolean(value))} onChange={(e) => form.setValue(field.key, e.target.value === 'true')} options={ON_OFF.map((o) => ({ ...o, label: t(o.label) }))} />
+    return <Select id={id} value={String(Boolean(value))} onChange={(e) => form.set(field.key, e.target.value === 'true')} options={ON_OFF.map((o) => ({ ...o, label: t(o.label) }))} />
   }
   if (field.kind === 'money') {
     return (
-      <Input id={id} value={value == null ? '' : formatNumber(digitsOf(value))} onChange={(e) => form.setValue(field.key, digitsOf(e.target.value))} inputMode="numeric" invalid={bad} className="text-right tabular" />
+      <Input id={id} value={value == null ? '' : formatNumber(digitsOf(value))} onChange={(e) => form.set(field.key, digitsOf(e.target.value))} inputMode="numeric" invalid={bad} className="text-right tabular" />
     )
   }
   return (
@@ -74,7 +121,7 @@ function ExtraInput({ id, field, form }) {
       value={value ?? ''}
       onChange={(e) => {
         const digits = e.target.value.replace(/\D/g, '')
-        form.setValue(field.key, digits === '' ? '' : Number(digits))
+        form.set(field.key, digits === '' ? '' : Number(digits))
       }}
       inputMode="numeric"
       invalid={bad}
@@ -89,13 +136,19 @@ export default function SystemParameters() {
   const cfg = useConfigForm('system', api.admin.system, {
     onSaved: () => notify({ title: 'System parameters saved', message: 'New values apply to new sessions and invoices.' }),
   })
-  const fees = useConfigForm('fees', api.admin.fees, {
+  const feesForm = useConfigForm('fees', api.admin.fees, {
     onSaved: () => notify({ title: 'Deposit saved', message: 'New terms copy it; students read the change in an announcement.' }),
   })
-  const utility = useConfigForm('utility', api.admin.utility, {
+  const utilityForm = useConfigForm('utility', api.admin.utility, {
     onSaved: () => notify({ title: 'Utility settings saved', message: 'Meter readings use the new values from the next billing period.' }),
   })
-  const forms = [cfg, fees, utility]
+  const deadlinesGroup = useSettingsGroup('deadlines', {
+    onSaved: () => notify({ title: t('{title} saved', { title: t('Deadlines and reminders') }), message: 'Students read the change in an announcement.' }),
+  })
+  const deposit = fromConfig(feesForm)
+  const utility = fromConfig(utilityForm)
+  const deadlines = fromGroup(deadlinesGroup)
+  const forms = [fromConfig(cfg), deposit, utility, deadlines]
 
   /** Sections from other resources, each shown after the System parameters section titled `after`. */
   const extras = [
@@ -103,7 +156,7 @@ export default function SystemParameters() {
       id: 'deposit',
       after: 'Pricing',
       title: 'Deposit',
-      form: fees,
+      form: deposit,
       fields: [{ key: 'depositPercent', kind: 'int', min: 1, label: 'Deposit rate (% of term price)', helper: 'An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard.' }],
     },
     {
@@ -140,7 +193,29 @@ export default function SystemParameters() {
         )
       },
     },
-  ].filter((x) => x.form.draft)
+    {
+      id: 'deadlines',
+      after: 'Payments',
+      title: 'Deadlines and reminders',
+      form: deadlines,
+      // The group lists its own settings: label, limits and where each one acts.
+      fields: (deadlinesGroup.query.data?.settings ?? []).map((s) => ({
+        key: s.key,
+        kind: s.type === 'BOOL' ? 'bool' : 'int',
+        min: s.min,
+        max: s.max,
+        label: s.label,
+        helper: s.usedIn ? t('Used in: {place}', { place: tr(s.usedIn) }) : null,
+      })),
+      footer: () => (
+        <p className="border-t border-line pt-3 text-sm text-fg-tertiary">
+          {deadlinesGroup.query.data?.appliesFrom
+            ? t('A term keeps the values it opened with; a change applies from {term}, the next term to open, and to work started from now on. Students read it in an announcement.', { term: deadlinesGroup.query.data.appliesFrom })
+            : t('A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.')}
+        </p>
+      ),
+    },
+  ].filter((x) => x.form.ready)
 
   const sections = cfg.draft?.sections ?? []
   const isBool = (f) => f.type === 'BOOL' || typeof f.value === 'boolean' || f.value === 'true' || f.value === 'false'
@@ -150,14 +225,16 @@ export default function SystemParameters() {
     const v = String(f.value ?? '').trim()
     return isDecimal(f) ? !/^\d+(\.\d+)?$/.test(v) : !/^\d+$/.test(v)
   }
-  const extraChanged = (x, key) => String(x.form.draft?.[key] ?? '') !== String(x.form.saved?.[key] ?? '')
-  const invalid = sections.some((s) => s.fields.some(isBad)) || extras.some((x) => x.fields.some((f) => extraError(f, x.form.draft[f.key])))
+  const extraChanged = (x, key) => String(x.form.value(key) ?? '') !== String(x.form.saved(key) ?? '')
+  const invalid = sections.some((s) => s.fields.some(isBad)) || extras.some((x) => x.fields.some((f) => extraError(f, x.form.value(f.key))))
   const dirty = forms.some((f) => f.dirty)
   const saving = forms.some((f) => f.saving)
+  // A group's field errors show under their fields; anything else shows on top.
   const saveErrors = [
-    [fees, 'Could not save the deposit'],
+    [deposit, 'Could not save the deposit'],
     [utility, 'Could not save the utility settings'],
-  ].filter(([f]) => f.saveError)
+    [deadlines, 'Could not save the deadlines and reminders'],
+  ].filter(([f]) => f.saveError && !(f === deadlines && Object.keys(f.saveError.fields ?? {}).length))
   const savedValue = (si, key) => cfg.saved?.sections?.[si]?.fields?.find((f) => f.key === key)?.value
   const setField = (si, key, value) =>
     cfg.setValue(
@@ -184,8 +261,8 @@ export default function SystemParameters() {
       : { id: o.extra.id, title: t(o.extra.title), count: o.extra.fields.length, changed: o.extra.fields.some((f) => extraChanged(o.extra, f.key)) },
   )
 
-  // Old links (/admin/fees, /admin/utility) land here with a #section: bring it into view once it is drawn.
-  const ready = forms.every((f) => f.draft)
+  // Old links (/admin/fees, /admin/utility, /admin/deadlines) land here with a #section: bring it into view once it is drawn.
+  const ready = forms.every((f) => f.ready)
   useEffect(() => {
     if (hash && ready) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
   }, [hash, ready])
@@ -269,7 +346,8 @@ export default function SystemParameters() {
               <Card key={o.extra.id} id={o.extra.id} className="flex shrink-0 scroll-mt-2 flex-col">
                 <h2 className="pb-1 text-h3 font-semibold text-fg">{t(o.extra.title)}</h2>
                 {o.extra.fields.map((f) => {
-                  const error = extraError(f, o.extra.form.draft[f.key])
+                  const server = o.extra.form.serverError(f.key)
+                  const error = extraError(f, o.extra.form.value(f.key)) ?? (server ? tr(server) : null)
                   return (
                     <Field key={f.key} className={ROW}>
                       {(id) => (

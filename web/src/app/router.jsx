@@ -102,7 +102,6 @@ const AdminDashboard = () => import('@/pages/admin/AdminDashboard')
 const Terms = () => import('@/pages/admin/Terms')
 const TermWizard = () => import('@/pages/admin/TermWizard')
 const NewTerm = () => import('@/pages/admin/NewTerm')
-const Deadlines = () => import('@/pages/admin/Deadlines')
 const StayRenewal = () => import('@/pages/admin/StayRenewal')
 const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
@@ -307,7 +306,8 @@ export const router = createBrowserRouter([
         { path: 'terms/new', ...page(NewTerm) },
         { path: 'terms/:id', ...page(TermWizard) },
         { path: 'term-requests', ...page(TermRequests) },
-        { path: 'deadlines', ...page(Deadlines) },
+        // Deadlines and reminders is a section of System parameters since 22/11/2026.
+        { path: 'deadlines', element: <Navigate to="/admin/system-parameters#deadlines" replace /> },
         { path: 'refunds', ...page(RefundsTerminations) },
         { path: 'stay', ...page(StayRenewal) },
         { path: 'announcements', ...page(Announcements) },

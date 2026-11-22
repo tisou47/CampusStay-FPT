@@ -37,7 +37,6 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
-  Timer,
   TriangleAlert,
   Upload,
   User,
@@ -287,7 +286,6 @@ export const backOffice = {
         items: [
           { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
           { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
-          { label: 'Deadlines and reminders', icon: Timer, to: '/admin/deadlines' },
           { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
           { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
