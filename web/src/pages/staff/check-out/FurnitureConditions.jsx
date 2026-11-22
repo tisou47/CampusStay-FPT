@@ -239,13 +239,13 @@ export function FurnitureConditions({
       </div>
 
       {/* Condition rate reference badges */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-line/70 bg-surface px-3 py-2 text-xs text-fg-secondary">
-        <Package size={14} aria-hidden="true" className="shrink-0 text-fg-brand" />
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-xs text-fg-secondary">
+        <Package size={15} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-fg-brand" />
         <span className="font-medium text-fg">{t('Condition rate schedule:')}</span>
         {['Good', 'Worn', 'Damaged', 'Missing'].map((c) => (
-          <span key={c} className="inline-flex items-center gap-1 rounded-md bg-subtle px-2 py-0.5 text-[11px] font-medium text-fg">
-            <span>{conditionName(c, levels)}:</span>
-            <strong className="tabular">{rates[c] ?? DEFAULT_RATES[c]}%</strong>
+          <span key={c} className="inline-flex items-center gap-1.5 rounded-md border border-line bg-subtle/60 px-2.5 py-1 text-xs font-medium text-fg">
+            <span className="text-fg-secondary">{conditionName(c, levels)}:</span>
+            <strong className="font-semibold text-fg tabular">{rates[c] ?? DEFAULT_RATES[c]}%</strong>
           </span>
         ))}
       </div>
@@ -285,47 +285,59 @@ export function FurnitureConditions({
             {t('Verify each item with the student on site: choose Good, Worn, Damaged or Missing, or click Record damaged / missing directly.')}
           </p>
 
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-3">
             {computedLines.map(({ item: i, answer: a, deltaPct, nowPct, amount, fullAmount, split, effectiveReview }) => {
               const hasIssue = a.condition !== 'Good'
               return (
                 <li
                   key={i.itemId}
                   className={cx(
-                    'flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-3.5 transition-colors',
+                    'flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 transition-colors',
                     amount > 0 ? 'border-brand/40 bg-brand-subtle/30' : hasIssue ? 'bg-subtle/40' : '',
                   )}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-fg">
-                          {typeName(i)} · {i.personal ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
+                        <span className="text-base font-semibold text-fg">
+                          {typeName(i)}
                         </span>
-                        <span className="rounded bg-subtle px-2 py-0.5 font-mono text-xs text-fg-secondary tabular">
-                          {t('Base price: {price}', { price: formatVnd(i.unitPrice ?? 0) })}
+                        <Tag tone={i.personal ? 'info' : 'neutral'} dot={false}>
+                          {i.personal ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
+                        </Tag>
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-subtle/70 px-2.5 py-0.5 text-xs">
+                          <span className="text-fg-secondary">{t('Base price')}:</span>
+                          <span className="font-semibold text-fg tabular">{formatVnd(i.unitPrice ?? 0)}</span>
                         </span>
                         {i.studentReportedCondition && (
                           <Tag tone={conditionTone[i.studentReportedCondition] ?? 'warning'}>
-                            <AlertTriangle size={11} aria-hidden="true" />
+                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />
                             {t('Student declared: {c}', { c: conditionName(i.studentReportedCondition) })}
                           </Tag>
                         )}
                       </div>
-                      <span className="font-mono text-xs text-fg-tertiary">
-                        {i.assetCode} · {t('At check-in: {c}', { c: conditionName(i.atCheckIn ?? 'Good') })}
-                        {i.preExisting ? ` · ${t('there before')}` : ''}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-fg-secondary">
+                        <span className="rounded bg-subtle px-1.5 py-0.5 font-mono text-fg-tertiary">{i.assetCode}</span>
+                        <span>{t('At check-in')}:</span>
+                        <Tag tone={conditionTone[i.atCheckIn ?? 'Good'] ?? 'neutral'}>
+                          {conditionName(i.atCheckIn ?? 'Good')}
+                        </Tag>
+                        {i.preExisting && (
+                          <Tag tone="neutral" dot={false}>
+                            {t('Pre-existing')}
+                          </Tag>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+                    <div className="flex shrink-0 flex-wrap items-center gap-3">
                       {/* Automatic Price x % = Amount pill when non-Good or charged */}
                       {(hasIssue || amount > 0) && (
                         <div className="flex flex-col items-end text-right">
-                          <span className="text-xs font-bold text-fg tabular">
+                          <span className="text-sm font-semibold text-fg tabular">
                             {formatVnd(amount)}
                           </span>
-                          <span className="text-[11px] text-fg-tertiary tabular">
+                          <span className="text-xs text-fg-tertiary tabular">
                             {i.preExisting
                               ? t('Pre-existing (0%)')
                               : deltaPct !== nowPct
@@ -333,7 +345,7 @@ export function FurnitureConditions({
                                 : `${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}%`}
                           </span>
                           {split > 1 && (
-                            <span className="text-[11px] font-medium text-fg-secondary tabular">
+                            <span className="text-xs font-medium text-fg-secondary tabular">
                               {t('Shared item: {full} ÷ {n} residents; roommates get an invoice for their share', { full: formatVnd(fullAmount), n: split })}
                             </span>
                           )}
@@ -353,7 +365,7 @@ export function FurnitureConditions({
                       )}
                       <Select
                         size="sm"
-                        wrapperClassName="w-32"
+                        wrapperClassName="w-44 shrink-0"
                         disabled={done || condition === 'good'}
                         aria-label={t('Condition of {item}', { item: i.assetCode })}
                         value={a.condition}
@@ -371,8 +383,8 @@ export function FurnitureConditions({
 
                   {/* On-site inspection note input */}
                   {(hasIssue || Boolean(a.note) || Boolean(i.studentReportedNote)) && (
-                    <div className="flex flex-col gap-1 pt-0.5">
-                      <span className="text-[11px] font-medium text-fg-secondary">{t('Note')}</span>
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <span className="text-xs font-medium text-fg-secondary">{t('Note')}</span>
                       <Input
                         size="sm"
                         disabled={done}
@@ -410,12 +422,12 @@ export function FurnitureConditions({
       )}
 
       {/* End-of-section Summary of Damaged / Worn / Missing Items before sending to Student */}
-      <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3">
+      <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+          <span className="text-sm font-semibold text-fg">
             {t('Summary of damaged / worn / missing items')}
           </span>
-          <span className="text-xs font-bold text-fg tabular">
+          <span className="text-sm font-semibold text-fg tabular">
             {t('Total furniture charge: {amount}', { amount: formatVnd(liveTotal) })}
           </span>
         </div>

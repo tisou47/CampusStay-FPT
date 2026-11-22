@@ -4881,6 +4881,9 @@ const managerOverview = {
   "Go to Room & furniture": "Đi tới Kiểm tra nội thất",
   "Back to room & furniture": "Quay lại kiểm tra nội thất",
   "Finalized {date}": "Chốt: {date}",
+  "Base price": "Giá gốc",
+  "At check-in": "Lúc nhận",
+  "Pre-existing": "Có từ trước",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
