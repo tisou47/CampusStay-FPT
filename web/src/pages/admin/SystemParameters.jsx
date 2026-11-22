@@ -12,8 +12,9 @@ import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-08 System Parameters (Figma 71:3286). Since 22/11/2026 it also holds the settings of the former Deposit
-// (SCR-CFG-04), Utility (SCR-CFG-20) and Deadlines and reminders (SCR-CFG-24) pages and the terminations and late
-// check-ins of Refunds, penalties and terminations (SCR-CFG-25), each still read and saved through its own resource:
+// (SCR-CFG-04), Utility (SCR-CFG-20), Deadlines and reminders (SCR-CFG-24) and Stay and renewal (SCR-CFG-26) pages
+// and the terminations and late check-ins of Refunds, penalties and terminations (SCR-CFG-25), each still read and
+// saved through its own resource:
 // GET|PUT /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options, type }] }] }
 //   Number fields have no `options`; select fields list theirs.
 // GET|PUT /admin/fees → { depositPercent, … }: only depositPercent is edited here (the refund rules of the same
@@ -21,7 +22,7 @@ import { t, tr } from '@/i18n'
 // GET|PUT /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder,
 //   estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding,
 //   overdueReminder } }: Meter Readings and utility Invoices use these values from the next billing period.
-// GET /admin/settings/deadlines and /admin/settings/refunds → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
+// GET /admin/settings/{deadlines,refunds,stay} → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
 //   PUT { values: { key: value } } with only what changed (SettingsGroup.jsx).
 
 const ROW = 'border-t border-line py-3 first-of-type:border-t-0'
@@ -148,11 +149,16 @@ export default function SystemParameters() {
   const terminationsGroup = useSettingsGroup('refunds', {
     onSaved: () => notify({ title: t('{title} saved', { title: t('Terminations and late check-ins') }), message: 'Students read the change in an announcement.' }),
   })
+  const stayGroup = useSettingsGroup('stay', {
+    onSaved: () => notify({ title: t('{title} saved', { title: t('Stay and renewal') }), message: 'Students read the change in an announcement.' }),
+  })
   const deposit = fromConfig(feesForm)
   const utility = fromConfig(utilityForm)
   const deadlines = fromGroup(deadlinesGroup)
   const terminations = fromGroup(terminationsGroup)
-  const forms = [fromConfig(cfg), deposit, utility, deadlines, terminations]
+  const stay = fromGroup(stayGroup)
+  const groups = [deadlines, terminations, stay]
+  const forms = [fromConfig(cfg), deposit, utility, ...groups]
 
   /** A settings group's own list: label, limits and where each setting acts. */
   const groupFields = (group) =>
@@ -181,6 +187,14 @@ export default function SystemParameters() {
       title: 'Deposit',
       form: deposit,
       fields: [{ key: 'depositPercent', kind: 'int', min: 1, label: 'Deposit rate (% of term price)', helper: 'An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard.' }],
+    },
+    {
+      id: 'stay',
+      after: 'Applications',
+      title: 'Stay and renewal',
+      form: stay,
+      fields: groupFields(stayGroup),
+      footer: () => appliesNote(stayGroup),
     },
     {
       id: 'utility-billing',
@@ -252,7 +266,8 @@ export default function SystemParameters() {
     [utility, 'Could not save the utility settings'],
     [deadlines, 'Could not save the deadlines and reminders'],
     [terminations, 'Could not save the terminations and late check-ins'],
-  ].filter(([f]) => f.saveError && !([deadlines, terminations].includes(f) && Object.keys(f.saveError.fields ?? {}).length))
+    [stay, 'Could not save the stay and renewal settings'],
+  ].filter(([f]) => f.saveError && !(groups.includes(f) && Object.keys(f.saveError.fields ?? {}).length))
   const savedValue = (si, key) => cfg.saved?.sections?.[si]?.fields?.find((f) => f.key === key)?.value
   const setField = (si, key, value) =>
     cfg.setValue(
@@ -279,7 +294,7 @@ export default function SystemParameters() {
       : { id: o.extra.id, title: t(o.extra.title), count: o.extra.fields.length, changed: o.extra.fields.some((f) => extraChanged(o.extra, f.key)) },
   )
 
-  // Old links (/admin/fees, /admin/utility, /admin/deadlines) land here with a #section: bring it into view once it is drawn.
+  // Old links (/admin/fees, /admin/utility, /admin/deadlines, /admin/stay) land here with a #section: bring it into view once it is drawn.
   const ready = forms.every((f) => f.ready)
   useEffect(() => {
     if (hash && ready) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
