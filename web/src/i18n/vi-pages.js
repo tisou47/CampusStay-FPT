@@ -4829,4 +4829,12 @@ const managerOverview = {
   "Page {n} / {total}": "Trang {n} / {total}",
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }
+
+/** Wave 2 review fixes. */
+const wave2 = {
+  'This invoice is not open for payment yet. You are told when it is.': 'Hóa đơn này chưa mở để thanh toán. Bạn sẽ được báo khi mở.',
+  'This invoice was cancelled or refunded: there is nothing to pay.': 'Hóa đơn này đã bị hủy hoặc đã hoàn tiền: bạn không cần thanh toán.',
+  'No upcoming invoice': 'Không có hóa đơn sắp tới',
+}
+
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover, ...wave2 }

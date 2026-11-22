@@ -67,7 +67,7 @@ export function SessionProvider({ children }) {
   const signIn = useCallback(async (email, password, remember) => {
     const result = await api.auth.signIn({ email, password, remember })
     resetTerm()
-    writeSession({ token: result.token, user: result.user })
+    writeSession({ token: result.token, user: result.user }, Boolean(remember))
     setLang(result.user.locale)
     return result.user
   }, [setLang, resetTerm])
@@ -76,7 +76,7 @@ export function SessionProvider({ children }) {
   const signInWithGoogle = useCallback(async (code, remember, redirectUri) => {
     const result = await api.auth.google({ code, remember, redirectUri })
     resetTerm()
-    writeSession({ token: result.token, user: result.user })
+    writeSession({ token: result.token, user: result.user }, Boolean(remember))
     setLang(result.user.locale)
     return result.user
   }, [setLang, resetTerm])
