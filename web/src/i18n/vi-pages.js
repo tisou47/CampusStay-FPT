@@ -1895,6 +1895,7 @@ const admin = {
   "Accounts that signed in during the last 30 days": "Tài khoản đã đăng nhập trong 30 ngày qua",
   "of {n} accounts": "trên {n} tài khoản",
   "Could not save the deposit": "Không lưu được tiền đặt cọc",
+  "Could not save the utility settings": "Không lưu được thiết lập điện nước",
   "Occupancy by Block": "Lấp đầy theo tòa",
   "Beds held this Term out of the Beds in service, per Block.": "Số giường đã giữ trong học kỳ trên số giường đang sử dụng, theo từng tòa.",
   "Shortcuts": "Lối tắt",

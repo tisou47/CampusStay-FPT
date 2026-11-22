@@ -6,19 +6,26 @@ import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
+import { formatNumber, formatVnd } from '@/lib/format'
 import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
-// SCR-CFG-08 System Parameters (Figma 71:3286), with the Deposit section (formerly SCR-CFG-04, its own page until
-// 22/11/2026).
-// GET /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options }] }] }
-// PUT /admin/system-parameters (same shape). Number fields have no `options`; select fields list theirs.
-// Deposit: GET|PUT /admin/fees → { depositPercent, depositHours, balanceDays, policyConfirmed, rules, … }; only
-// depositPercent is edited here (the refund rules of the same resource are in Refunds, penalties and terminations).
-// Each Term copies the Deposit when it is built and keeps it once published (ADR-20).
+// SCR-CFG-08 System Parameters (Figma 71:3286). Since 22/11/2026 it also holds the settings of the former Deposit
+// (SCR-CFG-04) and Utility (SCR-CFG-20) pages, each still read and saved through its own resource:
+// GET|PUT /admin/system-parameters → { sections: [{ title, fields: [{ key, label, value, helper, options, type }] }] }
+//   Number fields have no `options`; select fields list theirs.
+// GET|PUT /admin/fees → { depositPercent, … }: only depositPercent is edited here (the refund rules of the same
+//   resource are in Refunds, penalties and terminations). Each Term copies the Deposit when it is built (ADR-20).
+// GET|PUT /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder,
+//   estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding,
+//   overdueReminder } }: Meter Readings and utility Invoices use these values from the next billing period.
 
-const DEPOSIT_ID = 'deposit'
 const ROW = 'border-t border-line py-3 first-of-type:border-t-0'
+const digitsOf = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
+const ON_OFF = [
+  { value: 'true', label: 'On' },
+  { value: 'false', label: 'Off' },
+]
 
 /** One setting: label and help on the left, the value on the right. */
 function ParamRow({ id, label, helper, changed, children }) {
@@ -36,6 +43,46 @@ function ParamRow({ id, label, helper, changed, children }) {
   )
 }
 
+/**
+ * A field of a form from another resource. kind: 'int' (whole number ≥ min), 'money' (whole ₫ shown with
+ * separators, ≥ min), 'select' (options from the resource), 'bool' (On/Off).
+ */
+function extraError(field, value) {
+  if (field.kind === 'int') return /^\d+$/.test(String(value ?? '').trim()) && Number(value) >= (field.min ?? 0) ? null : field.min ? t('Enter {n} or more', { n: field.min }) : t('Enter a whole number')
+  if (field.kind === 'money') return digitsOf(value) >= (field.min ?? 1) ? null : t('Enter {n} or more', { n: field.min ?? 1 })
+  return null
+}
+
+function ExtraInput({ id, field, form }) {
+  const value = form.draft?.[field.key]
+  const bad = Boolean(extraError(field, value))
+  if (field.kind === 'select') {
+    const options = field.options?.(form.draft) ?? []
+    return <Select id={id} value={value == null ? '' : String(value)} onChange={form.set(field.key)} options={options.length ? options : [String(value ?? '')]} />
+  }
+  if (field.kind === 'bool') {
+    return <Select id={id} value={String(Boolean(value))} onChange={(e) => form.setValue(field.key, e.target.value === 'true')} options={ON_OFF.map((o) => ({ ...o, label: t(o.label) }))} />
+  }
+  if (field.kind === 'money') {
+    return (
+      <Input id={id} value={value == null ? '' : formatNumber(digitsOf(value))} onChange={(e) => form.setValue(field.key, digitsOf(e.target.value))} inputMode="numeric" invalid={bad} className="text-right tabular" />
+    )
+  }
+  return (
+    <Input
+      id={id}
+      value={value ?? ''}
+      onChange={(e) => {
+        const digits = e.target.value.replace(/\D/g, '')
+        form.setValue(field.key, digits === '' ? '' : Number(digits))
+      }}
+      inputMode="numeric"
+      invalid={bad}
+      className="text-right tabular"
+    />
+  )
+}
+
 export default function SystemParameters() {
   const { notify } = useToast()
   const { hash } = useLocation()
@@ -45,6 +92,56 @@ export default function SystemParameters() {
   const fees = useConfigForm('fees', api.admin.fees, {
     onSaved: () => notify({ title: 'Deposit saved', message: 'New terms copy it; students read the change in an announcement.' }),
   })
+  const utility = useConfigForm('utility', api.admin.utility, {
+    onSaved: () => notify({ title: 'Utility settings saved', message: 'Meter readings use the new values from the next billing period.' }),
+  })
+  const forms = [cfg, fees, utility]
+
+  /** Sections from other resources, each shown after the System parameters section titled `after`. */
+  const extras = [
+    {
+      id: 'deposit',
+      after: 'Pricing',
+      title: 'Deposit',
+      form: fees,
+      fields: [{ key: 'depositPercent', kind: 'int', min: 1, label: 'Deposit rate (% of term price)', helper: 'An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard.' }],
+    },
+    {
+      id: 'utility-billing',
+      after: 'Utility',
+      title: 'Utility billing',
+      form: utility,
+      fields: [
+        { key: 'priceKwh', kind: 'money', min: 1, label: 'Electricity price (₫/kWh)', helper: 'One meter per room. Each segment is split equally among its residents.' },
+        { key: 'priceM3', kind: 'money', min: 1, label: 'Water price (₫/m³)' },
+        { key: 'readingDay', kind: 'select', label: 'Monthly reading day', options: (d) => d?.options?.readingDays },
+        { key: 'paymentDueDays', kind: 'select', label: 'Payment due', options: (d) => d?.options?.paymentDueDays },
+        { key: 'rounding', kind: 'select', label: 'Rounding of each share', options: (d) => d?.options?.rounding },
+        { key: 'overdueReminder', kind: 'select', label: 'Overdue reminder', options: (d) => d?.options?.overdueReminder },
+      ],
+    },
+    {
+      id: 'utility-deposit',
+      after: 'Utility',
+      title: 'Utility deposit',
+      form: utility,
+      fields: [
+        { key: 'estimateMonthly', kind: 'money', min: 1, label: 'Estimated monthly utility per student', helper: 'A guarantee held until check-out. It never pays monthly invoices.' },
+        { key: 'monthsHeld', kind: 'int', min: 2, label: 'Months held (minimum 2)' },
+        { key: 'blockChangesWhenOverdue', kind: 'bool', label: 'Block room changes and swaps while a utility invoice is overdue' },
+      ],
+      footer: (d) => {
+        const ok = digitsOf(d.estimateMonthly) >= 1 && Number(d.monthsHeld) >= 2
+        return (
+          <div className="flex items-center justify-between gap-6 border-t border-line pt-3 text-base">
+            <span className="text-fg-secondary">{t('Utility deposit per student')}</span>
+            <span className="font-semibold text-fg-brand tabular">{ok ? formatVnd(digitsOf(d.estimateMonthly) * Number(d.monthsHeld)) : '—'}</span>
+          </div>
+        )
+      },
+    },
+  ].filter((x) => x.form.draft)
+
   const sections = cfg.draft?.sections ?? []
   const isBool = (f) => f.type === 'BOOL' || typeof f.value === 'boolean' || f.value === 'true' || f.value === 'false'
   const isDecimal = (f) => f.type === 'DECIMAL' || (!f.options && !isBool(f) && String(f.value ?? '').includes('.'))
@@ -53,54 +150,45 @@ export default function SystemParameters() {
     const v = String(f.value ?? '').trim()
     return isDecimal(f) ? !/^\d+(\.\d+)?$/.test(v) : !/^\d+$/.test(v)
   }
-  const depositBad = fees.draft != null && !/^\d+$/.test(String(fees.draft.depositPercent ?? '').trim())
-  const depositChanged = fees.dirty
-  const invalid = sections.some((s) => s.fields.some(isBad)) || depositBad
-  const dirty = cfg.dirty || fees.dirty
-  const saving = cfg.saving || fees.saving
+  const extraChanged = (x, key) => String(x.form.draft?.[key] ?? '') !== String(x.form.saved?.[key] ?? '')
+  const invalid = sections.some((s) => s.fields.some(isBad)) || extras.some((x) => x.fields.some((f) => extraError(f, x.form.draft[f.key])))
+  const dirty = forms.some((f) => f.dirty)
+  const saving = forms.some((f) => f.saving)
+  const saveErrors = [
+    [fees, 'Could not save the deposit'],
+    [utility, 'Could not save the utility settings'],
+  ].filter(([f]) => f.saveError)
   const savedValue = (si, key) => cfg.saved?.sections?.[si]?.fields?.find((f) => f.key === key)?.value
   const setField = (si, key, value) =>
     cfg.setValue(
       'sections',
       sections.map((s, i) => (i === si ? { ...s, fields: s.fields.map((f) => (f.key === key ? { ...f, value } : f)) } : s)),
     )
-  const save = () => {
-    if (cfg.dirty) cfg.save()
-    if (fees.dirty) fees.save()
-  }
-  const reset = () => {
-    cfg.reset()
-    fees.reset()
-  }
 
-  // /admin/fees lands here with #deposit: bring the Deposit section into view once it is drawn.
-  const depositReady = Boolean(fees.draft && cfg.draft)
-  useEffect(() => {
-    if (hash === `#${DEPOSIT_ID}` && depositReady) document.getElementById(DEPOSIT_ID)?.scrollIntoView({ block: 'start' })
-  }, [hash, depositReady])
-
-  // The sections in the order shown: Pricing first, then the Deposit, then the rest as the server lists them.
-  const nav = sections.map((s, si) => ({
-    id: `params-${si}`,
-    title: tr(s.title),
-    count: s.fields.length,
-    changed: s.fields.some((f) => String(f.value ?? '') !== String(savedValue(si, f.key) ?? '')),
-  }))
-  if (fees.draft) nav.splice(Math.min(1, nav.length), 0, { id: DEPOSIT_ID, title: t('Deposit'), count: 1, changed: depositChanged })
-
-  const depositCard = fees.draft && (
-    <Card key={DEPOSIT_ID} id={DEPOSIT_ID} className="flex shrink-0 scroll-mt-2 flex-col">
-      <h2 className="pb-1 text-h3 font-semibold text-fg">{t('Deposit')}</h2>
-      <Field className={ROW}>
-        {(id) => (
-          <ParamRow id={id} label="Deposit rate (% of term price)" helper="An application reaches a manager only after its deposit is paid. Each term can set its own rate in the wizard." changed={depositChanged}>
-            <Input id={id} value={fees.draft.depositPercent ?? ''} onChange={fees.set('depositPercent')} inputMode="numeric" invalid={depositBad} className="text-right tabular" />
-            {depositBad && <p className="text-sm text-error-fg">{t('Enter a whole number')}</p>}
-          </ParamRow>
-        )}
-      </Field>
-    </Card>
+  // The cards in the order shown: each server section, then the extras anchored to it; extras whose anchor is
+  // missing go last.
+  const order = []
+  sections.forEach((s, si) => {
+    order.push({ type: 'system', si, section: s })
+    extras.filter((x) => x.after === s.title).forEach((x) => order.push({ type: 'extra', extra: x }))
+  })
+  extras.filter((x) => !sections.some((s) => s.title === x.after)).forEach((x) => order.push({ type: 'extra', extra: x }))
+  const nav = order.map((o) =>
+    o.type === 'system'
+      ? {
+          id: `params-${o.si}`,
+          title: tr(o.section.title),
+          count: o.section.fields.length,
+          changed: o.section.fields.some((f) => String(f.value ?? '') !== String(savedValue(o.si, f.key) ?? '')),
+        }
+      : { id: o.extra.id, title: t(o.extra.title), count: o.extra.fields.length, changed: o.extra.fields.some((f) => extraChanged(o.extra, f.key)) },
   )
+
+  // Old links (/admin/fees, /admin/utility) land here with a #section: bring it into view once it is drawn.
+  const ready = forms.every((f) => f.draft)
+  useEffect(() => {
+    if (hash && ready) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [hash, ready])
 
   return (
     <ConfigPage
@@ -108,20 +196,20 @@ export default function SystemParameters() {
       title="System Parameters"
       actions={
         <>
-          <Button onClick={reset} disabled={!dirty}>
+          <Button onClick={() => forms.forEach((f) => f.reset())} disabled={!dirty}>
             Cancel
           </Button>
-          <Button variant="primary" icon={Check} disabled={!dirty || invalid || saving} onClick={save}>
+          <Button variant="primary" icon={Check} disabled={!dirty || invalid || saving} onClick={() => forms.forEach((f) => f.dirty && f.save())}>
             Save
           </Button>
         </>
       }
     >
-      {fees.saveError && (
-        <Alert type="error" title="Could not save the deposit" className="shrink-0">
-          {fees.saveError.message}
+      {saveErrors.map(([f, title]) => (
+        <Alert key={title} type="error" title={title} className="shrink-0">
+          {f.saveError.message}
         </Alert>
-      )}
+      ))}
       {/* Sections listed on the left; on the right one scrolling list of cards, a setting per row (label and help on
           the left, the value on the right) so labels read on one or two lines instead of narrow columns. */}
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
@@ -145,48 +233,58 @@ export default function SystemParameters() {
           ))}
         </nav>
         <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
-          {sections.length === 0 && depositCard}
-          {sections.map((s, si) => [
-            <Card key={s.title} id={`params-${si}`} className="flex shrink-0 scroll-mt-2 flex-col">
-              <h2 className="pb-1 text-h3 font-semibold text-fg">{tr(s.title)}</h2>
-              {s.fields.map((f) => {
-                const bad = isBad(f)
-                const changed = String(f.value ?? '') !== String(savedValue(si, f.key) ?? '')
-                return (
-                  <Field key={f.key} className={ROW}>
-                    {(id) => (
-                      <ParamRow id={id} label={f.label} helper={f.helper} changed={changed}>
-                        {f.options ? (
-                          <Select id={id} value={f.value} onChange={(e) => setField(si, f.key, e.target.value)} options={f.options} />
-                        ) : isBool(f) ? (
-                          <Select
-                            id={id}
-                            value={String(f.value)}
-                            onChange={(e) => setField(si, f.key, e.target.value)}
-                            options={[
-                              { value: 'true', label: t('On') },
-                              { value: 'false', label: t('Off') },
-                            ]}
-                          />
-                        ) : (
-                          <Input
-                            id={id}
-                            value={f.value ?? ''}
-                            onChange={(e) => setField(si, f.key, e.target.value)}
-                            inputMode={isDecimal(f) ? 'decimal' : 'numeric'}
-                            invalid={bad}
-                            className="text-right tabular"
-                          />
-                        )}
-                        {bad && <p className="text-sm text-error-fg">{t(isDecimal(f) ? 'Enter a valid number' : 'Enter a whole number')}</p>}
-                      </ParamRow>
-                    )}
-                  </Field>
-                )
-              })}
-            </Card>,
-            si === 0 ? depositCard : null,
-          ])}
+          {order.map((o) =>
+            o.type === 'system' ? (
+              <Card key={`params-${o.si}`} id={`params-${o.si}`} className="flex shrink-0 scroll-mt-2 flex-col">
+                <h2 className="pb-1 text-h3 font-semibold text-fg">{tr(o.section.title)}</h2>
+                {o.section.fields.map((f) => {
+                  const bad = isBad(f)
+                  const changed = String(f.value ?? '') !== String(savedValue(o.si, f.key) ?? '')
+                  return (
+                    <Field key={f.key} className={ROW}>
+                      {(id) => (
+                        <ParamRow id={id} label={f.label} helper={f.helper} changed={changed}>
+                          {f.options ? (
+                            <Select id={id} value={f.value} onChange={(e) => setField(o.si, f.key, e.target.value)} options={f.options} />
+                          ) : isBool(f) ? (
+                            <Select id={id} value={String(f.value)} onChange={(e) => setField(o.si, f.key, e.target.value)} options={ON_OFF.map((x) => ({ ...x, label: t(x.label) }))} />
+                          ) : (
+                            <Input
+                              id={id}
+                              value={f.value ?? ''}
+                              onChange={(e) => setField(o.si, f.key, e.target.value)}
+                              inputMode={isDecimal(f) ? 'decimal' : 'numeric'}
+                              invalid={bad}
+                              className="text-right tabular"
+                            />
+                          )}
+                          {bad && <p className="text-sm text-error-fg">{t(isDecimal(f) ? 'Enter a valid number' : 'Enter a whole number')}</p>}
+                        </ParamRow>
+                      )}
+                    </Field>
+                  )
+                })}
+              </Card>
+            ) : (
+              <Card key={o.extra.id} id={o.extra.id} className="flex shrink-0 scroll-mt-2 flex-col">
+                <h2 className="pb-1 text-h3 font-semibold text-fg">{t(o.extra.title)}</h2>
+                {o.extra.fields.map((f) => {
+                  const error = extraError(f, o.extra.form.draft[f.key])
+                  return (
+                    <Field key={f.key} className={ROW}>
+                      {(id) => (
+                        <ParamRow id={id} label={f.label} helper={f.helper} changed={extraChanged(o.extra, f.key)}>
+                          <ExtraInput id={id} field={f} form={o.extra.form} />
+                          {error && <p className="text-sm text-error-fg">{error}</p>}
+                        </ParamRow>
+                      )}
+                    </Field>
+                  )
+                })}
+                {o.extra.footer?.(o.extra.form.draft)}
+              </Card>
+            ),
+          )}
         </div>
       </div>
     </ConfigPage>

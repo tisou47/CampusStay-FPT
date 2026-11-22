@@ -98,7 +98,6 @@ export const screens = [
   { code: 'SCR-CFG-24', title: 'Deadlines and reminders', role: 'admin', path: '/admin/deadlines' },
   { code: 'SCR-CFG-25', title: 'Refunds, penalties and terminations', role: 'admin', path: '/admin/refunds' },
   { code: 'SCR-CFG-26', title: 'Stay and renewal', role: 'admin', path: '/admin/stay' },
-  { code: 'SCR-CFG-20', title: 'Utility', role: 'admin', path: '/admin/utility' },
   { code: 'SCR-CFG-05', title: 'Who may apply', role: 'admin', path: '/admin/eligibility' },
   { code: 'SCR-CFG-06', title: 'Roommate matching', role: 'admin', path: '/admin/matching' },
   { code: 'SCR-CFG-21', title: 'Inspection Checklists', role: 'admin', path: '/admin/inspection-checklists' },

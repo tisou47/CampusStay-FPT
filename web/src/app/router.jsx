@@ -108,7 +108,6 @@ const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
-const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
 const MatchingCriteria = () => import('@/pages/admin/MatchingCriteria')
 const InspectionChecklists = () => import('@/pages/admin/InspectionChecklists')
@@ -317,7 +316,8 @@ export const router = createBrowserRouter([
         { path: 'room-classes', ...page(RoomClasses) },
         // The Deposit is a section of System parameters since 22/11/2026; old links still land there.
         { path: 'fees', element: <Navigate to="/admin/system-parameters#deposit" replace /> },
-        { path: 'utility', ...page(UtilitySettings) },
+        // Utility billing and the Utility deposit are sections of System parameters since 22/11/2026.
+        { path: 'utility', element: <Navigate to="/admin/system-parameters#utility-billing" replace /> },
         { path: 'eligibility', ...page(EligibilityRules) },
         { path: 'matching', ...page(MatchingCriteria) },
         { path: 'inspection-checklists', ...page(InspectionChecklists) },
