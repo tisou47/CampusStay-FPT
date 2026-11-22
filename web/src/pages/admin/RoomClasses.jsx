@@ -13,6 +13,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { countLines, typeName } from '@/lib/furniture'
 import { formatNumber, formatVnd } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-03 Room Classes (Figma 25:837)
@@ -33,7 +34,7 @@ function EditDrawer({ item, onClose }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const save = useMutation(
     () => {
-      const body = { name: form.name.trim(), surchargeRate: (Number(form.surcharge) || 0) / 100, status: form.status }
+      const body = { name: form.name.trim(), surchargeRate: (parseDecimal(form.surcharge) ?? 0) / 100, status: form.status }
       return isNew ? api.admin.roomClasses.create(body) : api.admin.roomClasses.update(item.id, body)
     },
     {
@@ -53,7 +54,7 @@ function EditDrawer({ item, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} onClick={() => save.run()} disabled={!form.name.trim() || save.pending}>
+          <Button variant="primary" icon={Check} onClick={() => save.run()} disabled={!form.name.trim() || save.pending || Number.isNaN(parseDecimal(form.surcharge))}>
             Save
           </Button>
         </>

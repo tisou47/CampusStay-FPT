@@ -10,6 +10,7 @@ import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatPercent } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -71,7 +72,8 @@ export default function MatchingCriteria() {
   const { draft } = cfg
   const [preview, setPreview] = useState(null)
   const [advanced, setAdvanced] = useState(false)
-  const body = () => ({ order: draft.order, weights: draft.weights.map((w) => ({ key: w.key, level: w.level })), boost: Number(draft.boost) || 1 })
+  const body = () => ({ order: draft.order, weights: draft.weights.map((w) => ({ key: w.key, level: w.level })), boost: parseDecimal(draft.boost) ?? 1 })
+  const boostInvalid = Number.isNaN(parseDecimal(draft.boost)) // "1,5" is 1.5, text is an error, never Off (WEB-ADM-23)
   const dryRun = useMutation(() => api.admin.matching.preview(body()), {
     onSuccess: (res) => setPreview(res),
     onError: (e) => notifyError(e, 'Preview failed'),
@@ -96,7 +98,7 @@ export default function MatchingCriteria() {
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
             Cancel
           </Button>
-          <Button variant="primary" icon={Check} disabled={!cfg.dirty || !anyUsed || cfg.saving} onClick={() => cfg.save(body())}>
+          <Button variant="primary" icon={Check} disabled={!cfg.dirty || !anyUsed || cfg.saving || boostInvalid} onClick={() => cfg.save(body())}>
             {t('Save as snapshot v{n}', { n: (draft?.snapshot ?? 0) + 1 })}
           </Button>
         </>

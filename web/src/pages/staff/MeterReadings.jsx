@@ -15,6 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { Tooltip, Truncate } from '@/components/ui/Tooltip'
 import { formatDate, formatDateRange, formatNumber, formatPercent } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
 
@@ -34,7 +35,6 @@ import { t, tr } from '@/i18n'
 // summary strip refreshes. The split preview of a room opens in a drawer.
 
 const statusTone = { Entered: 'success', Confirmed: 'info', Missing: 'warning', 'Check value': 'error' }
-const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, ''))
 const asText = (v) => (v == null ? '' : String(v))
 const parse = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v))
 const SAVE_DELAY = 500
@@ -409,7 +409,7 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
     setW(r.water?.current == null ? '' : String(r.water.current))
   }, [r])
 
-  const save = useMutation(() => api.meters.save(periodId, room, { electricity: toNumber(e), water: toNumber(w) }), {
+  const save = useMutation(() => api.meters.save(periodId, room, { electricity: parseDecimal(e), water: parseDecimal(w) }), {
     invalidates: ['meters'],
     onSuccess: () => {
       onChanged(room)
@@ -426,9 +426,11 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
     onError: (err) => notifyError(err, 'Could not confirm'),
   })
 
-  const eNum = toNumber(e)
-  const wNum = toNumber(w)
-  const invalid = !e || !w || (r && (eNum < r.electricity.previous || wNum < r.water.previous))
+  // Decimals are kept ("12,5" is 12.5, not 125: WEB-OPS-01); text that is not a number blocks the save.
+  const eNum = parseDecimal(e)
+  const wNum = parseDecimal(w)
+  const invalid = eNum == null || wNum == null || Number.isNaN(eNum) || Number.isNaN(wNum)
+    || (r && (eNum < r.electricity.previous || wNum < r.water.previous))
 
   const footer = !r ? null : editing ? (
     <>
@@ -483,9 +485,9 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
                       : t('Previous {n}', { n: formatNumber(d.electricity.previous) })
                   }
                   className="flex-1"
-                  error={e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}
+                  error={Number.isNaN(eNum) ? t('Enter a number, e.g. 1360,5') : e && eNum < d.electricity.previous ? 'Lower than previous' : undefined}
                 >
-                  {(id) => <Input id={id} value={e} onChange={(ev) => setE(ev.target.value)} inputMode="numeric" disabled={closed} />}
+                  {(id) => <Input id={id} value={e} onChange={(ev) => setE(ev.target.value)} inputMode="decimal" disabled={closed} />}
                 </Field>
                 <Field
                   label="Water (m³)"
@@ -498,9 +500,9 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
                       : t('Previous {n}', { n: formatNumber(d.water.previous) })
                   }
                   className="flex-1"
-                  error={w && wNum < d.water.previous ? 'Lower than previous' : undefined}
+                  error={Number.isNaN(wNum) ? t('Enter a number, e.g. 1360,5') : w && wNum < d.water.previous ? 'Lower than previous' : undefined}
                 >
-                  {(id) => <Input id={id} value={w} onChange={(ev) => setW(ev.target.value)} inputMode="numeric" disabled={closed} />}
+                  {(id) => <Input id={id} value={w} onChange={(ev) => setW(ev.target.value)} inputMode="decimal" disabled={closed} />}
                 </Field>
               </div>
             ) : (

@@ -127,7 +127,7 @@ function ScheduleCard({ item, options, onEdit }) {
   })
   const completeSchedule = useMutation(() => api.inspections.updateSchedule(item.id, { status: 'Completed' }), {
     invalidates: ['inspection-schedules'],
-    onSuccess: () => notify({ title: 'Đã kết thúc lịch kiểm tra', message: tr(item.name) }),
+    onSuccess: () => notify({ title: 'Inspection schedule ended', message: tr(item.name) }),
     onError: (e) => notifyError(e, 'Không thể kết thúc lịch kiểm tra'),
   })
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
@@ -156,7 +156,7 @@ function ScheduleCard({ item, options, onEdit }) {
         <dd className="text-fg">{item.dueWithinDays}</dd>
       </dl>
       {!isCompleted && item.latestRunSubmitted && (
-        <Alert type="success" title="Nhân viên đã nộp kết quả kiểm tra">
+        <Alert type="success" title="Staff submitted the inspection results">
           Đợt kiểm tra của lịch này đã được nhân viên nộp báo cáo. Bạn có thể ghi nhận hoàn thành và bấm kết thúc lịch.
         </Alert>
       )}

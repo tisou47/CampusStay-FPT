@@ -73,8 +73,12 @@ function Detail({ item, assignees }) {
           <div className="flex flex-wrap gap-2">
             {item.link && <Button to={item.link}>Open request</Button>}
             {item.canOfferTemporaryBed && (
-              <Button onClick={() => act.run({ action: 'temporary-bed', note: note.trim() || undefined })} disabled={act.pending}>
-                Offer temporary bed
+              <Button
+                tip="Write in the note which bed and until when: the student and the request's owner are told."
+                onClick={() => act.run({ action: 'temporary-bed', note: note.trim() })}
+                disabled={!note.trim() || act.pending}
+              >
+                Temporary bed arranged
               </Button>
             )}
             <Button variant="primary" icon={Check} onClick={() => act.run({ action: 'reassign', assigneeId, note: note.trim() || undefined })} disabled={!assigneeId || act.pending}>

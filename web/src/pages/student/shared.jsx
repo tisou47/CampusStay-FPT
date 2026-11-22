@@ -127,6 +127,7 @@ export function ActivitySwitch({ current }) {
   const items = [
     { key: 'applications', label: 'Applications', to: '/student/applications' },
     { key: 'requests', label: 'Requests', to: '/student/requests' },
+    { key: 'family-days', label: 'Family Day', to: '/student/family-days' }, // reachable on phones (WEB-STU-24)
   ]
   return (
     <nav aria-label={t('Activity')} className="flex h-10 shrink-0 overflow-hidden rounded-full border border-line-strong bg-surface lg:hidden">

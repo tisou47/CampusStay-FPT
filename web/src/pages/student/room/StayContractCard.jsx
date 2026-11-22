@@ -14,7 +14,8 @@ export function StayContractCard({ data }) {
   const { allocation: a, term: tm, balance, stay, stayTerms, application: app } = data
   if (!a) return null
 
-  const contractCode = app?.code ? `HD-${app.code}` : `HD-${a.block ?? 'KTX'}-${a.room ?? '000'}-${a.bed ?? '0'}`
+  // The Application id is the real reference; a number built here would look official but match nothing (WEB-STU-23).
+  const contractCode = app?.id ? `HD-${app.id}` : null
   const resident = a.status === 'Resident'
   const isPaid = balance?.status === 'Paid'
 
@@ -29,9 +30,11 @@ export function StayContractCard({ data }) {
             <h2 className="text-h3 font-semibold text-fg">
               {t('Dormitory stay contract')}
             </h2>
-            <span className="text-sm font-medium text-fg-tertiary tabular">
-              {contractCode}
-            </span>
+            {contractCode && (
+              <span className="text-sm font-medium text-fg-tertiary tabular">
+                {contractCode}
+              </span>
+            )}
           </div>
         </div>
         <StatusTag status={resident ? 'Resident' : a.status ?? 'Allocated'} />
@@ -129,7 +132,7 @@ export function StayActivityLogCard({ data }) {
     {
       id: 'app',
       title: t('Application & eligibility'),
-      subtitle: app?.code ? t('Application {code} verified and approved', { code: app.code }) : t('Application submitted and verified'),
+      subtitle: app?.id ? t('Application {code} verified and approved', { code: app.id }) : t('Application submitted and verified'),
       time: a.allocatedAt ? formatDate(a.allocatedAt) : null,
       done: true,
       current: false,

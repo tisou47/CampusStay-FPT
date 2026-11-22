@@ -13,8 +13,10 @@ const escapeHtml = (v) =>
 /** A cell of a printable report, escaped. */
 export const h = escapeHtml
 
-const csvCell = (v) => {
-  const s = String(v ?? '')
+/** A CSV cell; text starting with = + - @ or a tab is prefixed with ' so a spreadsheet never runs it as a formula. */
+export const csvCell = (v) => {
+  const raw = String(v ?? '')
+  const s = typeof v === 'string' && /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
   return /[",\n;]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s
 }
 
