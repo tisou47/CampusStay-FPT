@@ -273,7 +273,8 @@ export function CheckOutPanel({ d, embedded = false }) {
       return api.desk.checkOutDetail(d.allocationId)
     },
     {
-      invalidates: ['check-out', 'check-out-furniture'],
+      // No invalidation here: a refetch would show the draft status and remount this panel, closing the summary.
+      // The list refreshes when the check-out is completed (submit).
       onSuccess: (detail) => {
         setFresh(detail?.settlement ?? null)
         setShowSummary(true)
