@@ -4889,6 +4889,22 @@ const managerOverview = {
   "residents": "người",
   "Please select the room condition before confirming check-out.": "Vui lòng chọn tình trạng phòng trước khi xác nhận trả phòng.",
   "{item}: {condition}, {status} ({amount})": "{item}: {condition}, {status} ({amount})",
+  "Maintenance requests: {ids}": "Đơn bảo trì: {ids}",
+  "This run is assigned to {name}. You can only view or export it.": "Đợt kiểm tra này được giao cho {name}. Bạn chỉ có thể xem hoặc xuất báo cáo.",
+  "This run has not been assigned to any staff member yet.": "Đợt kiểm tra này chưa được giao cho nhân viên nào.",
+  "Assignee": "Phụ trách",
+  "Unassigned": "Chưa phân công",
+  "View contract / check-in report (Report Final)": "Xem hợp đồng / biên bản nhận phòng (Report Final)",
+  "No Report Final": "Không có Report Final",
+  "Check-in report (Report Final) · {name}": "Biên bản nhận phòng (Report Final) · {name}",
+  "Report code": "Mã biên bản",
+  "Finalized at": "Ngày chốt",
+  "Opening electricity": "Chỉ số điện lúc nhận",
+  "Opening water": "Chỉ số nước lúc nhận",
+  "Furniture condition at check-in ({n} items)": "Tình trạng nội thất lúc nhận phòng ({n} món)",
+  "Asset code": "Mã tài sản",
+  "Condition at check-in": "Tình trạng lúc nhận",
+  "Recorded as pre-existing": "Đã ghi nhận có sẵn từ trước",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

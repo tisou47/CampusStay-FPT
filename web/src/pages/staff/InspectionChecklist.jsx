@@ -294,7 +294,7 @@ function Checklist({ run, room }) {
             <Tag tone={statusTone[room.status] ?? 'neutral'}>{room.status}</Tag>
             {room.createdRequests?.length > 0 && (
               <Tag tone="warning">
-                Đơn bảo trì: {room.createdRequests.join(', ')}
+                {t('Maintenance requests: {ids}', { ids: room.createdRequests.join(', ') })}
               </Tag>
             )}
           </div>
@@ -311,9 +311,9 @@ function Checklist({ run, room }) {
       </div>
 
       {/* 2. Scrollable work area: Meters (pre-arrival runs) + Fast Checklist Table */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-3.5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
         {room.metersNeeded && (
-          <section className="flex shrink-0 flex-col gap-2 rounded-xl border border-line bg-subtle/40 p-3">
+          <section className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-subtle/40 p-4">
             <span className="text-sm font-semibold text-fg">{t('Meters of the Room')}</span>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field
@@ -385,7 +385,7 @@ function Checklist({ run, room }) {
             {items.map((item) => {
               const r = results[item.id]
               return (
-                <Tr key={item.id} className={cx('[&>td]:py-2', (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/50')}>
+                <Tr key={item.id} className={cx('[&>td]:py-2.5', (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/35')}>
                   <Td>
                     <span className="text-sm text-fg">{item.label}</span>
                   </Td>
@@ -468,8 +468,8 @@ function Checklist({ run, room }) {
           ) : !mine ? (
             <span className="font-medium text-warning-fg">
               {run.assigneeName
-                ? `Đợt kiểm tra này được giao cho ${run.assigneeName}. Bạn chỉ có thể xem hoặc xuất báo cáo.`
-                : 'Đợt kiểm tra này chưa được giao cho nhân viên nào.'}
+                ? t('This run is assigned to {name}. You can only view or export it.', { name: run.assigneeName })
+                : t('This run has not been assigned to any staff member yet.')}
             </span>
           ) : (
             <span>
@@ -641,7 +641,7 @@ function RunSwitcher({ runs, value, onChange }) {
             aria-selected={active}
             onClick={() => onChange(r.id)}
             className={cx(
-              'flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors',
+              'flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
               active ? 'border-primary bg-brand-subtle text-fg' : 'border-line bg-subtle/50 text-fg-secondary hover:bg-subtle',
             )}
           >
@@ -739,60 +739,61 @@ function Run({ run, switcher, onSubmitted }) {
   return (
     <>
       <PageHeader
+        compact
         title="Inspections"
         description={[run.id, formatDate(run.date), tr(run.scheduleName), tr(run.scope), run.block && t('Block {code}', { code: run.block })].filter(Boolean).join(' · ')}
         actions={
-          <>
-            <Button icon={CalendarDays} onClick={() => setCalendar(true)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" icon={CalendarDays} onClick={() => setCalendar(true)}>
               Calendar
             </Button>
-            <Button icon={Download} onClick={doExport} disabled={exporting}>
+            <Button size="sm" icon={Download} onClick={doExport} disabled={exporting}>
               Export CSV
             </Button>
-            <Button icon={Printer} onClick={doPrintForms} disabled={printing}>
+            <Button size="sm" icon={Printer} onClick={doPrintForms} disabled={printing}>
               Print Report 1 forms
             </Button>
-            <Button icon={Printer} onClick={() => doPrintBatch('todo')} disabled={printingBatch !== null}>
+            <Button size="sm" icon={Printer} onClick={() => doPrintBatch('todo')} disabled={printingBatch !== null}>
               Print all unfinished forms
             </Button>
-            <Button icon={Printer} onClick={() => doPrintBatch('done')} disabled={printingBatch !== null}>
+            <Button size="sm" icon={Printer} onClick={() => doPrintBatch('done')} disabled={printingBatch !== null}>
               Print all completed forms
             </Button>
             {!sent && mine && (
-              <Button variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
+              <Button size="sm" variant="primary" onClick={() => setReviewing(true)} disabled={submit.pending}>
                 Submit results
               </Button>
             )}
-          </>
+          </div>
         }
       />
 
       {/* Compact single-bar Run Switcher + Inline Stats */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2.5">
         {switcher}
         <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
-            Phụ trách: <strong className={mine ? 'text-fg-brand' : 'text-fg'}>{run.assigneeName ?? 'Chưa phân công'}</strong>
+          <span className="rounded-md bg-subtle px-2.5 py-1 text-fg-secondary">
+            {t('Assignee')}: <strong className={mine ? 'font-semibold text-fg-brand' : 'font-semibold text-fg'}>{run.assigneeName ?? t('Unassigned')}</strong>
           </span>
-          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
-            {t('Rooms in this run')}: <strong className="text-fg tabular">{formatNumber(run.rooms)}</strong>
+          <span className="rounded-md bg-subtle px-2.5 py-1 text-fg-secondary">
+            {t('Rooms in this run')}: <strong className="font-semibold text-fg tabular">{formatNumber(run.rooms)}</strong>
           </span>
-          <span className="rounded-md bg-subtle px-2 py-1 text-fg-secondary">
-            {t('Inspected')}: <strong className="text-fg tabular">{formatNumber(run.inspected)}</strong>
+          <span className="rounded-md bg-subtle px-2.5 py-1 text-fg-secondary">
+            {t('Inspected')}: <strong className="font-semibold text-fg tabular">{formatNumber(run.inspected)}</strong>
           </span>
-          <span className={cx('rounded-md px-2 py-1', run.failed > 0 ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
-            {t('Items failed')}: <strong className="tabular">{formatNumber(run.failed)}</strong>
+          <span className={cx('rounded-md px-2.5 py-1', run.failed > 0 ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
+            {t('Items failed')}: <strong className="font-semibold tabular">{formatNumber(run.failed)}</strong>
           </span>
           {run.dueAt && (
-            <span className={cx('rounded-md px-2 py-1', run.overdue ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
+            <span className={cx('rounded-md px-2.5 py-1 tabular', run.overdue ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary')}>
               {t('Due {date}', { date: formatDate(run.dueAt) })}
             </span>
           )}
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-104 shrink-0 flex-col gap-2.5">
+      <div className="flex min-h-0 flex-1 flex-col items-stretch gap-4 lg:flex-row">
+        <div className="flex min-h-0 w-full shrink-0 flex-col gap-3 lg:w-104">
           <Segmented
             value={roomFilter}
             onChange={setRoomFilter}
@@ -813,7 +814,19 @@ function Run({ run, switcher, onSubmitted }) {
             <TBody>
               <TableStatus query={rooms} colSpan={3} rows={items} emptyTitle="No rooms in this run" />
               {items.map((r) => (
-                <Tr key={r.room} selected={r.room === selected?.room} onClick={() => setSelectedRoom(r.room)} className="[&>td]:py-2.5">
+                <Tr
+                  key={r.room}
+                  tabIndex={0}
+                  selected={r.room === selected?.room}
+                  onClick={() => setSelectedRoom(r.room)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedRoom(r.room)
+                    }
+                  }}
+                  className="cursor-pointer transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus [&>td]:py-2.5"
+                >
                   <Td>
                     <TwoLine primary={r.room} secondary={`${tr(r.roomTypeName)} ${tr(r.roomClassName)}`.trim()} />
                   </Td>

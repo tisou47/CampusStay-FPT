@@ -284,10 +284,10 @@ export function CheckOutHeaderCard({ d, held, onOpenHandover }) {
       <div className="flex flex-wrap items-center gap-2">
         {d.handoverReport ? (
           <Button size="sm" icon={FileText} onClick={onOpenHandover}>
-            Xem hợp đồng / biên bản nhận phòng (Report Final)
+            {t('View contract / check-in report (Report Final)')}
           </Button>
         ) : (
-          <span className="rounded-md bg-subtle px-3 py-1.5 text-xs text-fg-tertiary">Không có Report Final</span>
+          <span className="rounded-md bg-subtle px-3 py-1.5 text-xs text-fg-tertiary">{t('No Report Final')}</span>
         )}
       </div>
     </section>
@@ -340,30 +340,30 @@ export function HandoverReportModal({ open, onClose, d }) {
       open={open}
       onClose={onClose}
       width={720}
-      title={`Biên bản nhận phòng (Report Final) · ${d.name}`}
+      title={t('Check-in report (Report Final) · {name}', { name: d.name })}
       description={`${d.studentCode} · ${t('{room} · Bed {bed}', { room: d.room, bed: d.bed })} · ${d.handoverReport.id}`}
       footer={<Button onClick={onClose}>{t('Close')}</Button>}
     >
       <div className="flex flex-col gap-4">
         <dl className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-subtle/50 p-4 text-xs sm:grid-cols-4">
           <div>
-            <dt className="text-fg-tertiary">Mã biên bản</dt>
+            <dt className="text-fg-tertiary">{t('Report code')}</dt>
             <dd className="mt-0.5 font-mono font-semibold text-fg">{d.handoverReport.id}</dd>
           </div>
           <div>
-            <dt className="text-fg-tertiary">Ngày chốt</dt>
+            <dt className="text-fg-tertiary">{t('Finalized at')}</dt>
             <dd className="mt-0.5 font-medium text-fg">
               {d.handoverReport.finalizedAt ? formatDateTime(d.handoverReport.finalizedAt) : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-fg-tertiary">Chỉ số điện lúc nhận</dt>
+            <dt className="text-fg-tertiary">{t('Opening electricity')}</dt>
             <dd className="mt-0.5 font-semibold text-fg tabular">
               {d.handoverReport.electricity != null ? `${formatNumber(d.handoverReport.electricity)} kWh` : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-fg-tertiary">Chỉ số nước lúc nhận</dt>
+            <dt className="text-fg-tertiary">{t('Opening water')}</dt>
             <dd className="mt-0.5 font-semibold text-fg tabular">
               {d.handoverReport.water != null ? `${formatNumber(d.handoverReport.water)} m³` : '—'}
             </dd>
@@ -371,17 +371,17 @@ export function HandoverReportModal({ open, onClose, d }) {
         </dl>
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
-            Tình trạng nội thất lúc nhận phòng ({d.handoverReport.items?.length ?? 0} món)
+          <p className="text-xs font-semibold text-fg-secondary">
+            {t('Furniture condition at check-in ({n} items)', { n: d.handoverReport.items?.length ?? 0 })}
           </p>
           <div className="max-h-72 overflow-y-auto rounded-xl border border-line">
             <Table>
               <THead>
                 <tr>
-                  <Th>Nội thất</Th>
-                  <Th className="w-32">Mã tài sản</Th>
-                  <Th className="w-36">Tình trạng lúc nhận</Th>
-                  <Th>Ghi chú</Th>
+                  <Th>Furniture</Th>
+                  <Th className="w-32">Asset code</Th>
+                  <Th className="w-36">Condition at check-in</Th>
+                  <Th>Note</Th>
                 </tr>
               </THead>
               <TBody>
@@ -395,7 +395,7 @@ export function HandoverReportModal({ open, onClose, d }) {
                       <Tag tone={conditionTone[it.condition] ?? 'neutral'}>{conditionName(it.condition)}</Tag>
                     </Td>
                     <Td className="text-xs text-fg-secondary">
-                      {it.note || (it.preExisting ? 'Đã ghi nhận có sẵn từ trước' : '—')}
+                      {it.note || (it.preExisting ? t('Recorded as pre-existing') : '—')}
                     </Td>
                   </Tr>
                 ))}
