@@ -25,7 +25,6 @@ export default function FeesRules() {
     <ConfigPage
       form={cfg}
       title="Deposit"
-      description="The deposit new terms start with."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>

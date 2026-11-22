@@ -5,5 +5,5 @@ import SettingsGroup from './SettingsGroup'
 // GET /admin/settings/deadlines · PUT /admin/settings/deadlines { values }
 
 export default function Deadlines() {
-  return <SettingsGroup group="deadlines" title="Deadlines and reminders" description="Payment windows and reminders; a term copies the payment windows when it is built." />
+  return <SettingsGroup group="deadlines" title="Deadlines and reminders" />
 }

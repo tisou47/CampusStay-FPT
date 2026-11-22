@@ -133,7 +133,6 @@ export default function RoomClasses() {
     <>
       <PageHeader
         title="Room tiers"
-        description="Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
             New room tier

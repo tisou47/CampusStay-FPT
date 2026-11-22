@@ -59,7 +59,6 @@ export default function UtilitySettings() {
     <ConfigPage
       form={cfg}
       title="Utility"
-      description="Rules for monthly utility invoices and the utility deposit. Changes apply from the next billing period."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>

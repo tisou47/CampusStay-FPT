@@ -36,7 +36,6 @@ export default function SystemParameters() {
     <ConfigPage
       form={cfg}
       title="System Parameters"
-      description="Global values used across CampusStay. Every change is written to the audit log."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>

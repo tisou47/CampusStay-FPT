@@ -112,7 +112,6 @@ export default function UsersRoles() {
     <>
       <PageHeader
         title="Users and Roles"
-        description="Staff, manager and admin accounts. Students sign in with FPT accounts and are not created here."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!d}>
             Invite user

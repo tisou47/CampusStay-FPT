@@ -70,7 +70,6 @@ export default function SendEmail() {
     <ConfigPage
       form={form_}
       title="Send email"
-      description="Send a template to one student or to a filtered group. Every send is written to the audit log."
       actions={
         <>
           <Button to="/admin/notifications">Templates</Button>

@@ -943,7 +943,6 @@ export default function TermWizard() {
       <PageHeader
         title={w.name}
         badge={<Tag tone={termTone[w.status] ?? 'neutral'}>{w.status}</Tag>}
-        description={`${formatDateRange(w.general.stayStart, w.general.stayEnd)}${w.request ? ` · ${t('built from {code} ({manager})', { code: w.request.code, manager: w.request.requestedBy })}` : ''}`}
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
             <ArrowLeft size={14} aria-hidden="true" />

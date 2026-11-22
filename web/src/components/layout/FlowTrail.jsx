@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router'
 import { AlertTriangle, ArrowRight, CalendarDays, Info } from 'lucide-react'
 import { SemesterProgress } from '@/components/ui/SemesterProgress'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { ADMIN_STAGES, READY_SCREENS, flowPosition } from '@/app/adminFlow'
 import { MANAGER_STAGES, STAFF_STAGES, stagePosition } from '@/app/managerFlow'
 import { useSession } from '@/app/session'
 import { termJourney } from '@/lib/termJourney'
@@ -17,7 +16,8 @@ import { cx } from '@/lib/cx'
 export function FlowTrail({ role }) {
   const { pathname } = useLocation()
   const { term } = useSession()
-  const flow = role === 'admin' ? adminTrail(pathname) : STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
+  // The Admin's screens go without the trail (user decision 22/11/2026): only Managers and Staff see one.
+  const flow = STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
   if (!flow) return null
   const InfoGlyph = flow.notice ? AlertTriangle : Info
   return (
@@ -74,23 +74,6 @@ export function FlowTrail({ role }) {
       )}
     </nav>
   )
-}
-
-/** Admin screens that do without the trail (their page says enough on its own). */
-const ADMIN_NO_TRAIL = ['/admin/term-requests']
-
-function adminTrail(pathname) {
-  if (ADMIN_NO_TRAIL.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null
-  const at = flowPosition(pathname)
-  if (!at) return null
-  return {
-    title: t('Set up a term'),
-    home: '/admin',
-    steps: ADMIN_STAGES.map((st, i) => ({ key: st.key, label: st.label, why: st.why, state: stateAt(i, at.stage) })),
-    screen: at.current ? t('{label} · {n} of {total}', { label: t(at.current.label), n: at.screen + 1, total: READY_SCREENS.length }) : null,
-    why: at.current?.why ?? ADMIN_STAGES[at.stage].why,
-    next: at.next,
-  }
 }
 
 const STAGES = { manager: MANAGER_STAGES, staff: STAFF_STAGES }

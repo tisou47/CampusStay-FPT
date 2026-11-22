@@ -94,14 +94,13 @@ export function AppliesFrom({ appliesFrom }) {
 }
 
 /** A whole page for one group (Deadlines and reminders; Stay and renewal). */
-export default function SettingsGroup({ group, title, description }) {
+export default function SettingsGroup({ group, title }) {
   const { notify } = useToast()
   const form = useSettingsGroup(group, { onSaved: () => notify({ title: t('{title} saved', { title: t(title) }), message: 'Students read the change in an announcement.' }) })
   return (
     <>
       <PageHeader
         title={title}
-        description={description}
         actions={
           <>
             <Button onClick={form.reset} disabled={!form.dirty}>

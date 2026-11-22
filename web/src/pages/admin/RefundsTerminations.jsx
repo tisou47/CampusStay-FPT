@@ -74,7 +74,6 @@ export default function RefundsTerminations() {
     <ConfigPage
       form={cfg}
       title="Refunds, penalties and terminations"
-      description="How much is refunded when a stay or an application ends, and when utility debt ends a stay."
       actions={
         <>
           <Button

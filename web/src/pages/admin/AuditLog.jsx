@@ -64,7 +64,6 @@ export default function AuditLog() {
     <>
       <PageHeader
         title="Audit log"
-        description={`${t('Every configuration change, irreversible action and data export. Read-only.')}${d?.retentionMonths ? ` ${t('Kept {n} months.', { n: d.retentionMonths })}` : ''}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export .csv

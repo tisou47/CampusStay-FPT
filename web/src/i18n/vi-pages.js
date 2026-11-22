@@ -1941,7 +1941,6 @@ const admin = {
   "Opens": "Mở",
   "Closes": "Đóng",
   "Assignment results": "Công bố kết quả xếp phòng",
-  "Payment windows": "Thời hạn thanh toán",
   "Roommate confirmation (hours)": "Xác nhận bạn cùng phòng (giờ)",
   "Deposit payment (hours)": "Đóng tiền đặt cọc (giờ)",
   "Leave empty to use the default payment window of Fees and Rules.": "Để trống để dùng thời hạn thanh toán mặc định trong Phí và quy định.",
@@ -1972,7 +1971,6 @@ const admin = {
   "Only Room Types with 2 Beds can allow mutual invite.": "Chỉ loại phòng 2 giường mới cho phép mời lẫn nhau.",
   "Only room types with 2 beds can allow mutual invite.": "Chỉ loại phòng 2 giường mới cho phép mời lẫn nhau.",
   "Term price per bed with room tier": "Giá mỗi giường / học kỳ theo hạng phòng",
-  "Number of beds per room and the base price per bed for one term. Room tier surcharges are added on top.": "Số giường mỗi phòng và giá gốc mỗi giường cho một học kỳ. Phụ phí hạng phòng được cộng thêm.",
   "Base price per bed / term": "Giá gốc mỗi giường / học kỳ",
   "No room types yet": "Chưa có loại phòng",
   "Total capacity": "Tổng sức chứa",
@@ -2026,7 +2024,6 @@ const admin = {
   "Utility settings saved": "Đã lưu cài đặt điện nước",
   "Meter readings use the new values from the next billing period.": "Chỉ số công tơ dùng giá trị mới từ kỳ tính tiền sau.",
   "Enter {n} or more": "Nhập từ {n} trở lên",
-  "Rules for monthly utility invoices and the utility deposit. Changes apply from the next billing period.": "Quy định cho hóa đơn điện nước hằng tháng và cọc điện nước. Thay đổi áp dụng từ kỳ tính tiền sau.",
   "Utility billing": "Tính tiền điện nước",
   "One meter per room. Each segment is split equally among its residents.": "Mỗi phòng một công tơ. Mỗi đoạn được chia đều cho người ở trong đoạn đó.",
   "Electricity price (₫/kWh)": "Giá điện (₫/kWh)",
@@ -2054,7 +2051,6 @@ const admin = {
   "the next term that opens": "học kỳ tiếp theo được mở",
   "Eligibility Rules": "Điều kiện đăng ký",
   "Who can apply each Term, and who is processed first when Beds run short.": "Ai được đăng ký mỗi học kỳ, và ai được xét trước khi thiếu giường.",
-  "Who can apply": "Ai được đăng ký",
   "All active criteria must pass. Checked against FPT student records on submit.": "Phải đạt mọi tiêu chí đang bật. Hệ thống đối chiếu hồ sơ sinh viên FPT khi nộp đơn.",
   "Priority groups": "Nhóm ưu tiên",
   "Add group": "Thêm nhóm",
@@ -2129,7 +2125,6 @@ const admin = {
   "archived {date}": "lưu trữ {date}",
   "Draft checklist created": "Đã tạo danh mục nháp",
   "Add its items, then publish.": "Hãy thêm các mục rồi công bố.",
-  "Checklists used by staff when managers schedule inspections. Failed items create maintenance requests.": "Danh mục nhân viên dùng khi Quản lý lên lịch kiểm tra. Mục không đạt tạo yêu cầu bảo trì.",
   "New checklist": "Danh mục mới",
   "Items": "Số mục",
   "not published": "chưa công bố",
@@ -2164,13 +2159,11 @@ const admin = {
   "Send test to me": "Gửi thử cho tôi",
   "Save template": "Lưu mẫu",
   "Notification Templates": "Mẫu thông báo",
-  "Messages sent on each event. Push goes to the Android app; in-app appears in the web notification center.": "Thông điệp gửi theo từng sự kiện. Thông báo đẩy đến ứng dụng Android; thông báo trong ứng dụng hiện ở Trung tâm thông báo trên web.",
   "No templates": "Chưa có mẫu",
   "Select a template": "Chọn một mẫu",
   "Email queued": "Đã xếp hàng email",
   "Email scheduled": "Đã hẹn giờ email",
   "{n} recipients. Written to the audit log.": "{n} người nhận. Đã ghi vào nhật ký kiểm tra.",
-  "Send a template to one student or to a filtered group. Every send is written to the audit log.": "Gửi mẫu cho một sinh viên hoặc một nhóm đã lọc. Mỗi lần gửi đều được ghi vào nhật ký kiểm tra.",
   "Templates": "Mẫu",
   "Recipients": "Người nhận",
   "One student": "Một sinh viên",
@@ -2215,7 +2208,6 @@ const admin = {
   "System parameters saved": "Đã lưu tham số hệ thống",
   "New values apply to new sessions and invoices.": "Giá trị mới áp dụng cho phiên đăng nhập và hóa đơn mới.",
   "System Parameters": "Tham số hệ thống",
-  "Global values used across CampusStay. Every change is written to the audit log.": "Các giá trị dùng chung trong CampusStay. Mọi thay đổi đều được ghi vào nhật ký kiểm tra.",
   "Enter a whole number": "Nhập một số nguyên",
   "Sections": "Các mục",
   "Changed": "Đã đổi",
@@ -2287,7 +2279,6 @@ const admin = {
   "Managers and admins work for every block.": "Quản lý và Admin làm việc với mọi tòa.",
   "Disabled users cannot sign in; their history stays in the audit log.": "Người dùng bị khóa không đăng nhập được; lịch sử vẫn lưu trong nhật ký kiểm tra.",
   "Users and Roles": "Người dùng và vai trò",
-  "Staff, manager and admin accounts. Students sign in with FPT accounts and are not created here.": "Tài khoản nhân viên, Quản lý và Admin. Sinh viên đăng nhập bằng tài khoản FPT và không được tạo ở đây.",
   "Search name or email": "Tìm họ tên hoặc email",
   "Role: All": "Vai trò: Tất cả",
   "Role: {r}": "Vai trò: {r}",
@@ -2346,8 +2337,6 @@ const admin = {
   "Date: Last 30 days": "Ngày: 30 ngày qua",
   "Date: Last 90 days": "Ngày: 90 ngày qua",
   "Date: All time": "Ngày: Toàn bộ",
-  "Every configuration change, irreversible action and data export. Read-only.": "Mọi thay đổi cấu hình, thao tác không thể hoàn tác và lần xuất dữ liệu. Chỉ xem.",
-  "Kept {n} months.": "Lưu {n} tháng.",
   "Export .csv": "Xuất .csv",
   "Search object or user": "Tìm đối tượng hoặc người dùng",
   "Actor": "Người thực hiện",
@@ -2677,7 +2666,6 @@ const inventory = {
   "Does not match": "Chưa đạt",
   "Room code": "Mã phòng",
   "Demo data": "Dữ liệu demo",
-  "Replace the business data by a demo stage whose dates are relative to today. Accounts, buildings, furniture and settings stay.": "Thay dữ liệu nghiệp vụ bằng một giai đoạn demo có mốc thời gian tính theo hôm nay. Tài khoản, tòa, nội thất và thiết lập được giữ nguyên.",
   "The demo tools are off on this server": "Công cụ demo đang tắt trên máy chủ này",
   "Set DEMO_TOOLS=true in the server settings and restart the API to use them.": "Đặt DEMO_TOOLS=true trong thiết lập máy chủ và khởi động lại API để dùng.",
   "Choose a stage": "Chọn giai đoạn",
@@ -2887,8 +2875,6 @@ const inventory = {
   "Fixture": "Thiết bị gắn cố định",
 
   // Admin › Furniture types and Room Class requirements
-  "Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers).":
-    "Các loại nội thất ký túc xá theo dõi. Loại quyết định hạng phòng là thứ các hạng phòng yêu cầu (Hạng phòng).",
   "New furniture type": "Loại nội thất mới",
   "Code": "Mã",
   "Defines the room tier": "Quyết định hạng phòng",
@@ -2913,8 +2899,6 @@ const inventory = {
   "Only furniture types that define the room tier are listed (Furniture types).":
     "Chỉ liệt kê các loại nội thất quyết định hạng phòng (Loại nội thất).",
   "Room furniture is checked against the new list at once.": "Nội thất của các phòng được kiểm tra theo danh sách mới ngay lập tức.",
-  "Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term.":
-    "Các mức tiện nghi, xác định bởi nội thất yêu cầu. Mỗi hạng cộng phụ phí (%) vào giá gốc của loại phòng; mỗi phòng có hạng theo từng học kỳ.",
 
   // Admin › Buildings
   "Room tier of the new rooms": "Hạng của các phòng mới",
@@ -2928,8 +2912,6 @@ const inventory = {
     "Mỗi tầng giữ bố trí riêng; tầng mới sao chép bố trí và hạng phòng của cùng tầng ở Tòa {block}, ví dụ {rooms}. Phòng còn thiếu được thêm với mã <tòa>-<Tầng><nn>; phòng đã có được giữ nguyên và tầng đang có người được xếp sẽ được bỏ qua.",
   "No Floor has a layout yet, so each new Floor gets one Room of every active Room Type. Existing Rooms are kept and Floors with Allocations are skipped.":
     "Chưa tầng nào có bố trí, nên mỗi tầng mới có một phòng cho mỗi loại phòng đang hoạt động. Phòng đã có được giữ nguyên và tầng đang có người được xếp sẽ được bỏ qua.",
-  "Blocks, floors, rooms and beds. Each room has its room type, and its room tier per term (Manager › Room tiers); bulk-generate a floor layout to save time.":
-    "Tòa, tầng, phòng và giường. Mỗi phòng có loại phòng, và hạng phòng theo từng học kỳ (Quản lý › Hạng phòng theo học kỳ); tạo hàng loạt bố cục tầng để tiết kiệm thời gian.",
 
   // Rooms and Beds panel
   "Next term": "Học kỳ sau",
@@ -3204,8 +3186,6 @@ const registration = {
   "The admin and the other managers are told.": "Quản trị viên và các Quản lý khác sẽ được báo.",
 
   // Terms and the wizard (Admin)
-  "Build a term step by step and publish it. Students see a term, its prices and its rules once it is published.":
-    "Dựng học kỳ theo từng bước rồi công bố. Sinh viên thấy học kỳ, giá và quy định của học kỳ khi học kỳ được công bố.",
   "Requests from managers": "Đề nghị của Quản lý",
   "Wizard": "Các bước",
   "Start with New term, or build one from a manager's request.": "Bắt đầu bằng Học kỳ mới, hoặc dựng học kỳ từ một đề nghị của Quản lý.",
@@ -3286,10 +3266,8 @@ const registration = {
   "Publish": "Công bố",
   "Every student sees {name} on their board and every manager is told. Its {n} prices, deposit ({deposit}%), utility deposit and rules are fixed from then on.":
     "Mọi sinh viên sẽ thấy {name} trên bảng tin và mọi Quản lý được báo. {n} mức giá, tiền đặt cọc ({deposit}%), tiền đặt cọc điện nước và quy định của kỳ được cố định từ lúc đó.",
-  "Start with the name and the stay; the Draft is saved after each step.": "Bắt đầu bằng tên và thời gian ở; bản nháp được lưu sau mỗi bước.",
   "Could not create the term": "Không tạo được học kỳ",
   "Prices start from the term before (or the default prices), the house rules from the term before.": "Giá lấy từ học kỳ trước (hoặc giá mặc định), nội quy lấy từ học kỳ trước.",
-  "built from {code} ({manager})": "dựng từ {code} ({manager})",
   "Open {code}": "Mở {code}",
   "Wizard steps": "Các bước",
 
@@ -3418,8 +3396,6 @@ const registration = {
   "A term keeps the values it opened with; a change applies to the next term you publish and to work started from now on. Students read it in an announcement.":
     "Mỗi học kỳ giữ giá trị lúc mở; thay đổi áp dụng cho học kỳ bạn công bố tiếp theo và cho công việc bắt đầu từ bây giờ. Sinh viên đọc thay đổi trong thông báo.",
   "{title} saved": "Đã lưu {title}",
-  "Payment windows and reminders; a term copies the payment windows when it is built.": "Thời hạn thanh toán và nhắc nhở; mỗi học kỳ sao chép thời hạn thanh toán khi được dựng.",
-  "How long students may commit to stay, extensions, and the beds kept for new students.": "Số kỳ sinh viên được đăng ký ở, gia hạn, và số giường dành cho sinh viên mới.",
   "The Deposit new Terms start with, and how payments are confirmed.": "Tiền đặt cọc mặc định của học kỳ mới và cách xác nhận thanh toán.",
   "Deposit saved": "Đã lưu tiền đặt cọc",
   "New terms copy it; students read the change in an announcement.": "Các học kỳ mới sao chép mức này; sinh viên đọc thay đổi trong thông báo.",
@@ -3429,15 +3405,12 @@ const registration = {
   "Where the other settings are": "Các thiết lập khác ở đâu",
   "The deposit and balance payment windows are in deadlines and reminders; refund rules in refunds, penalties and terminations; the utility deposit in utility.":
     "Thời hạn nộp cọc và tiền phòng còn lại ở Thời hạn và nhắc nhở; quy tắc hoàn tiền ở Hoàn tiền, phạt và chấm dứt ở; tiền đặt cọc điện nước ở Điện nước.",
-  "How much is refunded when a stay or an application ends, and when utility debt ends a stay.":
-    "Mức hoàn tiền khi kết thúc ở hoặc kết thúc đơn đăng ký, và khi nợ điện nước làm chấm dứt ở.",
   "One rule per trigger; the approver decides the refunds that are not automatic.": "Mỗi trường hợp một quy tắc; người duyệt quyết định các khoản hoàn không tự động.",
   "Refunds, penalties and terminations saved": "Đã lưu hoàn tiền, phạt và chấm dứt ở",
   "Students read the change in an announcement; it is written to the audit log.": "Sinh viên đọc thay đổi trong thông báo; thay đổi được ghi vào nhật ký kiểm tra.",
   "Terminations and late check-ins": "Chấm dứt ở và nhận phòng muộn",
 
   // Rules screens (spec §6.17)
-  "The checks every application passes, and who is placed first when beds are short.": "Các điều kiện mọi đơn đăng ký phải đạt, và ai được xếp trước khi thiếu giường.",
   "A student may apply when…": "Sinh viên được đăng ký khi…",
   "Every check that is on must pass; they are checked again when the application is sent. Counted over {n} students of the directory.":
     "Mọi điều kiện đang bật đều phải đạt; hệ thống kiểm tra lại khi gửi đơn. Tính trên {n} sinh viên trong danh bạ.",
@@ -3453,8 +3426,6 @@ const registration = {
     "Mỗi học kỳ giữ quy định lúc mở: khi công bố, các quy định này được sao chép vào học kỳ. Tình trạng khuyết tật là dữ liệu nhạy cảm: chỉ lưu cờ nhóm, không lưu lý do.",
   "Students apply between the opening and the closing of the Term's registration": "Sinh viên đăng ký trong thời gian mở đăng ký của học kỳ",
   "A Manager or the imported student list confirmed the student's record": "Quản lý hoặc danh sách sinh viên đã nhập xác nhận hồ sơ của sinh viên",
-  "Who is placed first when beds are short, and what roommates should share. Publishing a term fixes these rules for it.":
-    "Ai được xếp trước khi thiếu giường và bạn cùng phòng nên giống nhau ở điểm nào. Khi công bố, các quy định này được cố định cho học kỳ.",
   "Always true": "Luôn đúng",
   "A bed that breaks any of these is never proposed.": "Giường vi phạm bất kỳ điều nào sẽ không bao giờ được đề xuất.",
   "The engine takes the applications in this order. Use the arrows to reorder.": "Hệ thống xét đơn theo thứ tự này. Dùng mũi tên để sắp xếp.",
@@ -3727,7 +3698,6 @@ const money = {
   'The balance was not paid in time, so the bed was released and the deposit is kept.': 'Tiền phòng còn lại không được thanh toán đúng hạn nên chỗ ở đã bị hủy và tiền đặt cọc không được hoàn.',
   'Semesters of a study programme (the stay length stops at the last one)': 'Số học kỳ của chương trình học (Gia hạn không vượt quá học kỳ cuối)',
   'Students transfer and press I have transferred; a manager confirms each claim against the bank statement. The door code is released only once the balance is paid.': 'Sinh viên chuyển khoản và bấm Tôi đã chuyển khoản; Quản lý đối chiếu từng khoản với sao kê ngân hàng và xác nhận. Mã cửa chỉ được cấp sau khi thanh toán tiền phòng còn lại.',
-  'The deposit new terms start with.': 'Tiền đặt cọc mặc định cho các học kỳ mới.',
   'Door code released · {n} checked in at the desk': 'Đã cấp mã cửa · {n} đã nhận phòng tại quầy',
   'Students said they transferred and wait for a Manager to confirm.': 'Sinh viên đã báo chuyển khoản và đang chờ Quản lý xác nhận.',
   'Students said they transferred and wait for a manager to confirm.': 'Sinh viên đã báo chuyển khoản và đang chờ Quản lý xác nhận.',

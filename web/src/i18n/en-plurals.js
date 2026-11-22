@@ -66,7 +66,6 @@ const one = {
   "{n} beds": "{n} bed",
   "{n} invoices, {overdue} overdue": "{n} invoice, {overdue} overdue",
   "{n} refunds": "{n} refund",
-  "Kept {n} months.": "Kept {n} month.",
   "Mark the {n} students missing from this file as Not enrolled": "Mark the {n} student missing from this file as Not enrolled",
   "Import {n} students": "Import {n} student",
   "{n} accounts updated": "{n} account updated",
