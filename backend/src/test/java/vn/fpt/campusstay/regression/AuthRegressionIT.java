@@ -43,10 +43,10 @@ class AuthRegressionIT {
     @Test
     void beAuth02_signInIsRateLimitedPerClient() throws Exception {
         List<Integer> statuses = new ArrayList<>();
-        for (int n = 1; n <= 40; n++) {
+        for (int n = 1; n <= 120; n++) {
             statuses.add(signIn("203.0.113.7", RegressionSupport.student(n), "Guess" + n + "!x"));
         }
-        assertThat(statuses).as("40 bad sign-ins from one IP across 40 accounts").contains(429);
+        assertThat(statuses).as("120 bad sign-ins from one IP across 120 accounts").contains(429);
     }
 
     /** TC-AUTH-084 (Wave 1 regression): BE-AUTH-02: a stranger's 5 wrong passwords must not lock the owner out (right password, other IP). */
@@ -59,23 +59,33 @@ class AuthRegressionIT {
         assertThat(signIn("192.0.2.10", email, TestAuth.PASSWORD)).as("owner signs in from their own IP").isEqualTo(200);
     }
 
-    /** TC-AUTH-088: the limiter keys on the client address: one client's 20 failures do not throttle another client. */
+    /** TC-AUTH-088: the limiter keys on the client address: one client's 100 failures do not throttle another client. */
     @Test
     void limiterKeysOnClientAddress() throws Exception {
-        for (int n = 41; n <= 60; n++) {
+        for (int n = 121; n <= 220; n++) {
             signIn("10.0.0.1", RegressionSupport.student(n), "Guess" + n + "!x");
         }
-        assertThat(signIn("10.0.0.1", RegressionSupport.student(61), "Guess61!x")).isEqualTo(429);
-        assertThat(signIn("10.0.0.2", RegressionSupport.student(61), "Guess61!x")).isEqualTo(401);
+        assertThat(signIn("10.0.0.1", RegressionSupport.student(221), "Guess221!x")).isEqualTo(429);
+        assertThat(signIn("10.0.0.2", RegressionSupport.student(221), "Guess221!x")).isEqualTo(401);
     }
 
-    /** TC-AUTH-089: a shared network (school NAT): 19 failed sign-ins, then a correct password still signs in. */
+    /** TC-AUTH-089: a shared network (school NAT): 30 failed sign-ins, then a correct password still signs in. */
     @Test
-    void nineteenFailuresThenCorrectPasswordSignsIn() throws Exception {
-        for (int n = 62; n <= 80; n++) {
+    void manyFailuresOnSharedNetworkThenCorrectPasswordSignsIn() throws Exception {
+        for (int n = 222; n <= 251; n++) {
             signIn("10.0.0.3", RegressionSupport.student(n), "Guess" + n + "!x");
         }
         assertThat(signIn("10.0.0.3", TestAuth.MANAGER_A, TestAuth.PASSWORD)).isEqualTo(200);
+    }
+
+    /** TC-AUTH-090: one account guessed from many clients (or spoofed addresses) is still capped: 30 failures lock it. */
+    @Test
+    void oneAccountIsCappedAcrossClients() throws Exception {
+        String email = TestAuth.STAFF_B2; // not used by the other tests of this class
+        for (int i = 0; i < 30; i++) {
+            signIn("198.18.0." + i, email, "Wrong12345");
+        }
+        assertThat(signIn("198.18.1.1", email, "Wrong12345")).as("31st guess from a new address").isEqualTo(429);
     }
 
     /** TC-AUTH-085 (Wave 1 regression): BE-AUTH-03: anonymous forgot-password requests from one client across many accounts are throttled. */

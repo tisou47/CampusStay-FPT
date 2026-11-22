@@ -23,11 +23,14 @@ public class AuthRateLimiter {
 
     /** A bucket: how many events per window before the client gets 429. */
     public enum Bucket {
-        SIGN_IN_FAILURES(20, Duration.ofMinutes(15)),
+        /** Per client: high enough for a school network where many people share one address. */
+        SIGN_IN_FAILURES(100, Duration.ofMinutes(15)),
         PASSWORD_FORGOT(5, Duration.ofHours(1)),
         PASSWORD_RESET(10, Duration.ofHours(1)),
         /** Wrong passwords for one account from one client: the account lock only holds against that client. */
-        ACCOUNT_FAILURES(5, Duration.ofMinutes(15));
+        ACCOUNT_FAILURES(5, Duration.ofMinutes(15)),
+        /** Wrong passwords for one account from any client: a ceiling that rotating addresses cannot avoid. */
+        ACCOUNT_ANY_CLIENT(30, Duration.ofMinutes(15));
 
         final int limit;
         final Duration window;
@@ -47,7 +50,9 @@ public class AuthRateLimiter {
 
     /** Fails with 429 TOO_MANY_ATTEMPTS once the client used up the bucket. */
     public void checkAllowed(Bucket bucket, String client) {
-        if (local(client)) {
+        // shortcut: loopback is trusted only because Caddy strips client Forwarded headers (infra/prod/Caddyfile);
+        // the per-account ceiling applies to every client.
+        if (bucket != Bucket.ACCOUNT_ANY_CLIENT && local(client)) {
             return;
         }
         if (count(bucket, client) >= bucket.limit) {

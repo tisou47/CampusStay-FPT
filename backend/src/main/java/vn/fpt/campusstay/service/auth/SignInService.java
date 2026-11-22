@@ -75,6 +75,7 @@ public class SignInService {
         }
         UserEntity user = found.get();
         Instant now = Instant.now(clock);
+        limiter.checkAllowed(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
         String accountClient = user.getId() + "|" + client;
         // The lock holds against the client that caused it: a stranger cannot lock the owner out (BE-AUTH-02).
         if (user.isLockedAt(now) && (client == null
@@ -89,6 +90,7 @@ public class SignInService {
             accounts.recordFailure(user, "PASSWORD");
             limiter.record(AuthRateLimiter.Bucket.SIGN_IN_FAILURES, client);
             limiter.record(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
+            limiter.record(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
             throw ApiException.unauthorized("INVALID_CREDENTIALS", INVALID);
         }
         limiter.clear(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
