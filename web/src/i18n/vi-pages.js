@@ -1892,7 +1892,6 @@ const admin = {
   "Each step counts the Applications of the Term that reached it, in every Block.": "Mỗi bước đếm số đơn của học kỳ đã đi tới bước đó, ở tất cả các tòa.",
   "of applicants have moved in": "người nộp đơn đã nhận phòng",
   "Starting point": "Điểm bắt đầu",
-  "{n} did not reach this step": "{n} chưa tới bước này",
   "{amount} unpaid · {n} invoices": "Còn nợ {amount} · {n} hóa đơn",
   "Nothing unpaid": "Không còn khoản nợ",
   "Accounts that signed in during the last 30 days": "Tài khoản đã đăng nhập trong 30 ngày qua",

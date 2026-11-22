@@ -39,7 +39,7 @@ const SHORTCUTS = [
   { to: '/admin/audit-log', icon: ScrollText, label: 'Audit log', note: 'Who changed what, and when' },
 ]
 
-/** The registration steps in a row: count, a bar against the first step and the share kept from the step before. */
+/** The registration steps in a row: count, a bar against the first step and the share of the step before. */
 function Funnel({ steps }) {
   const top = steps[0]?.value || 1
   return (
@@ -47,7 +47,6 @@ function Funnel({ steps }) {
       {steps.map((f, i) => {
         const prev = i > 0 ? steps[i - 1].value : null
         const rate = prev ? f.value / prev : null
-        const lost = prev != null ? Math.max(prev - f.value, 0) : 0
         const last = i === steps.length - 1
         return (
           <li key={f.label} className="relative flex min-w-0">
@@ -72,14 +71,7 @@ function Funnel({ steps }) {
               </div>
               <p className="text-h1 font-semibold text-fg tabular">{formatNumber(f.value)}</p>
               <Meter value={f.value} max={top} tone={last ? 'accent' : 'accent-soft'} label={f.label} className="h-1.5" />
-              <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
-                <span className="text-fg-tertiary">{rate != null ? t('{p} of previous stage', { p: formatPercent(rate, 0) }) : t('Starting point')}</span>
-                {lost > 0 && (
-                  <span className="rounded-full bg-warning-bg px-2 py-0.5 font-medium whitespace-nowrap text-warning-fg tabular" title={t('{n} did not reach this step', { n: formatNumber(lost) })}>
-                    −{formatNumber(lost)}
-                  </span>
-                )}
-              </div>
+              <p className="text-sm text-fg-tertiary">{rate != null ? t('{p} of previous stage', { p: formatPercent(rate, 0) }) : t('Starting point')}</p>
             </div>
           </li>
         )
