@@ -26,6 +26,9 @@ export default function FurnitureCheckPage() {
     d,
     s,
     done,
+    furnitureQuery,
+    electricity,
+    water,
     condition,
     setCondition,
     setLiveFurnitureTotal,
@@ -52,6 +55,7 @@ export default function FurnitureCheckPage() {
 
         <FurnitureConditions
           allocationId={d.allocationId}
+          query={furnitureQuery}
           done={done}
           condition={condition}
           onConditionChange={(val) => {
@@ -61,8 +65,10 @@ export default function FurnitureCheckPage() {
               setFurnitureSummary(null)
             }
           }}
-          onTotalChange={(total) => setLiveFurnitureTotal(total)}
-          onSummaryChange={(summary) => setFurnitureSummary(summary)}
+          electricity={electricity}
+          water={water}
+          onLiveTotalChange={(total) => setLiveFurnitureTotal(total)}
+          onLiveSummaryChange={(summary) => setFurnitureSummary(summary)}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
