@@ -115,7 +115,9 @@ class TermWizardIT {
                 .formatted(name, stayStart, stayEnd)).andExpect(status().isOk());
         send("PUT", base + "timeline", admin, "{\"timeline\":" + timeline(20, checkIn, checkIn, stayEnd) + "}")
                 .andExpect(status().isOk());
-        send("PUT", base + "rooms", admin, "{\"blockIds\":[],\"excludedRooms\":[],\"reservedNewPercent\":10}")
+        String blocks = String.join(",", jdbc.sql("SELECT '\"' || id || '\"' FROM inv_building WHERE status = 'ACTIVE'")
+                .query(String.class).list());
+        send("PUT", base + "rooms", admin, "{\"blockIds\":[" + blocks + "],\"excludedRooms\":[],\"reservedNewPercent\":10}")
                 .andExpect(status().isOk());
         String wizard = json("/admin/terms/" + id + "/wizard", admin);
         send("PUT", base + "prices", admin, "{\"prices\":" + prices(wizard, fourBed(), standard(), 7_200_000)
@@ -267,7 +269,9 @@ class TermWizardIT {
                 "{\"blockIds\":[],\"excludedRooms\":[],\"reservedNewPercent\":15,\"roomTypeIds\":[],"
                         + "\"roomClassIds\":[\"" + standard() + "\"]}")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.roomTypeIds").value("Choose at least one active Room Type."));
+                .andExpect(jsonPath("$.details.fields.roomTypeIds").value("Choose at least one active Room Type."))
+                // WEB-ADM-22: no Block chosen is refused, not saved as "every Block".
+                .andExpect(jsonPath("$.details.fields.blockIds").value("Choose at least one Block."));
         mvc.perform(get("/term-requests/" + requestId).header(HttpHeaders.AUTHORIZATION, manager))
                 .andExpect(jsonPath("$.differences", hasSize(1)))
                 .andExpect(jsonPath("$.differences[0].label").value("Deposit"))

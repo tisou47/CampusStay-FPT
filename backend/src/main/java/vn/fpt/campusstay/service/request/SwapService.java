@@ -215,6 +215,11 @@ public class SwapService {
             if (post.allocationId() == p.allocationId() || owner == null || !owner.active()) {
                 continue;
             }
+            // Only posts the viewer's Bed matches: requestPost refuses the others (NOT_A_MATCH, WEB-STU-21).
+            if (p.roomTypeId() != post.wantedTypeId() || p.roomClassId() != post.wantedClassId()
+                    || (post.wantedBuildingId() != null && post.wantedBuildingId() != p.buildingId())) {
+                continue;
+            }
             items.add(new BoardItem(String.valueOf(post.id()), names.type(owner.roomTypeId()),
                     names.roomClass(owner.roomClassId()), owner.floor(), owner.block(),
                     names.type(post.wantedTypeId()) + " · " + names.roomClass(post.wantedClassId()) + " · "

@@ -162,7 +162,8 @@ public class StudentInvoiceService {
         }
         long total = jdbc.sql("SELECT count(*) FROM bil_invoice" + where).params(params).query(Long.class).single();
         List<InvoiceStore.Invoice> rows = jdbc.sql("SELECT " + InvoiceStore.COLUMNS + " FROM bil_invoice" + where
-                + " ORDER BY issued_at DESC, id DESC LIMIT :limit OFFSET :offset")
+                // Unpaid first, so an older Term's unpaid Invoice stays on the first page (WEB-STU-22).
+                + " ORDER BY (status IN ('UNPAID', 'OVERDUE')) DESC, issued_at DESC, id DESC LIMIT :limit OFFSET :offset")
                 .params(params).param("limit", page.limit()).param("offset", page.offset())
                 .query(InvoiceStore::map).list();
         Map<Long, String> termNames = new LinkedHashMap<>();

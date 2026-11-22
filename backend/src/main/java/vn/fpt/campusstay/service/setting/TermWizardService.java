@@ -434,6 +434,8 @@ public class TermWizardService {
                 Map<Long, TermSupply.Block> blocks = supply.blocks().stream()
                         .collect(Collectors.toMap(TermSupply.Block::id, Function.identity()));
                 Set<Long> used = new LinkedHashSet<>();
+                // No Block chosen must not be saved as "every Block" (WEB-ADM-22).
+                errors.check(b.blockIds() != null && !b.blockIds().isEmpty(), "blockIds", "Choose at least one Block.");
                 for (String raw : b.blockIds() == null ? List.<String>of() : b.blockIds()) {
                     Long blockId = id(raw);
                     if (blockId == null || !blocks.containsKey(blockId)) {

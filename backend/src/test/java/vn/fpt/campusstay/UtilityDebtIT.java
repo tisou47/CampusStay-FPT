@@ -210,4 +210,20 @@ class UtilityDebtIT {
         assertThat(terminateOn).isAfter(LocalDate.now(TimeConfig.CAMPUS_ZONE));
         assertThat(debts.evaluateAll()).as("a fresh grace period, not an instant second termination").isZero();
     }
+
+    /**
+     * TC-BIL-049 (WEB-STU-22): Payments without a Term lists the unpaid Invoices first, so an older unpaid one is not
+     * pushed off the first page by newer paid ones.
+     */
+    @Test
+    void unpaidInvoicesComeFirst() throws Exception {
+        stay.livesIn(24, "A-108", "B", true);
+        String unpaid = invoice(24, "U", "UTILITY", "Utility · 09/2031", 150_000, 0, "UNPAID", "5 days");
+        String paid = invoice(24, "B", "BALANCE", "Balance", 8_000_000, 600_000, "PAID", "-1 day");
+        jdbc.sql("UPDATE bil_invoice SET issued_at = now() - interval '30 days' WHERE code = :c").param("c", unpaid).update();
+        jdbc.sql("UPDATE bil_invoice SET issued_at = now() WHERE code = :c").param("c", paid).update();
+        getAs("/students/me/invoices?pageSize=1", bearer(mvc, StayFlow.student(24)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(unpaid));
+    }
 }
