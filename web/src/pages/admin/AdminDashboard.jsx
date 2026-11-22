@@ -1,111 +1,92 @@
-import { Link } from 'react-router'
-import { ArrowRight, Banknote, Bed, Calendar, Check, TriangleAlert, Users } from 'lucide-react'
+import { Banknote, Bed, Calendar, ChevronRight, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
-import { stageStates } from '@/app/adminFlow'
 import { useSession } from '@/app/session'
-import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
 import { QueryState, StaleNotice } from '@/components/ui/States'
-import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { COLLECTED_RULE, collectedNote } from '@/lib/money'
 import { t, tr } from '@/i18n'
 
-// SCR-HOME-04 Admin Dashboard (Figma 63:1768)
-// GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null,
-//   kpis: { residents, beds, collected, collectionRate, activeUsers, students, staff, managers },
-//   funnel: [{ label, value }], funnelNote, blocks: [{ block, gender, allocated, beds }],
-//   checks: [{ ok, text, link }], integrations: [{ name, status, tone }] }
+// SCR-HOME-04 Admin Dashboard
+// GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, kpis: { residents, beds, allocated, collected,
+//   invoiced, collectionRate, activeUsers, students, staff, managers }, funnel: [{ label, value }],
+//   funnelOutside: { continuing, waitlisted, rejected, expired } }
+// The page shows the Term at a glance (four tiles) and how its Applications moved through registration.
 
-const STATE_LABEL = { done: 'Done', now: 'Do this now', next: 'Up next', waiting: 'Waiting', later: 'Later' }
+/** Who the funnel leaves out, each with a line saying why. */
+const OUTSIDE = [
+  { key: 'continuing', label: 'Continuing residents', note: 'Kept their Bed from last Term, no new Application' },
+  { key: 'waitlisted', label: 'Waitlisted', note: 'Waiting for a free Bed' },
+  { key: 'rejected', label: 'Rejected', note: 'Not approved by a Manager' },
+  { key: 'expired', label: 'Deposits expired', note: 'Deposit not paid in time' },
+]
 
-/**
- * "Set up a term" (spec §6.3, §6.4): the five stages in the order they happen, each with its state in words,
- * why it matters and one way in. Only the stage to do now gets the primary button.
- */
-function TermSetupFlow({ checks }) {
-  const requests = useQuery(['term-requests', 'Open'], ({ signal }) => api.termRequests.list({ status: 'Open', pageSize: 1 }, { signal }))
-  const terms = useQuery(['admin-terms'], ({ signal }) => api.admin.terms.list(undefined, { signal }))
-  if (!checks || !terms.data) return null
-  const stages = stageStates({ checks, requestCounts: requests.data?.counts ?? {}, terms: terms.data.items ?? [] })
-  const lead = stages.findIndex((s) => s.state === 'now')
-  const say = (x) => (x ? t(x.text, x.date ? { ...x.vars, date: formatDate(x.vars.date) } : x.vars) : null)
+/** The registration steps side by side: count, share of the step before and how many did not reach it. */
+function Funnel({ steps }) {
+  const top = steps[0]?.value || 1
   return (
-    <section aria-labelledby="term-setup" className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a term')}</h2>
-        <span className="text-sm text-fg-tertiary">{t('In the order it happens. Each stage opens its screen.')}</span>
-      </div>
-      <ol className="grid grid-cols-5 gap-3">
-        {stages.map((s, i) => {
-          // One focus: the first stage to do is "now"; another that is also open reads "Next" and stays quiet.
-          const now = i === lead
-          const label = s.state === 'now' && !now ? 'next' : s.state
-          return (
-            <li key={s.key} className={cx('flex min-w-0 flex-col gap-2 rounded-md p-3', now ? 'bg-primary-subtle ring-1 ring-primary' : 'bg-canvas')}>
-              <div className="flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    'flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular',
-                    s.state === 'done' ? 'bg-success text-white' : now ? 'bg-primary text-fg-on-brand' : 'bg-subtle text-fg-secondary ring-1 ring-line-strong',
-                  )}
-                >
-                  {s.state === 'done' ? <Check size={14} /> : i + 1}
-                </span>
-                <span className={cx('text-sm font-semibold', s.state === 'done' ? 'text-success-fg' : now ? 'text-fg-brand' : 'text-fg-tertiary')}>{t(STATE_LABEL[label])}</span>
-              </div>
-              <p className="text-base font-semibold text-fg">{t(s.label)}</p>
-              <p className="text-sm text-fg-secondary">{say(s.detail)}</p>
-              {s.key === 'ready' && s.items?.some((c) => !c.ok) && (
-                <ul className="flex flex-col gap-1">
-                  {s.items
-                    .filter((c) => !c.ok)
-                    .slice(0, 3)
-                    .map((c) => (
-                      <li key={c.text} className="flex items-start gap-1.5 text-sm">
-                        <TriangleAlert size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
-                        {c.link ? (
-                          <Link to={c.link} className="text-fg hover:text-fg-brand hover:underline">
-                            {tr(c.text)}
-                          </Link>
-                        ) : (
-                          <span className="text-fg">{tr(c.text)}</span>
-                        )}
-                      </li>
-                    ))}
-                </ul>
-              )}
-              <p className="text-sm text-fg-tertiary">{t(s.why)}</p>
-              <div className="mt-auto pt-1">
-                {i === lead ? (
-                  <Button variant="primary" size="sm" to={s.action.to} iconAfter={ArrowRight} iconSize={16}>
-                    {tr(s.action.label)}
-                  </Button>
-                ) : (
-                  <Link to={s.action.to} className="text-sm font-medium text-fg-link hover:underline">
-                    {tr(s.action.label)}
-                  </Link>
+    <ol className="grid grid-cols-5 gap-3" aria-label={t('Application funnel')}>
+      {steps.map((f, i) => {
+        const prev = i > 0 ? steps[i - 1].value : null
+        const rate = prev ? f.value / prev : null
+        const lost = prev != null ? prev - f.value : 0
+        const last = i === steps.length - 1
+        return (
+          <li
+            key={f.label}
+            className={cx('relative flex min-w-0 flex-col gap-2 rounded-md p-4', last ? 'bg-primary-subtle ring-1 ring-primary' : 'bg-canvas')}
+            title={`${tr(f.label)}: ${formatNumber(f.value)}${rate != null ? ` (${t('{p} of previous stage', { p: formatPercent(rate, 0) })})` : ''}`}
+          >
+            {i > 0 && (
+              <span aria-hidden="true" className="absolute top-1/2 -left-3 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-fg-tertiary">
+                <ChevronRight size={14} />
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular',
+                  last ? 'bg-primary text-fg-on-brand' : 'bg-subtle text-fg-secondary ring-1 ring-line-strong',
                 )}
-              </div>
-            </li>
-          )
-        })}
-      </ol>
-    </section>
+              >
+                {i + 1}
+              </span>
+              <span className={cx('truncate text-sm font-medium', last ? 'text-fg-brand' : 'text-fg-secondary')}>{tr(f.label)}</span>
+            </div>
+            <p className="text-h1 font-semibold text-fg tabular">{formatNumber(f.value)}</p>
+            <Meter value={f.value} max={top} tone={last ? 'accent' : 'accent-soft'} label={f.label} className="h-1.5" />
+            <p className="text-sm text-fg-secondary">{rate != null ? t('{p} of previous stage', { p: formatPercent(rate, 0) }) : t('Starting point')}</p>
+            <p className={cx('text-sm', lost > 0 ? 'text-warning-fg' : 'text-fg-tertiary')}>
+              {lost > 0 ? t('{n} did not reach this step', { n: formatNumber(lost) }) : i > 0 ? t('Nobody dropped out') : ' '}
+            </p>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
-function Head({ title, note }) {
+function Outside({ counts }) {
   return (
-    <div className="flex shrink-0 items-start justify-between">
-      <h2 className="text-h3 font-semibold text-fg">{tr(title)}</h2>
-      {note && <span className="text-sm text-fg-tertiary">{tr(note)}</span>}
-    </div>
+    <section aria-labelledby="funnel-outside" className="flex flex-col gap-2">
+      <h3 id="funnel-outside" className="text-base font-semibold text-fg">{t('Not in the funnel')}</h3>
+      <ul className="grid grid-cols-4 gap-3">
+        {OUTSIDE.map((o) => (
+          <li key={o.key} className="flex min-w-0 flex-col gap-0.5 rounded-md border border-line px-4 py-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate text-sm font-medium text-fg-secondary">{t(o.label)}</span>
+              <span className="text-h3 font-semibold text-fg tabular">{formatNumber(counts?.[o.key] ?? 0)}</span>
+            </div>
+            <span className="text-sm text-fg-tertiary">{t(o.note)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -114,27 +95,25 @@ export default function AdminDashboard() {
   const query = useQuery(['dashboard', 'admin', term?.id], ({ signal }) => api.dashboards.admin({ termId: term?.id }, { signal }))
   const d = query.data
   const k = d?.kpis
-  const funnelTop = d?.funnel?.[0]?.value || 1
+  const funnel = d?.funnel ?? []
+  const first = funnel[0]?.value
+  const end = funnel[funnel.length - 1]?.value
 
   return (
     <>
-      <PageHeader
-        title="System overview"
-        description={[
-          formatDate(new Date()),
-          d?.term && `${d.term.name} · ${tr(d.term.statusLabel)}`,
-          d?.nextTerm?.registrationOpensAt && t('{term} registration opens {date}', { term: d.nextTerm.name, date: formatDate(d.nextTerm.registrationOpensAt) }),
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      />
+      <PageHeader title="System overview" />
       <StaleNotice query={query} />
-      <TermSetupFlow checks={d?.checks} />
 
       <div className="flex shrink-0 gap-4">
-        <KpiTile icon={Calendar} label="Current term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null} />
-        <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
-        <KpiTile icon={Banknote} label="Collected this term" tip={t(COLLECTED_RULE)} value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null} />
+        <KpiTile icon={Calendar} label="Current term" value={<span className="text-h1">{d?.term?.name ?? '—'}</span>} note={d?.term?.endsAt ? t('Ends {date}', { date: formatDate(d.term.endsAt) }) : null}>
+          {d?.term?.statusLabel && <span className="mt-1 w-fit rounded-full bg-primary-subtle px-2 py-0.5 text-sm font-medium text-fg-brand">{tr(d.term.statusLabel)}</span>}
+        </KpiTile>
+        <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null}>
+          {k && <Meter value={k.allocated} max={k.beds} label="Beds held" className="mt-1 h-1.5" />}
+        </KpiTile>
+        <KpiTile icon={Banknote} label="Collected this term" tip={t(COLLECTED_RULE)} value={<span className="text-h1">{formatCompactVnd(k?.collected)}</span>} note={k ? collectedNote(k) : null}>
+          {k && <Meter value={k.collected} max={k.invoiced} tone="success" label="Collection rate" className="mt-1 h-1.5" />}
+        </KpiTile>
         <KpiTile
           icon={Users}
           label="Active users"
@@ -143,84 +122,27 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <div className="grid min-h-72 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1fr)_auto] gap-4">
-        <Card className="row-span-2 flex min-h-0 flex-col gap-2.5">
-          <Head title={d?.term ? t('{term} application funnel', { term: d.term.name }) : 'Application funnel'} note="All blocks" />
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
-              {(data) => (
-                <ul className="flex flex-col gap-2.5" aria-label={t('Application funnel')}>
-                  {data.funnel.map((f, i) => {
-                    const rate = i > 0 && data.funnel[i - 1].value ? f.value / data.funnel[i - 1].value : null
-                    return (
-                      <li key={f.label} className="flex items-center gap-3" title={`${tr(f.label)}: ${formatNumber(f.value)}${rate != null ? ` (${t('{p} of previous stage', { p: formatPercent(rate, 0) })})` : ''}`}>
-                        <span className="w-28 shrink-0 text-base text-fg-secondary">{tr(f.label)}</span>
-                        <span className="relative h-6 min-w-0 flex-1">
-                          <span className={cx('absolute inset-y-0 left-0 rounded-sm', i === data.funnel.length - 1 ? 'bg-accent' : 'bg-orange-200')} style={{ width: `${(f.value / funnelTop) * 100}%` }} />
-                        </span>
-                        <span className="w-14 shrink-0 text-right text-base font-medium text-fg tabular">{formatNumber(f.value)}</span>
-                        <span className="w-10 shrink-0 text-sm text-fg-tertiary">{rate != null ? formatPercent(rate, 0) : ''}</span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </QueryState>
+      <Card className="flex shrink-0 flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-h3 font-semibold text-fg">{d?.term ? t('{term} application funnel', { term: d.term.name }) : t('Application funnel')}</h2>
+            <p className="text-sm text-fg-tertiary">{t('Each step counts the Applications of the Term that reached it, in every Block.')}</p>
           </div>
-          {d?.funnelOutside && Object.values(d.funnelOutside).some((n) => n > 0) ? (
-            <p className="shrink-0 text-sm text-fg-tertiary">
-              {t('Not in the funnel: {c} continuing residents (no application this term) · {w} waitlisted · {r} rejected · {e} expired', {
-                c: formatNumber(d.funnelOutside.continuing),
-                w: formatNumber(d.funnelOutside.waitlisted),
-                r: formatNumber(d.funnelOutside.rejected),
-                e: formatNumber(d.funnelOutside.expired),
-              })}
+          {first > 0 && end != null && (
+            <p className="shrink-0 rounded-md bg-canvas px-3 py-2 text-sm text-fg-secondary">
+              {t('{p} of applicants have moved in', { p: formatPercent(end / first, 0) })}
             </p>
-          ) : (
-            d?.funnelNote && <p className="shrink-0 text-sm text-fg-tertiary">{tr(d.funnelNote)}</p>
           )}
-        </Card>
-
-        <Card className="flex min-h-0 flex-col gap-3">
-          <Head title="Allocated beds by block" />
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-            <QueryState query={query} compact isEmpty={(x) => !x.blocks?.length}>
-              {(data) =>
-                data.blocks.map((b) => (
-                  <div key={b.block} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-medium text-fg">{t('Block {code}', { code: b.block })}</span>
-                        {b.gender && <Tag>{b.gender}</Tag>}
-                      </div>
-                      <span className="text-base text-fg-secondary tabular">
-                        {formatNumber(b.allocated)} / {formatNumber(b.beds)}
-                      </span>
-                    </div>
-                    <Meter value={b.allocated} max={b.beds} label={t('Block {code} allocated beds', { code: b.block })} className="h-2" />
-                  </div>
-                ))
-              }
-            </QueryState>
-          </div>
-        </Card>
-
-        <Card className="flex min-h-0 flex-col gap-2">
-          <Head title="Integrations" />
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-            <QueryState query={query} compact isEmpty={(x) => !x.integrations?.length}>
-              {(data) =>
-                data.integrations.map((i) => (
-                  <div key={i.name} className="flex items-center justify-between gap-3">
-                    <span className="text-base text-fg-secondary">{tr(i.name)}</span>
-                    <Tag tone={i.tone ?? 'neutral'}>{i.status}</Tag>
-                  </div>
-                ))
-              }
-            </QueryState>
-          </div>
-        </Card>
-      </div>
+        </div>
+        <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
+          {(data) => (
+            <>
+              <Funnel steps={data.funnel} />
+              <Outside counts={data.funnelOutside} />
+            </>
+          )}
+        </QueryState>
+      </Card>
     </>
   )
 }
