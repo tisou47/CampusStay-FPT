@@ -1,34 +1,35 @@
-// The diagrams of the reports are draw.io files (docs/diagrams/*.drawio), edited in draw.io. This tool:
+// The diagrams are draw.io files in docs/Diagrams/<NN_Type>/<name>.drawio, each with its PNG export beside it. This tool:
 //
-//   node docs/tools/drawio.mjs layout <models.json> [filter]   (filter: parts of names, comma-separated)
-//       lays out diagram models (ERDs from gen-db-docs.mjs, …) with ELK and writes docs/diagrams/<name>.drawio
-//   node docs/tools/drawio.mjs export [filter]
-//       opens each docs/diagrams/*.drawio in draw.io (embed.diagrams.net) and saves the PNG draw.io exports to
-//       docs/diagrams/out/<name>.png (wide diagrams also <name>-r.png, turned to fill a portrait page)
+//   node tools/docs/pipeline/drawio.mjs layout <models.json> [filter]   (filter: parts of names, comma-separated)
+//       lays out diagram models with ELK and writes docs/Diagrams/<model.name>.drawio (name = "<folder>/<file>")
+//   node tools/docs/pipeline/drawio.mjs export [filter]
+//       opens every .drawio under docs/Diagrams in draw.io (embed.diagrams.net) and saves the PNG draw.io exports
+//       beside it (wide diagrams also <name>-r.png, turned to fill a portrait page)
 //
-// Both run in a browser: open http://localhost:4318/ and wait for "done" (docs/tools/drawio-page.js does the work).
+// Both run in a browser: open http://localhost:4318/ and wait for "done" (drawio-page.js does the work).
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dir = path.resolve(here, '../diagrams');
-const outDir = path.join(dir, 'out');
-fs.mkdirSync(outDir, { recursive: true });
+const dir = path.resolve(here, '../../../docs/Diagrams');
+fs.mkdirSync(dir, { recursive: true });
 const [mode, arg1, arg2] = process.argv.slice(2);
 const pick = (filter) => (name) => (filter ?? '').split(',').some((f) => name.includes(f));
+const drawioFiles = () => fs.readdirSync(dir, { recursive: true }).map((f) => f.replaceAll('\\', '/'))
+  .filter((f) => f.endsWith('.drawio')).sort();
 let job;
 if (mode === 'layout') {
   job = { mode, models: JSON.parse(fs.readFileSync(path.resolve(arg1), 'utf8')).filter((m) => pick(arg2)(m.name)) };
 } else if (mode === 'export') {
   job = {
     mode,
-    files: fs.readdirSync(dir).filter((f) => f.endsWith('.drawio') && pick(arg1)(f)).sort()
+    files: drawioFiles().filter((f) => pick(arg1)(f))
       .map((f) => ({ name: f.replace(/\.drawio$/, ''), xml: fs.readFileSync(path.join(dir, f), 'utf8') })),
   };
 } else {
-  console.error('usage: node docs/tools/drawio.mjs layout <models.json> [filter] | export [filter]');
+  console.error('usage: node tools/docs/pipeline/drawio.mjs layout <models.json> [filter] | export [filter]');
   process.exit(2);
 }
 
@@ -55,14 +56,14 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/save') {
     const name = url.searchParams.get('name');
     const ext = url.searchParams.get('ext');
-    if (!/^[\w.-]+$/.test(name) || !['drawio', 'png'].includes(ext)) return res.writeHead(400).end();
+    // "<NN_Type>/<file>", nothing else: no way out of docs/Diagrams.
+    if (!/^\d\d_[\w-]+\/[\w.-]+$/.test(name) || !['drawio', 'png'].includes(ext)) return res.writeHead(400).end();
     const data = await body(req);
-    if (ext === 'drawio') fs.writeFileSync(path.join(dir, `${name}.drawio`), data);
-    else {
-      // A new upright picture replaces the turned copy of an older export.
-      if (!name.endsWith('-r')) fs.rmSync(path.join(outDir, `${name}-r.png`), { force: true });
-      fs.writeFileSync(path.join(outDir, `${name}.png`), data);
-    }
+    const file = path.join(dir, `${name}.${ext}`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    // A new upright picture replaces the turned copy of an older export.
+    if (ext === 'png' && !name.endsWith('-r')) fs.rmSync(path.join(dir, `${name}-r.png`), { force: true });
+    fs.writeFileSync(file, data);
     count++;
     return res.end();
   }

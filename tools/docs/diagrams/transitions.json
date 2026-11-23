@@ -1,0 +1,212 @@
+{
+  "_comment": "Status changes the generator cannot see (the state is a :param, a JPA entity method, or an INSERT … ON CONFLICT), read from the code by hand. Key: table (status column) or table.column. Each 'by' is Class.method and is checked to exist (models.mjs missingMethods). States of a CHECK that no code writes are listed on the diagram as 'allowed by the schema, not written'.",
+  "app_roommate_invitation": [
+    { "from": ["PENDING"], "to": "ACCEPTED", "by": "ApplicationService.respond" },
+    { "from": ["PENDING"], "to": "DECLINED", "by": "ApplicationService.respond" },
+    { "from": ["PENDING"], "to": "EXPIRED", "by": "ApplicationService.expireOverdue" }
+  ],
+  "app_round2_offer": [
+    { "from": ["PENDING"], "to": "DECLINED", "by": "Round2Service.respond" },
+    { "from": ["PENDING"], "to": "ACCEPTED", "by": "Round2Service.respond" },
+    { "from": ["PENDING"], "to": "EXPIRED", "by": "Round2Service.expire" }
+  ],
+  "asg_check_out": [
+    { "from": ["PENDING"], "to": "DRAFT", "by": "DeskService.saveRoomReadings" },
+    { "from": ["PENDING", "DRAFT"], "to": "DRAFT", "by": "DeskService.checkOut" },
+    { "from": ["PENDING", "DRAFT"], "to": "COMPLETED", "by": "DeskService.checkOut" }
+  ],
+  "asg_check_out.refund_status": [
+    { "from": ["NONE"], "to": "PENDING", "by": "DeskService.checkOut" }
+  ],
+  "asg_damage_claim": [
+    { "from": ["PENDING"], "to": "ACKNOWLEDGED", "by": "CheckOutFurnitureService.answerClaim" },
+    { "from": ["PENDING"], "to": "DECLINED", "by": "CheckOutFurnitureService.answerClaim" }
+  ],
+  "bil_meter_reading": [
+    { "from": ["MISSING"], "to": "ENTERED", "by": "MeterService.apply" },
+    { "from": ["MISSING"], "to": "CHECK_VALUE", "by": "MeterService.apply" },
+    { "from": ["ENTERED", "CHECK_VALUE"], "to": "CONFIRMED", "by": "MeterService.confirm" }
+  ],
+  "bil_refund": [
+    { "from": ["PENDING"], "to": "APPROVED", "by": "FinanceService.decideRefund" },
+    { "from": ["PENDING"], "to": "REJECTED", "by": "FinanceService.decideRefund" },
+    { "from": ["APPROVED"], "to": "PAID", "by": "FinanceService.markRefundPaid" }
+  ],
+  "cfg_term_request": [
+    { "from": ["SUBMITTED"], "to": "IN_PROGRESS", "by": "TermRequestService.built" },
+    { "from": ["SUBMITTED", "IN_PROGRESS"], "to": "DONE", "by": "TermRequestService.done" },
+    { "from": ["SUBMITTED", "IN_PROGRESS"], "to": "NEEDS_CHANGES", "by": "TermRequestService.decide" },
+    { "from": ["SUBMITTED", "IN_PROGRESS", "NEEDS_CHANGES"], "to": "REJECTED", "by": "TermRequestService.decide" },
+    { "from": ["NEEDS_CHANGES"], "to": "SUBMITTED", "by": "TermRequestService.update" }
+  ],
+  "auth_user": [
+    { "to": "ACTIVE", "by": "AuthDemoData.clear", "ignore": true },
+    { "from": ["INVITED"], "to": "ACTIVE", "by": "UserEntity.recordSignIn" },
+    { "from": ["INVITED", "ACTIVE"], "to": "DISABLED", "by": "UserEntity.disable" },
+    { "from": ["DISABLED"], "to": "ACTIVE", "by": "UserEntity.restore" },
+    { "from": ["DISABLED"], "to": "INVITED", "by": "UserEntity.restore" }
+  ],
+  "auth_student.enrollment_status": [
+    { "from": ["ENROLLED"], "to": "NOT_ENROLLED", "by": "ReconciliationService.resolve" },
+    { "from": ["NOT_ENROLLED"], "to": "ENROLLED", "by": "ReconciliationService.resolve" },
+    { "from": ["ENROLLED"], "to": "SUSPENDED", "by": "ReconciliationService.upload" },
+    { "from": ["ENROLLED"], "to": "GRADUATED", "by": "ReconciliationService.upload" },
+    { "from": ["ENROLLED"], "to": "WITHDRAWN", "by": "ReconciliationService.upload" },
+    { "from": ["SUSPENDED", "NOT_ENROLLED"], "to": "ENROLLED", "by": "ReconciliationService.upload" },
+    { "from": ["ENROLLED"], "to": "NOT_ENROLLED", "by": "StudentImportService.confirm" }
+  ],
+  "inv_building": [
+    { "from": ["ACTIVE"], "to": "INACTIVE", "by": "AdminBuildingService.update" },
+    { "from": ["INACTIVE"], "to": "ACTIVE", "by": "AdminBuildingService.update" }
+  ],
+  "inv_furniture_type": [
+    { "from": ["ACTIVE"], "to": "INACTIVE", "by": "AdminFurnitureService.updateType" },
+    { "from": ["INACTIVE"], "to": "ACTIVE", "by": "AdminFurnitureService.updateType" }
+  ],
+  "cfg_room_class": [
+    { "from": ["ACTIVE"], "to": "INACTIVE", "by": "RoomClassEntity.update" },
+    { "from": ["INACTIVE"], "to": "ACTIVE", "by": "RoomClassEntity.update" }
+  ],
+  "cfg_room_type": [
+    { "from": ["ACTIVE"], "to": "INACTIVE", "by": "RoomTypeEntity.update" },
+    { "from": ["INACTIVE"], "to": "ACTIVE", "by": "RoomTypeEntity.update" }
+  ],
+  "inv_furniture_item": [
+    { "from": ["IN_USE", "IN_STORE"], "to": "BROKEN", "by": "FurnitureService.on" },
+    { "from": ["IN_USE", "IN_STORE", "BROKEN"], "to": "IN_REPAIR", "by": "FurnitureService.update" },
+    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_USE", "by": "FurnitureService.on" },
+    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_STORE", "by": "FurnitureService.on" },
+    { "from": ["IN_USE"], "to": "IN_STORE", "by": "FurnitureService.apply" },
+    { "from": ["IN_STORE"], "to": "IN_USE", "by": "FurnitureService.apply" },
+    { "from": ["IN_USE", "IN_STORE", "BROKEN", "IN_REPAIR"], "to": "DISPOSED", "by": "FurnitureService.update" }
+  ],
+  "inv_furniture_move": [
+    { "from": ["PLANNED"], "to": "DONE", "by": "FurnitureService.closeMove" },
+    { "from": ["PLANNED"], "to": "CANCELLED", "by": "FurnitureService.closeMove" }
+  ],
+  "mnt_request": [
+    { "from": ["SUBMITTED"], "to": "ASSIGNED", "by": "JdbcMaintenanceRequests.assign" },
+    { "from": ["ASSIGNED", "IN_PROGRESS"], "to": "SUBMITTED", "by": "JdbcMaintenanceRequests.unassign" },
+    { "from": ["SUBMITTED"], "to": "ASSIGNED", "by": "MaintenanceDeskService.update" },
+    { "from": ["ASSIGNED"], "to": "IN_PROGRESS", "by": "MaintenanceDeskService.transition" },
+    { "from": ["ASSIGNED", "IN_PROGRESS"], "to": "RESOLVED", "by": "MaintenanceDeskService.transition" },
+    { "from": ["RESOLVED"], "to": "CLOSED", "by": "MaintenanceDeskService.transition" },
+    { "from": ["RESOLVED"], "to": "CLOSED", "by": "MaintenanceService.confirm" },
+    { "from": ["RESOLVED"], "to": "ASSIGNED", "by": "MaintenanceService.confirm" },
+    { "from": ["RESOLVED"], "to": "SUBMITTED", "by": "MaintenanceService.confirm" }
+  ],
+  "ntf_email_outbox": [
+    { "from": ["PENDING"], "to": "SENT", "by": "EmailOutboxDispatcher.send" },
+    { "from": ["PENDING"], "to": "FAILED", "by": "EmailOutboxDispatcher.send" }
+  ],
+  "req_swap": [
+    { "from": ["INVITED"], "to": "PENDING", "by": "SwapService.respond" },
+    { "from": ["INVITED"], "to": "DECLINED", "by": "SwapService.respond" },
+    { "from": ["PENDING", "TO_MANAGER"], "to": "REJECTED", "by": "SwapService.decide" },
+    { "from": ["PENDING"], "to": "TO_MANAGER", "by": "SwapService.decide" },
+    { "from": ["PENDING", "TO_MANAGER"], "to": "APPROVED", "by": "SwapService.decide" }
+  ],
+  "app_application": [
+    { "from": ["AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED", "UNDER_REVIEW", "APPROVED"], "to": "CANCELLED", "by": "ApplicationService.cancel" }
+  ],
+  "asg_allocation": [
+    { "from": ["ACTIVE"], "to": "CANCELLED", "by": "ForfeitService.forfeit" },
+    { "from": ["ACTIVE"], "to": "ENDED", "by": "JdbcMoves.end" }
+  ],
+  "asg_handover": [
+    { "from": ["DRAFT", "SUBMITTED", "VERIFYING"], "to": "FINAL", "by": "HandoverCore.finalize" },
+    { "from": ["SUBMITTED"], "to": "VERIFYING", "by": "HandoverDeskService.requestVisit" },
+    { "from": ["DRAFT", "SUBMITTED", "VERIFYING"], "to": "CANCELLED", "by": "HandoverDeskService.cancel" },
+    { "from": ["DRAFT"], "to": "SUBMITTED", "by": "StudentHandoverService.submit" }
+  ],
+  "asg_late_check_in": [
+    { "from": ["PENDING"], "to": "REJECTED", "by": "ForfeitService.forfeit" },
+    { "from": ["PENDING"], "to": "APPROVED", "by": "LateCheckInService.decide" },
+    { "from": ["PENDING"], "to": "REJECTED", "by": "LateCheckInService.decide" }
+  ],
+  "asg_run": [
+    { "from": ["(created)"], "to": "PROPOSED", "by": "AssignmentService.start" },
+    { "from": ["RUNNING", "PROPOSED", "IN_REVIEW"], "to": "DISCARDED", "by": "AssignmentService.start" },
+    { "from": ["IN_REVIEW"], "to": "COMMITTED", "by": "AssignmentService.approve" }
+  ],
+  "asg_run_block": [
+    { "from": ["REVIEW", "RETURNED"], "to": "SUBMITTED", "by": "AssignmentService.submit" },
+    { "from": ["SUBMITTED"], "to": "COMMITTED", "by": "AssignmentService.approve" },
+    { "from": ["SUBMITTED"], "to": "RETURNED", "by": "AssignmentService.returnToStaff" }
+  ],
+  "asg_termination": [
+    { "from": ["NOTICE_SENT"], "to": "CANCELLED", "by": "TerminationService.cancel" },
+    { "from": ["NOTICE_SENT"], "to": "OVERDUE", "by": "TerminationService.markOverdue" },
+    { "from": ["NOTICE_SENT", "OVERDUE"], "to": "CHECKED_OUT", "by": "TerminationService.checkedOut" }
+  ],
+  "auth_reconciliation_item": [
+    { "from": ["(created)"], "to": "INFO", "by": "ReconciliationService.upload" },
+    { "from": ["OPEN"], "to": "RESOLVED", "by": "ReconciliationService.resolve" }
+  ],
+  "auth_student_import": [
+    { "from": ["PREVIEW"], "to": "APPLIED", "by": "StudentImportService.confirm" }
+  ],
+  "bil_invoice": [
+    { "from": ["AWAITING_CONFIRMATION"], "to": "VOID", "by": "PaymentClaimService.reject" },
+    { "from": ["AWAITING_CONFIRMATION"], "to": "UNPAID", "by": "PaymentClaimService.reject" },
+    { "from": ["AWAITING_CONFIRMATION"], "to": "OVERDUE", "by": "PaymentClaimService.reject" },
+    { "from": ["UNPAID", "OVERDUE"], "to": "AWAITING_CONFIRMATION", "by": "PaymentClaimService.insertClaim" },
+    { "from": ["AWAITING_CONFIRMATION"], "to": "PAID", "by": "PaymentClaimService.pay" }
+  ],
+  "bil_payment_claim": [
+    { "from": ["CLAIMED"], "to": "REJECTED", "by": "PaymentClaimService.reject" },
+    { "from": ["CLAIMED"], "to": "CONFIRMED", "by": "PaymentClaimService.pay" }
+  ],
+  "cfg_term": [
+    { "from": ["DRAFT"], "to": "PUBLISHED", "by": "TermWizardService.publish" }
+  ],
+  "inv_bed": [
+    { "from": ["IN_SERVICE", "OUT_OF_SERVICE"], "to": "RETIRED", "by": "RoomTypeBedsListener.on" },
+    { "from": ["RETIRED"], "to": "IN_SERVICE", "by": "RoomTypeBedsListener.on" }
+  ],
+  "inv_door_code": [
+    { "from": ["PROPOSED"], "to": "ACTIVE", "by": "DoorCodeService.confirm" },
+    { "to": "ACTIVE", "by": "InventoryDemoData.rotateForCheckIn", "ignore": true }
+  ],
+  "inv_room": [
+    { "from": ["IN_SERVICE"], "to": "OUT_OF_SERVICE", "by": "InventoryService.setOutOfService" },
+    { "from": ["OUT_OF_SERVICE"], "to": "IN_SERVICE", "by": "InventoryService.backInService" }
+  ],
+  "mnt_checklist": [
+    { "from": ["DRAFT"], "to": "PUBLISHED", "by": "ChecklistService.publish" },
+    { "from": ["PUBLISHED"], "to": "REPLACED", "by": "ChecklistService.publish" },
+    { "from": ["DRAFT", "PUBLISHED"], "to": "ARCHIVED", "by": "ChecklistService.archive" }
+  ],
+  "mnt_inspection_room": [
+    { "from": ["PENDING"], "to": "INSPECTED", "by": "InspectionRunService.saveRoom" },
+    { "from": ["PENDING"], "to": "UNREACHABLE", "by": "InspectionRunService.unreachable" }
+  ],
+  "mnt_inspection_run": [
+    { "from": ["SCHEDULED", "IN_PROGRESS"], "to": "SUBMITTED", "by": "InspectionRunService.submit" },
+    { "from": ["SCHEDULED"], "to": "IN_PROGRESS", "by": "InspectionRunService.started" }
+  ],
+  "mnt_inspection_schedule": [
+    { "from": ["ACTIVE", "PAUSED"], "to": "COMPLETED", "by": "InspectionScheduleService.update" },
+    { "from": ["ACTIVE"], "to": "PAUSED", "by": "InspectionScheduleService.update" },
+    { "from": ["PAUSED"], "to": "ACTIVE", "by": "InspectionScheduleService.update" }
+  ],
+  "req_escalation": [
+    { "from": ["OPEN"], "to": "HANDLED", "by": "EscalationService.handle" }
+  ],
+  "req_room_change": [
+    { "from": ["SUBMITTED", "PENDING"], "to": "REJECTED", "by": "RoomChangeService.decide" },
+    { "from": ["SUBMITTED", "PENDING"], "to": "APPROVED", "by": "RoomChangeService.decide" }
+  ],
+  "req_stay_request": [
+    { "from": ["SUBMITTED"], "to": "REJECTED", "by": "StayRequestService.decide" },
+    { "from": ["SUBMITTED"], "to": "APPROVED", "by": "StayRequestService.decided" }
+  ],
+  "vis_family_day": [
+    { "from": ["DRAFT"], "to": "PUBLISHED", "by": "FamilyDayService.publish" },
+    { "from": ["DRAFT", "PUBLISHED"], "to": "CANCELLED", "by": "FamilyDayService.cancel" },
+    { "from": ["PUBLISHED"], "to": "COMPLETED", "by": "FamilyDayService.close" }
+  ],
+  "vis_registration": [
+    { "from": ["APPROVED"], "to": "CANCELLED", "by": "Registrations.cancel" }
+  ]
+}

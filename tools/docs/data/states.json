@@ -41,29 +41,82 @@
   "transitions": [
    {
     "table": "app_application",
-    "from": [],
-    "to": "ACCEPTED",
-    "by": "ApplicationService.if"
+    "from": [
+     "SUBMITTED"
+    ],
+    "to": "UNDER_REVIEW",
+    "by": "ApplicationReviewService.detail"
    },
    {
     "table": "app_application",
-    "from": [],
-    "to": "PENDING",
-    "by": "ApplicationService.on"
-   },
-   {
-    "table": "app_application",
-    "from": [],
-    "to": "CANCELLED",
+    "from": [
+     "AWAITING_DEPOSIT"
+    ],
+    "to": "AWAITING_ROOMMATE",
     "by": "ApplicationService.on"
    },
    {
     "table": "app_application",
     "from": [
-     "PENDING"
+     "AWAITING_DEPOSIT"
+    ],
+    "to": "EXPIRED",
+    "by": "ApplicationService.on"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "ALLOCATED"
+    ],
+    "to": "FORFEITED",
+    "by": "ApplicationService.on"
+   },
+   {
+    "table": "app_application",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "ApplicationService.cancel"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "AWAITING_DEPOSIT"
+    ],
+    "to": "EXPIRED",
+    "by": "ApplicationService.expireOverdue"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "APPROVED",
+     "WAITLISTED"
+    ],
+    "to": "ALLOCATED",
+    "by": "JdbcApplications.allocated"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "APPROVED"
+    ],
+    "to": "WAITLISTED",
+    "by": "JdbcApplications.waitlisted"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "ALLOCATED"
+    ],
+    "to": "REJECTED",
+    "by": "JdbcApplications.notEnrolled"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "WAITLISTED"
     ],
     "to": "CANCELLED",
-    "by": "ApplicationService.dropRoommate"
+    "by": "Round2Service.cancelWaitlisted"
    }
   ]
  },
@@ -82,8 +135,16 @@
    {
     "table": "app_roommate_invitation",
     "from": [],
-    "to": "PENDING",
-    "by": "ApplicationService.closeInvitation"
+    "to": "ACCEPTED",
+    "by": "ApplicationService.respond"
+   },
+   {
+    "table": "app_roommate_invitation",
+    "from": [
+     "PENDING"
+    ],
+    "to": "CANCELLED",
+    "by": "ApplicationService.cancelPendingInvitation"
    }
   ]
  },
@@ -106,6 +167,12 @@
     ],
     "to": "WITHDRAWN",
     "by": "JdbcApplications.offerRound2"
+   },
+   {
+    "table": "app_round2_offer",
+    "from": [],
+    "to": "ACCEPTED",
+    "by": "Round2Service.respond"
    }
   ]
  },
@@ -131,12 +198,6 @@
   "transitions": [
    {
     "table": "asg_allocation",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "DeskService.checkIn"
-   },
-   {
-    "table": "asg_allocation",
     "from": [
      "ACTIVE"
     ],
@@ -149,7 +210,7 @@
      "ACTIVE"
     ],
     "to": "ENDED",
-    "by": "DoorCodeRelease.for"
+    "by": "DoorCodeRelease.endPreviousTerm"
    },
    {
     "table": "asg_allocation",
@@ -165,9 +226,11 @@
    },
    {
     "table": "asg_allocation",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "JdbcStays.if"
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CANCELLED",
+    "by": "JdbcStays.cancel"
    },
    {
     "table": "asg_allocation",
@@ -175,7 +238,7 @@
      "ACTIVE"
     ],
     "to": "CANCELLED",
-    "by": "RenewalService.Held"
+    "by": "RenewalService.releaseUnlived"
    }
   ]
  },
@@ -237,26 +300,7 @@
    "DRAFT",
    "COMPLETED"
   ],
-  "transitions": [
-   {
-    "table": "asg_check_out",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "CheckOutFurnitureService.for"
-   },
-   {
-    "table": "asg_check_out",
-    "from": [],
-    "to": "PENDING",
-    "by": "CheckOutFurnitureService.agree"
-   },
-   {
-    "table": "asg_check_out",
-    "from": [],
-    "to": "PENDING",
-    "by": "TerminationService.cancel"
-   }
-  ]
+  "transitions": []
  },
  {
   "table": "asg_check_out_damage",
@@ -384,26 +428,26 @@
    {
     "table": "asg_handover",
     "from": [],
-    "to": "ACTIVE",
-    "by": "HandoverCore.open"
+    "to": "FINAL",
+    "by": "HandoverCore.finalize"
    },
    {
     "table": "asg_handover",
     "from": [],
     "to": "VERIFYING",
-    "by": "HandoverDeskService.confirm"
+    "by": "HandoverDeskService.requestVisit"
+   },
+   {
+    "table": "asg_handover",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "HandoverDeskService.cancel"
    },
    {
     "table": "asg_handover",
     "from": [],
     "to": "SUBMITTED",
-    "by": "StudentHandoverService.if"
-   },
-   {
-    "table": "asg_handover",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "StudentHandoverService.agree"
+    "by": "StudentHandoverService.submit"
    }
   ]
  },
@@ -476,9 +520,7 @@
   "transitions": [
    {
     "table": "asg_late_check_in",
-    "from": [
-     "PENDING"
-    ],
+    "from": [],
     "to": "REJECTED",
     "by": "ForfeitService.forfeit"
    },
@@ -486,13 +528,13 @@
     "table": "asg_late_check_in",
     "from": [],
     "to": "APPROVED",
-    "by": "LateCheckInService.Target"
+    "by": "LateCheckInService.decide"
    },
    {
     "table": "asg_late_check_in",
     "from": [],
     "to": "REJECTED",
-    "by": "LateCheckInService.Target"
+    "by": "LateCheckInService.decide"
    }
   ]
  },
@@ -546,7 +588,7 @@
     "table": "asg_run",
     "from": [],
     "to": "DISCARDED",
-    "by": "AssignmentService.for"
+    "by": "AssignmentService.start"
    },
    {
     "table": "asg_run",
@@ -554,13 +596,13 @@
      "PROPOSED"
     ],
     "to": "IN_REVIEW",
-    "by": "AssignmentService.if"
+    "by": "AssignmentService.submit"
    },
    {
     "table": "asg_run",
     "from": [],
     "to": "COMMITTED",
-    "by": "AssignmentService.if"
+    "by": "AssignmentService.approve"
    }
   ]
  },
@@ -579,8 +621,14 @@
    {
     "table": "asg_run_block",
     "from": [],
+    "to": "SUBMITTED",
+    "by": "AssignmentService.submit"
+   },
+   {
+    "table": "asg_run_block",
+    "from": [],
     "to": "COMMITTED",
-    "by": "AssignmentService.for"
+    "by": "AssignmentService.approve"
    },
    {
     "table": "asg_run_block",
@@ -615,22 +663,8 @@
     "from": [
      "ACTIVE"
     ],
-    "to": "CANCELLED",
-    "by": "JdbcStays.extend"
-   },
-   {
-    "table": "asg_stay",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "JdbcStays.Row"
-   },
-   {
-    "table": "asg_stay",
-    "from": [
-     "ACTIVE"
-    ],
     "to": "ENDED",
-    "by": "JdbcStays.if"
+    "by": "JdbcStays.endIfLeft"
    }
   ]
  },
@@ -666,7 +700,7 @@
     "table": "asg_termination",
     "from": [],
     "to": "OVERDUE",
-    "by": "TerminationService.for"
+    "by": "TerminationService.markOverdue"
    },
    {
     "table": "asg_termination",
@@ -723,7 +757,7 @@
      "OPEN"
     ],
     "to": "RESOLVED",
-    "by": "ReconciliationService.if"
+    "by": "ReconciliationService.upload"
    },
    {
     "table": "auth_reconciliation_item",
@@ -817,7 +851,14 @@
    "PREVIEW",
    "APPLIED"
   ],
-  "transitions": []
+  "transitions": [
+   {
+    "table": "auth_student_import",
+    "from": [],
+    "to": "APPLIED",
+    "by": "StudentImportService.confirm"
+   }
+  ]
  },
  {
   "table": "auth_student_import_row",
@@ -858,12 +899,6 @@
     "from": [],
     "to": "ACTIVE",
     "by": "AuthDemoData.clear"
-   },
-   {
-    "table": "auth_user",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "StudentVerificationService.if"
    }
   ]
  },
@@ -921,7 +956,7 @@
      "UNPAID"
     ],
     "to": "OVERDUE",
-    "by": "FinanceService.Due"
+    "by": "FinanceService.markOverdue"
    },
    {
     "table": "bil_invoice",
@@ -929,13 +964,7 @@
      "PAID"
     ],
     "to": "REFUNDED",
-    "by": "FinanceService.Refund"
-   },
-   {
-    "table": "bil_invoice",
-    "from": [],
-    "to": "PAID",
-    "by": "JdbcBilling.followAllocation"
+    "by": "FinanceService.markRefundPaid"
    },
    {
     "table": "bil_invoice",
@@ -964,19 +993,13 @@
      "OVERDUE"
     ],
     "to": "VOID",
-    "by": "JdbcBilling.issueUtility"
+    "by": "JdbcBilling.settleCheckOut"
    },
    {
     "table": "bil_invoice",
     "from": [],
     "to": "VOID",
-    "by": "PaymentClaimService.if"
-   },
-   {
-    "table": "bil_invoice",
-    "from": [],
-    "to": "CLAIMED",
-    "by": "PaymentClaimService.if"
+    "by": "PaymentClaimService.reject"
    },
    {
     "table": "bil_invoice",
@@ -1085,7 +1108,7 @@
     "table": "bil_payment_claim",
     "from": [],
     "to": "REJECTED",
-    "by": "PaymentClaimService.if"
+    "by": "PaymentClaimService.reject"
    },
    {
     "table": "bil_payment_claim",
@@ -1120,7 +1143,7 @@
     "table": "bil_refund",
     "from": [],
     "to": "PAID",
-    "by": "FinanceService.Refund"
+    "by": "FinanceService.markRefundPaid"
    }
   ]
  },
@@ -1239,14 +1262,8 @@
    {
     "table": "cfg_term",
     "from": [],
-    "to": "DRAFT",
-    "by": "TermDrafts.writeTimeline"
-   },
-   {
-    "table": "cfg_term",
-    "from": [],
     "to": "PUBLISHED",
-    "by": "TermWizardService.if"
+    "by": "TermWizardService.publish"
    }
   ]
  },
@@ -1272,7 +1289,7 @@
     "table": "cfg_term_request",
     "from": [],
     "to": "IN_PROGRESS",
-    "by": "TermRequestService.comment"
+    "by": "TermRequestService.built"
    },
    {
     "table": "cfg_term_request",
@@ -1367,13 +1384,15 @@
      "PROPOSED"
     ],
     "to": "CANCELLED",
-    "by": "DoorCodeService.insertProposal"
+    "by": "DoorCodeService.cancel"
    },
    {
     "table": "inv_door_code",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "InventoryDemoData.rotateForCheckIn"
+    "from": [
+     "PROPOSED"
+    ],
+    "to": "CANCELLED",
+    "by": "DoorCodeService.insertProposal"
    }
   ]
  },
@@ -1438,22 +1457,8 @@
    {
     "table": "inv_furniture_item",
     "from": [],
-    "to": "DISPOSED",
-    "by": "FurnitureBeds.relink"
-   },
-   {
-    "table": "inv_furniture_item",
-    "from": [
-     "PLANNED"
-    ],
-    "to": "CANCELLED",
-    "by": "FurnitureService.if"
-   },
-   {
-    "table": "inv_furniture_item",
-    "from": [],
-    "to": "IN_SERVICE",
-    "by": "InventoryDemoData.clear"
+    "to": "BROKEN",
+    "by": "FurnitureService.on"
    }
   ]
  },
@@ -1469,9 +1474,11 @@
   "transitions": [
    {
     "table": "inv_furniture_move",
-    "from": [],
-    "to": "BROKEN",
-    "by": "FurnitureService.Move"
+    "from": [
+     "PLANNED"
+    ],
+    "to": "CANCELLED",
+    "by": "FurnitureService.update"
    },
    {
     "table": "inv_furniture_move",
@@ -1529,7 +1536,7 @@
     "table": "inv_room",
     "from": [],
     "to": "OUT_OF_SERVICE",
-    "by": "InventoryService.if"
+    "by": "InventoryService.setOutOfService"
    },
    {
     "table": "inv_room",
@@ -1567,12 +1574,6 @@
     "from": [],
     "to": "ARCHIVED",
     "by": "ChecklistService.archive"
-   },
-   {
-    "table": "mnt_checklist",
-    "from": [],
-    "to": "PUBLISHED",
-    "by": "ChecklistService.if"
    }
   ]
  },
@@ -1613,7 +1614,7 @@
     "table": "mnt_inspection_room",
     "from": [],
     "to": "INSPECTED",
-    "by": "InspectionRunService.if"
+    "by": "InspectionRunService.saveRoom"
    },
    {
     "table": "mnt_inspection_room",
@@ -1667,12 +1668,6 @@
     "from": [],
     "to": "IN_PROGRESS",
     "by": "InspectionRunService.started"
-   },
-   {
-    "table": "mnt_inspection_run",
-    "from": [],
-    "to": "ACTIVE",
-    "by": "InspectionScheduleService.if"
    }
   ]
  },
@@ -1753,25 +1748,25 @@
     "table": "mnt_request",
     "from": [],
     "to": "SUBMITTED",
-    "by": "JdbcMaintenanceRequests.setSlaDue"
+    "by": "JdbcMaintenanceRequests.unassign"
    },
    {
     "table": "mnt_request",
     "from": [],
     "to": "RESOLVED",
-    "by": "MaintenanceDeskService.update"
+    "by": "MaintenanceDeskService.transition"
    },
    {
     "table": "mnt_request",
     "from": [],
     "to": "CLOSED",
-    "by": "MaintenanceDeskService.if"
+    "by": "MaintenanceDeskService.transition"
    },
    {
     "table": "mnt_request",
     "from": [],
     "to": "CLOSED",
-    "by": "MaintenanceService.if"
+    "by": "MaintenanceService.confirm"
    }
   ]
  },
@@ -1910,7 +1905,7 @@
     "table": "ntf_email_outbox",
     "from": [],
     "to": "SENT",
-    "by": "EmailOutboxDispatcher.claim"
+    "by": "EmailOutboxDispatcher.send"
    }
   ]
  },
@@ -1959,12 +1954,6 @@
    "HANDLED"
   ],
   "transitions": [
-   {
-    "table": "req_escalation",
-    "from": [],
-    "to": "OPEN",
-    "by": "EscalationService.if"
-   },
    {
     "table": "req_escalation",
     "from": [
@@ -2129,7 +2118,7 @@
     "table": "req_stay_request",
     "from": [],
     "to": "REJECTED",
-    "by": "StayRequestService.if"
+    "by": "StayRequestService.decide"
    },
    {
     "table": "req_stay_request",
@@ -2138,12 +2127,6 @@
     ],
     "to": "CANCELLED",
     "by": "StayRequestService.allocationCancelled"
-   },
-   {
-    "table": "req_stay_request",
-    "from": [],
-    "to": "SUBMITTED",
-    "by": "StayRequestService.allocationMoved"
    },
    {
     "table": "req_stay_request",
@@ -2172,7 +2155,7 @@
     "table": "req_swap",
     "from": [],
     "to": "REJECTED",
-    "by": "SwapService.if"
+    "by": "SwapService.decide"
    },
    {
     "table": "req_swap",
@@ -2314,13 +2297,19 @@
     "table": "vis_family_day",
     "from": [],
     "to": "PUBLISHED",
-    "by": "FamilyDayService.update"
+    "by": "FamilyDayService.publish"
+   },
+   {
+    "table": "vis_family_day",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "FamilyDayService.cancel"
    },
    {
     "table": "vis_family_day",
     "from": [],
     "to": "COMPLETED",
-    "by": "FamilyDayService.if"
+    "by": "FamilyDayService.close"
    }
   ]
  },
@@ -2339,13 +2328,13 @@
      "APPROVED"
     ],
     "to": "CANCELLED",
-    "by": "FamilyDayService.if"
+    "by": "FamilyDayService.cancel"
    },
    {
     "table": "vis_registration",
     "from": [],
     "to": "CANCELLED",
-    "by": "Registrations.if"
+    "by": "Registrations.cancel"
    }
   ]
  },
@@ -2367,7 +2356,7 @@
      "NOT_ARRIVED"
     ],
     "to": "CANCELLED",
-    "by": "FamilyDayService.if"
+    "by": "FamilyDayService.cancel"
    },
    {
     "table": "vis_visitor",
@@ -2376,7 +2365,7 @@
      "APPROVED"
     ],
     "to": "NO_SHOW",
-    "by": "FamilyDayService.if"
+    "by": "FamilyDayService.close"
    },
    {
     "table": "vis_visitor",
@@ -2384,7 +2373,7 @@
      "NOT_ARRIVED"
     ],
     "to": "CANCELLED",
-    "by": "Registrations.if"
+    "by": "Registrations.cancel"
    },
    {
     "table": "vis_visitor",
@@ -2392,7 +2381,7 @@
      "NOT_ARRIVED"
     ],
     "to": "CHECKED_IN",
-    "by": "VisitorDeskService.if"
+    "by": "VisitorDeskService.checkIn"
    },
    {
     "table": "vis_visitor",
@@ -2400,7 +2389,7 @@
      "CHECKED_IN"
     ],
     "to": "CHECKED_OUT",
-    "by": "VisitorDeskService.if"
+    "by": "VisitorDeskService.checkOut"
    }
   ]
  }

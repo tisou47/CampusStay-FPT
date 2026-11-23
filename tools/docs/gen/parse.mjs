@@ -31,7 +31,9 @@ export function parseController(src, controller) {
 export function parsePermissions(src) {
   const start = src.search(/\benum\s+\w+\s*\{/)
   const open = src.indexOf('{', start)
-  const body = src.slice(open + 1, src.indexOf(';', open))
+  // The constants end at the first ; outside a string literal (a label may contain one).
+  const upToSemicolon = src.slice(open).match(/^(?:[^";]|"(?:[^"\\]|\\.)*")*;/)
+  const body = src.slice(open + 1, upToSemicolon ? open + upToSemicolon[0].length - 1 : src.length)
   return [...body.matchAll(/([A-Z_]+)\s*\(((?:"(?:[^"\\]|\\.)*"\s*\+?\s*)+),\s*([^)]*)\)/g)].map((m) => ({
     permission: m[1],
     label: [...m[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((s) => s[1]).join(''),
@@ -79,18 +81,35 @@ export function parseStatusChecks(migrations) {
 }
 
 /** Status changes written by a service: `UPDATE t SET status = 'X' … WHERE … status = 'Y' | IN (…)`, per method. */
-export function parseTransitions(src, cls) {
+export function parseTransitions(src, cls, stores = {}) {
   const out = []
-  const methods = [...src.matchAll(/\n\s+(?:public\s+|private\s+|protected\s+|static\s+)*[\w<>[\],\s]+\s+(\w+)\s*\([^)]*\)\s*(?:throws [\w, ]+)?\{/g)]
-  for (const u of src.matchAll(/UPDATE\s+(\w+)\s+(?:\w+\s+)?SET\s+[\s\S]*?\bstatus\s*=\s*'([A-Z_]+)'([\s\S]*?)(?:"""|"\)|";)/g)) {
-    const where = u[3].match(/WHERE([\s\S]*)/)?.[1] ?? ''
-    const eq = [...where.matchAll(/\bstatus\s*=\s*'([A-Z_]+)'/g)].map((m) => m[1])
-    const inn = where.match(/\bstatus\s+IN\s*\(([^)]*)\)/)
-    const from = [...eq, ...(inn ? [...inn[1].matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]) : [])]
-    const owner = methods.filter((m) => m.index < u.index).at(-1)?.[1] ?? '?'
-    out.push({ table: u[1], from, to: u[2], by: `${cls}.${owner}` })
+  // Method declarations: a type, then the name; statements (return x(, new X(, else if () are not.
+  const NOT_TYPE = new Set(['return', 'new', 'else', 'throw', 'case', 'yield', 'await', 'record', 'class', 'enum', 'interface'])
+  const NOT_NAME = new Set(['if', 'for', 'while', 'switch', 'catch', 'synchronized', 'try', 'do'])
+  // String contents blanked (same length, newlines kept) so SQL like "ON CONFLICT (id)" is not read as a method.
+  const code = src.replace(/"""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"/g, (s) => s.replace(/[^\n]/g, ' '))
+  const methods = [...code.matchAll(/\n[ \t]+(?:(?:public|private|protected|static|final|synchronized|default)\s+)*(?:<[^>\n]+>\s+)?([\w.]+(?:<[^\n;=(){}]*>)?(?:\[\])?)\s+(\w+)\s*\(/g)]
+    .filter((m) => !NOT_TYPE.has(m[1]) && !NOT_NAME.has(m[2]))
+  const owner = (index) => methods.filter((m) => m.index < index).at(-1)?.[2] ?? '?'
+  // One SQL string literal at a time (text blocks, then plain strings), so a match never runs into the next statement.
+  for (const s of src.matchAll(/"""([\s\S]*?)"""|"((?:[^"\\\n]|\\.)*)"/g)) {
+    const sql = s[1] ?? s[2]
+    // The status = 'X' must be in the SET list, not in the WHERE after it.
+    for (const u of sql.matchAll(/UPDATE\s+(\w+)\s+(?:\w+\s+)?SET\s+(?:(?!\bWHERE\b)[\s\S])*?\bstatus\s*=\s*'([A-Z_]+)'([\s\S]*)/g)) {
+      const where = u[3].match(/WHERE([\s\S]*)/)?.[1] ?? ''
+      const eq = [...where.matchAll(/\bstatus\s*=\s*'([A-Z_]+)'/g)].map((m) => m[1])
+      const inn = where.match(/\bstatus\s+IN\s*\(([^)]*)\)/)
+      const from = [...eq, ...(inn ? [...inn[1].matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]) : [])]
+      out.push({ index: s.index, table: u[1], from, to: u[2], by: `${cls}.${owner(s.index)}` })
+    }
   }
-  return out
+  // store.transition(id, Set.of("FROM", …), "TO"), where stores maps the field name to the store's table.
+  for (const c of src.matchAll(/\b(\w+)\.transition\(\s*[^,]+,\s*Set\.of\(([^)]*)\)\s*,\s*"([A-Z_]+)"\s*\)/g)) {
+    if (!stores[c[1]]) continue
+    out.push({ index: c.index, table: stores[c[1]], from: [...c[2].matchAll(/"([A-Z_]+)"/g)].map((m) => m[1]), to: c[3],
+      by: `${cls}.${owner(c.index)}` })
+  }
+  return out.sort((a, b) => a.index - b.index).map(({ index, ...t }) => t)
 }
 
 /** `English ⟶ Vietnamese` lines of i18n/messages_vi.txt. */

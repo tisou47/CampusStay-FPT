@@ -7,7 +7,7 @@
  "views": 33,
  "webPages": 133,
  "mobileScreens": 31,
- "permissions": 22,
+ "permissions": 37,
  "statusMachines": 134,
  "messages": 323,
  "tcIds": 380,
@@ -22,5 +22,5 @@
   "js": 50221,
   "dart": 11014
  },
- "generatedFrom": "e0c9f8d"
+ "generatedFrom": "f3bb9de"
 }

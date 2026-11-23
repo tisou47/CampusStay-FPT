@@ -87,6 +87,35 @@ test('transitions: UPDATE … SET status = … WHERE … status = / IN', () => {
   ])
 })
 
+test('transitions: the enclosing method, not a keyword; one SQL string at a time; store.transition(…) calls', () => {
+  const src = `class ApplicationService {
+    private final ApplicationStore applications;
+    public Result accept(long id) {
+        if (ok) {
+            jdbc.sql("UPDATE app_roommate_invitation SET responded_at = :now WHERE id = :id");
+            jdbc.sql("UPDATE app_roommate_invitation SET status = 'ACCEPTED' WHERE status = 'PENDING'");
+        }
+        for (var x : xs) {
+            applications.transition(id, Set.of("AWAITING_DEPOSIT", "AWAITING_ROOMMATE"), "SUBMITTED");
+        }
+        record Row(long id, String status) {
+        }
+        jdbc.sql("""
+                INSERT INTO x VALUES (1)
+                ON CONFLICT (id) DO UPDATE SET a = 1
+                """);
+        jdbc.sql("UPDATE app_round2_offer SET status = 'EXPIRED' WHERE id = :id");
+        jdbc.sql("UPDATE app_round2_offer SET status = :status WHERE id = :id AND status = 'PENDING'");
+        return null;
+    }
+}`
+  assert.deepEqual(parseTransitions(src, 'ApplicationService', { applications: 'app_application' }), [
+    { table: 'app_roommate_invitation', from: ['PENDING'], to: 'ACCEPTED', by: 'ApplicationService.accept' },
+    { table: 'app_application', from: ['AWAITING_DEPOSIT', 'AWAITING_ROOMMATE'], to: 'SUBMITTED', by: 'ApplicationService.accept' },
+    { table: 'app_round2_offer', from: [], to: 'EXPIRED', by: 'ApplicationService.accept' },
+  ])
+})
+
 test('messages: the Vietnamese file and the API error codes', () => {
   assert.deepEqual(parseMessagesVi('# comment\nThis Term does not exist. ⟶ Học kỳ không tồn tại.\n'),
     { 'This Term does not exist.': 'Học kỳ không tồn tại.' })
@@ -169,4 +198,9 @@ test('status values from a Postgres CHECK definition', async () => {
 test('permissions: a Javadoc brace before the enum does not cut it', () => {
   const src = '/** Uses {@link Role}. */\npublic enum Permission {\n    APPLY("Apply", Role.STUDENT);\n}'
   assert.deepEqual(parsePermissions(src), [{ permission: 'APPLY', label: 'Apply', roles: ['STUDENT'] }])
+})
+
+test('permissions: a ; inside a label does not end the enum', () => {
+  const src = 'public enum Permission {\n    VIEW("Read; comment", Role.MANAGER,\n            Role.ADMIN),\n    READ("Read", Role.ADMIN);\n    private final String a;\n}'
+  assert.deepEqual(parsePermissions(src).map((p) => p.permission), ['VIEW', 'READ'])
 })

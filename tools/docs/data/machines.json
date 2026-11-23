@@ -1,0 +1,561 @@
+[
+ {
+  "name": "08_State_Machine/state-app_application",
+  "title": "State machine: app_application.status",
+  "notWritten": [],
+  "transitions": [
+   "SUBMITTED → UNDER_REVIEW (detail)",
+   "AWAITING_DEPOSIT → AWAITING_ROOMMATE (on)",
+   "AWAITING_DEPOSIT → EXPIRED (on)",
+   "ALLOCATED → FORFEITED (on)",
+   "AWAITING_DEPOSIT → EXPIRED (expireOverdue)",
+   "APPROVED → ALLOCATED (allocated)",
+   "WAITLISTED → ALLOCATED (allocated)",
+   "APPROVED → WAITLISTED (waitlisted)",
+   "ALLOCATED → REJECTED (notEnrolled)",
+   "WAITLISTED → CANCELLED (cancelWaitlisted)",
+   "AWAITING_ROOMMATE → CANCELLED (cancel)",
+   "AWAITING_DEPOSIT → CANCELLED (cancel)",
+   "SUBMITTED → CANCELLED (cancel)",
+   "UNDER_REVIEW → CANCELLED (cancel)",
+   "APPROVED → CANCELLED (cancel)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-app_roommate_invitation",
+  "title": "State machine: app_roommate_invitation.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → CANCELLED (cancelPendingInvitation)",
+   "PENDING → ACCEPTED (respond)",
+   "PENDING → DECLINED (respond)",
+   "PENDING → EXPIRED (expireOverdue)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-app_round2_offer",
+  "title": "State machine: app_round2_offer.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → WITHDRAWN (offerRound2)",
+   "PENDING → DECLINED (respond)",
+   "PENDING → ACCEPTED (respond)",
+   "PENDING → EXPIRED (expire)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_allocation",
+  "title": "State machine: asg_allocation.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → ENDED (checkOut)",
+   "ACTIVE → ENDED (endPreviousTerm)",
+   "ACTIVE → CANCELLED (cancel)",
+   "ACTIVE → CANCELLED (releaseUnlived)",
+   "ACTIVE → CANCELLED (forfeit)",
+   "ACTIVE → ENDED (end)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_check_out-refund_status",
+  "title": "State machine: asg_check_out.refund_status",
+  "notWritten": [
+   "APPROVED",
+   "PAID",
+   "REJECTED"
+  ],
+  "transitions": [
+   "NONE → PENDING (checkOut)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_check_out",
+  "title": "State machine: asg_check_out.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → DRAFT (saveRoomReadings)",
+   "PENDING → DRAFT (checkOut)",
+   "PENDING → COMPLETED (checkOut)",
+   "DRAFT → COMPLETED (checkOut)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_damage_claim",
+  "title": "State machine: asg_damage_claim.status",
+  "notWritten": [
+   "SETTLED"
+  ],
+  "transitions": [
+   "PENDING → EXPIRED (expireClaims)",
+   "PENDING → ACKNOWLEDGED (answerClaim)",
+   "PENDING → DECLINED (answerClaim)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_handover",
+  "title": "State machine: asg_handover.status",
+  "notWritten": [],
+  "transitions": [
+   "DRAFT → FINAL (finalize)",
+   "SUBMITTED → FINAL (finalize)",
+   "VERIFYING → FINAL (finalize)",
+   "SUBMITTED → VERIFYING (requestVisit)",
+   "DRAFT → CANCELLED (cancel)",
+   "SUBMITTED → CANCELLED (cancel)",
+   "VERIFYING → CANCELLED (cancel)",
+   "DRAFT → SUBMITTED (submit)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_late_check_in",
+  "title": "State machine: asg_late_check_in.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → REJECTED (forfeit)",
+   "PENDING → APPROVED (decide)",
+   "PENDING → REJECTED (decide)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_run",
+  "title": "State machine: asg_run.status",
+  "notWritten": [
+   "FAILED"
+  ],
+  "transitions": [
+   "PROPOSED → IN_REVIEW (submit)",
+   "initial → PROPOSED (start)",
+   "RUNNING → DISCARDED (start)",
+   "PROPOSED → DISCARDED (start)",
+   "IN_REVIEW → DISCARDED (start)",
+   "IN_REVIEW → COMMITTED (approve)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_run_block",
+  "title": "State machine: asg_run_block.status",
+  "notWritten": [
+   "APPROVED"
+  ],
+  "transitions": [
+   "REVIEW → SUBMITTED (submit)",
+   "RETURNED → SUBMITTED (submit)",
+   "SUBMITTED → COMMITTED (approve)",
+   "SUBMITTED → RETURNED (returnToStaff)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_stay",
+  "title": "State machine: asg_stay.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → ENDED (endIfLeft)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-asg_termination",
+  "title": "State machine: asg_termination.status",
+  "notWritten": [],
+  "transitions": [
+   "NOTICE_SENT → CANCELLED (cancel)",
+   "NOTICE_SENT → OVERDUE (markOverdue)",
+   "NOTICE_SENT → CHECKED_OUT (checkedOut)",
+   "OVERDUE → CHECKED_OUT (checkedOut)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-auth_reconciliation_item",
+  "title": "State machine: auth_reconciliation_item.status",
+  "notWritten": [],
+  "transitions": [
+   "OPEN → RESOLVED (upload)",
+   "initial → INFO (upload)",
+   "OPEN → RESOLVED (resolve)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-auth_student-enrollment_status",
+  "title": "State machine: auth_student.enrollment_status",
+  "notWritten": [],
+  "transitions": [
+   "ENROLLED → NOT_ENROLLED (resolve)",
+   "NOT_ENROLLED → ENROLLED (resolve)",
+   "ENROLLED → SUSPENDED (upload)",
+   "ENROLLED → GRADUATED (upload)",
+   "ENROLLED → WITHDRAWN (upload)",
+   "SUSPENDED → ENROLLED (upload)",
+   "NOT_ENROLLED → ENROLLED (upload)",
+   "ENROLLED → NOT_ENROLLED (confirm)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-auth_student_import",
+  "title": "State machine: auth_student_import.status",
+  "notWritten": [],
+  "transitions": [
+   "PREVIEW → APPLIED (confirm)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-auth_user",
+  "title": "State machine: auth_user.status",
+  "notWritten": [],
+  "transitions": [
+   "INVITED → ACTIVE (recordSignIn)",
+   "INVITED → DISABLED (disable)",
+   "ACTIVE → DISABLED (disable)",
+   "DISABLED → ACTIVE (restore)",
+   "DISABLED → INVITED (restore)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-bil_invoice",
+  "title": "State machine: bil_invoice.status",
+  "notWritten": [],
+  "transitions": [
+   "UNPAID → OVERDUE (markOverdue)",
+   "PAID → REFUNDED (markRefundPaid)",
+   "UPCOMING → VOID (voidUnpaid)",
+   "UNPAID → VOID (voidUnpaid)",
+   "OVERDUE → VOID (voidUnpaid)",
+   "UNPAID → OVERDUE (extendBalanceDeadline)",
+   "AWAITING_CONFIRMATION → OVERDUE (extendBalanceDeadline)",
+   "UNPAID → VOID (settleCheckOut)",
+   "OVERDUE → VOID (settleCheckOut)",
+   "AWAITING_CONFIRMATION → VOID (reject)",
+   "AWAITING_CONFIRMATION → UNPAID (reject)",
+   "AWAITING_CONFIRMATION → OVERDUE (reject)",
+   "UNPAID → AWAITING_CONFIRMATION (insertClaim)",
+   "OVERDUE → AWAITING_CONFIRMATION (insertClaim)",
+   "AWAITING_CONFIRMATION → PAID (pay)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-bil_meter_reading",
+  "title": "State machine: bil_meter_reading.status",
+  "notWritten": [],
+  "transitions": [
+   "MISSING → ENTERED (apply)",
+   "MISSING → CHECK_VALUE (apply)",
+   "ENTERED → CONFIRMED (confirm)",
+   "CHECK_VALUE → CONFIRMED (confirm)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-bil_payment_claim",
+  "title": "State machine: bil_payment_claim.status",
+  "notWritten": [],
+  "transitions": [
+   "CLAIMED → REJECTED (reject)",
+   "CLAIMED → CONFIRMED (pay)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-bil_refund",
+  "title": "State machine: bil_refund.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → APPROVED (decideRefund)",
+   "PENDING → REJECTED (decideRefund)",
+   "APPROVED → PAID (markRefundPaid)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-cfg_room_class",
+  "title": "State machine: cfg_room_class.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → INACTIVE (update)",
+   "INACTIVE → ACTIVE (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-cfg_room_type",
+  "title": "State machine: cfg_room_type.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → INACTIVE (update)",
+   "INACTIVE → ACTIVE (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-cfg_term",
+  "title": "State machine: cfg_term.status",
+  "notWritten": [
+   "CLOSED"
+  ],
+  "transitions": [
+   "DRAFT → PUBLISHED (publish)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-cfg_term_request",
+  "title": "State machine: cfg_term_request.status",
+  "notWritten": [],
+  "transitions": [
+   "SUBMITTED → IN_PROGRESS (built)",
+   "SUBMITTED → DONE (done)",
+   "IN_PROGRESS → DONE (done)",
+   "SUBMITTED → NEEDS_CHANGES (decide)",
+   "IN_PROGRESS → NEEDS_CHANGES (decide)",
+   "SUBMITTED → REJECTED (decide)",
+   "IN_PROGRESS → REJECTED (decide)",
+   "NEEDS_CHANGES → REJECTED (decide)",
+   "NEEDS_CHANGES → SUBMITTED (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_bed",
+  "title": "State machine: inv_bed.status",
+  "notWritten": [],
+  "transitions": [
+   "IN_SERVICE → RETIRED (on)",
+   "OUT_OF_SERVICE → RETIRED (on)",
+   "RETIRED → IN_SERVICE (on)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_building",
+  "title": "State machine: inv_building.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → INACTIVE (update)",
+   "INACTIVE → ACTIVE (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_door_code",
+  "title": "State machine: inv_door_code.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → RETIRED (confirm)",
+   "PROPOSED → CANCELLED (cancel)",
+   "PROPOSED → CANCELLED (insertProposal)",
+   "PROPOSED → ACTIVE (confirm)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_furniture_item",
+  "title": "State machine: inv_furniture_item.status",
+  "notWritten": [],
+  "transitions": [
+   "IN_USE → BROKEN (on)",
+   "IN_STORE → BROKEN (on)",
+   "IN_USE → IN_REPAIR (update)",
+   "IN_STORE → IN_REPAIR (update)",
+   "BROKEN → IN_REPAIR (update)",
+   "BROKEN → IN_USE (on)",
+   "IN_REPAIR → IN_USE (on)",
+   "BROKEN → IN_STORE (on)",
+   "IN_REPAIR → IN_STORE (on)",
+   "IN_USE → IN_STORE (apply)",
+   "IN_STORE → IN_USE (apply)",
+   "IN_USE → DISPOSED (update)",
+   "IN_STORE → DISPOSED (update)",
+   "BROKEN → DISPOSED (update)",
+   "IN_REPAIR → DISPOSED (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_furniture_move",
+  "title": "State machine: inv_furniture_move.status",
+  "notWritten": [],
+  "transitions": [
+   "PLANNED → CANCELLED (update)",
+   "PLANNED → CANCELLED (setBack)",
+   "PLANNED → DONE (closeMove)",
+   "PLANNED → CANCELLED (closeMove)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_furniture_type",
+  "title": "State machine: inv_furniture_type.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → INACTIVE (updateType)",
+   "INACTIVE → ACTIVE (updateType)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-inv_room",
+  "title": "State machine: inv_room.status",
+  "notWritten": [
+   "RETIRED"
+  ],
+  "transitions": [
+   "IN_SERVICE → OUT_OF_SERVICE (setOutOfService)",
+   "OUT_OF_SERVICE → IN_SERVICE (backInService)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-mnt_checklist",
+  "title": "State machine: mnt_checklist.status",
+  "notWritten": [],
+  "transitions": [
+   "DRAFT → PUBLISHED (publish)",
+   "PUBLISHED → REPLACED (publish)",
+   "DRAFT → ARCHIVED (archive)",
+   "PUBLISHED → ARCHIVED (archive)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-mnt_inspection_room",
+  "title": "State machine: mnt_inspection_room.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → INSPECTED (saveRoom)",
+   "PENDING → UNREACHABLE (unreachable)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-mnt_inspection_run",
+  "title": "State machine: mnt_inspection_run.status",
+  "notWritten": [],
+  "transitions": [
+   "SCHEDULED → SUBMITTED (submit)",
+   "IN_PROGRESS → SUBMITTED (submit)",
+   "SCHEDULED → IN_PROGRESS (started)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-mnt_inspection_schedule",
+  "title": "State machine: mnt_inspection_schedule.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → PAUSED (archive)",
+   "ACTIVE → COMPLETED (update)",
+   "PAUSED → COMPLETED (update)",
+   "ACTIVE → PAUSED (update)",
+   "PAUSED → ACTIVE (update)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-mnt_request",
+  "title": "State machine: mnt_request.status",
+  "notWritten": [],
+  "transitions": [
+   "SUBMITTED → ASSIGNED (assign)",
+   "ASSIGNED → SUBMITTED (unassign)",
+   "IN_PROGRESS → SUBMITTED (unassign)",
+   "SUBMITTED → ASSIGNED (update)",
+   "ASSIGNED → IN_PROGRESS (transition)",
+   "ASSIGNED → RESOLVED (transition)",
+   "IN_PROGRESS → RESOLVED (transition)",
+   "RESOLVED → CLOSED (transition)",
+   "RESOLVED → CLOSED (confirm)",
+   "RESOLVED → ASSIGNED (confirm)",
+   "RESOLVED → SUBMITTED (confirm)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-ntf_email_outbox",
+  "title": "State machine: ntf_email_outbox.status",
+  "notWritten": [],
+  "transitions": [
+   "PENDING → SENT (send)",
+   "PENDING → FAILED (send)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-req_escalation",
+  "title": "State machine: req_escalation.status",
+  "notWritten": [],
+  "transitions": [
+   "OPEN → HANDLED (close)",
+   "OPEN → HANDLED (handle)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-req_room_change",
+  "title": "State machine: req_room_change.status",
+  "notWritten": [],
+  "transitions": [
+   "SUBMITTED → CANCELLED (allocationCancelled)",
+   "PENDING → CANCELLED (allocationCancelled)",
+   "SUBMITTED → CANCELLED (allocationMoved)",
+   "PENDING → CANCELLED (allocationMoved)",
+   "SUBMITTED → CANCELLED (closeOthers)",
+   "PENDING → CANCELLED (closeOthers)",
+   "SUBMITTED → REJECTED (decide)",
+   "PENDING → REJECTED (decide)",
+   "SUBMITTED → APPROVED (decide)",
+   "PENDING → APPROVED (decide)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-req_stay_request",
+  "title": "State machine: req_stay_request.status",
+  "notWritten": [],
+  "transitions": [
+   "SUBMITTED → CANCELLED (allocationCancelled)",
+   "SUBMITTED → REJECTED (decide)",
+   "SUBMITTED → APPROVED (decided)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-req_swap",
+  "title": "State machine: req_swap.status",
+  "notWritten": [],
+  "transitions": [
+   "INVITED → CANCELLED (closeOthers)",
+   "PENDING → CANCELLED (closeOthers)",
+   "TO_MANAGER → CANCELLED (closeOthers)",
+   "INVITED → EXPIRED (expire)",
+   "INVITED → CANCELLED (allocationCancelled)",
+   "PENDING → CANCELLED (allocationCancelled)",
+   "TO_MANAGER → CANCELLED (allocationCancelled)",
+   "INVITED → CANCELLED (allocationMoved)",
+   "PENDING → CANCELLED (allocationMoved)",
+   "TO_MANAGER → CANCELLED (allocationMoved)",
+   "INVITED → PENDING (respond)",
+   "INVITED → DECLINED (respond)",
+   "PENDING → REJECTED (decide)",
+   "TO_MANAGER → REJECTED (decide)",
+   "PENDING → TO_MANAGER (decide)",
+   "PENDING → APPROVED (decide)",
+   "TO_MANAGER → APPROVED (decide)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-req_swap_post",
+  "title": "State machine: req_swap_post.status",
+  "notWritten": [],
+  "transitions": [
+   "ACTIVE → CLOSED (putMyPost)",
+   "ACTIVE → CLOSED (closeOthers)",
+   "ACTIVE → CLOSED (expire)",
+   "ACTIVE → CLOSED (allocationCancelled)",
+   "ACTIVE → CLOSED (allocationMoved)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-vis_family_day",
+  "title": "State machine: vis_family_day.status",
+  "notWritten": [],
+  "transitions": [
+   "DRAFT → PUBLISHED (publish)",
+   "DRAFT → CANCELLED (cancel)",
+   "PUBLISHED → CANCELLED (cancel)",
+   "PUBLISHED → COMPLETED (close)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-vis_registration",
+  "title": "State machine: vis_registration.status",
+  "notWritten": [],
+  "transitions": [
+   "APPROVED → CANCELLED (cancel)"
+  ]
+ },
+ {
+  "name": "08_State_Machine/state-vis_visitor",
+  "title": "State machine: vis_visitor.status",
+  "notWritten": [],
+  "transitions": [
+   "NOT_ARRIVED → CANCELLED (cancel)",
+   "NOT_ARRIVED → NO_SHOW (close)",
+   "NOT_ARRIVED → CHECKED_IN (checkIn)",
+   "CHECKED_IN → CHECKED_OUT (checkOut)"
+  ]
+ }
+]

@@ -163,5 +163,122 @@
   "roles": [
    "MANAGER"
   ]
+ },
+ {
+  "permission": "MANAGE_FAMILY_DAYS",
+  "label": "Organise Family Days: create, publish, cancel and close them; cancel registrations",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "FAMILY_DAY_DESK",
+  "label": "Receive Family Day guests: check passes, check guests in and out (Staff inside their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "VIEW_FAMILY_DAY_STATS",
+  "label": "View Family Day statistics (Staff: their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "VIEW_STUDENTS",
+  "label": "View student accounts (Staff: residents of their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "MANAGE_STUDENTS",
+  "label": "Import, verify, lock and edit student accounts",
+  "roles": [
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "MANAGE_STAFF_ACCOUNTS",
+  "label": "Create Staff accounts and choose their Blocks",
+  "roles": [
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "VIEW_REPORTS",
+  "label": "View reports and exports",
+  "roles": [
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "VIEW_FINANCE",
+  "label": "View Block Finance, Invoices and refunds",
+  "roles": [
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "REQUEST_TERMS",
+  "label": "Request registration periods",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "VIEW_REGISTRATION_PERIODS",
+  "label": "Read and comment on registration-period requests; Term dashboards",
+  "roles": [
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "ANNOUNCE",
+  "label": "Write announcements to students (Staff: residents of their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "CONFIGURE",
+  "label": "Configure Terms, prices and rules",
+  "roles": [
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "MANAGE_BUILDINGS",
+  "label": "Manage Buildings and Rooms",
+  "roles": [
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "MANAGE_USERS",
+  "label": "Manage users and roles",
+  "roles": [
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "READ_AUDIT_LOG",
+  "label": "Read the Audit Log",
+  "roles": [
+   "ADMIN"
+  ]
  }
 ]

@@ -99,8 +99,19 @@ function schema() {
 /** Enumerated columns (status, renewal, …) from the migrated schema's CHECKs, with the transitions services write. */
 function states() {
   const schemaJ = JSON.parse(fs.readFileSync(path.join(dataDir, 'schema.json'), 'utf8'))
-  const transitions = walk(JAVA, '.java').filter((f) => /\/(service|repository)\//.test(f))
-    .flatMap((f) => parseTransitions(read(f), path.basename(f, '.java')))
+  const files = walk(JAVA, '.java').filter((f) => /\/(service|repository)\//.test(f))
+  // Stores with a transition(id, from, to) method, and the table their UPDATE writes.
+  const storeTables = Object.fromEntries(files.map((f) => [path.basename(f, '.java'), read(f)])
+    .filter(([, src]) => /\bboolean transition\(/.test(src))
+    .map(([name, src]) => [name, src.match(/UPDATE\s+(\w+)\s+SET\s+status/)?.[1]]).filter(([, t]) => t))
+  const transitions = files.flatMap((f) => {
+    const src = read(f)
+    const stores = {}
+    for (const [store, table] of Object.entries(storeTables)) {
+      for (const m of src.matchAll(new RegExp(`\\b${store}\\s+(\\w+)\\s*[;,)=]`, 'g'))) stores[m[1]] = table
+    }
+    return parseTransitions(src, path.basename(f, '.java'), stores)
+  })
   const out = []
   for (const t of schemaJ.filter((x) => !x.view)) {
     for (const k of t.constraints.filter((c) => c.type === 'CHECK')) {
