@@ -31,3 +31,8 @@ The documents are written from the code. These facts are in nobody's repository,
 ## Report 5
 
 - Section 2.2 says the team walks through the main workflows on production with the demo data stages before each review. Confirm this is true, or tell me to remove the sentence.
+
+## Report 6
+
+- Build the APK (`flutter build apk --dart-define-from-file=config.json` in `mobile/`) and attach it to a GitHub release of the repository, so the deliverable package has the file Report 6 describes.
+- The Family Day and work-schedule screenshots show empty pages (the demo data loads none). If you want fuller pictures, create a Family Day and plan a week on a local stack, then run `node tools/docs/screenshots.mjs A` and rebuild Report 6.

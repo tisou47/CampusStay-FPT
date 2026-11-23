@@ -1,0 +1,38 @@
+[
+  { "stage": "0", "shots": [
+    { "path": "/signin", "file": "signin.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/term-requests", "file": "w2-manager-term-requests.png" },
+    { "as": "admin01@fpt.edu.vn", "path": "/admin/terms/new", "file": "w2-admin-term-wizard.png" },
+    { "as": "admin01@fpt.edu.vn", "path": "/admin/fees", "file": "w2-admin-fees.png" }
+  ] },
+  { "stage": "A", "shots": [
+    { "as": "se220001@fpt.edu.vn", "path": "/student", "file": "home-student.png" },
+    { "as": "staffa01@fpt.edu.vn", "path": "/staff", "file": "home-staff.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager", "file": "home-manager.png" },
+    { "as": "admin01@fpt.edu.vn", "path": "/admin", "file": "home-admin.png" },
+    { "as": "se220001@fpt.edu.vn", "path": "/student/apply/room", "file": "w1-student-apply-room.png" },
+    { "as": "se220001@fpt.edu.vn", "path": "/student/invoices", "file": "w1-student-invoices.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/applications", "file": "w1-manager-applications.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/payment-claims", "file": "w1-manager-payment-claims.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/assignment", "file": "w1-manager-assignment.png" },
+    { "as": "se210002@fpt.edu.vn", "path": "/student/requests", "file": "w3-student-requests.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/next-term", "file": "w3-manager-next-term.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/reconciliation", "file": "w3-manager-reconciliation.png" },
+    { "as": "se200009@fpt.edu.vn", "path": "/student/requests/maintenance/new", "file": "w4-student-maintenance-new.png" },
+    { "as": "staffa02@fpt.edu.vn", "path": "/staff/maintenance", "file": "w4-staff-maintenance.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/escalations", "file": "w4-manager-escalations.png" },
+    { "as": "staffa01@fpt.edu.vn", "path": "/staff/meter-readings", "file": "w5-staff-meter-readings.png" },
+    { "as": "se200003@fpt.edu.vn", "path": "/student/invoices", "file": "w5-student-utility-invoices.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/finance", "file": "w5-manager-finance.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/family-days", "file": "w7-manager-family-days.png" },
+    { "as": "se200001@fpt.edu.vn", "path": "/student/family-days", "file": "w7-student-family-days.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/staff-schedule", "file": "w8-manager-staff-schedule.png" },
+    { "as": "staffa01@fpt.edu.vn", "path": "/staff/schedule", "file": "w8-staff-schedule.png" },
+    { "as": "manager01@fpt.edu.vn", "path": "/manager/staff", "file": "w8-manager-staff.png" }
+  ] },
+  { "stage": "D", "shots": [
+    { "as": "ss220055@fpt.edu.vn", "path": "/student/room/inventory", "file": "w6-student-check-in-inventory.png" },
+    { "as": "staffa01@fpt.edu.vn", "path": "/staff/check-in/inventories", "file": "w6-staff-check-in-inventories.png" },
+    { "as": "staffa01@fpt.edu.vn", "path": "/staff/check-out", "file": "w6-staff-check-out.png" }
+  ] }
+]

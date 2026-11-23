@@ -1,138 +1,170 @@
 {
- "Report1": [
-  [
-   "28/10/2026",
-   "A",
-   "Lê Thành Minh Trung",
-   "First version for Review 2: project information, team, background with the basis for the requirements (Review 1 feedback), existing systems, business opportunity, vision, scope and limitations"
+  "Report1": [
+    [
+      "28/10/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "First version for Review 2: project information, team, background with the basis for the requirements (Review 1 feedback), existing systems, business opportunity, vision, scope and limitations"
+    ],
+    [
+      "29/10/2026",
+      "A",
+      "Võ Minh Luân",
+      "Added detailed analysis of existing systems (StarRez, RMS Mercury, Adirondack Solutions, VNU-HCM Dormitory Center)."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Trần Võ Quang Duy",
+      "Project Team: updated the role to frontend developer (web) and UI/UX design."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Nguyễn Xuân Lộc",
+      "Sources: added the missing sources cited in the text."
+    ],
+    [
+      "23/11/2026",
+      "M",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: rebuilt from the code and the infrastructure; existing systems re-checked at their sources (VNU-HCM dormitory centre, FPT OCD, StarRez); features and limitations per feature package"
+    ]
   ],
-  [
-   "29/10/2026",
-   "A",
-   "Võ Minh Luân",
-   "Added detailed analysis of existing systems (StarRez, RMS Mercury, Adirondack Solutions, VNU-HCM Dormitory Center)."
+  "Report2": [
+    [
+      "28/10/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "First version for Review 2: scope and estimation, objectives, risks, process, quality, training, deliverables, responsibilities, communication, configuration management"
+    ],
+    [
+      "29/10/2026",
+      "A",
+      "Võ Minh Luân",
+      "Added Responsibility Assignments and Project Communications sections."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Trần Võ Quang Duy",
+      "Tools & Infrastructures: updated the mobile technology to Flutter."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Nguyễn Xuân Lộc",
+      "Training Plan: Android training changed from Kotlin and Jetpack Compose to Flutter and Dart."
+    ],
+    [
+      "23/11/2026",
+      "M",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: rebuilt from the code and git history: scope and estimation from the feature packages, technologies from the build files, schedule and responsibilities from the team calendar"
+    ]
   ],
-  [
-   "29/10/2026",
-   "M",
-   "Trần Võ Quang Duy",
-   "Project Team: updated the role to frontend developer (web) and UI/UX design."
+  "Report3": [
+    [
+      "28/10/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "First version for Review 2: product overview, actors and use cases, screen flows and authorization, non-screen functions, ERD, functional requirements per feature, non-functional requirements, business rules, messages"
+    ],
+    [
+      "29/10/2026",
+      "A",
+      "Nguyễn Xuân Lộc",
+      "3.5 Entities Description: added 9 new entities from ERD."
+    ],
+    [
+      "29/10/2026",
+      "A",
+      "Võ Minh Luân",
+      "5.3 Application Messages List: added the Context column (between Type and Content (English)) giving the screen or function where each message appears."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Võ Minh Luân",
+      "5.3 Application Messages List: merged the 28 message tables into one table (MSG001–MSG677) with a repeating header row."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Nguyễn Xuân Lộc",
+      "3.5 Entities Description: updated 22 descriptions, renumbered to 36 entities."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Trần Võ Quang Duy",
+      "4.1 External Interfaces (User interfaces): the back office now also works at 1024–1279 px (layouts stack or wrap); the sidebar groups menu items in a tree and can fold to icons."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Trần Võ Quang Duy",
+      "3.12 FR-RPT-01 Dashboards per role: KPI tiles of the Admin and Staff dashboards open the related screen; the Admin dashboard shows configuration readiness as “n of total ready"
+    ],
+    [
+      "23/11/2026",
+      "M",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: rebuilt from the code: every route, endpoint, permission, status machine and message read from the code; use cases, screen flows and business rules regenerated"
+    ]
   ],
-  [
-   "29/10/2026",
-   "M",
-   "Nguyễn Xuân Lộc",
-   "Sources: added the missing sources cited in the text."
+  "Report4": [
+    [
+      "28/10/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "First version for Review 2: architecture, technologies and AI tools, environments, packages, database design (logical ERD), state machines, activity diagrams of the main workflows, detailed design"
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Võ Minh Luân",
+      "1.1 System Architecture: redrew Figure 1 (layout, connectors, numbered flow steps and key) for readability; components and flows unchanged."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Nguyễn Xuân Lộc",
+      "2.1 Overview: corrected the migration range to V1–V61."
+    ],
+    [
+      "29/10/2026",
+      "M",
+      "Trần Võ Quang Duy",
+      "3.2 Activity Diagrams: aligned the section titles with the workflow table (WF-01 to WF-05)."
+    ],
+    [
+      "23/11/2026",
+      "M",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: rebuilt from the code: architecture and technologies from the build files, packages, ERD and table catalogue from the migrated database, per-feature classes, sequences, state machines and endpoints"
+    ]
   ],
-  [
-   "23/11/2026",
-   "M",
-   "Lê Thành Minh Trung",
-   "Defense 1.1: rebuilt from the code and the infrastructure; existing systems re-checked at their sources (VNU-HCM dormitory centre, FPT OCD, StarRez); features and limitations per feature package"
+  "Report5": [
+    [
+      "28/10/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "First version for Review 2: scope, strategy, levels and tools, test plan, test case design for mandatory features, workflows, state transitions and NFRs, test report of the automated suite"
+    ],
+    [
+      "23/11/2026",
+      "M",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: rebuilt from the test suites: every test case (backend by feature, web, mobile) with its procedure and result from one full run; JaCoCo coverage; Test Report and Unit Test workbooks refilled"
+    ]
+  ],
+  "Report6": [
+    [
+      "23/11/2026",
+      "A",
+      "Lê Thành Minh Trung",
+      "Defense 1.1: deliverable package, installation guides (local, production, Android) and the user manual of the eight main workflows with screenshots of the demo data"
+    ]
   ]
- ],
- "Report2": [
-  [
-   "28/10/2026",
-   "A",
-   "Lê Thành Minh Trung",
-   "First version for Review 2: scope and estimation, objectives, risks, process, quality, training, deliverables, responsibilities, communication, configuration management"
-  ],
-  [
-   "29/10/2026",
-   "A",
-   "Võ Minh Luân",
-   "Added Responsibility Assignments and Project Communications sections."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Trần Võ Quang Duy",
-   "Tools & Infrastructures: updated the mobile technology to Flutter."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Nguyễn Xuân Lộc",
-   "Training Plan: Android training changed from Kotlin and Jetpack Compose to Flutter and Dart."
-  ]
- ],
- "Report3": [
-  [
-   "28/10/2026",
-   "A",
-   "Lê Thành Minh Trung",
-   "First version for Review 2: product overview, actors and use cases, screen flows and authorization, non-screen functions, ERD, functional requirements per feature, non-functional requirements, business rules, messages"
-  ],
-  [
-   "29/10/2026",
-   "A",
-   "Nguyễn Xuân Lộc",
-   "3.5 Entities Description: added 9 new entities from ERD."
-  ],
-  [
-   "29/10/2026",
-   "A",
-   "Võ Minh Luân",
-   "5.3 Application Messages List: added the Context column (between Type and Content (English)) giving the screen or function where each message appears."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Võ Minh Luân",
-   "5.3 Application Messages List: merged the 28 message tables into one table (MSG001–MSG677) with a repeating header row."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Nguyễn Xuân Lộc",
-   "3.5 Entities Description: updated 22 descriptions, renumbered to 36 entities."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Trần Võ Quang Duy",
-   "4.1 External Interfaces (User interfaces): the back office now also works at 1024–1279 px (layouts stack or wrap); the sidebar groups menu items in a tree and can fold to icons."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Trần Võ Quang Duy",
-   "3.12 FR-RPT-01 Dashboards per role: KPI tiles of the Admin and Staff dashboards open the related screen; the Admin dashboard shows configuration readiness as “n of total ready"
-  ]
- ],
- "Report4": [
-  [
-   "28/10/2026",
-   "A",
-   "Lê Thành Minh Trung",
-   "First version for Review 2: architecture, technologies and AI tools, environments, packages, database design (logical ERD), state machines, activity diagrams of the main workflows, detailed design"
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Võ Minh Luân",
-   "1.1 System Architecture: redrew Figure 1 (layout, connectors, numbered flow steps and key) for readability; components and flows unchanged."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Nguyễn Xuân Lộc",
-   "2.1 Overview: corrected the migration range to V1–V61."
-  ],
-  [
-   "29/10/2026",
-   "M",
-   "Trần Võ Quang Duy",
-   "3.2 Activity Diagrams: aligned the section titles with the workflow table (WF-01 to WF-05)."
-  ]
- ],
- "Report5": [
-  [
-   "28/10/2026",
-   "A",
-   "Lê Thành Minh Trung",
-   "First version for Review 2: scope, strategy, levels and tools, test plan, test case design for mandatory features, workflows, state transitions and NFRs, test report of the automated suite"
-  ]
- ]
 }
