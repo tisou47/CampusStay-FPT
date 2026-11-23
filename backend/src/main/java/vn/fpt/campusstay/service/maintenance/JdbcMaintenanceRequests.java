@@ -71,7 +71,7 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public void assign(long requestId, long assigneeId, String why) {
+    public void assign(long requestId, long assigneeId, String why, Long actorId, String actorRole) {
         RequestStore.Request r = requests.find(String.valueOf(requestId), true)
                 .orElseThrow(() -> ApiException.notFound("This Maintenance Request does not exist."));
         if (!r.open()) {
@@ -81,7 +81,8 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
         jdbc.sql("UPDATE mnt_request SET assignee_id = :a, status = :s, version = version + 1 WHERE id = :id")
                 .param("a", assigneeId).param("s", status).param("id", r.id()).update();
         String name = users.displayNames(List.of(assigneeId)).get(assigneeId);
-        requests.event(r.id(), null, null, "Assigned to " + name + " (" + why + ")", null, false, Instant.now(clock));
+        requests.event(r.id(), actorId, actorRole, actorId == null ? "Assigned to " + name + " (" + why + ")" : "Assigned to " + name,
+                null, false, Instant.now(clock));
         if (r.source().equals("STUDENT")) {
             events.publishEvent(new MaintenanceUpdated(r.id(), r.code(), r.reporterId(), r.title(),
                     RequestStore.statusLabel(status), null));

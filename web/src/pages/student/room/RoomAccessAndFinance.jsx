@@ -28,7 +28,7 @@ export function InfoRow({ icon: Glyph, label, value }) {
 }
 
 function MoreLink({ icon: Glyph, to, href, children }) {
-  const classes = 'flex items-center gap-2.5 rounded-md py-2 text-base text-fg transition-colors hover:text-fg-brand'
+  const classes = 'flex items-center gap-2.5 rounded-md py-2 text-sm text-fg transition-colors hover:text-fg-brand'
   const body = (
     <>
       <Glyph size={16} aria-hidden="true" className="shrink-0 text-fg-secondary" />
@@ -50,23 +50,26 @@ function MoreLink({ icon: Glyph, to, href, children }) {
 export function BalanceCard({ balance }) {
   if (!balance) return null
   return (
-    <Card padding="lg" className="flex shrink-0 flex-col gap-3.5">
+    <Card className="flex shrink-0 flex-col gap-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Balance')}</h2>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          <CreditCard size={17} aria-hidden="true" className="text-fg-brand" />
+          {t('Balance')}
+        </h2>
         <StatusTag status={balance.status} />
       </div>
       <div className="flex flex-col gap-0.5">
-        <p className="text-kpi font-semibold text-fg tabular">{formatVnd(balance.amount)}</p>
+        <p className="text-h2 font-semibold text-fg tabular">{formatVnd(balance.amount)}</p>
         <p className="text-sm text-fg-secondary tabular">
           {balance.status === 'Paid' ? t('Paid {date}', { date: formatDate(balance.paidAt) }) : t('Due {date}', { date: formatDate(balance.dueAt) })}
         </p>
       </div>
       {balance.status === 'Paid' ? (
-        <Button size="lg" block to="/student/invoices">
+        <Button block to="/student/invoices">
           View invoices
         </Button>
       ) : (
-        <Button variant="primary" size="lg" block icon={CreditCard} to={`/student/invoices/${balance.invoiceId}/pay`}>
+        <Button variant="primary" block icon={CreditCard} to={`/student/invoices/${balance.invoiceId}/pay`}>
           Pay balance
         </Button>
       )}
@@ -87,27 +90,30 @@ export function DoorCodeCard() {
   const d = query.data
   if (!d) return null
   return (
-    <Card padding="lg" className="flex shrink-0 flex-col gap-3">
+    <Card className="flex shrink-0 flex-col gap-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Door code')}</h2>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          <KeyRound size={17} aria-hidden="true" className="text-fg-brand" />
+          {t('Door code')}
+        </h2>
         <StatusTag status={d.status} />
       </div>
       {d.status === 'Ready' ? (
         <>
           {code ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-subtle px-4 py-3">
-              <span className="font-mono text-h1 font-semibold tracking-[0.3em] text-fg tabular">{code}</span>
-              <Button variant="text" icon={EyeOff} onClick={() => setCode(null)}>
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-subtle px-3 py-2">
+              <span className="font-mono text-h2 font-semibold tracking-[0.3em] text-fg tabular">{code}</span>
+              <Button size="sm" variant="text" icon={EyeOff} onClick={() => setCode(null)}>
                 Hide
               </Button>
             </div>
           ) : (
-            <Button tip="Keep it to yourself: never share the code with people who do not live in your room." variant="primary" size="lg" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
+            <Button tip="Keep it to yourself: never share the code with people who do not live in your room." variant="primary" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
               Show door code
             </Button>
           )}
           {reveal.error && <Alert type="error" title="Could not show the code">{reveal.error.message}</Alert>}
-          <p className="text-sm text-fg-tertiary">
+          <p className="text-xs text-fg-tertiary">
             {t('Changed {date}. It changes whenever someone leaves the room; never share it.', { date: formatDateTime(d.changedAt) })}
           </p>
         </>
@@ -265,7 +271,7 @@ export function CheckInHeaderWidget({ checkIn }) {
 
 export function RoomQuickLinksCard({ rulesUrl }) {
   return (
-    <Card padding="sm" className="flex shrink-0 flex-col divide-y divide-line">
+    <Card padding="sm" className="flex shrink-0 flex-col divide-y divide-line px-4">
       {rulesUrl && (
         <MoreLink icon={Bed} href={rulesUrl}>
           Dormitory rules

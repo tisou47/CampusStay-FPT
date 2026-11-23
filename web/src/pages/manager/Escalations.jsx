@@ -25,7 +25,7 @@ import { t, tr } from '@/i18n'
 // they can take it), the suggested one first; assignees is the older list of every Block's staff.
 
 /** One staff member to pick: who they are, whether they are on duty and handle this kind, and how busy they are. */
-function Candidate({ c, kind, maxOpen, selected, onSelect }) {
+export function Candidate({ c, kind, maxOpen, selected, onSelect }) {
   const disabled = c.owner
   return (
     <li>
@@ -67,7 +67,7 @@ function Candidate({ c, kind, maxOpen, selected, onSelect }) {
   )
 }
 
-function Detail({ item, assignees }) {
+function Detail({ item, assignees, embedded = false }) {
   const { notify, notifyError } = useToast()
   const [assigneeId, setAssigneeId] = useState(item.suggestedAssigneeId ?? '')
   const [note, setNote] = useState('')
@@ -94,9 +94,15 @@ function Detail({ item, assignees }) {
   // Header (the request), the body scrolls (its history, then whom to give it to), the note and the action stay at
   // the bottom.
   return (
-    <Card padding="none" className="flex min-h-0 w-100 shrink-0 flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-1 border-b border-line px-5 py-4">
-        <div className="flex items-center justify-between gap-2">
+    <Card padding="none" className={cx('flex min-h-0 shrink-0 flex-col overflow-hidden', embedded ? 'w-full border-error/30' : 'w-100')}>
+      <div className={cx('flex shrink-0 flex-col gap-1 border-b border-line px-5 py-4', embedded && 'bg-error-bg/40')}>
+        {embedded && (
+          <h2 className="flex items-center gap-2 text-base font-semibold text-error-fg">
+            <TriangleAlert size={17} aria-hidden="true" />
+            {t('Overdue: reassign it')}
+          </h2>
+        )}
+        <div className={cx('flex items-center justify-between gap-2', embedded && 'hidden')}>
           <p className="text-sm font-medium text-fg-tertiary">
             {item.id}
             {item.room ? ` · ${item.room}` : ''}
@@ -107,7 +113,7 @@ function Detail({ item, assignees }) {
             </Button>
           )}
         </div>
-        <h2 className="text-h3 font-semibold text-fg">{tr(item.title)}</h2>
+        {!embedded && <h2 className="text-h3 font-semibold text-fg">{tr(item.title)}</h2>}
         <ol className="mt-1 flex flex-col gap-1.5">
           {events.map((e) => (
             <li key={`${e.at}-${e.text}`} className="flex items-baseline gap-2 text-sm">
@@ -188,46 +194,53 @@ export function useOverdue(kind, enabled = true) {
  * (kind "maintenance") and of Room changes (kind "room-change").
  */
 export function OverdueRequests({ kind }) {
-  const [params] = useSearchParams()
   const { query, items } = useOverdue(kind)
-  const [selectedId, setSelectedId] = useState(params.get('id'))
-  const selected = items.find((e) => e.id === selectedId) ?? items[0]
+  const linkOf = (e) => (e.link && e.link.includes('/room-changes') && !e.link.includes('?') ? `${e.link}?id=${encodeURIComponent(e.id)}` : e.link)
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-4">
-      <Table fill className="min-w-0">
-        <THead>
-          <tr>
-            <Th className="w-36">Request</Th>
-            <Th>Title</Th>
-            <Th className="w-44">Why</Th>
-            <Th className="w-22">Open for</Th>
-            <Th className="w-36">Owner</Th>
-          </tr>
-        </THead>
-        <TBody>
-          <TableStatus query={query} colSpan={5} rows={items} emptyIcon={TriangleAlert} emptyTitle="No overdue requests" emptyText="Requests that pass their time limit appear here." />
-          {items.map((e) => (
-            <Tr key={e.id} selected={e.id === selected?.id} onClick={() => setSelectedId(e.id)} className="[&>td]:h-15">
-              <Td className="font-medium whitespace-nowrap text-fg-brand">{e.id}</Td>
-              <Td>
-                <TwoLine primary={tr(e.title)} secondary={e.subtitle?.split(' · ').map((part) => tr(part)).join(' · ')} />
-              </Td>
-              <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{tr(e.why)}</Tag>}</Td>
-              <Td className="whitespace-nowrap">{tr(e.openFor)}</Td>
-              <Td className="whitespace-nowrap">{e.ownerName ?? '—'}</Td>
-            </Tr>
-          ))}
-        </TBody>
-      </Table>
-      {selected ? (
-        <Detail item={selected} assignees={query.data?.assignees ?? []} />
-      ) : (
-        <Card className="flex w-85 shrink-0 flex-col">
-          <EmptyBlock icon={TriangleAlert} title="Select a request" />
-        </Card>
-      )}
-    </div>
+    <Table fill className="min-w-0">
+      <THead>
+        <tr>
+          <Th className="w-36">Request</Th>
+          <Th>Title</Th>
+          <Th className="w-44">Why</Th>
+          <Th className="w-28">Open for</Th>
+          <Th className="w-40">Owner</Th>
+          <Th className="w-36">
+            <span className="sr-only">{t('Actions')}</span>
+          </Th>
+        </tr>
+      </THead>
+      <TBody>
+        <TableStatus query={query} colSpan={6} rows={items} emptyIcon={TriangleAlert} emptyTitle="No overdue requests" emptyText="Requests that pass their time limit appear here." />
+        {items.map((e) => (
+          <Tr key={e.id} className="[&>td]:h-15">
+            <Td className="font-medium whitespace-nowrap text-fg-brand">{e.id}</Td>
+            <Td>
+              <TwoLine primary={tr(e.title)} secondary={e.subtitle?.split(' · ').map((part) => tr(part)).join(' · ')} />
+            </Td>
+            <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{tr(e.why)}</Tag>}</Td>
+            <Td className="whitespace-nowrap">{tr(e.openFor)}</Td>
+            <Td className="whitespace-nowrap">{e.ownerName ?? '—'}</Td>
+            <Td align="right">
+              {linkOf(e) && (
+                <Button size="sm" variant={e.handled ? 'default' : 'primary'} icon={ExternalLink} iconSize={14} to={linkOf(e)}>
+                  Open request
+                </Button>
+              )}
+            </Td>
+          </Tr>
+        ))}
+      </TBody>
+    </Table>
   )
+}
+
+/** In a request's own page (Manager): when it is overdue, the panel to reassign it (or offer a temporary bed). */
+export function OverdueReassign({ requestId }) {
+  const { query, items } = useOverdue()
+  const item = items.find((e) => e.id === requestId && !e.handled)
+  if (!item) return null
+  return <Detail item={item} assignees={query.data?.assignees ?? []} embedded />
 }
 
 /** "All requests | Overdue · n": the two views of a Manager's queue (?view=overdue). */

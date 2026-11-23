@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { BedDouble, Camera, Check, ChevronLeft, ChevronRight, CircleCheck, ClipboardList, Droplets, Gauge, KeyRound, Printer, RefreshCw, Trash2, Users, Zap } from 'lucide-react'
+import { BedDouble, Check, ChevronLeft, ChevronRight, CircleCheck, ClipboardList, Droplets, Gauge, KeyRound, Printer, Trash2, Users, Zap } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -29,30 +29,14 @@ import { StudentPage } from './shared'
 // POST /students/me/damage-claims/:id { acknowledge }
 
 
-/** Adds a photo to the inventory: of an item ({@code itemId}) or of the meters (none). */
-function useAddPhoto(itemId) {
-  const { notifyError } = useToast()
-  return useMutation(
-    (file) => {
-      const form = new FormData()
-      form.append('photo', file)
-      if (itemId) form.append('itemId', itemId)
-      return api.handover.addPhoto(form)
-    },
-    { invalidates: ['handover'], onError: (e) => notifyError(e, 'Could not add the photo') },
-  )
-}
-
-/** One photo large; while the inventory is a draft it can be deleted or retaken (the new one replaces it). */
-function PhotoViewer({ photos, start, itemId, editable, onClose }) {
+/** One photo large (taken in the Android app); while the inventory is a draft it can be deleted. */
+function PhotoViewer({ photos, start, editable, onClose }) {
   const { notifyError } = useToast()
   const [index, setIndex] = useState(start)
-  const input = useRef(null)
   const remove = useMutation((id) => api.handover.removePhoto(id), { invalidates: ['handover'], onError: (e) => notifyError(e, 'Could not remove the photo') })
-  const upload = useAddPhoto(itemId)
   const photo = photos[Math.min(index, photos.length - 1)]
   if (!photo) return null
-  const busy = remove.pending || upload.pending
+  const busy = remove.pending
   const many = photos.length > 1
   const go = (step) => setIndex((i) => (i + step + photos.length) % photos.length)
   return (
@@ -77,21 +61,6 @@ function PhotoViewer({ photos, start, itemId, editable, onClose }) {
               >
                 Delete
               </Button>
-              <Button icon={RefreshCw} disabled={busy} onClick={() => input.current?.click()}>
-                {upload.pending ? t('Uploading…') : t('Retake')}
-              </Button>
-              <input
-                ref={input}
-                type="file"
-                accept="image/jpeg,image/png"
-                capture="environment"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (file) upload.run(file).then(() => remove.run(photo.id))
-                }}
-              />
             </>
           )}
           <Button variant="primary" onClick={onClose}>
@@ -113,8 +82,8 @@ function PhotoViewer({ photos, start, itemId, editable, onClose }) {
   )
 }
 
-/** Thumbnails that open the photo large (to view it, or delete or retake it while editable). */
-function PhotoStrip({ photos, itemId, editable = false, size = 'md' }) {
+/** Thumbnails that open the photo large (to view it, or delete it while editable). */
+function PhotoStrip({ photos, editable = false, size = 'md' }) {
   const [open, setOpen] = useState(null)
   if (!photos?.length) return null
   return (
@@ -130,28 +99,8 @@ function PhotoStrip({ photos, itemId, editable = false, size = 'md' }) {
           <img src={p.url} alt="" className="size-full object-cover" />
         </button>
       ))}
-      {open != null && <PhotoViewer photos={photos} start={open} itemId={itemId} editable={editable} onClose={() => setOpen(null)} />}
+      {open != null && <PhotoViewer photos={photos} start={open} editable={editable} onClose={() => setOpen(null)} />}
     </div>
-  )
-}
-
-/** Takes a photo: a camera button in a row ({@code compact}), a dashed tile next to thumbnails ({@code tile}), or a link. */
-function PhotoButton({ itemId, compact = false, tile = false }) {
-  const upload = useAddPhoto(itemId)
-  const label = upload.pending ? t('Uploading…') : t('Add photo')
-  return (
-    <label
-      title={compact ? label : undefined}
-      className={cx(
-        'inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium text-fg-brand',
-        compact && 'size-9 justify-center rounded-md border border-line hover:bg-brand-subtle/50',
-        tile && 'size-16 flex-col justify-center gap-0.5 rounded-md border border-dashed border-primary/50 text-xs hover:bg-brand-subtle/40',
-      )}
-    >
-      <Camera size={compact ? 16 : 18} aria-hidden="true" />
-      {compact ? <span className="sr-only">{label}</span> : <span>{label}</span>}
-      <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && upload.run(e.target.files[0])} />
-    </label>
   )
 }
 
@@ -281,7 +230,6 @@ function Form({ data }) {
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-3">
           <div className="flex min-w-0 flex-col">
             <h2 className="text-h3 font-semibold text-fg">{t('Furniture · Room {room}', { room: data.room })}</h2>
-            <p className="text-sm text-fg-tertiary">{t('Choose the condition you see; add a photo and a note when something is not intact.')}</p>
           </div>
           <span className="shrink-0 rounded-full bg-subtle px-2.5 py-1 text-sm text-fg-secondary">{t('Due {date}', { date: formatDateTime(data.dueAt) })}</span>
         </div>
@@ -289,7 +237,7 @@ function Form({ data }) {
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
           {groupsOf(data.items, data.bed).map((g) => (
             <section key={g.key} className="flex flex-col">
-              <GroupHeader icon={g.icon} title={g.title} hint={g.hint} done={g.items.filter((i) => answers[i.itemId]?.condition).length} total={g.items.length} />
+              <GroupHeader icon={g.icon} title={g.title} done={g.items.filter((i) => answers[i.itemId]?.condition).length} total={g.items.length} />
               <ul className="flex flex-col divide-y divide-line px-1">
                 {g.items.map((i) => {
                   const a = answers[i.itemId]
@@ -300,8 +248,7 @@ function Form({ data }) {
                         <span className="min-w-0 flex-1">
                           <ItemName item={i} />
                         </span>
-                        <PhotoStrip photos={i.photos} itemId={i.itemId} editable size="sm" />
-                        {i.photos.length < data.maxPhotos && <PhotoButton itemId={i.itemId} compact />}
+                        <PhotoStrip photos={i.photos} editable size="sm" />
                         <Select
                           wrapperClassName="w-40 shrink-0"
                           aria-label={t('Condition of {item}', { item: i.assetCode })}
@@ -339,7 +286,7 @@ function Form({ data }) {
       {/* The right column scrolls inside itself when the window is short, so the buttons are always reachable. */}
       <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
         <Card className="flex shrink-0 flex-col gap-3">
-          <GroupHeader icon={Gauge} title={t('Meters of the Room')} hint={t('Read them now')} done={meters} total={2} />
+          <GroupHeader icon={Gauge} title={t('Meters of the Room')} done={meters} total={2} />
           <div className="grid grid-cols-2 gap-3 px-1">
             <Field label={<span className="inline-flex items-center gap-1"><Zap size={14} aria-hidden="true" className="text-warning-fg" />{t('Electricity (kWh)')}</span>} required>
               <Input type="number" min="0" step="0.1" inputMode="decimal" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
@@ -348,19 +295,15 @@ function Form({ data }) {
               <Input type="number" min="0" step="0.1" inputMode="decimal" value={water} onChange={(e) => setWater(e.target.value)} />
             </Field>
           </div>
-          <div className="flex flex-col gap-1.5 px-1">
-            <span className="text-sm font-medium text-fg-secondary">{t('Photos of the meters')}</span>
-            <div className="flex flex-wrap gap-1.5">
+          {data.meterPhotos.length > 0 && (
+            <div className="flex flex-col gap-1.5 px-1">
+              <span className="text-sm font-medium text-fg-secondary">{t('Photos of the meters')}</span>
               <PhotoStrip photos={data.meterPhotos} editable />
-              {data.meterPhotos.length < data.maxPhotos && <PhotoButton tile />}
             </div>
-          </div>
-          <p className="px-1 text-sm text-fg-tertiary">
-            {data.photosRequired ? t('Photos are required for the meters and for Damaged or Missing items.') : t('Photos are optional but help if something is damaged.')}
-          </p>
+          )}
         </Card>
 
-        <Card className="flex shrink-0 flex-col gap-3 lg:mt-auto">
+        <Card className="flex shrink-0 flex-col gap-3">
           <h3 className="text-base font-semibold text-fg">{t('Your progress')}</h3>
           <div className="flex flex-col gap-2">
             {[
@@ -466,7 +409,7 @@ function Summary({ data }) {
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
             {groupsOf(data.items, data.bed).map((g) => (
               <section key={g.key} className="flex flex-col">
-                <GroupHeader icon={g.icon} title={g.title} hint={g.hint} />
+                <GroupHeader icon={g.icon} title={g.title} />
                 <ul className="flex flex-col divide-y divide-line px-1">
                   {g.items.map((i) => (
                     <li key={i.itemId} className="flex flex-col gap-1 px-2 py-2">

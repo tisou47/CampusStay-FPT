@@ -19,7 +19,7 @@ import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
 import { useRoleBase } from '@/lib/useRoleBase'
-import { OverdueRequests, OverdueSwitch } from '@/pages/manager/Escalations'
+import { OverdueReassign, OverdueRequests, OverdueSwitch } from '@/pages/manager/Escalations'
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-10 Room-Change Queue (Figma 60:2696) — next-Term Room-Change Requests of the requests window (Change Spec v2
@@ -341,10 +341,10 @@ export default function RoomChangeQueue() {
       </>
     )
   }
-  return <RoomChangeList switcher={manager ? <OverdueSwitch kind="room-change" /> : null} />
+  return <RoomChangeList manager={manager} switcher={manager ? <OverdueSwitch kind="room-change" /> : null} />
 }
 
-function RoomChangeList({ switcher }) {
+function RoomChangeList({ switcher, manager }) {
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
@@ -442,7 +442,10 @@ function RoomChangeList({ switcher }) {
         </div>
 
         {selected ? (
-          <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
+          <div className="flex min-h-0 w-95 shrink-0 flex-col gap-4 overflow-y-auto">
+            {manager && <OverdueReassign requestId={selected.id} />}
+            <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
+          </div>
         ) : (
           <Card className="flex w-95 shrink-0 flex-col">
             <EmptyBlock icon={Repeat} title="Select a request" />

@@ -316,7 +316,7 @@ public class EscalationService {
     /** {@code reassign} (with {@code assigneeId}) or {@code temporary-bed} (Room-Change Requests); closes the escalation. */
     @Transactional
     public void act(String id, String action, Object assigneeId, String note) {
-        currentUser.require(Permission.MANAGE_BLOCK);
+        var manager = currentUser.require(Permission.MANAGE_BLOCK);
         Row e = find(id);
         blockScope.check(e.buildingId());
         if (!e.status().equals("OPEN")) {
@@ -332,7 +332,8 @@ public class EscalationService {
             long assignee = staffOf(e.buildingId(), assigneeId);
             String name = users.displayNames(List.of(assignee)).get(assignee);
             if (e.sourceType().equals(MAINTENANCE)) {
-                maintenance.assign(e.sourceId(), assignee, "escalation");
+                // In the Manager's name: the request's history shows who reassigned it, as for any desk assignment.
+                maintenance.assign(e.sourceId(), assignee, "escalation", manager.userId(), manager.role().name());
             } else if (!assignments.reassign(e.sourceId(), assignee)) {
                 throw ApiException.conflict("REQUEST_CLOSED", "This request is no longer open.");
             }
