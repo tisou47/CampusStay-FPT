@@ -1,5 +1,5 @@
 # Fills sheets of a school workbook template with rows from a JSON config (docs/reports/src/tracking.mjs): each
-# sheet's rows start at startRow/startCol; the first data row's format is copied down; extra template rows are
+# sheet's rows start at startRow/startCol (templateRows: how many data rows the template has above its notes); the first data row's format is copied down; extra template rows are
 # cleared. Needs Excel. ASCII only.
 param([Parameter(Mandatory = $true)][string]$Config)
 
@@ -18,7 +18,14 @@ try {
         $n = $s.rows.Count
         $width = ($s.rows | ForEach-Object { $_.Count } | Measure-Object -Maximum).Maximum
         $last = $ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1
-        $ws.Range($ws.Cells.Item($r0, $c0), $ws.Cells.Item([Math]::Max($last, $r0 + $n), $c0 + $width - 1)).ClearContents() | Out-Null
+        if ($null -ne $s.templateRows) {
+            # The template has notes under its data rows: grow or shrink the data block, keep the notes.
+            $extra = $n - [int]$s.templateRows
+            if ($extra -gt 0) { $ws.Rows.Item($r0 + [int]$s.templateRows).Resize($extra).Insert() | Out-Null }
+            elseif ($extra -lt 0) { $ws.Rows.Item($r0 + $n).Resize(-$extra).Delete() | Out-Null }
+            $last = $r0 + $n - 1
+        }
+        $ws.Range($ws.Cells.Item($r0, $c0), $ws.Cells.Item([Math]::Max($last, $r0 + $n - 1), $c0 + $width - 1)).ClearContents() | Out-Null
         if ($n -gt 1) {
             $ws.Range($ws.Cells.Item($r0, $c0), $ws.Cells.Item($r0, $c0 + $width - 1)).Copy() | Out-Null
             $ws.Range($ws.Cells.Item($r0 + 1, $c0), $ws.Cells.Item($r0 + $n - 1, $c0 + $width - 1)).PasteSpecial(-4122) | Out-Null
