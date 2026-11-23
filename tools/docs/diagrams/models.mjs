@@ -186,9 +186,42 @@ export function screenFlowModels(screens, links) {
 
 /** The backend's top-level packages and which ones each imports (imports: { pkg: [pkg] }). */
 export function packageModel(imports) {
+  // The layers (ADR-17) carry the edges; every layer uses the shared packages, so those edges would only be noise.
+  const LAYERS = ['controller', 'service', 'repository', 'entity']
+  const inLayers = (p) => LAYERS.includes(p)
   return {
     name: '04_Package/packages', kind: 'flow', dir: 'DOWN', title: 'Package diagram: backend (vn.fpt.campusstay)',
-    nodes: Object.keys(imports).map((p) => ({ id: p, shape: 'menu', label: p })),
-    edges: Object.entries(imports).flatMap(([from, tos]) => tos.map((to) => ({ from, to, dashed: true }))),
+    groups: [{ id: 'layers', label: 'Layers' }, { id: 'shared', label: 'Shared (used by every layer)' }],
+    nodes: Object.keys(imports).map((p) => ({ id: p, shape: 'menu', label: p, parent: inLayers(p) ? 'layers' : 'shared' })),
+    edges: Object.entries(imports).filter(([from]) => inLayers(from))
+      .flatMap(([from, tos]) => tos.filter(inLayers).map((to) => ({ from, to, dashed: true, arrow: 'open' }))),
+  }
+}
+
+/** The members of a top-level Java class or interface, at class level only (4-space indent): non-static fields,
+ *  public methods (interface: every method), and what it implements. */
+export function parseJavaType(src) {
+  const head = src.match(/(?:public\s+)?(?:abstract\s+|final\s+)*(class|interface|record)\s+(\w+)[^{]*\{/)
+  const impl = head[0].match(/implements\s+([\w\s,<>]+)\{/)?.[1].split(',').map((s) => s.trim().replace(/<.*/, '')).filter(Boolean) ?? []
+  const iface = head[1] === 'interface'
+  const fields = [...src.matchAll(/^ {4}(?:(?:private|protected|public)\s+)?(?:final\s+)?([A-Za-z][\w.<>, ?]*?)\s+(\w+)\s*(?:=[^;]*)?;/gm)]
+    .filter((m) => !/\(|\bstatic\b/.test(m[0]) && !/^(return|throw)$/.test(m[1])).map((m) => `${m[2]}: ${m[1].trim()}`)
+  const methods = [...src.matchAll(iface
+    ? /^ {4}(?:default\s+|static\s+)?(?!record\b|class\b|enum\b|interface\b)[\w.<>, ?[\]]+\s+(\w+)\s*\(/gm
+    : /^ {4}public\s+(?!record\b|class\b|enum\b|interface\b)(?:static\s+)?[\w.<>, ?[\]]+\s+(\w+)\s*\(/gm)].map((m) => `${m[1]}()`)
+  return { name: head[2], kind: iface ? 'interface' : 'class', fields: iface ? [] : fields, methods: [...new Set(methods)], implements: impl }
+}
+
+/** Class diagram of one feature's ports: the interfaces declared in service/<feature> and the classes (any feature)
+ *  that implement them. */
+export function portModel(feature, types) {
+  const ports = types.filter((t) => t.kind === 'interface' && t.pkg === feature)
+  const impls = types.filter((t) => t.kind === 'class' && t.implements.some((i) => ports.some((p) => p.name === i)))
+  const show = (t) => ({ id: t.name, shape: 'class', name: t.name, stereotype: t.kind === 'interface' ? 'interface' : t.pkg !== feature ? t.pkg : undefined,
+    fields: [], methods: t.kind === 'interface' ? t.methods.slice(0, 12) : [] })
+  return {
+    name: `06_Class/ports-${feature}`, kind: 'flow', dir: 'DOWN', title: `Class diagram: ports of ${feature}`,
+    nodes: [...ports, ...impls].map(show),
+    edges: impls.flatMap((c) => c.implements.filter((i) => ports.some((p) => p.name === i)).map((i) => ({ from: c.name, to: i, dashed: true, arrow: 'triangle' }))),
   }
 }

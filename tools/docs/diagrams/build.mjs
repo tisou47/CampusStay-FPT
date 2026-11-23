@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { erdModels, stateModel, mergeTransitions, missingMethods, unresolved, useCaseModels, screenFlowModels, packageModel } from './models.mjs'
+import { erdModels, stateModel, mergeTransitions, missingMethods, unresolved, useCaseModels, screenFlowModels, packageModel, parseJavaType, portModel } from './models.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '../../..')
@@ -76,10 +76,51 @@ for (const f of Object.values(sources)) {
   }
 }
 const packages = packageModel(imports)
+
+// Class diagrams: the JPA entities; each feature's ports (interfaces) with the classes implementing them.
+const types = Object.values(sources).filter((f) => /[\\/](entity|service)[\\/]/.test(f)).flatMap((f) => {
+  try {
+    return [{ ...parseJavaType(fs.readFileSync(f, 'utf8')), pkg: path.basename(path.dirname(f)), layer: pkgOf(f) }]
+  } catch { return [] } // shortcut: a file without a top-level class/interface (none today) is skipped
+})
+const entities = types.filter((t) => t.layer === 'entity')
+const entityModel = {
+  name: '06_Class/entities', kind: 'flow', dir: 'RIGHT', title: 'Class diagram: JPA entities',
+  nodes: entities.map((t) => ({ id: t.name, shape: 'class', name: t.name, stereotype: 'entity', fields: t.fields, methods: t.methods.slice(0, 14) })),
+  // The entities refer to each other by id (userId → UserEntity).
+  edges: entities.flatMap((t) => t.fields.map((f) => f.split(': ')[0].match(/^(\w+)Id$/)?.[1])
+    .map((n) => n && `${n[0].toUpperCase()}${n.slice(1)}Entity`).filter((e) => e && e !== t.name && entities.some((x) => x.name === e))
+    .map((e) => ({ from: t.name, to: e, arrow: 'open', label: 'N..1' }))),
+}
+const features = [...new Set(types.filter((t) => t.layer === 'service' && t.kind === 'interface').map((t) => t.pkg))].sort()
+const portModels = features.map((f) => portModel(f, types.filter((t) => t.layer === 'service'))).filter((m) => m.nodes.length)
+
+// Drawn diagrams: every Class.method, class participant and "METHOD /path" they name must be in the code.
+const { drawn } = await import('./drawn.mjs')
+const routeKey = (m, p) => `${m} ${p.replace(/\{[^}]+\}/g, '{}')}`
+const apiRoutes = new Set(endpoints.map((e) => routeKey(e.method, e.path)))
+const srcOf = (cls) => (sources[cls] ? fs.readFileSync(sources[cls], 'utf8') : undefined)
+for (const d of drawn) {
+  const texts = [...(d.items ?? []).map((i) => i.text ?? i.label ?? ''), ...(d.nodes ?? []).map((n) => n.label ?? ''),
+    ...(d.edges ?? []).map((e) => e.label ?? '')]
+  for (const p of d.participants ?? []) {
+    if (/^[A-Z]\w+(Service|Controller|Store|Listener|Job|Gate|Verifier|Exchanger|SignUp|Model)$/.test(p.label) && !srcOf(p.label)) diffs.push(`${d.name}: no class ${p.label}`)
+  }
+  for (const t of texts) {
+    for (const m of t.matchAll(/\b([A-Z][A-Za-z0-9]+)\.([a-z]\w*)\b/g)) {
+      const src = srcOf(m[1])
+      if (!src) diffs.push(`${d.name}: no class ${m[1]} (${m[0]})`)
+      else if (!new RegExp(`\\b${m[2]}\\s*\\(`).test(src)) diffs.push(`${d.name}: no method ${m[0]}`)
+    }
+    for (const m of t.matchAll(/\b(GET|POST|PUT|PATCH|DELETE) (\/[\w\-/{}]+)/g)) {
+      if (!apiRoutes.has(routeKey(m[1], m[2]))) diffs.push(`${d.name}: no endpoint ${m[1]} ${m[2]}`)
+    }
+  }
+}
 if (!process.argv.includes('--check')) {
   const out = path.join(here, '../build/models.json')
   fs.mkdirSync(path.dirname(out), { recursive: true })
-  fs.writeFileSync(out, JSON.stringify([...erdModels(data('schema.json')), ...machines, ...useCases, ...flows, packages], null, 1))
+  fs.writeFileSync(out, JSON.stringify([...erdModels(data('schema.json')), ...machines, ...useCases, ...flows, packages, entityModel, ...portModels, ...drawn], null, 1))
   fs.writeFileSync(path.join(here, '../data/machines.json'), JSON.stringify(machines.map((m) => ({
     name: m.name, title: m.title, notWritten: m.notWritten,
     transitions: m.edges.filter((e) => e.label).map((e) => `${e.from} → ${e.to} (${e.label})`),

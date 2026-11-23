@@ -98,11 +98,13 @@ test('screen flow: a route hangs under its longest parent route, the portal home
   assert.deepEqual(edges, ['/signin>/staff', '/staff>/staff/maintenance', '/staff/maintenance>/staff/maintenance/:id'])
 })
 
-test('package diagram: one node per top-level package, an edge per package another imports', async () => {
+test('package diagram: layers with the imports between them; shared packages in their own box, without edges', async () => {
   const { packageModel } = await import('./models.mjs')
-  const m = packageModel({ controller: ['service', 'dto'], service: ['repository'], repository: [], dto: [] })
+  const m = packageModel({ controller: ['service', 'dto'], service: ['repository', 'dto'], repository: [], dto: [] })
   assert.equal(m.name, '04_Package/packages')
-  assert.deepEqual(m.edges.map((e) => `${e.from}>${e.to}`), ['controller>service', 'controller>dto', 'service>repository'])
+  assert.deepEqual(m.edges.map((e) => `${e.from}>${e.to}`), ['controller>service', 'service>repository'])
+  assert.equal(m.nodes.find((n) => n.id === 'dto').parent, 'shared')
+  assert.equal(m.nodes.find((n) => n.id === 'service').parent, 'layers')
 })
 
 test('state machine: with a known INSERT the machine starts there, not at the first CHECK state', () => {
@@ -118,4 +120,41 @@ test('code-read transitions: a state no code writes (only filtered on) leaves ev
   const [t] = mergeTransitions([{ table: 't', column: 'status', states: ['NEW', 'UPCOMING', 'VOID'],
     transitions: [{ from: ['UPCOMING', 'NEW'], to: 'VOID', by: 'S.voidUnpaid' }] }], { t: [{ state: 'UPCOMING', neverWritten: true }] })
   assert.deepEqual(t.transitions, [{ from: ['NEW'], to: 'VOID', by: 'S.voidUnpaid' }])
+})
+
+test('class parser: fields, public methods, interface methods, implements', async () => {
+  const { parseJavaType } = await import('./models.mjs')
+  const entity = parseJavaType(`@Entity
+public class TermEntity {
+    @Id
+    private Long id;
+    private String name;
+    private static final int X = 1;
+    public void publish(Instant at) {
+        usedAt = at;
+    }
+    void hidden() { }
+}`)
+  assert.deepEqual(entity, { name: 'TermEntity', kind: 'class', fields: ['id: Long', 'name: String'], methods: ['publish()'], implements: [] })
+  const port = parseJavaType(`public interface Billing {
+    /** Doc. */
+    IssuedInvoice issueDeposit(DepositRequest r);
+    record DepositRequest(long a) { }
+    default boolean x() { return true; }
+}`)
+  assert.deepEqual(port.methods, ['issueDeposit()', 'x()'])
+  assert.equal(port.kind, 'interface')
+  assert.deepEqual(parseJavaType('class JdbcBilling implements Billing, Other {\n}').implements, ['Billing', 'Other'])
+})
+
+test('class diagram: interfaces of a feature with the classes that implement them', async () => {
+  const { portModel } = await import('./models.mjs')
+  const m = portModel('billing', [
+    { name: 'Billing', kind: 'interface', fields: [], methods: ['issueDeposit()'], implements: [], pkg: 'billing' },
+    { name: 'JdbcBilling', kind: 'class', fields: [], methods: [], implements: ['Billing'], pkg: 'billing' },
+    { name: 'Other', kind: 'class', fields: [], methods: [], implements: [], pkg: 'billing' },
+  ])
+  assert.equal(m.name, '06_Class/ports-billing')
+  assert.deepEqual(m.nodes.map((n) => n.id), ['Billing', 'JdbcBilling'])
+  assert.deepEqual(m.edges, [{ from: 'JdbcBilling', to: 'Billing', dashed: true, arrow: 'triangle' }])
 })
