@@ -61,7 +61,8 @@ CampusStay side (checked against the code):
 | Requests to the dormitory board go through "My request"; repairs open a ticket in CIM (cim.fpt.edu.vn) with photos | OCD FAQ (official) |
 | Hòa Lạc: 8 five-storey buildings of 139 rooms; 6 Doms for university students (A, B, C, D, F, H) | OCD information PDF (official, mostly images) |
 | Đà Nẵng: 4- and 6-bed rooms at 4,200,000 and 3,600,000 đ per term per student (2024 prices); register through the student's advisor or the hotline | [daihoc.fpt.edu.vn, 06/01/2026](https://daihoc.fpt.edu.vn/cuoc-song-tai-dai-hoc-fpt/doi-song-sinh-vien-cuoc-song-tai-dai-hoc-fpt/ky-tuc-xa/ky-tuc-xa-truong-dai-hoc-fpt-tram-dung-chan-trong-mo-danh-cho-tan-sinh-vien/) (official) |
-| Booking steps in OCD (choose Dom and floor, pay from the FAP wallet, 10-minute hold) | *(unconfirmed: from a search summary only; the guide is behind the login. A team member with an FPT account can confirm it.)* |
+| HCM campus: OCD's campus list has no HCM entry, and the HCM campus page never mentions a dormitory or student housing (no matches, and none in its facilities list), whereas the Hà Nội, Đà Nẵng, Cần Thơ and Quy Nhơn pages show one. Write it only this way, as what the official pages show, not as "HCM has no dormitory" | [daihoc.fpt.edu.vn/hcm](https://daihoc.fpt.edu.vn/hcm), read 23/11/2026; OCD login screen |
+| Booking steps in OCD (choose Dom and floor, pay from the FAP wallet, 10-minute hold) | **Left out of Report 1.** It comes from a search summary only; the guide is behind the login, and every team member has an HCM-campus account, which OCD does not serve (user, 23/11/2026) |
 | Older student blog: registration at the Student Services office, by hotline or email, or through FAP; Hòa Lạc prices of 650,000–900,000 đ/month | [UniReview](https://unireview.github.io/university/fpt_uni/fpt_ktx.html) *(student blog, undated and old: background only)* |
 
 ## D. Student reviews
