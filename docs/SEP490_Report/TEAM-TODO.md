@@ -36,3 +36,11 @@ The documents are written from the code. These facts are in nobody's repository,
 
 - Build the APK (`flutter build apk --dart-define-from-file=config.json` in `mobile/`) and attach it to a GitHub release of the repository, so the deliverable package has the file Report 6 describes.
 - The Family Day and work-schedule screenshots show empty pages (the demo data loads none). If you want fuller pictures, create a Family Day and plan a week on a local stack, then run `node tools/docs/screenshots.mjs A` and rebuild Report 6.
+
+## Review 2 forms (BM01–BM04, refilled from the code on 23/11/2026)
+
+- Left empty for people to fill: BM04 reviewers' names, "Approved at Review 2", required fixes (section 9), reviewers' verification and signatures; BM03 section 3 (reviewers' decision).
+- Check the names in BM03 "Proposed by" and the owners of decisions D1–D5 (BM01 §3): they repeat the Review 2 submission; rows 7 and 8 of BM03 are new.
+- Workflow owners follow git authorship: WF-01 Trung, WF-02 and WF-03 Lộc, WF-04 and WF-05 Luân. Duy owns no main workflow (the form asks each member to own one): the team should pick one for Duy, then run `node tools/docs/src/forms.mjs` again.
+- BM02 keeps the AI findings of the 28/10 run as they were; each Planned finding got its status on 23/11. Still open: SR-06 (load test), SR-11 (production index check), SR-13 (Term never Closed), SR-15 (reopen not limited), SR-27 (contract A-53, A-54).
+- The Topic form was not edited: `docs/Topic/TOPIC-CHECK.md` lists where it differs from the system.
