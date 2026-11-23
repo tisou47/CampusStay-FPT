@@ -1,0 +1,167 @@
+[
+ {
+  "permission": "APPLY",
+  "label": "Apply for a Bed and pay Invoices",
+  "roles": [
+   "STUDENT"
+  ]
+ },
+ {
+  "permission": "REPORT_MAINTENANCE",
+  "label": "Report Maintenance Requests",
+  "roles": [
+   "STUDENT",
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "REVIEW_APPLICATIONS",
+  "label": "Review Applications",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "CONFIRM_PAYMENTS",
+  "label": "Confirm or reject payment claims (one by one or in bulk)",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "RUN_ASSIGNMENT",
+  "label": "Run assignment, resolve conflicts and commit",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "APPROVE_ASSIGNMENT",
+  "label": "Approve assignment proposals",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "VIEW_INVENTORY",
+  "label": "View Rooms and Beds",
+  "roles": [
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ]
+ },
+ {
+  "permission": "SET_ROOM_OUT_OF_SERVICE",
+  "label": "Set Rooms out of service",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MANAGE_ROOM_CLASSES",
+  "label": "Set the Room Class of Rooms for coming Terms",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MANAGE_FURNITURE",
+  "label": "Furniture: status, Block store and moves inside a Block",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MANAGE_FURNITURE_CATALOGUE",
+  "label": "Furniture: register items and transfer them between Blocks",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MANAGE_DOOR_CODES",
+  "label": "Set, change and view the door codes of Rooms",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "DESK",
+  "label": "Check students in and out",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "PROCESS_MAINTENANCE",
+  "label": "Process Maintenance Requests",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "DECIDE_ROOM_CHANGES",
+  "label": "Decide next-Term requests: room changes, swaps, extensions (Staff inside their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MOVE_RESIDENTS",
+  "label": "Move residents during a Term for an operational reason (Staff inside their Blocks)",
+  "roles": [
+   "STAFF",
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "ISSUE_TERM_FEES",
+  "label": "Issue the next-Term room fees",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "RECONCILE_ENROLLMENT",
+  "label": "Reconcile the enrolled list with residents and applicants",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "DECIDE_REFUNDS",
+  "label": "Decide refunds and late check-ins",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "REVIEW_CHECK_OUT_CHARGES",
+  "label": "Keep or drop furniture charges a student did not accept at check-out",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "TERMINATE_STAYS",
+  "label": "Start and cancel terminations of stays",
+  "roles": [
+   "MANAGER"
+  ]
+ },
+ {
+  "permission": "MANAGE_BLOCK",
+  "label": "Manage staff, routing and Block settings",
+  "roles": [
+   "MANAGER"
+  ]
+ }
+]

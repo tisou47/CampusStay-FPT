@@ -34,3 +34,4 @@ Thumbs.db
 /build/
 # Reference copies from the school, kept on the team machines only
 /docs/SEP490_Report/SEP490 StudentGuide_Fall 2023.docx
+tools/docs/build/

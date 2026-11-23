@@ -1,0 +1,2826 @@
+[
+ {
+  "method": "GET",
+  "path": "/applications/eligibility",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications/roommate-check",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/applications/{id}",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/applications",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications/{id}/review",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications/bulk-review",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications/{id}/cancel",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/roommate-invitations/{id}/respond",
+  "controller": "ApplicationController",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/round2/offers",
+  "controller": "Round2Controller",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/applications/{id}/withdraw",
+  "controller": "Round2Controller",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/round2-offer",
+  "controller": "Round2Controller",
+  "requires": [],
+  "feature": "application",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/round2-offers/{id}/respond",
+  "controller": "Round2Controller",
+  "requires": [],
+  "feature": "application",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/home",
+  "controller": "StudentController",
+  "requires": [],
+  "feature": "application",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/profile",
+  "controller": "StudentController",
+  "requires": [],
+  "feature": "application",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/applications",
+  "controller": "StudentController",
+  "requires": [],
+  "feature": "application",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/roommate-invitation",
+  "controller": "StudentController",
+  "requires": [],
+  "feature": "application",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/assignment-runs",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/assignment-runs",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/round2",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/round2/run",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/assignment-runs/{runId}/proposal",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/assignment-runs/{runId}/conflicts/{applicationId}",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/assignment-runs/{runId}/conflicts/{applicationId}/resolve",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/assignment-runs/{runId}/commit",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/assignment-runs/{runId}/rooms",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/assignment-runs/{runId}/approve",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/assignment-runs/{runId}/return",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/approvals/assignment",
+  "controller": "AssignmentController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-outs/{allocationId}/furniture",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/check-outs/{allocationId}/furniture",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/check-outs/{allocationId}/damage-claims",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-out-reviews",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/check-out-reviews/{allocationId}/{itemId}",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/check-out",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/check-out/agree",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/damage-claims/{id}",
+  "controller": "CheckOutFurnitureController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/check-in/today",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-in/lookup",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/check-in",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-out",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-out/{allocationId}",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/check-out/{allocationId}",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-out/readings",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/check-out/readings",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/check-out/readings/template",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/check-out/readings",
+  "controller": "DeskController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/handover",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/handover/start",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/handover",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/handover/photos",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "DELETE",
+  "path": "/students/me/handover/photos/{id}",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/handover/submit",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/handover/agree",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/handover/late",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/handovers",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/handovers/{id}",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/handovers/{id}/confirm",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/handovers/{id}/visit",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/handovers/{id}/verification",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/handovers/{id}/cancel",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/handovers/{id}/late",
+  "controller": "HandoverController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/late-check-ins",
+  "controller": "LateCheckInController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/late-check-in",
+  "controller": "LateCheckInController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/late-check-in",
+  "controller": "LateCheckInController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/late-check-ins",
+  "controller": "LateCheckInController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/late-check-ins/{id}/decision",
+  "controller": "LateCheckInController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/operational-moves/options",
+  "controller": "OperationalMoveController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/operational-moves",
+  "controller": "OperationalMoveController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/operational-moves",
+  "controller": "OperationalMoveController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/renewals",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/renewals/overview",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/next-term-fees",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/next-term-fees/issue",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/turnover",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/turnover/meter-cuts",
+  "controller": "RenewalController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/allocation",
+  "controller": "StudentAllocationController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/terminations",
+  "controller": "TerminationController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/terminations",
+  "controller": "TerminationController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/terminations/{id}/cancel",
+  "controller": "TerminationController",
+  "requires": [],
+  "feature": "assignment",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/assistant",
+  "controller": "AssistantController",
+  "requires": [],
+  "feature": "assistant",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/assistant/chat",
+  "controller": "AssistantController",
+  "requires": [],
+  "feature": "assistant",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/users",
+  "controller": "AdminUserController",
+  "requires": [],
+  "feature": "auth",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/users",
+  "controller": "AdminUserController",
+  "requires": [],
+  "feature": "auth",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/users/{id}",
+  "controller": "AdminUserController",
+  "requires": [],
+  "feature": "auth",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/permissions",
+  "controller": "AdminUserController",
+  "requires": [],
+  "feature": "auth",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/audit-log",
+  "controller": "AdminUserController",
+  "requires": [],
+  "feature": "auth",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/sign-in",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "public"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/google",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "public"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/sign-out",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/auth/me",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/auth/me/locale",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/password/forgot",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "public"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/password/reset",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "public"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/password/set",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/auth/password/change",
+  "controller": "AuthController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/block-staff",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/block-staff/me",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/block-staff/{id}",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/block-staff/{id}/work",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/block-staff/{id}/work/reassign",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/block-staff/{id}/shifts",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/week-schedule",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/week-schedule/plan",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/week-schedule/plan/{staffId}",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "DELETE",
+  "path": "/week-schedule/plan/{staffId}",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/week-schedule/me",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/week-schedule/send",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/staff-activity",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/staff-account-requests",
+  "controller": "BlockStaffController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reconciliations",
+  "controller": "ReconciliationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reconciliations/template",
+  "controller": "ReconciliationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/reconciliations",
+  "controller": "ReconciliationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reconciliations/{id}",
+  "controller": "ReconciliationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/reconciliations/{id}/items/{itemId}/resolve",
+  "controller": "ReconciliationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/refund-account",
+  "controller": "RefundAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/refund-account",
+  "controller": "RefundAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/banks",
+  "controller": "RefundAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/staff-accounts",
+  "controller": "StaffAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/staff-accounts",
+  "controller": "StaffAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/staff-accounts/{id}",
+  "controller": "StaffAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/staff-accounts/{id}/invitation",
+  "controller": "StaffAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/student-accounts",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/student-accounts/{id}",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/student-accounts/{id}",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-accounts/{id}/verify",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-accounts/{id}/reject",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-accounts/{id}/lock",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-accounts/{id}/unlock",
+  "controller": "StudentAccountController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/contacts",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/contacts",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/contacts/emergency",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/contacts/emergency/{id}",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/contacts/emergency/{id}/primary",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "DELETE",
+  "path": "/students/me/contacts/emergency/{id}",
+  "controller": "StudentContactController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/student-imports",
+  "controller": "StudentImportController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/student-imports/template",
+  "controller": "StudentImportController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-imports",
+  "controller": "StudentImportController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/student-imports/{id}",
+  "controller": "StudentImportController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/student-imports/{id}/confirm",
+  "controller": "StudentImportController",
+  "requires": [],
+  "feature": "auth",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/verification",
+  "controller": "StudentVerificationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/verification",
+  "controller": "StudentVerificationController",
+  "requires": [],
+  "feature": "auth",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/finance/summary",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/finance/overdue",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/finance/reminders",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/invoices",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/refunds",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/refunds/{id}/account-reminder",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/refunds",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/refunds/{id}/decision",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/refunds/{id}/paid",
+  "controller": "FinanceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/meter-periods",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/meter-periods/{id}/readings",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/meter-periods/{id}/readings/{room}",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/meter-periods/{id}/readings/{room}",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/meter-periods/{id}/readings/{room}/confirm",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/meter-periods/{id}/template",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/meter-periods/{id}/import",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/meter-periods/{id}/close",
+  "controller": "MeterController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/invoices/{id}/claim",
+  "controller": "PaymentClaimController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/payment-claims",
+  "controller": "PaymentClaimController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/payment-claims/{invoiceId}/receipt",
+  "controller": "PaymentClaimController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/payment-claims/confirm",
+  "controller": "PaymentClaimController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/payment-claims/reject",
+  "controller": "PaymentClaimController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/payments",
+  "controller": "PaymentDeskController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/payments/{invoiceId}/confirm",
+  "controller": "PaymentDeskController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/payments/{invoiceId}/receipt-file",
+  "controller": "PaymentDeskController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/invoices",
+  "controller": "StudentInvoiceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/invoices/{id}",
+  "controller": "StudentInvoiceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/invoices/{id}/payment",
+  "controller": "StudentInvoiceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/invoices/{id}/payment/refresh",
+  "controller": "StudentInvoiceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/invoices/{id}/receipt",
+  "controller": "StudentInvoiceController",
+  "requires": [],
+  "feature": "billing",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/files/{id}",
+  "controller": "FileLinkController",
+  "requires": [],
+  "feature": "file",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/buildings",
+  "controller": "AdminBuildingController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/buildings",
+  "controller": "AdminBuildingController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/buildings/{id}",
+  "controller": "AdminBuildingController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/buildings/{id}/rooms/bulk",
+  "controller": "AdminBuildingController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/buildings/{id}/floors/{floor}/rooms",
+  "controller": "AdminBuildingController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/furniture-types",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/furniture-types",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/furniture-types/{id}",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/furniture-conditions",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/room-class-requirements",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/room-class-requirements/{roomClassId}",
+  "controller": "AdminFurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/door-codes",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/door-codes/import",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/door-codes/{room}",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/door-codes/{room}/confirm",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/door-codes/{room}/cancel",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/door-codes/{room}/reveal",
+  "controller": "DoorCodeController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/furniture",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/furniture/{id}",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/furniture",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/furniture/{id}",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/furniture/stock",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/furniture/moves",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/furniture/moves",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/furniture/moves/{id}/done",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/furniture/moves/{id}/cancel",
+  "controller": "FurnitureController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/structure",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/rooms",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inventory/room-codes",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/rooms/{code}",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/rooms/{code}/details",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/rooms/{code}/hub",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inventory/rooms/{code}/out-of-service",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inventory/rooms/{code}/back-in-service",
+  "controller": "InventoryController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inventory/room-classes",
+  "controller": "RoomClassController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/inventory/room-classes",
+  "controller": "RoomClassController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/door-code",
+  "controller": "StudentRoomController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/door-code/reveal",
+  "controller": "StudentRoomController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/furniture",
+  "controller": "StudentRoomController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "STUDENT"
+ },
+ {
+  "method": "PUT",
+  "path": "/students/me/furniture/report",
+  "controller": "StudentRoomController",
+  "requires": [],
+  "feature": "inventory",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-checklists",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-checklists",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-checklists/{id}/publish",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-checklists/{id}/archive",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/inspection-checklists/{id}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-checklists/{id}/restore",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "DELETE",
+  "path": "/inspection-checklists/{id}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-schedules",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-schedules",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/inspection-schedules/{id}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-runs/current",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-runs",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-runs/{id:INS-\\\\d+|\\\\d+}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-runs/{id}/rooms/{room}/photos",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "DELETE",
+  "path": "/inspection-runs/{id}/rooms/{room}/photos/{photoId}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-runs/upcoming",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/inspection-runs/{id}/rooms",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/inspection-runs/{id}/rooms/{room}",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-runs/{id}/rooms/{room}/unreachable",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/inspection-runs/{id}/submit",
+  "controller": "InspectionController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/maintenance-requests/options",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/maintenance-requests",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/maintenance-requests",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/maintenance-requests/{id}",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "PATCH",
+  "path": "/maintenance-requests/{id}",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/maintenance-requests/{id}/updates",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/maintenance-requests/{id}/confirm",
+  "controller": "MaintenanceController",
+  "requires": [],
+  "feature": "maintenance",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/notification-templates",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/notification-templates/{key}",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/notification-templates/{key}/test",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/emails/options",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/emails/preview",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/emails",
+  "controller": "AdminMessagingController",
+  "requires": [],
+  "feature": "notification",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/board",
+  "controller": "AnnouncementController",
+  "requires": [],
+  "feature": "notification",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/announcements",
+  "controller": "AnnouncementController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/announcements/options",
+  "controller": "AnnouncementController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/announcements",
+  "controller": "AnnouncementController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/announcements/{id}",
+  "controller": "AnnouncementController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/devices",
+  "controller": "DeviceController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/devices/unregister",
+  "controller": "DeviceController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/notifications",
+  "controller": "NotificationController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/notifications/read-all",
+  "controller": "NotificationController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/notifications/{id}/read",
+  "controller": "NotificationController",
+  "requires": [],
+  "feature": "notification",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/dashboards/staff",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/dashboards/manager",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/dashboards/term",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/dashboards/admin",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/approvals/summary",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reports/occupancy",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reports/financial",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/reports/block",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/exports/{report}",
+  "controller": "ReportController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/search",
+  "controller": "SearchController",
+  "requires": [],
+  "feature": "report",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/escalations",
+  "controller": "EscalationController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/escalations/{id}/actions",
+  "controller": "EscalationController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/stay/extension",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/stay/end",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/stay-requests",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/stay-requests/{id}/decision",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/next-term-requests",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/next-term-requests/decision",
+  "controller": "NextTermRequestController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/room-changes/options",
+  "controller": "RoomChangeController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/room-changes",
+  "controller": "RoomChangeController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/room-changes",
+  "controller": "RoomChangeController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/room-changes/{id}/matching-beds",
+  "controller": "RoomChangeController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/room-changes/{id}/decision",
+  "controller": "RoomChangeController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/routing-rules",
+  "controller": "RoutingController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/routing-rules",
+  "controller": "RoutingController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/routing-rules/timers",
+  "controller": "RoutingController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/routing-rules/{id}",
+  "controller": "RoutingController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/requests",
+  "controller": "StudentRequestsController",
+  "requires": [],
+  "feature": "request",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/swaps",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/swap-board",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/swap-board/my-post",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/swap-board/posts/{id}/request",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/swap-invitations/{id}",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/swap-invitations/{id}/respond",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/swaps",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/swaps/{id}/decision",
+  "controller": "SwapController",
+  "requires": [],
+  "feature": "request",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/room-types",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/room-types",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/room-types/{id}",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/room-classes",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/room-classes",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/room-classes/{id}",
+  "controller": "AdminCatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/settings/{group}",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/settings/{group}",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/utility",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/utility",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/fees",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/fees",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/eligibility",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/eligibility",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/matching",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/matching",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/matching/preview",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/system-parameters",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/system-parameters",
+  "controller": "AdminPolicyController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/terms",
+  "controller": "AdminTermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/terms/drafts",
+  "controller": "AdminTermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/terms/{id}/wizard",
+  "controller": "AdminTermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "PUT",
+  "path": "/admin/terms/{id}/wizard/{step}",
+  "controller": "AdminTermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/terms/{id}/publish",
+  "controller": "AdminTermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/block-settings",
+  "controller": "BlockSettingsController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/block-settings",
+  "controller": "BlockSettingsController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/catalog",
+  "controller": "CatalogController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/demo",
+  "controller": "DemoController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/admin/demo/files/{kind}",
+  "controller": "DemoController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "POST",
+  "path": "/admin/demo/reset",
+  "controller": "DemoController",
+  "requires": [],
+  "feature": "setting",
+  "access": "ADMIN"
+ },
+ {
+  "method": "GET",
+  "path": "/registration-periods/current",
+  "controller": "RegistrationPeriodController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/registration-periods/{termId}",
+  "controller": "RegistrationPeriodController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/terms",
+  "controller": "TermController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/term-requests",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/term-requests/defaults",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/term-requests/{id}",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/term-requests",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/term-requests/{id}",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/term-requests/{id}/comments",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/term-requests/{id}/decision",
+  "controller": "TermRequestController",
+  "requires": [],
+  "feature": "setting",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/family-days",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-days",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/family-days/{id}",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "PUT",
+  "path": "/family-days/{id}",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-days/{id}/publish",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-days/{id}/cancel",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-days/{id}/close",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/family-days/{id}/registrations",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-day-registrations/{id}/cancel",
+  "controller": "FamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/family-day-stats",
+  "controller": "FamilyDayStatsController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/family-days/{id}/stats",
+  "controller": "FamilyDayStatsController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/family-days",
+  "controller": "StudentFamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/students/me/family-days/{id}",
+  "controller": "StudentFamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/family-days/{id}/registration",
+  "controller": "StudentFamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/family-days/{id}/registration/safety-confirmation",
+  "controller": "StudentFamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "STUDENT"
+ },
+ {
+  "method": "POST",
+  "path": "/students/me/family-days/{id}/registration/cancel",
+  "controller": "StudentFamilyDayController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "STUDENT"
+ },
+ {
+  "method": "GET",
+  "path": "/family-days/{id}/visitors",
+  "controller": "VisitorDeskController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-days/{id}/overdue-reminders",
+  "controller": "VisitorDeskController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-day-visitors/verify",
+  "controller": "VisitorDeskController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-day-visitors/{id}/check-in",
+  "controller": "VisitorDeskController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ },
+ {
+  "method": "POST",
+  "path": "/family-day-visitors/{id}/check-out",
+  "controller": "VisitorDeskController",
+  "requires": [],
+  "feature": "visitor",
+  "access": "signed in"
+ }
+]

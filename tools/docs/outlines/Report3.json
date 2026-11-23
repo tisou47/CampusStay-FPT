@@ -1,0 +1,157 @@
+[
+    {
+        "level":  1,
+        "text":  "I. Record of Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Software Requirement Specification",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Product Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. User Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 Actors",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Use Cases",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "2.2.1 Diagram(s)",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "2.2.2 Descriptions",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 System Functional Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.1 Screens Flow",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.2 Screen Descriptions",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.3 Screen Authorization",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.4 Non-Screen Functions",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.5 Entity Relationship Diagram",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 \u003c\u003cFeature Name 1\u003e\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.2.1 \u003c\u003cFunction Name 1\u003e\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.2.2 \u003c\u003cFunction Name 2\u003e\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.3 \u003c\u003cFeature Name 2\u003e\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  2,
+        "text":  "4. Non-Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "4.1 External Interfaces",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "4.2 Quality Attributes",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "4.2.1 Usability",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "4.2.2 Reliability",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "4.2.3 Performance",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "4.2.4 …",
+        "placeholder":  true
+    },
+    {
+        "level":  2,
+        "text":  "5. Requirement Appendix",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.1 Business Rules",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.2 Common Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.3 Application Messages List",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.4 Other Requirements…",
+        "placeholder":  true
+    }
+]

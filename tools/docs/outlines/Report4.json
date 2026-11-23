@@ -1,0 +1,62 @@
+[
+    {
+        "level":  1,
+        "text":  "I. Record of Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Software Design Document",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. System Design",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 System Architecture",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Package Diagram",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Database Design",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Detailed Design",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 \u003cFeature/Function Name1\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.1.1 Class Diagram",
+        "placeholder":  false
+    },
+    {
+        "level":  4,
+        "text":  "3.1.3 \u003cSequence Diagram Name2\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.1.4 …",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.2 \u003cFeature/Function Name2\u003e",
+        "placeholder":  true
+    }
+]

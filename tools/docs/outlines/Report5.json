@@ -1,0 +1,67 @@
+[
+    {
+        "level":  1,
+        "text":  "I. Record of Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Testing Documentation",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Scope of Testing",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Test Strategy",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 Testing Types",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Test Levels",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.3 Supporting Tools",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Test Plan",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 Human Resources",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 Test Environment",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.3 Test Milestones",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Test Cases",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Test Reports",
+        "placeholder":  false
+    }
+]

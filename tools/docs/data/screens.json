@@ -1,0 +1,795 @@
+{
+ "web": [
+  {
+   "portal": "public",
+   "path": "/signin",
+   "component": "SignIn"
+  },
+  {
+   "portal": "public",
+   "path": "/forgot-password",
+   "component": "ForgotPassword"
+  },
+  {
+   "portal": "public",
+   "path": "/reset-password",
+   "component": "ResetPassword"
+  },
+  {
+   "portal": "public",
+   "path": "/set-password",
+   "component": "ResetPassword"
+  },
+  {
+   "portal": "public",
+   "path": "/account/password",
+   "component": "FirstPassword"
+  },
+  {
+   "portal": "public",
+   "path": "/dev/pickers",
+   "component": "DevPickers"
+  },
+  {
+   "portal": "student",
+   "path": "/student",
+   "component": "StudentHome"
+  },
+  {
+   "portal": "student",
+   "path": "/student/apply/term",
+   "component": "ApplyTerm"
+  },
+  {
+   "portal": "student",
+   "path": "/student/apply/room",
+   "component": "ApplyRoom"
+  },
+  {
+   "portal": "student",
+   "path": "/student/apply/roommate",
+   "component": "ApplyRoommate"
+  },
+  {
+   "portal": "student",
+   "path": "/student/apply/personal",
+   "component": "ApplyPersonal"
+  },
+  {
+   "portal": "student",
+   "path": "/student/apply/review",
+   "component": "ApplyReview"
+  },
+  {
+   "portal": "student",
+   "path": "/student/applications",
+   "component": "MyApplications"
+  },
+  {
+   "portal": "student",
+   "path": "/student/applications/:id",
+   "component": "ApplicationDetail"
+  },
+  {
+   "portal": "student",
+   "path": "/student/roommate-invitation",
+   "component": "RoommateInvitation"
+  },
+  {
+   "portal": "student",
+   "path": "/student/round-2-offer",
+   "component": "Round2Offer"
+  },
+  {
+   "portal": "student",
+   "path": "/student/invoices",
+   "component": "MyInvoices"
+  },
+  {
+   "portal": "student",
+   "path": "/student/invoices/:id",
+   "component": "InvoiceDetail"
+  },
+  {
+   "portal": "student",
+   "path": "/student/invoices/:id/pay",
+   "component": "InvoicePayment"
+  },
+  {
+   "portal": "student",
+   "path": "/student/room",
+   "component": "MyRoom"
+  },
+  {
+   "portal": "student",
+   "path": "/student/room/inventory",
+   "component": "CheckInInventory"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests",
+   "component": "MyRequests"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests/maintenance/new",
+   "component": "NewMaintenanceRequest"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests/room-change/new",
+   "component": "NewRoomChangeRequest"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests/swap/new",
+   "component": "SwapSpecific"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests/swap/board",
+   "component": "SwapBoard"
+  },
+  {
+   "portal": "student",
+   "path": "/student/requests/swap/invitations/:id",
+   "component": "SwapInvitation"
+  },
+  {
+   "portal": "student",
+   "path": "/student/notifications",
+   "component": "Notifications"
+  },
+  {
+   "portal": "student",
+   "path": "/student/verification",
+   "component": "Verification"
+  },
+  {
+   "portal": "student",
+   "path": "/student/registration-periods/:termId",
+   "component": "RegistrationPeriod"
+  },
+  {
+   "portal": "student",
+   "path": "/student/family-days",
+   "component": "MyFamilyDays"
+  },
+  {
+   "portal": "student",
+   "path": "/student/family-days/:id",
+   "component": "MyFamilyDay"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff",
+   "component": "StaffDashboard"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/schedule",
+   "component": "MySchedule"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/inventory",
+   "component": "Inventory"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/rooms/:code",
+   "component": "RoomHub"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/door-codes",
+   "component": "DoorCodes"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/furniture",
+   "component": "Furniture"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/meter-readings",
+   "component": "MeterReadings"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/maintenance",
+   "component": "MaintenanceQueue"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/maintenance/:id",
+   "component": "MaintenanceDetail"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/inspections",
+   "component": "InspectionChecklist"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/room-changes",
+   "component": "RoomChangeQueue"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/room-changes/swaps",
+   "component": "SwapRequests"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/next-term",
+   "component": "TermTransition"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/next-term/:tab",
+   "component": "TermTransition"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/moves",
+   "component": "OperationalMoves"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/check-in",
+   "component": "CheckInDesk"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/check-in/inventories",
+   "component": "HandoverReview"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/check-out",
+   "component": "CheckOutDesk"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/students",
+   "component": "Students"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/students/:id",
+   "component": "StudentHub"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/family-days",
+   "component": "FamilyDays"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/family-days/:id",
+   "component": "FamilyDayDetail"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/family-days/:id/desk",
+   "component": "VisitorDesk"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/family-day-stats",
+   "component": "FamilyDayStats"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/family-day-stats/:id",
+   "component": "FamilyDayStatsDetail"
+  },
+  {
+   "portal": "staff",
+   "path": "/staff/announcements",
+   "component": "Announcements"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager",
+   "component": "ManagerDashboard"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/approvals/check-out-charges",
+   "component": "CheckOutReviews"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/applications",
+   "component": "ApplicationQueue"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/applications/:id",
+   "component": "ApplicationReview"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/assignment",
+   "component": "AssignmentRuns"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/assignment/:runId",
+   "component": "ProposalReview"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/payments",
+   "component": "Payments"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/payment-claims",
+   "component": "PaymentClaims"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/terminations",
+   "component": "Terminations"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/family-days",
+   "component": "FamilyDays"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/family-days/:id",
+   "component": "FamilyDayDetail"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/family-days/:id/desk",
+   "component": "VisitorDesk"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/family-day-stats",
+   "component": "FamilyDayStats"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/family-day-stats/:id",
+   "component": "FamilyDayStatsDetail"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/room-changes",
+   "component": "RoomChangeQueue"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/room-changes/swaps",
+   "component": "SwapRequests"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/next-term",
+   "component": "TermTransition"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/next-term/:tab",
+   "component": "TermTransition"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/moves",
+   "component": "OperationalMoves"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/reconciliation",
+   "component": "Reconciliation"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/inventory",
+   "component": "Inventory"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/rooms/:code",
+   "component": "RoomHub"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/room-classes",
+   "component": "RoomClassesByTerm"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/door-codes",
+   "component": "DoorCodes"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/furniture",
+   "component": "Furniture"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/maintenance",
+   "component": "MaintenanceQueue"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/maintenance/:id",
+   "component": "MaintenanceDetail"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/inspections",
+   "component": "InspectionSchedule"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/check-in/inventories",
+   "component": "HandoverReview"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/finance",
+   "component": "BlockFinance"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/staff",
+   "component": "BlockStaff"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/routing-rules",
+   "component": "RoutingRules"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/escalations",
+   "component": "Escalations"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/reports",
+   "component": "BlockReports"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/reports/occupancy",
+   "component": "OccupancyReport"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/reports/financial",
+   "component": "FinancialReport"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/block-settings",
+   "component": "BlockSettings"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/students",
+   "component": "Students"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/students/:id",
+   "component": "StudentHub"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/student-import",
+   "component": "StudentImport"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/staff-accounts",
+   "component": "StaffAccounts"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/staff-activity",
+   "component": "StaffActivity"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/staff-schedule",
+   "component": "StaffSchedule"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/term-requests",
+   "component": "TermRequests"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/terms",
+   "component": "TermDashboard"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/terms/:id",
+   "component": "TermDashboard"
+  },
+  {
+   "portal": "manager",
+   "path": "/manager/announcements",
+   "component": "Announcements"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin",
+   "component": "AdminDashboard"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/terms",
+   "component": "Terms"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/terms/new",
+   "component": "NewTerm"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/terms/:id",
+   "component": "TermWizard"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/term-requests",
+   "component": "TermRequests"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/deadlines",
+   "component": "Deadlines"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/refunds",
+   "component": "RefundsTerminations"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/stay",
+   "component": "StayRenewal"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/announcements",
+   "component": "Announcements"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/room-types",
+   "component": "RoomTypes"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/room-classes",
+   "component": "RoomClasses"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/fees",
+   "component": "FeesRules"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/utility",
+   "component": "UtilitySettings"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/eligibility",
+   "component": "EligibilityRules"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/matching",
+   "component": "MatchingCriteria"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/inspection-checklists",
+   "component": "InspectionChecklists"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/notifications",
+   "component": "NotificationTemplates"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/notifications/send",
+   "component": "SendEmail"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/system-parameters",
+   "component": "SystemParameters"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/demo",
+   "component": "DemoData"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/buildings",
+   "component": "Buildings"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/furniture-types",
+   "component": "FurnitureTypes"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/users",
+   "component": "UsersRoles"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/audit-log",
+   "component": "AuditLog"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/students",
+   "component": "Students"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/students/:id",
+   "component": "StudentHub"
+  },
+  {
+   "portal": "admin",
+   "path": "/admin/student-import",
+   "component": "StudentImport"
+  },
+  {
+   "portal": "public",
+   "path": "/*",
+   "component": "NotFound"
+  }
+ ],
+ "mobile": [
+  {
+   "screen": "VerificationScreen",
+   "file": "screens/account.dart"
+  },
+  {
+   "screen": "ChangePasswordScreen",
+   "file": "screens/account.dart"
+  },
+  {
+   "screen": "AccountScreen",
+   "file": "screens/account.dart"
+  },
+  {
+   "screen": "ApplicationsPage",
+   "file": "screens/activity.dart"
+  },
+  {
+   "screen": "RequestsPage",
+   "file": "screens/activity.dart"
+  },
+  {
+   "screen": "PaymentsPage",
+   "file": "screens/activity.dart"
+  },
+  {
+   "screen": "ApplicationScreen",
+   "file": "screens/applications.dart"
+  },
+  {
+   "screen": "RoommateInvitationScreen",
+   "file": "screens/applications.dart"
+  },
+  {
+   "screen": "Round2OfferScreen",
+   "file": "screens/applications.dart"
+  },
+  {
+   "screen": "ApplyScreen",
+   "file": "screens/apply.dart"
+  },
+  {
+   "screen": "AssistantScreen",
+   "file": "screens/assistant.dart"
+  },
+  {
+   "screen": "FamilyDaysScreen",
+   "file": "screens/family_day.dart"
+  },
+  {
+   "screen": "FamilyDayScreen",
+   "file": "screens/family_day.dart"
+  },
+  {
+   "screen": "HandoverScreen",
+   "file": "screens/handover.dart"
+  },
+  {
+   "screen": "HomeScreen",
+   "file": "screens/home.dart"
+  },
+  {
+   "screen": "BoardScreen",
+   "file": "screens/home.dart"
+  },
+  {
+   "screen": "NotificationsScreen",
+   "file": "screens/notifications.dart"
+  },
+  {
+   "screen": "PaymentsScreen",
+   "file": "screens/payments.dart"
+  },
+  {
+   "screen": "RefundsScreen",
+   "file": "screens/payments.dart"
+  },
+  {
+   "screen": "InvoiceDetailScreen",
+   "file": "screens/payments.dart"
+  },
+  {
+   "screen": "InvoiceScreen",
+   "file": "screens/payments.dart"
+  },
+  {
+   "screen": "RegistrationPeriodScreen",
+   "file": "screens/registration.dart"
+  },
+  {
+   "screen": "MaintenanceScreen",
+   "file": "screens/requests.dart"
+  },
+  {
+   "screen": "NewMaintenanceScreen",
+   "file": "screens/requests.dart"
+  },
+  {
+   "screen": "NewRoomChangeScreen",
+   "file": "screens/requests.dart"
+  },
+  {
+   "screen": "SwapScreen",
+   "file": "screens/requests.dart"
+  },
+  {
+   "screen": "SwapInvitationScreen",
+   "file": "screens/requests.dart"
+  },
+  {
+   "screen": "RoomScreen",
+   "file": "screens/room.dart"
+  },
+  {
+   "screen": "SignInScreen",
+   "file": "screens/sign_in.dart"
+  },
+  {
+   "screen": "SetPasswordScreen",
+   "file": "screens/sign_in.dart"
+  },
+  {
+   "screen": "SubPage",
+   "file": "ui.dart"
+  }
+ ]
+}

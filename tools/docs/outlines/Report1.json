@@ -1,0 +1,72 @@
+[
+    {
+        "level":  1,
+        "text":  "I. Record of Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Project Introduction",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 Project Information",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Project Team",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Product Background",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Existing Systems",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 System name1",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.2 System name2",
+        "placeholder":  true
+    },
+    {
+        "level":  2,
+        "text":  "4. Business Opportunity",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Software Product Vision",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "6. Project Scope \u0026 Limitations",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.1 Major Features",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.2 Limitations \u0026 Exclusions",
+        "placeholder":  false
+    }
+]

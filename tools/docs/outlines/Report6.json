@@ -1,0 +1,52 @@
+[
+    {
+        "level":  1,
+        "text":  "I. Record of Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Release Package \u0026 User Guides",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Deliverable Package",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Installation Guides",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 System Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Installation Instruction",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. User Manual",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 Workflow 1",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.3 Workflow 2",
+        "placeholder":  true
+    }
+]

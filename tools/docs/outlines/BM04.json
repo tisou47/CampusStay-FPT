@@ -1,0 +1,132 @@
+[
+    {
+        "level":  1,
+        "text":  "Review 2 Commitment",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Project Information",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Final Registration Form",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Mandatory Features",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Non-Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Out of Scope",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "6. Workflow Commitments",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.1 Workflow WF-01",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.2 Workflow WF-02",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.3 Workflow WF-03",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.4 Workflow WF-04",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.5 Workflow WF-05",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "7. Individual Commitments",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "7.1 Member 1",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "7.2 Member 2",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "7.3 Member 3",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "7.4 Member 4",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "7.5 Member 5",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "8. Summary and Cross-check",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "8.1 By workflow",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "8.2 By member",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "8.3 Committed Numbers",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "8.4 Eligibility Thresholds for the Viva",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "9. Required Fixes",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "10. Review 2 Conclusion (completed by reviewers)",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "11. Confirmation",
+        "placeholder":  false
+    }
+]

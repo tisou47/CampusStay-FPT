@@ -1,0 +1,2407 @@
+[
+ {
+  "table": "app_application",
+  "column": "gender",
+  "constraint": "app_application_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "app_application",
+  "column": "roommate_mode",
+  "constraint": "app_application_roommate_mode_check",
+  "states": [
+   "NONE",
+   "INVITE",
+   "AUTO"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "app_application",
+  "column": "status",
+  "constraint": "ck_app_status",
+  "states": [
+   "DRAFT",
+   "AWAITING_ROOMMATE",
+   "AWAITING_DEPOSIT",
+   "SUBMITTED",
+   "UNDER_REVIEW",
+   "APPROVED",
+   "WAITLISTED",
+   "ALLOCATED",
+   "REJECTED",
+   "CANCELLED",
+   "EXPIRED",
+   "FORFEITED"
+  ],
+  "transitions": [
+   {
+    "table": "app_application",
+    "from": [],
+    "to": "ACCEPTED",
+    "by": "ApplicationService.if"
+   },
+   {
+    "table": "app_application",
+    "from": [],
+    "to": "PENDING",
+    "by": "ApplicationService.on"
+   },
+   {
+    "table": "app_application",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "ApplicationService.on"
+   },
+   {
+    "table": "app_application",
+    "from": [
+     "PENDING"
+    ],
+    "to": "CANCELLED",
+    "by": "ApplicationService.dropRoommate"
+   }
+  ]
+ },
+ {
+  "table": "app_roommate_invitation",
+  "column": "status",
+  "constraint": "app_roommate_invitation_status_check",
+  "states": [
+   "PENDING",
+   "ACCEPTED",
+   "DECLINED",
+   "EXPIRED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "app_roommate_invitation",
+    "from": [],
+    "to": "PENDING",
+    "by": "ApplicationService.closeInvitation"
+   }
+  ]
+ },
+ {
+  "table": "app_round2_offer",
+  "column": "status",
+  "constraint": "app_round2_offer_status_check",
+  "states": [
+   "PENDING",
+   "ACCEPTED",
+   "DECLINED",
+   "EXPIRED",
+   "WITHDRAWN"
+  ],
+  "transitions": [
+   {
+    "table": "app_round2_offer",
+    "from": [
+     "PENDING"
+    ],
+    "to": "WITHDRAWN",
+    "by": "JdbcApplications.offerRound2"
+   }
+  ]
+ },
+ {
+  "table": "asg_allocation",
+  "column": "renewal",
+  "constraint": "asg_allocation_renewal_check",
+  "states": [
+   "AWAITING_EXTENSION",
+   "CONTINUING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_allocation",
+  "column": "status",
+  "constraint": "asg_allocation_status_check",
+  "states": [
+   "ACTIVE",
+   "ENDED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_allocation",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "DeskService.checkIn"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "ENDED",
+    "by": "DeskService.checkOut"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "ENDED",
+    "by": "DoorCodeRelease.for"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "ForfeitService.forfeit"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [],
+    "to": "ENDED",
+    "by": "JdbcMoves.end"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "JdbcStays.if"
+   },
+   {
+    "table": "asg_allocation",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CANCELLED",
+    "by": "RenewalService.Held"
+   }
+  ]
+ },
+ {
+  "table": "asg_allocation",
+  "column": "end_reason",
+  "constraint": "ck_alloc_end_reason",
+  "states": [
+   "CHECK_OUT",
+   "ROOM_CHANGE",
+   "SWAP",
+   "CANCELLED",
+   "TERM_END",
+   "FORFEIT",
+   "END_OF_STAY",
+   "NOT_EXTENDED",
+   "FEE_NOT_PAID",
+   "NOT_ENROLLED",
+   "TERMINATED",
+   "MOVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_allocation",
+  "column": "source",
+  "constraint": "ck_alloc_source",
+  "states": [
+   "ASSIGNMENT",
+   "ROUND2",
+   "ROOM_CHANGE",
+   "SWAP",
+   "TEMPORARY",
+   "MANUAL",
+   "RENEWAL",
+   "MOVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_check_out",
+  "column": "refund_status",
+  "constraint": "asg_check_out_refund_status_check",
+  "states": [
+   "NONE",
+   "PENDING",
+   "APPROVED",
+   "PAID",
+   "REJECTED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_check_out",
+  "column": "status",
+  "constraint": "asg_check_out_status_check",
+  "states": [
+   "PENDING",
+   "DRAFT",
+   "COMPLETED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_check_out",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "CheckOutFurnitureService.for"
+   },
+   {
+    "table": "asg_check_out",
+    "from": [],
+    "to": "PENDING",
+    "by": "CheckOutFurnitureService.agree"
+   },
+   {
+    "table": "asg_check_out",
+    "from": [],
+    "to": "PENDING",
+    "by": "TerminationService.cancel"
+   }
+  ]
+ },
+ {
+  "table": "asg_check_out_damage",
+  "column": "baseline_condition",
+  "constraint": "asg_check_out_damage_baseline_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_check_out_damage",
+  "column": "condition",
+  "constraint": "asg_check_out_damage_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_check_out_damage",
+  "column": "manager_review",
+  "constraint": "asg_check_out_damage_manager_review_check",
+  "states": [
+   "PENDING",
+   "KEPT",
+   "DROPPED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_check_out_damage",
+  "column": "source",
+  "constraint": "asg_check_out_damage_source_check",
+  "states": [
+   "PERSONAL",
+   "ACKNOWLEDGED",
+   "OVERRIDE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_damage_claim",
+  "column": "condition",
+  "constraint": "asg_damage_claim_condition_check",
+  "states": [
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_damage_claim",
+  "column": "status",
+  "constraint": "asg_damage_claim_status_check",
+  "states": [
+   "PENDING",
+   "ACKNOWLEDGED",
+   "DECLINED",
+   "EXPIRED",
+   "SETTLED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_damage_claim",
+    "from": [
+     "PENDING"
+    ],
+    "to": "EXPIRED",
+    "by": "CheckOutFurnitureService.expireClaims"
+   }
+  ]
+ },
+ {
+  "table": "asg_furniture_report",
+  "column": "condition",
+  "constraint": "asg_furniture_report_condition_check",
+  "states": [
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover",
+  "column": "comparison",
+  "constraint": "asg_handover_comparison_check",
+  "states": [
+   "MATCHED",
+   "MINOR",
+   "MAJOR"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover",
+  "column": "source",
+  "constraint": "asg_handover_source_check",
+  "states": [
+   "STUDENT",
+   "VERIFIED",
+   "AUTO"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover",
+  "column": "status",
+  "constraint": "asg_handover_status_check",
+  "states": [
+   "DRAFT",
+   "SUBMITTED",
+   "VERIFYING",
+   "FINAL",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_handover",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "HandoverCore.open"
+   },
+   {
+    "table": "asg_handover",
+    "from": [],
+    "to": "VERIFYING",
+    "by": "HandoverDeskService.confirm"
+   },
+   {
+    "table": "asg_handover",
+    "from": [],
+    "to": "SUBMITTED",
+    "by": "StudentHandoverService.if"
+   },
+   {
+    "table": "asg_handover",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "StudentHandoverService.agree"
+   }
+  ]
+ },
+ {
+  "table": "asg_handover_item",
+  "column": "baseline_condition",
+  "constraint": "asg_handover_item_baseline_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover_item",
+  "column": "baseline_source",
+  "constraint": "asg_handover_item_baseline_source_check",
+  "states": [
+   "INSPECTION",
+   "HANDOVER",
+   "CHECK_OUT"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover_item",
+  "column": "condition",
+  "constraint": "asg_handover_item_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_handover_item",
+  "column": "verified_condition",
+  "constraint": "asg_handover_item_verified_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_late_check_in",
+  "column": "source",
+  "constraint": "asg_late_check_in_source_check",
+  "states": [
+   "DESK",
+   "ONLINE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_late_check_in",
+  "column": "status",
+  "constraint": "asg_late_check_in_status_check",
+  "states": [
+   "PENDING",
+   "APPROVED",
+   "REJECTED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_late_check_in",
+    "from": [
+     "PENDING"
+    ],
+    "to": "REJECTED",
+    "by": "ForfeitService.forfeit"
+   },
+   {
+    "table": "asg_late_check_in",
+    "from": [],
+    "to": "APPROVED",
+    "by": "LateCheckInService.Target"
+   },
+   {
+    "table": "asg_late_check_in",
+    "from": [],
+    "to": "REJECTED",
+    "by": "LateCheckInService.Target"
+   }
+  ]
+ },
+ {
+  "table": "asg_move",
+  "column": "next_term",
+  "constraint": "asg_move_next_term_check",
+  "states": [
+   "FOLLOWED",
+   "KEPT",
+   "NONE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_proposal_item",
+  "column": "issue_tone",
+  "constraint": "asg_proposal_item_issue_tone_check",
+  "states": [
+   "INFO",
+   "WARNING",
+   "DANGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_run",
+  "column": "kind",
+  "constraint": "asg_run_kind_check",
+  "states": [
+   "DRY_RUN",
+   "REAL",
+   "ROUND2"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_run",
+  "column": "status",
+  "constraint": "asg_run_status_check",
+  "states": [
+   "RUNNING",
+   "PROPOSED",
+   "IN_REVIEW",
+   "COMMITTED",
+   "FAILED",
+   "DISCARDED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_run",
+    "from": [],
+    "to": "DISCARDED",
+    "by": "AssignmentService.for"
+   },
+   {
+    "table": "asg_run",
+    "from": [
+     "PROPOSED"
+    ],
+    "to": "IN_REVIEW",
+    "by": "AssignmentService.if"
+   },
+   {
+    "table": "asg_run",
+    "from": [],
+    "to": "COMMITTED",
+    "by": "AssignmentService.if"
+   }
+  ]
+ },
+ {
+  "table": "asg_run_block",
+  "column": "status",
+  "constraint": "asg_run_block_status_check",
+  "states": [
+   "REVIEW",
+   "SUBMITTED",
+   "APPROVED",
+   "RETURNED",
+   "COMMITTED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_run_block",
+    "from": [],
+    "to": "COMMITTED",
+    "by": "AssignmentService.for"
+   },
+   {
+    "table": "asg_run_block",
+    "from": [],
+    "to": "RETURNED",
+    "by": "AssignmentService.returnToStaff"
+   }
+  ]
+ },
+ {
+  "table": "asg_stay",
+  "column": "end_kind",
+  "constraint": "asg_stay_end_kind_check",
+  "states": [
+   "COMPLETED",
+   "ENDED_EARLY",
+   "TERMINATED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_stay",
+  "column": "status",
+  "constraint": "asg_stay_status_check",
+  "states": [
+   "ACTIVE",
+   "ENDED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_stay",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CANCELLED",
+    "by": "JdbcStays.extend"
+   },
+   {
+    "table": "asg_stay",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "JdbcStays.Row"
+   },
+   {
+    "table": "asg_stay",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "ENDED",
+    "by": "JdbcStays.if"
+   }
+  ]
+ },
+ {
+  "table": "asg_termination",
+  "column": "reason",
+  "constraint": "asg_termination_reason_check",
+  "states": [
+   "UTILITY_DEBT",
+   "NOT_ENROLLED",
+   "MANAGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "asg_termination",
+  "column": "status",
+  "constraint": "asg_termination_status_check",
+  "states": [
+   "NOTICE_SENT",
+   "OVERDUE",
+   "CHECKED_OUT",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "asg_termination",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "TerminationService.cancel"
+   },
+   {
+    "table": "asg_termination",
+    "from": [],
+    "to": "OVERDUE",
+    "by": "TerminationService.for"
+   },
+   {
+    "table": "asg_termination",
+    "from": [],
+    "to": "CHECKED_OUT",
+    "by": "TerminationService.checkedOut"
+   }
+  ]
+ },
+ {
+  "table": "auth_action_token",
+  "column": "purpose",
+  "constraint": "auth_action_token_purpose_check",
+  "states": [
+   "INVITE",
+   "PASSWORD_RESET"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_reconciliation",
+  "column": "kind",
+  "constraint": "auth_reconciliation_kind_check",
+  "states": [
+   "ENROLLED",
+   "LEAVERS"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_reconciliation_item",
+  "column": "outcome",
+  "constraint": "auth_reconciliation_item_outcome_check",
+  "states": [
+   "NOT_ENROLLED",
+   "ENROLLED",
+   "SUPERSEDED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_reconciliation_item",
+  "column": "status",
+  "constraint": "auth_reconciliation_item_status_check",
+  "states": [
+   "OPEN",
+   "RESOLVED",
+   "INFO"
+  ],
+  "transitions": [
+   {
+    "table": "auth_reconciliation_item",
+    "from": [
+     "OPEN"
+    ],
+    "to": "RESOLVED",
+    "by": "ReconciliationService.if"
+   },
+   {
+    "table": "auth_reconciliation_item",
+    "from": [],
+    "to": "RESOLVED",
+    "by": "ReconciliationService.resolve"
+   }
+  ]
+ },
+ {
+  "table": "auth_session",
+  "column": "sign_in_method",
+  "constraint": "auth_session_sign_in_method_check",
+  "states": [
+   "PASSWORD",
+   "GOOGLE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_staff_account_request",
+  "column": "role",
+  "constraint": "auth_staff_account_request_role_check",
+  "states": [
+   "STAFF",
+   "MANAGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_staff_account_request",
+  "column": "status",
+  "constraint": "auth_staff_account_request_status_check",
+  "states": [
+   "PENDING",
+   "APPROVED",
+   "REJECTED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student",
+  "column": "gender",
+  "constraint": "auth_student_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student",
+  "column": "enrollment_status",
+  "constraint": "ck_student_enrollment",
+  "states": [
+   "ENROLLED",
+   "SUSPENDED",
+   "GRADUATED",
+   "WITHDRAWN",
+   "NOT_ENROLLED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student",
+  "column": "source",
+  "constraint": "ck_student_source",
+  "states": [
+   "DIRECTORY",
+   "IMPORT",
+   "SIGN_UP"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student",
+  "column": "verification",
+  "constraint": "ck_student_verification",
+  "states": [
+   "VERIFIED",
+   "PENDING",
+   "REJECTED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student_import",
+  "column": "status",
+  "constraint": "auth_student_import_status_check",
+  "states": [
+   "PREVIEW",
+   "APPLIED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_student_import_row",
+  "column": "outcome",
+  "constraint": "auth_student_import_row_outcome_check",
+  "states": [
+   "NEW",
+   "UPDATE",
+   "UNCHANGED",
+   "ERROR"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_user",
+  "column": "role",
+  "constraint": "auth_user_role_check",
+  "states": [
+   "STUDENT",
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "auth_user",
+  "column": "status",
+  "constraint": "auth_user_status_check",
+  "states": [
+   "INVITED",
+   "ACTIVE",
+   "DISABLED"
+  ],
+  "transitions": [
+   {
+    "table": "auth_user",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "AuthDemoData.clear"
+   },
+   {
+    "table": "auth_user",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "StudentVerificationService.if"
+   }
+  ]
+ },
+ {
+  "table": "bil_bank_transaction_archive",
+  "column": "match_status",
+  "constraint": "bil_bank_transaction_match_status_check",
+  "states": [
+   "PENDING",
+   "MATCHED",
+   "UNMATCHED",
+   "AMOUNT_MISMATCH",
+   "ALREADY_PAID",
+   "IGNORED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_bank_transaction_archive",
+  "column": "provider",
+  "constraint": "bil_bank_transaction_provider_check",
+  "states": [
+   "SEPAY",
+   "MOCK"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_invoice",
+  "column": "gender",
+  "constraint": "bil_invoice_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_invoice",
+  "column": "status",
+  "constraint": "bil_invoice_status_check",
+  "states": [
+   "UPCOMING",
+   "UNPAID",
+   "AWAITING_CONFIRMATION",
+   "PAID",
+   "OVERDUE",
+   "REFUNDED",
+   "VOID"
+  ],
+  "transitions": [
+   {
+    "table": "bil_invoice",
+    "from": [
+     "UNPAID"
+    ],
+    "to": "OVERDUE",
+    "by": "FinanceService.Due"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [
+     "PAID"
+    ],
+    "to": "REFUNDED",
+    "by": "FinanceService.Refund"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [],
+    "to": "PAID",
+    "by": "JdbcBilling.followAllocation"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [
+     "UPCOMING",
+     "UNPAID",
+     "OVERDUE"
+    ],
+    "to": "VOID",
+    "by": "JdbcBilling.voidUnpaid"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [
+     "UNPAID",
+     "OVERDUE",
+     "AWAITING_CONFIRMATION"
+    ],
+    "to": "OVERDUE",
+    "by": "JdbcBilling.extendBalanceDeadline"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [
+     "UNPAID",
+     "OVERDUE"
+    ],
+    "to": "VOID",
+    "by": "JdbcBilling.issueUtility"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [],
+    "to": "VOID",
+    "by": "PaymentClaimService.if"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [],
+    "to": "CLAIMED",
+    "by": "PaymentClaimService.if"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [],
+    "to": "AWAITING_CONFIRMATION",
+    "by": "PaymentClaimService.insertClaim"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [],
+    "to": "PAID",
+    "by": "PaymentClaimService.pay"
+   }
+  ]
+ },
+ {
+  "table": "bil_invoice",
+  "column": "payment_method",
+  "constraint": "ck_invoice_payment_method",
+  "states": [
+   "VIETQR",
+   "MANUAL",
+   "TRANSFER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_invoice",
+  "column": "type",
+  "constraint": "ck_invoice_type",
+  "states": [
+   "DEPOSIT",
+   "BALANCE",
+   "UTILITY",
+   "ROOM_CHANGE",
+   "DAMAGE",
+   "TERM_FEE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_meter_cut",
+  "column": "reason",
+  "constraint": "ck_meter_cut_reason",
+  "states": [
+   "CHECK_IN",
+   "CHECK_OUT",
+   "ROOM_CHANGE",
+   "SWAP",
+   "MOVE",
+   "TURNOVER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_meter_reading",
+  "column": "status",
+  "constraint": "bil_meter_reading_status_check",
+  "states": [
+   "MISSING",
+   "ENTERED",
+   "CHECK_VALUE",
+   "CONFIRMED"
+  ],
+  "transitions": [
+   {
+    "table": "bil_meter_reading",
+    "from": [],
+    "to": "CONFIRMED",
+    "by": "MeterService.confirm"
+   }
+  ]
+ },
+ {
+  "table": "bil_payment",
+  "column": "status",
+  "constraint": "bil_payment_status_check",
+  "states": [
+   "CONFIRMED",
+   "REVERSED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_payment",
+  "column": "method",
+  "constraint": "ck_payment_method",
+  "states": [
+   "VIETQR",
+   "MANUAL",
+   "TRANSFER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_payment_claim",
+  "column": "status",
+  "constraint": "bil_payment_claim_status_check",
+  "states": [
+   "CLAIMED",
+   "CONFIRMED",
+   "REJECTED"
+  ],
+  "transitions": [
+   {
+    "table": "bil_payment_claim",
+    "from": [],
+    "to": "REJECTED",
+    "by": "PaymentClaimService.if"
+   },
+   {
+    "table": "bil_payment_claim",
+    "from": [],
+    "to": "CONFIRMED",
+    "by": "PaymentClaimService.pay"
+   }
+  ]
+ },
+ {
+  "table": "bil_refund",
+  "column": "gender",
+  "constraint": "bil_refund_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_refund",
+  "column": "status",
+  "constraint": "bil_refund_status_check",
+  "states": [
+   "PENDING",
+   "APPROVED",
+   "REJECTED",
+   "PAID"
+  ],
+  "transitions": [
+   {
+    "table": "bil_refund",
+    "from": [],
+    "to": "PAID",
+    "by": "FinanceService.Refund"
+   }
+  ]
+ },
+ {
+  "table": "bil_refund",
+  "column": "source_type",
+  "constraint": "ck_refund_source",
+  "states": [
+   "APPLICATION_CANCEL",
+   "CHECK_OUT",
+   "ROOM_CHANGE",
+   "OTHER",
+   "FORFEIT",
+   "TERMINATION",
+   "ROOM_CLASS"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_utility_warning",
+  "column": "closed_reason",
+  "constraint": "bil_utility_warning_closed_reason_check",
+  "states": [
+   "PAID",
+   "TERMINATED",
+   "ENDED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "bil_utility_warning",
+  "column": "level",
+  "constraint": "bil_utility_warning_level_check",
+  "states": [
+   "FIRST",
+   "FINAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_parameter",
+  "column": "settings_group",
+  "constraint": "cfg_parameter_settings_group_check",
+  "states": [
+   "DEADLINES",
+   "REFUNDS",
+   "STAY"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_parameter",
+  "column": "value_type",
+  "constraint": "cfg_parameter_value_type_check",
+  "states": [
+   "INT",
+   "DECIMAL",
+   "BOOL",
+   "TEXT",
+   "CHOICE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_refund_rule",
+  "column": "approver_role",
+  "constraint": "cfg_refund_rule_approver_role_check",
+  "states": [
+   "SYSTEM",
+   "STAFF",
+   "MANAGER",
+   "ADMIN"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_room_class",
+  "column": "status",
+  "constraint": "cfg_room_class_status_check",
+  "states": [
+   "ACTIVE",
+   "INACTIVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_room_type",
+  "column": "roommate_selection",
+  "constraint": "cfg_room_type_roommate_selection_check",
+  "states": [
+   "AUTO",
+   "MUTUAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_room_type",
+  "column": "status",
+  "constraint": "cfg_room_type_status_check",
+  "states": [
+   "ACTIVE",
+   "INACTIVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "cfg_term",
+  "column": "status",
+  "constraint": "cfg_term_status_check",
+  "states": [
+   "DRAFT",
+   "PUBLISHED",
+   "CLOSED"
+  ],
+  "transitions": [
+   {
+    "table": "cfg_term",
+    "from": [],
+    "to": "DRAFT",
+    "by": "TermDrafts.writeTimeline"
+   },
+   {
+    "table": "cfg_term",
+    "from": [],
+    "to": "PUBLISHED",
+    "by": "TermWizardService.if"
+   }
+  ]
+ },
+ {
+  "table": "cfg_term_request",
+  "column": "status",
+  "constraint": "cfg_term_request_status_check",
+  "states": [
+   "SUBMITTED",
+   "IN_PROGRESS",
+   "NEEDS_CHANGES",
+   "DONE",
+   "REJECTED"
+  ],
+  "transitions": [
+   {
+    "table": "cfg_term_request",
+    "from": [],
+    "to": "SUBMITTED",
+    "by": "TermRequestService.update"
+   },
+   {
+    "table": "cfg_term_request",
+    "from": [],
+    "to": "IN_PROGRESS",
+    "by": "TermRequestService.comment"
+   },
+   {
+    "table": "cfg_term_request",
+    "from": [],
+    "to": "DONE",
+    "by": "TermRequestService.done"
+   }
+  ]
+ },
+ {
+  "table": "cfg_term_request_event",
+  "column": "kind",
+  "constraint": "cfg_term_request_event_kind_check",
+  "states": [
+   "SUBMITTED",
+   "UPDATED",
+   "COMMENT",
+   "IN_PROGRESS",
+   "NEEDS_CHANGES",
+   "REJECTED",
+   "BUILT",
+   "DONE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_bed",
+  "column": "status",
+  "constraint": "inv_bed_status_check",
+  "states": [
+   "IN_SERVICE",
+   "OUT_OF_SERVICE",
+   "RETIRED"
+  ],
+  "transitions": [
+   {
+    "table": "inv_bed",
+    "from": [],
+    "to": "RETIRED",
+    "by": "RoomTypeBedsListener.on"
+   }
+  ]
+ },
+ {
+  "table": "inv_building",
+  "column": "gender",
+  "constraint": "inv_building_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_building",
+  "column": "status",
+  "constraint": "inv_building_status_check",
+  "states": [
+   "ACTIVE",
+   "INACTIVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_door_code",
+  "column": "status",
+  "constraint": "inv_door_code_status_check",
+  "states": [
+   "PROPOSED",
+   "ACTIVE",
+   "RETIRED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "inv_door_code",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "RETIRED",
+    "by": "DoorCodeService.confirm"
+   },
+   {
+    "table": "inv_door_code",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "DoorCodeService.confirm"
+   },
+   {
+    "table": "inv_door_code",
+    "from": [
+     "PROPOSED"
+    ],
+    "to": "CANCELLED",
+    "by": "DoorCodeService.insertProposal"
+   },
+   {
+    "table": "inv_door_code",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "InventoryDemoData.rotateForCheckIn"
+   }
+  ]
+ },
+ {
+  "table": "inv_door_code",
+  "column": "source",
+  "constraint": "inv_door_code_source_check",
+  "states": [
+   "MANUAL",
+   "RANDOM",
+   "IMPORT"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_door_code_task",
+  "column": "reason",
+  "constraint": "ck_door_task_reason",
+  "states": [
+   "CHECK_OUT",
+   "MOVE_OUT",
+   "TERMINATION"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_furniture_event",
+  "column": "kind",
+  "constraint": "inv_furniture_event_kind_check",
+  "states": [
+   "REGISTERED",
+   "STATUS",
+   "MOVED",
+   "REPAIR"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_furniture_item",
+  "column": "condition",
+  "constraint": "inv_furniture_item_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_furniture_item",
+  "column": "status",
+  "constraint": "inv_furniture_item_status_check",
+  "states": [
+   "IN_USE",
+   "BROKEN",
+   "IN_REPAIR",
+   "IN_STORE",
+   "DISPOSED"
+  ],
+  "transitions": [
+   {
+    "table": "inv_furniture_item",
+    "from": [],
+    "to": "DISPOSED",
+    "by": "FurnitureBeds.relink"
+   },
+   {
+    "table": "inv_furniture_item",
+    "from": [
+     "PLANNED"
+    ],
+    "to": "CANCELLED",
+    "by": "FurnitureService.if"
+   },
+   {
+    "table": "inv_furniture_item",
+    "from": [],
+    "to": "IN_SERVICE",
+    "by": "InventoryDemoData.clear"
+   }
+  ]
+ },
+ {
+  "table": "inv_furniture_move",
+  "column": "status",
+  "constraint": "inv_furniture_move_status_check",
+  "states": [
+   "PLANNED",
+   "DONE",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "inv_furniture_move",
+    "from": [],
+    "to": "BROKEN",
+    "by": "FurnitureService.Move"
+   },
+   {
+    "table": "inv_furniture_move",
+    "from": [
+     "PLANNED"
+    ],
+    "to": "CANCELLED",
+    "by": "JdbcRoomClassChanges.setBack"
+   }
+  ]
+ },
+ {
+  "table": "inv_furniture_type",
+  "column": "category",
+  "constraint": "inv_furniture_type_category_check",
+  "states": [
+   "APPLIANCE",
+   "FURNITURE",
+   "FIXTURE",
+   "OTHER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_furniture_type",
+  "column": "status",
+  "constraint": "inv_furniture_type_status_check",
+  "states": [
+   "ACTIVE",
+   "INACTIVE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_furniture_type",
+  "column": "use_scope",
+  "constraint": "inv_furniture_type_use_scope_check",
+  "states": [
+   "PERSONAL",
+   "SHARED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "inv_room",
+  "column": "status",
+  "constraint": "inv_room_status_check",
+  "states": [
+   "IN_SERVICE",
+   "OUT_OF_SERVICE",
+   "RETIRED"
+  ],
+  "transitions": [
+   {
+    "table": "inv_room",
+    "from": [],
+    "to": "OUT_OF_SERVICE",
+    "by": "InventoryService.if"
+   },
+   {
+    "table": "inv_room",
+    "from": [],
+    "to": "IN_SERVICE",
+    "by": "InventoryService.backInService"
+   }
+  ]
+ },
+ {
+  "table": "mnt_checklist",
+  "column": "status",
+  "constraint": "mnt_checklist_status_check",
+  "states": [
+   "DRAFT",
+   "PUBLISHED",
+   "REPLACED",
+   "ARCHIVED"
+  ],
+  "transitions": [
+   {
+    "table": "mnt_checklist",
+    "from": [],
+    "to": "PUBLISHED",
+    "by": "ChecklistService.publish"
+   },
+   {
+    "table": "mnt_checklist",
+    "from": [],
+    "to": "REPLACED",
+    "by": "ChecklistService.publish"
+   },
+   {
+    "table": "mnt_checklist",
+    "from": [],
+    "to": "ARCHIVED",
+    "by": "ChecklistService.archive"
+   },
+   {
+    "table": "mnt_checklist",
+    "from": [],
+    "to": "PUBLISHED",
+    "by": "ChecklistService.if"
+   }
+  ]
+ },
+ {
+  "table": "mnt_checklist_item",
+  "column": "severity",
+  "constraint": "mnt_checklist_item_severity_check",
+  "states": [
+   "CRITICAL",
+   "MAJOR",
+   "MINOR",
+   "TRIVIAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_result",
+  "column": "result",
+  "constraint": "mnt_inspection_result_result_check",
+  "states": [
+   "PASS",
+   "FAIL",
+   "NOT_CHECKED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_room",
+  "column": "status",
+  "constraint": "mnt_inspection_room_status_check",
+  "states": [
+   "PENDING",
+   "INSPECTED",
+   "UNREACHABLE"
+  ],
+  "transitions": [
+   {
+    "table": "mnt_inspection_room",
+    "from": [],
+    "to": "INSPECTED",
+    "by": "InspectionRunService.if"
+   },
+   {
+    "table": "mnt_inspection_room",
+    "from": [],
+    "to": "UNREACHABLE",
+    "by": "InspectionRunService.unreachable"
+   }
+  ]
+ },
+ {
+  "table": "mnt_inspection_room_check",
+  "column": "condition",
+  "constraint": "mnt_inspection_room_check_condition_check",
+  "states": [
+   "GOOD",
+   "WORN",
+   "DAMAGED",
+   "MISSING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_room_check",
+  "column": "result",
+  "constraint": "mnt_inspection_room_check_result_check",
+  "states": [
+   "PASS",
+   "FAIL",
+   "NOT_CHECKED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_run",
+  "column": "status",
+  "constraint": "mnt_inspection_run_status_check",
+  "states": [
+   "SCHEDULED",
+   "IN_PROGRESS",
+   "SUBMITTED"
+  ],
+  "transitions": [
+   {
+    "table": "mnt_inspection_run",
+    "from": [],
+    "to": "SUBMITTED",
+    "by": "InspectionRunService.submit"
+   },
+   {
+    "table": "mnt_inspection_run",
+    "from": [],
+    "to": "IN_PROGRESS",
+    "by": "InspectionRunService.started"
+   },
+   {
+    "table": "mnt_inspection_run",
+    "from": [],
+    "to": "ACTIVE",
+    "by": "InspectionScheduleService.if"
+   }
+  ]
+ },
+ {
+  "table": "mnt_inspection_schedule",
+  "column": "scope",
+  "constraint": "ck_inspection_schedule_scope",
+  "states": [
+   "ALL_ROOMS",
+   "OCCUPIED",
+   "EMPTY",
+   "FLOORS",
+   "INCOMING"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_schedule",
+  "column": "kind",
+  "constraint": "mnt_inspection_schedule_kind_check",
+  "states": [
+   "PERIODIC",
+   "PRE_ARRIVAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_schedule",
+  "column": "repeat",
+  "constraint": "mnt_inspection_schedule_repeat_check",
+  "states": [
+   "ONCE",
+   "WEEKLY",
+   "MONTHLY",
+   "TERMLY"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_inspection_schedule",
+  "column": "status",
+  "constraint": "mnt_inspection_schedule_status_check",
+  "states": [
+   "ACTIVE",
+   "PAUSED",
+   "COMPLETED"
+  ],
+  "transitions": [
+   {
+    "table": "mnt_inspection_schedule",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "PAUSED",
+    "by": "ChecklistService.archive"
+   },
+   {
+    "table": "mnt_inspection_schedule",
+    "from": [],
+    "to": "COMPLETED",
+    "by": "InspectionScheduleService.update"
+   }
+  ]
+ },
+ {
+  "table": "mnt_request",
+  "column": "status",
+  "constraint": "mnt_request_status_check",
+  "states": [
+   "SUBMITTED",
+   "ASSIGNED",
+   "IN_PROGRESS",
+   "RESOLVED",
+   "CLOSED"
+  ],
+  "transitions": [
+   {
+    "table": "mnt_request",
+    "from": [],
+    "to": "SUBMITTED",
+    "by": "JdbcMaintenanceRequests.setSlaDue"
+   },
+   {
+    "table": "mnt_request",
+    "from": [],
+    "to": "RESOLVED",
+    "by": "MaintenanceDeskService.update"
+   },
+   {
+    "table": "mnt_request",
+    "from": [],
+    "to": "CLOSED",
+    "by": "MaintenanceDeskService.if"
+   },
+   {
+    "table": "mnt_request",
+    "from": [],
+    "to": "CLOSED",
+    "by": "MaintenanceService.if"
+   }
+  ]
+ },
+ {
+  "table": "mnt_request",
+  "column": "priority",
+  "constraint": "mnt_request_priority_check",
+  "states": [
+   "HIGH",
+   "MEDIUM",
+   "LOW"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_request",
+  "column": "source",
+  "constraint": "mnt_request_source_check",
+  "states": [
+   "STUDENT",
+   "STAFF",
+   "INSPECTION"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "mnt_request",
+  "column": "urgency",
+  "constraint": "mnt_request_urgency_check",
+  "states": [
+   "NORMAL",
+   "URGENT"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_announcement",
+  "column": "audience",
+  "constraint": "ntf_announcement_audience_check",
+  "states": [
+   "ALL_STUDENTS",
+   "RESIDENTS",
+   "BLOCK_RESIDENTS",
+   "TERM_APPLICANTS"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_announcement",
+  "column": "category",
+  "constraint": "ntf_announcement_category_check",
+  "states": [
+   "REGISTRATION",
+   "FINANCE",
+   "RULES",
+   "OPERATIONS"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_announcement",
+  "column": "source",
+  "constraint": "ntf_announcement_source_check",
+  "states": [
+   "TERM_PUBLISHED",
+   "TERM_CHANGED",
+   "POLICY_CHANGED",
+   "BLOCK_SETTINGS",
+   "MANUAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_device",
+  "column": "platform",
+  "constraint": "ntf_device_platform_check",
+  "states": [
+   "ANDROID",
+   "WEB"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_email_campaign",
+  "column": "channel",
+  "constraint": "ntf_email_campaign_channel_check",
+  "states": [
+   "EMAIL",
+   "EMAIL_PUSH"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_email_campaign",
+  "column": "gender",
+  "constraint": "ntf_email_campaign_gender_check",
+  "states": [
+   "M",
+   "F"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_email_campaign",
+  "column": "mode",
+  "constraint": "ntf_email_campaign_mode_check",
+  "states": [
+   "ONE",
+   "GROUP"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_email_campaign",
+  "column": "status",
+  "constraint": "ntf_email_campaign_status_check",
+  "states": [
+   "QUEUED",
+   "SENDING",
+   "SENT",
+   "FAILED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "ntf_email_outbox",
+  "column": "status",
+  "constraint": "ntf_email_outbox_status_check",
+  "states": [
+   "PENDING",
+   "SENT",
+   "FAILED"
+  ],
+  "transitions": [
+   {
+    "table": "ntf_email_outbox",
+    "from": [],
+    "to": "SENT",
+    "by": "EmailOutboxDispatcher.claim"
+   }
+  ]
+ },
+ {
+  "table": "req_escalation",
+  "column": "handled_action",
+  "constraint": "req_escalation_handled_action_check",
+  "states": [
+   "REASSIGN",
+   "TEMPORARY_BED",
+   "CLOSED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_escalation",
+  "column": "kind",
+  "constraint": "req_escalation_kind_check",
+  "states": [
+   "SLA_BREACH",
+   "NO_ASSIGNEE",
+   "REOPENED",
+   "NO_BED",
+   "MANUAL"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_escalation",
+  "column": "source_type",
+  "constraint": "req_escalation_source_type_check",
+  "states": [
+   "MAINTENANCE",
+   "ROOM_CHANGE",
+   "SWAP",
+   "APPLICATION"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_escalation",
+  "column": "status",
+  "constraint": "req_escalation_status_check",
+  "states": [
+   "OPEN",
+   "HANDLED"
+  ],
+  "transitions": [
+   {
+    "table": "req_escalation",
+    "from": [],
+    "to": "OPEN",
+    "by": "EscalationService.if"
+   },
+   {
+    "table": "req_escalation",
+    "from": [
+     "OPEN"
+    ],
+    "to": "HANDLED",
+    "by": "EscalationService.close"
+   },
+   {
+    "table": "req_escalation",
+    "from": [],
+    "to": "HANDLED",
+    "by": "EscalationService.handle"
+   }
+  ]
+ },
+ {
+  "table": "req_escalation",
+  "column": "tone",
+  "constraint": "req_escalation_tone_check",
+  "states": [
+   "INFO",
+   "WARNING",
+   "DANGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_room_change",
+  "column": "kind",
+  "constraint": "req_room_change_kind_check",
+  "states": [
+   "SAME",
+   "CLASS",
+   "TYPE"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_room_change",
+  "column": "status",
+  "constraint": "req_room_change_status_check",
+  "states": [
+   "SUBMITTED",
+   "PENDING",
+   "APPROVED",
+   "REJECTED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "req_room_change",
+    "from": [],
+    "to": "REJECTED",
+    "by": "RoomChangeService.decide"
+   },
+   {
+    "table": "req_room_change",
+    "from": [],
+    "to": "APPROVED",
+    "by": "RoomChangeService.decide"
+   },
+   {
+    "table": "req_room_change",
+    "from": [
+     "SUBMITTED",
+     "PENDING"
+    ],
+    "to": "CANCELLED",
+    "by": "RoomChangeService.allocationCancelled"
+   },
+   {
+    "table": "req_room_change",
+    "from": [
+     "SUBMITTED",
+     "PENDING"
+    ],
+    "to": "CANCELLED",
+    "by": "RoomChangeService.allocationMoved"
+   },
+   {
+    "table": "req_room_change",
+    "from": [
+     "SUBMITTED",
+     "PENDING"
+    ],
+    "to": "CANCELLED",
+    "by": "SwapService.closeOthers"
+   }
+  ]
+ },
+ {
+  "table": "req_room_class_change",
+  "column": "requester_role",
+  "constraint": "req_room_class_change_requester_role_check",
+  "states": [
+   "STUDENT",
+   "MANAGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_room_class_change",
+  "column": "status",
+  "constraint": "req_room_class_change_status_check",
+  "states": [
+   "AWAITING_CONSENT",
+   "SUBMITTED",
+   "APPROVED",
+   "REJECTED",
+   "CANCELLED",
+   "SET_BACK"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_room_class_consent",
+  "column": "status",
+  "constraint": "req_room_class_consent_status_check",
+  "states": [
+   "PENDING",
+   "AGREED",
+   "DECLINED"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_routing_rule",
+  "column": "request_type",
+  "constraint": "req_routing_rule_request_type_check",
+  "states": [
+   "MAINTENANCE",
+   "ROOM_CHANGE",
+   "SWAP",
+   "PAYMENT",
+   "LATE_CHECK_IN"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_stay_request",
+  "column": "kind",
+  "constraint": "req_stay_request_kind_check",
+  "states": [
+   "EXTENSION",
+   "END_OF_STAY"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_stay_request",
+  "column": "status",
+  "constraint": "req_stay_request_status_check",
+  "states": [
+   "SUBMITTED",
+   "APPROVED",
+   "REJECTED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "req_stay_request",
+    "from": [],
+    "to": "REJECTED",
+    "by": "StayRequestService.if"
+   },
+   {
+    "table": "req_stay_request",
+    "from": [
+     "SUBMITTED"
+    ],
+    "to": "CANCELLED",
+    "by": "StayRequestService.allocationCancelled"
+   },
+   {
+    "table": "req_stay_request",
+    "from": [],
+    "to": "SUBMITTED",
+    "by": "StayRequestService.allocationMoved"
+   },
+   {
+    "table": "req_stay_request",
+    "from": [],
+    "to": "APPROVED",
+    "by": "StayRequestService.decided"
+   }
+  ]
+ },
+ {
+  "table": "req_swap",
+  "column": "status",
+  "constraint": "ck_swap_status",
+  "states": [
+   "INVITED",
+   "DECLINED",
+   "EXPIRED",
+   "PENDING",
+   "TO_MANAGER",
+   "APPROVED",
+   "REJECTED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "req_swap",
+    "from": [],
+    "to": "REJECTED",
+    "by": "SwapService.if"
+   },
+   {
+    "table": "req_swap",
+    "from": [],
+    "to": "TO_MANAGER",
+    "by": "SwapService.decide"
+   },
+   {
+    "table": "req_swap",
+    "from": [],
+    "to": "APPROVED",
+    "by": "SwapService.decide"
+   },
+   {
+    "table": "req_swap",
+    "from": [
+     "INVITED",
+     "PENDING",
+     "TO_MANAGER"
+    ],
+    "to": "CANCELLED",
+    "by": "SwapService.closeOthers"
+   },
+   {
+    "table": "req_swap",
+    "from": [
+     "INVITED"
+    ],
+    "to": "EXPIRED",
+    "by": "SwapService.expire"
+   },
+   {
+    "table": "req_swap",
+    "from": [
+     "INVITED",
+     "PENDING",
+     "TO_MANAGER"
+    ],
+    "to": "CANCELLED",
+    "by": "SwapService.allocationCancelled"
+   },
+   {
+    "table": "req_swap",
+    "from": [
+     "INVITED",
+     "PENDING",
+     "TO_MANAGER"
+    ],
+    "to": "CANCELLED",
+    "by": "SwapService.allocationMoved"
+   }
+  ]
+ },
+ {
+  "table": "req_swap",
+  "column": "kind",
+  "constraint": "req_swap_kind_check",
+  "states": [
+   "DIRECT",
+   "BOARD"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "req_swap_post",
+  "column": "status",
+  "constraint": "req_swap_post_status_check",
+  "states": [
+   "ACTIVE",
+   "CLOSED"
+  ],
+  "transitions": [
+   {
+    "table": "req_swap_post",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CLOSED",
+    "by": "SwapService.putMyPost"
+   },
+   {
+    "table": "req_swap_post",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CLOSED",
+    "by": "SwapService.closeOthers"
+   },
+   {
+    "table": "req_swap_post",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CLOSED",
+    "by": "SwapService.expire"
+   },
+   {
+    "table": "req_swap_post",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CLOSED",
+    "by": "SwapService.allocationCancelled"
+   },
+   {
+    "table": "req_swap_post",
+    "from": [
+     "ACTIVE"
+    ],
+    "to": "CLOSED",
+    "by": "SwapService.allocationMoved"
+   }
+  ]
+ },
+ {
+  "table": "shared_audit_log",
+  "column": "tone",
+  "constraint": "shared_audit_log_tone_check",
+  "states": [
+   "INFO",
+   "SUCCESS",
+   "WARNING",
+   "DANGER"
+  ],
+  "transitions": []
+ },
+ {
+  "table": "vis_family_day",
+  "column": "status",
+  "constraint": "vis_family_day_status_check",
+  "states": [
+   "DRAFT",
+   "PUBLISHED",
+   "CANCELLED",
+   "COMPLETED"
+  ],
+  "transitions": [
+   {
+    "table": "vis_family_day",
+    "from": [],
+    "to": "PUBLISHED",
+    "by": "FamilyDayService.update"
+   },
+   {
+    "table": "vis_family_day",
+    "from": [],
+    "to": "COMPLETED",
+    "by": "FamilyDayService.if"
+   }
+  ]
+ },
+ {
+  "table": "vis_registration",
+  "column": "status",
+  "constraint": "vis_registration_status_check",
+  "states": [
+   "APPROVED",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "vis_registration",
+    "from": [
+     "APPROVED"
+    ],
+    "to": "CANCELLED",
+    "by": "FamilyDayService.if"
+   },
+   {
+    "table": "vis_registration",
+    "from": [],
+    "to": "CANCELLED",
+    "by": "Registrations.if"
+   }
+  ]
+ },
+ {
+  "table": "vis_visitor",
+  "column": "status",
+  "constraint": "vis_visitor_status_check",
+  "states": [
+   "NOT_ARRIVED",
+   "CHECKED_IN",
+   "CHECKED_OUT",
+   "NO_SHOW",
+   "CANCELLED"
+  ],
+  "transitions": [
+   {
+    "table": "vis_visitor",
+    "from": [
+     "NOT_ARRIVED"
+    ],
+    "to": "CANCELLED",
+    "by": "FamilyDayService.if"
+   },
+   {
+    "table": "vis_visitor",
+    "from": [
+     "NOT_ARRIVED",
+     "APPROVED"
+    ],
+    "to": "NO_SHOW",
+    "by": "FamilyDayService.if"
+   },
+   {
+    "table": "vis_visitor",
+    "from": [
+     "NOT_ARRIVED"
+    ],
+    "to": "CANCELLED",
+    "by": "Registrations.if"
+   },
+   {
+    "table": "vis_visitor",
+    "from": [
+     "NOT_ARRIVED"
+    ],
+    "to": "CHECKED_IN",
+    "by": "VisitorDeskService.if"
+   },
+   {
+    "table": "vis_visitor",
+    "from": [
+     "CHECKED_IN"
+    ],
+    "to": "CHECKED_OUT",
+    "by": "VisitorDeskService.if"
+   }
+  ]
+ }
+]

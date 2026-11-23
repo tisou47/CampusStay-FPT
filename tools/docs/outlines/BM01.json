@@ -1,0 +1,82 @@
+[
+    {
+        "level":  1,
+        "text":  "Design Brief – Review 2",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "0. Header",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Scope",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 Registration Changes",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Out of Scope",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. System at a Glance",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Key Design Decisions",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Top Risks",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Known Gaps",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "6. Proposed Mandatory Features",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "7. Non-Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "8. Ownership Map",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "Appendix A – Defense 1.1 Targets",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "A1. Main Workflows",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "A2. Demo Scenarios",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "A3. Functional Test Case Target",
+        "placeholder":  false
+    }
+]

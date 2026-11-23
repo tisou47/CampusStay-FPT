@@ -1,0 +1,32 @@
+[
+    {
+        "level":  1,
+        "text":  "SRS/SDD Self-Review Report – Review 2",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Run Information",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Standard Prompt",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Findings and Team Response",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Top 5 Findings (as reported by the AI)",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Summary",
+        "placeholder":  false
+    }
+]

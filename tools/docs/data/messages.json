@@ -1,0 +1,2263 @@
+[
+ {
+  "code": "ACCOUNT_DISABLED",
+  "kind": "forbidden",
+  "message": "This account is disabled. Contact the dormitory office.",
+  "vi": "Tài khoản này đã bị khóa. Hãy liên hệ văn phòng ký túc xá.",
+  "source": "PasswordService"
+ },
+ {
+  "code": "ACCOUNT_ENTERED",
+  "kind": "conflict",
+  "message": "The student already entered their bank account.",
+  "vi": "Sinh viên đã nhập tài khoản ngân hàng.",
+  "source": "FinanceService"
+ },
+ {
+  "code": "ACCOUNT_LOCKED",
+  "kind": "unauthorized",
+  "message": "Too many failed attempts. Try again after ",
+  "vi": null,
+  "source": "SignInService"
+ },
+ {
+  "code": "ACCOUNT_REJECTED",
+  "kind": "forbidden",
+  "message": "Your student account was not verified: ",
+  "vi": null,
+  "source": "SignInService"
+ },
+ {
+  "code": "ALLOCATION_ENDED",
+  "kind": "conflict",
+  "message": "This student no longer holds the Bed.",
+  "vi": "Sinh viên này không còn giữ giường.",
+  "source": "JdbcMoves"
+ },
+ {
+  "code": "ALLOCATION_ENDED",
+  "kind": "conflict",
+  "message": "One of you no longer holds the Bed.",
+  "vi": "Một trong hai bạn không còn giữ giường.",
+  "source": "SwapService"
+ },
+ {
+  "code": "ALREADY_ACTIVE",
+  "kind": "badRequest",
+  "message": "An active account cannot go back to Invited.",
+  "vi": "Tài khoản đang hoạt động không thể quay lại trạng thái Đã mời.",
+  "source": "AdminUserService"
+ },
+ {
+  "code": "ALREADY_CHECKED_IN",
+  "kind": "conflict",
+  "message": "You have already checked in.",
+  "vi": "Bạn đã nhận phòng rồi.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "ALREADY_CHECKED_OUT",
+  "kind": "conflict",
+  "message": "This student has already checked out.",
+  "vi": "Sinh viên này đã trả phòng.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": "ALREADY_DECIDED",
+  "kind": "conflict",
+  "message": "Application ",
+  "vi": null,
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": "ALREADY_DECIDED",
+  "kind": "conflict",
+  "message": "This late check-in was already decided.",
+  "vi": "Yêu cầu nhận phòng muộn này đã được quyết định.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "ALREADY_DECIDED",
+  "kind": "conflict",
+  "message": "This refund was already decided.",
+  "vi": "Khoản hoàn tiền này đã được quyết định.",
+  "source": "FinanceService"
+ },
+ {
+  "code": "ALREADY_DECIDED",
+  "kind": "conflict",
+  "message": "This request was already decided.",
+  "vi": "Yêu cầu này đã được quyết định.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "ALREADY_DECIDED",
+  "kind": "conflict",
+  "message": "This swap is not waiting for a decision.",
+  "vi": "Yêu cầu hoán đổi này không chờ quyết định.",
+  "source": "SwapService"
+ },
+ {
+  "code": "ALREADY_LOCKED",
+  "kind": "conflict",
+  "message": "This account is already locked.",
+  "vi": "Tài khoản này đã bị khóa.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "ALREADY_PAID",
+  "kind": "conflict",
+  "message": "This Invoice is already paid.",
+  "vi": "Hóa đơn này đã được thanh toán.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "ALREADY_REMINDED",
+  "kind": "conflict",
+  "message": "The student was reminded less than a day ago.",
+  "vi": "Sinh viên vừa được nhắc chưa đến một ngày trước.",
+  "source": "FinanceService"
+ },
+ {
+  "code": "ALREADY_RESOLVED",
+  "kind": "conflict",
+  "message": "This item is already resolved.",
+  "vi": "Mục này đã được xử lý.",
+  "source": "ReconciliationService"
+ },
+ {
+  "code": "ALREADY_TERMINATED",
+  "kind": "conflict",
+  "message": "This stay is already terminated.",
+  "vi": "Hợp đồng ở này đã bị chấm dứt.",
+  "source": "TerminationService"
+ },
+ {
+  "code": "ALREADY_VERIFIED",
+  "kind": "conflict",
+  "message": "Your account is already verified. Ask a Manager to correct your details.",
+  "vi": "Tài khoản của bạn đã được xác minh. Hãy nhờ Quản lý sửa thông tin của bạn.",
+  "source": "StudentVerificationService"
+ },
+ {
+  "code": "ASSIGNED_TO_SOMEONE_ELSE",
+  "kind": "conflict",
+  "message": "This request is assigned to ",
+  "vi": null,
+  "source": "MaintenanceDeskService"
+ },
+ {
+  "code": "ASSIGNMENT_IN_REVIEW",
+  "kind": "conflict",
+  "message": "A Round-1 proposal of this Term is still in review. Commit or discard it before Round 2.",
+  "vi": "Đề xuất vòng 1 của học kỳ này vẫn đang được xem xét. Hãy chốt hoặc hủy trước khi chạy vòng 2.",
+  "source": "AssignmentService"
+ },
+ {
+  "code": "ASSISTANT_LIMIT",
+  "kind": "tooManyRequests",
+  "message": "You have asked many questions in the last hour. Try again later.",
+  "vi": "Bạn đã hỏi nhiều câu trong một giờ qua. Hãy thử lại sau.",
+  "source": "AssistantService"
+ },
+ {
+  "code": "ASSISTANT_NO_ANSWER",
+  "kind": "unavailable",
+  "message": "The assistant could not answer. Ask in other words.",
+  "vi": "Trợ lý chưa trả lời được. Hãy hỏi bằng cách khác.",
+  "source": "AssistantService"
+ },
+ {
+  "code": "ASSISTANT_NO_QUESTION",
+  "kind": "badRequest",
+  "message": "End the conversation with your question.",
+  "vi": "Hãy kết thúc cuộc trò chuyện bằng câu hỏi của bạn.",
+  "source": "AssistantService"
+ },
+ {
+  "code": "ASSISTANT_OFFLINE",
+  "kind": "unavailable",
+  "message": "The assistant is offline right now. Try again later.",
+  "vi": "Trợ lý đang offline. Hãy thử lại sau.",
+  "source": "OllamaAssistantModel"
+ },
+ {
+  "code": "BAD_PAGE",
+  "kind": "badRequest",
+  "message": "Page must be 1 or more and page size between 1 and ",
+  "vi": null,
+  "source": "PageQuery"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose 24h or 7d.",
+  "vi": "Hãy chọn 24 giờ hoặc 7 ngày.",
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Unknown status ",
+  "vi": null,
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a date range: 7d, 30d, 90d or all.",
+  "vi": "Hãy chọn khoảng thời gian: 7 ngày, 30 ngày, 90 ngày hoặc tất cả.",
+  "source": "AuditTrailService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a role: Student, Staff, Manager, Admin or System.",
+  "vi": null,
+  "source": "AuditTrailService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Block ",
+  "vi": null,
+  "source": "StaffAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a status from the list.",
+  "vi": "Hãy chọn trạng thái trong danh sách.",
+  "source": "StaffAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose yes or no.",
+  "vi": "Hãy chọn có hoặc không.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a verification status from the list.",
+  "vi": "Hãy chọn trạng thái xác minh trong danh sách.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose an enrollment status from the list.",
+  "vi": "Hãy chọn tình trạng học tập trong danh sách.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose Male or Female.",
+  "vi": "Hãy chọn Nam hoặc Nữ.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a cohort from the list.",
+  "vi": "Hãy chọn khóa trong danh sách.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose New, Update, Unchanged or Error.",
+  "vi": "Hãy chọn Mới, Cập nhật, Không đổi hoặc Lỗi.",
+  "source": "StudentImportService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Choose a Block.",
+  "vi": "Hãy chọn tòa.",
+  "source": "InventoryService"
+ },
+ {
+  "code": "BAD_PARAMETER",
+  "kind": "badRequest",
+  "message": "Limit must be between 1 and ",
+  "vi": null,
+  "source": "NotificationService"
+ },
+ {
+  "code": "BED_NOT_AVAILABLE",
+  "kind": "conflict",
+  "message": "This Bed is not free any more. Choose another one.",
+  "vi": "Giường này không còn trống. Hãy chọn giường khác.",
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "BED_NOT_AVAILABLE",
+  "kind": "conflict",
+  "message": "No matching Bed is free for this request.",
+  "vi": "Không còn giường phù hợp còn trống cho yêu cầu này.",
+  "source": "NextTermRequestsService"
+ },
+ {
+  "code": "BED_NOT_AVAILABLE",
+  "kind": "conflict",
+  "message": "This Bed is not free for this request any more. Choose another one.",
+  "vi": "Giường này không còn trống cho yêu cầu này. Hãy chọn giường khác.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "BED_TAKEN",
+  "kind": "conflict",
+  "message": "This Bed was just taken. Choose another one.",
+  "vi": "Giường này vừa có người nhận. Hãy chọn giường khác.",
+  "source": "JdbcMoves"
+ },
+ {
+  "code": "BED_TAKEN",
+  "kind": "conflict",
+  "message": "This Bed is no longer free. Ask Staff for another option.",
+  "vi": "Giường này không còn trống. Hãy nhờ nhân viên chọn phương án khác.",
+  "source": "JdbcRound2Placements"
+ },
+ {
+  "code": "BED_UNAVAILABLE",
+  "kind": "conflict",
+  "message": "This Bed is no longer available. Ask Staff for another option.",
+  "vi": "Giường này không còn trống. Hãy hỏi nhân viên để chọn phương án khác.",
+  "source": "JdbcRound2Placements"
+ },
+ {
+  "code": "BLOCK_IN_USE",
+  "kind": "conflict",
+  "message": "Students live in or are placed in Block ",
+  "vi": null,
+  "source": "AdminBuildingService"
+ },
+ {
+  "code": "BLOCK_OUT_OF_SCOPE",
+  "kind": "forbidden",
+  "message": "You do not have access to Block ",
+  "vi": null,
+  "source": "BlockScope"
+ },
+ {
+  "code": "BLOCK_OUT_OF_SCOPE",
+  "kind": "forbidden",
+  "message": "You do not have access to this Block.",
+  "vi": "Bạn không có quyền truy cập tòa này.",
+  "source": "BlockScope"
+ },
+ {
+  "code": "BLOCK_OUT_OF_SCOPE",
+  "kind": "forbidden",
+  "message": "This Application belongs to a Block you do not manage.",
+  "vi": "Đơn này thuộc tòa bạn không phụ trách.",
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": "BLOCK_SUBMITTED",
+  "kind": "conflict",
+  "message": "This Block is with the Manager; it cannot change now.",
+  "vi": "Tòa này đang chờ Quản lý duyệt nên chưa thể thay đổi.",
+  "source": "AssignmentService"
+ },
+ {
+  "code": "BLOCK_SUBMITTED",
+  "kind": "conflict",
+  "message": "The only free Bed of that kind is in a Block ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "BLOCK_SUBMITTED",
+  "kind": "conflict",
+  "message": "Block ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "CANNOT_CANCEL",
+  "kind": "conflict",
+  "message": "This Application can no longer be cancelled here. ",
+  "vi": null,
+  "source": "ApplicationService"
+ },
+ {
+  "code": "CHECK_IN_BLOCKED",
+  "kind": "conflict",
+  "message": "Check-in is blocked: ",
+  "vi": null,
+  "source": "DeskService"
+ },
+ {
+  "code": "CHECK_IN_NOT_READY",
+  "kind": "conflict",
+  "message": "You cannot receive the Room yet: ",
+  "vi": null,
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "CHECK_IN_NOT_READY",
+  "kind": "conflict",
+  "message": "The door code cannot be released yet. Try again later.",
+  "vi": "Chưa thể cấp mã cửa. Hãy thử lại sau.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "CHECKLIST_ARCHIVED",
+  "kind": "conflict",
+  "message": "This checklist is archived.",
+  "vi": "Danh mục kiểm tra này đã lưu trữ.",
+  "source": "ChecklistService"
+ },
+ {
+  "code": "CHECKLIST_ARCHIVED",
+  "kind": "conflict",
+  "message": "This checklist is already archived.",
+  "vi": "Danh mục kiểm tra này đã được lưu trữ.",
+  "source": "ChecklistService"
+ },
+ {
+  "code": "CHECKLIST_IN_USE",
+  "kind": "conflict",
+  "message": "This checklist has already been used in inspection schedules or runs and cannot be deleted. Archive it instead to preserve history.",
+  "vi": null,
+  "source": "ChecklistService"
+ },
+ {
+  "code": "CHECKLIST_NOT_PUBLISHED",
+  "kind": "conflict",
+  "message": "The checklist of this schedule is not published.",
+  "vi": "Danh mục kiểm tra của lịch này chưa được công bố.",
+  "source": "InspectionScheduleService"
+ },
+ {
+  "code": "CLAIM_WAITING",
+  "kind": "conflict",
+  "message": "A Manager is checking your transfer. Cancel once it is confirmed or rejected.",
+  "vi": "Quản lý đang kiểm tra khoản chuyển của bạn. Hãy hủy sau khi khoản chuyển được xác nhận hoặc từ chối.",
+  "source": "ApplicationService"
+ },
+ {
+  "code": "CLAIM_WAITING",
+  "kind": "conflict",
+  "message": "The student said they paid the next-Term fee. Confirm or",
+  "vi": null,
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "CLAIM_WAITING",
+  "kind": "conflict",
+  "message": "You already said you transferred this Invoice. A Manager is checking it.",
+  "vi": "Bạn đã báo chuyển khoản cho hóa đơn này. Quản lý đang kiểm tra.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "CONFLICTS_LEFT",
+  "kind": "conflict",
+  "message": "Resolve the ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "CROSS_BLOCK",
+  "kind": "forbidden",
+  "message": "A move to another Block is decided by a Manager.",
+  "vi": "Việc chuyển sang tòa khác do Quản lý quyết định.",
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "CROSS_BLOCK",
+  "kind": "forbidden",
+  "message": "Only a Manager moves furniture to another Block.",
+  "vi": "Chỉ Quản lý mới được chuyển nội thất sang tòa khác.",
+  "source": "FurnitureService"
+ },
+ {
+  "code": "DEADLINE_PASSED",
+  "kind": "conflict",
+  "message": "The deadline of this Invoice has passed.",
+  "vi": "Hóa đơn này đã quá hạn thanh toán.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "DEMO_BASE_DATA_MISSING",
+  "kind": "conflict",
+  "message": "The demo accounts of the base data are missing. Load the base data (db/seed) first.",
+  "vi": "Thiếu các tài khoản demo của dữ liệu nền. Hãy nạp dữ liệu nền (db/seed) trước.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": "DEMO_STAGE_NEEDED",
+  "kind": "conflict",
+  "message": "Load stage A, B or C first: this file lists the people of the next Term.",
+  "vi": "Hãy nạp giai đoạn A, B hoặc C trước: tệp này liệt kê những người của học kỳ sau.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": "DEMO_STAGE_NEEDED",
+  "kind": "conflict",
+  "message": "Load stage A, B or C first: Block A has no open meter period.",
+  "vi": "Hãy nạp giai đoạn A, B hoặc C trước: Tòa A chưa có kỳ ghi chỉ số nào đang mở.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": "DEMO_STAGE_NEEDED",
+  "kind": "conflict",
+  "message": "Load stage A, B or C first: no door code of Block A must change.",
+  "vi": "Hãy nạp giai đoạn A, B hoặc C trước: Tòa A không có mã cửa nào cần đổi.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": "DEMO_TOOLS_OFF",
+  "kind": "conflict",
+  "message": "The demo tools are off on this server.",
+  "vi": "Công cụ demo đang tắt trên máy chủ này.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": "DOOR_CODE_NOT_READY",
+  "kind": "conflict",
+  "message": "Your door code is not ready yet.",
+  "vi": "Mã cửa của bạn chưa sẵn sàng.",
+  "source": "DoorCodeService"
+ },
+ {
+  "code": "DOOR_CODES_DISABLED",
+  "kind": "unavailable",
+  "message": "Door codes are not set up on this server yet.",
+  "vi": "Máy chủ này chưa được thiết lập mã cửa.",
+  "source": "DoorCodeCipher"
+ },
+ {
+  "code": "DRY_RUN",
+  "kind": "conflict",
+  "message": "A dry run is a preview: it cannot be changed or submitted.",
+  "vi": "Lượt chạy thử chỉ để xem trước: không thể sửa hoặc chốt.",
+  "source": "AssignmentService"
+ },
+ {
+  "code": "EMERGENCY_CONTACTS_FULL",
+  "kind": "badRequest",
+  "message": "You already have the most emergency contacts allowed. Edit or remove one first.",
+  "vi": "Bạn đã có số người liên hệ khẩn cấp tối đa. Hãy sửa hoặc xóa bớt một người trước.",
+  "source": "StudentContactService"
+ },
+ {
+  "code": "ESCALATION_HANDLED",
+  "kind": "conflict",
+  "message": "This escalation was already handled.",
+  "vi": "Yêu cầu quá hạn này đã được xử lý.",
+  "source": "EscalationService"
+ },
+ {
+  "code": "EXTEND_FIRST",
+  "kind": "conflict",
+  "message": "This is the last Term of your stay: ask for an extension first.",
+  "vi": "Đây là học kỳ cuối trong hợp đồng ở của bạn: hãy gửi yêu cầu gia hạn trước.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "FAMILY_DAY_ALREADY_REGISTERED",
+  "kind": "conflict",
+  "message": "You have already registered guests for this Family Day.",
+  "vi": "Bạn đã đăng ký khách cho Ngày thăm thân này.",
+  "source": "StudentFamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_CANCELLED_NO_STATS",
+  "kind": "conflict",
+  "message": "This Family Day was cancelled, so it has no statistics.",
+  "vi": "Ngày thăm thân này đã bị hủy nên không có số liệu thống kê.",
+  "source": "FamilyDayStatsService"
+ },
+ {
+  "code": "FAMILY_DAY_ENDED",
+  "kind": "conflict",
+  "message": "This Family Day is already cancelled or completed.",
+  "vi": "Ngày thăm thân này đã bị hủy hoặc đã kết thúc.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_IN_THE_PAST",
+  "kind": "conflict",
+  "message": "Registration must close and the first time slot must start in the future. Edit the dates first.",
+  "vi": "Thời điểm đóng đăng ký và khung giờ đầu tiên phải ở tương lai. Hãy sửa lại thời gian trước.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_NO_OVERDUE_GUESTS",
+  "kind": "conflict",
+  "message": "No guest is waiting for a reminder: nobody is inside after their time slot without a confirmation.",
+  "vi": "Không có khách nào cần nhắc: không ai còn ở lại quá giờ mà chưa được xác nhận.",
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "FAMILY_DAY_NOT_DRAFT",
+  "kind": "conflict",
+  "message": "Only a Draft can be edited. Cancel this Family Day and create a new one instead.",
+  "vi": "Chỉ bản nháp mới sửa được. Hãy hủy Ngày thăm thân này và tạo một sự kiện mới.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_NOT_DRAFT",
+  "kind": "conflict",
+  "message": "This Family Day is already published.",
+  "vi": "Ngày thăm thân này đã được công bố.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_NOT_OVER",
+  "kind": "conflict",
+  "message": "The last time slot ends at ",
+  "vi": null,
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_NOT_PUBLISHED",
+  "kind": "conflict",
+  "message": "Only a published Family Day can be closed.",
+  "vi": "Chỉ Ngày thăm thân đã công bố mới kết thúc được.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_NOT_PUBLISHED",
+  "kind": "conflict",
+  "message": "Only a published Family Day has guests inside.",
+  "vi": "Chỉ Ngày thăm thân đã công bố mới có khách bên trong.",
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "FAMILY_DAY_NOTHING_TO_CONFIRM",
+  "kind": "conflict",
+  "message": "None of your guests is inside after their time slot, so there is nothing to confirm.",
+  "vi": "Không có người thân nào của bạn còn ở lại quá giờ nên không cần xác nhận.",
+  "source": "StudentFamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_SLOT_STARTED",
+  "kind": "conflict",
+  "message": "This time slot has already started. Choose a later one.",
+  "vi": "Khung giờ này đã bắt đầu. Hãy chọn khung giờ sau.",
+  "source": "StudentFamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_SLOT_STARTED",
+  "kind": "conflict",
+  "message": "Your time slot has already started, so the registration can no longer be cancelled.",
+  "vi": "Khung giờ của bạn đã bắt đầu nên không thể hủy đăng ký nữa.",
+  "source": "StudentFamilyDayService"
+ },
+ {
+  "code": "FAMILY_DAY_STARTED",
+  "kind": "conflict",
+  "message": "Guests have already come in. Close the Family Day instead of cancelling it.",
+  "vi": "Đã có khách vào. Hãy kết thúc Ngày thăm thân thay vì hủy.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": "FEES_ISSUED",
+  "kind": "conflict",
+  "message": "The next-Term fees are issued, so next-Term Beds are fixed.",
+  "vi": null,
+  "source": "NextTermContext"
+ },
+ {
+  "code": "FILE_TOO_LARGE",
+  "kind": "badRequest",
+  "message": "The workbook is too large once unpacked. Keep only the list in it and upload it again.",
+  "vi": "Tệp quá lớn khi giải nén. Chỉ giữ lại danh sách trong tệp và tải lên lại.",
+  "source": "SheetFile"
+ },
+ {
+  "code": "FORBIDDEN",
+  "kind": "forbidden",
+  "message": "You do not have permission to do this.",
+  "vi": "Bạn không có quyền thực hiện thao tác này.",
+  "source": "BlockScope"
+ },
+ {
+  "code": "FURNITURE_MISSING",
+  "kind": "conflict",
+  "message": "The store of Block ",
+  "vi": null,
+  "source": "JdbcRoomClassChanges"
+ },
+ {
+  "code": "GENDER_LOCKED",
+  "kind": "conflict",
+  "message": "The gender cannot change while the student holds a Bed or a live Application.",
+  "vi": "Không thể đổi giới tính khi sinh viên đang giữ giường hoặc có đơn đăng ký đang xử lý.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "GOOGLE_ACCOUNT_MISMATCH",
+  "kind": "forbidden",
+  "message": "This account is linked to a different Google account. Contact the dormitory office.",
+  "vi": "Tài khoản này đã liên kết với một tài khoản Google khác. Hãy liên hệ văn phòng ký túc xá.",
+  "source": "SignInService"
+ },
+ {
+  "code": "GOOGLE_DOMAIN_NOT_ALLOWED",
+  "kind": "forbidden",
+  "message": "Sign in with your @",
+  "vi": null,
+  "source": "GoogleIdTokenVerifier"
+ },
+ {
+  "code": "GOOGLE_NOT_FOR_DEMO",
+  "kind": "forbidden",
+  "message": "This demo account signs in with its password, not with Google.",
+  "vi": "Tài khoản demo này đăng nhập bằng mật khẩu, không dùng Google.",
+  "source": "SignInService"
+ },
+ {
+  "code": "GOOGLE_SIGN_IN_DISABLED",
+  "kind": "unavailable",
+  "message": "Google sign-in is not available right now.",
+  "vi": "Hiện chưa thể đăng nhập bằng Google.",
+  "source": "GoogleCodeExchanger"
+ },
+ {
+  "code": "GOOGLE_TOKEN_INVALID",
+  "kind": "unauthorized",
+  "message": "Google sign-in failed. Try again.",
+  "vi": "Đăng nhập Google thất bại. Hãy thử lại.",
+  "source": "GoogleCodeExchanger"
+ },
+ {
+  "code": "GOOGLE_UNAVAILABLE",
+  "kind": "unavailable",
+  "message": "Google sign-in is not working right now. Try again in a few minutes or use your email and password.",
+  "vi": "Đăng nhập Google đang gặp sự cố. Hãy thử lại sau vài phút hoặc dùng email và mật khẩu.",
+  "source": "GoogleCodeExchanger"
+ },
+ {
+  "code": "IMPORT_APPLIED",
+  "kind": "conflict",
+  "message": "This file was already imported.",
+  "vi": "Tệp này đã được nhập.",
+  "source": "StudentImportService"
+ },
+ {
+  "code": "INSPECTION_NOT_ASSIGNED",
+  "kind": "forbidden",
+  "message": "This inspection run is assigned to another staff member.",
+  "vi": null,
+  "source": "InspectionRunService"
+ },
+ {
+  "code": "INVENTORY_FINAL",
+  "kind": "conflict",
+  "message": "A final inventory cannot be cancelled.",
+  "vi": "Biên bản đã chốt không hủy được.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "INVENTORY_NOT_STARTED",
+  "kind": "conflict",
+  "message": "Start the check-in inventory first.",
+  "vi": "Hãy bắt đầu kiểm kê nhận phòng trước.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "INVENTORY_STARTED",
+  "kind": "conflict",
+  "message": "Your check-in inventory is already started.",
+  "vi": "Bạn đã bắt đầu kiểm kê nhận phòng rồi.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "INVENTORY_SUBMITTED",
+  "kind": "conflict",
+  "message": "Your check-in inventory is already submitted.",
+  "vi": "Biên bản kiểm kê của bạn đã được nộp.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "INVITATION_CLOSED",
+  "kind": "conflict",
+  "message": "This invitation is no longer open.",
+  "vi": "Lời mời này không còn hiệu lực.",
+  "source": "ApplicationService"
+ },
+ {
+  "code": "INVITATION_CLOSED",
+  "kind": "conflict",
+  "message": "This swap invitation is no longer open.",
+  "vi": "Lời mời hoán đổi này không còn hiệu lực.",
+  "source": "SwapService"
+ },
+ {
+  "code": "INVITE_PENDING",
+  "kind": "badRequest",
+  "message": "This user has not accepted the invitation yet. The account becomes Active when they set a password.",
+  "vi": "Người dùng chưa nhận lời mời. Tài khoản sẽ hoạt động khi họ đặt mật khẩu.",
+  "source": "AdminUserService"
+ },
+ {
+  "code": "INVOICE_NOT_PAYABLE",
+  "kind": "conflict",
+  "message": "This Invoice cannot be paid: it is ",
+  "vi": null,
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "ITEM_CLOSED",
+  "kind": "conflict",
+  "message": "Some of this work was closed or moved meanwhile. Reload the list and try again.",
+  "vi": "Một số công việc vừa được đóng hoặc chuyển đi. Hãy tải lại danh sách rồi thử lại.",
+  "source": "BlockStaffService"
+ },
+ {
+  "code": "ITEM_CLOSED",
+  "kind": "conflict",
+  "message": "This work is no longer open.",
+  "vi": "Công việc này không còn mở.",
+  "source": "MaintenanceStaffWork"
+ },
+ {
+  "code": "ITEM_DISPOSED",
+  "kind": "conflict",
+  "message": "Item ",
+  "vi": null,
+  "source": "FurnitureService"
+ },
+ {
+  "code": "LAST_ADMIN",
+  "kind": "conflict",
+  "message": "At least one active Admin must remain.",
+  "vi": "Phải còn ít nhất một Quản trị viên đang hoạt động.",
+  "source": "AdminUserService"
+ },
+ {
+  "code": "LATE_ALREADY_SENT",
+  "kind": "conflict",
+  "message": "You already sent a late report.",
+  "vi": "Bạn đã gửi báo cáo trễ rồi.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "LATE_NOT_ALLOWED",
+  "kind": "conflict",
+  "message": "Only an inventory closed by its deadline takes a late report.",
+  "vi": "Chỉ biên bản đã chốt do quá hạn mới nhận báo cáo trễ.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "LATE_REQUEST_CLOSED",
+  "kind": "conflict",
+  "message": "The check-in period has ended. Ask the dormitory desk about a late check-in.",
+  "vi": "Thời gian nhận phòng đã kết thúc. Hãy hỏi quầy ký túc xá về việc nhận phòng muộn.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "LATE_REQUEST_EXISTS",
+  "kind": "conflict",
+  "message": "This student already has a late check-in for this Term: one request per Term.",
+  "vi": "Sinh viên này đã có yêu cầu nhận phòng muộn trong học kỳ này: mỗi học kỳ chỉ một yêu cầu.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "LATE_REQUEST_EXISTS",
+  "kind": "conflict",
+  "message": "This student already has a late check-in waiting.",
+  "vi": "Sinh viên này đã có một yêu cầu nhận phòng muộn đang chờ.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "LATE_REQUEST_EXISTS",
+  "kind": "conflict",
+  "message": "You already asked for a late check-in this Term: one request per Term.",
+  "vi": "Bạn đã gửi yêu cầu nhận phòng muộn trong học kỳ này: mỗi học kỳ chỉ một yêu cầu.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": "LINK_INVALID",
+  "kind": "badRequest",
+  "message": "This link is invalid or has expired. Request a new one.",
+  "vi": "Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+  "source": "PasswordService"
+ },
+ {
+  "code": "MAJOR_NEEDS_VISIT",
+  "kind": "conflict",
+  "message": "An inventory with a major difference is checked in the Room with the student: set a visit.",
+  "vi": "Biên bản lệch lớn phải được kiểm tra tại phòng cùng sinh viên: hãy hẹn giờ xuống phòng.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "MANAGER_DECIDES",
+  "kind": "forbidden",
+  "message": "The next-Term fees are issued: only a Manager moves a student for the next Term now.",
+  "vi": "Tiền phòng học kỳ sau đã được phát hành: giờ chỉ Quản lý mới chuyển sinh viên cho học kỳ sau.",
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "MANAGER_DECIDES",
+  "kind": "forbidden",
+  "message": "A swap between Blocks is decided by a Manager.",
+  "vi": "Việc hoán đổi giữa các tòa do Quản lý quyết định.",
+  "source": "SwapService"
+ },
+ {
+  "code": "MOVE_CLOSED",
+  "kind": "conflict",
+  "message": "This move is already ",
+  "vi": null,
+  "source": "FurnitureService"
+ },
+ {
+  "code": "MOVE_PLANNED",
+  "kind": "conflict",
+  "message": "Item ",
+  "vi": null,
+  "source": "FurnitureService"
+ },
+ {
+  "code": "NO_BANK_ACCOUNT",
+  "kind": "conflict",
+  "message": "No bank account is configured for transfers yet.",
+  "vi": "Chưa cấu hình tài khoản ngân hàng nhận chuyển khoản.",
+  "source": "StudentInvoiceService"
+ },
+ {
+  "code": "NO_BED_LEFT",
+  "kind": "conflict",
+  "message": "No free Bed of that kind is left. Choose another option or the waitlist.",
+  "vi": "Không còn giường trống loại này. Hãy chọn phương án khác hoặc đưa vào danh sách chờ.",
+  "source": "AssignmentService"
+ },
+ {
+  "code": "NO_BLOCK",
+  "kind": "forbidden",
+  "message": "No Block is assigned to your account. Contact the administrator.",
+  "vi": "Tài khoản của bạn chưa được gán tòa nào. Hãy liên hệ quản trị viên.",
+  "source": "BlockScope"
+ },
+ {
+  "code": "NO_CLAIM_WAITING",
+  "kind": "conflict",
+  "message": "No payment claim is waiting for this Invoice.",
+  "vi": "Hóa đơn này không có báo chuyển khoản nào đang chờ.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "NO_INVENTORY_NEEDED",
+  "kind": "conflict",
+  "message": "You have no Room to receive with a check-in inventory.",
+  "vi": "Bạn không có phòng nào cần kiểm kê khi nhận.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "NO_LATE_REPORT",
+  "kind": "conflict",
+  "message": "The student sent no late report.",
+  "vi": "Sinh viên chưa gửi báo cáo trễ.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "NO_NEXT_TERM_BED",
+  "kind": "conflict",
+  "message": "This student has no Bed for the next Term.",
+  "vi": "Sinh viên này không có giường cho học kỳ sau.",
+  "source": "JdbcStays"
+ },
+ {
+  "code": "NO_NEXT_TERM_BED",
+  "kind": "conflict",
+  "message": "Next-Term requests open when your Bed is kept for the next Term (the requests window).",
+  "vi": "Yêu cầu cho học kỳ sau mở khi giường của bạn được giữ cho học kỳ sau (thời gian gửi yêu cầu).",
+  "source": "NextTermContext"
+ },
+ {
+  "code": "NO_PRICE",
+  "kind": "conflict",
+  "message": "Room ",
+  "vi": null,
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "NO_PROFILE",
+  "kind": "conflict",
+  "message": "This student has not sent their details yet.",
+  "vi": "Sinh viên này chưa gửi thông tin.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "NO_PROPOSED_CODE",
+  "kind": "conflict",
+  "message": "Room ",
+  "vi": null,
+  "source": "DoorCodeService"
+ },
+ {
+  "code": "NO_ROOM_CLASS",
+  "kind": "conflict",
+  "message": "Create an active Room Class first.",
+  "vi": "Hãy tạo một hạng phòng đang dùng trước.",
+  "source": "AdminBuildingService"
+ },
+ {
+  "code": "NO_ROOM_TYPE",
+  "kind": "conflict",
+  "message": "Create an active Room Type first.",
+  "vi": "Hãy tạo một loại phòng đang dùng trước.",
+  "source": "AdminBuildingService"
+ },
+ {
+  "code": "NO_STUDENT_RECORD",
+  "kind": "forbidden",
+  "message": "Your student record was not found. Contact the dormitory office.",
+  "vi": "Không tìm thấy hồ sơ sinh viên của bạn. Hãy liên hệ văn phòng ký túc xá.",
+  "source": "EligibilityService"
+ },
+ {
+  "code": "NO_WINDOW",
+  "kind": "conflict",
+  "message": "This request is not part of a requests window.",
+  "vi": "Yêu cầu này không thuộc thời gian gửi yêu cầu nào.",
+  "source": "NextTermContext"
+ },
+ {
+  "code": "NOT_A_MATCH",
+  "kind": "conflict",
+  "message": "Your Bed is not what this student is looking for.",
+  "vi": "Giường của bạn không đúng với điều sinh viên này cần.",
+  "source": "SwapService"
+ },
+ {
+  "code": "NOT_ARCHIVED",
+  "kind": "conflict",
+  "message": "Only an archived checklist can be restored.",
+  "vi": null,
+  "source": "ChecklistService"
+ },
+ {
+  "code": "NOT_CHECKED_IN",
+  "kind": "badRequest",
+  "message": "This student has not checked in yet and cannot check out.",
+  "vi": null,
+  "source": "DeskService"
+ },
+ {
+  "code": "NOT_CHECKED_IN",
+  "kind": "conflict",
+  "message": "You can report a problem once you have checked in to your Room.",
+  "vi": "Bạn có thể báo sự cố sau khi đã nhận phòng.",
+  "source": "MaintenanceService"
+ },
+ {
+  "code": "NOT_ELIGIBLE",
+  "kind": "conflict",
+  "message": "You cannot apply for ",
+  "vi": null,
+  "source": "ApplicationService"
+ },
+ {
+  "code": "NOT_LOCKED",
+  "kind": "conflict",
+  "message": "This account is not locked.",
+  "vi": "Tài khoản này không bị khóa.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "NOT_PAID",
+  "kind": "conflict",
+  "message": "A receipt is available once the Invoice is paid.",
+  "vi": "Biên lai có sau khi hóa đơn được thanh toán.",
+  "source": "StudentInvoiceService"
+ },
+ {
+  "code": "NOT_PENDING",
+  "kind": "conflict",
+  "message": "This account is not waiting for verification.",
+  "vi": "Tài khoản này không chờ xác minh.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": "NOT_REFUND_APPROVER",
+  "kind": "forbidden",
+  "message": "This refund is decided by ",
+  "vi": null,
+  "source": "FinanceService"
+ },
+ {
+  "code": "NOT_REQUESTER",
+  "kind": "forbidden",
+  "message": "Only the Manager who sent this request can change it.",
+  "vi": "Chỉ Quản lý đã gửi đề nghị này mới sửa được.",
+  "source": "TermRequestService"
+ },
+ {
+  "code": "NOT_RESOLVED",
+  "kind": "conflict",
+  "message": "Mark the request resolved before you close it.",
+  "vi": "Hãy đánh dấu yêu cầu đã xử lý xong trước khi đóng.",
+  "source": "MaintenanceDeskService"
+ },
+ {
+  "code": "NOT_RESOLVED",
+  "kind": "conflict",
+  "message": "You can confirm the fix once the request is resolved.",
+  "vi": "Bạn có thể xác nhận đã sửa xong khi yêu cầu được xử lý.",
+  "source": "MaintenanceService"
+ },
+ {
+  "code": "NOT_STARTED",
+  "kind": "conflict",
+  "message": "Assign the request before you mark it resolved.",
+  "vi": "Hãy giao việc trước khi đánh dấu đã xử lý.",
+  "source": "MaintenanceDeskService"
+ },
+ {
+  "code": "NOT_SUBMITTED",
+  "kind": "conflict",
+  "message": "Block ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "NOT_TO_REVIEW",
+  "kind": "conflict",
+  "message": "Only a submitted inventory can be confirmed.",
+  "vi": "Chỉ biên bản đã nộp mới xác nhận được.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "NOT_TO_REVIEW",
+  "kind": "conflict",
+  "message": "Only a submitted inventory can be checked in the Room.",
+  "vi": "Chỉ biên bản đã nộp mới hẹn kiểm tra tại phòng được.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "NOT_VERIFYING",
+  "kind": "conflict",
+  "message": "Ask for a visit before recording what you find.",
+  "vi": "Hãy hẹn xuống phòng trước khi ghi nhận thực tế.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": "NOT_WAITLISTED",
+  "kind": "conflict",
+  "message": "Only an Application on the waitlist can be withdrawn.",
+  "vi": "Chỉ rút được đơn đang trong danh sách chờ.",
+  "source": "Round2Service"
+ },
+ {
+  "code": "NOTHING_TO_AGREE",
+  "kind": "conflict",
+  "message": "Staff have not recorded your check-out yet.",
+  "vi": "Nhân viên chưa ghi nhận việc trả phòng của bạn.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": "NOTHING_TO_AGREE",
+  "kind": "conflict",
+  "message": "Staff have not sent you the checked inventory yet.",
+  "vi": "Nhân viên chưa gửi biên bản đã kiểm cho bạn.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": "NOTHING_TO_REVIEW",
+  "kind": "conflict",
+  "message": "This item is not waiting for a Manager.",
+  "vi": "Món này không chờ Manager quyết định.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "badRequest",
+  "message": "FILE_TYPE_NOT_ALLOWED",
+  "vi": null,
+  "source": "FileStore"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This link has expired. Reload the page to get a new one.",
+  "vi": "Liên kết đã hết hạn. Hãy tải lại trang để lấy liên kết mới.",
+  "source": "FileLinkController"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This file does not exist.",
+  "vi": "Tệp này không tồn tại.",
+  "source": "FileLinkController"
+ },
+ {
+  "code": null,
+  "kind": "badRequest",
+  "message": "VALIDATION_FAILED",
+  "vi": null,
+  "source": "FieldErrors"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "Block ",
+  "vi": null,
+  "source": "BlockScope"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Application does not exist.",
+  "vi": "Đơn đăng ký này không tồn tại.",
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Term does not exist.",
+  "vi": "Học kỳ này không tồn tại.",
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No Term is published yet.",
+  "vi": "Chưa có học kỳ nào được công bố.",
+  "source": "ApplicationReviewService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This invitation does not exist or was already answered.",
+  "vi": "Lời mời này không tồn tại hoặc đã được trả lời.",
+  "source": "ApplicationService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This offer does not exist.",
+  "vi": "Đề nghị này không tồn tại.",
+  "source": "Round2Service"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "Your student record was not found.",
+  "vi": "Không tìm thấy hồ sơ sinh viên của bạn.",
+  "source": "StudentApplicationQueries"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This run does not exist.",
+  "vi": "Lượt xếp phòng này không tồn tại.",
+  "source": "AssignmentQueries"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Application is not in the run.",
+  "vi": "Đơn này không có trong lượt xếp phòng.",
+  "source": "AssignmentQueries"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "RENEWAL_REQUESTS_OPEN",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "CONFLICTS_LEFT",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No check-out to review.",
+  "vi": "Không có lần trả phòng nào cần xem.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This damage record does not exist.",
+  "vi": "Ghi nhận hư hỏng này không tồn tại.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This damage record does not exist or can no longer be answered.",
+  "vi": "Ghi nhận hư hỏng này không tồn tại hoặc đã hết hạn trả lời.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Allocation does not exist.",
+  "vi": "Chỗ ở này không tồn tại.",
+  "source": "CheckOutFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No Bed is allocated to this student.",
+  "vi": "Sinh viên này chưa được xếp giường.",
+  "source": "DeskService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "ALREADY_CHECKED_IN",
+  "vi": null,
+  "source": "DeskService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "MANY_MATCHES",
+  "vi": null,
+  "source": "DeskService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This student does not live in the Room.",
+  "vi": "Sinh viên này không ở trong phòng.",
+  "source": "DeskService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This check-in inventory does not exist.",
+  "vi": "Biên bản kiểm kê này không tồn tại.",
+  "source": "HandoverDeskService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This student has no Bed waiting for check-in.",
+  "vi": "Sinh viên này không có giường nào đang chờ nhận.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "You do not hold a Bed waiting for check-in.",
+  "vi": "Bạn không có chỗ ở nào đang chờ nhận phòng.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This late check-in does not exist.",
+  "vi": "Yêu cầu nhận phòng muộn này không tồn tại.",
+  "source": "LateCheckInService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "FEES_BLOCKED",
+  "vi": null,
+  "source": "NextTermFeeService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Term has no requests window: it has no renewal milestones.",
+  "vi": "Học kỳ này không có thời gian gửi yêu cầu: học kỳ không có các mốc gia hạn.",
+  "source": "NextTermFeeService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No student has this code.",
+  "vi": "Không có sinh viên nào có mã này.",
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This student holds no Bed.",
+  "vi": "Sinh viên này không giữ giường nào.",
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No Term has a requests window yet.",
+  "vi": "Chưa có học kỳ nào có thời gian gửi yêu cầu.",
+  "source": "RenewalService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This photo does not exist.",
+  "vi": "Ảnh này không tồn tại.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "You have no inventory.",
+  "vi": "Bạn không có biên bản kiểm kê nào.",
+  "source": "StudentHandoverService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This student does not live in the dormitory.",
+  "vi": "Sinh viên này không ở ký túc xá.",
+  "source": "TerminationService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This termination does not exist.",
+  "vi": "Việc chấm dứt hợp đồng ở này không tồn tại.",
+  "source": "TerminationService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This user does not exist.",
+  "vi": "Người dùng này không tồn tại.",
+  "source": "AdminUserService"
+ },
+ {
+  "code": null,
+  "kind": "badRequest",
+  "message": "BAD_PARAMETER",
+  "vi": null,
+  "source": "AdminUserService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This staff member does not exist.",
+  "vi": "Nhân viên này không tồn tại.",
+  "source": "BlockStaffService"
+ },
+ {
+  "code": null,
+  "kind": "badRequest",
+  "message": "WEAK_PASSWORD",
+  "vi": null,
+  "source": "PasswordPolicy"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This reconciliation does not exist.",
+  "vi": "Lần đối soát này không tồn tại.",
+  "source": "ReconciliationService"
+ },
+ {
+  "code": null,
+  "kind": "unauthorized",
+  "message": "INVALID_CREDENTIALS",
+  "vi": null,
+  "source": "SignInService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "NOT_INVITED",
+  "vi": null,
+  "source": "StaffAccountService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This student does not exist.",
+  "vi": "Sinh viên này không tồn tại.",
+  "source": "StudentAccountService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This emergency contact does not exist.",
+  "vi": "Người liên hệ khẩn cấp này không tồn tại.",
+  "source": "StudentContactService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This import does not exist.",
+  "vi": "Lần nhập này không tồn tại.",
+  "source": "StudentImportService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This refund does not exist.",
+  "vi": "Khoản hoàn tiền này không tồn tại.",
+  "source": "FinanceService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "READINGS_MISSING",
+  "vi": null,
+  "source": "MeterService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "Room ",
+  "vi": null,
+  "source": "MeterService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This period does not exist.",
+  "vi": "Kỳ chỉ số này không tồn tại.",
+  "source": "MeterService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Invoice does not exist.",
+  "vi": "Hóa đơn này không tồn tại.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No receipt is attached to this Payment.",
+  "vi": "Khoản thanh toán này không có biên lai.",
+  "source": "PaymentDeskService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Block does not exist.",
+  "vi": "Tòa này không tồn tại.",
+  "source": "AdminBuildingService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "Floor ",
+  "vi": null,
+  "source": "AdminBuildingService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This furniture type does not exist.",
+  "vi": "Loại nội thất này không tồn tại.",
+  "source": "AdminFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Room Class does not exist.",
+  "vi": "Hạng phòng này không tồn tại.",
+  "source": "AdminFurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "You do not hold a Bed this Term.",
+  "vi": "Bạn chưa có giường trong học kỳ này.",
+  "source": "DoorCodeService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This furniture item does not exist.",
+  "vi": "Món nội thất này không tồn tại.",
+  "source": "FurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This move does not exist.",
+  "vi": "Lần chuyển này không tồn tại.",
+  "source": "FurnitureService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Room does not exist.",
+  "vi": "Phòng này không tồn tại.",
+  "source": "JdbcRoomClassChanges"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This checklist does not exist.",
+  "vi": "Danh mục kiểm tra này không tồn tại.",
+  "source": "ChecklistService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This inspection run does not exist.",
+  "vi": "Lượt kiểm tra này không tồn tại.",
+  "source": "InspectionRunService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This inspection schedule does not exist.",
+  "vi": "Lịch kiểm tra này không tồn tại.",
+  "source": "InspectionScheduleService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Maintenance Request does not exist.",
+  "vi": "Yêu cầu bảo trì này không tồn tại.",
+  "source": "JdbcMaintenanceRequests"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This notification does not exist.",
+  "vi": "Thông báo này không tồn tại.",
+  "source": "AnnouncementService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This announcement does not exist.",
+  "vi": "Thông báo này không tồn tại.",
+  "source": "AnnouncementService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This notification template does not exist.",
+  "vi": "Mẫu thông báo này không tồn tại.",
+  "source": "NotificationTemplateService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "There is no export called ",
+  "vi": null,
+  "source": "ExportService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This escalation does not exist.",
+  "vi": "Yêu cầu quá hạn này không tồn tại.",
+  "source": "EscalationService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "No requests window is open.",
+  "vi": "Không có thời gian gửi yêu cầu nào đang mở.",
+  "source": "NextTermRequestsService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Room-Change Request does not exist.",
+  "vi": "Yêu cầu đổi phòng này không tồn tại.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "ALLOCATION_ENDED",
+  "vi": null,
+  "source": "RoomChangeService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This routing rule does not exist.",
+  "vi": "Quy tắc phân công này không tồn tại.",
+  "source": "RoutingService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This request does not exist.",
+  "vi": "Yêu cầu này không tồn tại.",
+  "source": "StayRequestService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This post is no longer on the board.",
+  "vi": "Bài đăng này không còn trên bảng hoán đổi.",
+  "source": "SwapService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This swap does not exist.",
+  "vi": "Yêu cầu hoán đổi này không tồn tại.",
+  "source": "SwapService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Room Type does not exist.",
+  "vi": "Loại phòng này không tồn tại.",
+  "source": "AdminCatalogService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This settings group does not exist.",
+  "vi": "Nhóm thiết lập này không tồn tại.",
+  "source": "AdminSettingsService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This demo file does not exist.",
+  "vi": "Không có tệp demo này.",
+  "source": "DemoResetService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "REQUEST_LOCKED",
+  "vi": null,
+  "source": "TermRequestService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "REQUEST_NOT_BUILDABLE",
+  "vi": null,
+  "source": "TermRequestService"
+ },
+ {
+  "code": null,
+  "kind": "conflict",
+  "message": "TERM_REQUEST_OPEN",
+  "vi": null,
+  "source": "TermRequestService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This registration-period request does not exist.",
+  "vi": "Đề nghị mở đợt đăng ký này không tồn tại.",
+  "source": "TermRequestService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This wizard step does not exist.",
+  "vi": "Bước này không tồn tại.",
+  "source": "TermWizardService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This registration does not exist.",
+  "vi": "Đăng ký này không tồn tại.",
+  "source": "FamilyDayService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This Family Day does not exist.",
+  "vi": "Ngày thăm thân này không tồn tại.",
+  "source": "FamilyDays"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This ",
+  "vi": null,
+  "source": "FamilyDays"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "You have no registration for this Family Day.",
+  "vi": "Bạn chưa đăng ký khách cho Ngày thăm thân này.",
+  "source": "StudentFamilyDayService"
+ },
+ {
+  "code": null,
+  "kind": "notFound",
+  "message": "This guest does not exist.",
+  "vi": "Khách này không tồn tại.",
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "OFFER_CLOSED",
+  "kind": "conflict",
+  "message": "This offer is no longer open.",
+  "vi": "Đề nghị này không còn hiệu lực.",
+  "source": "Round2Service"
+ },
+ {
+  "code": "OPEN_REQUEST",
+  "kind": "conflict",
+  "message": "You already have an open Room-Change Request for this Term.",
+  "vi": "Bạn đã có một yêu cầu đổi phòng đang mở trong học kỳ này.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "OPEN_REQUEST",
+  "kind": "conflict",
+  "message": "You already have an extension waiting for Staff.",
+  "vi": "Bạn đã có một yêu cầu gia hạn đang chờ Nhân viên.",
+  "source": "StayRequestService"
+ },
+ {
+  "code": "OPEN_SWAP",
+  "kind": "conflict",
+  "message": "You already have a swap waiting. Wait for it or let it expire.",
+  "vi": "Bạn đã có một yêu cầu hoán đổi đang chờ. Hãy chờ kết quả hoặc để nó hết hạn.",
+  "source": "SwapService"
+ },
+ {
+  "code": "OVERDUE_INVOICE",
+  "kind": "conflict",
+  "message": "Pay your overdue Invoice before you ask for a room change.",
+  "vi": "Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu đổi phòng.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "OVERDUE_INVOICE",
+  "kind": "conflict",
+  "message": "Pay your overdue Invoice before you ask for a swap.",
+  "vi": "Hãy thanh toán hóa đơn quá hạn trước khi yêu cầu hoán đổi.",
+  "source": "SwapService"
+ },
+ {
+  "code": "OWN_ACCOUNT",
+  "kind": "badRequest",
+  "message": "You cannot remove your own Admin access or disable your own account.",
+  "vi": "Bạn không thể tự gỡ quyền Quản trị viên hoặc khóa tài khoản của chính mình.",
+  "source": "AdminUserService"
+ },
+ {
+  "code": "PASSWORD_ALREADY_SET",
+  "kind": "conflict",
+  "message": "This account already has a password. Use Change password instead.",
+  "vi": "Tài khoản này đã có mật khẩu. Hãy dùng Đổi mật khẩu.",
+  "source": "PasswordService"
+ },
+ {
+  "code": "PASSWORD_REQUIRED",
+  "kind": "forbidden",
+  "message": "Set a CampusStay password before you continue.",
+  "vi": "Hãy đặt mật khẩu CampusStay trước khi tiếp tục.",
+  "source": "AccountSetupGate"
+ },
+ {
+  "code": "PERIOD_CLOSED",
+  "kind": "conflict",
+  "message": "This period is closed: its Invoices are issued.",
+  "vi": "Kỳ chỉ số đã đóng: hóa đơn đã được phát hành.",
+  "source": "MeterService"
+ },
+ {
+  "code": "PERIOD_NOT_ENDED",
+  "kind": "conflict",
+  "message": "This month has not ended yet. Close it from the first day of next month.",
+  "vi": "Tháng này chưa kết thúc. Hãy đóng kỳ từ ngày đầu tiên của tháng sau.",
+  "source": "MeterService"
+ },
+ {
+  "code": "PRICE_DIFFERS",
+  "kind": "conflict",
+  "message": "The next-Term fee is paid: move this student only to a",
+  "vi": null,
+  "source": "OperationalMoveService"
+ },
+ {
+  "code": "PRICES_LOCKED",
+  "kind": "conflict",
+  "message": "Invoices of this Term exist, so its prices, Deposit and Utility Deposit can no longer change.",
+  "vi": "Học kỳ này đã có hóa đơn nên không thể đổi giá, tiền đặt cọc và tiền đặt cọc điện nước nữa.",
+  "source": "TermWizardService"
+ },
+ {
+  "code": "PROFILE_REQUIRED",
+  "kind": "forbidden",
+  "message": "Send your student details before you continue.",
+  "vi": "Hãy gửi thông tin sinh viên của bạn trước khi tiếp tục.",
+  "source": "AccountSetupGate"
+ },
+ {
+  "code": "READING_MISSING",
+  "kind": "conflict",
+  "message": "Enter the reading before you confirm it.",
+  "vi": "Hãy nhập chỉ số trước khi xác nhận.",
+  "source": "MeterService"
+ },
+ {
+  "code": "READINGS_TO_CHECK",
+  "kind": "conflict",
+  "message": "Confirm the ",
+  "vi": null,
+  "source": "MeterService"
+ },
+ {
+  "code": "REFUND_CLOSED",
+  "kind": "conflict",
+  "message": "This refund no longer waits for a transfer.",
+  "vi": "Khoản hoàn tiền này không còn chờ chuyển khoản.",
+  "source": "FinanceService"
+ },
+ {
+  "code": "REFUND_NOT_APPROVED",
+  "kind": "conflict",
+  "message": "Only an approved refund can be marked paid.",
+  "vi": "Chỉ khoản hoàn tiền đã được duyệt mới có thể đánh dấu đã chuyển.",
+  "source": "FinanceService"
+ },
+ {
+  "code": "REGISTRATION_CANCELLED",
+  "kind": "conflict",
+  "message": "This registration is already cancelled.",
+  "vi": "Đăng ký này đã bị hủy.",
+  "source": "Registrations"
+ },
+ {
+  "code": "REGISTRATION_CLOSED",
+  "kind": "conflict",
+  "message": "No Term is open for registration now.",
+  "vi": "Hiện không có học kỳ nào đang mở đăng ký.",
+  "source": "ApplicationService"
+ },
+ {
+  "code": "REGISTRATION_CLOSED",
+  "kind": "conflict",
+  "message": "Registration for ",
+  "vi": null,
+  "source": "ApplicationService"
+ },
+ {
+  "code": "REGISTRATION_IN_USE",
+  "kind": "conflict",
+  "message": "A guest of this registration has already come in, so it cannot be cancelled.",
+  "vi": "Đã có khách của đăng ký này vào nên không thể hủy.",
+  "source": "Registrations"
+ },
+ {
+  "code": "RENEWAL_FILING",
+  "kind": "conflict",
+  "message": "Continuing residents can still file next-Term requests",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "REQUEST_CLOSED",
+  "kind": "conflict",
+  "message": "This request is no longer open.",
+  "vi": "Yêu cầu này không còn mở.",
+  "source": "JdbcMaintenanceRequests"
+ },
+ {
+  "code": "REQUEST_CLOSED",
+  "kind": "conflict",
+  "message": "This request is closed and cannot change.",
+  "vi": "Yêu cầu đã đóng và không thể thay đổi.",
+  "source": "MaintenanceDeskService"
+ },
+ {
+  "code": "REQUEST_CLOSED",
+  "kind": "conflict",
+  "message": "This request is closed.",
+  "vi": "Đề nghị này đã đóng.",
+  "source": "TermRequestService"
+ },
+ {
+  "code": "REQUEST_NOT_SUBMITTED",
+  "kind": "conflict",
+  "message": "Only a submitted request can be taken in progress.",
+  "vi": "Chỉ đề nghị đã gửi mới có thể chuyển sang đang xử lý.",
+  "source": "TermRequestService"
+ },
+ {
+  "code": "REQUESTS_CLOSED",
+  "kind": "conflict",
+  "message": "Next-Term requests for ",
+  "vi": null,
+  "source": "NextTermContext"
+ },
+ {
+  "code": "RESERVED_FOR_NEW_STUDENTS",
+  "kind": "conflict",
+  "message": "The free Beds of this kind are kept for new students.",
+  "vi": "Các giường trống loại này được giữ cho sinh viên mới.",
+  "source": "RoomChangeService"
+ },
+ {
+  "code": "ROOM_ALREADY_OUT_OF_SERVICE",
+  "kind": "conflict",
+  "message": "Room ",
+  "vi": null,
+  "source": "InventoryService"
+ },
+ {
+  "code": "ROOM_CLASS_LOCKED",
+  "kind": "conflict",
+  "message": "Beds of Room ",
+  "vi": null,
+  "source": "RoomClassService"
+ },
+ {
+  "code": "ROOM_DONE",
+  "kind": "conflict",
+  "message": "This Room is already ",
+  "vi": null,
+  "source": "InspectionRunService"
+ },
+ {
+  "code": "ROOM_DONE",
+  "kind": "conflict",
+  "message": "This Room is already inspected.",
+  "vi": "Phòng này đã được kiểm tra.",
+  "source": "InspectionRunService"
+ },
+ {
+  "code": "ROOM_IN_SERVICE",
+  "kind": "conflict",
+  "message": "Room ",
+  "vi": null,
+  "source": "InventoryService"
+ },
+ {
+  "code": "ROOM_OCCUPIED",
+  "kind": "conflict",
+  "message": "Move the ",
+  "vi": null,
+  "source": "InventoryService"
+ },
+ {
+  "code": "ROOM_PROMISED",
+  "kind": "conflict",
+  "message": "Beds of Room ",
+  "vi": null,
+  "source": "InventoryService"
+ },
+ {
+  "code": "ROOM_TYPE_IN_USE",
+  "kind": "conflict",
+  "message": "Rooms of this type have active Allocations, so the number of Beds cannot change.",
+  "vi": "Phòng loại này đang có người ở nên không thể đổi số giường.",
+  "source": "AdminCatalogService"
+ },
+ {
+  "code": "ROOMMATE_CHECKS_EXHAUSTED",
+  "kind": "tooManyRequests",
+  "message": "You have used all roommate code checks for this Term. Choose Match me automatically.",
+  "vi": "Bạn đã dùng hết lượt kiểm tra mã bạn cùng phòng của học kỳ này. Hãy chọn Tự động ghép.",
+  "source": "ApplicationService"
+ },
+ {
+  "code": "RULE_REQUIRED",
+  "kind": "badRequest",
+  "message": "The refund of a rejected Application cannot be switched off. Change its percent instead.",
+  "vi": "Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.",
+  "source": "AdminPolicyService"
+ },
+ {
+  "code": "RULES_FIXED",
+  "kind": "conflict",
+  "message": "A published Term keeps the rules it opened with.",
+  "vi": "Học kỳ đã công bố giữ nguyên các quy định lúc mở.",
+  "source": "TermWizardService"
+ },
+ {
+  "code": "RUN_CLOSED",
+  "kind": "conflict",
+  "message": "This run is ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "RUN_PARTLY_COMMITTED",
+  "kind": "conflict",
+  "message": "Blocks of ",
+  "vi": null,
+  "source": "AssignmentService"
+ },
+ {
+  "code": "RUN_SUBMITTED",
+  "kind": "conflict",
+  "message": "This inspection run is already submitted.",
+  "vi": "Lượt kiểm tra này đã được nộp.",
+  "source": "InspectionRunService"
+ },
+ {
+  "code": "SAME_LOCATION",
+  "kind": "conflict",
+  "message": "Item ",
+  "vi": null,
+  "source": "FurnitureService"
+ },
+ {
+  "code": "STAY_TOO_LONG",
+  "kind": "conflict",
+  "message": "A stay can be at most ",
+  "vi": null,
+  "source": "JdbcStays"
+ },
+ {
+  "code": "STUDENT_NOT_AGREED",
+  "kind": "conflict",
+  "message": "The student has not agreed with the furniture charges yet. Ask them to agree on the app.",
+  "vi": "Sinh viên chưa đồng ý với khoản đền nội thất. Hãy nhờ sinh viên bấm đồng ý trên app.",
+  "source": "DeskService"
+ },
+ {
+  "code": "SWAP_CHECKS_FAILED",
+  "kind": "conflict",
+  "message": "The swap does not pass the rule check any more.",
+  "vi": "Yêu cầu hoán đổi không còn đáp ứng điều kiện.",
+  "source": "SwapService"
+ },
+ {
+  "code": "TERM_ALREADY_PUBLISHED",
+  "kind": "conflict",
+  "message": "This Term is already published.",
+  "vi": "Học kỳ này đã được công bố.",
+  "source": "TermWizardService"
+ },
+ {
+  "code": "TERM_CLOSED",
+  "kind": "conflict",
+  "message": "This Term has ended and can no longer be changed.",
+  "vi": "Học kỳ này đã kết thúc và không thể thay đổi.",
+  "source": "TermWizardService"
+ },
+ {
+  "code": "TERM_EXISTS",
+  "kind": "conflict",
+  "message": "A Term named ",
+  "vi": null,
+  "source": "TermRequestService"
+ },
+ {
+  "code": "TERM_OVERLAP",
+  "kind": "conflict",
+  "message": "The stay dates overlap ",
+  "vi": null,
+  "source": "TermWizardService"
+ },
+ {
+  "code": "TERM_STARTED",
+  "kind": "conflict",
+  "message": "The stay of ",
+  "vi": null,
+  "source": "RoomClassService"
+ },
+ {
+  "code": "TERMINATION_CLOSED",
+  "kind": "conflict",
+  "message": "This termination is already closed.",
+  "vi": "Việc chấm dứt hợp đồng ở này đã kết thúc.",
+  "source": "TerminationService"
+ },
+ {
+  "code": "TERMINATION_OPEN",
+  "kind": "conflict",
+  "message": "This stay is being terminated. Cancel the termination before moving the student.",
+  "vi": "Chỗ ở này đang bị chấm dứt. Hãy hủy việc chấm dứt trước khi chuyển sinh viên.",
+  "source": "JdbcMoves"
+ },
+ {
+  "code": "TERMINATION_OVERDUE",
+  "kind": "conflict",
+  "message": "This termination is overdue: the next-Term Bed was ",
+  "vi": null,
+  "source": "TerminationService"
+ },
+ {
+  "code": "TOO_MANY_ATTEMPTS",
+  "kind": "tooManyRequests",
+  "message": "Too many attempts from this device. Wait a few minutes and try again.",
+  "vi": "Thiết bị này đã thử quá nhiều lần. Hãy đợi vài phút rồi thử lại.",
+  "source": "AuthRateLimiter"
+ },
+ {
+  "code": "TYPE_REQUIRED",
+  "kind": "conflict",
+  "message": "A Room Class requires ",
+  "vi": null,
+  "source": "AdminFurnitureService"
+ },
+ {
+  "code": "UNAUTHENTICATED",
+  "kind": "unauthorized",
+  "message": "Your session has ended. Sign in again.",
+  "vi": "Phiên đăng nhập đã kết thúc. Hãy đăng nhập lại.",
+  "source": "CurrentUser"
+ },
+ {
+  "code": "UTILITY_OVERDUE",
+  "kind": "conflict",
+  "message": "Pay your overdue Utility Invoice first, then the next-Term fee.",
+  "vi": "Hãy thanh toán hóa đơn điện nước quá hạn trước, sau đó mới đến tiền phòng học kỳ sau.",
+  "source": "PaymentClaimService"
+ },
+ {
+  "code": "VALIDATION_FAILED",
+  "kind": "badRequest",
+  "message": "Google sign-in could not start. Try again.",
+  "vi": "Không thể bắt đầu đăng nhập Google. Hãy thử lại.",
+  "source": "AuthController"
+ },
+ {
+  "code": "VALIDATION_FAILED",
+  "kind": "badRequest",
+  "message": "Some fields are not valid. Check the highlighted fields.",
+  "vi": "Một số trường chưa hợp lệ. Hãy kiểm tra các trường được đánh dấu.",
+  "source": "FieldErrors"
+ },
+ {
+  "code": "VISITOR_ALREADY_IN",
+  "kind": "conflict",
+  "message": "This guest is already checked in.",
+  "vi": "Khách này đã vào rồi.",
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "VISITOR_NOT_INSIDE",
+  "kind": "conflict",
+  "message": "This guest is not checked in.",
+  "vi": "Khách này chưa vào.",
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "VISITOR_SAFETY_NOT_CONFIRMED",
+  "kind": "conflict",
+  "message": "The student has not confirmed yet that this guest is safe. Send a reminder and check the guest",
+  "vi": null,
+  "source": "VisitorDeskService"
+ },
+ {
+  "code": "WEAK_PASSWORD",
+  "kind": "badRequest",
+  "message": "The password must not contain your email name.",
+  "vi": "Mật khẩu không được chứa tên email của bạn.",
+  "source": "PasswordPolicy"
+ },
+ {
+  "code": "WINDOW_NOT_OPEN",
+  "kind": "conflict",
+  "message": "The requests window of ",
+  "vi": null,
+  "source": "NextTermFeeService"
+ },
+ {
+  "code": "WRONG_PASSWORD",
+  "kind": "badRequest",
+  "message": "The current password is incorrect.",
+  "vi": "Mật khẩu hiện tại không đúng.",
+  "source": "PasswordService"
+ }
+]

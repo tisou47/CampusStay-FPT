@@ -1,0 +1,6294 @@
+{
+ "weeks": [
+  {
+   "week": 7,
+   "commits": [
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 3 merged into main; door codes on in production",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): inventory screens — Room Classes by Term, furniture, door codes, My Room",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(inv): Room Class per Room per Term, furniture and door codes",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Google sign-in with a real account verified on production",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): Google sign-in works when the browser blocks the popup",
+     "areas": [
+      "backend",
+      "docs",
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 2 merged into main; Google sign-in on in production",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): accounts screens — set a password, verification, Students and hub, import, Staff accounts",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-25",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(auth): accounts — Google sign-up, verification, student list import, Staff accounts by Managers",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 1 merged into main",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): texts for Managers of every Block; Admin setup check asks for Staff per Block",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): Vietnamese and English on every screen; menus for the new roles",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(auth): Managers work for every Block; account language and Vietnamese messages",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 approved (ADR-19 to ADR-27)",
+     "areas": [
+      "CLAUDE.md",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): record a late check-in at the desk; escalation and inspection texts",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: sync the documents with the code and production; test catalog and screen map",
+     "areas": [
+      "CLAUDE.md",
+      "README.md",
+      "backend",
+      "docs",
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: continuous delivery rules, monitoring and the demo setup (ADR-18)",
+     "areas": [
+      "CLAUDE.md",
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat: demo switches for the payment simulator and email redirect",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): no default Spring user with a password in the startup log",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): production deployments on Vercel always build",
+     "areas": [
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-24",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(deploy): read a deploy key pasted with Windows line ends",
+     "areas": [
+      ".github"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "build(deploy): Azure for Students with an optional managed database",
+     "areas": [
+      ".github",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "test(auth): password reset and change flows (PasswordFlowIT)",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "build(deploy): any x86 Ubuntu VPS instead of the Oracle VM (ADR-16)",
+     "areas": [
+      ".github",
+      "README.md",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(rpt): dashboards answer empty figures before the first Term",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: ADR-17 in the Brief; deploy runbook for the base data",
+     "areas": [
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "refactor: layered Spring MVC packages instead of modules (ADR-17)",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(seed): base data with FPT accounts only, no history",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): phone and tablet layout for the Student portal",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs(deploy): runbook for Oracle's 2 OCPU / 12 GB quota and on-VM deploy key",
+     "areas": [
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "test(desk): set DeskIT dates in campus time, not the session's CURRENT_DATE",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "build(deploy): use the real Vercel URLs",
+     "areas": [
+      ".github",
+      "backend",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "build(deploy): Vercel web, Oracle VM stack and backend CI/CD (ADR-16)",
+     "areas": [
+      ".github",
+      ".gitignore",
+      "README.md",
+      "backend",
+      "docs",
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(seed): four years of demo data; tests keep their own seed",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(rpt): past Terms keep their reports; refunds without a Bed by gender",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s7): Inspections, templates, Admin emails, dashboards, reports and exports",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s6): Utility billing, routing rules, SLA escalations, Block staff and settings",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s5): Room changes, swaps, Round 2, late check-ins, refunds and overdue",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s4): Check-in/out desk, Maintenance Requests, push notifications",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s3): Application review, assignment engine, approval, My Room and Staff payments",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s2): Application wizard, roommate pairs, Deposit Invoice, VietQR and SePay",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(s1): Admin configuration, Buildings and Inventory, users, Audit Log, notifications",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "init project",
+     "areas": [
+      ".gitignore",
+      "build"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): email sign-in, password pages, check-out by Allocation id",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(auth): Google sign-in by code or ID token, string IDs, optional remember",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: record ADR-13..15 and merge the contract changes into one contract",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: point every reference at the new monorepo paths",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "chore: import backend, web and docs into one monorepo",
+     "areas": [
+      ".gitattributes",
+      ".gitignore",
+      ".postman",
+      "README.md",
+      "backend",
+      "docs",
+      "infra",
+      "postman",
+      "web"
+     ]
+    }
+   ]
+  },
+  {
+   "week": 8,
+   "commits": [
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(auth): filter the Audit Log by the actor's role",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): a meter reading marked Check value says why and can be confirmed",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(cfg): Term requests by base price and surcharge, Term offer, Block house rules (R-02…R-08)",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): run the demo-accounts migration as V68, after V67",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(bil): payments and refunds review (R-19, R-21…R-24, R-26)",
+     "areas": [
+      "backend",
+      "docs",
+      "mobile",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(auth): demo accounts admin01, manager01, staffa01 … and password 123",
+     "areas": [
+      "backend",
+      "docs",
+      "infra",
+      "postman",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(bil): demo Utility of residents without a scenario is paid; docs for A-65",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(bil): every month of the demo Term billed; Overviews and reminders for meter periods not closed",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-31",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(asg): past assignment runs open read only; Applications screen strings (R-17, R-25)",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): student registration review R-09…R-16",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): a profile page for every role (R-20)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Võ Minh Luân",
+     "subject": "feat(ast): the assistant answers from the student's data on qwen2.5:7b, never in Chinese",
+     "areas": [
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Võ Minh Luân",
+     "subject": "fix(ast): the assistant reads next-Term requests and calls its tools on follow-ups",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Review 2 test documents and Design Brief follow the dashboards of 30/10",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): one focus on the overviews, and / to search",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): a shorter Manager menu with tabs for related screens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): use the backend's answers to the UX review",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(rpt): dashboards and the check-in desk answer the UX review",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: backend questions from the UX review",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: backend questions from the UX review",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): no stage warning on daily screens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): Staff Term flow guide",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): Manager Term flow guide",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): Admin \"Set up a Term\" flow guide",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): FPT orange redesign of the whole app",
+     "areas": [
+      ".impeccable",
+      "DESIGN.md",
+      "PRODUCT.md",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: PRODUCT.md, product context for design work",
+     "areas": [
+      "PRODUCT.md"
+     ]
+    },
+    {
+     "date": "2026-10-30",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Review 2 test documents, Design Brief, registration form and tracking follow the 29/10 code",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Võ Minh Luân",
+     "subject": "docs: assistant endpoints verified (mvn verify passed)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): ESLint, spacing tokens in @theme, native <dialog> confirm, 16/20 px icons",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Võ Minh Luân",
+     "subject": "feat(ast): students' AI assistant on a self-hosted Ollama model",
+     "areas": [
+      "backend",
+      "docs",
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): student profile page; old student cards back; button colours",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(postman): requests of the waitlist choices and refund account",
+     "areas": [
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-8): final check; remove the unused ActionCard alias",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-7): student wording and Vietnamese texts",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-6): Requests tabs and table, header and user menu",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-5): Applications and Payments tables, one header for every page",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-4): Home answers \"what next, by when\" first",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-3): My Room in one scroll with a sticky Next-Term card",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-2): shared student components",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "ui(step-1): student design tokens, type scale and global rules",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): waitlist choices on the Application, refund account on Payments",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(app): waitlisted students choose Round 2 or a full refund; refund bank account",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(postman): collection of every endpoint by role, smoke tests, environments",
+     "areas": [
+      "CLAUDE.md",
+      "README.md",
+      "backend",
+      "docs",
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(api): qualified schema names in the OpenAPI document",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Võ Minh Luân",
+     "subject": "feat(api): add Swagger UI and OpenAPI documentation",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): back-office home pages rebuilt around the work, Round 2 list, meter template",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(api): who Round 2 reached, meter template in Excel, own shift, person in charge",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(postman): collection of every endpoint by role, smoke tests, environments",
+     "areas": [
+      "CLAUDE.md",
+      "README.md",
+      "backend",
+      "docs",
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(api): qualified schema names in the OpenAPI document",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-29",
+     "author": "Võ Minh Luân",
+     "subject": "feat(api): add Swagger UI and OpenAPI documentation",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Võ Minh Luân",
+     "subject": "fix(student-home): allow access to room and requests without allocation",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat: Manager's Round 2, readings by Room, late check-in rules, UI fixes",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Võ Minh Luân",
+     "subject": "fix(student-home): allow access to room and requests without allocation",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(mobile): students' app rewritten in Flutter (mobile/), android/ removed",
+     "areas": [
+      "CLAUDE.md",
+      "README.md",
+      "android",
+      "docs",
+      "infra",
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix: English term \"stay length\" instead of \"Gia hạn\"; web crashes, room map and XLSX templates",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): valid markup on Routing rules; detail pages out of the screen index; screen map reads lazy routes",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): Vietnamese texts for the eligibility details and three screen labels",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): valid markup on Routing rules; detail pages out of the screen index; screen map reads lazy routes",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): Vietnamese texts for the eligibility details and three screen labels",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "perf(web): load each page on its first visit; Vietnamese screen texts in their own chunk",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: BM02 self-review report with the team's responses",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: diagrams as draw.io files, ERDs in Chen's notation; self-review fixes",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Review 2 documents (Reports 1–5, Design Brief, registration form 2.0, test workbooks)",
+     "areas": [
+      ".gitignore",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-28",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Review 2 reports in progress (Report 1, diagrams, report build tools)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(cfg): demo data tool with stages 0, A, B and C",
+     "areas": [
+      "CLAUDE.md",
+      "backend",
+      "docs",
+      "infra",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): import the Rooms a Term leaves out from Excel or CSV",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): back-office search label on one line, full sidebar labels",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): student Home scrolls and shows the Term timeline as one row",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: production email, push and VietQR settings applied",
+     "areas": [
+      "CLAUDE.md",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Android push and Google sign-in",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(android): push notifications and Google sign-in",
+     "areas": [
+      "android"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: QR labels and the Android app built; C-45",
+     "areas": [
+      "CLAUDE.md",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(android): student app — Home, My Room, Payments, Activity",
+     "areas": [
+      "android"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): printable QR labels of furniture asset codes",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phases 7-8 merged into main and deployed",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): time left on requests, Room hub, search, room checks and check-out damage",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(ops): SLA deadlines, Room and Term hubs, search, room checks and check-out damage",
+     "areas": [
+      "CLAUDE.md",
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 6 merged into main and deployed",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): Term transition screens, reconciliation, operational moves, next-Term requests",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-27",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(asg): Term transition — Stays, requests window, next-Term fees, reconciliation, turnover",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 5 merged into main and deployed",
+     "areas": [
+      "CLAUDE.md",
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): payment claims, Payment confirmations, terminations, door code and Gia hạn",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(bil): payment claims, residence, forfeits, Utility warnings and terminations",
+     "areas": [
+      "CLAUDE.md",
+      "README.md",
+      "backend",
+      "docs",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: Change Specification v2 phase 4 merged into main and deployed",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(web): registration periods — requests, Term wizard, announcements, board",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-10-26",
+     "author": "Lê Thành Minh Trung",
+     "subject": "feat(cfg): registration-period requests, Term wizard with Term prices, announcements",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "commits": [
+    {
+     "date": "2026-11-05",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Term schedule and Manager overview as auto-advancing tabs",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-05",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): the student's Term label says what the Term is to them",
+     "areas": [
+      "web"
+     ]
+    }
+   ]
+  },
+  {
+   "week": 10,
+   "commits": [
+    {
+     "date": "2026-11-15",
+     "author": "Võ Minh Luân",
+     "subject": "fix(ann): AnnouncementIT expects the Vietnamese glossary's \"Tiền đặt cọc\"",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(bil): ERD links as foreign keys (meter reading, check-out and application refunds, audit actor)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(mobile): Home as feature tiles, three tabs and an Account page",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): no language switch on the sign-in pages; it stays inside the app",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): one set of date and time pickers for the whole app",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): My work rows open their request, one StatusBadge, tooltips on cut text",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): one source for dates, numbers and money; sentence-case English; VI glossary",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): tables space their columns evenly and keep short values on one line",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): the language switch keeps the screen in place and the student top bar spans the window",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-15",
+     "author": "Võ Minh Luân",
+     "subject": "docs: Postman collection regenerated with Family Day and students' contacts",
+     "areas": [
+      "docs",
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-11-14",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(mobile): every student feature of the web, with a phone-first layout",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-14",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): tooltips explain the important actions and figures",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-14",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(auth): students edit their contact details and several emergency contacts on My profile",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): My profile redesigned for every role, showing only what the API returns",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): flow breadcrumb fits on one row, details move into tooltips",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): lighter header band with the FPT logo; shift status and bell redesigned",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Võ Minh Luân",
+     "subject": "docs: Family Day overdue guests and statistics in the contract, endpoint map, catalogs and test script",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): overdue guests at the desk and for students; Family Day statistics screens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-13",
+     "author": "Võ Minh Luân",
+     "subject": "feat(vis): overdue Family Day guests are reminded and confirmed safe; Family Day statistics",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): the visitor desk reads QR passes with the webcam on any browser",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Võ Minh Luân",
+     "subject": "fix(docs): Family Day time helper picks the database that has Family Day",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Võ Minh Luân",
+     "subject": "fix(docs): Family Day time helper picks the database that has Family Day",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(web): Family Day form picks days and hours from a calendar, and the place from three common areas",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): Family Day statuses say what they mean; Audit Log actions stay in their column",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(vis): Family Day entries can be found with the Audit Log action filter",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(vis): the visitor desk says why a pass is refused in Vietnamese",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): the visitor desk list shows every guest",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(vis): show who cancelled a Family Day registration and when",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-11",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): show the Registrations list on the Family Day page",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "docs: Family Day manual test script and its time helper",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "docs: Family Day in the contract, endpoint map, brief and assistant guide",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Family Day screens for Managers, the visitor desk and students",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "feat(vis): Family Day API for Managers, residents and the visitor desk",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "feat(vis): Family Day tables and the Managers' service",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-10",
+     "author": "Võ Minh Luân",
+     "subject": "Add files via upload",
+     "areas": [
+      "docs"
+     ]
+    }
+   ]
+  },
+  {
+   "week": 11,
+   "commits": [
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin filter bars show their whole text",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): ambiguous decimals and blank refund percent (wave 2 minors M1, M2)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): Admin pages from the wave 2 review",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): Staff and Manager pages from the wave 2 review",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): student invitation, session store, payment states, all-Term invoices (wave 2)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin pages open their drawers as a centred dialog",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "chore(postman): regenerate the collection from the Wave 2 backend (REPO-03)",
+     "areas": [
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "ci,docs: pinned host key, backup before deploy, rollback, docs up to date (wave 2)",
+     "areas": [
+      ".github",
+      "CLAUDE.md",
+      "README.md",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix: deferred minors M3-M7 (wave 2)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Room tiers list their Rooms in a drawer instead of a Block summary",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(platform): assistant history cap, campaign reads, workbook limits, dead settings (wave 2)",
+     "areas": [
+      "backend",
+      "tools"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): run the unit tests by glob so Node 22 CI finds them",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(staff-ui): prevent VND wrapping in settlement modal and use explicit navigate for back button",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): refine InspectionChecklist UI and complete VI/EN i18n across inspections and check-out",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(i18n): add missing Vietnamese translations for check-out flow",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): place All tab first in CheckOutOverview status tabs",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): flatten furniture rows, remove redundant button, and show shared split formula",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): improve readability and typography in furniture summary and settlement",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): widen furniture status select and improve item/price hierarchy",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): compact CheckOutOverview header and unify StudentCheckOutPage with sticky segment anchors",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(staff-ui): refine CheckOutDesk multi-page UI following unslop and hallmark audit",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): Staff work, enrollment outcomes and repeated lists (wave 2)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(staff-ui): pass query and live callbacks to FurnitureConditions",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(staff-ui): import TableStatus in checkOutShared",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): split CheckOutDesk into independent queue and processing pages",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(asg,req,auth): residence and request follow-ups (wave 2)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): npm test runs the test files instead of failing on a directory",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Stay and renewal moves into System parameters; its page is removed",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): terminations and late check-ins move into System parameters",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Deadlines and reminders move into System parameters; their page is removed",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Utility settings move into System parameters; their page is removed",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): the Deposit moves into System parameters; its page is removed",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin pages drop their subtitles and the \"Set up a term\" trail",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): friendlier Registration-period requests page",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin overview funnel steps show only their count and bar",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin overview funnel drops the \"−n\" badge on its steps",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin overview shows occupancy by Block instead of \"Not in the funnel\"",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Vietnamese overview says \"Phiếu đăng ký\" instead of \"Phễu đăng ký\"",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin overview with even KPI tiles, a cleaner funnel and shortcuts",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): refactor CheckOutDesk into 3-step guided workflow preserving all logic and APIs",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): simpler Admin overview with the Term tiles and a step-by-step funnel",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): refactor StaffDashboard work queue segmented tabs, orange actions, and compact stats",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): polish check-in inventories comparison, actions, and tooltips",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(inv): guard promised Beds and Term prices (wave 2)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(mobile): inventory photos are taken with the camera",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "test: the tests the review asked for (Google token checks, signed file links, email retries, shared damage split, in-stay furniture report) and JaCoCo coverage",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): compact check-in inventory queue header, tabs and filters",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): the check-out summary stays open after its draft save",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): staff check-in inventory review as a multi-screen flow",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): Mark paid shows why it failed (409 another Manager, 403, server error)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): Caddy drops client Forwarded headers; a per-account ceiling across clients; per-client limit fits a shared school network",
+     "areas": [
+      "backend",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): check-in report diff and severity helpers with node tests",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(asg): bound check-in inventory meters by Report 1",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(mobile): the check-in inventory follows the web, with a Check-in tile on Home",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(mobile): assistant history is cleared on sign-out; turns carry their signature",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "ci(web): build, unit tests and i18n check on every web change; one translation per key",
+     "areas": [
+      ".github",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): reopen only resolved requests; late check-in deadline cannot be past; term wizard reloads between steps and validates numbers; refunds can be marked paid",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): stay extension options from the server; contract number from the Application id; Family Days on phones; assistant turns carry their signature",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): check-out and meter readings keep decimals; the read-aloud summary uses the readings on screen",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): one decimal parser for vi/en numbers; CSV cells cannot start a formula",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(plt): SLA rate uses stored deadlines; assistant drops unsigned turns and survives a failing section; email sends outside transactions with timeouts; notifications are cut to size; wizard checks the timeline; floor chart per Block; renewal link fixed",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(req): escalations use the stored deadline; temporary-bed action notifies; room-change timer applies; routing types limited; closing needs a resolution; bulk approval keeps students in their Block",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(auth): per-client limiter on sign-in and password reset; lockout no longer lets strangers lock the owner; shift gate maps inventory rooms; wrong content type is 415",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(asg): moves wait for open terminations; overdue terminations are not cancelled; check-out reasons survive a cancelled termination; jobs isolate failures; residents losing their next-Term Bed are told",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(asg): continuing residents can check out; check-out settles once; shared damage charges the roommates of the check-out; furniture reports attach to the current stay",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(asg): round-2 offers and moves skip Beds proposed in live runs; resolving into a committed Block is refused; taken Beds become conflicts",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(bil): finance reads need VIEW_FINANCE; refunds can be marked paid; rejected applications refund in full; periods close after they end",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-22",
+     "author": "Lê Thành Minh Trung",
+     "subject": "test: regression tests for the Wave 1 findings (red until fixed)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "test: reproduction tests for the review findings (expected to fail until fixed)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(mobile): the screens behind Home's tiles follow the web's new student pages",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Audit log keeps only how long entries are kept under its title",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Furniture types has a shorter description",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Terms drops the Requests shortcut; Requests is the menu item above",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Send email drops the Templates shortcut and the note under the preview title",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Deposit drops the box listing where the other settings are; the menu shows them",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Room tiers has a one-line description and no repeated preview note",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Room types drops the price-change box; the save message says it",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): the Admin menu lists Demo data only when the server has the demo tools on",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin › Notification templates groups the 73 templates, searches them, writes messages in a multi-line box and drops the Send email shortcut",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(mnt,web): Admin › Inspection checklists hides Delete for a checklist a schedule or run used (inUse) and speaks of the four conditions",
+     "areas": [
+      "backend",
+      "tools",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Admin › Rules › Room handover holds the 13 room handover parameters; System parameters leaves them out",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin settings pages (Deadlines, Refunds, Stay) say when a change applies in one line instead of a box",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(cfg): Admin › Stay and renewal no longer lists the emergency contacts limit; it moves to System parameters › Students (V97)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(cfg): Admin › Deadlines and reminders keeps payment windows only; Family Day and meter closing move to System parameters (V96)",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Roommate matching calls its list Processing order and points to the priority groups",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Who may apply names its list Priority groups, points to the processing order, and keeps one line instead of the warning box",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Admin › Buildings points to Manager › Room tiers by term and has a one-line description",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: SEP490 StudentGuide stays on the team machines only (untracked, ignored, skipped by sync-docs)",
+     "areas": [
+      ".gitignore",
+      "docs",
+      "tools"
+     ]
+    },
+    {
+     "date": "2026-11-21",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(tools): sync-docs stops before overwriting a newer destination copy; the API contract no longer points at the removed change log",
+     "areas": [
+      "README.md",
+      "tools"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "chore: tools/sync-docs.ps1 mirrors the SEP490 documents from Google Drive into docs/ with robocopy",
+     "areas": [
+      "README.md",
+      "tools"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: replace docs/ with the SEP490 document tree (Topic, SEP490_Report, Review 2 forms, Diagrams); old Review 2 material stays in history",
+     "areas": [
+      ".gitignore",
+      "CLAUDE.md",
+      "PRODUCT.md",
+      "README.md",
+      "backend",
+      "build",
+      "docs",
+      "tools",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "chore: move the Postman generator and API contract from docs/ to tools/postman/",
+     "areas": [
+      "CLAUDE.md",
+      "PRODUCT.md",
+      "README.md",
+      "backend",
+      "mobile",
+      "postman",
+      "tools",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Lê Thành Minh Trung",
+     "subject": "docs: keep the change history (Record of Changes and Decision Log) in docs/CHANGELOG.md",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "chore: update generated modulith javadoc",
+     "areas": [
+      "build"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(inspections): sync submitted/completed schedule actions, jump to run stats, and remove 30s auto-reload flicker",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "chore: renumber the Staff workload migrations to V90–V95 and their contract entries to A-77…A-80",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(ui): stabilize check-out meter state on refetch, focus print preview, and guard empty blank-form print",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Staff › My schedule drops the page description",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(handover): sync admin furniture condition levels, item status/condition across flows, and tabbed report printing",
+     "areas": [
+      "backend",
+      "build",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): Work schedule no longer shows \"No staff\" above the staff list; search staff by name",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Manager › Staff pages drop the page descriptions and the three explainer cards",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "docs(web): weekSchedule.next comment lists the reminder fields",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Manager › Staff › Work schedule (week grid) and Staff › My schedule with this week and next week",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): a Staff schedule per week — plan next week without changing this week",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(handover): shared damage split details, schedule completion, and printable blank/batch inspection forms",
+     "areas": [
+      "backend",
+      "build",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): Admin chooses the day and hour of the weekly schedule reminder (or turns it off)",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): detail panels of inventories and check-outs in the maintenance style",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): fill the left column of My room › Contract & utilities",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): condition guide beside the student's check-in inventory",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): split shared furniture damage among the Room's residents at check-out",
+     "areas": [
+      "backend",
+      "build",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): maintenance detail shows what the inspection found",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): handles grouped by the Staff menu; next-week schedule banner with Send",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): Staff handles follow the Staff portal; weekly schedule handover with a Sunday reminder",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): print blank Report 1 forms and pick conditions from a dropdown",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Staff › My schedule — weekly timetable, shift now and next, work assigned",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(handover): check-out detail loads, live meter checks, completed runs with results",
+     "areas": [
+      "backend",
+      "build",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): weekly shift editor as a week — one line per day, shifts as chips, presets and 24-hour custom hours",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): staff table actions pinned on the right as icons; Status and Work shift columns named apart",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): shift confirmation dialog passes its icon as an element",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "fix(auth): one shift confirmation for changes refused together; empty shift rows answer 400",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): shift editor, Shift column, Staff confirmation dialog and Manager › Staff activity",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-20",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): Staff shifts set by Managers; changes outside the shift or the work need confirmation and are recorded",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): Final report signed in the Room and kept until check-out",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(mnt): the turnover checklist keeps only the Room's furniture and meters",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(handover): refine inspection scope, schedule assignment, check-out guard, and student home sync",
+     "areas": [
+      "backend",
+      "build",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(handover,admin): complete checklist CRUD & vi labels, fix system parameters types, speed up Stage D reset, and streamline web inspection form",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(demo): stage D resets cleanly; last texts in Vietnamese",
+     "areas": [
+      "backend",
+      "build",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): inspections as Report 1: every assigned run, photos, report export; manager tabs and Block filter",
+     "areas": [
+      "backend",
+      "build",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(handover): enhance check-in inventory details, check-out furniture flow, status filter, and student declarations",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(check-out): automate furniture charge by condition rate, summarize damages and unify student settlement review",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(meters): show previous readings with date for staff/manager and prevent baseline leak to student",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Staff and workload table fits the page; duty shown read only",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): duty follows sign-in — on duty when signed in, off on sign-out or when idle",
+     "areas": [
+      "backend",
+      "docs",
+      "postman"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(mnt,web): localize inspection schedules, checklists, staff handles and assignees",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat: remove room class change requests; redesign the turnover",
+     "areas": [
+      "backend",
+      "docs",
+      "mobile",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): room handover UI review: inventory review, three reports, visit-only major differences, wider desks",
+     "areas": [
+      "backend",
+      "docs",
+      "mobile",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "docs: block-staff work endpoints verified (mvn verify, 251 tests)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "fix(auth): read a person's work without a row lock; duty note in TC-AUTH-020",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): the check-in inventory shows its start before any item is answered; its conditions in Vietnamese",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(demo): a reset brings back furniture marked broken while trying a stage",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: demo script of the room handover on stage D, happy and unhappy cases",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(inv): stock by Block, personal furniture follows its Bed, desk waits for the check-in inventory",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "Merge remote-tracking branch 'origin/main' into feat/room-handover",
+     "areas": [
+      "backend",
+      "docs",
+      "mobile",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): Manager › Staff and workload — columns per kind, Overloaded, Block queue, Work drawer with reassign",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Võ Minh Luân",
+     "subject": "feat(auth): Manager › Staff and workload — open work by kind, overdue, Block queue, reassign",
+     "areas": [
+      "backend",
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): add student billing tabs (Invoices & fees / Refund items) and room contract cards",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(inv): sample real prices for the base furniture types",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: stage D test script; wider scenario column on the Demo data page",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(demo): stage D, the check-in week of the next Term",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(demo): a valid timeline in every stage",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(asg): meter tolerance counts the person-hours lived in the Room",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): Staff review an inspection run and commit to it before sending",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(demo): the check-in inventory students hold an Application",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(inv): starting furniture prices in the dev and test base data",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: manual test script of the room handover with the known gaps",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(inv): furniture types get a use, a real price and condition levels",
+     "areas": [
+      "backend",
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "fix(cfg): the demo scenario list keeps its columns",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "fix(web): a term wizard step with issues left shows a warning, not a green check",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "fix(mobile): the bar under a page rises above the keyboard",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(web): occupancy and finance reports move from Admin to the Manager portal",
+     "areas": [
+      "docs",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-19",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(ntf): a hand-written announcement can open a student page from the board",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Trần Võ Quang Duy",
+     "subject": "feat(web): redesign manager maintenance and assignment screens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mobile): students file the check-in inventory and answer furniture charges on the app",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs(assistant): the students' assistant knows the check-in inventory and furniture charges",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: API contract A-72 for the room handover",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: test catalog and screen map with the room handover tests and screens",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "test(asg): integration tests of the check-in inventory and check-out charges",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(i18n): Vietnamese texts of the room handover error messages",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Vietnamese texts of the room handover screens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Admin sets Personal or Shared furniture and the price grid",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Managers keep or drop check-out charges a student did not accept",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): check-out desk records furniture by condition",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): students receive their Room with a check-in inventory",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Staff and Managers review check-in inventories",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Staff inspect furniture as Good, Worn, Damaged or Missing with meters",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): API endpoints for check-in inventories and check-out furniture",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(demo): check-in inventory, pre-arrival inspection and furniture charges",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(inv): demo door codes for every Room again",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(inv): Admin sets furniture scope and replacement prices per Room Class",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): endpoints for check-out furniture, damage claims and Manager reviews",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): furniture at check-out agreed by the student at the desk",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): compute furniture charges from conditions and the price list",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): endpoints for the check-in inventory",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): Staff review check-in inventories and the deadline job closes late ones",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): students start, fill in and submit the check-in inventory",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): check-in inventory records, baseline and finalisation",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): count Utility from the check-in inventory's meter reading",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): new residents receive the door code when they start the inventory",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): inspection records for the check-in inventory and requests for damage found",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): compare a check-in inventory with the Room's record",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(ntf): notify students and Staff about check-in inventories and furniture charges",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(ntf): templates for the check-in inventory, visits and damage to confirm",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): pre-arrival inspections with conditions, meters and store restock",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(bil): latest meter reading and dated meter cuts for other features",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(inv): furniture lines, prices and store restock through the Inventory port",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(asg): check-in inventory, conditions at check-out and damage claims schema",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(cfg): room handover and compensation parameters",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(inv): personal and shared furniture with prices per Room Class",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(mnt): record furniture conditions and meters in inspections",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-18",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "test(web): Vitest suite for the UI kit, helpers and the check-in/check-out desks",
+     "areas": [
+      ".github",
+      ".gitignore",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): balance manager dashboard cards, inner scrolling, and viewport shell",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): resolve P0 desk flows, transfer confirmation, and missing color tokens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 business rules catalogue (section 3.10) from the backend code",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 figures 27, 28, 29, 32, 34, 36, 38 match the code",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: conceptual ERD matches the schema (Termination of a Contract, Refund of an Invoice, a student invited many times); team draw.io sources of the Utility and Family Day figures",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 Figure 5 from the team's draw.io conceptual ERD (CampusStay_Diagrams_EN_v2, page 1)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(web): redesign student portal UI (home, my room, application detail, registration period, invoice payment)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "style(web): polish Inventory room map & detail panel, fix Impeccable layout/padding/measure findings",
+     "areas": [
+      "DESIGN.md",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 state machines and activity diagrams redrawn by hand as draw.io files",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-17",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 activity diagrams for the WF-01 check-in flow and the WF-04 swap request, checked against the code",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: conceptual ERD image at 1.5x (Google Docs image size limit)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "docs: Report 4 conceptual ERD redrawn upright for a portrait page (40 entities)",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): sign-in pages on the shared Button; error halo; profile and registration tokens",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): student pages for phones — visible photo remove, file picker, list errors",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): manager pages — duty status not by colour alone, milestone states read out",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): admin reports on the shared Table; dense table size and row headers",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): staff pages on the shared UI kit; unpaid beds visible again on the room map",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): UI kit accessibility pass — dialog focus, field messages, reduced motion",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): Staff Today rebuilt around one shared SemesterProgress",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): one shared set of date and time pickers",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): room-change review lists matching beds in a short scroll box with a 'View all' dialog (search + floor filter)",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): turnover totals back as tiles, lower sections never cut, task chips say what to do",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): turnover keeps the residents staying in their room when nobody moves",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): status pills with a thin border; work rows keep their badges on the right",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "fix(web): meter readings show every room of a closed period",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): turnover tab centred on the rooms to hand over",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(web): meter readings table takes the screen, readings typed in the rows",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Trần Võ Quang Duy",
+     "subject": "fix(mobile): a board announcement in Notifications opens in its sheet",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "test(ast): TC-AST-009 signs in a student who exists in the test seed",
+     "areas": [
+      "backend"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "fix(web): StudentLayout reads the signed-in user it keys the assistant chat by",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "docs: test catalog with TC-AST-009",
+     "areas": [
+      "docs"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "fix(ast): each student's chat stays theirs; answers in the language the student writes",
+     "areas": [
+      "backend",
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "fix(ast): the tunnel self-test skips ngrok's browser warning page",
+     "areas": [
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-11-16",
+     "author": "Võ Minh Luân",
+     "subject": "feat(ast): production's assistant on a team member's Ollama through an ngrok tunnel",
+     "areas": [
+      "infra"
+     ]
+    }
+   ]
+  },
+  {
+   "week": 12,
+   "commits": [
+    {
+     "date": "2026-11-23",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix: final review of wave 2 — released inspections, pre-deploy backups",
+     "areas": [
+      ".github",
+      "backend",
+      "infra"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(web): final review — photos on damaged furniture, no Save with an unreadable reading",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): the Admin overview drops money and keeps its shortcuts inside the card",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): a Room tier can be renamed while it is inactive",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Nguyễn Xuân Lộc",
+     "subject": "feat(staff-ui): refactor InspectionChecklist two-page flow, fix check-out render loop, and update checkin-reports navigation",
+     "areas": [
+      "web"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(req,bil,cfg): server side of the wave 2 web findings",
+     "areas": [
+      "backend",
+      "tools"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Lê Thành Minh Trung",
+     "subject": "fix(mobile): push taps, sign-out token, timeouts, uploads, refresh, Family Day, confirmations (wave 2)",
+     "areas": [
+      "mobile"
+     ]
+    },
+    {
+     "date": "2026-11-23",
+     "author": "Võ Minh Luân",
+     "subject": "feat(web): the Admin overview fits one screen with a chart per question",
+     "areas": [
+      "web"
+     ]
+    }
+   ]
+  }
+ ],
+ "docChanges": [
+  {
+   "date": "2026-11-23",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix: final review of wave 2 — released inspections, pre-deploy backups",
+   "paths": [
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-23",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(req,bil,cfg): server side of the wave 2 web findings",
+   "paths": [
+    "tools/postman/api-contract.md"
+   ]
+  },
+  {
+   "date": "2026-11-23",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(mobile): push taps, sign-out token, timeouts, uploads, refresh, Family Day, confirmations (wave 2)",
+   "paths": [
+    "mobile/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "ci,docs: pinned host key, backup before deploy, rollback, docs up to date (wave 2)",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(platform): assistant history cap, campaign reads, workbook limits, dead settings (wave 2)",
+   "paths": [
+    "tools/postman/api-contract.md"
+   ]
+  },
+  {
+   "date": "2026-11-22",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "fix(asg): bound check-in inventory meters by Report 1",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-21",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat(mobile): the screens behind Home's tiles follow the web's new student pages",
+   "paths": [
+    "mobile/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-21",
+   "author": "Võ Minh Luân",
+   "subject": "fix(mnt,web): Admin › Inspection checklists hides Delete for a checklist a schedule or run used (inUse) and speaks of the four conditions",
+   "paths": [
+    "tools/postman/api-contract.md"
+   ]
+  },
+  {
+   "date": "2026-11-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: SEP490 StudentGuide stays on the team machines only (untracked, ignored, skipped by sync-docs)",
+   "paths": [
+    "docs/SEP490_Report/SEP490 StudentGuide_Fall 2023.docx"
+   ]
+  },
+  {
+   "date": "2026-11-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(tools): sync-docs stops before overwriting a newer destination copy; the API contract no longer points at the removed change log",
+   "paths": [
+    "README.md",
+    "tools/postman/api-contract.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "chore: tools/sync-docs.ps1 mirrors the SEP490 documents from Google Drive into docs/ with robocopy",
+   "paths": [
+    "README.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: replace docs/ with the SEP490 document tree (Topic, SEP490_Report, Review 2 forms, Diagrams); old Review 2 material stays in history",
+   "paths": [
+    "CLAUDE.md",
+    "PRODUCT.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/Diagrams/.gitkeep",
+    "docs/SEP490_R2_BM04_Review2-Document/SWP490_R2_BM01_Design_Brief_1.docx",
+    "docs/SEP490_R2_BM04_Review2-Document/SWP490_R2_BM02_Self_Review_Report_1.docx",
+    "docs/SEP490_R2_BM04_Review2-Document/SWP490_R2_BM03_Record_of_Changes_1.docx",
+    "docs/SEP490_R2_BM04_Review2-Document/SWP490_R2_BM04_Review2_Commitment_1.docx",
+    "docs/SEP490_R2_BM04_Review2-Document/SWP490_R2_Huong-dan-chuan-bi-Review-2_1.pdf",
+    "docs/SEP490_Report/Project Weekly Report_GroupName.xlsx",
+    "docs/SEP490_Report/Report1_Project Introduction.docx",
+    "docs/SEP490_Report/Report2_Project Management Plan.docx",
+    "docs/SEP490_Report/Report2_Sample Project Schedule.pdf",
+    "docs/SEP490_Report/Report2_Sample Project Schedule.pod",
+    "docs/SEP490_Report/Report3_Project Tracking.xlsx",
+    "docs/SEP490_Report/Report3_Software Requirement Specification.docx",
+    "docs/SEP490_Report/Report4_Software Design Document.docx",
+    "docs/SEP490_Report/Report5_Test Documentation.docx",
+    "docs/SEP490_Report/Report5_Test Report.xlsx",
+    "docs/SEP490_Report/Report5_Unit Test.xls",
+    "docs/SEP490_Report/Report6_Software User Guides.docx",
+    "docs/SEP490_Report/Report7_Final Project Report.docx",
+    "docs/SEP490_Report/SEP490 StudentGuide_Fall 2023.docx",
+    "docs/Topic/Phieu_FA26SE260.docx",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/design/Backend_Answers_UX_Review.md",
+    "docs/design/Backend_Questions_UX_Review.md",
+    "docs/diagrams/act-wf01-registration.drawio",
+    "docs/diagrams/act-wf02-term-opening.drawio",
+    "docs/diagrams/act-wf03-term-transition.drawio",
+    "docs/diagrams/act-wf04-maintenance.drawio",
+    "docs/diagrams/act-wf05-utility.drawio",
+    "docs/diagrams/architecture.drawio",
+    "docs/diagrams/backend-overview.drawio",
+    "docs/diagrams/backend-production.drawio",
+    "docs/diagrams/class-application-billing.drawio",
+    "docs/diagrams/class-assignment.drawio",
+    "docs/diagrams/class-auth.drawio",
+    "docs/diagrams/class-maintenance.drawio",
+    "docs/diagrams/class-transition.drawio",
+    "docs/diagrams/class-utility-term.drawio",
+    "docs/diagrams/context.drawio",
+    "docs/diagrams/deployment.drawio",
+    "docs/diagrams/erd-app.drawio",
+    "docs/diagrams/erd-asg.drawio",
+    "docs/diagrams/erd-auth.drawio",
+    "docs/diagrams/erd-bil.drawio",
+    "docs/diagrams/erd-cfg.drawio",
+    "docs/diagrams/erd-inv.drawio",
+    "docs/diagrams/erd-main.drawio",
+    "docs/diagrams/erd-mnt.drawio",
+    "docs/diagrams/erd-ntf.drawio",
+    "docs/diagrams/erd-req.drawio",
+    "docs/diagrams/erd-shared.drawio",
+    "docs/diagrams/out/act-wf01-registration.png",
+    "docs/diagrams/out/act-wf02-term-opening-r.png",
+    "docs/diagrams/out/act-wf02-term-opening.png",
+    "docs/diagrams/out/act-wf03-term-transition.png",
+    "docs/diagrams/out/act-wf04-maintenance.png",
+    "docs/diagrams/out/act-wf05-utility.png",
+    "docs/diagrams/out/architecture.png",
+    "docs/diagrams/out/backend-overview-r.png",
+    "docs/diagrams/out/backend-overview.png",
+    "docs/diagrams/out/backend-production.png",
+    "docs/diagrams/out/class-application-billing-r.png",
+    "docs/diagrams/out/class-application-billing.png",
+    "docs/diagrams/out/class-assignment-r.png",
+    "docs/diagrams/out/class-assignment.png",
+    "docs/diagrams/out/class-auth-r.png",
+    "docs/diagrams/out/class-auth.png",
+    "docs/diagrams/out/class-maintenance-r.png",
+    "docs/diagrams/out/class-maintenance.png",
+    "docs/diagrams/out/class-transition-r.png",
+    "docs/diagrams/out/class-transition.png",
+    "docs/diagrams/out/class-utility-term-r.png",
+    "docs/diagrams/out/class-utility-term.png",
+    "docs/diagrams/out/context-r.png",
+    "docs/diagrams/out/context.png",
+    "docs/diagrams/out/deployment.png",
+    "docs/diagrams/out/erd-app-r.png",
+    "docs/diagrams/out/erd-app.png",
+    "docs/diagrams/out/erd-asg-r.png",
+    "docs/diagrams/out/erd-asg.png",
+    "docs/diagrams/out/erd-auth.png",
+    "docs/diagrams/out/erd-bil.png",
+    "docs/diagrams/out/erd-cfg.png",
+    "docs/diagrams/out/erd-inv-r.png",
+    "docs/diagrams/out/erd-inv.png",
+    "docs/diagrams/out/erd-main-r.png",
+    "docs/diagrams/out/erd-main.png",
+    "docs/diagrams/out/erd-mnt-r.png",
+    "docs/diagrams/out/erd-mnt.png",
+    "docs/diagrams/out/erd-ntf-r.png",
+    "docs/diagrams/out/erd-ntf.png",
+    "docs/diagrams/out/erd-req.png",
+    "docs/diagrams/out/erd-shared.png",
+    "docs/diagrams/out/package-backend-r.png",
+    "docs/diagrams/out/package-backend.png",
+    "docs/diagrams/out/package-clients-r.png",
+    "docs/diagrams/out/package-clients.png",
+    "docs/diagrams/out/process.png",
+    "docs/diagrams/out/screens-admin.png",
+    "docs/diagrams/out/screens-manager.png",
+    "docs/diagrams/out/screens-staff.png",
+    "docs/diagrams/out/screens-student-r.png",
+    "docs/diagrams/out/screens-student.png",
+    "docs/diagrams/out/seq-apply-pay-r.png",
+    "docs/diagrams/out/seq-apply-pay.png",
+    "docs/diagrams/out/seq-assignment-r.png",
+    "docs/diagrams/out/seq-assignment.png",
+    "docs/diagrams/out/seq-door-code-r.png",
+    "docs/diagrams/out/seq-door-code.png",
+    "docs/diagrams/out/seq-google-signin-r.png",
+    "docs/diagrams/out/seq-google-signin.png",
+    "docs/diagrams/out/seq-maintenance-r.png",
+    "docs/diagrams/out/seq-maintenance.png",
+    "docs/diagrams/out/seq-next-term-r.png",
+    "docs/diagrams/out/seq-next-term.png",
+    "docs/diagrams/out/seq-payment-claims.png",
+    "docs/diagrams/out/seq-request-lifecycle-r.png",
+    "docs/diagrams/out/seq-request-lifecycle.png",
+    "docs/diagrams/out/seq-term-publish-r.png",
+    "docs/diagrams/out/seq-term-publish.png",
+    "docs/diagrams/out/seq-utility-r.png",
+    "docs/diagrams/out/seq-utility.png",
+    "docs/diagrams/out/state-allocation-next.png",
+    "docs/diagrams/out/state-allocation.png",
+    "docs/diagrams/out/state-application.png",
+    "docs/diagrams/out/state-claim.png",
+    "docs/diagrams/out/state-door-code.png",
+    "docs/diagrams/out/state-invoice.png",
+    "docs/diagrams/out/state-late-check-in.png",
+    "docs/diagrams/out/state-maintenance.png",
+    "docs/diagrams/out/state-room-change.png",
+    "docs/diagrams/out/state-room-class-change.png",
+    "docs/diagrams/out/state-round2-offer.png",
+    "docs/diagrams/out/state-stay-request.png",
+    "docs/diagrams/out/state-stay.png",
+    "docs/diagrams/out/state-swap.png",
+    "docs/diagrams/out/state-term-request.png",
+    "docs/diagrams/out/state-termination.png",
+    "docs/diagrams/out/uc-admin.png",
+    "docs/diagrams/out/uc-manager.png",
+    "docs/diagrams/out/uc-staff.png",
+    "docs/diagrams/out/uc-student.png",
+    "docs/diagrams/package-backend.drawio",
+    "docs/diagrams/package-clients.drawio",
+    "docs/diagrams/process.drawio",
+    "docs/diagrams/screens-admin.drawio",
+    "docs/diagrams/screens-manager.drawio",
+    "docs/diagrams/screens-staff.drawio",
+    "docs/diagrams/screens-student.drawio",
+    "docs/diagrams/seq-apply-pay.drawio",
+    "docs/diagrams/seq-assignment.drawio",
+    "docs/diagrams/seq-door-code.drawio",
+    "docs/diagrams/seq-google-signin.drawio",
+    "docs/diagrams/seq-maintenance.drawio",
+    "docs/diagrams/seq-next-term.drawio",
+    "docs/diagrams/seq-payment-claims.drawio",
+    "docs/diagrams/seq-request-lifecycle.drawio",
+    "docs/diagrams/seq-term-publish.drawio",
+    "docs/diagrams/seq-utility.drawio",
+    "docs/diagrams/state-allocation-next.drawio",
+    "docs/diagrams/state-allocation.drawio",
+    "docs/diagrams/state-application.drawio",
+    "docs/diagrams/state-claim.drawio",
+    "docs/diagrams/state-door-code.drawio",
+    "docs/diagrams/state-invoice.drawio",
+    "docs/diagrams/state-late-check-in.drawio",
+    "docs/diagrams/state-maintenance.drawio",
+    "docs/diagrams/state-room-change.drawio",
+    "docs/diagrams/state-room-class-change.drawio",
+    "docs/diagrams/state-round2-offer.drawio",
+    "docs/diagrams/state-stay-request.drawio",
+    "docs/diagrams/state-stay.drawio",
+    "docs/diagrams/state-swap.drawio",
+    "docs/diagrams/state-term-request.drawio",
+    "docs/diagrams/state-termination.drawio",
+    "docs/diagrams/uc-admin.drawio",
+    "docs/diagrams/uc-manager.drawio",
+    "docs/diagrams/uc-staff.drawio",
+    "docs/diagrams/uc-student.drawio",
+    "docs/reports/data/dbmeta.json",
+    "docs/reports/data/selfreview.json",
+    "docs/reports/data/tables.json",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SEP490_FA26SE260_R2_Commitment.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report2.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/out/SEP490_FA26SE260_R2_SelfReview.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report2.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/out/SWP490_FA26SE260_R2_SelfReview.pdf",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report1.md",
+    "docs/reports/src/Report2.md",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/Report5.md",
+    "docs/reports/src/_authorization.md",
+    "docs/reports/src/_db-design.md",
+    "docs/reports/src/_demo-scenarios.md",
+    "docs/reports/src/_messages.md",
+    "docs/reports/src/_screens.md",
+    "docs/reports/src/_tc-count.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-nfr.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/_tc-states.md",
+    "docs/reports/src/_tc-workflows.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/build.mjs",
+    "docs/reports/src/r3-fr.md",
+    "docs/reports/src/r4-detail.md",
+    "docs/reports/src/tracking.mjs",
+    "docs/tests/Family_Day_Manual_Test.md",
+    "docs/tests/Room_Handover_Demo_Script.md",
+    "docs/tests/Room_Handover_Manual_Test.md",
+    "docs/tools/build-registration.ps1",
+    "docs/tools/build-report.ps1",
+    "docs/tools/build-test-workbooks.ps1",
+    "docs/tools/drawio-page.js",
+    "docs/tools/drawio.mjs",
+    "docs/tools/family-day-time.ps1",
+    "docs/tools/fill-form.ps1",
+    "docs/tools/fill-workbook.ps1",
+    "docs/tools/gen-db-docs.mjs",
+    "docs/tools/gen-srs-tables.mjs",
+    "docs/tools/gen-test-docs.mjs",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/tools/md2html.mjs",
+    "docs/web/01_Screen_Map.md",
+    "web/README.md",
+    "web/src/i18n/glossary.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "chore: move the Postman generator and API contract from docs/ to tools/postman/",
+   "paths": [
+    "CLAUDE.md",
+    "PRODUCT.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "mobile/README.md",
+    "tools/postman/api-contract.md",
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: keep the change history (Record of Changes and Decision Log) in docs/CHANGELOG.md",
+   "paths": [
+    "docs/CHANGELOG.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "chore: renumber the Staff workload migrations to V90–V95 and their contract entries to A-77…A-80",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): a Staff schedule per week — plan next week without changing this week",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): Admin chooses the day and hour of the weekly schedule reminder (or turns it off)",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(asg): split shared furniture damage among the Room's residents at check-out",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): Staff handles follow the Staff portal; weekly schedule handover with a Sunday reminder",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "feat(web): Staff › My schedule — weekly timetable, shift now and next, work assigned",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "fix(handover): check-out detail loads, live meter checks, completed runs with results",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): Staff shifts set by Managers; changes outside the shift or the work need confirmation and are recorded",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(asg): Final report signed in the Room and kept until check-out",
+   "paths": [
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(mnt): inspections as Report 1: every assigned run, photos, report export; manager tabs and Block filter",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): duty follows sign-in — on duty when signed in, off on sign-out or when idle",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat: remove room class change requests; redesign the turnover",
+   "paths": [
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(asg): room handover UI review: inventory review, three reports, visit-only major differences, wider desks",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/tests/Room_Handover_Demo_Script.md",
+    "docs/tests/Room_Handover_Manual_Test.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Võ Minh Luân",
+   "subject": "docs: block-staff work endpoints verified (mvn verify, 251 tests)",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "fix(demo): a reset brings back furniture marked broken while trying a stage",
+   "paths": [
+    "docs/tests/Room_Handover_Demo_Script.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: demo script of the room handover on stage D, happy and unhappy cases",
+   "paths": [
+    "docs/tests/Room_Handover_Demo_Script.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(inv): stock by Block, personal furniture follows its Bed, desk waits for the check-in inventory",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tests/Room_Handover_Manual_Test.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "Merge remote-tracking branch 'origin/main' into feat/room-handover",
+   "paths": [
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/reports/src/_screens.md",
+    "docs/tests/Room_Handover_Manual_Test.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Võ Minh Luân",
+   "subject": "feat(auth): Manager › Staff and workload — open work by kind, overdue, Block queue, reassign",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: stage D test script; wider scenario column on the Demo data page",
+   "paths": [
+    "docs/tests/Room_Handover_Manual_Test.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: manual test script of the room handover with the known gaps",
+   "paths": [
+    "docs/tests/Room_Handover_Manual_Test.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat(inv): furniture types get a use, a real price and condition levels",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat(web): occupancy and finance reports move from Admin to the Manager portal",
+   "paths": [
+    "docs/reports/src/_screens.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-18",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs(assistant): the students' assistant knows the check-in inventory and furniture charges",
+   "paths": [
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md"
+   ]
+  },
+  {
+   "date": "2026-11-18",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: API contract A-72 for the room handover",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-11-18",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: test catalog and screen map with the room handover tests and screens",
+   "paths": [
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 business rules catalogue (section 3.10) from the backend code",
+   "paths": [
+    "docs/reports/src/r4-business-rules.md"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 figures 27, 28, 29, 32, 34, 36, 38 match the code",
+   "paths": [
+    "docs/diagrams/report4-redraw/r4-fig27-class-auth.png",
+    "docs/diagrams/report4-redraw/r4-fig28-seq-google-signin.png",
+    "docs/diagrams/report4-redraw/r4-fig29-class-application-billing.png",
+    "docs/diagrams/report4-redraw/r4-fig32-seq-assignment.png",
+    "docs/diagrams/report4-redraw/r4-fig34-class-transition.png",
+    "docs/diagrams/report4-redraw/r4-fig36-class-maintenance.png",
+    "docs/diagrams/report4-redraw/r4-fig38-class-utility-term.png"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: conceptual ERD matches the schema (Termination of a Contract, Refund of an Invoice, a student invited many times); team draw.io sources of the Utility and Family Day figures",
+   "paths": [
+    "docs/diagrams/erd-conceptual-team.drawio",
+    "docs/diagrams/out/erd-conceptual-team.png",
+    "docs/diagrams/report4-redraw/CampusStay_Diagrams_EN_v2.drawio",
+    "docs/diagrams/report4-redraw/CampusStay_Family_Day_Diagrams_final.drawio"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 Figure 5 from the team's draw.io conceptual ERD (CampusStay_Diagrams_EN_v2, page 1)",
+   "paths": [
+    "docs/diagrams/erd-conceptual-team.drawio",
+    "docs/diagrams/out/erd-conceptual-team.png"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "style(web): polish Inventory room map & detail panel, fix Impeccable layout/padding/measure findings",
+   "paths": [
+    "DESIGN.md"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 state machines and activity diagrams redrawn by hand as draw.io files",
+   "paths": [
+    "docs/diagrams/report4-redraw/r4-act-wf01-check-in.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf01-check-in.png",
+    "docs/diagrams/report4-redraw/r4-act-wf01-registration.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf01-registration.png",
+    "docs/diagrams/report4-redraw/r4-act-wf02-term-opening.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf02-term-opening.png",
+    "docs/diagrams/report4-redraw/r4-act-wf03-term-transition.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf03-term-transition.png",
+    "docs/diagrams/report4-redraw/r4-act-wf04-maintenance.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf04-maintenance.png",
+    "docs/diagrams/report4-redraw/r4-act-wf04-swap.drawio",
+    "docs/diagrams/report4-redraw/r4-act-wf04-swap.png",
+    "docs/diagrams/report4-redraw/r4-state-application.drawio",
+    "docs/diagrams/report4-redraw/r4-state-application.png",
+    "docs/diagrams/report4-redraw/r4-state-invoice.drawio",
+    "docs/diagrams/report4-redraw/r4-state-invoice.png",
+    "docs/diagrams/report4-redraw/r4-state-maintenance.drawio",
+    "docs/diagrams/report4-redraw/r4-state-maintenance.png",
+    "docs/diagrams/report4-redraw/r4-state-room-change.drawio",
+    "docs/diagrams/report4-redraw/r4-state-room-change.png",
+    "docs/diagrams/report4-redraw/r4-state-swap.drawio",
+    "docs/diagrams/report4-redraw/r4-state-swap.png",
+    "docs/diagrams/report4-redraw/r4-state-termination.drawio",
+    "docs/diagrams/report4-redraw/r4-state-termination.png"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 activity diagrams for the WF-01 check-in flow and the WF-04 swap request, checked against the code",
+   "paths": [
+    "docs/diagrams/act-wf01-check-in.svg",
+    "docs/diagrams/act-wf04-swap.svg",
+    "docs/diagrams/out/act-wf01-check-in.png",
+    "docs/diagrams/out/act-wf04-swap.png",
+    "docs/diagrams/out/act-wf05-utility-payment.png"
+   ]
+  },
+  {
+   "date": "2026-11-16",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: conceptual ERD image at 1.5x (Google Docs image size limit)",
+   "paths": [
+    "docs/diagrams/out/erd-conceptual.png"
+   ]
+  },
+  {
+   "date": "2026-11-16",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "docs: Report 4 conceptual ERD redrawn upright for a portrait page (40 entities)",
+   "paths": [
+    "docs/diagrams/erd-conceptual.svg",
+    "docs/diagrams/out/erd-conceptual.png"
+   ]
+  },
+  {
+   "date": "2026-11-16",
+   "author": "Võ Minh Luân",
+   "subject": "docs: test catalog with TC-AST-009",
+   "paths": [
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-16",
+   "author": "Võ Minh Luân",
+   "subject": "feat(ast): production's assistant on a team member's Ollama through an ngrok tunnel",
+   "paths": [
+    "infra/assistant/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-15",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat(mobile): Home as feature tiles, three tabs and an Account page",
+   "paths": [
+    "mobile/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-15",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(web): one source for dates, numbers and money; sentence-case English; VI glossary",
+   "paths": [
+    "docs/i18n-glossary.md"
+   ]
+  },
+  {
+   "date": "2026-11-15",
+   "author": "Võ Minh Luân",
+   "subject": "docs: Postman collection regenerated with Family Day and students' contacts",
+   "paths": [
+    "docs/tools/generate-postman.mjs"
+   ]
+  },
+  {
+   "date": "2026-11-14",
+   "author": "Trần Võ Quang Duy",
+   "subject": "feat(mobile): every student feature of the web, with a phone-first layout",
+   "paths": [
+    "mobile/README.md"
+   ]
+  },
+  {
+   "date": "2026-11-14",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(auth): students edit their contact details and several emergency contacts on My profile",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-13",
+   "author": "Võ Minh Luân",
+   "subject": "docs: Family Day overdue guests and statistics in the contract, endpoint map, catalogs and test script",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tests/Family_Day_Manual_Test.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-11",
+   "author": "Võ Minh Luân",
+   "subject": "feat(web): the visitor desk reads QR passes with the webcam on any browser",
+   "paths": [
+    "docs/tests/Family_Day_Manual_Test.md"
+   ]
+  },
+  {
+   "date": "2026-11-11",
+   "author": "Võ Minh Luân",
+   "subject": "fix(docs): Family Day time helper picks the database that has Family Day",
+   "paths": [
+    "docs/tools/family-day-time.ps1"
+   ]
+  },
+  {
+   "date": "2026-11-11",
+   "author": "Võ Minh Luân",
+   "subject": "fix(docs): Family Day time helper picks the database that has Family Day",
+   "paths": [
+    "docs/tools/family-day-time.ps1"
+   ]
+  },
+  {
+   "date": "2026-11-11",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "feat(vis): show who cancelled a Family Day registration and when",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "author": "Võ Minh Luân",
+   "subject": "docs: Family Day manual test script and its time helper",
+   "paths": [
+    "docs/tests/Family_Day_Manual_Test.md",
+    "docs/tools/family-day-time.ps1"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "author": "Võ Minh Luân",
+   "subject": "docs: Family Day in the contract, endpoint map, brief and assistant guide",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "author": "Võ Minh Luân",
+   "subject": "feat(web): Family Day screens for Managers, the visitor desk and students",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "author": "Võ Minh Luân",
+   "subject": "feat(vis): Family Day API for Managers, residents and the visitor desk",
+   "paths": [
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "author": "Võ Minh Luân",
+   "subject": "Add files via upload",
+   "paths": [
+    "docs/reports/out/SEP490_FA26SE260_R2_Commitment.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report2.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SEP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/out/SEP490_FA26SE260_R2_SelfReview.pdf"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(auth): filter the Audit Log by the actor's role",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(cfg): Term requests by base price and surcharge, Term offer, Block house rules (R-02…R-08)",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(auth): run the demo-accounts migration as V68, after V67",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/04_Test_Catalog.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(bil): payments and refunds review (R-19, R-21…R-24, R-26)",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(auth): demo accounts admin01, manager01, staffa01 … and password 123",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/reports/data/testcases.json",
+    "docs/reports/src/_demo-scenarios.md",
+    "docs/reports/src/_tc-workflows.md",
+    "docs/tools/gen-test-docs.mjs",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(bil): demo Utility of residents without a scenario is paid; docs for A-65",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(asg): past assignment runs open read only; Applications screen strings (R-17, R-25)",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): student registration review R-09…R-16",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Võ Minh Luân",
+   "subject": "feat(ast): the assistant answers from the student's data on qwen2.5:7b, never in Chinese",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/00_Project_Brief.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Võ Minh Luân",
+   "subject": "fix(ast): the assistant reads next-Term requests and calls its tools on follow-ups",
+   "paths": [
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Review 2 test documents and Design Brief follow the dashboards of 30/10",
+   "paths": [
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_ProjectTracking.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/src/_tc-count.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/tracking.mjs",
+    "docs/tools/gen-test-docs.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(rpt): dashboards and the check-in desk answer the UX review",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/design/Backend_Answers_UX_Review.md",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: backend questions from the UX review",
+   "paths": [
+    "docs/design/Backend_Questions_UX_Review.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: backend questions from the UX review",
+   "paths": [
+    "docs/design/Backend_Questions_UX_Review.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): FPT orange redesign of the whole app",
+   "paths": [
+    ".impeccable/surfaces/web-src-index-css.md",
+    "DESIGN.md",
+    "PRODUCT.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: PRODUCT.md, product context for design work",
+   "paths": [
+    "PRODUCT.md"
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Review 2 test documents, Design Brief, registration form and tracking follow the 29/10 code",
+   "paths": [
+    "docs/backend/04_Test_Catalog.md",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_ProjectTracking.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report5.md",
+    "docs/reports/src/_messages.md",
+    "docs/reports/src/_screens.md",
+    "docs/reports/src/_tc-count.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/_tc-states.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/tracking.mjs",
+    "docs/tools/gen-test-docs.mjs",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Võ Minh Luân",
+   "subject": "docs: assistant endpoints verified (mvn verify passed)",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Võ Minh Luân",
+   "subject": "feat(ast): students' AI assistant on a self-hosted Ollama model",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/src/main/resources/assistant/guide_en.md",
+    "backend/src/main/resources/assistant/guide_vi.md",
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(app): waitlisted students choose Round 2 or a full refund; refund bank account",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(postman): collection of every endpoint by role, smoke tests, environments",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "docs/tools/generate-postman.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(api): who Round 2 reached, meter template in Excel, own shift, person in charge",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(postman): collection of every endpoint by role, smoke tests, environments",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "docs/tools/generate-postman.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat: Manager's Round 2, readings by Room, late check-in rules, UI fixes",
+   "paths": [
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/diagrams/architecture.drawio",
+    "docs/diagrams/out/architecture.png",
+    "docs/reports/data/selfreview.json",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/out/SWP490_FA26SE260_R2_SelfReview.pdf",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/r3-fr.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(mobile): students' app rewritten in Flutter (mobile/), android/ removed",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "android/README.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/diagrams/architecture.drawio",
+    "docs/diagrams/backend-overview.drawio",
+    "docs/diagrams/deployment.drawio",
+    "docs/diagrams/package-clients.drawio",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report2.md",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/r3-fr.md",
+    "infra/prod/README.md",
+    "mobile/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix: English term \"stay length\" instead of \"Gia hạn\"; web crashes, room map and XLSX templates",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/diagrams/act-wf01-registration.drawio",
+    "docs/diagrams/architecture.drawio",
+    "docs/diagrams/out/act-wf01-registration.png",
+    "docs/diagrams/out/architecture.png",
+    "docs/reports/data/tables.json",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report1.md",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/Report5.md",
+    "docs/reports/src/_db-design.md",
+    "docs/reports/src/_demo-scenarios.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-workflows.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/r3-fr.md",
+    "docs/reports/src/r3-fr.md.tmp.14960.d3403aa58480",
+    "docs/reports/src/r4-detail.md",
+    "docs/tools/gen-test-docs.mjs",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "fix(web): valid markup on Routing rules; detail pages out of the screen index; screen map reads lazy routes",
+   "paths": [
+    "docs/tools/generate-catalogs.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Nguyễn Xuân Lộc",
+   "subject": "fix(web): valid markup on Routing rules; detail pages out of the screen index; screen map reads lazy routes",
+   "paths": [
+    "docs/tools/generate-catalogs.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: BM02 self-review report with the team's responses",
+   "paths": [
+    "docs/reports/data/selfreview.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_SelfReview.pdf"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: diagrams as draw.io files, ERDs in Chen's notation; self-review fixes",
+   "paths": [
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/diagrams/act-wf01-registration.drawio",
+    "docs/diagrams/act-wf01-registration.mmd",
+    "docs/diagrams/act-wf02-term-opening.drawio",
+    "docs/diagrams/act-wf02-term-opening.mmd",
+    "docs/diagrams/act-wf03-term-transition.drawio",
+    "docs/diagrams/act-wf03-term-transition.mmd",
+    "docs/diagrams/act-wf04-maintenance.drawio",
+    "docs/diagrams/act-wf04-maintenance.mmd",
+    "docs/diagrams/act-wf05-utility.drawio",
+    "docs/diagrams/act-wf05-utility.mmd",
+    "docs/diagrams/architecture.drawio",
+    "docs/diagrams/architecture.mmd",
+    "docs/diagrams/backend-overview.drawio",
+    "docs/diagrams/backend-production.drawio",
+    "docs/diagrams/class-application-billing.drawio",
+    "docs/diagrams/class-application-billing.mmd",
+    "docs/diagrams/class-assignment.drawio",
+    "docs/diagrams/class-assignment.mmd",
+    "docs/diagrams/class-auth.drawio",
+    "docs/diagrams/class-auth.mmd",
+    "docs/diagrams/class-maintenance.drawio",
+    "docs/diagrams/class-maintenance.mmd",
+    "docs/diagrams/class-transition.drawio",
+    "docs/diagrams/class-transition.mmd",
+    "docs/diagrams/class-utility-term.drawio",
+    "docs/diagrams/class-utility-term.mmd",
+    "docs/diagrams/context.drawio",
+    "docs/diagrams/context.mmd",
+    "docs/diagrams/deployment.drawio",
+    "docs/diagrams/deployment.mmd",
+    "docs/diagrams/erd-app.drawio",
+    "docs/diagrams/erd-app.mmd",
+    "docs/diagrams/erd-asg.drawio",
+    "docs/diagrams/erd-asg.mmd",
+    "docs/diagrams/erd-auth.drawio",
+    "docs/diagrams/erd-auth.mmd",
+    "docs/diagrams/erd-bil.drawio",
+    "docs/diagrams/erd-bil.mmd",
+    "docs/diagrams/erd-cfg.drawio",
+    "docs/diagrams/erd-cfg.mmd",
+    "docs/diagrams/erd-inv.drawio",
+    "docs/diagrams/erd-inv.mmd",
+    "docs/diagrams/erd-main.drawio",
+    "docs/diagrams/erd-main.mmd",
+    "docs/diagrams/erd-mnt.drawio",
+    "docs/diagrams/erd-mnt.mmd",
+    "docs/diagrams/erd-ntf.drawio",
+    "docs/diagrams/erd-ntf.mmd",
+    "docs/diagrams/erd-overview.mmd",
+    "docs/diagrams/erd-req.drawio",
+    "docs/diagrams/erd-req.mmd",
+    "docs/diagrams/erd-shared.drawio",
+    "docs/diagrams/erd-shared.mmd",
+    "docs/diagrams/out/act-wf01-registration.png",
+    "docs/diagrams/out/act-wf01-registration.svg",
+    "docs/diagrams/out/act-wf02-term-opening-r.png",
+    "docs/diagrams/out/act-wf02-term-opening.png",
+    "docs/diagrams/out/act-wf02-term-opening.svg",
+    "docs/diagrams/out/act-wf03-term-transition.png",
+    "docs/diagrams/out/act-wf03-term-transition.svg",
+    "docs/diagrams/out/act-wf04-maintenance.png",
+    "docs/diagrams/out/act-wf04-maintenance.svg",
+    "docs/diagrams/out/act-wf05-utility.png",
+    "docs/diagrams/out/act-wf05-utility.svg",
+    "docs/diagrams/out/architecture-r.png",
+    "docs/diagrams/out/architecture.png",
+    "docs/diagrams/out/architecture.svg",
+    "docs/diagrams/out/backend-overview-r.png",
+    "docs/diagrams/out/backend-overview.png",
+    "docs/diagrams/out/backend-production.png",
+    "docs/diagrams/out/class-application-billing-r.png",
+    "docs/diagrams/out/class-application-billing.png",
+    "docs/diagrams/out/class-application-billing.svg",
+    "docs/diagrams/out/class-assignment-r.png",
+    "docs/diagrams/out/class-assignment.png",
+    "docs/diagrams/out/class-assignment.svg",
+    "docs/diagrams/out/class-auth-r.png",
+    "docs/diagrams/out/class-auth.png",
+    "docs/diagrams/out/class-auth.svg",
+    "docs/diagrams/out/class-maintenance-r.png",
+    "docs/diagrams/out/class-maintenance.png",
+    "docs/diagrams/out/class-maintenance.svg",
+    "docs/diagrams/out/class-transition-r.png",
+    "docs/diagrams/out/class-transition.png",
+    "docs/diagrams/out/class-transition.svg",
+    "docs/diagrams/out/class-utility-term-r.png",
+    "docs/diagrams/out/class-utility-term.png",
+    "docs/diagrams/out/class-utility-term.svg",
+    "docs/diagrams/out/context-r.png",
+    "docs/diagrams/out/context.png",
+    "docs/diagrams/out/context.svg",
+    "docs/diagrams/out/deployment.png",
+    "docs/diagrams/out/deployment.svg",
+    "docs/diagrams/out/erd-app-r.png",
+    "docs/diagrams/out/erd-app.png",
+    "docs/diagrams/out/erd-app.svg",
+    "docs/diagrams/out/erd-asg-r.png",
+    "docs/diagrams/out/erd-asg.png",
+    "docs/diagrams/out/erd-asg.svg",
+    "docs/diagrams/out/erd-auth-r.png",
+    "docs/diagrams/out/erd-auth.png",
+    "docs/diagrams/out/erd-auth.svg",
+    "docs/diagrams/out/erd-bil-r.png",
+    "docs/diagrams/out/erd-bil.png",
+    "docs/diagrams/out/erd-bil.svg",
+    "docs/diagrams/out/erd-cfg-r.png",
+    "docs/diagrams/out/erd-cfg.png",
+    "docs/diagrams/out/erd-cfg.svg",
+    "docs/diagrams/out/erd-inv-r.png",
+    "docs/diagrams/out/erd-inv.png",
+    "docs/diagrams/out/erd-inv.svg",
+    "docs/diagrams/out/erd-main-r.png",
+    "docs/diagrams/out/erd-main.png",
+    "docs/diagrams/out/erd-main.svg",
+    "docs/diagrams/out/erd-mnt-r.png",
+    "docs/diagrams/out/erd-mnt.png",
+    "docs/diagrams/out/erd-mnt.svg",
+    "docs/diagrams/out/erd-ntf-r.png",
+    "docs/diagrams/out/erd-ntf.png",
+    "docs/diagrams/out/erd-ntf.svg",
+    "docs/diagrams/out/erd-overview-r.png",
+    "docs/diagrams/out/erd-overview.png",
+    "docs/diagrams/out/erd-overview.svg",
+    "docs/diagrams/out/erd-req-r.png",
+    "docs/diagrams/out/erd-req.png",
+    "docs/diagrams/out/erd-req.svg",
+    "docs/diagrams/out/erd-shared.png",
+    "docs/diagrams/out/erd-shared.svg",
+    "docs/diagrams/out/package-backend-r.png",
+    "docs/diagrams/out/package-backend.png",
+    "docs/diagrams/out/package-backend.svg",
+    "docs/diagrams/out/package-clients-r.png",
+    "docs/diagrams/out/package-clients.png",
+    "docs/diagrams/out/package-clients.svg",
+    "docs/diagrams/out/process.png",
+    "docs/diagrams/out/process.svg",
+    "docs/diagrams/out/screens-admin.png",
+    "docs/diagrams/out/screens-admin.svg",
+    "docs/diagrams/out/screens-manager.png",
+    "docs/diagrams/out/screens-manager.svg",
+    "docs/diagrams/out/screens-staff.png",
+    "docs/diagrams/out/screens-staff.svg",
+    "docs/diagrams/out/screens-student-r.png",
+    "docs/diagrams/out/screens-student.png",
+    "docs/diagrams/out/screens-student.svg",
+    "docs/diagrams/out/seq-apply-pay-r.png",
+    "docs/diagrams/out/seq-apply-pay.png",
+    "docs/diagrams/out/seq-apply-pay.svg",
+    "docs/diagrams/out/seq-assignment-r.png",
+    "docs/diagrams/out/seq-assignment.png",
+    "docs/diagrams/out/seq-assignment.svg",
+    "docs/diagrams/out/seq-door-code-r.png",
+    "docs/diagrams/out/seq-door-code.png",
+    "docs/diagrams/out/seq-door-code.svg",
+    "docs/diagrams/out/seq-google-signin-r.png",
+    "docs/diagrams/out/seq-google-signin.png",
+    "docs/diagrams/out/seq-google-signin.svg",
+    "docs/diagrams/out/seq-maintenance-r.png",
+    "docs/diagrams/out/seq-maintenance.png",
+    "docs/diagrams/out/seq-maintenance.svg",
+    "docs/diagrams/out/seq-next-term-r.png",
+    "docs/diagrams/out/seq-next-term.png",
+    "docs/diagrams/out/seq-next-term.svg",
+    "docs/diagrams/out/seq-payment-claims.png",
+    "docs/diagrams/out/seq-request-lifecycle-r.png",
+    "docs/diagrams/out/seq-request-lifecycle.png",
+    "docs/diagrams/out/seq-term-publish-r.png",
+    "docs/diagrams/out/seq-term-publish.png",
+    "docs/diagrams/out/seq-term-publish.svg",
+    "docs/diagrams/out/seq-utility-r.png",
+    "docs/diagrams/out/seq-utility.png",
+    "docs/diagrams/out/seq-utility.svg",
+    "docs/diagrams/out/state-allocation-next-r.png",
+    "docs/diagrams/out/state-allocation-next.png",
+    "docs/diagrams/out/state-allocation-next.svg",
+    "docs/diagrams/out/state-allocation-r.png",
+    "docs/diagrams/out/state-allocation.png",
+    "docs/diagrams/out/state-allocation.svg",
+    "docs/diagrams/out/state-application-r.png",
+    "docs/diagrams/out/state-application.png",
+    "docs/diagrams/out/state-application.svg",
+    "docs/diagrams/out/state-claim.png",
+    "docs/diagrams/out/state-claim.svg",
+    "docs/diagrams/out/state-door-code.png",
+    "docs/diagrams/out/state-door-code.svg",
+    "docs/diagrams/out/state-invoice-r.png",
+    "docs/diagrams/out/state-invoice.png",
+    "docs/diagrams/out/state-invoice.svg",
+    "docs/diagrams/out/state-late-check-in.png",
+    "docs/diagrams/out/state-late-check-in.svg",
+    "docs/diagrams/out/state-maintenance-r.png",
+    "docs/diagrams/out/state-maintenance.png",
+    "docs/diagrams/out/state-maintenance.svg",
+    "docs/diagrams/out/state-room-change-r.png",
+    "docs/diagrams/out/state-room-change.png",
+    "docs/diagrams/out/state-room-change.svg",
+    "docs/diagrams/out/state-room-class-change.png",
+    "docs/diagrams/out/state-room-class-change.svg",
+    "docs/diagrams/out/state-round2-offer.png",
+    "docs/diagrams/out/state-round2-offer.svg",
+    "docs/diagrams/out/state-stay-request.png",
+    "docs/diagrams/out/state-stay-request.svg",
+    "docs/diagrams/out/state-stay.png",
+    "docs/diagrams/out/state-stay.svg",
+    "docs/diagrams/out/state-swap-r.png",
+    "docs/diagrams/out/state-swap.png",
+    "docs/diagrams/out/state-swap.svg",
+    "docs/diagrams/out/state-term-request-r.png",
+    "docs/diagrams/out/state-term-request.png",
+    "docs/diagrams/out/state-term-request.svg",
+    "docs/diagrams/out/state-termination.png",
+    "docs/diagrams/out/state-termination.svg",
+    "docs/diagrams/out/uc-admin.png",
+    "docs/diagrams/out/uc-admin.svg",
+    "docs/diagrams/out/uc-manager.png",
+    "docs/diagrams/out/uc-manager.svg",
+    "docs/diagrams/out/uc-staff.png",
+    "docs/diagrams/out/uc-staff.svg",
+    "docs/diagrams/out/uc-student.png",
+    "docs/diagrams/out/uc-student.svg",
+    "docs/diagrams/package-backend.drawio",
+    "docs/diagrams/package-backend.mmd",
+    "docs/diagrams/package-clients.drawio",
+    "docs/diagrams/package-clients.mmd",
+    "docs/diagrams/process.drawio",
+    "docs/diagrams/process.mmd",
+    "docs/diagrams/screens-admin.drawio",
+    "docs/diagrams/screens-admin.mmd",
+    "docs/diagrams/screens-manager.drawio",
+    "docs/diagrams/screens-manager.mmd",
+    "docs/diagrams/screens-staff.drawio",
+    "docs/diagrams/screens-staff.mmd",
+    "docs/diagrams/screens-student.drawio",
+    "docs/diagrams/screens-student.mmd",
+    "docs/diagrams/seq-apply-pay.drawio",
+    "docs/diagrams/seq-apply-pay.mmd",
+    "docs/diagrams/seq-assignment.drawio",
+    "docs/diagrams/seq-assignment.mmd",
+    "docs/diagrams/seq-door-code.drawio",
+    "docs/diagrams/seq-door-code.mmd",
+    "docs/diagrams/seq-google-signin.drawio",
+    "docs/diagrams/seq-google-signin.mmd",
+    "docs/diagrams/seq-maintenance.drawio",
+    "docs/diagrams/seq-maintenance.mmd",
+    "docs/diagrams/seq-next-term.drawio",
+    "docs/diagrams/seq-next-term.mmd",
+    "docs/diagrams/seq-payment-claims.drawio",
+    "docs/diagrams/seq-request-lifecycle.drawio",
+    "docs/diagrams/seq-term-publish.drawio",
+    "docs/diagrams/seq-term-publish.mmd",
+    "docs/diagrams/seq-utility.drawio",
+    "docs/diagrams/seq-utility.mmd",
+    "docs/diagrams/state-allocation-next.drawio",
+    "docs/diagrams/state-allocation-next.mmd",
+    "docs/diagrams/state-allocation.drawio",
+    "docs/diagrams/state-allocation.mmd",
+    "docs/diagrams/state-application.drawio",
+    "docs/diagrams/state-application.mmd",
+    "docs/diagrams/state-claim.drawio",
+    "docs/diagrams/state-claim.mmd",
+    "docs/diagrams/state-door-code.drawio",
+    "docs/diagrams/state-door-code.mmd",
+    "docs/diagrams/state-invoice.drawio",
+    "docs/diagrams/state-invoice.mmd",
+    "docs/diagrams/state-late-check-in.drawio",
+    "docs/diagrams/state-late-check-in.mmd",
+    "docs/diagrams/state-maintenance.drawio",
+    "docs/diagrams/state-maintenance.mmd",
+    "docs/diagrams/state-room-change.drawio",
+    "docs/diagrams/state-room-change.mmd",
+    "docs/diagrams/state-room-class-change.drawio",
+    "docs/diagrams/state-room-class-change.mmd",
+    "docs/diagrams/state-round2-offer.drawio",
+    "docs/diagrams/state-round2-offer.mmd",
+    "docs/diagrams/state-stay-request.drawio",
+    "docs/diagrams/state-stay-request.mmd",
+    "docs/diagrams/state-stay.drawio",
+    "docs/diagrams/state-stay.mmd",
+    "docs/diagrams/state-swap.drawio",
+    "docs/diagrams/state-swap.mmd",
+    "docs/diagrams/state-term-request.drawio",
+    "docs/diagrams/state-term-request.mmd",
+    "docs/diagrams/state-termination.drawio",
+    "docs/diagrams/state-termination.mmd",
+    "docs/diagrams/uc-admin.drawio",
+    "docs/diagrams/uc-admin.mmd",
+    "docs/diagrams/uc-manager.drawio",
+    "docs/diagrams/uc-manager.mmd",
+    "docs/diagrams/uc-staff.drawio",
+    "docs/diagrams/uc-staff.mmd",
+    "docs/diagrams/uc-student.drawio",
+    "docs/diagrams/uc-student.mmd",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report2.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report2.md",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/_db-design.md",
+    "docs/reports/src/_tc-count.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/_tc-states.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/r3-fr.md",
+    "docs/tools/drawio-page.js",
+    "docs/tools/drawio.mjs",
+    "docs/tools/gen-db-docs.mjs",
+    "docs/tools/gen-test-docs.mjs",
+    "docs/tools/md2html.mjs",
+    "docs/tools/render-diagrams.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Review 2 documents (Reports 1–5, Design Brief, registration form 2.0, test workbooks)",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/diagrams/architecture.mmd",
+    "docs/diagrams/deployment.mmd",
+    "docs/diagrams/erd-main.mmd",
+    "docs/diagrams/out/act-wf01-registration.svg",
+    "docs/diagrams/out/act-wf02-term-opening-r.png",
+    "docs/diagrams/out/act-wf02-term-opening.svg",
+    "docs/diagrams/out/act-wf03-term-transition.svg",
+    "docs/diagrams/out/act-wf04-maintenance.svg",
+    "docs/diagrams/out/act-wf05-utility.svg",
+    "docs/diagrams/out/architecture-r.png",
+    "docs/diagrams/out/architecture.png",
+    "docs/diagrams/out/architecture.svg",
+    "docs/diagrams/out/class-application-billing.svg",
+    "docs/diagrams/out/class-assignment-r.png",
+    "docs/diagrams/out/class-assignment.svg",
+    "docs/diagrams/out/class-auth-r.png",
+    "docs/diagrams/out/class-auth.svg",
+    "docs/diagrams/out/class-maintenance-r.png",
+    "docs/diagrams/out/class-maintenance.svg",
+    "docs/diagrams/out/class-transition.svg",
+    "docs/diagrams/out/class-utility-term-r.png",
+    "docs/diagrams/out/class-utility-term.svg",
+    "docs/diagrams/out/context.svg",
+    "docs/diagrams/out/deployment.png",
+    "docs/diagrams/out/deployment.svg",
+    "docs/diagrams/out/erd-app-r.png",
+    "docs/diagrams/out/erd-app.svg",
+    "docs/diagrams/out/erd-asg.svg",
+    "docs/diagrams/out/erd-auth.svg",
+    "docs/diagrams/out/erd-bil.svg",
+    "docs/diagrams/out/erd-cfg.svg",
+    "docs/diagrams/out/erd-inv-r.png",
+    "docs/diagrams/out/erd-inv.svg",
+    "docs/diagrams/out/erd-main-r.png",
+    "docs/diagrams/out/erd-main.png",
+    "docs/diagrams/out/erd-main.svg",
+    "docs/diagrams/out/erd-mnt-r.png",
+    "docs/diagrams/out/erd-mnt.svg",
+    "docs/diagrams/out/erd-ntf-r.png",
+    "docs/diagrams/out/erd-ntf.svg",
+    "docs/diagrams/out/erd-overview.svg",
+    "docs/diagrams/out/erd-req.svg",
+    "docs/diagrams/out/erd-shared.svg",
+    "docs/diagrams/out/package-backend-r.png",
+    "docs/diagrams/out/package-backend.png",
+    "docs/diagrams/out/package-backend.svg",
+    "docs/diagrams/out/package-clients-r.png",
+    "docs/diagrams/out/package-clients.png",
+    "docs/diagrams/out/package-clients.svg",
+    "docs/diagrams/out/process.png",
+    "docs/diagrams/out/process.svg",
+    "docs/diagrams/out/screens-admin-r.png",
+    "docs/diagrams/out/screens-admin.png",
+    "docs/diagrams/out/screens-admin.svg",
+    "docs/diagrams/out/screens-manager-r.png",
+    "docs/diagrams/out/screens-manager.png",
+    "docs/diagrams/out/screens-manager.svg",
+    "docs/diagrams/out/screens-staff.png",
+    "docs/diagrams/out/screens-staff.svg",
+    "docs/diagrams/out/screens-student-r.png",
+    "docs/diagrams/out/screens-student.png",
+    "docs/diagrams/out/screens-student.svg",
+    "docs/diagrams/out/seq-apply-pay.svg",
+    "docs/diagrams/out/seq-assignment.svg",
+    "docs/diagrams/out/seq-door-code.svg",
+    "docs/diagrams/out/seq-google-signin.svg",
+    "docs/diagrams/out/seq-maintenance.svg",
+    "docs/diagrams/out/seq-next-term.svg",
+    "docs/diagrams/out/seq-term-publish.svg",
+    "docs/diagrams/out/seq-utility.svg",
+    "docs/diagrams/out/state-allocation-next.svg",
+    "docs/diagrams/out/state-allocation-r.png",
+    "docs/diagrams/out/state-allocation.png",
+    "docs/diagrams/out/state-allocation.svg",
+    "docs/diagrams/out/state-application-r.png",
+    "docs/diagrams/out/state-application.png",
+    "docs/diagrams/out/state-application.svg",
+    "docs/diagrams/out/state-claim.svg",
+    "docs/diagrams/out/state-door-code.svg",
+    "docs/diagrams/out/state-invoice-r.png",
+    "docs/diagrams/out/state-invoice.png",
+    "docs/diagrams/out/state-invoice.svg",
+    "docs/diagrams/out/state-late-check-in.svg",
+    "docs/diagrams/out/state-maintenance.svg",
+    "docs/diagrams/out/state-room-change-r.png",
+    "docs/diagrams/out/state-room-change.svg",
+    "docs/diagrams/out/state-room-class-change.svg",
+    "docs/diagrams/out/state-round2-offer.svg",
+    "docs/diagrams/out/state-stay-request.svg",
+    "docs/diagrams/out/state-stay.svg",
+    "docs/diagrams/out/state-swap.svg",
+    "docs/diagrams/out/state-term-request-r.png",
+    "docs/diagrams/out/state-term-request.svg",
+    "docs/diagrams/out/state-termination.svg",
+    "docs/diagrams/out/uc-admin.svg",
+    "docs/diagrams/out/uc-manager.svg",
+    "docs/diagrams/out/uc-staff.svg",
+    "docs/diagrams/out/uc-student.svg",
+    "docs/diagrams/package-backend.mmd",
+    "docs/diagrams/package-clients.mmd",
+    "docs/diagrams/process.mmd",
+    "docs/diagrams/screens-admin.mmd",
+    "docs/diagrams/screens-manager.mmd",
+    "docs/diagrams/screens-student.mmd",
+    "docs/diagrams/state-allocation.mmd",
+    "docs/diagrams/state-application.mmd",
+    "docs/diagrams/state-invoice.mmd",
+    "docs/reports/data/testcases.json",
+    "docs/reports/out/SWP490_FA26SE260_R2_DesignBrief.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_ProjectTracking.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Registration.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report1.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report2.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report3.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report4.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5.pdf",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_TestReport.xlsx",
+    "docs/reports/out/SWP490_FA26SE260_R2_Report5_UnitTest.xls",
+    "docs/reports/src/Registration.md",
+    "docs/reports/src/Report1.md",
+    "docs/reports/src/Report2.md",
+    "docs/reports/src/Report3.md",
+    "docs/reports/src/Report4.md",
+    "docs/reports/src/Report5.md",
+    "docs/reports/src/_authorization.md",
+    "docs/reports/src/_demo-scenarios.md",
+    "docs/reports/src/_messages.md",
+    "docs/reports/src/_screens.md",
+    "docs/reports/src/_tc-count.md",
+    "docs/reports/src/_tc-features.md",
+    "docs/reports/src/_tc-nfr.md",
+    "docs/reports/src/_tc-report.md",
+    "docs/reports/src/_tc-states.md",
+    "docs/reports/src/_tc-workflows.md",
+    "docs/reports/src/brief.mjs",
+    "docs/reports/src/r3-fr.md",
+    "docs/reports/src/r3-fr.md.tmp.14960.d3403aa58480",
+    "docs/reports/src/r4-detail.md",
+    "docs/reports/src/tracking.mjs",
+    "docs/tools/build-registration.ps1",
+    "docs/tools/build-report.ps1",
+    "docs/tools/build-test-workbooks.ps1",
+    "docs/tools/fill-form.ps1",
+    "docs/tools/fill-workbook.ps1",
+    "docs/tools/gen-srs-tables.mjs",
+    "docs/tools/gen-test-docs.mjs",
+    "docs/tools/render-diagrams.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Review 2 reports in progress (Report 1, diagrams, report build tools)",
+   "paths": [
+    "docs/diagrams/act-wf01-registration.mmd",
+    "docs/diagrams/act-wf02-term-opening.mmd",
+    "docs/diagrams/act-wf03-term-transition.mmd",
+    "docs/diagrams/act-wf04-maintenance.mmd",
+    "docs/diagrams/act-wf05-utility.mmd",
+    "docs/diagrams/architecture.mmd",
+    "docs/diagrams/class-application-billing.mmd",
+    "docs/diagrams/class-assignment.mmd",
+    "docs/diagrams/class-auth.mmd",
+    "docs/diagrams/class-maintenance.mmd",
+    "docs/diagrams/class-transition.mmd",
+    "docs/diagrams/class-utility-term.mmd",
+    "docs/diagrams/context.mmd",
+    "docs/diagrams/deployment.mmd",
+    "docs/diagrams/erd-app.mmd",
+    "docs/diagrams/erd-asg.mmd",
+    "docs/diagrams/erd-auth.mmd",
+    "docs/diagrams/erd-bil.mmd",
+    "docs/diagrams/erd-cfg.mmd",
+    "docs/diagrams/erd-inv.mmd",
+    "docs/diagrams/erd-mnt.mmd",
+    "docs/diagrams/erd-ntf.mmd",
+    "docs/diagrams/erd-overview.mmd",
+    "docs/diagrams/erd-req.mmd",
+    "docs/diagrams/erd-shared.mmd",
+    "docs/diagrams/out/act-wf01-registration.png",
+    "docs/diagrams/out/act-wf01-registration.svg",
+    "docs/diagrams/out/act-wf02-term-opening.png",
+    "docs/diagrams/out/act-wf02-term-opening.svg",
+    "docs/diagrams/out/act-wf03-term-transition.png",
+    "docs/diagrams/out/act-wf03-term-transition.svg",
+    "docs/diagrams/out/act-wf04-maintenance.png",
+    "docs/diagrams/out/act-wf04-maintenance.svg",
+    "docs/diagrams/out/act-wf05-utility.png",
+    "docs/diagrams/out/act-wf05-utility.svg",
+    "docs/diagrams/out/architecture-r.png",
+    "docs/diagrams/out/architecture.png",
+    "docs/diagrams/out/architecture.svg",
+    "docs/diagrams/out/class-application-billing-r.png",
+    "docs/diagrams/out/class-application-billing.png",
+    "docs/diagrams/out/class-application-billing.svg",
+    "docs/diagrams/out/class-assignment.png",
+    "docs/diagrams/out/class-assignment.svg",
+    "docs/diagrams/out/class-auth.png",
+    "docs/diagrams/out/class-auth.svg",
+    "docs/diagrams/out/class-maintenance.png",
+    "docs/diagrams/out/class-maintenance.svg",
+    "docs/diagrams/out/class-transition-r.png",
+    "docs/diagrams/out/class-transition.png",
+    "docs/diagrams/out/class-transition.svg",
+    "docs/diagrams/out/class-utility-term.png",
+    "docs/diagrams/out/class-utility-term.svg",
+    "docs/diagrams/out/context-r.png",
+    "docs/diagrams/out/context.png",
+    "docs/diagrams/out/context.svg",
+    "docs/diagrams/out/deployment.png",
+    "docs/diagrams/out/deployment.svg",
+    "docs/diagrams/out/erd-app.png",
+    "docs/diagrams/out/erd-app.svg",
+    "docs/diagrams/out/erd-asg-r.png",
+    "docs/diagrams/out/erd-asg.png",
+    "docs/diagrams/out/erd-asg.svg",
+    "docs/diagrams/out/erd-auth-r.png",
+    "docs/diagrams/out/erd-auth.png",
+    "docs/diagrams/out/erd-auth.svg",
+    "docs/diagrams/out/erd-bil-r.png",
+    "docs/diagrams/out/erd-bil.png",
+    "docs/diagrams/out/erd-bil.svg",
+    "docs/diagrams/out/erd-cfg-r.png",
+    "docs/diagrams/out/erd-cfg.png",
+    "docs/diagrams/out/erd-cfg.svg",
+    "docs/diagrams/out/erd-inv.png",
+    "docs/diagrams/out/erd-inv.svg",
+    "docs/diagrams/out/erd-mnt.png",
+    "docs/diagrams/out/erd-mnt.svg",
+    "docs/diagrams/out/erd-ntf.png",
+    "docs/diagrams/out/erd-ntf.svg",
+    "docs/diagrams/out/erd-overview-r.png",
+    "docs/diagrams/out/erd-overview.png",
+    "docs/diagrams/out/erd-overview.svg",
+    "docs/diagrams/out/erd-req-r.png",
+    "docs/diagrams/out/erd-req.png",
+    "docs/diagrams/out/erd-req.svg",
+    "docs/diagrams/out/erd-shared.png",
+    "docs/diagrams/out/erd-shared.svg",
+    "docs/diagrams/out/package-backend-r.png",
+    "docs/diagrams/out/package-backend.png",
+    "docs/diagrams/out/package-backend.svg",
+    "docs/diagrams/out/package-clients-r.png",
+    "docs/diagrams/out/package-clients.png",
+    "docs/diagrams/out/package-clients.svg",
+    "docs/diagrams/out/screens-admin-r.png",
+    "docs/diagrams/out/screens-admin.png",
+    "docs/diagrams/out/screens-admin.svg",
+    "docs/diagrams/out/screens-manager-r.png",
+    "docs/diagrams/out/screens-manager.png",
+    "docs/diagrams/out/screens-manager.svg",
+    "docs/diagrams/out/screens-staff.png",
+    "docs/diagrams/out/screens-staff.svg",
+    "docs/diagrams/out/screens-student-r.png",
+    "docs/diagrams/out/screens-student.png",
+    "docs/diagrams/out/screens-student.svg",
+    "docs/diagrams/out/seq-apply-pay-r.png",
+    "docs/diagrams/out/seq-apply-pay.png",
+    "docs/diagrams/out/seq-apply-pay.svg",
+    "docs/diagrams/out/seq-assignment-r.png",
+    "docs/diagrams/out/seq-assignment.png",
+    "docs/diagrams/out/seq-assignment.svg",
+    "docs/diagrams/out/seq-door-code-r.png",
+    "docs/diagrams/out/seq-door-code.png",
+    "docs/diagrams/out/seq-door-code.svg",
+    "docs/diagrams/out/seq-google-signin-r.png",
+    "docs/diagrams/out/seq-google-signin.png",
+    "docs/diagrams/out/seq-google-signin.svg",
+    "docs/diagrams/out/seq-maintenance-r.png",
+    "docs/diagrams/out/seq-maintenance.png",
+    "docs/diagrams/out/seq-maintenance.svg",
+    "docs/diagrams/out/seq-next-term-r.png",
+    "docs/diagrams/out/seq-next-term.png",
+    "docs/diagrams/out/seq-next-term.svg",
+    "docs/diagrams/out/seq-term-publish-r.png",
+    "docs/diagrams/out/seq-term-publish.png",
+    "docs/diagrams/out/seq-term-publish.svg",
+    "docs/diagrams/out/seq-utility-r.png",
+    "docs/diagrams/out/seq-utility.png",
+    "docs/diagrams/out/seq-utility.svg",
+    "docs/diagrams/out/state-allocation-next-r.png",
+    "docs/diagrams/out/state-allocation-next.png",
+    "docs/diagrams/out/state-allocation-next.svg",
+    "docs/diagrams/out/state-allocation.png",
+    "docs/diagrams/out/state-allocation.svg",
+    "docs/diagrams/out/state-application.png",
+    "docs/diagrams/out/state-application.svg",
+    "docs/diagrams/out/state-claim.png",
+    "docs/diagrams/out/state-claim.svg",
+    "docs/diagrams/out/state-door-code.png",
+    "docs/diagrams/out/state-door-code.svg",
+    "docs/diagrams/out/state-invoice.png",
+    "docs/diagrams/out/state-invoice.svg",
+    "docs/diagrams/out/state-late-check-in.png",
+    "docs/diagrams/out/state-late-check-in.svg",
+    "docs/diagrams/out/state-maintenance-r.png",
+    "docs/diagrams/out/state-maintenance.png",
+    "docs/diagrams/out/state-maintenance.svg",
+    "docs/diagrams/out/state-room-change.png",
+    "docs/diagrams/out/state-room-change.svg",
+    "docs/diagrams/out/state-room-class-change.png",
+    "docs/diagrams/out/state-room-class-change.svg",
+    "docs/diagrams/out/state-round2-offer.png",
+    "docs/diagrams/out/state-round2-offer.svg",
+    "docs/diagrams/out/state-stay-request.png",
+    "docs/diagrams/out/state-stay-request.svg",
+    "docs/diagrams/out/state-stay.png",
+    "docs/diagrams/out/state-stay.svg",
+    "docs/diagrams/out/state-swap-r.png",
+    "docs/diagrams/out/state-swap.png",
+    "docs/diagrams/out/state-swap.svg",
+    "docs/diagrams/out/state-term-request.png",
+    "docs/diagrams/out/state-term-request.svg",
+    "docs/diagrams/out/state-termination.png",
+    "docs/diagrams/out/state-termination.svg",
+    "docs/diagrams/out/uc-admin.png",
+    "docs/diagrams/out/uc-admin.svg",
+    "docs/diagrams/out/uc-manager.png",
+    "docs/diagrams/out/uc-manager.svg",
+    "docs/diagrams/out/uc-staff.png",
+    "docs/diagrams/out/uc-staff.svg",
+    "docs/diagrams/out/uc-student.png",
+    "docs/diagrams/out/uc-student.svg",
+    "docs/diagrams/package-backend.mmd",
+    "docs/diagrams/package-clients.mmd",
+    "docs/diagrams/screens-admin.mmd",
+    "docs/diagrams/screens-manager.mmd",
+    "docs/diagrams/screens-staff.mmd",
+    "docs/diagrams/screens-student.mmd",
+    "docs/diagrams/seq-apply-pay.mmd",
+    "docs/diagrams/seq-assignment.mmd",
+    "docs/diagrams/seq-door-code.mmd",
+    "docs/diagrams/seq-google-signin.mmd",
+    "docs/diagrams/seq-maintenance.mmd",
+    "docs/diagrams/seq-next-term.mmd",
+    "docs/diagrams/seq-term-publish.mmd",
+    "docs/diagrams/seq-utility.mmd",
+    "docs/diagrams/state-allocation-next.mmd",
+    "docs/diagrams/state-allocation.mmd",
+    "docs/diagrams/state-application.mmd",
+    "docs/diagrams/state-claim.mmd",
+    "docs/diagrams/state-door-code.mmd",
+    "docs/diagrams/state-invoice.mmd",
+    "docs/diagrams/state-late-check-in.mmd",
+    "docs/diagrams/state-maintenance.mmd",
+    "docs/diagrams/state-room-change.mmd",
+    "docs/diagrams/state-room-class-change.mmd",
+    "docs/diagrams/state-round2-offer.mmd",
+    "docs/diagrams/state-stay-request.mmd",
+    "docs/diagrams/state-stay.mmd",
+    "docs/diagrams/state-swap.mmd",
+    "docs/diagrams/state-term-request.mmd",
+    "docs/diagrams/state-termination.mmd",
+    "docs/diagrams/uc-admin.mmd",
+    "docs/diagrams/uc-manager.mmd",
+    "docs/diagrams/uc-staff.mmd",
+    "docs/diagrams/uc-student.mmd",
+    "docs/reports/data/dbmeta.json",
+    "docs/reports/data/tables.json",
+    "docs/reports/src/Report1.md",
+    "docs/reports/src/_db-design.md",
+    "docs/reports/src/build.mjs",
+    "docs/tools/build-report.ps1",
+    "docs/tools/gen-db-docs.mjs",
+    "docs/tools/md2html.mjs",
+    "docs/tools/render-diagrams.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(cfg): demo data tool with stages 0, A, B and C",
+   "paths": [
+    "CLAUDE.md",
+    "backend/CLAUDE.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: production email, push and VietQR settings applied",
+   "paths": [
+    "CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Android push and Google sign-in",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(android): push notifications and Google sign-in",
+   "paths": [
+    "android/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: QR labels and the Android app built; C-45",
+   "paths": [
+    "CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(android): student app — Home, My Room, Payments, Activity",
+   "paths": [
+    "android/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phases 7-8 merged into main and deployed",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): time left on requests, Room hub, search, room checks and check-out damage",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(ops): SLA deadlines, Room and Term hubs, search, room checks and check-out damage",
+   "paths": [
+    "CLAUDE.md",
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 6 merged into main and deployed",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(asg): Term transition — Stays, requests window, next-Term fees, reconciliation, turnover",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 5 merged into main and deployed",
+   "paths": [
+    "CLAUDE.md",
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): payment claims, Payment confirmations, terminations, door code and Gia hạn",
+   "paths": [
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(bil): payment claims, residence, forfeits, Utility warnings and terminations",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/web/01_Screen_Map.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 4 merged into main and deployed",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): registration periods — requests, Term wizard, announcements, board",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(cfg): registration-period requests, Term wizard with Term prices, announcements",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 3 merged into main; door codes on in production",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): inventory screens — Room Classes by Term, furniture, door codes, My Room",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(inv): Room Class per Room per Term, furniture and door codes",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Google sign-in with a real account verified on production",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(auth): Google sign-in works when the browser blocks the popup",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 2 merged into main; Google sign-in on in production",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): accounts screens — set a password, verification, Students and hub, import, Staff accounts",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-25",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(auth): accounts — Google sign-up, verification, student list import, Staff accounts by Managers",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 phase 1 merged into main",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(auth): texts for Managers of every Block; Admin setup check asks for Staff per Block",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): Vietnamese and English on every screen; menus for the new roles",
+   "paths": [
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(auth): Managers work for every Block; account language and Vietnamese messages",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: Change Specification v2 approved (ADR-19 to ADR-27)",
+   "paths": [
+    "CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/01_Change_Spec_v2.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): record a late check-in at the desk; escalation and inspection texts",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/web/01_Screen_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: sync the documents with the code and production; test catalog and screen map",
+   "paths": [
+    "CLAUDE.md",
+    "README.md",
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/00_Project_Brief.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "docs/backend/04_Test_Catalog.md",
+    "docs/tools/generate-catalogs.mjs",
+    "docs/web/01_Screen_Map.md",
+    "infra/prod/README.md",
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: continuous delivery rules, monitoring and the demo setup (ADR-18)",
+   "paths": [
+    "CLAUDE.md",
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat: demo switches for the payment simulator and email redirect",
+   "paths": [
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-24",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(web): production deployments on Vercel always build",
+   "paths": [
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "build(deploy): Azure for Students with an optional managed database",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "test(auth): password reset and change flows (PasswordFlowIT)",
+   "paths": [
+    "docs/backend/02_Endpoint_Map.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "build(deploy): any x86 Ubuntu VPS instead of the Oracle VM (ADR-16)",
+   "paths": [
+    "README.md",
+    "docs/00_Project_Brief.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(rpt): dashboards answer empty figures before the first Term",
+   "paths": [
+    "backend/README.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: ADR-17 in the Brief; deploy runbook for the base data",
+   "paths": [
+    "docs/00_Project_Brief.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "refactor: layered Spring MVC packages instead of modules (ADR-17)",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/backend/01_Backend_Architecture.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): phone and tablet layout for the Student portal",
+   "paths": [
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs(deploy): runbook for Oracle's 2 OCPU / 12 GB quota and on-VM deploy key",
+   "paths": [
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "build(deploy): use the real Vercel URLs",
+   "paths": [
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "build(deploy): Vercel web, Oracle VM stack and backend CI/CD (ADR-16)",
+   "paths": [
+    "README.md",
+    "docs/00_Project_Brief.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "infra/prod/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(seed): four years of demo data; tests keep their own seed",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/backend/01_Backend_Architecture.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "fix(rpt): past Terms keep their reports; refunds without a Bed by gender",
+   "paths": [
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s7): Inspections, templates, Admin emails, dashboards, reports and exports",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s6): Utility billing, routing rules, SLA escalations, Block staff and settings",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s5): Room changes, swaps, Round 2, late check-ins, refunds and overdue",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s4): Check-in/out desk, Maintenance Requests, push notifications",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s3): Application review, assignment engine, approval, My Room and Staff payments",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s2): Application wizard, roommate pairs, Deposit Invoice, VietQR and SePay",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(s1): Admin configuration, Buildings and Inventory, users, Audit Log, notifications",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(web): email sign-in, password pages, check-out by Allocation id",
+   "paths": [
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "feat(auth): Google sign-in by code or ID token, string IDs, optional remember",
+   "paths": [
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: record ADR-13..15 and merge the contract changes into one contract",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "docs: point every reference at the new monorepo paths",
+   "paths": [
+    "backend/CLAUDE.md",
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "web/README.md"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "author": "Lê Thành Minh Trung",
+   "subject": "chore: import backend, web and docs into one monorepo",
+   "paths": [
+    "README.md",
+    "backend/CLAUDE.md",
+    "backend/README.md",
+    "docs/00_Project_Brief.md",
+    "docs/api-contract.md",
+    "docs/backend/01_Backend_Architecture.md",
+    "docs/backend/02_Endpoint_Map.md",
+    "docs/backend/03_API_Contract_Changes.md",
+    "web/README.md"
+   ]
+  }
+ ]
+}

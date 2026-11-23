@@ -1,0 +1,372 @@
+[
+    {
+        "level":  1,
+        "text":  "Acknowledgement",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "Definition and Acronyms",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "I. Project Introduction",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 Project Information",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Project Team",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Product Background",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Existing Systems",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Business Opportunity",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Software Product Vision",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "6. Project Scope \u0026 Limitations",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "II. Project Management Plan",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 Scope \u0026 Estimation",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Project Objectives",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.3 Project Risks",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Management Approach",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 Project Process",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Quality Management",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.3 Training Plan",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Project Deliverables",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Responsibility Assignments",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Project Communications",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "6. Configuration Management",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.1 Document Management",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.2 Source Code Management",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "6.3 Tools \u0026 Infrastructures",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "III. Software Requirement Specification",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Product Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. User Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 System Functional Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 \u003cFeature Name 1\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.2.1 \u003cFunction Name 1.1\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.3 \u003cFeature Name 2\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.3.1 \u003cFunction Name 2.1\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  2,
+        "text":  "4. Non-Functional Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "4.1 External Interfaces",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "4.2 Quality Attributes",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Requirement Appendix",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.1 Business Rules",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.2 Common Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.3 Application Messages List",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "5.4 Other Requirements…",
+        "placeholder":  true
+    },
+    {
+        "level":  1,
+        "text":  "IV. Software Design Description",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. System Design",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.1 System Architecture",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "1.2 Package Diagram",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Database Design",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Detailed Design",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 \u003cFeature/Function Name1\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  4,
+        "text":  "3.1.1 Class Diagram",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 \u003cFeature/Function Name2\u003e",
+        "placeholder":  true
+    },
+    {
+        "level":  1,
+        "text":  "V. Software Testing Documentation",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Scope of Testing",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Test Strategy",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 Testing Types",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Test Levels",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.3 Supporting Tools",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. Test Plan",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 Human Resources",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 Test Environment",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.3 Test Milestones",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "4. Test Cases",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "5. Test Reports",
+        "placeholder":  false
+    },
+    {
+        "level":  1,
+        "text":  "VI. Release Package \u0026 User Guides",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "1. Deliverable Package",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "2. Installation Guides",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.1 System Requirements",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "2.2 Installation Instruction",
+        "placeholder":  false
+    },
+    {
+        "level":  2,
+        "text":  "3. User Manual",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.1 Overview",
+        "placeholder":  false
+    },
+    {
+        "level":  3,
+        "text":  "3.2 Workflow 1",
+        "placeholder":  true
+    },
+    {
+        "level":  3,
+        "text":  "3.3 Workflow 2",
+        "placeholder":  true
+    }
+]
