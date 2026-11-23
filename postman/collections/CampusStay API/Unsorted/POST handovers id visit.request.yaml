@@ -1,12 +1,10 @@
 $kind: http-request
-name: '/room-class-changes/{id}/set-back'
+name: '/handovers/{id}/visit'
 method: POST
-url: '{{baseUrl}}/room-class-changes/:id/set-back'
+url: '{{baseUrl}}/handovers/:id/visit'
 order: 3000
 description: |-
-  `POST /room-class-changes/{id}/set-back` `{ note }` → detail (A-42)
-
-  Contract: `tools/postman/api-contract.md` › Manager › Next Term
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `visit` of `handover-controller`). Add it to the contract or remove it from the backend.
 pathVariables:
   - key: id
     value: ''
@@ -18,5 +16,5 @@ body:
   type: json
   content: |-
     {
-      "note": ""
+      "visitAt": "2026-12-01T00:00:00Z"
     }

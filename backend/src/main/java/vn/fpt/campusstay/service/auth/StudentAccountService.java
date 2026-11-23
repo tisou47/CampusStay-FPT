@@ -120,6 +120,7 @@ public class StudentAccountService {
     private final BlockDirectory blocks;
     private final Residences residences;
     private final List<StudentRecords> records;
+    private final List<GenderLocks> locks;
     private final AuditTrailService auditTrail;
     private final StudentFields fields;
     private final StudentCodes codes;
@@ -129,7 +130,8 @@ public class StudentAccountService {
     private final Clock clock;
 
     public StudentAccountService(JdbcClient jdbc, UserRepository users, CurrentUser currentUser, BlockScope blockScope,
-            BlockDirectory blocks, Residences residences, List<StudentRecords> records, AuditTrailService auditTrail,
+            BlockDirectory blocks, Residences residences, List<StudentRecords> records, List<GenderLocks> locks,
+            AuditTrailService auditTrail,
             StudentFields fields, StudentCodes codes, SessionService sessions, ApplicationEventPublisher events,
             AuditLog audit, Clock clock) {
         this.jdbc = jdbc;
@@ -139,6 +141,7 @@ public class StudentAccountService {
         this.blocks = blocks;
         this.residences = residences;
         this.records = records;
+        this.locks = locks;
         this.auditTrail = auditTrail;
         this.fields = fields;
         this.codes = codes;
@@ -327,6 +330,10 @@ public class StudentAccountService {
         diff(change, "priorityGroups", String.join(", ", r.priorityGroups()), String.join(", ", groups));
         String phone = hasText(edit.phone()) ? edit.phone().strip() : null;
         diff(change, "phone", r.phone(), phone);
+        if (change.containsKey("gender") && locks.stream().anyMatch(l -> l.locked(r.id()))) {
+            throw ApiException.conflict("GENDER_LOCKED",
+                    "The gender cannot change while the student holds a Bed or a live Application.");
+        }
         if (!change.isEmpty()) {
             if (!code.equals(r.code())) {
                 codes.releaseFromDemo(code);

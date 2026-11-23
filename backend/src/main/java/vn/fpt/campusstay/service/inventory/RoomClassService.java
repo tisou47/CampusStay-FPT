@@ -33,6 +33,7 @@ import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.setting.Catalog;
+import vn.fpt.campusstay.service.setting.FeePolicy;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
@@ -96,9 +97,12 @@ public class RoomClassService {
     private final AuditLog audit;
     private final Clock clock;
 
+    private final FeePolicy fees;
+
     public RoomClassService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             TermCatalog terms, Catalog catalog, BedOccupancy occupancy, RoomConformance conformance, AuditLog audit,
-            Clock clock) {
+            FeePolicy fees, Clock clock) {
+        this.fees = fees;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -189,16 +193,16 @@ public class RoomClassService {
                     + " has started, so its Room Classes are fixed.");
         }
 
-        record Locked(long id, String code, long buildingId, long classId) {
+        record Locked(long id, String code, long buildingId, long classId, long typeId) {
         }
         List<Locked> rooms = jdbc.sql("""
-                SELECT id, code, building_id, inv_room_class_in(id, :term) AS room_class_id FROM inv_room
+                SELECT id, code, building_id, room_type_id, inv_room_class_in(id, :term) AS room_class_id FROM inv_room
                 WHERE upper(code) IN (:codes) AND status <> 'RETIRED' ORDER BY id FOR UPDATE
                 """)
                 .param("term", term.id())
                 .param("codes", List.copyOf(codes))
                 .query((rs, i) -> new Locked(rs.getLong("id"), rs.getString("code"), rs.getLong("building_id"),
-                        rs.getLong("room_class_id")))
+                        rs.getLong("room_class_id"), rs.getLong("room_type_id")))
                 .list();
         Set<String> found = rooms.stream().map(r -> r.code().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
         codes.stream().filter(c -> !found.contains(c)).findFirst().ifPresent(c -> {
@@ -207,6 +211,12 @@ public class RoomClassService {
         rooms.forEach(r -> blockScope.check(r.buildingId()));
 
         List<Locked> changing = rooms.stream().filter(r -> r.classId() != roomClassId).toList();
+        // A Room whose type has no price in this class for the Term could never be paid for (BE-2ND-04).
+        changing.stream().filter(r -> !fees.priced(term.id(), r.typeId(), roomClassId)).findFirst()
+                .ifPresent(r -> {
+                    throw ApiException.conflict("NO_PRICE", "Room " + r.code() + "'s Room Type has no price in "
+                            + roomClass.get().name() + " for " + term.name() + ". Choose another Room Class.");
+                });
         if (!changing.isEmpty()) {
             Map<Long, Long> roomOfBed = new HashMap<>();
             jdbc.sql("SELECT id, room_id FROM inv_bed WHERE room_id IN (:rooms)")

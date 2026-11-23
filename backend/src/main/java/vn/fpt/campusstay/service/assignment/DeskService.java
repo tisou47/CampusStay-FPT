@@ -1096,6 +1096,8 @@ public class DeskService {
     private Placed checkOutTarget(String allocationId, boolean lock) {
         long id = parseId(allocationId).orElseThrow(() -> ApiException.notFound("This Allocation does not exist."));
         if (lock) {
+            // Scope first, without a lock: Staff of another Block must not hold the row they get a 403 for (M7).
+            checkOutRows(null, null, id).stream().findFirst().ifPresent(p -> blockScope.check(p.bed().buildingId()));
             // Lock before reading the check-out state: a second submit then sees the first one completed (BE-2ND-02).
             jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class)
                     .optional();

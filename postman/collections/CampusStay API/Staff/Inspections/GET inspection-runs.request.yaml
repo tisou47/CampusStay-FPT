@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/inspection-runs'
+method: GET
+url: '{{baseUrl}}/inspection-runs?block={{block}}'
+order: 1000
+description: |-
+  `GET /inspection-runs?block` → `{ items: [run] }`: the runs Staff can open, open ones (their own first) then the ones sent in the last 30 days; each run as below plus `status` (Open | Submitted), `block`, `mine`, `overdue` (A-74)
+
+  Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Inspections
+queryParams:
+  - key: block
+    value: '{{block}}'

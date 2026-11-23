@@ -19,5 +19,7 @@ body:
       "nameVi": "",
       "category": "",
       "definesClass": false,
-      "status": ""
+      "status": "",
+      "use": "",
+      "price": 0
     }

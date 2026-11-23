@@ -1,0 +1,32 @@
+$kind: http-request
+name: '/check-outs/{allocationId}/furniture'
+method: PUT
+url: '{{baseUrl}}/check-outs/:allocationId/furniture'
+order: 13000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `record` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: allocationId
+    value: ''
+    description: 'Allocation id'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "itemId": "",
+          "condition": "",
+          "note": "",
+          "amount": 0,
+          "overrideReason": "",
+          "managerReview": false
+        }
+      ],
+      "studentPresent": false,
+      "electricity": 0,
+      "water": 0
+    }

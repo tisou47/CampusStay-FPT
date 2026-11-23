@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/block-staff?block={{block}}'
 order: 1000
 description: |-
-  `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, resolved7d, onDuty }], summary: { total, shared, averageOpen, onDuty, deskOnDuty }, handleOptions, roleOptions }`
+  `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, openByType: { Maintenance, Room change, Inspection }, overdue, oldestOpenAt, resolved7d, onDuty, overloaded }], summary: { total, shared, averageOpen, onDuty, deskOnDuty, open, overdue, overloaded, maxOpen }, queue: [{ type, label, count, link }], handleOptions, roleOptions }` (most open work first; A-77)
 
   Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
 queryParams:

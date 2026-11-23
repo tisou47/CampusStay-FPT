@@ -19,6 +19,7 @@ import vn.fpt.campusstay.common.audit.Actor;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.PaymentConfirmed;
+import vn.fpt.campusstay.event.TerminationCancelled;
 import vn.fpt.campusstay.event.TerminationStarted;
 import vn.fpt.campusstay.event.UtilityTerminationDue;
 import vn.fpt.campusstay.event.UtilityWarningIssued;
@@ -93,6 +94,27 @@ public class UtilityDebtService {
     @EventListener
     void on(TerminationStarted e) {
         close(e.studentId(), "TERMINATED");
+    }
+
+    /**
+     * A Manager cancelled the termination: the warnings it closed come back, the final one with a new termination
+     * day, so the debt rule keeps working (BE-2ND-05).
+     */
+    @EventListener
+    void on(TerminationCancelled e) {
+        LocalDate terminateOn = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE))
+                .plusDays(Math.max(0, parameters.intValue("termination.days_after_final_warning")));
+        jdbc.sql("""
+                UPDATE bil_utility_warning w
+                SET closed_at = NULL, closed_reason = NULL,
+                    terminate_on = CASE WHEN w.level = 'FINAL' THEN :terminateOn ELSE w.terminate_on END
+                WHERE w.id IN (SELECT DISTINCT ON (level) id FROM bil_utility_warning
+                               WHERE allocation_id = :allocation AND closed_reason = 'TERMINATED'
+                               ORDER BY level, closed_at DESC)
+                  AND NOT EXISTS (SELECT 1 FROM bil_utility_warning o
+                                  WHERE o.allocation_id = w.allocation_id AND o.level = w.level AND o.closed_at IS NULL)
+                """).param("terminateOn", terminateOn).param("allocation", e.allocationId()).update();
+        evaluate(e.studentId(), null);
     }
 
     /** @param newInvoiceId a Utility Invoice just issued, else null. @return whether the termination was triggered */

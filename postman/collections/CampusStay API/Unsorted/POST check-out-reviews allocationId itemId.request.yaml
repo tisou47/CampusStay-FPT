@@ -1,0 +1,23 @@
+$kind: http-request
+name: '/check-out-reviews/{allocationId}/{itemId}'
+method: POST
+url: '{{baseUrl}}/check-out-reviews/:allocationId/:itemId'
+order: 8000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `decide_5` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: allocationId
+    value: ''
+    description: 'Allocation id'
+  - key: itemId
+    value: ''
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keep": false,
+      "note": ""
+    }

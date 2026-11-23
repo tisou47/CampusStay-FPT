@@ -2,7 +2,7 @@ $kind: http-request
 name: '/reconciliations/template'
 method: GET
 url: '{{baseUrl}}/reconciliations/template'
-order: 8000
+order: 6000
 description: |-
   `GET /reconciliations/template?kind=enrolled|leavers` → XLSX
 

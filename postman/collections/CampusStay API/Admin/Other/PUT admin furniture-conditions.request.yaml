@@ -1,0 +1,25 @@
+$kind: http-request
+name: '/admin/furniture-conditions'
+method: PUT
+url: '{{baseUrl}}/admin/furniture-conditions'
+order: 1000
+description: |-
+  `PUT /admin/furniture-conditions { items: [{ code (empty: new), name?, nameVi, percent }] }` → `204` replaces the levels (A-72)
+
+  Contract: `tools/postman/api-contract.md` › Admin › Other
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "code": "",
+          "name": "",
+          "nameVi": "",
+          "percent": 0
+        }
+      ]
+    }

@@ -335,4 +335,70 @@ class StaffWorkloadIT {
                 .andExpect(jsonPath("$.code").value("ITEM_CLOSED"));
         assertThat(assignee(open)).isEqualTo(from);
     }
+
+    private void editStaff(long id, String body) throws Exception {
+        mvc.perform(put("/staff-accounts/" + id)
+                .header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().isOk());
+    }
+
+    private Long column(String sql, long id) {
+        return jdbc.sql(sql).param("id", id).query((rs, i) -> java.util.Optional.ofNullable(rs.getObject(1, Long.class)))
+                .single().orElse(null);
+    }
+
+    private String requestStatus(long id) {
+        return jdbc.sql("SELECT status FROM mnt_request WHERE id = :id").param("id", id).query(String.class).single();
+    }
+
+    /**
+     * TC-AUTH-095 (BE-3RD-01): a Staff member taken off Block A gives Block A's open work back to its queue (nobody in
+     * charge, audited), so nothing is left with someone who can no longer reach it.
+     */
+    @Test
+    void leavingABlockGivesItsWorkBackToTheQueue() throws Exception {
+        long s = staff("Pham Van Roi", "MAINTENANCE,INSPECTION", "B");
+        long request = maintenance(s, false);
+        long run = inspection(s);
+        editStaff(s, "{\"blocks\":[\"B\"]}");
+        assertThat(column("SELECT assignee_id FROM mnt_request WHERE id = :id", request)).isNull();
+        assertThat(requestStatus(request)).isEqualTo("SUBMITTED");
+        assertThat(column("SELECT inspector_id FROM mnt_inspection_run WHERE id = :id", run)).isNull();
+        assertThat(jdbc.sql("SELECT count(*) FROM shared_audit_log WHERE action = 'WORK_RELEASED' AND object_id = :id")
+                .param("id", String.valueOf(request)).query(Long.class).single()).isEqualTo(1);
+    }
+
+    /** TC-AUTH-096 (BE-3RD-01): disabling a Staff member gives all their open work back to the Block queues. */
+    @Test
+    void disablingStaffGivesTheirWorkBack() throws Exception {
+        long s = staff("Pham Van Nghi", "MAINTENANCE");
+        long request = maintenance(s, true);
+        editStaff(s, "{\"status\":\"Disabled\"}");
+        assertThat(column("SELECT assignee_id FROM mnt_request WHERE id = :id", request)).isNull();
+        assertThat(requestStatus(request)).isEqualTo("SUBMITTED");
+    }
+
+    /**
+     * TC-AUTH-101 (final review of BE-3RD-01): when the inspector is disabled, their schedule no longer names them
+     * (its next runs are nobody's) and the released run is open to the Block's Staff, the first to work on it takes it.
+     */
+    @Test
+    void releasedInspectionsStayReachable() throws Exception {
+        long leaver = staff("Pham Van Di", "INSPECTION");
+        long other = staff("Pham Van O", "INSPECTION");
+        long run = inspection(leaver);
+        long schedule = jdbc.sql("""
+                INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id,
+                                                     due_within_days)
+                SELECT id, 'Weekly fire check', 'WORKLOAD_TEST', 'ALL_ROOMS', 'WEEKLY', :a, 3 FROM inv_building
+                WHERE code = 'A' RETURNING id
+                """).param("a", leaver).query(Long.class).single();
+        editStaff(leaver, "{\"status\":\"Disabled\"}");
+        assertThat(column("SELECT assignee_id FROM mnt_inspection_schedule WHERE id = :id", schedule)).isNull();
+        String email = jdbc.sql("SELECT email FROM auth_user WHERE id = :id").param("id", other).query(String.class)
+                .single();
+        mvc.perform(get("/inspection-runs/INS-" + run).header(HttpHeaders.AUTHORIZATION, bearer(mvc, email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.run.mine").value(true));
+    }
 }

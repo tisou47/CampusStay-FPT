@@ -1,0 +1,10 @@
+$kind: http-request
+name: '/check-out-reviews'
+method: GET
+url: '{{baseUrl}}/check-out-reviews?block={{block}}'
+order: 11000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `reviews` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.
+queryParams:
+  - key: block
+    value: '{{block}}'

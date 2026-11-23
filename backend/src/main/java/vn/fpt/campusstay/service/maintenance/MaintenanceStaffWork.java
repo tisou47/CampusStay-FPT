@@ -90,6 +90,24 @@ class MaintenanceStaffWork implements StaffWork {
         }
     }
 
+    @Override
+    public void releaseStanding(long userId, java.util.Set<Long> keepBlocks) {
+        jdbc.sql("""
+                UPDATE mnt_inspection_schedule SET assignee_id = NULL, version = version + 1
+                WHERE assignee_id = :u AND NOT (building_id = ANY(:keep))
+                """).param("u", userId).param("keep", keepBlocks.toArray(Long[]::new)).update();
+    }
+
+    @Override
+    public void release(String type, long id, String note) {
+        if (StaffWorkload.MAINTENANCE.equals(type)) {
+            requests.unassign(id, note);
+            return;
+        }
+        jdbc.sql("UPDATE mnt_inspection_run SET inspector_id = NULL WHERE id = :id AND status <> 'SUBMITTED'")
+                .param("id", id).update();
+    }
+
     private static Item request(ResultSet rs, Instant now) throws SQLException {
         RequestStore.Request r = RequestStore.request(rs, 0);
         return new Item(StaffWorkload.MAINTENANCE, String.valueOf(r.id()), r.code(), r.title(), r.roomCode(),

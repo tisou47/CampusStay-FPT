@@ -2,7 +2,7 @@ $kind: http-request
 name: '/operational-moves/options'
 method: GET
 url: '{{baseUrl}}/operational-moves/options'
-order: 13000
+order: 10000
 description: |-
   `GET /operational-moves/options?q|allocationId` → `{ allocationId, student, term, from, resident, nextTermAllocation, feesIssued, nextTerm, beds, reasons }`
 

@@ -113,6 +113,7 @@ GitHub → repository → Settings → Secrets and variables → Actions:
 | Variable | `VM_HOST` | `<API_DOMAIN>` or the VPS's IP |
 | Variable | `VM_USER` | `deploy` |
 | Variable | `API_DOMAIN` | e.g. `api.campusstay.id.vn` (used for the health check) |
+| Variable (recommended) | `VM_KNOWN_HOSTS` | the VPS host key: run `ssh-keyscan -p <port> <API_DOMAIN>` once from your own computer and paste the lines. Without it each deploy trusts whatever key answers and prints a warning |
 | Variable (optional) | `VM_SSH_PORT` | the SSH port, when it is not 22 |
 | Variable (optional) | `IMAGE_PLATFORM` | `linux/arm64` only for an ARM VPS; leave it unset for x86 |
 
@@ -199,6 +200,8 @@ With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_
 | Restore the files | `docker compose run --rm --no-deps -T --entrypoint tar api -C /app/data -xzf - < backups/files-<stamp>.tgz` |
 | Disk usage | `df -h /` and `docker system df` |
 
+**Rolling back a bad deploy.** Find the last good commit (GitHub → Actions → backend → the last green run before the bad one, or `git log` on `main`) and start it: `API_TAG=<that commit sha> docker compose up -d api`. The image stays on the server for 7 days after it was built (the deploy prunes older ones); after that pull it from GHCR first: `docker login ghcr.io` (a GitHub token with `read:packages`), `API_TAG=<sha> docker compose pull api`, `docker logout ghcr.io`. A migration the bad build applied stays in the database: when the old build cannot run with it, restore the backup the deploy took just before (`backups/predeploy-*`, the newest five are kept apart from the 14 daily ones; managed database: appendix A.4). Then fix forward with a new commit to `main`, which deploys the newest build again.
+
 ## 5. Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -225,7 +228,7 @@ Nothing is deployed by hand: merging into `main` is the deploy.
 
 | Change pushed to `main` | What runs | Where to watch |
 |---|---|---|
-| `backend/**`, `infra/prod/` stack files or the workflow | `.github/workflows/backend.yml`: `mvn verify` → image → copy the stack to the server → `docker compose up -d` → readiness check | GitHub → Actions → backend |
+| `backend/**`, `infra/prod/` stack files or the workflow | `.github/workflows/backend.yml`: `mvn verify` → image → copy the stack to the server → `backup.sh` (files, and the database when it runs in the stack) → `docker compose up -d` → readiness check; images of the last 7 days stay on the server | GitHub → Actions → backend |
 | Anything (production) or `web/**` (previews) | Vercel builds `web/` with its environment variables | Vercel → Deployments |
 | A new Flyway migration | Applied by the API when the new image starts | API log: "Successfully applied" |
 | A setting (`.env` on the server) | Not in Git: edit `/opt/campusstay/.env`, then `docker compose up -d` | `docker compose ps` |

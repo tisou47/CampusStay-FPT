@@ -2,7 +2,7 @@ $kind: http-request
 name: '/reconciliations/{id}/items/{itemId}/resolve'
 method: POST
 url: '{{baseUrl}}/reconciliations/:id/items/:itemId/resolve'
-order: 6000
+order: 4000
 description: |-
   `POST /reconciliations/{id}/items/{itemId}/resolve` `{ outcome: 'Not enrolled'|'Enrolled', note }` → item (A-46)
 

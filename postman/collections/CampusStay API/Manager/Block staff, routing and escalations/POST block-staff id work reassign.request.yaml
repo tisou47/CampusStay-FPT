@@ -1,0 +1,29 @@
+$kind: http-request
+name: '/block-staff/{id}/work/reassign'
+method: POST
+url: '{{baseUrl}}/block-staff/:id/work/reassign'
+order: 5000
+description: |-
+  `POST /block-staff/{id}/work/reassign` `{ items: [{ type, id }], toStaffId, note }` → `{ moved }` (A-77)
+
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "type": "",
+          "id": ""
+        }
+      ],
+      "toStaffId": "",
+      "note": ""
+    }

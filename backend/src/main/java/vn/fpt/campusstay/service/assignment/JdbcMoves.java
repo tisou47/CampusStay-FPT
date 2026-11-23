@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.AllocationMoved;
 import vn.fpt.campusstay.event.DoorCodeReleased;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
 import vn.fpt.campusstay.service.application.Applications;
@@ -224,6 +225,7 @@ class JdbcMoves implements Moves {
             throw bedTaken();
         }
         billing.followAllocation(from.id(), id);
+        events.publishEvent(new AllocationMoved(from.id(), id));
         if (released != null && !sameRoom) {
             events.publishEvent(new DoorCodeReleased(next.roomCode(), List.of(from.studentId())));
         }

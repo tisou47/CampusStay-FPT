@@ -1,0 +1,22 @@
+$kind: http-request
+name: '/check-outs/{allocationId}/damage-claims'
+method: POST
+url: '{{baseUrl}}/check-outs/:allocationId/damage-claims'
+order: 7000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `claim_1` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: allocationId
+    value: ''
+    description: 'Allocation id'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "itemId": "",
+      "condition": "",
+      "note": ""
+    }

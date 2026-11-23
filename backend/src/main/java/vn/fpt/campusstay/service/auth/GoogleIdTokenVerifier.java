@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.auth;
 import java.util.Locale;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -33,8 +34,15 @@ class GoogleIdTokenVerifier {
     private final AuthProperties.Google config;
     private volatile NimbusJwtDecoder decoder;
 
+    @Autowired
     GoogleIdTokenVerifier(AuthProperties props) {
         this.config = props.google();
+    }
+
+    /** Tests: a decoder over a local key instead of Google's JWK set; the same checks apply. */
+    GoogleIdTokenVerifier(AuthProperties props, NimbusJwtDecoder base) {
+        this.config = props.google();
+        this.decoder = withChecks(base);
     }
 
     boolean enabled() {
@@ -70,22 +78,26 @@ class GoogleIdTokenVerifier {
         if (d == null) {
             synchronized (this) {
                 if (decoder == null) {
-                    NimbusJwtDecoder created = NimbusJwtDecoder.withJwkSetUri(config.jwkSetUri()).build();
-                    OAuth2TokenValidator<Jwt> issuer = jwt -> ISSUERS.contains(jwt.getClaimAsString("iss"))
-                            ? OAuth2TokenValidatorResult.success()
-                            : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Bad issuer", null));
-                    OAuth2TokenValidator<Jwt> audience = jwt -> jwt.getAudience() != null
-                            && jwt.getAudience().contains(config.clientId())
-                                    ? OAuth2TokenValidatorResult.success()
-                                    : OAuth2TokenValidatorResult.failure(
-                                            new OAuth2Error("invalid_token", "Bad audience", null));
-                    created.setJwtValidator(new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(), issuer,
-                            audience));
-                    decoder = created;
+                    decoder = withChecks(NimbusJwtDecoder.withJwkSetUri(config.jwkSetUri()).build());
                 }
                 d = decoder;
             }
         }
         return d;
+    }
+
+    /** Google's checklist on top of the signature: expiry, issuer and audience = our client id. */
+    private NimbusJwtDecoder withChecks(NimbusJwtDecoder created) {
+        OAuth2TokenValidator<Jwt> issuer = jwt -> ISSUERS.contains(jwt.getClaimAsString("iss"))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Bad issuer", null));
+        OAuth2TokenValidator<Jwt> audience = jwt -> jwt.getAudience() != null
+                && jwt.getAudience().contains(config.clientId())
+                        ? OAuth2TokenValidatorResult.success()
+                        : OAuth2TokenValidatorResult.failure(
+                                new OAuth2Error("invalid_token", "Bad audience", null));
+        created.setJwtValidator(new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(), issuer,
+                audience));
+        return created;
     }
 }
