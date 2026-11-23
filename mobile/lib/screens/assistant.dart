@@ -58,13 +58,20 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
     _toEnd();
     try {
+      // A small model on a busy server may take over a minute (MOB-04).
       final r = await Api.post('/students/me/assistant/chat', {
         'messages': turns.sublist(turns.length > 20 ? turns.length - 20 : 0),
-      });
+      }, const Duration(seconds: 100));
       // The server signs each answer; it goes back with its signature or is ignored (BE-PLT-02).
       _messages.add((role: 'assistant', content: r.text('reply'), error: false, signature: r.str('signature')));
     } on ApiException catch (e) {
-      _messages.add((role: 'assistant', content: e.message, error: true, signature: null));
+      final text = e.code == 'TIMEOUT'
+          ? t(
+              'The assistant is still thinking and did not answer in time. Ask again in a moment.',
+              'Trợ lý vẫn đang suy nghĩ và chưa trả lời kịp. Hãy hỏi lại sau ít phút.',
+            )
+          : e.message;
+      _messages.add((role: 'assistant', content: text, error: true, signature: null));
     }
     if (mounted) setState(() => _pending = false);
     _toEnd();

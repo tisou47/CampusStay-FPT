@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../api.dart';
 import '../common.dart';
+import '../files.dart';
 
 /// Google sign-in asks for an ID token of the web's OAuth client (the API's GOOGLE_CLIENT_ID):
 /// `--dart-define=GOOGLE_CLIENT_ID=…`; blank = no Google button.
@@ -127,6 +128,11 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: _busy
                       ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : Text(t('Sign in', 'Đăng nhập')),
+                ),
+                // The reset email and page live on the web (MOB-09).
+                TextButton(
+                  onPressed: _busy ? null : () => openUrl('$webBaseUrl/forgot-password'),
+                  child: Text(t('Forgot password?', 'Quên mật khẩu?')),
                 ),
                 if (googleClientId.isNotEmpty)
                   OutlinedButton(

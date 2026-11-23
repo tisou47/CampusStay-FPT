@@ -4,11 +4,14 @@ Flutter (Dart), Android build (package `vn.fpt.campusstay.student`, Android 8.0 
 web's student portal (Change Specification v2 §11.2, bottom bar: Home · My Room · Account; Home holds the other features as tiles) and calls the
 same API (`tools/postman/api-contract.md`).
 
+Web only (open the web app in the phone's browser): the password reset itself (the app opens the page) and every
+Staff, Manager and Admin screen.
+
 Every screen and action of the web's Student portal is reachable in the app (web page → app screen):
 
 | Screen (web page) | What it shows and does | API |
 |---|---|---|
-| Sign in | the CampusStay password, or Google (`@fpt.edu.vn`; a new account sets its first password in the app). Staff and Managers are sent to the web | `POST /auth/sign-in`, `POST /auth/google` (`credential`), `POST /auth/password/set`, `GET /auth/me` |
+| Sign in | the CampusStay password, or Google (`@fpt.edu.vn`; a new account sets its first password in the app); **Forgot password?** opens the web's reset page in the browser. Staff and Managers are sent to the web | `POST /auth/sign-in`, `POST /auth/google` (`credential`), `POST /auth/password/set`, `GET /auth/me` |
 | Account verification (`/student/verification`) | a Google sign-up the student list does not know sends the sign-up form before anything else; a banner while a Manager verifies it; the verified details | `GET`/`PUT /students/me/verification` |
 | Account menu (top bar) | name and code, verification, **Change password**, sign out | `POST /auth/password/change`, `POST /auth/sign-out` |
 | Home (`/student`) | the next action for the student's stage (apply, pay, under review, all set), a roommate invitation, the registration period with its schedule, the dormitory board (open → read, changes old → new, show all), the status rows, the latest notification | `/students/me/home`, `/students/me/board`, `/registration-periods/current` (+ `/{termId}`), `/notifications/{id}/read` |
