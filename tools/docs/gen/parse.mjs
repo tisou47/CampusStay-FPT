@@ -163,15 +163,32 @@ export function parseApiErrors(src) {
   }))
 }
 
-/** `TC-XXX-NNN` ids in the Javadoc right before a test method. */
+/**
+ * The test case ids of a test class: the leading `TC-XXX-NNN` ids of the Javadoc right before a test method, then the ids of the class Javadoc that no method claims, given to the
+ * class's first test.
+ */
 export function parseTestIds(src, cls) {
+  const clean = (doc) => doc.replace(/^\s*\*\s?/gm, ' ').replace(/\s+/g, ' ').trim()
+  // A comment's own ids are the first one and those joined to it ("TC-APP-020 and TC-APP-021"); later ids are references.
+  const ids = (doc) => {
+    const at = doc.search(/TC-[A-Z]+-\d+/)
+    return at < 0 ? [] : doc.slice(at).match(/^TC-[A-Z]+-\d+(?:\s*(?:,|and)\s*TC-[A-Z]+-\d+)*/)[0].match(/TC-[A-Z]+-\d+/g)
+  }
+  // The text after the leading ids ("TC-APP-020 and TC-APP-021: …").
+  const titleOf = (doc, first) => doc.slice(doc.indexOf(first) + first.length).replace(/^(?:\s*(?:,|and)\s*TC-[A-Z]+-\d+)*\s*:?\s*/, '').trim()
   const out = []
   for (const m of src.matchAll(/\/\*\*((?:(?!\*\/)[\s\S])*?)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*\s*(?:public\s+)?void\s+(\w+)\s*\(/g)) {
-    const doc = m[1].replace(/^\s*\*\s?/gm, ' ').replace(/\s+/g, ' ').trim()
-    const id = doc.match(/TC-[A-Z]+-\d+/)
-    if (!id) continue
-    const title = doc.slice(doc.indexOf(id[0]) + id[0].length).replace(/^:\s*/, '').trim()
-    out.push({ id: id[0], class: cls, method: m[2], title })
+    const doc = clean(m[1])
+    const found = ids(doc)
+    for (const id of found) out.push({ id, class: cls, method: m[2], title: titleOf(doc, found[0]) })
+  }
+  const classDoc = src.match(/\/\*\*((?:(?!\*\/)[\s\S])*?)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:(?:public|final|abstract)\s+)*class\s+\w+/)?.[1]
+  const firstTest = src.match(/@(?:Test|ParameterizedTest|RepeatedTest)\b[\s\S]*?void\s+(\w+)\s*\(/)?.[1]
+  if (classDoc && firstTest) {
+    const doc = clean(classDoc)
+    for (const id of ids(doc).filter((x) => !out.some((o) => o.id === x))) {
+      out.push({ id, class: cls, method: firstTest, title: titleOf(doc, id) })
+    }
   }
   return out
 }

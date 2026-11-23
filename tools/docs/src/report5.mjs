@@ -53,7 +53,7 @@ const STATUS = { Ok: '200 OK', Created: '201 Created', Accepted: '202 Accepted',
 /** What a test checks: the HTTP statuses it expects and how many assertions it makes. */
 export function expectations(body) {
   const statuses = [...new Set([...body.matchAll(/status\(\)\.is(\w+)\(\)|status\(\)\.is\((\d+)\)/g).map((m) => m[2] ?? STATUS[m[1]] ?? m[1])])]
-  const checks = (body.match(/\b(assertThat\w*|andExpect|assertEquals|assertTrue|assertFalse|assertThrows|assertNull|assertNotNull|verify)\(/g) ?? []).length
+  const checks = (body.match(/\b(assert\w*|andExpect|verify)\(/g) ?? []).length
   return [statuses.length ? `HTTP ${statuses.join(', ')}` : '', `${checks} check${checks === 1 ? '' : 's'}`].filter(Boolean).join('; ')
 }
 

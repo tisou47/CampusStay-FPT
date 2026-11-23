@@ -260,3 +260,25 @@ class HandoverIT {
     { id: 'TC-ASG-053', class: 'HandoverIT', method: 'starts', title: 'starts only when the conditions hold.' },
   ])
 })
+
+test('parseTestIds reads the leading ids of a comment; ids later in the text are references', () => {
+  const src = `class Round2IT {
+    /** TC-APP-020 and TC-APP-021: held options (publish rules: TC-CFG-034, which replaced TC-CFG-004). */
+    @Test
+    void heldOptions() { }
+}`
+  assert.deepEqual(parseTestIds(src, 'Round2IT').map((t) => t.id), ['TC-APP-020', 'TC-APP-021'])
+})
+
+test('parseTestIds gives an id of the class comment that no method claims to the first test', () => {
+  const src = `/** TC-AST-013 (BE-PLT-03): the history is capped. Also covers TC-AST-001. */
+class AssistantHistoryTest {
+    /** TC-AST-001: first. */
+    @Test
+    void first() { }
+
+    @Test
+    void second() { }
+}`
+  assert.deepEqual(parseTestIds(src, 'AssistantHistoryTest').map((t) => [t.id, t.method]), [['TC-AST-001', 'first'], ['TC-AST-013', 'first']])
+})

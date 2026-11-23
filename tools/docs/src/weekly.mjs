@@ -2,6 +2,7 @@
 // current week, tasks per member from the commits, issues from the review, and clearly marked empty fields for what
 // the repository cannot know (the weekly plan, the supervisor's remarks).
 //   node tools/docs/src/weekly.mjs
+import { TEMPLATE_BASE } from '../base.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -82,7 +83,7 @@ export function config() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const base = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+  const base = TEMPLATE_BASE
   const tpl = 'docs/SEP490_Report/Project Weekly Report_GroupName.xlsx'
   fs.mkdirSync(path.join(root, 'tools/docs/build/tpl'), { recursive: true })
   fs.writeFileSync(path.join(root, 'tools/docs/build/tpl/Project Weekly Report_GroupName.xlsx'), execFileSync('git', ['show', `${base}:${tpl}`], { cwd: root, maxBuffer: 1 << 28 }))

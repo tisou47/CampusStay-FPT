@@ -5,6 +5,7 @@
 // idempotent even though the result overwrites the template file in docs/. Content: tools/docs/src/<Name>.md (Markdown,
 // `@include` partials). Record of Changes rows: tools/docs/src/changes.json { <Name>: [[date, A|M|D, in charge, text]] }.
 // Writes docs/…/<template>.docx and .pdf, then runs check-docx.ps1 on the result.
+import { TEMPLATE_BASE } from './base.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -15,7 +16,7 @@ const here = (...p) => path.join(root, 'tools/docs', ...p)
 const templates = JSON.parse(fs.readFileSync(here('outlines/templates.json'), 'utf8'))
 const changesFile = here('src/changes.json')
 const changes = fs.existsSync(changesFile) ? JSON.parse(fs.readFileSync(changesFile, 'utf8')) : {}
-const base = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+const base = TEMPLATE_BASE
 const COVER_PLACE_DATE = 'Ho Chi Minh City, November 2026'
 
 /** Per document: where the replaced body starts, and extra cover replacements. */

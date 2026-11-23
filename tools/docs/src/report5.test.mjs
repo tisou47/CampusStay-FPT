@@ -46,3 +46,7 @@ test('testMethods finds @Test and @ParameterizedTest methods with their comments
     { method: 'rejectsNegativeAmounts', doc: '' },
   ])
 })
+
+test('expectations counts assertions made through a helper such as assertError', () => {
+  assert.equal(expectations('{ assertError(() -> exchange("used"), "INVALID_CODE"); }'), '1 check')
+})

@@ -44,3 +44,8 @@ The documents are written from the code. These facts are in nobody's repository,
 - Workflow owners follow git authorship: WF-01 Trung, WF-02 and WF-03 Lộc, WF-04 and WF-05 Luân. Duy owns no main workflow (the form asks each member to own one): the team should pick one for Duy, then run `node tools/docs/src/forms.mjs` again.
 - BM02 keeps the AI findings of the 28/10 run as they were; each Planned finding got its status on 23/11. Still open: SR-06 (load test), SR-11 (production index check), SR-13 (Term never Closed), SR-15 (reopen not limited), SR-27 (contract A-53, A-54).
 - The Topic form was not edited: `docs/Topic/TOPIC-CHECK.md` lists where it differs from the system.
+- BM04 sections 6.x ("Pass criteria at Defense 1.1") and 8.4 (agreed thresholds for workflows and demo scenarios): the results of the demo runs are left empty. Fill them after you run each scenario on staging.
+
+## Report 7
+
+- The Acknowledgement thanks Ms. Thân Thị Ngọc Vân for "her weekly guidance and her feedback at every review". Confirm or reword it.

@@ -18,7 +18,7 @@ Out of scope: the look of the screens (no visual or screenshot tests), load and 
 - **Authorization testing**: each role and permission is refused where Report 3 says so (401 without a session, 403 without the permission or outside the Staff member's Blocks or shift).
 - **Validation and error testing**: wrong input gets the documented error code and message in both languages.
 - **Data integrity testing**: the database constraints (a Bed given once per Term, issued Invoices that cannot change, the state CHECKs) refuse what the services must never write.
-- **Regression testing**: every finding of a review or an audit gets a test that failed before its fix (package `regression`, one class per area).
+- **Regression testing**: each review or audit finding that was fixed got a test that failed before the fix (package `regression`, one class per area).
 - **Architecture testing**: `LayeringTest` fails the build when a controller imports a repository, an entity or Spring JDBC, or when a lower layer imports a controller.
 
 ### 2.2 Test Levels
@@ -42,14 +42,14 @@ Out of scope: the look of the screens (no visual or screenshot tests), load and 
 | JaCoCo | coverage of the backend tests (`backend/target/site/jacoco`) |
 | Node.js test runner (`node --test`) | web logic tests |
 | Flutter test | mobile widget and logic tests |
-| GitHub Actions | runs `mvn verify` and the web checks (`npm test`, the translation check, the build) on every pull request and every push to `main`; a failing test stops the deployment |
+| GitHub Actions | runs `mvn verify` and the web checks (`npm test`, the translation check, the build) on every pull request and every push to `main` that touches `backend/` or `web/` (each workflow is filtered by path); a failing test stops the deployment |
 | Postman (collection `CampusStay API`) | manual calls during development, Local and Production environments |
 
 ## 3. Test Plan
 
 ### 3.1 Human Resources
 
-Each member writes the tests of the features they build (Report 2, section on responsibilities); CI runs all the tests on every pull request.
+Each member writes the tests of the features they build (Report 2, section on responsibilities); CI runs the backend and web tests on every pull request that touches `backend/` or `web/`.
 
 @include _ownership.md
 
@@ -58,7 +58,7 @@ Each member writes the tests of the features they build (Report 2, section on re
 | Environment | Setup |
 |---|---|
 | Developer machine | JDK 21, Maven, Docker (for Testcontainers), Node.js 22, Flutter SDK; `mvn -B verify` in `backend/`, `npm test` in `web/`, `flutter test` in `mobile/` |
-| CI | GitHub Actions on `ubuntu-latest` (every pull request and every push to `main`): Temurin JDK 21 and Docker for the backend, Node.js 22 for the web |
+| CI | GitHub Actions on `ubuntu-latest` (pull requests and pushes to `main` that touch `backend/` or `web/`): Temurin JDK 21 and Docker for the backend, Node.js 22 for the web |
 | Acceptance | production: web on Vercel, API on the Azure VM with Azure Database for PostgreSQL, demo data loaded by stage; browsers Chrome and Edge, Android 8.0 or later |
 
 ### 3.3 Test Milestones

@@ -72,7 +72,7 @@ try {
     $tc = $wb.Worksheets.Item('Test Cases')
     $tc.Range('D3').Value2 = $project
     $tc.Range('D4').Value2 = $code
-    $tc.Range('D5').Value2 = "1. Backend: JDK 21, Maven, Docker; PostgreSQL 17 in a Testcontainers container with the Flyway schema and the test seed; GitHub Actions (ubuntu-latest) on every push and pull request.`n2. Web: Node.js 22, npm test.`n3. Mobile: Flutter SDK, flutter test."
+    $tc.Range('D5').Value2 = "1. Backend: JDK 21, Maven, Docker; PostgreSQL 17 in a Testcontainers container with the Flyway schema and the test seed; GitHub Actions (ubuntu-latest) on pull requests and pushes to main that touch backend/.`n2. Web: Node.js 22, npm test.`n3. Mobile: Flutter SDK, flutter test."
     $tc.Range('B9:F60').ClearContents() | Out-Null
     if ($groups.Count -gt 1) { $tc.Rows(9).Copy() | Out-Null; $tc.Range("A10:F$(8 + $groups.Count)").PasteSpecial(-4122) | Out-Null }
     for ($i = 0; $i -lt $groups.Count; $i++) {

@@ -3,6 +3,7 @@
 // WBS: one row per web page and mobile screen (level by the template's rule: fields / transactions counted in the
 // source). Issues: the project risks of Report 2 that were met. Defects: every finding of the code review
 // (review/findings.json, outside the repository: D:\Projects\CampusStay\review), Closed when a fix wave merged it.
+import { TEMPLATE_BASE } from '../base.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -132,7 +133,7 @@ export function config() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const base = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+  const base = TEMPLATE_BASE
   const tpl = 'docs/SEP490_Report/Report3_Project Tracking.xlsx'
   fs.mkdirSync(path.join(root, 'tools/docs/build/tpl'), { recursive: true })
   fs.writeFileSync(path.join(root, 'tools/docs/build/tpl/Report3_Project Tracking.xlsx'), execFileSync('git', ['show', `${base}:${tpl}`], { cwd: root, maxBuffer: 1 << 28 }))

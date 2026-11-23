@@ -4,6 +4,7 @@
 // (data/selfreview.json) and adds their status today. Fields only people can fill (reviewers, approvals, signatures,
 // reviewers' verification) stay empty.
 //   node tools/docs/src/forms.mjs [BM01 BM02 BM03 BM04]
+import { TEMPLATE_BASE } from '../base.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -80,7 +81,7 @@ const OTHER = [
 ]
 const wfTests = (w) => sortIds(w.classes.flatMap((c) => byClass[c] ?? []))
 const NFRS = [
-  ['NFR-01', 'Usability', 'Texts of the web and API messages with a Vietnamese version', '100 %', 'npm run i18n:check and MessagesTest in CI on every pull request', D],
+  ['NFR-01', 'Usability', 'Texts of the web and API messages with a Vietnamese version', '100 %', 'npm run i18n:check and MessagesTest in CI on every pull request that touches backend/ or web/', D],
   ['NFR-02', 'Security', 'Permission and scope tests passing', '100 %', 'Integration tests in CI (mvn verify)', T],
   ['NFR-03', 'Integrity', 'A Bed given twice in a Term; money of an issued Invoice changed', '0', 'Database constraints and the trigger tr_invoice_fixed, with their integration tests', T],
   ['NFR-04', 'Reliability', 'Email delivery attempts before giving up; requests blocked by a mail failure', '≤ 5 attempts with growing delays; 0 blocked', 'Outbox tests (NTF) in CI', V],
@@ -101,7 +102,7 @@ function form(name, file, extra) {
 
 const BM01 = () => form('BM01', 'SWP490_R2_BM01_Design_Brief_1', {
   paragraphs: [{ after: '2. System at a Glance', text: 'FPT University\'s Tân Uyên campus opens dormitories for thousands of students and needs one system to run them. CampusStay FPT takes a student from sign-in to a Bed and through every Term of the stay: Applications by Room Type and Room Tier, a fair batch assignment, VietQR payments confirmed by Managers, door codes, the check-in inventory and the check-out desk, the Term transition, maintenance with time limits, monthly Utility billing, Family Day visitors, the Staff weekly schedule and reports. Users: students (web and the Android app), Staff of each Block, Managers for every Block and the Administrator. Core value: every Bed, payment and deadline follows one set of configurable rules with an audit trail. Architecture: one Spring Boot API with PostgreSQL, a React web application and a Flutter app (Report 4 §1.1).' }],
-  replaceText: [['Automated in CI: at least 50% of the committed total.', `Automated in CI: ${automated} of ${allTests} automated tests (${Math.round((100 * automated) / allTests)} %): the backend and web suites run on every pull request; the ${tests.runs.mobile} Flutter tests run with flutter test.`]],
+  replaceText: [['Automated in CI: at least 50% of the committed total.', `Automated in CI: ${automated} of ${allTests} automated tests (${Math.round((100 * automated) / allTests)} %): the backend and web suites run on every pull request that touches backend/ or web/; the ${tests.runs.mobile} Flutter tests run with flutter test.`]],
   tables: [
     { index: 1, column: 2, values: ['FA26SE260', PROJECT, TEAM, SUPERVISOR, REPO, VERSION, DATE] },
     { index: 2, fontSize: 8, widths: [2.6, 3.4, 7.0, 4.0], rows: [
@@ -222,7 +223,8 @@ function BM04() {
         ['Total for this workflow', String(ids.length + 1), String(ids.length), ''],
       ] },
       { index: b + 4, rows: [
-        ['Runs end-to-end on staging with seeded data', 'Yes'], ['Main scenario passes', 'Yes'], ['Exception scenarios passing', '1 of 1'],
+        // Results of the demo runs are the team's to record (no run is recorded yet): left empty.
+        ['Runs end-to-end on staging with seeded data', ''], ['Main scenario passes', ''], ['Exception scenarios passing', ''],
         ['Test pass rate for this workflow', '100 % of its automated tests (run of 23/11/2026)'], ['Open Critical / High defects', '0'],
       ] },
     ]
@@ -256,7 +258,7 @@ function BM04() {
       { index: 62, fontSize: 8, rows: [...members.map((m) => [m.name, m.wf, m.feats, String(ownedTests(m) || '—'), String(ownedTests(m) || '—'), WORKFLOWS.filter((w) => w.owner === m.name).length * 2 || '—', '']), ['Total', String(WORKFLOWS.length), String(features.length), String(totalTests), String(totalTests), String(2 * WORKFLOWS.length), '']] },
       { index: 63, column: 2, values: [String(WORKFLOWS.length), `${WORKFLOWS.length} / ${WORKFLOWS.length}`, `${tests.cases.length} (all backend test cases)`, `${tests.cases.length}`] },
       { index: 64, fontSize: 9, rows: [
-        ['Main workflows', '100% run end-to-end', '100 % (5 of 5)'], ['Demo scenarios', '100% main; ≥ 80% exception', '100 % main; 100 % exception'],
+        ['Main workflows', '100% run end-to-end', ''], ['Demo scenarios', '100% main; ≥ 80% exception', ''],
         ['Test case count', '≥ committed number', `${tests.cases.length}`], ['Test pass rate', '≥ 90% overall; 100% main-path tests of mandatory features', '100 % in the run of 23/11/2026'],
         ['Automation', '≥ 50% run in CI', `${Math.round((100 * automated) / allTests)} %`], ['Defects', 'No open Critical or High defects', '0 open High (BM02)'],
         ['Individual', 'Each member demos the workflow they own and meets their delivery commitments', 'Per section 7'],
@@ -265,7 +267,7 @@ function BM04() {
   })
 }
 
-const BASE = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+const BASE = TEMPLATE_BASE
 const ALL = { BM01, BM02, BM03, BM04 }
 const which = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(ALL)
 fs.mkdirSync(path.join(root, 'tools/docs/build/tpl'), { recursive: true })

@@ -1931,7 +1931,16 @@
    "id": "TC-APP-020",
    "class": "Round2IT",
    "method": "round2Lifecycle",
-   "title": "and TC-APP-021: three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager.",
+   "title": "three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager.",
+   "file": "backend/src/test/java/vn/fpt/campusstay/Round2IT.java",
+   "level": "integration",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-APP-021",
+   "class": "Round2IT",
+   "method": "round2Lifecycle",
+   "title": "three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager.",
    "file": "backend/src/test/java/vn/fpt/campusstay/Round2IT.java",
    "level": "integration",
    "result": "Passed"
@@ -2510,6 +2519,15 @@
    "title": "what Staff handle follows the Staff portal; each Staff screen's changes belong to one kind.",
    "file": "backend/src/test/java/vn/fpt/campusstay/WeekScheduleIT.java",
    "level": "integration",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-AUTH-099",
+   "class": "SheetFileTest",
+   "method": "readsOnlyTheSheetTheWorkbookNames",
+   "title": ").",
+   "file": "backend/src/test/java/vn/fpt/campusstay/common/file/SheetFileTest.java",
+   "level": "unit",
    "result": "Passed"
   },
   {
@@ -3197,6 +3215,15 @@
    "result": "Passed"
   },
   {
+   "id": "TC-AST-013",
+   "class": "AssistantHistoryTest",
+   "method": "dropsTheOldestTurnsAboveTheCap",
+   "title": "(BE-PLT-03): the history sent to the model is capped; the oldest turns go first, the question stays.",
+   "file": "backend/src/test/java/vn/fpt/campusstay/service/assistant/AssistantHistoryTest.java",
+   "level": "unit",
+   "result": "Passed"
+  },
+  {
    "id": "TC-AST-006",
    "class": "OllamaAssistantModelTest",
    "method": "postsTheChatAndReadsTheAnswer",
@@ -3211,6 +3238,15 @@
    "method": "offlineWhenTheServerFails",
    "title": "a missing model (404) or an unreachable server answers 503 ASSISTANT_OFFLINE.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/assistant/OllamaAssistantModelTest.java",
+   "level": "unit",
+   "result": "Passed"
+  },
+  {
+   "id": "TC-AUTH-100",
+   "class": "AuthRateLimiterTest",
+   "method": "sweepsExpiredClientsEveryThousandRecords",
+   "title": "(M4): keys of clients seen long ago are swept, so the map does not grow without bound.",
+   "file": "backend/src/test/java/vn/fpt/campusstay/service/auth/AuthRateLimiterTest.java",
    "level": "unit",
    "result": "Passed"
   },
