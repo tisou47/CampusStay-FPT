@@ -81,6 +81,23 @@ export function parseStatusChecks(migrations) {
 }
 
 /** Status changes written by a service: `UPDATE t SET status = 'X' … WHERE … status = 'Y' | IN (…)`, per method. */
+/** Splits an SQL list at the commas outside parentheses and quotes. */
+function splitTopLevel(s) {
+  const out = []
+  let depth = 0
+  let quote = false
+  let cur = ''
+  for (const ch of s) {
+    if (ch === "'") quote = !quote
+    if (!quote && ch === '(') depth++
+    if (!quote && ch === ')') { if (depth === 0) break; depth-- }
+    if (!quote && depth === 0 && ch === ',') { out.push(cur); cur = ''; continue }
+    cur += ch
+  }
+  out.push(cur)
+  return out
+}
+
 export function parseTransitions(src, cls, stores = {}) {
   const out = []
   // Method declarations: a type, then the name; statements (return x(, new X(, else if () are not.
@@ -90,7 +107,13 @@ export function parseTransitions(src, cls, stores = {}) {
   const code = src.replace(/"""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"/g, (s) => s.replace(/[^\n]/g, ' '))
   const methods = [...code.matchAll(/\n[ \t]+(?:(?:public|private|protected|static|final|synchronized|default)\s+)*(?:<[^>\n]+>\s+)?([\w.]+(?:<[^\n;=(){}]*>)?(?:\[\])?)\s+(\w+)\s*\(/g)]
     .filter((m) => !NOT_TYPE.has(m[1]) && !NOT_NAME.has(m[2]))
-  const owner = (index) => methods.filter((m) => m.index < index).at(-1)?.[2] ?? '?'
+  const owner = (index) => {
+    const m = methods.filter((x) => x.index < index).at(-1)
+    if (!m) return '?'
+    // Listeners are all called on(…): name them with their event.
+    const event = m[2] === 'on' ? code.slice(m.index + m[0].length).match(/^\s*(?:final\s+)?(\w+)/)?.[1] : null
+    return event ? `on(${event})` : m[2]
+  }
   // One SQL string literal at a time (text blocks, then plain strings), so a match never runs into the next statement.
   for (const s of src.matchAll(/"""([\s\S]*?)"""|"((?:[^"\\\n]|\\.)*)"/g)) {
     const sql = s[1] ?? s[2]
@@ -101,6 +124,14 @@ export function parseTransitions(src, cls, stores = {}) {
       const inn = where.match(/\bstatus\s+IN\s*\(([^)]*)\)/)
       const from = [...eq, ...(inn ? [...inn[1].matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]) : [])]
       out.push({ index: s.index, table: u[1], from, to: u[2], by: `${cls}.${owner(s.index)}` })
+    }
+    // INSERT INTO t (…, status, …) VALUES (…) | SELECT …: the literal at the status column's position is the state a
+    // row is created in.
+    const ins = sql.match(/INSERT\s+INTO\s+(\w+)\s*\(([^)]*)\)[\s\S]*?(?:VALUES\s*\(|SELECT\s+)([\s\S]*)/)
+    if (ins) {
+      const at = ins[2].split(',').map((c) => c.trim()).indexOf('status')
+      const value = at < 0 ? undefined : splitTopLevel(ins[3])[at]?.trim().match(/^'([A-Z_]+)'$/)?.[1]
+      if (value) out.push({ index: s.index, table: ins[1], from: ['(created)'], to: value, by: `${cls}.${owner(s.index)}` })
     }
   }
   // store.transition(id, Set.of("FROM", …), "TO"), where stores maps the field name to the store's table.

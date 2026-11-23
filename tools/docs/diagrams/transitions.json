@@ -72,10 +72,10 @@
     { "from": ["INACTIVE"], "to": "ACTIVE", "by": "RoomTypeEntity.update" }
   ],
   "inv_furniture_item": [
-    { "from": ["IN_USE", "IN_STORE"], "to": "BROKEN", "by": "FurnitureService.on" },
+    { "from": ["IN_USE", "IN_STORE"], "to": "BROKEN", "by": "FurnitureService.on(FurnitureDamaged)" },
     { "from": ["IN_USE", "IN_STORE", "BROKEN"], "to": "IN_REPAIR", "by": "FurnitureService.update" },
-    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_USE", "by": "FurnitureService.on" },
-    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_STORE", "by": "FurnitureService.on" },
+    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_USE", "by": "FurnitureService.on(FurnitureRepairLogged)" },
+    { "from": ["BROKEN", "IN_REPAIR"], "to": "IN_STORE", "by": "FurnitureService.on(FurnitureRepairLogged)" },
     { "from": ["IN_USE"], "to": "IN_STORE", "by": "FurnitureService.apply" },
     { "from": ["IN_STORE"], "to": "IN_USE", "by": "FurnitureService.apply" },
     { "from": ["IN_USE", "IN_STORE", "BROKEN", "IN_REPAIR"], "to": "DISPOSED", "by": "FurnitureService.update" }
@@ -107,6 +107,9 @@
     { "from": ["PENDING", "TO_MANAGER"], "to": "APPROVED", "by": "SwapService.decide" }
   ],
   "app_application": [
+    { "from": ["AWAITING_DEPOSIT", "AWAITING_ROOMMATE"], "to": "SUBMITTED", "by": "ApplicationService.submit" },
+    { "from": ["SUBMITTED", "UNDER_REVIEW"], "to": "APPROVED", "by": "ApplicationReviewService.decide" },
+    { "from": ["SUBMITTED", "UNDER_REVIEW"], "to": "REJECTED", "by": "ApplicationReviewService.decide" },
     { "from": ["AWAITING_ROOMMATE", "AWAITING_DEPOSIT", "SUBMITTED", "UNDER_REVIEW", "APPROVED"], "to": "CANCELLED", "by": "ApplicationService.cancel" }
   ],
   "asg_allocation": [
@@ -125,6 +128,7 @@
     { "from": ["PENDING"], "to": "REJECTED", "by": "LateCheckInService.decide" }
   ],
   "asg_run": [
+    { "state": "RUNNING", "neverWritten": true },
     { "from": ["(created)"], "to": "PROPOSED", "by": "AssignmentService.start" },
     { "from": ["RUNNING", "PROPOSED", "IN_REVIEW"], "to": "DISCARDED", "by": "AssignmentService.start" },
     { "from": ["IN_REVIEW"], "to": "COMMITTED", "by": "AssignmentService.approve" }
@@ -140,6 +144,7 @@
     { "from": ["NOTICE_SENT", "OVERDUE"], "to": "CHECKED_OUT", "by": "TerminationService.checkedOut" }
   ],
   "auth_reconciliation_item": [
+    { "from": ["(created)"], "to": "OPEN", "by": "ReconciliationService.upload" },
     { "from": ["(created)"], "to": "INFO", "by": "ReconciliationService.upload" },
     { "from": ["OPEN"], "to": "RESOLVED", "by": "ReconciliationService.resolve" }
   ],
@@ -147,6 +152,7 @@
     { "from": ["PREVIEW"], "to": "APPLIED", "by": "StudentImportService.confirm" }
   ],
   "bil_invoice": [
+    { "state": "UPCOMING", "neverWritten": true },
     { "from": ["AWAITING_CONFIRMATION"], "to": "VOID", "by": "PaymentClaimService.reject" },
     { "from": ["AWAITING_CONFIRMATION"], "to": "UNPAID", "by": "PaymentClaimService.reject" },
     { "from": ["AWAITING_CONFIRMATION"], "to": "OVERDUE", "by": "PaymentClaimService.reject" },
@@ -161,8 +167,9 @@
     { "from": ["DRAFT"], "to": "PUBLISHED", "by": "TermWizardService.publish" }
   ],
   "inv_bed": [
-    { "from": ["IN_SERVICE", "OUT_OF_SERVICE"], "to": "RETIRED", "by": "RoomTypeBedsListener.on" },
-    { "from": ["RETIRED"], "to": "IN_SERVICE", "by": "RoomTypeBedsListener.on" }
+    { "state": "OUT_OF_SERVICE", "neverWritten": true },
+    { "from": ["IN_SERVICE", "OUT_OF_SERVICE"], "to": "RETIRED", "by": "RoomTypeBedsListener.on(RoomTypeBedsChanged)" },
+    { "from": ["RETIRED"], "to": "IN_SERVICE", "by": "RoomTypeBedsListener.on(RoomTypeBedsChanged)" }
   ],
   "inv_door_code": [
     { "from": ["PROPOSED"], "to": "ACTIVE", "by": "DoorCodeService.confirm" },
@@ -194,6 +201,7 @@
     { "from": ["OPEN"], "to": "HANDLED", "by": "EscalationService.handle" }
   ],
   "req_room_change": [
+    { "state": "PENDING", "neverWritten": true },
     { "from": ["SUBMITTED", "PENDING"], "to": "REJECTED", "by": "RoomChangeService.decide" },
     { "from": ["SUBMITTED", "PENDING"], "to": "APPROVED", "by": "RoomChangeService.decide" }
   ],

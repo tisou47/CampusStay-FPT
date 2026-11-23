@@ -70,5 +70,52 @@ test('state machine: (created) is the initial node; states no code writes are li
   const edges = m.edges.map((e) => `${e.from}>${e.to}:${e.label ?? ''}`)
   assert.ok(edges.includes('initial>INFO:upload'))
   assert.ok(!m.nodes.some((n) => n.id === 'GONE'))
-  assert.deepEqual(m.notWritten, ['GONE'])
+  assert.deepEqual(m.notWritten, ['OPEN', 'GONE'])
+})
+
+test('use cases: one diagram per role, every permission of the role, extra goals for a role', async () => {
+  const { useCaseModels } = await import('./models.mjs')
+  const ms = useCaseModels([
+    { permission: 'APPLY', label: 'Apply for a Bed', roles: ['STUDENT'] },
+    { permission: 'DESK', label: 'Check students in and out', roles: ['STAFF', 'MANAGER'] },
+  ], { STUDENT: ['Ask the assistant'] })
+  const student = ms.find((m) => m.name === '02_Use_Case/usecase-student')
+  assert.equal(student.kind, 'usecase')
+  assert.deepEqual(student.nodes.filter((n) => n.shape === 'usecase').map((n) => n.label), ['Apply for a Bed', 'Ask the assistant'])
+  assert.equal(student.edges.length, 2)
+  assert.ok(ms.find((m) => m.name === '02_Use_Case/usecase-manager').nodes.some((n) => n.label === 'Check students in and out'))
+})
+
+test('screen flow: a route hangs under its longest parent route, the portal home under sign-in', async () => {
+  const { screenFlowModels } = await import('./models.mjs')
+  const [m] = screenFlowModels({ web: [
+    { portal: 'public', path: '/signin', component: 'SignIn' },
+    { portal: 'staff', path: '/staff', component: 'StaffHome' },
+    { portal: 'staff', path: '/staff/maintenance', component: 'Maintenance' },
+    { portal: 'staff', path: '/staff/maintenance/:id', component: 'MaintenanceDetail' },
+  ], mobile: [] }, []).filter((x) => x.name.endsWith('screens-staff'))
+  const edges = m.edges.map((e) => `${e.from}>${e.to}`)
+  assert.deepEqual(edges, ['/signin>/staff', '/staff>/staff/maintenance', '/staff/maintenance>/staff/maintenance/:id'])
+})
+
+test('package diagram: one node per top-level package, an edge per package another imports', async () => {
+  const { packageModel } = await import('./models.mjs')
+  const m = packageModel({ controller: ['service', 'dto'], service: ['repository'], repository: [], dto: [] })
+  assert.equal(m.name, '04_Package/packages')
+  assert.deepEqual(m.edges.map((e) => `${e.from}>${e.to}`), ['controller>service', 'controller>dto', 'service>repository'])
+})
+
+test('state machine: with a known INSERT the machine starts there, not at the first CHECK state', () => {
+  const m = stateModel({ table: 't', column: 'status', states: ['DRAFT', 'WAITING', 'DONE'], transitions: [
+    { from: ['(created)'], to: 'WAITING', by: 'S.create' }, { from: ['WAITING'], to: 'DONE', by: 'S.finish' }] })
+  const edges = m.edges.map((e) => `${e.from}>${e.to}`)
+  assert.ok(!edges.includes('initial>DRAFT'))
+  assert.deepEqual(m.notWritten, ['DRAFT'])
+})
+
+test('code-read transitions: a state no code writes (only filtered on) leaves every from list', async () => {
+  const { mergeTransitions } = await import('./models.mjs')
+  const [t] = mergeTransitions([{ table: 't', column: 'status', states: ['NEW', 'UPCOMING', 'VOID'],
+    transitions: [{ from: ['UPCOMING', 'NEW'], to: 'VOID', by: 'S.voidUnpaid' }] }], { t: [{ state: 'UPCOMING', neverWritten: true }] })
+  assert.deepEqual(t.transitions, [{ from: ['NEW'], to: 'VOID', by: 'S.voidUnpaid' }])
 })

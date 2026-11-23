@@ -55,7 +55,9 @@ const humanize = (s) => s.toLowerCase().replace(/_/g, ' ').replace(/^\w/, (c) =>
  *  code (labelled with the method), the first state as the initial one, and a final node after each state no code
  *  moves out of. */
 export function stateModel(entry) {
-  const edges = [{ from: 'initial', to: entry.states[0] }]
+  // Rows start where an INSERT puts them; when none is known, at the first state of the CHECK.
+  const created = entry.transitions.some((t) => t.from.includes('(created)'))
+  const edges = created ? [] : [{ from: 'initial', to: entry.states[0] }]
   const seen = new Set()
   for (const t of entry.transitions) {
     const label = t.by.split('.').at(-1)
@@ -92,11 +94,16 @@ const keyOf = (s) => (s.column === 'status' ? s.table : `${s.table}.${s.column}`
  *  not see); ignore: true drops it (demo-data tools, not the product). */
 export function mergeTransitions(states, extra) {
   return states.map((s) => {
-    const mine = extra[keyOf(s)] ?? []
+    const entries = extra[keyOf(s)] ?? []
+    // { state, neverWritten: true }: the code only filters on that state (WHERE status IN …), nothing sets it.
+    const never = new Set(entries.filter((x) => x.neverWritten).map((x) => x.state))
+    const mine = entries.filter((x) => !x.neverWritten)
     const all = s.transitions.filter((t) => !mine.some((x) => x.by === t.by && x.to === t.to
       && (x.ignore || !t.from.length || x.from.join() === t.from.join())))
     for (const t of mine) if (!t.ignore) all.push(t)
-    return { ...s, transitions: all }
+    // A transition whose only origins were never-written states goes; an unknown from (empty) stays, to be reported.
+    const kept = all.filter((t) => !never.has(t.to) && (!t.from.length || t.from.some((f) => !never.has(f))))
+    return { ...s, transitions: kept.map((t) => ({ ...t, from: t.from.filter((f) => !never.has(f)) })) }
   })
 }
 
@@ -110,11 +117,78 @@ export function missingMethods(states, sourceOf) {
   const out = []
   for (const s of states) {
     for (const t of s.transitions) {
-      const [cls, method] = t.by.split('.')
+      const [cls, call] = t.by.split('.')
+      const method = call.replace(/\(.*/, '') // on(DepositPaid) → on
       const src = sourceOf(cls)
       if (!src) out.push(`${s.table}: ${t.by} (no class ${cls})`)
       else if (!new RegExp(`\\b${method}\\s*\\(`).test(src)) out.push(`${s.table}: ${t.by} (no method ${method} in ${cls})`)
     }
   }
   return out
+}
+
+const ROLES = { STUDENT: 'Student', STAFF: 'Staff', MANAGER: 'Manager', ADMIN: 'Admin' }
+
+/** One use-case diagram per role: the permissions the role holds (Permission enum), plus goals given by role-only
+ *  endpoints (extra: { ROLE: [label] }). */
+export function useCaseModels(permissions, extra = {}) {
+  return Object.entries(ROLES).map(([role, actor]) => {
+    const goals = [...permissions.filter((p) => p.roles.includes(role)).map((p) => p.label), ...(extra[role] ?? [])]
+    return {
+      name: `02_Use_Case/usecase-${role.toLowerCase()}`, kind: 'usecase', title: `Use cases: ${actor}`,
+      groups: [{ id: 'system', label: 'CampusStay FPT' }],
+      nodes: [{ id: 'actor', shape: 'actor', label: actor }, ...goals.map((g, i) => ({ id: `uc${i}`, shape: 'usecase', label: g }))],
+      edges: goals.map((_, i) => ({ from: 'actor', to: `uc${i}`, arrow: 'none' })),
+    }
+  })
+}
+
+/** Screen flows: per web portal the routes as a tree (a route under its longest parent route, the portal home under
+ *  sign-in); for the mobile app the screens and the screen each one opens (links: [{ from, to }]). */
+export function screenFlowModels(screens, links) {
+  const portals = [...new Set(screens.web.map((r) => r.portal))].filter((p) => p !== 'public')
+  const label = (r) => `${r.component}\n${r.path}`
+  const web = portals.map((portal) => {
+    const routes = screens.web.filter((r) => r.portal === portal)
+    const signIn = screens.web.find((r) => r.path === '/signin')
+    const edges = []
+    for (const r of routes) {
+      const parent = routes.filter((p) => p !== r && r.path.startsWith(`${p.path}/`)).sort((a, b) => b.path.length - a.path.length)[0]
+      if (parent) edges.push({ from: parent.path, to: r.path })
+      else if (signIn) edges.push({ from: signIn.path, to: r.path })
+    }
+    return {
+      name: `10_Screen_Flow/screens-${portal}`, kind: 'flow', dir: 'LR', title: `Screen flow: ${portal} portal (web)`,
+      nodes: [...(signIn ? [{ id: signIn.path, shape: 'stadium', label: label(signIn) }] : []),
+        ...routes.map((r) => ({ id: r.path, shape: 'round', label: label(r) }))],
+      edges,
+    }
+  })
+  // Public pages: sign-in and the password pages reached from it or from an emailed link (not-found and /dev/* left out).
+  const open = screens.web.filter((r) => r.portal === 'public' && r.path !== '/*' && !r.path.startsWith('/dev/'))
+  const pub = {
+    name: '10_Screen_Flow/screens-public', kind: 'flow', dir: 'LR', title: 'Screen flow: public pages (web)',
+    nodes: open.map((r) => ({ id: r.path, shape: r.path === '/signin' ? 'stadium' : 'round', label: label(r) })),
+    edges: open.filter((r) => r.path !== '/signin').map((r) => ({ from: '/signin', to: r.path })),
+  }
+  const isScreen = (id) => screens.mobile.some((s) => s.screen === id)
+  const mine = links.filter((l) => l.from !== l.to && isScreen(l.to))
+  // Sources that are not screens (the app shell, notification links) are drawn too, as launchers.
+  const launchers = [...new Set(mine.map((l) => l.from).filter((f) => !isScreen(f)))]
+  const mobile = {
+    name: '10_Screen_Flow/screens-mobile', kind: 'flow', dir: 'LR', title: 'Screen flow: student mobile app',
+    nodes: [...launchers.map((l) => ({ id: l, shape: 'stadium', label: l })),
+      ...screens.mobile.map((s) => ({ id: s.screen, shape: s.screen === 'SignInScreen' ? 'stadium' : 'round', label: `${s.screen}\n${s.file}` }))],
+    edges: mine,
+  }
+  return [pub, ...web, mobile]
+}
+
+/** The backend's top-level packages and which ones each imports (imports: { pkg: [pkg] }). */
+export function packageModel(imports) {
+  return {
+    name: '04_Package/packages', kind: 'flow', dir: 'DOWN', title: 'Package diagram: backend (vn.fpt.campusstay)',
+    nodes: Object.keys(imports).map((p) => ({ id: p, shape: 'menu', label: p })),
+    edges: Object.entries(imports).flatMap(([from, tos]) => tos.map((to) => ({ from, to, dashed: true }))),
+  }
 }

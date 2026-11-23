@@ -2,18 +2,27 @@
  {
   "name": "08_State_Machine/state-app_application",
   "title": "State machine: app_application.status",
-  "notWritten": [],
+  "notWritten": [
+   "DRAFT"
+  ],
   "transitions": [
    "SUBMITTED → UNDER_REVIEW (detail)",
-   "AWAITING_DEPOSIT → AWAITING_ROOMMATE (on)",
-   "AWAITING_DEPOSIT → EXPIRED (on)",
-   "ALLOCATED → FORFEITED (on)",
+   "initial → AWAITING_DEPOSIT (insert)",
+   "AWAITING_DEPOSIT → AWAITING_ROOMMATE (on(PaymentConfirmed))",
+   "AWAITING_DEPOSIT → EXPIRED (on(PaymentClaimRejected))",
+   "ALLOCATED → FORFEITED (on(AllocationForfeited))",
    "AWAITING_DEPOSIT → EXPIRED (expireOverdue)",
    "APPROVED → ALLOCATED (allocated)",
    "WAITLISTED → ALLOCATED (allocated)",
    "APPROVED → WAITLISTED (waitlisted)",
    "ALLOCATED → REJECTED (notEnrolled)",
    "WAITLISTED → CANCELLED (cancelWaitlisted)",
+   "AWAITING_DEPOSIT → SUBMITTED (submit)",
+   "AWAITING_ROOMMATE → SUBMITTED (submit)",
+   "SUBMITTED → APPROVED (decide)",
+   "UNDER_REVIEW → APPROVED (decide)",
+   "SUBMITTED → REJECTED (decide)",
+   "UNDER_REVIEW → REJECTED (decide)",
    "AWAITING_ROOMMATE → CANCELLED (cancel)",
    "AWAITING_DEPOSIT → CANCELLED (cancel)",
    "SUBMITTED → CANCELLED (cancel)",
@@ -73,6 +82,9 @@
   "title": "State machine: asg_check_out.status",
   "notWritten": [],
   "transitions": [
+   "initial → DRAFT (checkOutRow)",
+   "initial → DRAFT (saveRoomReadings)",
+   "initial → PENDING (insert)",
    "PENDING → DRAFT (saveRoomReadings)",
    "PENDING → DRAFT (checkOut)",
    "PENDING → COMPLETED (checkOut)",
@@ -96,6 +108,7 @@
   "title": "State machine: asg_handover.status",
   "notWritten": [],
   "transitions": [
+   "initial → DRAFT (open)",
    "DRAFT → FINAL (finalize)",
    "SUBMITTED → FINAL (finalize)",
    "VERIFYING → FINAL (finalize)",
@@ -120,12 +133,12 @@
   "name": "08_State_Machine/state-asg_run",
   "title": "State machine: asg_run.status",
   "notWritten": [
+   "RUNNING",
    "FAILED"
   ],
   "transitions": [
    "PROPOSED → IN_REVIEW (submit)",
    "initial → PROPOSED (start)",
-   "RUNNING → DISCARDED (start)",
    "PROPOSED → DISCARDED (start)",
    "IN_REVIEW → DISCARDED (start)",
    "IN_REVIEW → COMMITTED (approve)"
@@ -169,6 +182,7 @@
   "notWritten": [],
   "transitions": [
    "OPEN → RESOLVED (upload)",
+   "initial → OPEN (upload)",
    "initial → INFO (upload)",
    "OPEN → RESOLVED (resolve)"
   ]
@@ -201,6 +215,8 @@
   "title": "State machine: auth_user.status",
   "notWritten": [],
   "transitions": [
+   "initial → INVITED (create)",
+   "initial → INVITED (signUp)",
    "INVITED → ACTIVE (recordSignIn)",
    "INVITED → DISABLED (disable)",
    "ACTIVE → DISABLED (disable)",
@@ -211,11 +227,13 @@
  {
   "name": "08_State_Machine/state-bil_invoice",
   "title": "State machine: bil_invoice.status",
-  "notWritten": [],
+  "notWritten": [
+   "UPCOMING"
+  ],
   "transitions": [
    "UNPAID → OVERDUE (markOverdue)",
    "PAID → REFUNDED (markRefundPaid)",
-   "UPCOMING → VOID (voidUnpaid)",
+   "initial → UNPAID (insert)",
    "UNPAID → VOID (voidUnpaid)",
    "OVERDUE → VOID (voidUnpaid)",
    "UNPAID → OVERDUE (extendBalanceDeadline)",
@@ -285,6 +303,7 @@
    "CLOSED"
   ],
   "transitions": [
+   "initial → DRAFT (createDraft)",
    "DRAFT → PUBLISHED (publish)"
   ]
  },
@@ -293,6 +312,7 @@
   "title": "State machine: cfg_term_request.status",
   "notWritten": [],
   "transitions": [
+   "initial → SUBMITTED (create)",
    "SUBMITTED → IN_PROGRESS (built)",
    "SUBMITTED → DONE (done)",
    "IN_PROGRESS → DONE (done)",
@@ -307,11 +327,12 @@
  {
   "name": "08_State_Machine/state-inv_bed",
   "title": "State machine: inv_bed.status",
-  "notWritten": [],
+  "notWritten": [
+   "OUT_OF_SERVICE"
+  ],
   "transitions": [
-   "IN_SERVICE → RETIRED (on)",
-   "OUT_OF_SERVICE → RETIRED (on)",
-   "RETIRED → IN_SERVICE (on)"
+   "IN_SERVICE → RETIRED (on(RoomTypeBedsChanged))",
+   "RETIRED → IN_SERVICE (on(RoomTypeBedsChanged))"
   ]
  },
  {
@@ -331,6 +352,8 @@
    "ACTIVE → RETIRED (confirm)",
    "PROPOSED → CANCELLED (cancel)",
    "PROPOSED → CANCELLED (insertProposal)",
+   "initial → PROPOSED (insertProposal)",
+   "initial → ACTIVE (load)",
    "PROPOSED → ACTIVE (confirm)"
   ]
  },
@@ -339,15 +362,15 @@
   "title": "State machine: inv_furniture_item.status",
   "notWritten": [],
   "transitions": [
-   "IN_USE → BROKEN (on)",
-   "IN_STORE → BROKEN (on)",
+   "IN_USE → BROKEN (on(FurnitureDamaged))",
+   "IN_STORE → BROKEN (on(FurnitureDamaged))",
    "IN_USE → IN_REPAIR (update)",
    "IN_STORE → IN_REPAIR (update)",
    "BROKEN → IN_REPAIR (update)",
-   "BROKEN → IN_USE (on)",
-   "IN_REPAIR → IN_USE (on)",
-   "BROKEN → IN_STORE (on)",
-   "IN_REPAIR → IN_STORE (on)",
+   "BROKEN → IN_USE (on(FurnitureRepairLogged))",
+   "IN_REPAIR → IN_USE (on(FurnitureRepairLogged))",
+   "BROKEN → IN_STORE (on(FurnitureRepairLogged))",
+   "IN_REPAIR → IN_STORE (on(FurnitureRepairLogged))",
    "IN_USE → IN_STORE (apply)",
    "IN_STORE → IN_USE (apply)",
    "IN_USE → DISPOSED (update)",
@@ -362,7 +385,9 @@
   "notWritten": [],
   "transitions": [
    "PLANNED → CANCELLED (update)",
+   "initial → PLANNED (planRestock)",
    "PLANNED → CANCELLED (setBack)",
+   "initial → PLANNED (plan)",
    "PLANNED → DONE (closeMove)",
    "PLANNED → CANCELLED (closeMove)"
   ]
@@ -392,6 +417,8 @@
   "title": "State machine: mnt_checklist.status",
   "notWritten": [],
   "transitions": [
+   "initial → DRAFT (create)",
+   "initial → PUBLISHED (publish)",
    "DRAFT → PUBLISHED (publish)",
    "PUBLISHED → REPLACED (publish)",
    "DRAFT → ARCHIVED (archive)",
@@ -468,18 +495,15 @@
  {
   "name": "08_State_Machine/state-req_room_change",
   "title": "State machine: req_room_change.status",
-  "notWritten": [],
+  "notWritten": [
+   "PENDING"
+  ],
   "transitions": [
    "SUBMITTED → CANCELLED (allocationCancelled)",
-   "PENDING → CANCELLED (allocationCancelled)",
    "SUBMITTED → CANCELLED (allocationMoved)",
-   "PENDING → CANCELLED (allocationMoved)",
    "SUBMITTED → CANCELLED (closeOthers)",
-   "PENDING → CANCELLED (closeOthers)",
    "SUBMITTED → REJECTED (decide)",
-   "PENDING → REJECTED (decide)",
-   "SUBMITTED → APPROVED (decide)",
-   "PENDING → APPROVED (decide)"
+   "SUBMITTED → APPROVED (decide)"
   ]
  },
  {

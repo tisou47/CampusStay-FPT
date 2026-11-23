@@ -1,0 +1,15 @@
+{
+  "_comment": "Student goals beyond the Permission enum: each is served by a controller whose endpoints require Role.STUDENT (endpoints.json); build.mjs checks the controller exists with Student-only endpoints.",
+  "StudentVerificationController": "Verify the student account",
+  "StudentContactController": "Keep contacts and the emergency contact up to date",
+  "Round2Controller": "Answer a Round 2 offer",
+  "StudentRoomController": "See the Room, roommates and door code",
+  "HandoverController": "Hand over the Room at check-in (furniture report)",
+  "LateCheckInController": "Ask for a late check-in",
+  "CheckOutFurnitureController": "Agree to the check-out furniture charges",
+  "RefundAccountController": "Give the bank account for refunds",
+  "NextTermRequestController": "Ask to stay, change Room or swap next Term",
+  "StudentFamilyDayController": "Register guests for a Family Day",
+  "AssistantController": "Ask the AI assistant",
+  "AnnouncementController": "Read announcements"
+}

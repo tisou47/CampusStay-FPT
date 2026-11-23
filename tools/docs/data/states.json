@@ -50,10 +50,18 @@
    {
     "table": "app_application",
     "from": [
+     "(created)"
+    ],
+    "to": "AWAITING_DEPOSIT",
+    "by": "ApplicationService.insert"
+   },
+   {
+    "table": "app_application",
+    "from": [
      "AWAITING_DEPOSIT"
     ],
     "to": "AWAITING_ROOMMATE",
-    "by": "ApplicationService.on"
+    "by": "ApplicationService.on(PaymentConfirmed)"
    },
    {
     "table": "app_application",
@@ -61,7 +69,7 @@
      "AWAITING_DEPOSIT"
     ],
     "to": "EXPIRED",
-    "by": "ApplicationService.on"
+    "by": "ApplicationService.on(PaymentClaimRejected)"
    },
    {
     "table": "app_application",
@@ -69,7 +77,7 @@
      "ALLOCATED"
     ],
     "to": "FORFEITED",
-    "by": "ApplicationService.on"
+    "by": "ApplicationService.on(AllocationForfeited)"
    },
    {
     "table": "app_application",
@@ -300,7 +308,32 @@
    "DRAFT",
    "COMPLETED"
   ],
-  "transitions": []
+  "transitions": [
+   {
+    "table": "asg_check_out",
+    "from": [
+     "(created)"
+    ],
+    "to": "DRAFT",
+    "by": "CheckOutFurnitureService.checkOutRow"
+   },
+   {
+    "table": "asg_check_out",
+    "from": [
+     "(created)"
+    ],
+    "to": "DRAFT",
+    "by": "DeskService.saveRoomReadings"
+   },
+   {
+    "table": "asg_check_out",
+    "from": [
+     "(created)"
+    ],
+    "to": "PENDING",
+    "by": "TerminationService.insert"
+   }
+  ]
  },
  {
   "table": "asg_check_out_damage",
@@ -425,6 +458,14 @@
    "CANCELLED"
   ],
   "transitions": [
+   {
+    "table": "asg_handover",
+    "from": [
+     "(created)"
+    ],
+    "to": "DRAFT",
+    "by": "HandoverCore.open"
+   },
    {
     "table": "asg_handover",
     "from": [],
@@ -588,6 +629,14 @@
     "table": "asg_run",
     "from": [],
     "to": "DISCARDED",
+    "by": "AssignmentService.start"
+   },
+   {
+    "table": "asg_run",
+    "from": [
+     "(created)"
+    ],
+    "to": "PROPOSED",
     "by": "AssignmentService.start"
    },
    {
@@ -899,6 +948,30 @@
     "from": [],
     "to": "ACTIVE",
     "by": "AuthDemoData.clear"
+   },
+   {
+    "table": "auth_user",
+    "from": [
+     "(created)"
+    ],
+    "to": "INVITED",
+    "by": "StaffAccountService.create"
+   },
+   {
+    "table": "auth_user",
+    "from": [
+     "(created)"
+    ],
+    "to": "INVITED",
+    "by": "StudentImportService.create"
+   },
+   {
+    "table": "auth_user",
+    "from": [
+     "(created)"
+    ],
+    "to": "INVITED",
+    "by": "StudentSignUp.signUp"
    }
   ]
  },
@@ -965,6 +1038,14 @@
     ],
     "to": "REFUNDED",
     "by": "FinanceService.markRefundPaid"
+   },
+   {
+    "table": "bil_invoice",
+    "from": [
+     "(created)"
+    ],
+    "to": "UNPAID",
+    "by": "JdbcBilling.insert"
    },
    {
     "table": "bil_invoice",
@@ -1261,6 +1342,14 @@
   "transitions": [
    {
     "table": "cfg_term",
+    "from": [
+     "(created)"
+    ],
+    "to": "DRAFT",
+    "by": "TermWizardService.createDraft"
+   },
+   {
+    "table": "cfg_term",
     "from": [],
     "to": "PUBLISHED",
     "by": "TermWizardService.publish"
@@ -1279,6 +1368,14 @@
    "REJECTED"
   ],
   "transitions": [
+   {
+    "table": "cfg_term_request",
+    "from": [
+     "(created)"
+    ],
+    "to": "SUBMITTED",
+    "by": "TermRequestService.create"
+   },
    {
     "table": "cfg_term_request",
     "from": [],
@@ -1329,7 +1426,7 @@
     "table": "inv_bed",
     "from": [],
     "to": "RETIRED",
-    "by": "RoomTypeBedsListener.on"
+    "by": "RoomTypeBedsListener.on(RoomTypeBedsChanged)"
    }
   ]
  },
@@ -1393,6 +1490,22 @@
     ],
     "to": "CANCELLED",
     "by": "DoorCodeService.insertProposal"
+   },
+   {
+    "table": "inv_door_code",
+    "from": [
+     "(created)"
+    ],
+    "to": "PROPOSED",
+    "by": "DoorCodeService.insertProposal"
+   },
+   {
+    "table": "inv_door_code",
+    "from": [
+     "(created)"
+    ],
+    "to": "ACTIVE",
+    "by": "InventoryDemoData.load"
    }
   ]
  },
@@ -1458,7 +1571,7 @@
     "table": "inv_furniture_item",
     "from": [],
     "to": "BROKEN",
-    "by": "FurnitureService.on"
+    "by": "FurnitureService.on(FurnitureDamaged)"
    }
   ]
  },
@@ -1483,10 +1596,26 @@
    {
     "table": "inv_furniture_move",
     "from": [
+     "(created)"
+    ],
+    "to": "PLANNED",
+    "by": "JdbcInventory.planRestock"
+   },
+   {
+    "table": "inv_furniture_move",
+    "from": [
      "PLANNED"
     ],
     "to": "CANCELLED",
     "by": "JdbcRoomClassChanges.setBack"
+   },
+   {
+    "table": "inv_furniture_move",
+    "from": [
+     "(created)"
+    ],
+    "to": "PLANNED",
+    "by": "JdbcRoomClassChanges.plan"
    }
   ]
  },
@@ -1559,6 +1688,14 @@
   "transitions": [
    {
     "table": "mnt_checklist",
+    "from": [
+     "(created)"
+    ],
+    "to": "DRAFT",
+    "by": "ChecklistService.create"
+   },
+   {
+    "table": "mnt_checklist",
     "from": [],
     "to": "PUBLISHED",
     "by": "ChecklistService.publish"
@@ -1567,6 +1704,14 @@
     "table": "mnt_checklist",
     "from": [],
     "to": "REPLACED",
+    "by": "ChecklistService.publish"
+   },
+   {
+    "table": "mnt_checklist",
+    "from": [
+     "(created)"
+    ],
+    "to": "PUBLISHED",
     "by": "ChecklistService.publish"
    },
    {

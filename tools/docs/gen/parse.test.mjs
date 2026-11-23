@@ -204,3 +204,30 @@ test('permissions: a ; inside a label does not end the enum', () => {
   const src = 'public enum Permission {\n    VIEW("Read; comment", Role.MANAGER,\n            Role.ADMIN),\n    READ("Read", Role.ADMIN);\n    private final String a;\n}'
   assert.deepEqual(parsePermissions(src).map((p) => p.permission), ['VIEW', 'READ'])
 })
+
+test('transitions: an INSERT gives the state a row is created in', () => {
+  const src = `class ApplicationService {
+    void create() {
+        jdbc.sql("""
+                INSERT INTO app_application (id, code, status, mode)
+                SELECT id, 'APP-' || lpad(id::text, 6, '0'), 'AWAITING_DEPOSIT', :mode
+                """);
+        jdbc.sql("INSERT INTO asg_run (term_id, status) VALUES (:t, 'PROPOSED') RETURNING id");
+        jdbc.sql("INSERT INTO x (a, status) VALUES (:a, :status)");
+    }
+}`
+  assert.deepEqual(parseTransitions(src, 'ApplicationService'), [
+    { table: 'app_application', from: ['(created)'], to: 'AWAITING_DEPOSIT', by: 'ApplicationService.create' },
+    { table: 'asg_run', from: ['(created)'], to: 'PROPOSED', by: 'ApplicationService.create' },
+  ])
+})
+
+test('transitions: an event listener is named with its event, on(DepositPaid)', () => {
+  const src = `class ApplicationService {
+    @EventListener
+    void on(DepositPaid e) {
+        jdbc.sql("UPDATE app_application SET status = 'SUBMITTED' WHERE id = :id AND status = 'AWAITING_DEPOSIT'");
+    }
+}`
+  assert.equal(parseTransitions(src, 'ApplicationService')[0].by, 'ApplicationService.on(DepositPaid)')
+})
