@@ -121,7 +121,7 @@
    "id": "TC-INV-013",
    "class": "AdminFurnitureIT",
    "method": "managesFurnitureTypes",
-   "title": ", 014, 026). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class AdminFurnitureIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private MockHttpServletRequestBuilder json(MockHttpServletRequestBuilder request, String auth, String body) { return request.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON).content(body); } private long typeId(String code) { return jdbc.sql(\"SELECT id FROM inv_furniture_type WHERE code = :c\").param(\"c\", code).query(Long.class).single(); } private long classId(String name) { return jdbc.sql(\"SELECT id FROM cfg_room_class WHERE name = :n\").param(\"n\", name).query(Long.class).single(); } /** TC-INV-013: the Admin lists the furniture types with their items, adds one (code and names checked, the code fixed afterwards) and cannot make a type a Room Class requires standard; other roles are refused.",
+   "title": "the Admin lists the furniture types with their items, adds one (code and names checked, the code fixed afterwards) and cannot make a type a Room Class requires standard; other roles are refused.",
    "file": "backend/src/test/java/vn/fpt/campusstay/AdminFurnitureIT.java",
    "level": "integration",
    "result": "Passed"
@@ -157,7 +157,7 @@
    "id": "TC-CFG-024",
    "class": "AdminSettingsIT",
    "method": "groupedSettings",
-   "title": ", 025): settings say where they act and are announced when they change; Who may apply counts the students failing each check; matching weights are levels; the dry run compares the draft with the rules in use. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class AdminSettingsIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private String json(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)).andReturn().getResponse() .getContentAsString(); } private ResultActions send(String method, String path, String auth, String json) throws Exception { var builder = method.equals(\"PUT\") ? put(path) : post(path); return mvc.perform(builder.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(json)); } /** TC-CFG-024: each group lists its settings with where they act; an out-of-range value is refused; a saved change is audited and announced to students; grouped settings left System parameters; only the Admin edits.",
+   "title": "each group lists its settings with where they act; an out-of-range value is refused; a saved change is audited and announced to students; grouped settings left System parameters; only the Admin edits.",
    "file": "backend/src/test/java/vn/fpt/campusstay/AdminSettingsIT.java",
    "level": "integration",
    "result": "Passed"
@@ -247,7 +247,7 @@
    "id": "TC-NTF-041",
    "class": "AnnouncementIT",
    "method": "adminAnnouncesToEveryStudent",
-   "title": "…043): written by hand for an audience, shown on the board and in the bell with a read state per student, and written by the system for every money or policy change. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class AnnouncementIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private ResultActions send(String method, String path, String auth, String json) throws Exception { var builder = method.equals(\"PUT\") ? put(path) : post(path); return mvc.perform(builder.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(json)); } /** The test seed's Fall 2026 is in stay: the student holds a Bed in it. */ private void livesIn(int n, String room) { long term = jdbc.sql(\"SELECT id FROM cfg_term WHERE code = 'FA26'\").query(Long.class).single(); new StayFlow(mvc, jdbc, new ApplyFlow(mvc, jdbc), term).livesIn(n, room, \"A\", true); } /** TC-NTF-041: the Admin writes a pinned announcement for all students; a student reads it at the top of the board and in the bell, unread; marking it read in the bell (id {@code ann-…}) updates both; the Admin sees one read.",
+   "title": "the Admin writes a pinned announcement for all students; a student reads it at the top of the board and in the bell, unread; marking it read in the bell (id {@code ann-…}) updates both; the Admin sees one read.",
    "file": "backend/src/test/java/vn/fpt/campusstay/AnnouncementIT.java",
    "level": "integration",
    "result": "Passed"
@@ -373,7 +373,7 @@
    "id": "TC-APP-010",
    "class": "AssignmentIT",
    "method": "reviewQueueAndRejection",
-   "title": "…011, TC-ASG-010…012). Each test uses its own students. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class AssignmentIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; long termId; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); termId = flow.openTerm(); } private static String student(int n) { return \"se19%04d@student.campusstay.test\".formatted(n); } /** Applies for a 2-bed Standard Room and pays the Deposit: the Application is Submitted. */ private String submitted(String auth) throws Exception { ApplyFlow.Applied app = flow.apply(auth, \"2-bed\", \"Standard\", \"{\\\"mode\\\":\\\"auto\\\"}\"); flow.pay(auth, app.depositInvoiceId()); return app.id(); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-APP-010: the queue, the review view (opening it starts the review), rejection needs a note, once only.",
+   "title": "the queue, the review view (opening it starts the review), rejection needs a note, once only.",
    "file": "backend/src/test/java/vn/fpt/campusstay/AssignmentIT.java",
    "level": "integration",
    "result": "Passed"
@@ -589,7 +589,7 @@
    "id": "TC-CFG-014",
    "class": "BlockSettingsIT",
    "method": "readAndSave",
-   "title": ", 015, 031). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class BlockSettingsIT { private static final String VALID = \"\"\" {\"block\":\"A\",\"deskOpens\":\"07:00\",\"deskCloses\":\"21:30\",\"visitFrom\":\"08:00\",\"visitUntil\":\"22:00\", \"quiet\":\"23:30\",\"houseRules\":\"No guests overnight. Quiet hours from 23:30.\"}\"\"\"; @Autowired MockMvc mvc; private ResultActions save(String auth, String body) throws Exception { return mvc.perform(put(\"/block-settings\").header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(body)); } /** TC-CFG-014: the Block's settings and the Admin limits; the Manager saves a change, which is audited.",
+   "title": "the Block's settings and the Admin limits; the Manager saves a change, which is audited.",
    "file": "backend/src/test/java/vn/fpt/campusstay/BlockSettingsIT.java",
    "level": "integration",
    "result": "Passed"
@@ -616,7 +616,7 @@
    "id": "TC-AUTH-019",
    "class": "BlockStaffIT",
    "method": "listsTheBlocksStaff",
-   "title": "…021). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class BlockStaffIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; private static final String STAFF_AB = \"staff.ab@campusstay.test\"; /** Only its id is used: AuthFlowIT locks this account. */ private static final String STAFF_B1 = \"staff.b1@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } /** Block A's staff (a Manager sees every Block, ADR-19). */ private ResultActions list(String auth) throws Exception { return mvc.perform(get(\"/block-staff\").param(\"block\", \"A\").header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions update(String auth, long userId, String body) throws Exception { return mvc.perform(put(\"/block-staff/\" + userId).header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(body)); } private static String person(String name) { return \"$.items[?(@.name == '\" + name + \"')]\"; } /** TC-AUTH-019: the Block's staff with titles, handles, Blocks, open work and duty; the summary.",
+   "title": "the Block's staff with titles, handles, Blocks, open work and duty; the summary.",
    "file": "backend/src/test/java/vn/fpt/campusstay/BlockStaffIT.java",
    "level": "integration",
    "result": "Passed"
@@ -679,7 +679,7 @@
    "id": "TC-ASG-020",
    "class": "DeskIT",
    "method": "checkInNeedsBalanceAndUtilityDeposit",
-   "title": "…023, 045, 046). Each test allocates its own students. */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class DeskIT { /** Term price 10,350,000 − Deposit 2,070,000 + Utility Deposit 600,000 (2 months × 300,000). */ private static final long BALANCE = 8_880_000; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; long termId; private record Placed(String auth, String name, String studentCode, String allocationId, String room, String balanceInvoiceId) { } @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); termId = flow.openTerm(); // The desk opens today (campus date, whatever the JVM's zone) for the test Term. LocalDate today = LocalDate.now(TimeConfig.CAMPUS_ZONE); jdbc.sql(\"\"\" UPDATE cfg_term SET check_in_start = :start, check_in_end = :end WHERE code = :code \"\"\").param(\"start\", today.minusDays(1)).param(\"end\", today.plusDays(5)) .param(\"code\", ApplyFlow.TERM_CODE).update(); } private static String student(int n) { return \"se19%04d@student.campusstay.test\".formatted(n); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } /** Applies, pays the Deposits, approves, runs and commits Block A: the students hold Beds, Balance unpaid. */ private List<Placed> allocate(int... students) throws Exception { String manager = bearer(mvc, MANAGER_A); // Managers review and assign (ADR-19) List<String> auths = new ArrayList<>(); List<String> ids = new ArrayList<>(); for (int n : students) { String auth = bearer(mvc, student(n)); ApplyFlow.Applied app = flow.apply(auth, \"2-bed\", \"Standard\", \"{\\\"mode\\\":\\\"auto\\\"}\"); flow.pay(auth, app.depositInvoiceId()); auths.add(auth); ids.add(\"\\\"\" + app.id() + \"\\\"\"); } postJson(\"/applications/bulk-review\", manager, \"{\\\"ids\\\":[\" + String.join(\",\", ids) + \"],\\\"decision\\\":\\\"Approved\\\"}\") .andExpect(status().isOk()); String run = JsonPath.read(postJson(\"/assignment-runs\", manager, \"{\\\"termId\\\":\\\"%d\\\"}\".formatted(termId)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); postJson(\"/assignment-runs/\" + run + \"/commit\", manager, \"{\\\"block\\\":\\\"A\\\"}\").andExpect(status().isNoContent()); List<Placed> placed = new ArrayList<>(); for (int i = 0; i < students.length; i++) { String room = getAs(\"/students/me/allocation\", auths.get(i)).andExpect(status().isOk()) .andReturn().getResponse().getContentAsString(); String code = \"SE19%04d\".formatted(students[i]); String name = jdbc.sql(\"SELECT display_name FROM auth_user WHERE email = :e\").param(\"e\", student(students[i])) .query(String.class).single(); placed.add(new Placed(auths.get(i), name, code, ((String) JsonPath.read(room, \"$.allocation.pass\")).substring(\"CSTAY-PASS:\".length()), JsonPath.read(room, \"$.allocation.room\"), JsonPath.read(room, \"$.balance.invoiceId\"))); } return placed; } /** TC-ASG-020: the Balance includes the Utility Deposit; until it is paid the desk blocks check-in; then the student checks in with the hand-over items, once only.",
+   "title": "the Balance includes the Utility Deposit; until it is paid the desk blocks check-in; then the student checks in with the hand-over items, once only.",
    "file": "backend/src/test/java/vn/fpt/campusstay/DeskIT.java",
    "level": "integration",
    "result": "Passed"
@@ -733,7 +733,7 @@
    "id": "TC-NTF-020",
    "class": "DevicesIT",
    "method": "registerAndUnregister",
-   "title": ", 021); FCM itself is a recording stand-in. */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import({ PostgresTestcontainer.class, TestPushSenders.Recording.class }) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class DevicesIT { private static final List<TestPushSenders.Push> SENT = TestPushSenders.SENT; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); flow.openTerm(); SENT.clear(); } private ResultActions postJson(String path, String auth, String body) throws Exception { var request = post(path).contentType(MediaType.APPLICATION_JSON).content(body); if (auth != null) { request.header(HttpHeaders.AUTHORIZATION, auth); } return mvc.perform(request); } private long devices(String token, boolean active) { return jdbc.sql(\"SELECT count(*) FROM ntf_device WHERE token_hash = :h\" + (active ? \" AND disabled_at IS NULL\" : \"\")) .param(\"h\", Tokens.sha256Hex(token)).query(Long.class).single(); } private void awaitPush(int count) throws InterruptedException { Instant until = Instant.now().plus(Duration.ofSeconds(5)); while (SENT.size() < count && Instant.now().isBefore(until)) { Thread.sleep(50); } } /** TC-NTF-020: register, register again, unregister; the token is stored by hash and validated.",
+   "title": "register, register again, unregister; the token is stored by hash and validated.",
    "file": "backend/src/test/java/vn/fpt/campusstay/DevicesIT.java",
    "level": "integration",
    "result": "Passed"
@@ -751,7 +751,7 @@
    "id": "TC-INV-019",
    "class": "DoorCodeIT",
    "method": "proposesConfirmsAndReveals",
-   "title": "…023). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class DoorCodeIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired ApplicationEventPublisher events; @Autowired TransactionTemplate transactions; StayFlow stay; @BeforeEach void setUp() { long fall = jdbc.sql(\"SELECT id FROM cfg_term WHERE code = 'FA26'\").query(Long.class).single(); stay = new StayFlow(mvc, jdbc, null, fall); } private ResultActions propose(String auth, String room, String code) throws Exception { return mvc.perform(post(\"/door-codes/\" + room).header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(code == null ? \"{}\" : \"{\\\"code\\\":\\\"\" + code + \"\\\"}\")); } private ResultActions act(String auth, String room, String action) throws Exception { return mvc.perform(post(\"/door-codes/\" + room + \"/\" + action).header(HttpHeaders.AUTHORIZATION, auth)); } private long notifications(String email, String key) { return jdbc.sql(\"\"\" SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id WHERE u.email = :e AND n.event_key = :k \"\"\").param(\"e\", email).param(\"k\", key).query(Long.class).single(); } /** TC-INV-019: Staff draw a random code, read it to set the lock, confirm it, and it becomes the Room's code; the database holds it encrypted and every view is in the Audit Log.",
+   "title": "Staff draw a random code, read it to set the lock, confirm it, and it becomes the Room's code; the database holds it encrypted and every view is in the Audit Log.",
    "file": "backend/src/test/java/vn/fpt/campusstay/DoorCodeIT.java",
    "level": "integration",
    "result": "Passed"
@@ -796,7 +796,7 @@
    "id": "TC-REQ-016",
    "class": "EscalationIT",
    "method": "maintenanceEscalatesAndIsReassigned",
-   "title": "…018). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class EscalationIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired EscalationService escalations; @Autowired RenewalService renewals; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private String report(int student, String room) throws Exception { stay.livesIn(student, room, \"A\", true); return JsonPath.read(mvc.perform(multipart(\"/maintenance-requests\") .file(new MockMultipartFile(\"photos\", \"leak.png\", \"image/png\", PNG)) .param(\"title\", \"Sink is blocked\").param(\"description\", \"The sink drains very slowly.\") .param(\"location\", \"Bathroom\").param(\"category\", \"Plumbing\").param(\"urgency\", \"Normal\") .param(\"staffMayEnter\", \"true\").header(HttpHeaders.AUTHORIZATION, bearer(mvc, StayFlow.student(student)))) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); } /** Moves the report back in time, as if it had waited that long. */ private void reportedHoursAgo(String code, int hours) { // Time passes for the request: its stored deadline moves back with it (escalations read sla_due_at). jdbc.sql(\"\"\" UPDATE mnt_request SET sla_due_at = sla_due_at - (reported_at - (now() - make_interval(hours => :h))), reported_at = now() - make_interval(hours => :h) WHERE code = :c \"\"\") .param(\"h\", hours).param(\"c\", code).update(); } private ResultActions list(String auth) throws Exception { return mvc.perform(get(\"/escalations\").param(\"block\", \"A\").header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions act(String code, String auth, String body) throws Exception { return stay.postJson(\"/escalations/\" + code + \"/actions\", auth, body); } /** TC-REQ-016: an unassigned request escalates, then passes its timer; the Manager reassigns it once.",
+   "title": "an unassigned request escalates, then passes its timer; the Manager reassigns it once.",
    "file": "backend/src/test/java/vn/fpt/campusstay/EscalationIT.java",
    "level": "integration",
    "result": "Passed"
@@ -823,7 +823,7 @@
    "id": "TC-VIS-001",
    "class": "FamilyDayIT",
    "method": "managerCreatesAndPublishes",
-   "title": "…008). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class FamilyDayIT { /** Residents of Block A, a resident of Block B and a student who lives nowhere. */ private static final int A1 = 21, A2 = 22, A3 = 23, B1 = 24, NOWHERE = 25; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; long termId; @BeforeEach void setUp() { termId = new ApplyFlow(mvc, jdbc).openTerm(); livesIn(A1, \"A\"); livesIn(A2, \"A\"); livesIn(A3, \"A\"); livesIn(B1, \"B\"); } /** A resident (door code released) on a free Bed of the Block, once per class. */ private void livesIn(int n, String block) { jdbc.sql(\"\"\" INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at, resident_at, code_released_at) SELECT :term, u.id, b.id, 'MANUAL', now(), now(), now(), now() FROM auth_user u, inv_bed b JOIN inv_room r ON r.id = b.room_id JOIN inv_building g ON g.id = r.building_id WHERE u.email = :email AND g.code = :block AND NOT EXISTS (SELECT 1 FROM asg_allocation a WHERE a.bed_id = b.id AND a.status = 'ACTIVE') AND NOT EXISTS (SELECT 1 FROM asg_allocation a WHERE a.student_id = u.id AND a.status = 'ACTIVE') ORDER BY r.code DESC, b.label LIMIT 1 \"\"\").param(\"term\", termId).param(\"email\", StayFlow.student(n)).param(\"block\", block).update(); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private static String body(ResultActions result) throws Exception { return result.andReturn().getResponse().getContentAsString(); } private static String at(Duration fromNow) { return Instant.now().plus(fromNow).truncatedTo(ChronoUnit.SECONDS).toString(); } /** A Draft for Block A: registration open now, two time slots later today (3 and 10 places). */ private static String draft(String title) { return \"\"\" {\"block\":\"A\",\"title\":\"%s\",\"area\":\"Lobby of Block A\",\"maxGuests\":4, \"registrationOpensAt\":\"%s\",\"registrationClosesAt\":\"%s\", \"slots\":[{\"startsAt\":\"%s\",\"endsAt\":\"%s\",\"capacity\":3},{\"startsAt\":\"%s\",\"endsAt\":\"%s\",\"capacity\":10}]} \"\"\".formatted(title, at(Duration.ofHours(-1)), at(Duration.ofHours(1)), at(Duration.ofHours(2)), at(Duration.ofHours(4)), at(Duration.ofHours(5)), at(Duration.ofHours(7))); } /** Creates and publishes a Family Day; returns its id. */ private String published(String title) throws Exception { String manager = bearer(mvc, MANAGER_A); String id = JsonPath.read(body(postJson(\"/family-days\", manager, draft(title)).andExpect(status().isCreated())), \"$.id\"); postJson(\"/family-days/\" + id + \"/publish\", manager, \"{}\").andExpect(status().isOk()); return id; } private String slot(String familyDayId, int index) throws Exception { return JsonPath.read(body(getAs(\"/family-days/\" + familyDayId, bearer(mvc, MANAGER_A))), \"$.slots[\" + index + \"].id\"); } private static String guests(String... names) { List<String> items = new ArrayList<>(); for (String name : names) { items.add(\"{\\\"fullName\\\":\\\"%s\\\",\\\"relationship\\\":\\\"Parent\\\",\\\"birthYear\\\":1975}\".formatted(name)); } return String.join(\",\", items); } private ResultActions register(int student, String familyDayId, String slotId, String guestsJson) throws Exception { return postJson(\"/students/me/family-days/\" + familyDayId + \"/registration\", bearer(mvc, StayFlow.student(student)), \"{\\\"slotId\\\":\\\"%s\\\",\\\"guests\\\":[%s]}\".formatted(slotId, guestsJson)); } /** Moves the time slot to now (it started 10 minutes ago, ends in an hour): the day of the Family Day. */ private void slotIsNow(String slotId) { jdbc.sql(\"\"\" UPDATE vis_time_slot SET starts_at = now() - interval '10 minutes', ends_at = now() + interval '1 hour' WHERE id = :id \"\"\").param(\"id\", Long.parseLong(slotId)).update(); } /** Moves every time slot of the Family Day into the past. */ private void slotsAreOver(String familyDayId) { jdbc.sql(\"\"\" UPDATE vis_time_slot SET starts_at = now() - interval '3 hours', ends_at = now() - interval '1 hour' WHERE family_day_id = :id \"\"\").param(\"id\", Long.parseLong(familyDayId)).update(); } private long notifications(int student, String key) { return jdbc.sql(\"\"\" SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id WHERE u.email = :e AND n.event_key = :k \"\"\").param(\"e\", StayFlow.student(student)).param(\"k\", key).query(Long.class).single(); } /** TC-VIS-001: a Manager creates a Draft (fields checked; Staff may not), publishes it and the Block's residents are told; a published Family Day cannot be edited; Staff of another Block cannot read it.",
+   "title": "a Manager creates a Draft (fields checked; Staff may not), publishes it and the Block's residents are told; a published Family Day cannot be edited; Staff of another Block cannot read it.",
    "file": "backend/src/test/java/vn/fpt/campusstay/FamilyDayIT.java",
    "level": "integration",
    "result": "Passed"
@@ -913,7 +913,7 @@
    "id": "TC-BIL-020",
    "class": "FinanceIT",
    "method": "overdueAndReminders",
-   "title": ", 021, 040). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class FinanceIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired FinanceService finance; StayFlow stay; long termId; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); termId = flow.openTerm(); stay = new StayFlow(mvc, jdbc, flow, termId); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path + (path.contains(\"?\") ? \"&\" : \"?\") + \"termId=\" + termId) .header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-BIL-020: an unpaid charge past its due date becomes Overdue (the student is told) while a Balance past its deadline does not (it is forfeited instead, spec §6.6); a Manager sees the charge with the days overdue and sends a reminder, in-app and by email.",
+   "title": "an unpaid charge past its due date becomes Overdue (the student is told) while a Balance past its deadline does not (it is forfeited instead, spec §6.6); a Manager sees the charge with the days overdue and sends a reminder, in-app and by email.",
    "file": "backend/src/test/java/vn/fpt/campusstay/FinanceIT.java",
    "level": "integration",
    "result": "Passed"
@@ -940,7 +940,7 @@
    "id": "TC-INV-015",
    "class": "FurnitureIT",
    "method": "listsItemsInScope",
-   "title": "…018). Block A's Rooms have the items their classes require and its store holds two fridges and an air conditioner. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class FurnitureIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private ResultActions send(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, String auth, String body) throws Exception { return mvc.perform(request.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private long item(String assetCode) { return jdbc.sql(\"SELECT id FROM inv_furniture_item WHERE asset_code = :c\").param(\"c\", assetCode) .query(Long.class).single(); } private long typeId(String code) { return jdbc.sql(\"SELECT id FROM inv_furniture_type WHERE code = :c\").param(\"c\", code).query(Long.class).single(); } /** TC-INV-015 (scope): items of the Blocks in scope, with counts per status and filters; other Blocks are refused.",
+   "title": "(scope): items of the Blocks in scope, with counts per status and filters; other Blocks are refused.",
    "file": "backend/src/test/java/vn/fpt/campusstay/FurnitureIT.java",
    "level": "integration",
    "result": "Passed"
@@ -980,15 +980,6 @@
    "file": "backend/src/test/java/vn/fpt/campusstay/FurnitureIT.java",
    "level": "integration",
    "result": "Passed"
-  },
-  {
-   "id": "TC-ASG-053",
-   "class": "HandoverIT",
-   "method": "tearDown",
-   "title": "…059, 062). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class HandoverIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired HandoverJobService jobs; @Autowired FinanceService finance; StayFlow stay; @BeforeEach void setUp() { long fall = jdbc.sql(\"SELECT id FROM cfg_term WHERE code = 'FA26'\").query(Long.class).single(); stay = new StayFlow(mvc, jdbc, null, fall); jdbc.sql(\"UPDATE cfg_parameter SET value = 'true' WHERE key = 'handover.required'\").update(); } /** The students of this class are reused between tests: their rows and the Rooms' codes go after each test.",
-   "file": "backend/src/test/java/vn/fpt/campusstay/HandoverIT.java",
-   "level": "integration",
-   "result": "Not run"
   },
   {
    "id": "TC-ASG-053",
@@ -1084,7 +1075,7 @@
    "id": "TC-MNT-004",
    "class": "InspectionIT",
    "method": "checklistsAreVersioned",
-   "title": "…007). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class InspectionIT { private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; /** Only its id is used: AuthFlowIT locks this account. */ private static final String STAFF_B1 = \"staff.b1@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired InspectionScheduleService schedules; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions putAs(String path, String auth, String body) throws Exception { return mvc.perform(put(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private String read(ResultActions result, String path) throws Exception { return JsonPath.read(result.andReturn().getResponse().getContentAsString(), path); } /** TC-MNT-004: the seeded checklist; a Draft is published as v1; editing publishes v2 and keeps v1 as Replaced.",
+   "title": "the seeded checklist; a Draft is published as v1; editing publishes v2 and keeps v1 as Replaced.",
    "file": "backend/src/test/java/vn/fpt/campusstay/InspectionIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1210,7 +1201,7 @@
    "id": "TC-ASG-030",
    "class": "LateCheckInIT",
    "method": "approvedLateCheckIn",
-   "title": ", 031, 037). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class LateCheckInIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; StayFlow stay; long termId; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); termId = flow.openTerm(); stay = new StayFlow(mvc, jdbc, flow, termId); } private static String day(int plusDays) { return LocalDate.now(TimeConfig.CAMPUS_ZONE).plusDays(plusDays).toString(); } private ResultActions record(String auth, String code, String requestedFor, boolean evidence) throws Exception { var request = multipart(\"/late-check-ins\").param(\"studentCode\", code).param(\"reason\", \"Flight delayed\") .param(\"requestedFor\", requestedFor); if (evidence) { request.file(new MockMultipartFile(\"evidence\", \"ticket.png\", \"image/png\", PNG)); } return mvc.perform(request.header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions list(String auth) throws Exception { return mvc.perform(get(\"/late-check-ins?termId=\" + termId).header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-ASG-030: Staff record the request with evidence; the Block Manager approves a deadline, after which the desk lets the student check in even though the Term's window is closed.",
+   "title": "Staff record the request with evidence; the Block Manager approves a deadline, after which the desk lets the student check in even though the Term's window is closed.",
    "file": "backend/src/test/java/vn/fpt/campusstay/LateCheckInIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1264,7 +1255,7 @@
    "id": "TC-MNT-001",
    "class": "MaintenanceIT",
    "method": "studentReportsAndFollows",
-   "title": "…003). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class MaintenanceIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; long termId; @BeforeEach void openTerm() { termId = new ApplyFlow(mvc, jdbc).openTerm(); } private static String student(int n) { return \"se19%04d@student.campusstay.test\".formatted(n); } /** The student holds the Bed and has checked in (the desk is tested in DeskIT). */ private void livesIn(int n, String room, String bed) { jdbc.sql(\"\"\" INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at, checked_in_at, resident_at) SELECT :term, u.id, b.id, 'MANUAL', now(), now(), now() FROM auth_user u, inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE u.email = :email AND r.code = :room AND b.label = :bed \"\"\").param(\"term\", termId).param(\"email\", student(n)).param(\"room\", room).param(\"bed\", bed).update(); } private long userId(String email) { return jdbc.sql(\"SELECT id FROM auth_user WHERE email = :e\").param(\"e\", email).query(Long.class).single(); } private MockMultipartHttpServletRequestBuilder report(String auth, String category, String urgency, int photos) { MockMultipartHttpServletRequestBuilder request = multipart(\"/maintenance-requests\"); request.header(HttpHeaders.AUTHORIZATION, auth); request.param(\"title\", \"Shower leaks\").param(\"description\", \"Water runs under the door when I shower.\") .param(\"location\", \"Bathroom\").param(\"urgency\", urgency).param(\"staffMayEnter\", \"true\"); if (category != null) { request.param(\"category\", category); } for (int i = 0; i < photos; i++) { request.file(new MockMultipartFile(\"photos\", \"leak-\" + i + \".png\", \"image/png\", PNG)); } return request; } private String reported(String auth, String urgency) throws Exception { return JsonPath.read(mvc.perform(report(auth, \"Plumbing\", urgency, 1)).andExpect(status().isOk()) .andReturn().getResponse().getContentAsString(), \"$.id\"); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions patchAs(String path, String auth, String body) throws Exception { return mvc.perform(patch(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } /** TC-MNT-001: a checked-in student reports with photos and follows the request; the form is validated.",
+   "title": "a checked-in student reports with photos and follows the request; the form is validated.",
    "file": "backend/src/test/java/vn/fpt/campusstay/MaintenanceIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1300,7 +1291,7 @@
    "id": "TC-NTF-030",
    "class": "MessagingIT",
    "method": "editsTemplates",
-   "title": "…033). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class MessagingIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions putAs(String path, String auth, String body) throws Exception { return mvc.perform(put(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private String email(String mode, String extra) { return \"\"\" {\"mode\":\"%s\",\"termId\":\"%d\",\"templateKey\":\"ANNOUNCEMENT\",\"subject\":\"Water off on Saturday\"%s}\"\"\" .formatted(mode, stay.termId(), extra); } /** TC-NTF-030: templates with their variables and sample values; the push limit and unknown variables.",
+   "title": "templates with their variables and sample values; the push limit and unknown variables.",
    "file": "backend/src/test/java/vn/fpt/campusstay/MessagingIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1336,7 +1327,7 @@
    "id": "TC-BIL-023",
    "class": "MeterIT",
    "method": "periodsAndReadings",
-   "title": "…026). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class MeterIT { private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; StayFlow stay; @BeforeEach void setUp() { // These tests close the current month (readings and invoices); the end-of-month rule is BillingRegressionIT's. jdbc.sql(\"UPDATE cfg_parameter SET value = 'true' WHERE key = 'utility.close_before_month_end'\").update(); ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } /** Two residents of a Room, and last month's closed reading of that Room (1,000 kWh, 40 m³; it used 100 kWh). */ private void residentsWithLastMonth(String block, String room, int first, int second) { stay.livesIn(first, room, \"A\", true); stay.livesIn(second, room, \"B\", true); LocalDate start = LocalDate.now(TimeConfig.CAMPUS_ZONE).withDayOfMonth(1).minusMonths(1); jdbc.sql(\"\"\" INSERT INTO bil_meter_period (building_id, label, period_start, period_end, due_at, closed_at) SELECT id, :label, :start, :end, now(), now() FROM inv_building WHERE code = :block ON CONFLICT (building_id, period_start) DO NOTHING \"\"\").param(\"block\", block).param(\"label\", \"%02d/%d\".formatted(start.getMonthValue(), start.getYear())).param(\"start\", start) .param(\"end\", start.withDayOfMonth(start.lengthOfMonth())).update(); jdbc.sql(\"\"\" INSERT INTO bil_meter_reading (period_id, room_id, electricity_prev, electricity_curr, water_prev, water_curr, status) SELECT p.id, r.id, 900, 1000, 30, 40, 'CONFIRMED' FROM bil_meter_period p JOIN inv_building b ON b.id = p.building_id, inv_room r WHERE b.code = :block AND p.period_start = :start AND r.code = :room ON CONFLICT (period_id, room_id) DO NOTHING \"\"\").param(\"block\", block).param(\"start\", start).param(\"room\", room).update(); } private String currentPeriod(String auth, String block) throws Exception { String json = mvc.perform(get(\"/meter-periods\").param(\"block\", block).header(HttpHeaders.AUTHORIZATION, auth)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(); return JsonPath.read(json, \"$.items[0].id\"); } private ResultActions putReading(String auth, String period, String room, String body) throws Exception { return mvc.perform(put(\"/meter-periods/\" + period + \"/readings/\" + room).header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(body)); } private ResultActions readings(String auth, String period) throws Exception { return mvc.perform(get(\"/meter-periods/\" + period + \"/readings\").param(\"pageSize\", \"100\") .header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-BIL-023: the current month opens on first use; Rooms with residents wait for a reading.",
+   "title": "the current month opens on first use; Rooms with residents wait for a reading.",
    "file": "backend/src/test/java/vn/fpt/campusstay/MeterIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1381,7 +1372,7 @@
    "id": "TC-REQ-019",
    "class": "NextTermRequestIT",
    "method": "extensionsAndEndOfStay",
-   "title": "…021). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class NextTermRequestIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String id(ResultActions result) throws Exception { return JsonPath.read(result.andReturn().getResponse().getContentAsString(), \"$.id\"); } /** TC-REQ-019: an extension in the Stay's last Term is approved at once (the Bed is kept, the Stay commits more Terms); with an overdue Invoice it waits for Staff, who decide it with a note to reject; the length is checked; the end of the stay releases the next-Term Bed at once; after the request deadline nothing can be filed.",
+   "title": "an extension in the Stay's last Term is approved at once (the Bed is kept, the Stay commits more Terms); with an overdue Invoice it waits for Staff, who decide it with a note to reject; the length is checked; the end of the stay releases the next-Term Bed at once; after the request deadline nothing can be filed.",
    "file": "backend/src/test/java/vn/fpt/campusstay/NextTermRequestIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1435,7 +1426,7 @@
    "id": "TC-ASG-043",
    "class": "OperationalMoveIT",
    "method": "staffMoveAResident",
-   "title": ", 044). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class OperationalMoveIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private long count(String sql, Object student) { return jdbc.sql(sql).param(\"s\", student).query(Long.class).single(); } /** TC-ASG-043: Staff move a resident to another Room of their Block for a reason: both meters are read, the old Room's code must change, the next-Term Bed follows, nothing is charged; the student is told; the moves list shows it; validation, other Blocks and students are refused.",
+   "title": "Staff move a resident to another Room of their Block for a reason: both meters are read, the old Room's code must change, the next-Term Bed follows, nothing is charged; the student is told; the moves list shows it; validation, other Blocks and students are refused.",
    "file": "backend/src/test/java/vn/fpt/campusstay/OperationalMoveIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1552,7 +1543,7 @@
    "id": "TC-BIL-032",
    "class": "PaymentClaimIT",
    "method": "claimStopsTheClockAndBulkConfirmationPays",
-   "title": "…036). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class PaymentClaimIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired ApplicationService applications; @Autowired PaymentClaimService claims; @Autowired PaymentReminders reminders; ApplyFlow flow; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); flow.openTerm(); } private static String student(int n) { return StayFlow.student(n); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } /** Moves both deadlines of a Deposit (the Application's window and its Invoice) by SQL. */ private void depositDueIn(String invoiceCode, String interval) { jdbc.sql(\"UPDATE bil_invoice SET due_at = now() + CAST(:i AS interval) WHERE code = :code\") .param(\"i\", interval).param(\"code\", invoiceCode).update(); jdbc.sql(\"\"\" UPDATE app_application a SET deposit_due_at = i.due_at FROM bil_invoice i WHERE i.code = :code AND a.id = i.application_id \"\"\").param(\"code\", invoiceCode).update(); } /** TC-BIL-032: the claim waits for a Manager and stops the Deposit window (the Application does not expire); the queue lists it with the count and total; a bulk confirmation pays each Invoice at the time of its claim, one audit entry each, and the Applications are submitted; unknown Invoices and claims without their transfer receipt (R-23) are skipped.",
+   "title": "the claim waits for a Manager and stops the Deposit window (the Application does not expire); the queue lists it with the count and total; a bulk confirmation pays each Invoice at the time of its claim, one audit entry each, and the Applications are submitted; unknown Invoices and claims without their transfer receipt (R-23) are skipped.",
    "file": "backend/src/test/java/vn/fpt/campusstay/PaymentClaimIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1597,7 +1588,7 @@
    "id": "TC-BIL-010",
    "class": "PaymentDeskIT",
    "method": "scopedListWithSummary",
-   "title": "…012). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class PaymentDeskIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); flow.openTerm(); } private static String student(int n) { return \"se19%04d@student.campusstay.test\".formatted(n); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions confirm(String invoice, String auth, String reference, MockMultipartFile receipt) throws Exception { var request = multipart(\"/payments/\" + invoice + \"/confirm\").header(HttpHeaders.AUTHORIZATION, auth); if (reference != null) { request.param(\"reference\", reference); } if (receipt != null) { request.file(receipt); } return mvc.perform(request); } /** TC-BIL-010: Invoices with filters and the summary; every Manager sees every Block, Staff do not (ADR-19).",
+   "title": "Invoices with filters and the summary; every Manager sees every Block, Staff do not (ADR-19).",
    "file": "backend/src/test/java/vn/fpt/campusstay/PaymentDeskIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1624,7 +1615,7 @@
    "id": "TC-BIL-001",
    "class": "PaymentsIT",
    "method": "depositInvoiceAndPaymentPage",
-   "title": ", 006). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class PaymentsIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); flow.openTerm(); } private static String student(int n) { return \"se19%04d@student.campusstay.test\".formatted(n); } /** TC-BIL-001: the Deposit Invoice in the list, its detail and the VietQR payment page; the QR can be refreshed.",
+   "title": "the Deposit Invoice in the list, its detail and the VietQR payment page; the QR can be refreshed.",
    "file": "backend/src/test/java/vn/fpt/campusstay/PaymentsIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1642,7 +1633,7 @@
    "id": "TC-AUTH-053",
    "class": "ReconciliationIT",
    "method": "enrolledListGroups",
-   "title": "…055). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class ReconciliationIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions upload(String auth, long termId, String kind, String csv) throws Exception { return mvc.perform(multipart(\"/reconciliations\").file(new MockMultipartFile(\"file\", \"list.csv\", \"text/csv\", csv.getBytes(StandardCharsets.UTF_8))).param(\"termId\", String.valueOf(termId)).param(\"kind\", kind) .header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String item(String detail, int group, String code) { return JsonPath.<java.util.List<String>>read(detail, \"$.items[?(@.group == %d && @.studentCode == '%s')].id\".formatted(group, code)).getFirst(); } /** TC-AUTH-053: the enrolled list of the next Term: a continuing resident who graduated (group 1, the directory updated: group 4), a continuing resident missing from the list (group 2), an unknown code (group 3), another student's changed status (group 4); the template; Managers upload, the Admin reads, Staff may not; a file without a student code column is refused.",
+   "title": "the enrolled list of the next Term: a continuing resident who graduated (group 1, the directory updated: group 4), a continuing resident missing from the list (group 2), an unknown code (group 3), another student's changed status (group 4); the template; Managers upload, the Admin reads, Staff may not; a file without a student code column is refused.",
    "file": "backend/src/test/java/vn/fpt/campusstay/ReconciliationIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1687,7 +1678,7 @@
    "id": "TC-AUTH-058",
    "class": "RefundAccountIT",
    "method": "studentKeepsTheirRefundAccount",
-   "title": "). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) class RefundAccountIT { @Autowired MockMvc mvc; private ResultActions save(String auth, String body) throws Exception { return mvc.perform(put(\"/students/me/refund-account\").header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(body)); } /** TC-AUTH-058: a student reads and saves their refund account; the number keeps its digits only, the bank is chosen from the list by its BIN and the student accepts responsibility for the account (R-22), each field is checked, and only students have one.",
+   "title": "a student reads and saves their refund account; the number keeps its digits only, the bank is chosen from the list by its BIN and the student accepts responsibility for the account (R-22), each field is checked, and only students have one.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RefundAccountIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1696,7 +1687,7 @@
    "id": "TC-CFG-023",
    "class": "RegistrationPeriodIT",
    "method": "cardAndDetails",
-   "title": "). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class RegistrationPeriodIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; /** TC-CFG-023: the card shows the Term open for registration with its countdown, places and lowest price; its details list the timeline and every price with its Deposit, the furniture its Room Class requires and the Beds of the student's gender (no Rooms); a Draft has no details.",
+   "title": "the card shows the Term open for registration with its countdown, places and lowest price; its details list the timeline and every price with its Deposit, the furniture its Room Class requires and the Beds of the student's gender (no Rooms); a Draft has no details.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RegistrationPeriodIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1705,7 +1696,7 @@
    "id": "TC-ASG-038",
    "class": "RenewalIT",
    "method": "windowOpens",
-   "title": "…042). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class RenewalIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; @Autowired DoorCodeRelease release; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void setUp() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions reconcile(String auth, byte[] csv) throws Exception { return mvc.perform(multipart(\"/reconciliations\").file(new MockMultipartFile(\"file\", \"enrolled.csv\", \"text/csv\", csv)).param(\"termId\", String.valueOf(next)).param(\"kind\", \"enrolled\") .header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-ASG-038: M2 opens the requests window once: a resident with Terms left keeps the Bed as continuing, one in the Stay's last Term as awaiting extension; a student not living in the Room yet and a terminated resident get none. My Room shows the next Term with its price, the students are told, Staff and Managers read the overview, and the new students' assignment of the next Term waits for the request deadline.",
+   "title": "M2 opens the requests window once: a resident with Terms left keeps the Bed as continuing, one in the Stay's last Term as awaiting extension; a student not living in the Room yet and a terminated resident get none. My Room shows the next Term with its price, the students are told, Staff and Managers read the overview, and the new students' assignment of the next Term waits for the request deadline.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RenewalIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1750,7 +1741,7 @@
    "id": "TC-RPT-001",
    "class": "ReportIT",
    "method": "staffDashboard",
-   "title": "…008, TC-RPT-010, TC-RPT-011). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class ReportIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; ApplyFlow flow; StayFlow stay; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path + (path.contains(\"?\") ? \"&\" : \"?\") + \"termId=\" + stay.termId()) .header(HttpHeaders.AUTHORIZATION, auth)); } private void applyAndPay(int student) throws Exception { String auth = bearer(mvc, StayFlow.student(student)); flow.pay(auth, flow.apply(auth, \"4-bed\", \"Basic\", null).depositInvoiceId()); } private long count(String sql) { return jdbc.sql(sql).param(\"term\", stay.termId()).query(Long.class).single(); } /** TC-RPT-001: Staff dashboard: the review queue, Rooms out of service, the Block's Beds, what needs attention.",
+   "title": "Staff dashboard: the review queue, Rooms out of service, the Block's Beds, what needs attention.",
    "file": "backend/src/test/java/vn/fpt/campusstay/ReportIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1849,7 +1840,7 @@
    "id": "TC-ASG-032",
    "class": "ResidenceIT",
    "method": "doorCodeIsReleasedToPaidResidents",
-   "title": "…034). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class ResidenceIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired DoorCodeRelease release; @Autowired ForfeitService forfeits; ApplyFlow flow; StayFlow stay; @BeforeEach void setUp() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String balanceOf(String applicationCode) { return jdbc.sql(\"\"\" SELECT i.code FROM bil_invoice i JOIN app_application a ON a.id = i.application_id WHERE a.code = :app AND i.type = 'BALANCE' \"\"\").param(\"app\", applicationCode).query(String.class).single(); } /** The state of the student's Bed on the room map of its Floor. */ private String bedState(String room, String bedCode) throws Exception { String floor = room.substring(2, 3); String json = getAs(\"/inventory/rooms?termId=\" + stay.termId() + \"&block=A&floor=\" + floor, bearer(mvc, MANAGER_A)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(); List<String> states = com.jayway.jsonpath.JsonPath.read(json, \"$.rooms[*].beds[?(@.id == '\" + bedCode + \"')].state\"); return states.getFirst(); } private String bedOf(String auth) throws Exception { String json = getAs(\"/students/me/allocation?termId=\" + stay.termId(), auth).andReturn().getResponse() .getContentAsString(); return com.jayway.jsonpath.JsonPath.read(json, \"$.allocation.room\") + \"-\" + com.jayway.jsonpath.JsonPath.read(json, \"$.allocation.bed\"); } /** TC-ASG-032: assigned and unpaid (yellow); paid but before the check-in start, then without a Room code, the student waits (no code); Staff confirm the Room's code and it is released: the student is a resident (orange), is told and sees the code; a student who pays later receives the current code at once.",
+   "title": "assigned and unpaid (yellow); paid but before the check-in start, then without a Room code, the student waits (no code); Staff confirm the Room's code and it is released: the student is a resident (orange), is told and sees the code; a student who pays later receives the current code at once.",
    "file": "backend/src/test/java/vn/fpt/campusstay/ResidenceIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1876,7 +1867,7 @@
    "id": "TC-REQ-001",
    "class": "RoomChangeIT",
    "method": "studentAsks",
-   "title": "…003). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class RoomChangeIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String ask(String auth, String kind, String roomType, String roomClass, String reason) throws Exception { return JsonPath.read(stay.postJson(\"/room-changes\", auth, \"{\\\"kind\\\":\\\"%s\\\",\\\"roomTypeId\\\":\\\"%s\\\",\\\"roomClassId\\\":\\\"%s\\\",\\\"reason\\\":\\\"%s\\\"}\".formatted(kind, flow.roomTypeId(roomType), flow.roomClassId(roomClass), reason)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); } /** TC-REQ-001: the options show the next-Term Bed and the next Term's prices; a request for another Room Type, one open request per window; validation; a student without a Bed kept for the next Term, or in the last Term of the Stay, cannot ask yet.",
+   "title": "the options show the next-Term Bed and the next Term's prices; a request for another Room Type, one open request per window; validation; a student without a Bed kept for the next Term, or in the last Term of the Stay, cannot ask yet.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RoomChangeIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1903,7 +1894,7 @@
    "id": "TC-INV-008",
    "class": "RoomClassIT",
    "method": "listsClassesOfTheNextTerm",
-   "title": "…011). The test seed's Fall 2026 is running and Spring 2027 has not started; Block A has the furniture its classes require, Block B none. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class RoomClassIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private long term(String code) { return jdbc.sql(\"SELECT id FROM cfg_term WHERE code = :c\").param(\"c\", code).query(Long.class).single(); } private long roomClass(String name) { return jdbc.sql(\"SELECT id FROM cfg_room_class WHERE name = :n\").param(\"n\", name).query(Long.class).single(); } private ResultActions set(String auth, long term, String rooms, long roomClass) throws Exception { return mvc.perform(put(\"/inventory/room-classes\").header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON) .content(\"{\\\"termId\\\":\\\"%d\\\",\\\"rooms\\\":[%s],\\\"roomClassId\\\":\\\"%d\\\"}\".formatted(term, rooms, roomClass))); } /** TC-INV-008: without a Term the list shows the next Term to start, editable, with each Room's class and its furniture conformance; the running Term is shown as fixed. Staff see their Blocks only.",
+   "title": "without a Term the list shows the next Term to start, editable, with each Room's class and its furniture conformance; the running Term is shown as fixed. Staff see their Blocks only.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RoomClassIT.java",
    "level": "integration",
    "result": "Passed"
@@ -1939,7 +1930,7 @@
    "id": "TC-APP-020",
    "class": "Round2IT",
    "method": "round2Lifecycle",
-   "title": ", 021, 024…026). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class Round2IT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired Round2Service round2; ApplyFlow flow; StayFlow stay; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); // No 6-bed Premium Bed is free in Block A: those Applications are waitlisted in Round 1. jdbc.sql(\"\"\" UPDATE inv_room SET status = 'OUT_OF_SERVICE', oos_since = now(), oos_reason = 'MAINTENANCE' WHERE code IN ('A-509', 'A-510') AND status = 'IN_SERVICE' \"\"\").update(); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } /** TC-APP-020 and TC-APP-021: three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager.",
+   "title": "and TC-APP-021: three Waitlisted students each get held options in partly filled Rooms. One accepts (Allocated with a Balance), one declines and one does not answer: both are cancelled and their paid Deposits wait as refunds for the Block Manager.",
    "file": "backend/src/test/java/vn/fpt/campusstay/Round2IT.java",
    "level": "integration",
    "result": "Passed"
@@ -1975,7 +1966,7 @@
    "id": "TC-REQ-013",
    "class": "RoutingIT",
    "method": "rulesAndTimers",
-   "title": "…015). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class RoutingIT { private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R' }; private static final String STAFF_A2 = \"staff.a2@campusstay.test\"; private static final String STAFF_AB = \"staff.ab@campusstay.test\"; /** Only its id is used: AuthFlowIT locks this account. */ private static final String STAFF_B1 = \"staff.b1@campusstay.test\"; @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired vn.fpt.campusstay.service.assignment.RenewalService renewals; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions putAs(String path, String auth, String body) throws Exception { return mvc.perform(put(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private String rule(String auth, String body) throws Exception { return JsonPath.read(stay.postJson(\"/routing-rules\", auth, body).andExpect(status().isOk()).andReturn() .getResponse().getContentAsString(), \"$.id\"); } private String report(String auth, String category) throws Exception { return JsonPath.read(mvc.perform(multipart(\"/maintenance-requests\") .file(new MockMultipartFile(\"photos\", \"leak.png\", \"image/png\", PNG)) .param(\"title\", \"Light flickers\").param(\"description\", \"The ceiling light flickers all evening.\") .param(\"location\", \"Bathroom\").param(\"category\", category).param(\"urgency\", \"Normal\") .param(\"staffMayEnter\", \"true\").header(HttpHeaders.AUTHORIZATION, auth)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); } private Long assigneeOf(String code) { return jdbc.sql(\"SELECT assignee_id FROM mnt_request WHERE code = :c\").param(\"c\", code) .query(Long.class).single(); } /** TC-REQ-013: rules, gaps and timers of the Block; validation; Manager only, in scope.",
+   "title": "rules, gaps and timers of the Block; validation; Manager only, in scope.",
    "file": "backend/src/test/java/vn/fpt/campusstay/RoutingIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2002,7 +1993,7 @@
    "id": "TC-AUTH-071",
    "class": "ShiftGateIT",
    "method": "managerSetsWeeklyShifts",
-   "title": "…075). The gate is on here only (the test profile turns it off). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @TestPropertySource(properties = \"campusstay.auth.shift-gate=true\") @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class ShiftGateIT { private static final AtomicInteger SEQ = new AtomicInteger(); /** A change of the Maintenance kind; the request does not exist, so the call changes nothing once let through. */ private static final String CHANGE = \"/maintenance-requests/999999/updates\"; /** Every day, all day: 00:00–23:59 and 23:59 past midnight. */ private static final String ALWAYS; static { StringBuilder b = new StringBuilder(\"{\\\"shifts\\\":[\"); for (int d = 1; d <= 7; d++) { b.append(d > 1 ? \",\" : \"\").append(\"{\\\"weekday\\\":\").append(d).append(\",\\\"start\\\":\\\"00:00\\\",\\\"end\\\":\\\"23:59\\\"},\") .append(\"{\\\"weekday\\\":\").append(d).append(\",\\\"start\\\":\\\"23:59\\\",\\\"end\\\":\\\"00:00\\\"}\"); } ALWAYS = b.append(\"]}\").toString(); } @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; /** A Staff member of Block A who handles the given kinds (codes); returns { id, email }. */ private String[] staff(String name, String handles) { String email = \"sh\" + SEQ.incrementAndGet() + \"@campusstay.test\"; long id = jdbc.sql(\"\"\" INSERT INTO auth_user (email, display_name, password_hash, role, title) SELECT :email, :name, password_hash, 'STAFF', 'Maintenance Technician' FROM auth_user WHERE email = 'staff.a1@campusstay.test' RETURNING id \"\"\").param(\"email\", email).param(\"name\", name).query(Long.class).single(); jdbc.sql(\"INSERT INTO auth_user_block (user_id, building_id) SELECT :id, id FROM inv_building WHERE code = 'A'\") .param(\"id\", id).update(); jdbc.sql(\"INSERT INTO auth_staff_profile (user_id, handles) VALUES (:id, string_to_array(:h, ','))\") .param(\"id\", id).param(\"h\", handles).update(); return new String[] { String.valueOf(id), email }; } private ResultActions shifts(String auth, String id, String body) throws Exception { return mvc.perform(put(\"/block-staff/\" + id + \"/shifts\").header(HttpHeaders.AUTHORIZATION, auth) .contentType(MediaType.APPLICATION_JSON).content(body)); } private ResultActions change(String auth, boolean acknowledged) throws Exception { var request = post(CHANGE).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(\"{\\\"note\\\":\\\"x\\\"}\"); if (acknowledged) { request.header(\"X-Shift-Acknowledged\", \"true\"); } return mvc.perform(request); } private long recorded(String id, String where) { return jdbc.sql(\"SELECT count(*) FROM auth_staff_activity WHERE user_id = :id AND \" + where) .param(\"id\", Long.parseLong(id)).query(Long.class).single(); } /** TC-AUTH-071: a Manager sets a Staff member's weekly shifts; bad shifts 400; the list shows them; audited.",
+   "title": "a Manager sets a Staff member's weekly shifts; bad shifts 400; the list shows them; audited.",
    "file": "backend/src/test/java/vn/fpt/campusstay/ShiftGateIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2074,7 +2065,7 @@
    "id": "TC-AUTH-061",
    "class": "StaffWorkloadIT",
    "method": "dutyFollowsSignInAndSignOut",
-   "title": "…070). Each test works with staff members of its own so the counts of one test never depend on another. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class StaffWorkloadIT { private static final AtomicInteger SEQ = new AtomicInteger(); @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired vn.fpt.campusstay.service.auth.DutyPresence presence; StayFlow stay; @BeforeEach void openTerm() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } // ---------------------------------------------------------------- helpers /** A Staff member of Block A (and the other Blocks given) who handles the request types given (codes). */ private long staff(String name, String handles, String... otherBlocks) { String email = \"wl\" + SEQ.incrementAndGet() + \"@campusstay.test\"; long id = jdbc.sql(\"\"\" INSERT INTO auth_user (email, display_name, password_hash, role, title) SELECT :email, :name, password_hash, 'STAFF', 'Maintenance Technician' FROM auth_user WHERE email = 'staff.a1@campusstay.test' RETURNING id \"\"\").param(\"email\", email).param(\"name\", name).query(Long.class).single(); jdbc.sql(\"\"\" INSERT INTO auth_user_block (user_id, building_id) SELECT :id, b.id FROM inv_building b WHERE b.code = 'A' OR b.code IN (:others) \"\"\").param(\"id\", id).param(\"others\", otherBlocks.length == 0 ? List.of(\"-\") : List.of(otherBlocks)) .update(); jdbc.sql(\"INSERT INTO auth_staff_profile (user_id, handles, on_duty) VALUES (:id, string_to_array(:h, ','), TRUE)\") .param(\"id\", id).param(\"h\", handles).update(); return id; } /** An open Maintenance Request of Room A-201 assigned to the person; {@code late} puts its SLA in the past. */ private long maintenance(long assignee, boolean late) { return jdbc.sql(\"\"\" INSERT INTO mnt_request (code, room_id, building_id, room_code, reporter_id, title, description, category, location, urgency, priority, status, assignee_id, sla_due_at, reported_at) SELECT :code, r.id, r.building_id, r.code, u.id, 'Tap is leaking', 'Water drips all night.', 'PLUMBING', 'BATHROOM', 'NORMAL', 'MEDIUM', 'ASSIGNED', :a, now() + CASE WHEN :late THEN interval '-2 hours' ELSE interval '2 days' END, now() - interval '1 day' FROM inv_room r, auth_user u WHERE r.code = 'A-201' AND u.email = :student RETURNING id \"\"\").param(\"code\", \"MR-W%05d\".formatted(SEQ.incrementAndGet())).param(\"a\", assignee).param(\"late\", late) .param(\"student\", StayFlow.student(1)).query(Long.class).single(); } /** A scheduled inspection run of Block A with the person as inspector. */ private long inspection(long inspector) { jdbc.sql(\"\"\" INSERT INTO mnt_checklist (family_key, name, version, status) VALUES ('WORKLOAD_TEST', 'Fire safety', 1, 'DRAFT') ON CONFLICT (family_key, version) DO NOTHING \"\"\").update(); return jdbc.sql(\"\"\" INSERT INTO mnt_inspection_run (building_id, checklist_id, run_date, due_at, inspector_id, status) SELECT b.id, c.id, current_date + 1, now() + interval '2 days', :i, 'SCHEDULED' FROM inv_building b, mnt_checklist c WHERE b.code = 'A' AND c.family_key = 'WORKLOAD_TEST' RETURNING id \"\"\").param(\"i\", inspector).query(Long.class).single(); } private ResultActions list(String auth) throws Exception { return mvc.perform(get(\"/block-staff\").param(\"block\", \"A\").header(HttpHeaders.AUTHORIZATION, auth)); } private ResultActions reassign(long from, String body) throws Exception { return mvc.perform(post(\"/block-staff/\" + from + \"/work/reassign\").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A)).contentType(MediaType.APPLICATION_JSON).content(body)); } private static String person(String name) { return \"$.items[?(@.name == '\" + name + \"')]\"; } private Long assignee(long requestId) { return jdbc.sql(\"SELECT assignee_id FROM mnt_request WHERE id = :id\").param(\"id\", requestId).query(Long.class) .single(); } // ---------------------------------------------------------------- tests /** TC-AUTH-061: duty follows presence: signing in puts a person on duty, going idle or signing out takes them off, using the app again puts them back; nobody sets it by hand.",
+   "title": "duty follows presence: signing in puts a person on duty, going idle or signing out takes them off, using the app again puts them back; nobody sets it by hand.",
    "file": "backend/src/test/java/vn/fpt/campusstay/StaffWorkloadIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2245,7 +2236,7 @@
    "id": "TC-AUTH-060",
    "class": "StudentContactIT",
    "method": "studentKeepsTheirContacts",
-   "title": "). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class StudentContactIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private final JsonMapper json = JsonMapper.builder().build(); private ResultActions send(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder req, String auth, String body) throws Exception { if (body != null) { req = req.contentType(MediaType.APPLICATION_JSON).content(body); } return mvc.perform(req.header(HttpHeaders.AUTHORIZATION, auth)); } private JsonNode body(ResultActions result) throws Exception { return json.readTree(result.andReturn().getResponse().getContentAsString()); } /** TC-AUTH-060: a student edits their phone and personal email, adds emergency contacts up to the limit, edits, reorders and removes them; the first contact is mirrored in the student record that Applications read, each field is checked, another student's contact is not found and only students have contacts.",
+   "title": "a student edits their phone and personal email, adds emergency contacts up to the limit, edits, reorders and removes them; the first contact is mirrored in the student record that Applications read, each field is checked, another student's contact is not found and only students have contacts.",
    "file": "backend/src/test/java/vn/fpt/campusstay/StudentContactIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2290,7 +2281,7 @@
    "id": "TC-REQ-010",
    "class": "SwapIT",
    "method": "directSwap",
-   "title": "…012). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class SwapIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired RenewalService renewals; ApplyFlow flow; StayFlow stay; RenewalFlow renewal; long next; @BeforeEach void openTerm() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); renewal = new RenewalFlow(jdbc, stay); next = renewal.openNextTerm(); renewal.reset(); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String invite(String from, String code) throws Exception { return JsonPath.read(stay.postJson(\"/swaps\", from, \"{\\\"studentCode\\\":\\\"%s\\\"}\".formatted(code)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); } private ResultActions queue(String auth, String status) throws Exception { return mvc.perform(get(\"/swaps\").param(\"termId\", String.valueOf(next)).param(\"status\", status) .header(HttpHeaders.AUTHORIZATION, auth)); } /** The student's Room in the next Term. */ private String nextRoom(String auth) throws Exception { return JsonPath.read(getAs(\"/students/me/allocation\", auth).andReturn().getResponse().getContentAsString(), \"$.nextTerm.room\"); } /** TC-REQ-010: a direct swap of next-Term Beds: the partner accepts, Staff check and approve, the two next-Term Allocations exchange Beds while both students stay where they live this Term.",
+   "title": "a direct swap of next-Term Beds: the partner accepts, Staff check and approve, the two next-Term Allocations exchange Beds while both students stay where they live this Term.",
    "file": "backend/src/test/java/vn/fpt/campusstay/SwapIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2317,7 +2308,7 @@
    "id": "TC-RPT-012",
    "class": "TermDashboardIT",
    "method": "termDashboard",
-   "title": "). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class TermDashboardIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; /** TC-RPT-012: the dashboard of a Term shows its milestones in order with their progress, its Applications by status, the places per Room Type × Room Class × gender with the Term's prices, and the Deposits issued; Staff cannot read it and an unknown Term is 404.",
+   "title": "the dashboard of a Term shows its milestones in order with their progress, its Applications by status, the places per Room Type × Room Class × gender with the Term's prices, and the Deposits issued; Staff cannot read it and an unknown Term is 404.",
    "file": "backend/src/test/java/vn/fpt/campusstay/TermDashboardIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2326,7 +2317,7 @@
    "id": "TC-CFG-016",
    "class": "TermRequestIT",
    "method": "managerFilesARequest",
-   "title": "…018): a Manager asks the Admin to open a Term; Admins and the other Managers are told; Managers comment; the Admin sends it back, the Manager sends it again, the Admin rejects it. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class TermRequestIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private String id(String table, String column, String value) { return jdbc.sql(\"SELECT id::text FROM \" + table + \" WHERE \" + column + \" = :v\").param(\"v\", value) .query(String.class).single(); } /** A request for {@code name} staying in 2033 (no other Term uses those dates). */ private String body(String name, String extra) { return \"\"\" {\"termName\":\"%s\",\"stayStart\":\"2033-01-10\",\"stayEnd\":\"2033-04-30\", \"timeline\":{\"registrationOpensAt\":\"2032-11-01T01:00:00Z\",\"registrationClosesAt\":\"2032-11-25T16:59:00Z\", \"resultsPublishedAt\":\"2032-12-01T01:00:00Z\"}, \"blocks\":[\"A\"],\"excludedRooms\":[\"a-101\"], \"places\":[{\"roomTypeId\":\"%s\",\"roomClassId\":\"%s\",\"gender\":\"M\",\"places\":40}], \"prices\":[{\"roomTypeId\":\"%s\",\"roomClassId\":\"%s\",\"price\":7500000}], \"notes\":\"Standard Rooms of Block A only\"%s}\"\"\" .formatted(name, id(\"cfg_room_type\", \"name\", \"4-bed\"), id(\"cfg_room_class\", \"name\", \"Standard\"), id(\"cfg_room_type\", \"name\", \"4-bed\"), id(\"cfg_room_class\", \"name\", \"Standard\"), extra); } private ResultActions send(String method, String path, String auth, String json) throws Exception { var builder = switch (method) { case \"PUT\" -> put(path); default -> post(path); }; return mvc.perform(builder.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(json)); } private static String content(ResultActions result) throws Exception { return result.andReturn().getResponse().getContentAsString(); } /** TC-CFG-016: a Manager files a request; it is Submitted with its proposal and history, every Admin and every other Manager is notified with a link to the requests list, and the requester is not.",
+   "title": "a Manager files a request; it is Submitted with its proposal and history, every Admin and every other Manager is notified with a link to the requests list, and the requester is not.",
    "file": "backend/src/test/java/vn/fpt/campusstay/TermRequestIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2353,7 +2344,7 @@
    "id": "TC-CFG-019",
    "class": "TermWizardIT",
    "method": "buildsTheTermFromARequest",
-   "title": "…022, 030). Terms of these tests stay in 2032; their registration opens yesterday so students can apply to them. / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class TermWizardIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; private static final Instant NOW = Instant.now().truncatedTo(ChronoUnit.MINUTES); private String id(String table, String column, String value) { return jdbc.sql(\"SELECT id::text FROM \" + table + \" WHERE \" + column + \" = :v\").param(\"v\", value) .query(String.class).single(); } private ResultActions send(String method, String path, String auth, String json) throws Exception { var builder = method.equals(\"PUT\") ? put(path) : post(path); return mvc.perform(builder.header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(json)); } private String json(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)).andExpect(status().isOk()).andReturn() .getResponse().getContentAsString(); } private static String at(long days) { return \"\\\"\" + NOW.plus(days, ChronoUnit.DAYS) + \"\\\"\"; } /** Registration from yesterday to {@code closes} days from now; Check-in and the stay in {@code year}. */ private static String timeline(int closes, String checkInStart, String checkInEnd, String checkOutBy) { return \"\"\" {\"registrationOpensAt\":%s,\"registrationClosesAt\":%s,\"resultsPublishedAt\":%s,\"roommateHours\":48, \"depositHours\":48,\"balanceDueAt\":%s,\"checkInStart\":\"%s\",\"checkInEnd\":\"%s\",\"checkOutBy\":\"%s\"}\"\"\" .formatted(at(-1), at(closes), at(closes + 5), at(closes + 20), checkInStart, checkInEnd, checkOutBy); } /** Every price line of the wizard, with one line changed. */ private static String prices(String wizard, String typeId, String classId, long price) { List<Map<String, Object>> rows = JsonPath.read(wizard, \"$.prices.rows\"); List<String> lines = new ArrayList<>(); for (Map<String, Object> r : rows) { boolean changed = r.get(\"roomTypeId\").equals(typeId) && r.get(\"roomClassId\").equals(classId); lines.add(\"{\\\"roomTypeId\\\":\\\"%s\\\",\\\"roomClassId\\\":\\\"%s\\\",\\\"price\\\":%s}\".formatted(r.get(\"roomTypeId\"), r.get(\"roomClassId\"), changed ? price : r.get(\"price\"))); } return \"[\" + String.join(\",\", lines) + \"]\"; } private String fourBed() { return id(\"cfg_room_type\", \"name\", \"4-bed\"); } private String standard() { return id(\"cfg_room_class\", \"name\", \"Standard\"); } /** A Draft that goes through every step; returns its id. */ private String fullDraft(String admin, String name, String stayStart, String stayEnd, String checkIn) throws Exception { String id = JsonPath.read(send(\"POST\", \"/admin/terms/drafts\", admin, \"{\\\"name\\\":\\\"%s\\\",\\\"stayStart\\\":\\\"%s\\\",\\\"stayEnd\\\":\\\"%s\\\"}\".formatted(name, stayStart, stayEnd)) .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), \"$.id\"); String base = \"/admin/terms/\" + id + \"/wizard/\"; send(\"PUT\", base + \"general\", admin, \"{\\\"name\\\":\\\"%s\\\",\\\"stayStart\\\":\\\"%s\\\",\\\"stayEnd\\\":\\\"%s\\\"}\" .formatted(name, stayStart, stayEnd)).andExpect(status().isOk()); send(\"PUT\", base + \"timeline\", admin, \"{\\\"timeline\\\":\" + timeline(20, checkIn, checkIn, stayEnd) + \"}\") .andExpect(status().isOk()); String blocks = String.join(\",\", jdbc.sql(\"SELECT '\\\"' || id || '\\\"' FROM inv_building WHERE status = 'ACTIVE'\") .query(String.class).list()); send(\"PUT\", base + \"rooms\", admin, \"{\\\"blockIds\\\":[\" + blocks + \"],\\\"excludedRooms\\\":[],\\\"reservedNewPercent\\\":10}\") .andExpect(status().isOk()); String wizard = json(\"/admin/terms/\" + id + \"/wizard\", admin); send(\"PUT\", base + \"prices\", admin, \"{\\\"prices\\\":\" + prices(wizard, fourBed(), standard(), 7_200_000) + \",\\\"depositPercent\\\":25,\\\"utilityDeposit\\\":500000}\").andExpect(status().isOk()); send(\"PUT\", base + \"rules\", admin, \"{}\").andExpect(status().isOk()); send(\"PUT\", base + \"information\", admin, \"\"\" {\"houseRules\":\"No cooking in the Rooms.\",\"faq\":[{\"question\":\"Can I choose my Bed?\",\"answer\":\"No.\"}], \"documents\":[{\"title\":\"Dormitory rules\",\"url\":\"https://example.edu/rules.pdf\"}]}\"\"\") .andExpect(status().isOk()); return id; } /** TC-CFG-019: the Admin builds the Draft from a Manager's request: it holds the request's dates, Blocks, Rooms and prices, the request is In progress (the Manager is told) and building again opens the same Draft; a price that differs from the request needs a reason, which the request then shows next to the difference.",
+   "title": "the Admin builds the Draft from a Manager's request: it holds the request's dates, Blocks, Rooms and prices, the request is In progress (the Manager is told) and building again opens the same Draft; a price that differs from the request needs a reason, which the request then shows next to the difference.",
    "file": "backend/src/test/java/vn/fpt/campusstay/TermWizardIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2407,7 +2398,7 @@
    "id": "TC-ASG-035",
    "class": "TerminationIT",
    "method": "managerTerminatesAndCancels",
-   "title": ", 036). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class TerminationIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired TerminationService terminations; StayFlow stay; @BeforeEach void setUp() { ApplyFlow flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions postJson(String path, String auth, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON) .content(body)); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } private String allocationOf(int n) { return jdbc.sql(\"\"\" SELECT a.id::text FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id WHERE u.email = :e AND a.status = 'ACTIVE' \"\"\").param(\"e\", StayFlow.student(n)).query(String.class).single(); } /** TC-ASG-035: a Manager terminates a resident's stay with a reason: Notice sent with the move-out date, the student is told (in-app and email) and sees it on My Room, the desk lists the check-out; Staff read it but may not start or cancel; one termination at a time; a Manager cancels it with a reason and the student is told.",
+   "title": "a Manager terminates a resident's stay with a reason: Notice sent with the move-out date, the student is told (in-app and email) and sees it on My Room, the desk lists the check-out; Staff read it but may not start or cancel; one termination at a time; a Manager cancels it with a reason and the student is told.",
    "file": "backend/src/test/java/vn/fpt/campusstay/TerminationIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2425,7 +2416,7 @@
    "id": "TC-BIL-037",
    "class": "UtilityDebtIT",
    "method": "warningsThenPaidInFull",
-   "title": ", 038). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class UtilityDebtIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired UtilityDebtService debts; ApplyFlow flow; StayFlow stay; @BeforeEach void setUp() { flow = new ApplyFlow(mvc, jdbc); stay = new StayFlow(mvc, jdbc, flow, flow.openTerm()); } private ResultActions getAs(String path, String auth) throws Exception { return mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, auth)); } /** A resident of A-110 whose paid Balance holds a Utility Deposit of 600,000 VND. */ private String resident(int n, String bed) throws Exception { stay.livesIn(n, \"A-110\", bed, true); invoice(n, \"B\", \"BALANCE\", \"Balance\", 8_000_000, 600_000, \"PAID\", \"-1 day\"); return bearer(mvc, StayFlow.student(n)); } private String invoice(int n, String suffix, String type, String title, long amount, long utilityDeposit, String status, String dueIn) { String code = \"INV-TT31-\" + suffix + n; jdbc.sql(\"\"\" INSERT INTO bil_invoice (code, term_id, student_id, allocation_id, building_id, type, title, amount, utility_deposit, status, transfer_content, due_at, paid_at, payment_method, student_name, student_code, gender) SELECT :code, a.term_id, a.student_id, a.id, r.building_id, :type, :title, :amount, :deposit, :status, 'CSTAY' || :suffix || :n, now() + CAST(:due AS interval), CASE WHEN :status = 'PAID' THEN now() END, CASE WHEN :status = 'PAID' THEN 'TRANSFER' END, u.display_name, s.student_code, s.gender FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id JOIN auth_student s ON s.user_id = u.id JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id WHERE u.email = :email AND a.status = 'ACTIVE' \"\"\").param(\"code\", code).param(\"type\", type).param(\"title\", title).param(\"amount\", amount) .param(\"deposit\", utilityDeposit).param(\"status\", status).param(\"suffix\", suffix).param(\"n\", n) .param(\"due\", dueIn).param(\"email\", StayFlow.student(n)).update(); return code; } private long notifications(int n, String key) { return jdbc.sql(\"\"\" SELECT count(*) FROM ntf_notification x JOIN auth_user u ON u.id = x.user_id WHERE u.email = :e AND x.event_key = :k \"\"\").param(\"e\", StayFlow.student(n)).param(\"k\", key).query(Long.class).single(); } /** TC-BIL-037: an overdue Utility Invoice gives warning 1 (in-app and email), once; a second overdue month gives the final warning with the termination day (today + 3); paying everything closes both.",
+   "title": "an overdue Utility Invoice gives warning 1 (in-app and email), once; a second overdue month gives the final warning with the termination day (today + 3); paying everything closes both.",
    "file": "backend/src/test/java/vn/fpt/campusstay/UtilityDebtIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2461,7 +2452,7 @@
    "id": "TC-AUTH-076",
    "class": "WeekScheduleIT",
    "method": "managerSendsNextWeeksSchedule",
-   "title": "…082). / @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class WeekScheduleIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired WeekScheduleService schedule; private long notices(String email, String key) { return jdbc.sql(\"\"\" SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id WHERE u.email = :e AND n.event_key = :k \"\"\").param(\"e\", email).param(\"k\", key).query(Long.class).single(); } /** TC-AUTH-076: a Manager sends next week's schedule: every Staff member of the Block is told; the week shows sent.",
+   "title": "a Manager sends next week's schedule: every Staff member of the Block is told; the week shows sent.",
    "file": "backend/src/test/java/vn/fpt/campusstay/WeekScheduleIT.java",
    "level": "integration",
    "result": "Passed"
@@ -2524,7 +2515,7 @@
    "id": "TC-NTF-036",
    "class": "MessagesTest",
    "method": "translatesExactTextsAndTemplates",
-   "title": ", 037). */ class MessagesTest { private final Messages messages = new Messages(); /** TC-NTF-036: exact texts and texts with values are translated, a value from the catalog too; English stays English.",
+   "title": "exact texts and texts with values are translated, a value from the catalog too; English stays English.",
    "file": "backend/src/test/java/vn/fpt/campusstay/common/i18n/MessagesTest.java",
    "level": "unit",
    "result": "Passed"
@@ -2542,7 +2533,7 @@
    "id": "TC-NTF-034",
    "class": "EmailSenderConfigTest",
    "method": "redirectsToTheDemoMailbox",
-   "title": ", 035, 039). */ class EmailSenderConfigTest { /** Keeps the messages instead of opening an SMTP connection. */ static class CapturingSender extends JavaMailSenderImpl { final List<MimeMessage> sent = new ArrayList<>(); @Override public void send(MimeMessage message) { sent.add(message); } } private static MailProperties props(String redirectTo) { return new MailProperties(\"CampusStay FPT <no-reply@campusstay.test>\", 20, 5, Duration.ofMinutes(1), redirectTo); } private static EmailSender sender(JavaMailSender smtp, MailProperties props) { StaticListableBeanFactory beans = new StaticListableBeanFactory(); if (smtp != null) { beans.addBean(\"smtp\", smtp); } return new EmailSenderConfig().emailSender(beans.getBeanProvider(JavaMailSender.class), props); } /** TC-NTF-034: with a demo mailbox an email to a fictional account goes there, the recipient in the subject and a header.",
+   "title": "with a demo mailbox an email to a fictional account goes there, the recipient in the subject and a header.",
    "file": "backend/src/test/java/vn/fpt/campusstay/config/EmailSenderConfigTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3100,7 +3091,7 @@
    "id": "TC-ASG-001",
    "class": "AssignmentEngineTest",
    "method": "pairFirstIntoEmptyTwoBedRoom",
-   "title": "…006). */ class AssignmentEngineTest { private static final long TWO_BED = 1; private static final long FOUR_BED = 2; private static final long STANDARD = 7; private static final Instant T0 = Instant.parse(\"2031-01-01T00:00:00Z\"); private static AssignmentEngine.Settings settings() { Map<String, BigDecimal> weights = new LinkedHashMap<>(); weights.put(\"MAJOR\", new BigDecimal(\"0.5\")); weights.put(\"COHORT\", new BigDecimal(\"0.3\")); weights.put(\"REGION\", new BigDecimal(\"0.2\")); return new AssignmentEngine.Settings(List.of(\"PRIORITY_GROUP\", \"SUBMITTED_AT\"), weights, new BigDecimal(\"1.2\")); } private static List<AssignmentEngine.Bed> room(long roomId, String code, String gender, long type, int beds, long firstBedId) { return IntStream.range(0, beds) .mapToObj(i -> new AssignmentEngine.Bed(firstBedId + i, String.valueOf((char) ('A' + i)), roomId, code, 10, gender, beds, type, STANDARD)) .toList(); } private static AssignmentEngine.Applicant applicant(long id, long type, Long partner, int minutes, int rank, String major, String ineligible) { return new AssignmentEngine.Applicant(id, 100 + id, \"M\", type, STANDARD, partner, T0.plusSeconds(60L * minutes), rank, new AssignmentEngine.Profile(major, \"K19\", \"NORTH\", \"S3\"), Map.of(), ineligible); } private static Map<Long, AssignmentEngine.Placement> byApp(List<AssignmentEngine.Placement> placements) { return placements.stream().collect(Collectors.toMap(AssignmentEngine.Placement::applicationId, Function.identity())); } /** TC-ASG-001: an invited pair shares an empty 2-bed Room; the next student gets NO_BED when none is left.",
+   "title": "an invited pair shares an empty 2-bed Room; the next student gets NO_BED when none is left.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/assignment/AssignmentEngineTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3154,7 +3145,7 @@
    "id": "TC-ASG-047",
    "class": "HandoverComparisonTest",
    "method": "wornMatchesGood",
-   "title": "…052). */ class HandoverComparisonTest { private static final HandoverComparison.Limits LIMITS = new HandoverComparison.Limits(new BigDecimal(\"2\"), new BigDecimal(\"0.25\"), new BigDecimal(\"0.2\"), new BigDecimal(\"0.01\"), 3); private static HandoverComparison.Item item(long id, String condition, String baseline) { return new HandoverComparison.Item(id, \"Item \" + id, condition, baseline); } private static HandoverComparison.Result compare(List<HandoverComparison.Item> items, String e, String w, long hours, int residents) { return HandoverComparison.compare(items, new BigDecimal(e), new BigDecimal(\"100\"), new BigDecimal(w), new BigDecimal(\"10\"), hours, residents, LIMITS); } /** TC-ASG-047: Good and Worn count as the same, and meters within the tolerance match.",
+   "title": "Good and Worn count as the same, and meters within the tolerance match.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/assignment/HandoverComparisonTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3349,10 +3340,10 @@
    "result": "Passed"
   },
   {
-   "id": "TC-BIL-040",
+   "id": "TC-BIL-050",
    "class": "MeterRemindersIT",
    "method": "lateMonthIsFlaggedAndRemindedOnce",
-   "title": "). */ @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles(\"test\") @Import(PostgresTestcontainer.class) @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) class MeterRemindersIT { @Autowired MockMvc mvc; @Autowired JdbcClient jdbc; @Autowired MeterReminders reminders; /** TC-BIL-040: every Block gets this month's period; a month ended more than {@code utility.close_days} ago and still open is shown on the Staff and Manager Overviews, and its Block's Staff are reminded once a day.",
+   "title": "every Block gets this month's period; a month ended more than {@code utility.close_days} ago and still open is shown on the Staff and Manager Overviews, and its Block's Staff are reminded once a day.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/billing/MeterRemindersIT.java",
    "level": "integration",
    "result": "Passed"
@@ -3361,7 +3352,7 @@
    "id": "TC-BIL-022",
    "class": "UtilitySplitTest",
    "method": "equalSharesForTheWholeMonth",
-   "title": ", 029…031). */ class UtilitySplitTest { private static final UtilityPolicy.Prices PRICES = new UtilityPolicy.Prices(3500, 15000, \"ROUND_UP_1000\", 7); private static Instant at(int month, int day) { return LocalDate.of(2026, month, day).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant(); } private static UtilitySplit.Point point(int month, int day, int kwh, int m3) { return new UtilitySplit.Point(LocalDate.of(2026, month, day), at(month, day), BigDecimal.valueOf(kwh), BigDecimal.valueOf(m3)); } private static UtilitySplit.Resident resident(long student, Instant from, Instant to, boolean settled) { return new UtilitySplit.Resident(student, student * 10, 7, from, to, settled); } /** TC-BIL-022: residents who lived in the Room the whole month pay equal shares.",
+   "title": "residents who lived in the Room the whole month pay equal shares.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/billing/UtilitySplitTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3406,7 +3397,7 @@
    "id": "TC-NTF-010",
    "class": "FcmPushSenderTest",
    "method": "sendsWithAccessToken",
-   "title": "…012). */ class FcmPushSenderTest { private static final String SEND = \"https://fcm.googleapis.com/v1/projects/campusstay-test/messages:send\"; private static final String TOKEN_URI = \"https://oauth2.example.test/token\"; private final JsonMapper json = JsonMapper.builder().build(); private final Clock clock = Clock.fixed(Instant.parse(\"2026-10-21T03:00:00Z\"), ZoneOffset.UTC); private KeyPair keys; private MockRestServiceServer server; private FcmPushSender sender; @BeforeEach void setUp() throws Exception { KeyPairGenerator generator = KeyPairGenerator.getInstance(\"RSA\"); generator.initialize(2048); keys = generator.generateKeyPair(); String pem = \"-----BEGIN PRIVATE KEY-----\\n\" + Base64.getMimeEncoder(64, \"\\n\".getBytes(StandardCharsets.UTF_8)).encodeToString(keys.getPrivate().getEncoded()) + \"\\n-----END PRIVATE KEY-----\\n\"; String credentials = json.writeValueAsString(Map.of(\"type\", \"service_account\", \"project_id\", \"campusstay-test\", \"client_email\", \"push@campusstay-test.iam.gserviceaccount.com\", \"private_key\", pem, \"token_uri\", TOKEN_URI)); RestClient.Builder builder = RestClient.builder(); server = MockRestServiceServer.bindTo(builder).build(); sender = new FcmPushSender(credentials, builder, json, clock); } /** TC-NTF-010: a signed service-account JWT buys an access token; the message goes to the device.",
+   "title": "a signed service-account JWT buys an access token; the message goes to the device.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/notification/FcmPushSenderTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3433,7 +3424,7 @@
    "id": "TC-RPT-009",
    "class": "ExportServiceTest",
    "method": "writesSafeCells",
-   "title": "). */ class ExportServiceTest { /** TC-RPT-009: quoting, empty cells, campus times, and text a spreadsheet would run as a formula.",
+   "title": "quoting, empty cells, campus times, and text a spreadsheet would run as a formula.",
    "file": "backend/src/test/java/vn/fpt/campusstay/service/report/ExportServiceTest.java",
    "level": "unit",
    "result": "Passed"
@@ -3448,6 +3439,2342 @@
   "webFailed": 0,
   "mobileFailed": 0
  },
+ "backend": [
+  {
+   "class": "SheetFileTest",
+   "method": "readsOnlyTheSheetTheWorkbookNames",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "SheetFileTest",
+   "method": "refusesAWorkbookAbove50MbUnpacked",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "MessagesTest",
+   "method": "translatesExactTextsAndTemplates",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "MessagesTest",
+   "method": "keepsWhatItCannotTranslate",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "EmailSenderConfigTest",
+   "method": "realAccountsAreNotRedirected",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "EmailSenderConfigTest",
+   "method": "redirectsToTheDemoMailbox",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "EmailSenderConfigTest",
+   "method": "deliversNormallyOrOnlyLogs",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "LayeringTest",
+   "method": "lowerLayersDoNotDependOnControllers",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "LayeringTest",
+   "method": "controllersGoThroughServices",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "SecurityConfigCorsTest",
+   "method": "admitsExactOriginAndPreviewPattern",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "SecurityConfigCorsTest",
+   "method": "refusesOtherOriginsAndBlankSetting",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "priorityOrderAndDeterminism",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "lowFitIsInformation",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "pairFirstIntoEmptyTwoBedRoom",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "ineligibleStudentIsFlagged",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "bestFitRoom",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssignmentEngineTest",
+   "method": "partnerNotReady",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "meterLimitGrowsWithTimeAndResidents",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "oneDamagedItemIsMinor",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "itemsWithoutRecordAreNotCompared",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "wornMatchesGood",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "manyDifferencesAreMajor",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "HandoverComparisonTest",
+   "method": "missingItemIsMajor",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssistantHistoryTest",
+   "method": "keepsAShortConversationAndAtMostTwelveTurns",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssistantHistoryTest",
+   "method": "alwaysKeepsTheQuestion",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AssistantHistoryTest",
+   "method": "dropsTheOldestTurnsAboveTheCap",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "OllamaAssistantModelTest",
+   "method": "postsTheChatAndReadsTheAnswer",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "OllamaAssistantModelTest",
+   "method": "offlineWhenTheServerFails",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AuthRateLimiterTest",
+   "method": "sweepsExpiredClientsEveryThousandRecords",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "networkFailureIsUnavailable",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "wrongClientSecretIsUnavailable",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "exchangesCodeForIdToken",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "usedCodeIsInvalid",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "codeFlowNeedsClientSecret",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleCodeExchangerTest",
+   "method": "redirectFlowSendsThePage",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleIdTokenVerifierTest",
+   "method": "refusesAnotherAudienceOrIssuer",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleIdTokenVerifierTest",
+   "method": "refusesOtherDomainsAndUnverifiedEmails",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "GoogleIdTokenVerifierTest",
+   "method": "acceptsAVerifiedFptAccount",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "UtilitySplitTest",
+   "method": "noEndReadingNoShares",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "UtilitySplitTest",
+   "method": "sharesFollowTimeInTheRoom",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "UtilitySplitTest",
+   "method": "equalSharesForTheWholeMonth",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "UtilitySplitTest",
+   "method": "aCheckOutSplitsTheMonthIntoSegments",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "FcmPushSenderTest",
+   "method": "assertionIsSigned",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "FcmPushSenderTest",
+   "method": "invalidTokenAndFailure",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "FcmPushSenderTest",
+   "method": "sendsWithAccessToken",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "ExportServiceTest",
+   "method": "writesSafeCells",
+   "result": "Passed",
+   "level": "unit"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "legacyTermFormIsGone",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "matchingSnapshots",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "roomTypes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "eligibilityRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "roomTypeBedsChangeTheInventory",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "demoToolsOffByDefault",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "utilityPolicy",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "rejectedApplicationRefundRuleStaysOn",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "listsTerms",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "managerCannotConfigure",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "roomClasses",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "systemParameters",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminConfigIT",
+   "method": "feesAndRefundRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminFurnitureIT",
+   "method": "setsRoomClassRequirements",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminFurnitureIT",
+   "method": "setsFurnitureValue",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminFurnitureIT",
+   "method": "managesFurnitureTypes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminFurnitureIT",
+   "method": "handoverLevelsStay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminSettingsIT",
+   "method": "rulesScreens",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminSettingsIT",
+   "method": "groupedSettings",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "inviteIsValidated",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "staffCannotManageUsers",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "listsBackOfficeUsersWithFilters",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "auditLogListsSignIns",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "disablingRevokesSessions",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "permissionMatrixComesFromTheRuleTable",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "adminCannotDisableThemselves",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AdminUsersIT",
+   "method": "invitedUserSetsAndChangesPassword",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AnnouncementIT",
+   "method": "policyChangesAreAnnounced",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AnnouncementIT",
+   "method": "adminAnnouncesToEveryStudent",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AnnouncementIT",
+   "method": "staffAnnounceToTheirBlocks",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "roommateCheckIsPrivacySafeAndLimited",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "contactComesFromTheProfile",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "invitedPairIsSubmittedTogether",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "submitsApplicationWithDeposit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "declinedInvitationFallsBackToAutomaticMatching",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "applicationsArePrivate",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "unpaidApplicationExpires",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "catalogAndEligibility",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "stayTermsOnTheApplication",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "applicationIsValidated",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ApplicationsIT",
+   "method": "cancellationVoidsOrRefunds",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentIT",
+   "method": "assignmentRunToAllocation",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentIT",
+   "method": "dryRunAndPermissions",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentIT",
+   "method": "reviewQueueAndRejection",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentIT",
+   "method": "reviewIsScopedByBlock",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "answersInTheLanguageTheStudentWrites",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "neverShowsAnAnswerInChinese",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "neverAsksTheModelForTheDoorCode",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "limitsQuestionsPerHour",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "answersFromTheStudentsOwnData",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantIT",
+   "method": "checksTheConversationAndTheRole",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssistantOfflineIT",
+   "method": "offlineWithoutModelServer",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "accountLocksAfterMaxFailedAttempts",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "signOutRevokesToken",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "wrongPasswordAndUnknownEmailLookTheSame",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "googleRedirectOnlyToTheSignInPage",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "forgotPasswordIsSilent",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "googleNeedsExactlyOneOfCodeAndCredential",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "roleRulesAreEnforced",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "noDefaultSpringUser",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "rememberIsOptional",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "googleDisabledWithoutConfiguration",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "signInReturnsTokenAndUser",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "termsAreListed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthFlowIT",
+   "method": "invalidBodyReturnsFieldErrors",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockSettingsIT",
+   "method": "readAndSave",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockSettingsIT",
+   "method": "savesHouseRulesWithoutDeskHours",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockSettingsIT",
+   "method": "rejectsValuesOutsideTheLimits",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockStaffIT",
+   "method": "updatesHandlesAndDuty",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockStaffIT",
+   "method": "listsTheBlocksStaff",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockStaffIT",
+   "method": "staffStartAndEndTheirShift",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BlockStaffIT",
+   "method": "requestsANewAccount",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DemoResetIT",
+   "method": "resetChecksStageConfirmationAndBaseData",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DemoResetIT",
+   "method": "showsStagesScenariosAndFiles",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DemoResetIT",
+   "method": "downloadsSampleFiles",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "finalReadingsRoomByRoom",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "checkInNeedsBalanceAndUtilityDeposit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "checkOutRecordsDamagePerItem",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "shortfallIsInvoiced",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "deskIsScoped",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskIT",
+   "method": "checkOutSettlesTheDeposit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DevicesIT",
+   "method": "registerAndUnregister",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DevicesIT",
+   "method": "pushAfterCommit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DoorCodeIT",
+   "method": "refusesWrongCodes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DoorCodeIT",
+   "method": "importsCodes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DoorCodeIT",
+   "method": "showsTheStudentTheirCode",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DoorCodeIT",
+   "method": "proposesConfirmsAndReveals",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DoorCodeIT",
+   "method": "rotatesTheCodeWhenSomeoneLeaves",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "EscalationIT",
+   "method": "roomChangeEscalatesAndGetsATemporaryBed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "EscalationIT",
+   "method": "maintenanceEscalatesAndIsReassigned",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "EscalationIT",
+   "method": "escalationClosesWhenTheRequestIsAssigned",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "timeSlotCapacityIsNeverExceeded",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "residentRegistersGuestsWithTheirOwnPasses",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "samePassScannedTwiceAtOnceChecksInOnce",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "cancellationsFreePlacesAndRevokePasses",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "overdueGuestsNoShowsAndClosing",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "overdueGuestsAreRemindedAndConfirmedBeforeCheckOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "deskChecksAGuestInOnceAndOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "statisticsAfterTheFamilyDay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "registrationClosesOnTime",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FamilyDayIT",
+   "method": "managerCreatesAndPublishes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FinanceIT",
+   "method": "overdueAndReminders",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FinanceIT",
+   "method": "refundAccountReminderAndStudentRefunds",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FinanceIT",
+   "method": "refundDecisions",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FurnitureIT",
+   "method": "changesStatus",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FurnitureIT",
+   "method": "movesAndTransfersItems",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FurnitureIT",
+   "method": "listsItemsInScope",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FurnitureIT",
+   "method": "registersItems",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FurnitureIT",
+   "method": "stockAndPersonalItemsFollowTheirBed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "startsOnlyWhenTheFourConditionsHold",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "majorDifferenceIsCheckedInTheRoom",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "deskWaitsForTheCheckInInventory",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "matchingInventoryIsFinalAtOnce",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "finalReportSignedInTheRoom",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "studentNeverSeesTheRoomsRecord",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "deadlineClosesTheInventory",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "personalItemIsChargedByCondition",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "sharedDamageNeedsTheStudentsAcknowledgement",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "HandoverIT",
+   "method": "sharedDamageIsSplitAmongTheResidents",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InspectionIT",
+   "method": "archivingPausesSchedules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InspectionIT",
+   "method": "scheduleAndRun",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InspectionIT",
+   "method": "staffListTheirRunsWithPhotos",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InspectionIT",
+   "method": "permissions",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InspectionIT",
+   "method": "checklistsAreVersioned",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "generatesRoomsOfAChosenClass",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "studentsCannotSeeInventory",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "listsBuildingsAndFloors",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "outOfServiceAndBack",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "showsFloorWithOutOfServiceRoom",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "readsRoomCodeList",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "structureFollowsBlockScope",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "createsBlockAndGeneratesRooms",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryIT",
+   "method": "occupiedRoomIsProtected",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LateCheckInIT",
+   "method": "studentAsksOnline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LateCheckInIT",
+   "method": "rejectedLateCheckIn",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LateCheckInIT",
+   "method": "approvedLateCheckIn",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LocaleIT",
+   "method": "notificationsInBothLanguages",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LocaleIT",
+   "method": "accountLanguage",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "LocaleIT",
+   "method": "errorsInTheRequestLanguage",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MaintenanceIT",
+   "method": "staffWorkTheRequest",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MaintenanceIT",
+   "method": "queueIsScoped",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MaintenanceIT",
+   "method": "personInChargeChangesTheStatus",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MaintenanceIT",
+   "method": "studentReportsAndFollows",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MessagingIT",
+   "method": "editsTemplates",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MessagingIT",
+   "method": "previewsAnEmail",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MessagingIT",
+   "method": "sendsAnEmail",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MessagingIT",
+   "method": "sendsATestToTheAdmin",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterIT",
+   "method": "readingRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterIT",
+   "method": "importCsv",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterIT",
+   "method": "templateFilledInExcel",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterIT",
+   "method": "periodsAndReadings",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterIT",
+   "method": "closeIssuesUtilityInvoices",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NextTermRequestIT",
+   "method": "extensionsAndEndOfStay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NextTermRequestIT",
+   "method": "noRoomClassChangeRequests",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NextTermRequestIT",
+   "method": "windowListAndBulk",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NotificationsIT",
+   "method": "requiresSignIn",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NotificationsIT",
+   "method": "marksReadOnlyOwnNotifications",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "NotificationsIT",
+   "method": "listsLatestWithUnreadCount",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationalMoveIT",
+   "method": "staffMoveAResident",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationalMoveIT",
+   "method": "frozenAfterTheFees",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationsIT",
+   "method": "search",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationsIT",
+   "method": "routingShowsWorkload",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationsIT",
+   "method": "slaDeadlineAndFurnitureItem",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationsIT",
+   "method": "roomHub",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "OperationsIT",
+   "method": "termHubTransition",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "resetChangesPasswordAndRevokesSessions",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "resetRejectsWeakPasswordAndKeepsLink",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "changeRejectsWrongCurrentPassword",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "changeRejectsWeakPassword",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "resetLinkCannotBeReused",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PasswordFlowIT",
+   "method": "changeKeepsCurrentSessionAndRevokesOthers",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentClaimIT",
+   "method": "debtsAreNeverCancelled",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentClaimIT",
+   "method": "claimStopsTheClockAndBulkConfirmationPays",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentClaimIT",
+   "method": "claimRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentClaimIT",
+   "method": "remindersAndHourlySummary",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentClaimIT",
+   "method": "rejectionsGiveTimeBackThenCancel",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentDeskIT",
+   "method": "manualConfirmationRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentDeskIT",
+   "method": "manualConfirmation",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentDeskIT",
+   "method": "scopedListWithSummary",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentsIT",
+   "method": "depositInvoiceAndPaymentPage",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PaymentsIT",
+   "method": "invoicesArePrivate",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReconciliationIT",
+   "method": "enrolledOutcomeRestoresTheDirectory",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReconciliationIT",
+   "method": "aNewListSupersedesTheOpenItemsOfTheLastOne",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReconciliationIT",
+   "method": "leaversDuringTheTerm",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReconciliationIT",
+   "method": "resolveItems",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReconciliationIT",
+   "method": "enrolledListGroups",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RefundAccountIT",
+   "method": "studentKeepsTheirRefundAccount",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RegistrationPeriodIT",
+   "method": "cardAndDetails",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentRegressionIT",
+   "method": "beAsg01_round2OffersExcludeBedsProposedInUncommittedBlocks",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentRegressionIT",
+   "method": "beAsg02_resolveDoesNotPlaceIntoCommittedBlock",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentRegressionIT",
+   "method": "beAsg04_takenProposedBedBecomesAConflict",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentRegressionIT",
+   "method": "beAsg05_moveRefusedWhileTerminationOverdue",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AssignmentRegressionIT",
+   "method": "beAsg07_cancelledTerminationKeepsEarlierCheckOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "beAuth02_strangerCannotLockOutTheOwner",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "limiterKeysOnClientAddress",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "beAuth02_signInIsRateLimitedPerClient",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "manyFailuresOnSharedNetworkThenCorrectPasswordSignsIn",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "oneAccountIsCappedAcrossClients",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "bePlt10_wrongContentTypeIsAClientError",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "AuthRegressionIT",
+   "method": "beAuth03_forgotPasswordIsRateLimitedPerClient",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil05_currentMeterPeriodCannotBeClosedEarly",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil03_approvedRefundCanBeMarkedPaid",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil04_confirmedDepositOfRejectedApplicationIsRefunded",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil01_staffCannotReadFinanceInvoicesOrRefunds",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil06_officeRejectionRefundsWholeDeposit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "beAppBil02_staffCannotDecideCheckOutRefund",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "BillingRegressionIT",
+   "method": "markPaidTwiceIsRefused",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "CampaignQueriesIT",
+   "method": "aCampaignReadsItsDataOnce",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DashboardRegressionIT",
+   "method": "webAdm02_renewalUndecidedLinksToExistingRoute",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DashboardRegressionIT",
+   "method": "bePlt01_slaRateUsesStoredDeadline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DashboardRegressionIT",
+   "method": "bePlt11_floorChartDoesNotMixBlocks",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "be2nd02_doubleSubmittedCheckOutSettlesOnce",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "be2nd01_residentWithoutDeskCheckInCanCheckOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "inStayFurnitureReportReachesTheCheckOutDesk",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "beAsg03_sharedDamageChargesTheRoommatesOfTheCheckOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "sharedDamageIsSplitEvenlyAmongTheRoommates",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "DeskRegressionIT",
+   "method": "beOps01_furnitureReportAttachesToCurrentStay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "FileLinksRegressionIT",
+   "method": "signedLinksAreCheckedStrictly",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryRegressionIT",
+   "method": "unpricedFurnitureHasNoPrice",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryRegressionIT",
+   "method": "roomWithAProposedBedStaysInService",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryRegressionIT",
+   "method": "inactiveRoomClassKeepsItsTermPrice",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryRegressionIT",
+   "method": "blockGenderLockedWhileALiveRunProposesItsBeds",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "InventoryRegressionIT",
+   "method": "roomClassWithoutATermPriceIsRefused",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "bePlt07_campaignGroupInAnyCaseDoesNotFail",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "bePlt09_generalStepChecksSavedTimeline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "turnSignedWithOtherKeyIsDropped",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "bePlt02_forgedAssistantTurnIsNotReplayed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "turnSignedForAnotherStudentIsDropped",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "bePlt08_longNotificationDoesNotRollBackTheDecision",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "PlatformRegressionIT",
+   "method": "bePlt04_failingDataSectionDoesNotBreakTheAnswer",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beAsg06_cancellingOverdueTerminationRestoresNextTermBed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps08_adminLimitCapsSavedBlockTimers",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps02_temporaryBedActionReachesTheStudent",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps04_swapRoutingRuleIsRefused",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps05_escalationUsesStoredDeadline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "residentAlreadyPlacedNextTermIsNotToldTheBedWasTaken",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beAsg09_residentWhoseNextTermBedIsTakenIsTold",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "allocationStayShowsMaxTerms",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "movingANextTermAllocationClosesItsOpenRequests",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps07_bulkApprovalPrefersTheStudentsOwnBlock",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps03_roomChangeTimerSetsTheDeadline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RequestsRegressionIT",
+   "method": "beOps06_submittedRequestCannotBeClosedDirectly",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaticRegressionIT",
+   "method": "beAsg08_failingJobStepDoesNotStopTheOthers",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaticRegressionIT",
+   "method": "bePlt05_smtpTimeoutsAreConfigured",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaticRegressionIT",
+   "method": "beAuth05_inventoryRoomPathsMapToRoomsHandle",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RenewalIT",
+   "method": "unpaidFeesReleaseTheBed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RenewalIT",
+   "method": "turnover",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RenewalIT",
+   "method": "notExtendedAtTheDeadline",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RenewalIT",
+   "method": "windowOpens",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RenewalIT",
+   "method": "nextTermFees",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "pastTermReports",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "exports",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "dashboardsAgreeWithFinance",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "approvalCounts",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "blockReport",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "occupancyReport",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "adminDashboard",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "dashboardsBeforeTheFirstTerm",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "staffDashboard",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "financialReport",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ReportIT",
+   "method": "managerDashboard",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ResidenceIT",
+   "method": "unpaidBalanceIsForfeited",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ResidenceIT",
+   "method": "doorCodeIsReleasedToPaidResidents",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ResidenceIT",
+   "method": "rejectedClaimsCancelTheBalance",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomChangeIT",
+   "method": "studentAsks",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomChangeIT",
+   "method": "staffReject",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomChangeIT",
+   "method": "staffApprove",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomClassIT",
+   "method": "setsClassForTheNextTerm",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomClassIT",
+   "method": "listsClassesOfTheNextTerm",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomClassIT",
+   "method": "keepsClassesWhosePriceIsFixed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoomClassIT",
+   "method": "refusesWrongRequests",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "Round2IT",
+   "method": "round2Lifecycle",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "Round2IT",
+   "method": "waitlistedStudentWithdraws",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "Round2IT",
+   "method": "waitlistEndsWhenCheckInStarts",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "Round2IT",
+   "method": "managerRunsRound2",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoutingIT",
+   "method": "maintenanceFollowsTheRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoutingIT",
+   "method": "roomChangesFollowTheRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "RoutingIT",
+   "method": "rulesAndTimers",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "GoogleSignUpIT",
+   "method": "codeInTheAddressFindsTheImportedStudent",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "GoogleSignUpIT",
+   "method": "signUpThenSetAPassword",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "GoogleSignUpIT",
+   "method": "rejectedAccountSaysWhy",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "GoogleSignUpIT",
+   "method": "signUpFormWaitsForAManager",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "GoogleSignUpIT",
+   "method": "demoBackOfficeAccountsRefuseGoogle",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "MeterRemindersIT",
+   "method": "lateMonthIsFlaggedAndRemindedOnce",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "EmailOutboxDispatcherIT",
+   "method": "failingSendBacksOffThenGivesUp",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ShiftGateIT",
+   "method": "insideShiftAndWorkNoQuestion",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ShiftGateIT",
+   "method": "otherWorkInsideTheShiftNeedsConfirmation",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ShiftGateIT",
+   "method": "outsideTheShiftAChangeNeedsConfirmation",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ShiftGateIT",
+   "method": "managerSetsWeeklyShifts",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "ShiftGateIT",
+   "method": "managersReadTheRecord",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffAccountsIT",
+   "method": "outboxKnowsDemoRecipients",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffAccountsIT",
+   "method": "managerCreatesStaff",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffAccountsIT",
+   "method": "managerEditsStaff",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "splitsOpenWorkByKindAndCountsOverdue",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "reassignsTwoItems",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "listsAPersonsWorkOverdueFirst",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "cannotReadWorkOutsideTheBlocks",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "refusesAReceiverWhoDoesNotHandleTheWork",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "disablingStaffGivesTheirWorkBack",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "countsAnInspectionRun",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "refusesWhenAnItemWasClosedMeanwhile",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "aSwapWaitingForStaffIsInTheBlockQueue",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "releasedInspectionsStayReachable",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "dutyFollowsSignInAndSignOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "leavingABlockGivesItsWorkBackToTheQueue",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StaffWorkloadIT",
+   "method": "marksOverloadAboveTheLimit",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "genderIsLockedWhileTheStudentHoldsABed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "studentHub",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "listsStudentsWithFilters",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "pendingAccountCannotApply",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "editDirectoryFields",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentAccountsIT",
+   "method": "verifyRejectLockUnlock",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentContactIT",
+   "method": "studentKeepsTheirContacts",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentImportIT",
+   "method": "previewsTheFile",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentImportIT",
+   "method": "confirmAppliesTheFile",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentImportIT",
+   "method": "readsWorkbooksAndRefusesBadFiles",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "StudentImportIT",
+   "method": "readsMajorsByCodeOrNameAndExplainsCodePrefixes",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "SwapIT",
+   "method": "swapBoard",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "SwapIT",
+   "method": "directSwap",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "SwapIT",
+   "method": "crossBlockGoesToManager",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermDashboardIT",
+   "method": "termDashboard",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TerminationIT",
+   "method": "overdueThenCheckedOut",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TerminationIT",
+   "method": "managerTerminatesAndCancels",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermRequestIT",
+   "method": "managerFilesARequest",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermRequestIT",
+   "method": "refusesInvalidAndDuplicateRequests",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermRequestIT",
+   "method": "commentsChangesAndRejection",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "publishRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "publishedTermChangesWithinTheRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "timelineFollowsTheRules",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "buildsTheTermFromARequest",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "publishingFixesTheTerm",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "TermWizardIT",
+   "method": "buildsTheOfferAndMoneyTheManagerProposed",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "UtilityDebtIT",
+   "method": "warningsThenPaidInFull",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "UtilityDebtIT",
+   "method": "unpaidInvoicesComeFirst",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "UtilityDebtIT",
+   "method": "debtTerminatesTheStay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "UtilityDebtIT",
+   "method": "cancelledTerminationGivesTheWarningsBack",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "handlesFollowTheStaffPortal",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "adminChoosesTheReminderDay",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "inShiftFollowsThisWeeksPlan",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "managerSendsNextWeeksSchedule",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "managerPlansNextWeekOnly",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "managersAreRemindedOnSunday",
+   "result": "Passed",
+   "level": "integration"
+  },
+  {
+   "class": "WeekScheduleIT",
+   "method": "staffSeeNextWeekOnceSent",
+   "result": "Passed",
+   "level": "integration"
+  }
+ ],
  "web": [
   {
    "class": "test",

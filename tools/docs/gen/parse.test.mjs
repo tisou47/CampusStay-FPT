@@ -245,3 +245,18 @@ DELETE FROM cfg_parameter WHERE key = 'a.gone';`
     { key: 'a.y', section: 'Sec', label: 'New', valueType: 'BOOL', value: '7', helper: 'H' },
   ])
 })
+
+test('parseTestIds does not stretch a class comment over to a later method', () => {
+  const src = `/** Hand-over (TC-ASG-053…059). */
+class HandoverIT {
+    @AfterEach
+    void tearDown() { }
+
+    /** TC-ASG-053: starts only when the conditions hold. */
+    @Test
+    void starts() { }
+}`
+  assert.deepEqual(parseTestIds(src, 'HandoverIT'), [
+    { id: 'TC-ASG-053', class: 'HandoverIT', method: 'starts', title: 'starts only when the conditions hold.' },
+  ])
+})

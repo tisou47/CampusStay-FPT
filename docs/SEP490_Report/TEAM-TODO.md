@@ -20,10 +20,14 @@ The documents are written from the code. These facts are in nobody's repository,
 
 ## Test documentation
 
-- Two test ids are not unique or not on a test: `TC-BIL-040` is used by `FinanceIT.refundAccountReminderAndStudentRefunds` and by `MeterRemindersIT.lateMonthIsFlaggedAndRemindedOnce`; `TC-ASG-053` stands on `HandoverIT.tearDown` and on `HandoverIT.startsOnlyWhenTheFourConditionsHold`. Report 5 will list them under the test that really covers the case.
+- Settled: `MeterRemindersIT.lateMonthIsFlaggedAndRemindedOnce` is now TC-BIL-050 (TC-BIL-040 stays on `FinanceIT`); the second TC-ASG-053 was a reading error of the document generator (a class comment taken as `tearDown`'s), fixed. Nothing left to do.
 
 ## Existing systems (Report 1, section 3)
 
 - The booking steps of FPT's dormitory site OCD are behind a login that no team account (all are Ho Chi Minh City campus) can open, so they are not described.
 - The app "iDorm" for the VNU-HCM dormitory could not be read at its source, so it is not described.
 - RMS Mercury and Adirondack Solutions (added to Report 1 in Review 2) were not re-checked at their sources and are left out.
+
+## Report 5
+
+- Section 2.2 says the team walks through the main workflows on production with the demo data stages before each review. Confirm this is true, or tell me to remove the sentence.

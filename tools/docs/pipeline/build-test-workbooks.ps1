@@ -1,52 +1,45 @@
-# Fills the school's Test Report and Unit Test workbooks (templates/SEP490_docs) from docs/reports/data/testcases.json
-# (written by docs/tools/gen-test-docs.mjs). Needs Excel. Run from the repository root:
-#   powershell -NoProfile -File docs/tools/build-test-workbooks.ps1
-param([string]$Root = (Get-Location).Path)
-
+# Fills the school's Test Report (.xlsx) and Unit Test (.xls) workbooks in place from tools/docs/build/testcases.json
+# (written by tools/docs/src/report5.mjs). Each starts from the untouched template given by -TestReportTpl/-UnitTestTpl
+# (git show <base>:<path>, so rebuilding is idempotent). Needs Excel. ASCII only. Run from the repository root.
+param(
+    [Parameter(Mandatory = $true)][string]$TestReportTpl,
+    [Parameter(Mandatory = $true)][string]$UnitTestTpl,
+    [string]$Data = 'tools/docs/build/testcases.json',
+    [string]$OutDir = 'docs/SEP490_Report'
+)
 $ErrorActionPreference = 'Stop'
-$data = Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'docs/reports/data/testcases.json') | ConvertFrom-Json
-$outDir = Join-Path $Root 'docs/reports/out'
+$root = (Get-Location).Path
+$d = Get-Content -Raw -Encoding UTF8 (Join-Path $root $Data) | ConvertFrom-Json
 $project = 'CampusStay FPT - Dormitory Registration and Room-Scheduling Management System'
 $code = 'FA26SE260'
-$day = if ($data.counts.runDate) { ([datetime]$data.counts.runDate).ToLocalTime().ToString('dd/MM/yyyy') } else { (Get-Date).ToString('dd/MM/yyyy') }
-$status = @{ 'Passed' = 'Passed'; 'Failed' = 'Failed'; 'Not run' = 'Pending'; 'Untested' = 'Pending' }
+$leader = [regex]::Unescape('Lê Thành Minh Trung')
+$day = ([datetime]$d.runDate).ToString('dd/MM/yyyy')
+$tester = @{ unit = 'CI (mvn verify)'; integration = 'CI (mvn verify)'; web = 'CI (npm test)'; mobile = 'flutter test' }
+
+function Set-Cover($wb, $docName, $text) {
+    $c = $wb.Worksheets.Item('Cover')
+    $c.Range('B4').Value2 = $project
+    $c.Range('B5').Value2 = $code
+    $c.Range('B6').Value2 = "${code}_${docName}_v1.0"
+    $c.Range('F4').Value2 = $leader
+    $c.Range('F5').Value2 = $day
+    $c.Range('F6').Value2 = '1.0'
+    $c.Range('A11').Value2 = $day
+    $c.Range('B11').Value2 = '1.0'
+    $c.Range('C11').Value2 = 'Whole document'
+    $c.Range('D11').Value2 = 'A'
+    $c.Range('E11').Value2 = $text
+    $c.Range('F11').Value2 = 'Report 5 (Test Documentation); the test code in backend/src/test, web/src/lib, mobile/test'
+}
 
 $xl = New-Object -ComObject Excel.Application
 $xl.Visible = $false
 $xl.DisplayAlerts = $false
 try {
-    # ------------------------------------------------------------------ Test Report
-    $wb = $xl.Workbooks.Open((Join-Path $Root 'templates/SEP490_docs/Report5_Test Report.xlsx'))
-    $cover = $wb.Worksheets.Item('Cover')
-    $cover.Range('B4').Value2 = $project
-    $cover.Range('B5').Value2 = $code
-    $cover.Range('B6').Value2 = "${code}_TestReport_v1.0"
-    $cover.Range('F4').Value2 = $data.people.tester
-    $cover.Range('F5').Value2 = $day
-    $cover.Range('F6').Value2 = '1.0'
-    $cover.Range('A11').Value2 = $day
-    $cover.Range('B11').Value2 = '1.0'
-    $cover.Range('C11').Value2 = 'Whole document'
-    $cover.Range('D11').Value2 = 'A'
-    $cover.Range('E11').Value2 = 'First version for Review 2: test cases of the mandatory features, main workflows, state transitions and NFRs; round 1 = automated run'
-    $cover.Range('F11').Value2 = 'Report 3 (SRS), Report 4 (SDD), Report 5, docs/backend/04_Test_Catalog.md'
-
-    # Groups: one sheet each.
-    $groups = @()
-    foreach ($f in $data.features) {
-        $cases = @($data.featureCases | Where-Object { $_.group -eq $f.id })
-        $groups += [pscustomobject]@{ sheet = $f.id; name = "$($f.id) $($f.name)"; req = "$($f.name) ($($f.frs)); actors: $($f.actors)"; head = $f.frs; pre = $cases[0].pre
-            rows = @($cases | ForEach-Object { ,@($_.id, "[$($_.type)] $($_.description)", $_.steps, $_.expected, $_.pre, $status[$_.result], $(if ($_.result -eq 'Not run') { '' } else { $day }), 'CI (mvn verify)') }) }
-    }
-    $groups += [pscustomobject]@{ sheet = 'Workflows'; name = 'Main workflows (end to end)'; req = 'Each main workflow from the first actor action to the business result, on staging with the demo stages'; head = 'WF-01 ... WF-05'; pre = 'Staging with demo data'
-        rows = @($data.workflowCases | ForEach-Object { ,@($_.id, "$($_.workflow) $($_.name) (owner $($_.owner))", $_.steps, $_.expected, $_.pre, 'Pending', '', '') }) }
-    $groups += [pscustomobject]@{ sheet = 'State transitions'; name = 'State transitions of the main entities'; req = 'Every transition of Application, Allocation, next-Term Allocation, Invoice, payment claim and Maintenance Request, and refused transitions'; head = 'Report 4 section 3.1'; pre = 'Test seed or staging'
-        rows = @($data.stateCases | ForEach-Object {
-            $how = if ($_.auto) { "Automated ($($_.test)): $($_.trigger)" } else { "Manual on staging: $($_.trigger)" }
-            ,@($_.id, "$($_.entity): $($_.from) -> $($_.to) ($($_.fr))", $how, $_.expected, "Entity in state $($_.from)", $status[$_.result], $(if ($_.result -eq 'Not run') { '' } else { $day }), $(if ($_.auto) { 'CI (mvn verify)' } else { '' })) }) }
-    $groups += [pscustomobject]@{ sheet = 'NFRs'; name = 'Non-functional requirements'; req = 'NFR-01 ... NFR-06: metric, threshold and measurement method'; head = 'Report 3 section 4.2'; pre = 'See each case'
-        rows = @($data.nfrCases | ForEach-Object { ,@($_.id, "$($_.nfr): $($_.metric)", $_.method, "Threshold: $($_.threshold)", $_.run, $status[$_.result], $(if ($_.result -eq 'Not run') { '' } else { $day }), $(if ($_.result -eq 'Not run') { '' } else { 'CI (mvn verify)' })) }) }
-
+    # ------------------------------------------------------------------ Test Report: one sheet per feature
+    $wb = $xl.Workbooks.Open((Resolve-Path $TestReportTpl).Path)
+    Set-Cover $wb 'TestReport' 'Defense version: every automated test case of the backend (by feature), the web and the mobile app, with the result of one run'
+    $groups = @($d.groups)
     $template = $wb.Worksheets.Item('Feature 1')
     $last = $wb.Worksheets.Item($wb.Worksheets.Count)
     foreach ($g in $groups) {
@@ -56,53 +49,54 @@ try {
         $last = $ws
         $ws.Range('B2').Value2 = $g.name
         $ws.Range('B3').Value2 = $g.req
-        $ws.Range('A12:R200').ClearContents() | Out-Null
-        $ws.Range('A11').Value2 = $g.head
-        $n = $g.rows.Count
-        if ($n -gt 8) { $ws.Rows(12).Copy() | Out-Null; $ws.Range("A13:R$(11 + $n)").PasteSpecial(-4122) | Out-Null }
+        $ws.Range('A11:R200').ClearContents() | Out-Null
+        $ws.Range('A11').Value2 = $g.name
+        $rows = @($g.rows)
+        $n = $rows.Count
+        if ($n -gt 1) { $ws.Rows(12).Copy() | Out-Null; $ws.Range("A13:R$(11 + $n)").PasteSpecial(-4122) | Out-Null }
         for ($i = 0; $i -lt $n; $i++) {
-            $r = 12 + $i
-            for ($c = 0; $c -lt 8; $c++) { $ws.Cells.Item($r, $c + 1).Value2 = [string]$g.rows[$i][$c] }
+            $r = $rows[$i]
+            $vals = @([string]$r.id, [string]$r.description, [string]$r.procedure, [string]$r.expected, [string]$r.pre, [string]$r.result,
+                $(if ($r.result -eq 'Pending') { '' } else { $day }), [string]$tester[[string]$r.level])
+            for ($c = 0; $c -lt 8; $c++) { $ws.Cells.Item(12 + $i, $c + 1).Value2 = $vals[$c] }
         }
+        $ws.Range("I12:I$(11 + $n)").Value2 = ''
+        $ws.Range("L12:L$(11 + $n)").Value2 = ''
         $ws.Range("A12:H$(11 + $n)").WrapText = $true
-        # Only round 1 has been run: rounds 2 and 3 stay empty.
+        # One round was run: rounds 2 and 3 count nothing.
         $ws.Range('B7:E8').Value2 = 0
     }
     $wb.Worksheets.Item('Feature 1').Delete()
     $wb.Worksheets.Item('Feature 2').Delete()
 
-    # Test Cases: one row per sheet.
     $tc = $wb.Worksheets.Item('Test Cases')
-    $tc.Range('C3').Value2 = $project
-    $tc.Range('C4').Value2 = $code
-    $tc.Range('C5').Value2 = "1. Automated: JDK 21, Maven, Docker; PostgreSQL 17 (Testcontainers) with the Flyway schema and the test seed; GitHub Actions on every push.`n2. Staging: https://campusstay-fpt-ten.vercel.app and https://campusstay-api.eastasia.cloudapp.azure.com/api with the demo stages.`n3. Browsers: Chrome, Edge. Android 8.0 or later."
-    $tc.Range('A9:E60').ClearContents() | Out-Null
-    $tc.Rows(9).Copy() | Out-Null
-    $tc.Range("A10:E$(8 + $groups.Count)").PasteSpecial(-4122) | Out-Null
+    $tc.Range('D3').Value2 = $project
+    $tc.Range('D4').Value2 = $code
+    $tc.Range('D5').Value2 = "1. Backend: JDK 21, Maven, Docker; PostgreSQL 17 in a Testcontainers container with the Flyway schema and the test seed; GitHub Actions (ubuntu-latest) on every push and pull request.`n2. Web: Node.js 22, npm test.`n3. Mobile: Flutter SDK, flutter test."
+    $tc.Range('B9:F60').ClearContents() | Out-Null
+    if ($groups.Count -gt 1) { $tc.Rows(9).Copy() | Out-Null; $tc.Range("A10:F$(8 + $groups.Count)").PasteSpecial(-4122) | Out-Null }
     for ($i = 0; $i -lt $groups.Count; $i++) {
         $g = $groups[$i]
-        $tc.Cells.Item(9 + $i, 1).Value2 = [string]($i + 1)
-        $tc.Cells.Item(9 + $i, 2).Value2 = $g.name
-        $tc.Cells.Item(9 + $i, 3).Value2 = $g.sheet
-        $tc.Cells.Item(9 + $i, 4).Value2 = $g.req
-        $tc.Cells.Item(9 + $i, 5).Value2 = $g.pre
+        $tc.Cells.Item(9 + $i, 2).Value2 = [string]($i + 1)
+        $tc.Cells.Item(9 + $i, 3).Value2 = $g.name
+        $tc.Cells.Item(9 + $i, 4).Value2 = $g.sheet
+        $tc.Cells.Item(9 + $i, 5).Value2 = $g.req
+        $tc.Cells.Item(9 + $i, 6).Value2 = @($g.rows)[0].pre
     }
 
-    # Test Statistics: one row per sheet, formulas on the sheets' counters.
     $ts = $wb.Worksheets.Item('Test Statistics')
     $ts.Range('C3').Value2 = $project
     $ts.Range('C4').Value2 = $code
-    $ts.Range('C5').Value2 = "${code}_Test Report_v1.0"
-    $ts.Range('F3').Value2 = $data.people.tester
-    $ts.Range('F4').Value2 = $data.people.leader
+    $ts.Range('F3').Value2 = $leader
+    $ts.Range('F4').Value2 = $leader
     $ts.Range('H5').Value2 = $day
-    $ts.Range('C6').Value2 = 'Review 2 (Iteration 1): 18 mandatory features, 5 main workflows, state transitions of the main entities, 6 NFRs. Round 1 = automated run of mvn verify; manual cases pending.'
+    $ts.Range('C6').Value2 = "Defense release: $($groups.Count) groups (the features of the backend, the web, the mobile app). Round 1 = one run of every automated suite on $day."
     $ts.Range("A13:A$(10 + $groups.Count)").EntireRow.Insert() | Out-Null
     for ($i = 0; $i -lt $groups.Count; $i++) {
         $r = 11 + $i
         $s = "'" + $groups[$i].sheet + "'"
         $ts.Cells.Item($r, 2).Value2 = [string]($i + 1)
-        $ts.Cells.Item($r, 3).Value2 = $groups[$i].name
+        $ts.Cells.Item($r, 3).Formula = "=$s!B2"
         $ts.Cells.Item($r, 4).Formula = "=$s!B6"
         $ts.Cells.Item($r, 5).Formula = "=$s!C6"
         $ts.Cells.Item($r, 6).Formula = "=$s!D6"
@@ -111,28 +105,16 @@ try {
     }
     $ts.Rows(11).Copy() | Out-Null
     $ts.Range("A12:H$(10 + $groups.Count)").PasteSpecial(-4122) | Out-Null
-    $out = Join-Path $outDir "SWP490_${code}_R2_Report5_TestReport.xlsx"
     $wb.Worksheets.Item('Cover').Activate()
-    $wb.SaveAs($out, 51)
-    $wb.Close($true)
+    $out = Join-Path $root "$OutDir/Report5_Test Report.xlsx"
+    $wb.SaveAs("$out", 51)
+    $wb.Close($false)
     Write-Output "Test Report: $($groups.Count) sheets -> $out"
 
-    # ------------------------------------------------------------------ Unit Test
-    $wb = $xl.Workbooks.Open((Join-Path $Root 'templates/SEP490_docs/Report5_Unit Test.xls'))
-    $cover = $wb.Worksheets.Item('Cover')
-    $cover.Range('B4').Value2 = $project
-    $cover.Range('B5').Value2 = $code
-    $cover.Range('B6').Value2 = "${code}_UnitTest_v1.0"
-    $cover.Range('F4').Value2 = $data.people.leader
-    $cover.Range('F5').Value2 = $day
-    $cover.Range('F6').Value2 = '1.0'
-    $cover.Range('A11').Value2 = $day
-    $cover.Range('B11').Value2 = '1.0'
-    $cover.Range('C11').Value2 = 'Whole document'
-    $cover.Range('D11').Value2 = 'A'
-    $cover.Range('E11').Value2 = 'First version for Review 2: the unit tests of the backend (JUnit 5, mvn test)'
-    $cover.Range('F11').Value2 = 'docs/backend/04_Test_Catalog.md'
-    $units = @($data.unitTests)
+    # ------------------------------------------------------------------ Unit Test: one sheet per test class
+    $wb = $xl.Workbooks.Open((Resolve-Path $UnitTestTpl).Path)
+    Set-Cover $wb 'UnitTest' 'Defense version: the unit tests of the backend (JUnit 5), one sheet per class under test, with the result of one run'
+    $units = @($d.units)
     $template = $wb.Worksheets.Item('Function 1')
     $last = $wb.Worksheets.Item($wb.Worksheets.Count)
     foreach ($u in $units) {
@@ -140,43 +122,48 @@ try {
         $ws = $wb.Worksheets.Item($last.Index + 1)
         $ws.Name = $u.code
         $last = $ws
+        $cases = @($u.cases)
+        $n = $cases.Count
         $ws.Range('C2').Value2 = $u.code
         $ws.Range('L2').Value2 = "$($u.cls) ($($u.testClass))"
         $ws.Range('C3').Value2 = $u.owner
-        $ws.Range('L3').Value2 = 'mvn test (CI)'
+        $ws.Range('L3').Value2 = 'CI (mvn verify)'
         $ws.Range('C4').Value2 = [double]$u.loc
         $ws.Range('C5').Value2 = $u.requirement
-        $ws.Range('B11:W38').ClearContents() | Out-Null
+        $ws.Range('B11:W30').ClearContents() | Out-Null
+        $ws.Range('D32:W38').ClearContents() | Out-Null
         $ws.Range('F39:W42').ClearContents() | Out-Null
         $ws.Range('E9:HT9').ClearContents() | Out-Null
-        $ws.Range('B11').Value2 = 'Precondition'
-        $ws.Range('D12').Value2 = 'Objects built in the test (no database); outbound HTTP stubbed'
-        $ws.Range('B14').Value2 = 'Input'
-        $ws.Range('B31').Value2 = 'Return'
-        $cases = @($u.cases)
-        for ($i = 0; $i -lt $cases.Count; $i++) {
+        # Inputs: rows 14..30 hold 17 cases; more cases get more rows above the Return block.
+        $off = [Math]::Max(0, $n - 17)
+        if ($off -gt 0) { $ws.Range("A30:A$(29 + $off)").EntireRow.Insert() | Out-Null }
+        if ($n -gt 18) { $ws.Range('W:W').Copy() | Out-Null; $ws.Range($ws.Cells.Item(1, 24), $ws.Cells.Item(1, 5 + $n)).EntireColumn.PasteSpecial(-4122) | Out-Null }
+        $ws.Range('D11').Value2 = 'Objects built in the test; no database, outbound HTTP stubbed'
+        $ws.Range('B13').Value2 = 'Input'
+        $ws.Range("D$(32 + $off)").Value2 = 'The assertions of the test hold'
+        $ws.Range("D$(35 + $off)").Value2 = 'The expected exception is thrown'
+        for ($i = 0; $i -lt $n; $i++) {
             $c = $cases[$i]
             $col = 6 + $i
             $ws.Cells.Item(9, $col).Value2 = 'UTCID{0:D2}' -f ($i + 1)
-            $ws.Cells.Item(14 + $i, 4).Value2 = ($c.test -split '\.')[1]
+            $ws.Cells.Item(14 + $i, 4).Value2 = [string]$c.what
             $ws.Cells.Item(14 + $i, $col).Value2 = 'O'
-            $ws.Cells.Item(32 + $i, 4).Value2 = $c.what
-            $ws.Cells.Item(32 + $i, $col).Value2 = 'O'
-            $ws.Cells.Item(39, $col).Value2 = $c.type
-            $ws.Cells.Item(40, $col).Value2 = $(if ($c.result -eq 'Passed') { 'P' } elseif ($c.result -eq 'Failed') { 'F' } else { '' })
-            $ws.Cells.Item(41, $col).Value2 = $day
+            $ws.Cells.Item(32 + $off, $col).Value2 = 'O'
+            if ($c.throws) { $ws.Cells.Item(35 + $off, $col).Value2 = 'O' }
+            $ws.Cells.Item(39 + $off, $col).Value2 = [string]$c.type
+            $ws.Cells.Item(40 + $off, $col).Value2 = $(if ($c.result -eq 'Passed') { 'P' } elseif ($c.result -eq 'Failed') { 'F' } else { '' })
+            $ws.Cells.Item(41 + $off, $col).Value2 = $day
         }
     }
 
     $fl = $wb.Worksheets.Item('Functions')
     $fl.Range('E4').Value2 = $project
     $fl.Range('E5').Value2 = $code
-    $fl.Range('E7').Value2 = '1. JDK 21, Maven (mvn test). 2. No database: the classes are tested alone with fakes and stub HTTP servers.'
-    # Business rules are tested through the API by 206 integration tests (Test Report), so no unit-test norm per KLOC.
+    # Business rules are tested through the API by the integration tests (Test Report), so no unit-test norm per KLOC.
     $fl.Range('E6').Value2 = 'N/A'
+    $fl.Range('E7').Value2 = '1. JDK 21, Maven (mvn verify runs the unit tests first). 2. No database: each class is tested alone with fakes and stub HTTP servers.'
     $fl.Range('A11:H40').ClearContents() | Out-Null
-    $fl.Rows(11).Copy() | Out-Null
-    $fl.Range("A12:H$(10 + $units.Count)").PasteSpecial(-4122) | Out-Null
+    if ($units.Count -gt 1) { $fl.Rows(11).Copy() | Out-Null; $fl.Range("A12:H$(10 + $units.Count)").PasteSpecial(-4122) | Out-Null }
     for ($i = 0; $i -lt $units.Count; $i++) {
         $u = $units[$i]
         $r = 11 + $i
@@ -187,18 +174,17 @@ try {
         $fl.Cells.Item($r, 5).Value2 = $u.code
         $fl.Cells.Item($r, 6).Value2 = $u.code
         $fl.Cells.Item($r, 7).Value2 = "$(@($u.cases).Count) test cases"
-        $fl.Cells.Item($r, 8).Value2 = 'mvn test'
+        $fl.Cells.Item($r, 8).Value2 = 'Objects built in the test'
     }
 
     $st = $wb.Worksheets.Item('Statistics')
-    $st.Range('B4').Value2 = $project
-    $st.Range('B5').Value2 = $code
-    $st.Range('B6').Value2 = "${code}_UnitTest_v1.0"
+    $st.Range('F4').Value2 = $leader
+    $st.Range('F5').Value2 = $leader
     $st.Range('F6').Value2 = $day
-    $st.Range('B7').Value2 = 'Unit tests of the backend (8 classes under test).'
-    $st.Range('A15:A19').EntireRow.Insert() | Out-Null
+    $st.Range('B7').Value2 = "Unit tests of the backend: $($units.Count) test classes."
     $proto = @()
     for ($c = 1; $c -le 9; $c++) { $proto += $st.Cells.Item(12, $c).Formula }
+    if ($units.Count -gt 3) { $st.Range("A15:A$(11 + $units.Count)").EntireRow.Insert() | Out-Null }
     for ($i = 0; $i -lt $units.Count; $i++) {
         $r = 12 + $i
         for ($c = 1; $c -le 9; $c++) {
@@ -210,10 +196,10 @@ try {
     $st.Rows(12).Copy() | Out-Null
     $st.Range("A13:I$(11 + $units.Count)").PasteSpecial(-4122) | Out-Null
     foreach ($name in @('Function 1', 'Function 2', 'Function3', 'Example')) { $wb.Worksheets.Item($name).Delete() }
-    $out = Join-Path $outDir "SWP490_${code}_R2_Report5_UnitTest.xls"
     $wb.Worksheets.Item('Cover').Activate()
-    $wb.SaveAs($out, 56)
-    $wb.Close($true)
+    $out = Join-Path $root "$OutDir/Report5_Unit Test.xls"
+    $wb.SaveAs("$out", 56)
+    $wb.Close($false)
     Write-Output "Unit Test: $($units.Count) sheets -> $out"
 } finally {
     $xl.Quit()

@@ -29,6 +29,18 @@ execFileSync('node', [here('src/report3.mjs')], { cwd: root, stdio: 'inherit' })
 execFileSync('node', [here('src/report4.mjs')], { cwd: root, stdio: 'inherit' })
 const names = process.argv.slice(2)
 if (!names.length) { console.error('usage: node tools/docs/build.mjs <Name> […]'); process.exit(2) }
+// Report 5 also fills its two workbooks, each from its untouched template (data: tools/docs/build/testcases.json).
+if (names.includes('Report5')) {
+  execFileSync('node', [here('src/report5.mjs')], { cwd: root, stdio: 'inherit' })
+  fs.mkdirSync(here('build/tpl'), { recursive: true })
+  const tpl = (file) => {
+    const p = here('build/tpl', path.basename(file))
+    fs.writeFileSync(p, execFileSync('git', ['show', `${base}:${file}`], { cwd: root, maxBuffer: 1 << 28 }))
+    return p
+  }
+  execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', here('pipeline/build-test-workbooks.ps1'),
+    '-TestReportTpl', tpl('docs/SEP490_Report/Report5_Test Report.xlsx'), '-UnitTestTpl', tpl('docs/SEP490_Report/Report5_Unit Test.xls')], { cwd: root, stdio: 'inherit' })
+}
 let failed = 0
 for (const name of names) {
   const template = templates[name]

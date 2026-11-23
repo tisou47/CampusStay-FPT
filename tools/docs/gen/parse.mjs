@@ -166,7 +166,7 @@ export function parseApiErrors(src) {
 /** `TC-XXX-NNN` ids in the Javadoc right before a test method. */
 export function parseTestIds(src, cls) {
   const out = []
-  for (const m of src.matchAll(/\/\*\*([\s\S]*?)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*\s*(?:public\s+)?void\s+(\w+)\s*\(/g)) {
+  for (const m of src.matchAll(/\/\*\*((?:(?!\*\/)[\s\S])*?)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*\s*(?:public\s+)?void\s+(\w+)\s*\(/g)) {
     const doc = m[1].replace(/^\s*\*\s?/gm, ' ').replace(/\s+/g, ' ').trim()
     const id = doc.match(/TC-[A-Z]+-\d+/)
     if (!id) continue

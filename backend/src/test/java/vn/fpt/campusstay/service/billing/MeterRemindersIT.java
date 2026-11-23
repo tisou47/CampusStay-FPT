@@ -23,7 +23,7 @@ import vn.fpt.campusstay.PostgresTestcontainer;
 import vn.fpt.campusstay.TestAuth;
 import vn.fpt.campusstay.config.TimeConfig;
 
-/** Months whose meter period is not closed: Overviews and reminders to Staff (TC-BIL-040). */
+/** Months whose meter period is not closed: Overviews and reminders to Staff (TC-BIL-050). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -41,7 +41,7 @@ class MeterRemindersIT {
     MeterReminders reminders;
 
     /**
-     * TC-BIL-040: every Block gets this month's period; a month ended more than {@code utility.close_days} ago and
+     * TC-BIL-050: every Block gets this month's period; a month ended more than {@code utility.close_days} ago and
      * still open is shown on the Staff and Manager Overviews, and its Block's Staff are reminded once a day.
      */
     @Test
