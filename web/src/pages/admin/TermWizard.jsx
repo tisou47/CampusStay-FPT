@@ -298,6 +298,7 @@ function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
             {t('{n} of {total} blocks selected', { n: used.size, total: w.rooms.blocks.length })}
           </Tag>
         </div>
+        {used.size === 0 && <p className="text-sm text-error-fg">{t('Choose at least one block.')}</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {w.rooms.blocks.map((b) => (
             <div
@@ -425,7 +426,8 @@ function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
         next
         onPrev={onPrev}
         stepIndex={stepIndex}
-        disabled={!w.editable.rooms || Number.isNaN(parseDecimal(reserved))}
+        // No Block chosen would be saved as "every Block" (WEB-ADM-22): the server refuses it too.
+        disabled={!w.editable.rooms || used.size === 0 || Number.isNaN(parseDecimal(reserved))}
         onSave={() =>
           save.run({
             blockIds: [...used],

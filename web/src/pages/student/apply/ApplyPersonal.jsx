@@ -75,24 +75,31 @@ export default function ApplyPersonal() {
         </Button>
       </Card>
 
-      <Modal
-        open={privacyOpen}
-        onClose={() => setPrivacyOpen(false)}
-        title="Privacy Notice"
-        description="CampusStay FPT"
-        width={560}
-        footer={
-          <Button variant="primary" onClick={() => setPrivacyOpen(false)}>
-            Close
-          </Button>
-        }
-      >
-        <div className="flex flex-col gap-3 text-base text-fg-secondary">
-          <p>{t('CampusStay processes your name, student code, gender, major, cohort, hometown and contact details to review your application, match roommates and assign a room and bed.')}</p>
-          <p>{t('Matching data (gender, major, hometown) is used only for the term you apply for. The dormitory office keeps application records for the period required by FPT University regulations, then deletes them.')}</p>
-          <p>{t('You can ask the dormitory office to see, correct or withdraw consent for your data at any time, as set out in the Personal Data Protection Law 91/2025/QH15 and Decree 356/2025/NĐ-CP.')}</p>
-        </div>
-      </Modal>
+      <PrivacyNotice open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </WizardLayout>
+  )
+}
+
+/** The Privacy Notice of the Application wizard; the roommate invitation shows the same text. */
+export function PrivacyNotice({ open, onClose }) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Privacy Notice"
+      description="CampusStay FPT"
+      width={560}
+      footer={
+        <Button variant="primary" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-3 text-base text-fg-secondary">
+        <p>{t('CampusStay processes your name, student code, gender, major, cohort, hometown and contact details to review your application, match roommates and assign a room and bed.')}</p>
+        <p>{t('Matching data (gender, major, hometown) is used only for the term you apply for. The dormitory office keeps application records for the period required by FPT University regulations, then deletes them.')}</p>
+        <p>{t('You can ask the dormitory office to see, correct or withdraw consent for your data at any time, as set out in the Personal Data Protection Law 91/2025/QH15 and Decree 356/2025/NĐ-CP.')}</p>
+      </div>
+    </Modal>
   )
 }

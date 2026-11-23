@@ -37,11 +37,23 @@ export function downloadCsv(fileName, rows) {
  * Opens `bodyHtml` (already escaped with h()) in a new window styled for paper and starts printing: the user prints
  * it or saves it as PDF. Returns false when the browser blocked the window.
  */
-export function printDocument(title, bodyHtml) {
+/** The print window's own words; pages pass them translated (WEB-ADM-06), these are the English defaults. */
+const PRINT_WORDS = {
+  print: 'Print / Save as PDF',
+  previous: '← Previous',
+  next: 'Next →',
+  page: 'Page {n} of {total}',
+  printOne: 'Print this page',
+  printAll: 'Print / Save as PDF ({n} pages)',
+}
+
+/** @param options { lang, words } — the language in use and the window's words translated by the page */
+export function printDocument(title, bodyHtml, { lang = 'en', words: given } = {}) {
+  const words = { ...PRINT_WORDS, ...given }
   const w = window.open('', '_blank', 'noopener=no,width=900,height=1000')
   if (!w) return false
   w.document.open()
-  w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+  w.document.write(`<!doctype html><html lang="${escapeHtml(lang)}"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
   * { box-sizing: border-box; }
   body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1f1f1f; margin: 24px; }
@@ -82,9 +94,10 @@ export function printDocument(title, bodyHtml) {
 </style></head><body>
 <div id="pager" class="pager noprint" style="display:none"></div>
 ${bodyHtml}
-<p id="singlePrint" class="noprint" style="margin-top:24px"><button onclick="window.print()">In / Lưu PDF</button></p>
+<p id="singlePrint" class="noprint" style="margin-top:24px"><button onclick="window.print()">${escapeHtml(words.print)}</button></p>
 <script>
 (() => {
+  const words = ${JSON.stringify(words).replaceAll('<', '\\u003c')};
   const sheets = Array.from(document.querySelectorAll('.page-sheet'));
   const pager = document.getElementById('pager');
   const singlePrint = document.getElementById('singlePrint');
@@ -100,7 +113,7 @@ ${bodyHtml}
     const tabs = document.createElement('div');
     tabs.className = 'pager-tabs';
     const prev = document.createElement('button');
-    prev.textContent = '← Trước';
+    prev.textContent = words.previous;
     prev.disabled = current === 0;
     prev.onclick = () => { current--; render(); };
     tabs.appendChild(prev);
@@ -112,26 +125,26 @@ ${bodyHtml}
       tabs.appendChild(b);
     });
     const next = document.createElement('button');
-    next.textContent = 'Sau →';
+    next.textContent = words.next;
     next.disabled = current === sheets.length - 1;
     next.onclick = () => { current++; render(); };
     tabs.appendChild(next);
     const info = document.createElement('span');
     info.style.cssText = 'font-size:12px;color:#475569;margin-left:6px;font-weight:500;';
-    info.textContent = 'Trang ' + (current + 1) + ' / ' + sheets.length;
+    info.textContent = words.page.replace('{n}', current + 1).replace('{total}', sheets.length);
     tabs.appendChild(info);
 
     const actions = document.createElement('div');
     actions.className = 'pager-actions';
     const printOne = document.createElement('button');
-    printOne.textContent = 'In trang này';
+    printOne.textContent = words.printOne;
     printOne.onclick = () => {
       document.body.classList.add('print-single');
       window.print();
     };
     const printAll = document.createElement('button');
     printAll.className = 'primary';
-    printAll.textContent = 'In / Lưu PDF (' + sheets.length + ' trang)';
+    printAll.textContent = words.printAll.replace('{n}', sheets.length);
     printAll.onclick = () => {
       document.body.classList.remove('print-single');
       window.print();

@@ -23,3 +23,15 @@ test('csvCell neutralises formulas', () => {
   assert.equal(csvCell('Nguyễn'), 'Nguyễn')
   assert.equal(csvCell('a,b'), '"a,b"')
 })
+
+test('a lone separator followed by exactly three digits is ambiguous (M1)', () => {
+  // "1.360" is 1360 in Vietnamese and 1.36 in English: the field shows an error instead of guessing.
+  assert.ok(Number.isNaN(parseDecimal('1.360')))
+  assert.ok(Number.isNaN(parseDecimal('1,360')))
+  assert.ok(Number.isNaN(parseDecimal('-2.500')))
+  assert.equal(parseDecimal('12,5'), 12.5)
+  assert.equal(parseDecimal('1360,5'), 1360.5)
+  assert.equal(parseDecimal('1.360,5'), 1360.5)
+  assert.equal(parseDecimal('0,125'), 0.125)
+  assert.equal(parseDecimal('1.25'), 1.25)
+})

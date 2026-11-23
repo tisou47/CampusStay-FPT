@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Ellipsis } from 'lucide-react'
 import { useMutation, useQuery } from '@/api/hooks'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
@@ -16,14 +16,24 @@ import { t, tr } from '@/i18n'
 export function useConfigForm(name, resource, { onSaved } = {}) {
   const query = useQuery(['admin-config', name], ({ signal }) => resource.get(undefined, { signal }))
   const [draft, setDraft] = useState(null)
+  // True once the Admin changed something: server data is copied in only on first load, after a reset and after this
+  // form's own save, never over an edit in progress (WEB-ADM-09).
+  const edited = useRef(false)
   useEffect(() => {
-    if (query.data) setDraft(query.data)
+    if (query.data && !edited.current) setDraft(query.data)
   }, [query.data])
+  const edit = (update) => {
+    edited.current = true
+    setDraft(update)
+  }
   const saved = query.data
   const dirty = Boolean(draft && saved && JSON.stringify(draft) !== JSON.stringify(saved))
   const mutation = useMutation((extra = {}) => resource.save({ ...draft, ...extra }), {
     invalidates: ['admin-config', 'dashboard', 'catalog'],
-    onSuccess: (result) => onSaved?.(result),
+    onSuccess: (result) => {
+      edited.current = false
+      onSaved?.(result)
+    },
     onError: () => {},
   })
   return {
@@ -31,9 +41,12 @@ export function useConfigForm(name, resource, { onSaved } = {}) {
     draft,
     saved,
     dirty,
-    set: (field) => (e) => setDraft((d) => ({ ...d, [field]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e })),
-    setValue: (field, value) => setDraft((d) => ({ ...d, [field]: value })),
-    reset: () => setDraft(saved),
+    set: (field) => (e) => edit((d) => ({ ...d, [field]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e })),
+    setValue: (field, value) => edit((d) => ({ ...d, [field]: value })),
+    reset: () => {
+      edited.current = false
+      setDraft(saved)
+    },
     save: mutation.run,
     saving: mutation.pending,
     saveError: mutation.error,

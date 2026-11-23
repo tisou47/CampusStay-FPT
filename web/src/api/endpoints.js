@@ -525,8 +525,6 @@ export const api = {
   admin: {
     terms: {
       list: g('/admin/terms'),
-      create: (body) => http.post('/admin/terms', body),
-      update: (id, body) => http.put(`/admin/terms/${id}`, body),
       publish: (id, body) => http.post(`/admin/terms/${id}/publish`, body),
       /** The wizard (A-27): { name, stayStart, stayEnd, requestId? } → { id } (a Draft, or the request's Draft). */
       createDraft: (body) => http.post('/admin/terms/drafts', body),
