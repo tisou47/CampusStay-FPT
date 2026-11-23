@@ -1,0 +1,26 @@
+{
+ "endpoints": 353,
+ "controllers": 63,
+ "migrations": 100,
+ "lastMigration": "V103",
+ "tables": 118,
+ "views": 33,
+ "webPages": 133,
+ "mobileScreens": 31,
+ "permissions": 22,
+ "statusMachines": 134,
+ "messages": 323,
+ "tcIds": 380,
+ "tests": {
+  "backendUnit": 46,
+  "backendIt": 343,
+  "web": 7,
+  "mobile": 30
+ },
+ "loc": {
+  "java": 60171,
+  "js": 50221,
+  "dart": 11014
+ },
+ "generatedFrom": "e0c9f8d"
+}
