@@ -148,7 +148,6 @@ const one = {
   "{n} rooms lack the furniture": "{n} room lacks the furniture",
   "View the {n} rooms of {name}": "View the {n} room of {name}",
   "{n} beds in service": "{n} bed in service",
-  "{n} invoices not paid": "{n} invoice not paid",
 }
 
 export default one

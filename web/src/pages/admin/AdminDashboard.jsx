@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { ArrowRight, Banknote, Bed, Building, Calendar, ClipboardList, FileText, ScrollText, User } from 'lucide-react'
+import { ArrowRight, Bed, Building, Calendar, ClipboardList, FileText, ScrollText, SlidersHorizontal, User } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -8,17 +8,17 @@ import { KpiTile } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
 import { QueryState, StaleNotice } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
-import { daysFromToday, formatCompactVnd, formatDate, formatNumber } from '@/lib/format'
-import { COLLECTED_RULE, floorPercent } from '@/lib/money'
+import { daysFromToday, formatDate, formatNumber } from '@/lib/format'
+import { floorPercent } from '@/lib/money'
 import { t, tr } from '@/i18n'
 
 // SCR-HOME-04 Admin Dashboard
 // GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, kpis: { residents, beds, allocated, collected,
 //   invoiced, collectionRate, outstanding, outstandingInvoices, activeUsers, students, staff, managers },
 //   funnel: [{ label, value }], blocks: [{ block, gender, allocated, beds }] }
-// One screen, no scrolling: four headline tiles, then one chart per question — how Applications moved through
-// registration (columns), how many Beds are held (donut), how much of the invoiced money came in (gauge), who the
-// accounts are (part-to-whole bar) — and the screens an Admin opens most.
+// One screen, no scrolling: three headline tiles, then one chart per question — how Applications moved through
+// registration (columns), how many Beds are held (donut), who the accounts are (part-to-whole bar) — and the screens
+// an Admin opens most. Money is left to the Managers' finance screens.
 
 /** Screens an Admin opens most. */
 const SHORTCUTS = [
@@ -27,6 +27,7 @@ const SHORTCUTS = [
   { to: '/admin/buildings', icon: Building, label: 'Buildings and rooms' },
   { to: '/admin/users', icon: User, label: 'Users and roles' },
   { to: '/admin/audit-log', icon: ScrollText, label: 'Audit log' },
+  { to: '/admin/system-parameters', icon: SlidersHorizontal, label: 'System parameters' },
 ]
 
 /** Account groups in a fixed order with fixed hues (checked for colour-blind separation); labels sit beside them. */
@@ -119,25 +120,6 @@ function Donut({ parts, size = 148, thickness = 18, label, children }) {
   )
 }
 
-/** Half-ring gauge for one rate (0…1), the value under the arc. */
-function Gauge({ rate, label, color = 'var(--color-success)', width = 200 }) {
-  const stroke = 16
-  const r = (width - stroke) / 2
-  const h = r + stroke / 2
-  const arc = `M ${stroke / 2} ${h} A ${r} ${r} 0 0 1 ${width - stroke / 2} ${h}`
-  const v = Math.max(0, Math.min(1, rate || 0))
-  return (
-    <svg viewBox={`0 0 ${width} ${h + 2}`} width={width} height={h + 2} role="img" aria-label={label} className="shrink-0">
-      <path d={arc} fill="none" stroke="var(--color-subtle, #f5f0eb)" strokeWidth={stroke} strokeLinecap="round" />
-      {v > 0 && (
-        <path d={arc} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" pathLength={100} strokeDasharray={`${v * 100} 100`}>
-          <title>{label}</title>
-        </path>
-      )}
-    </svg>
-  )
-}
-
 /** A part's share of the whole; a part that is there but under 1% reads <1%, never 0%. */
 const share = (part, total) => (!total ? null : part > 0 && part / total < 0.01 ? '<1%' : floorPercent(part / total))
 
@@ -179,50 +161,30 @@ function BedsCard({ k }) {
   )
 }
 
-function CollectionCard({ k }) {
-  return (
-    <ChartCard title={t('Collected this term')} className="col-span-4">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-        <div className="relative">
-          <Gauge rate={k.collectionRate} label={t('Collection rate')} />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
-            <span className="text-h1 font-semibold text-fg tabular">{floorPercent(k.collectionRate)}</span>
-            <span className="text-xs text-fg-tertiary">{t('of invoiced')}</span>
-          </div>
-        </div>
-        <ul className="flex w-full flex-col gap-2">
-          <LegendRow color="var(--color-success)" label={t('Collected')} value={formatCompactVnd(k.collected)} />
-          <LegendRow color="var(--color-gray-300, #d9cec4)" label={t('Unpaid')} value={formatCompactVnd(k.outstanding)} note={k.outstandingInvoices ? t('{n} inv.', { n: formatNumber(k.outstandingInvoices) }) : null} />
-        </ul>
-      </div>
-    </ChartCard>
-  )
-}
-
 function AccountsCard({ k }) {
   const total = k.students + k.staff + k.managers
   return (
-    <ChartCard title={t('Accounts')} aside={<span className="text-h3 font-semibold text-fg tabular">{formatNumber(total)}</span>} className="col-span-4">
+    <ChartCard title={t('Accounts')} aside={<span className="text-h3 font-semibold text-fg tabular">{formatNumber(total)}</span>} className="col-span-5">
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
-        <div className="flex h-4 w-full gap-0.5 overflow-hidden rounded-[4px]" role="img" aria-label={t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) })}>
+        <div className="flex h-4 w-full shrink-0 gap-0.5 overflow-hidden rounded-[4px]" role="img" aria-label={t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) })}>
           {ACCOUNT_GROUPS.filter((g) => k[g.key] > 0).map((g) => (
             <div key={g.key} title={`${t(g.label)}: ${formatNumber(k[g.key])}`} style={{ flexGrow: k[g.key], flexBasis: 0, minWidth: 4, background: g.color }} />
           ))}
         </div>
-        <ul className="flex flex-col gap-2">
-          {ACCOUNT_GROUPS.map((g) => (
-            <LegendRow key={g.key} color={g.color} label={t(g.label)} value={formatNumber(k[g.key])} note={share(k[g.key], total)} />
-          ))}
-        </ul>
-        <div className="flex flex-col gap-1.5 border-t border-line pt-3">
-          <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="text-fg-secondary">{t('Signed in during the last 30 days')}</span>
-            <span className="font-medium text-fg tabular">
-              {formatNumber(k.activeUsers)} <span className="font-normal text-fg-tertiary">/ {formatNumber(total)}</span>
+        <div className="grid grid-cols-2 gap-5">
+          <ul className="flex min-w-0 flex-col gap-2">
+            {ACCOUNT_GROUPS.map((g) => (
+              <LegendRow key={g.key} color={g.color} label={t(g.label)} value={formatNumber(k[g.key])} note={share(k[g.key], total)} />
+            ))}
+          </ul>
+          <div className="flex min-w-0 flex-col justify-center gap-2 border-l border-line pl-5">
+            <span className="text-sm text-fg-secondary">{t('Signed in during the last 30 days')}</span>
+            <span className="text-h2 font-semibold text-fg tabular">
+              {formatNumber(k.activeUsers)} <span className="text-base font-normal text-fg-tertiary">/ {formatNumber(total)}</span>
             </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-subtle">
-            <div className="h-full rounded-full bg-info" style={{ width: `${total ? Math.min(100, (k.activeUsers / total) * 100) : 0}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-subtle">
+              <div className="h-full rounded-full bg-info" style={{ width: `${total ? Math.min(100, (k.activeUsers / total) * 100) : 0}%` }} />
+            </div>
           </div>
         </div>
       </div>
@@ -232,15 +194,15 @@ function AccountsCard({ k }) {
 
 function Shortcuts() {
   return (
-    <ChartCard title={t('Shortcuts')} className="col-span-4">
-      <ul className="flex min-h-0 flex-1 flex-col justify-between gap-1">
+    <ChartCard title={t('Shortcuts')} className="col-span-7">
+      <ul className="grid min-h-0 flex-1 grid-cols-2 content-center gap-2">
         {SHORTCUTS.map(({ to, icon: Glyph, label }) => (
-          <li key={to}>
-            <Link to={to} className="group flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-primary">
+          <li key={to} className="min-w-0">
+            <Link to={to} className="group flex items-center gap-3 rounded-lg border border-line px-3 py-2 transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-primary">
               <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-md bg-subtle text-fg-secondary group-hover:bg-surface group-hover:text-fg-brand">
                 <Glyph size={16} />
               </span>
-              <span className="flex-1 text-base font-medium text-fg">{t(label)}</span>
+              <span className="min-w-0 flex-1 truncate text-base font-medium text-fg">{t(label)}</span>
               <ArrowRight aria-hidden="true" size={16} className="text-fg-tertiary transition-transform group-hover:translate-x-0.5 group-hover:text-fg-brand" />
             </Link>
           </li>
@@ -265,7 +227,7 @@ export default function AdminDashboard() {
       <PageHeader title="System overview" />
       <StaleNotice query={query} />
 
-      <div className="grid shrink-0 grid-cols-4 gap-4">
+      <div className="grid shrink-0 grid-cols-3 gap-4">
         <KpiTile
           icon={Calendar}
           label="Current term"
@@ -274,17 +236,9 @@ export default function AdminDashboard() {
         />
         <KpiTile icon={FileText} label="Applications" value={<span className="text-h1">{formatNumber(first)}</span>} note={first > 0 && end != null ? t('{p} have moved in', { p: floorPercent(end / first) }) : null} />
         <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
-        <KpiTile
-          icon={Banknote}
-          label="Unpaid"
-          tip={t(COLLECTED_RULE)}
-          value={<span className="text-h1">{formatCompactVnd(k?.outstanding)}</span>}
-          valueTone={k?.outstanding > 0 ? 'warning' : undefined}
-          note={k ? (k.outstanding > 0 ? t('{n} invoices not paid', { n: formatNumber(k.outstandingInvoices) }) : t('Nothing unpaid')) : null}
-        />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-12 grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4">
+      <div className="grid min-h-0 flex-1 grid-cols-12 grid-rows-[minmax(0,1.45fr)_minmax(0,1fr)] gap-4">
         <ChartCard
           title={d?.term ? t('{term} application funnel', { term: d.term.name }) : t('Application funnel')}
           className="col-span-8"
@@ -294,8 +248,7 @@ export default function AdminDashboard() {
           </QueryState>
         </ChartCard>
         {k ? <BedsCard k={k} /> : <Card className="col-span-4" />}
-        {k ? <CollectionCard k={k} /> : <Card className="col-span-4" />}
-        {k ? <AccountsCard k={k} /> : <Card className="col-span-4" />}
+        {k ? <AccountsCard k={k} /> : <Card className="col-span-5" />}
         <Shortcuts />
       </div>
     </>
