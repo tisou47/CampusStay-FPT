@@ -377,4 +377,28 @@ class StaffWorkloadIT {
         assertThat(column("SELECT assignee_id FROM mnt_request WHERE id = :id", request)).isNull();
         assertThat(requestStatus(request)).isEqualTo("SUBMITTED");
     }
+
+    /**
+     * TC-AUTH-101 (final review of BE-3RD-01): when the inspector is disabled, their schedule no longer names them
+     * (its next runs are nobody's) and the released run is open to the Block's Staff, the first to work on it takes it.
+     */
+    @Test
+    void releasedInspectionsStayReachable() throws Exception {
+        long leaver = staff("Pham Van Di", "INSPECTION");
+        long other = staff("Pham Van O", "INSPECTION");
+        long run = inspection(leaver);
+        long schedule = jdbc.sql("""
+                INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id,
+                                                     due_within_days)
+                SELECT id, 'Weekly fire check', 'WORKLOAD_TEST', 'ALL_ROOMS', 'WEEKLY', :a, 3 FROM inv_building
+                WHERE code = 'A' RETURNING id
+                """).param("a", leaver).query(Long.class).single();
+        editStaff(leaver, "{\"status\":\"Disabled\"}");
+        assertThat(column("SELECT assignee_id FROM mnt_inspection_schedule WHERE id = :id", schedule)).isNull();
+        String email = jdbc.sql("SELECT email FROM auth_user WHERE id = :id").param("id", other).query(String.class)
+                .single();
+        mvc.perform(get("/inspection-runs/INS-" + run).header(HttpHeaders.AUTHORIZATION, bearer(mvc, email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.run.mine").value(true));
+    }
 }

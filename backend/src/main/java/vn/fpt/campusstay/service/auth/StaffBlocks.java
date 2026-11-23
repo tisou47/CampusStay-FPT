@@ -47,6 +47,7 @@ class StaffBlocks {
     @Transactional(propagation = Propagation.MANDATORY)
     void releaseWork(long userId, Set<Long> keepBlocks, String why) {
         for (StaffWork work : works) {
+            work.releaseStanding(userId, keepBlocks);
             for (StaffWork.Item item : work.openItems(userId)) {
                 if (keepBlocks.contains(item.buildingId())) {
                     continue;

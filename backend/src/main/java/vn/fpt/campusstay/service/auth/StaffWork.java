@@ -46,4 +46,11 @@ public interface StaffWork {
      * disabled (BE-3RD-01); does nothing when it is no longer open. Runs inside the caller's transaction.
      */
     void release(String type, long id, String note);
+
+    /**
+     * What names the person for future work outside {@code keepBlocks} (an inspection schedule's inspector) names
+     * nobody any more, so new runs do not go to someone who left or was disabled. Runs inside the caller's transaction.
+     */
+    default void releaseStanding(long userId, java.util.Set<Long> keepBlocks) {
+    }
 }

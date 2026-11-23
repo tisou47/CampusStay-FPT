@@ -200,7 +200,7 @@ With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_
 | Restore the files | `docker compose run --rm --no-deps -T --entrypoint tar api -C /app/data -xzf - < backups/files-<stamp>.tgz` |
 | Disk usage | `df -h /` and `docker system df` |
 
-**Rolling back a bad deploy.** Find the last good commit (GitHub → Actions → backend → the last green run before the bad one, or `git log` on `main`) and start it: `API_TAG=<that commit sha> docker compose up -d api`. The image is still on the server for 7 days (the deploy prunes older ones); after that `docker compose pull api` fetches it from GHCR first. A migration the bad build applied stays in the database: when the old build cannot run with it, restore the backup the deploy took just before (`backups/`, newest `campusstay-*.dump`; managed database: appendix A.4). Then fix forward with a new commit to `main`, which deploys the newest build again.
+**Rolling back a bad deploy.** Find the last good commit (GitHub → Actions → backend → the last green run before the bad one, or `git log` on `main`) and start it: `API_TAG=<that commit sha> docker compose up -d api`. The image stays on the server for 7 days after it was built (the deploy prunes older ones); after that pull it from GHCR first: `docker login ghcr.io` (a GitHub token with `read:packages`), `API_TAG=<sha> docker compose pull api`, `docker logout ghcr.io`. A migration the bad build applied stays in the database: when the old build cannot run with it, restore the backup the deploy took just before (`backups/predeploy-*`, the newest five are kept apart from the 14 daily ones; managed database: appendix A.4). Then fix forward with a new commit to `main`, which deploys the newest build again.
 
 ## 5. Troubleshooting
 

@@ -121,10 +121,12 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
         run: |
-          printf '%s' "$GHCR_TOKEN" | ssh "$TARGET" "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
           # Back up the running version first: the new image may run migrations (none on the very first deploy).
+          # Before the registry login, so a failed backup leaves no login behind; its output shows in this log, and
+          # its copies (predeploy-*) rotate apart from the daily ones.
           ssh "$TARGET" "cd $DEPLOY_DIR && if docker compose ps --status running --services | grep -qx api; then \
-            mkdir -p backups && sh backup.sh >> backups/backup.log 2>&1; fi"
+            mkdir -p backups && BACKUP_PREFIX=predeploy- BACKUP_KEEP=5 sh backup.sh; fi"
+          printf '%s' "$GHCR_TOKEN" | ssh "$TARGET" "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
           # Images of the last week stay, so `API_TAG=<previous sha>` can roll back without a pull (runbook §4).
           ssh "$TARGET" "cd $DEPLOY_DIR && export API_IMAGE='$API_IMAGE' API_TAG='$API_TAG' \
             && docker compose pull api && docker compose up -d --remove-orphans; \

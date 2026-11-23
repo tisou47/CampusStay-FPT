@@ -91,6 +91,14 @@ class MaintenanceStaffWork implements StaffWork {
     }
 
     @Override
+    public void releaseStanding(long userId, java.util.Set<Long> keepBlocks) {
+        jdbc.sql("""
+                UPDATE mnt_inspection_schedule SET assignee_id = NULL, version = version + 1
+                WHERE assignee_id = :u AND NOT (building_id = ANY(:keep))
+                """).param("u", userId).param("keep", keepBlocks.toArray(Long[]::new)).update();
+    }
+
+    @Override
     public void release(String type, long id, String note) {
         if (StaffWorkload.MAINTENANCE.equals(type)) {
             requests.unassign(id, note);
