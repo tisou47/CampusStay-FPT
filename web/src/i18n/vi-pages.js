@@ -4829,6 +4829,8 @@ const managerOverview = {
   "{p} have moved in": "{p} đã vào ở",
   "{n} invoices not paid": "{n} hóa đơn chưa thanh toán",
   "Managers": "Quản lý",
+  "The tier is inactive, so its name can change.": "Hạng đang ngưng dùng nên có thể đổi tên.",
+  "Set the status to Inactive to change the name.": "Chuyển trạng thái sang Ngưng dùng để đổi tên.",
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover }

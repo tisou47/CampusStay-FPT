@@ -32,6 +32,13 @@ function EditDrawer({ item, onClose }) {
     status: item.status ?? 'Active',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  // An existing tier is renamed only while it is (or is being set) Inactive; setting it back to Active undoes the rename.
+  const renamable = isNew || form.status === 'Inactive'
+  const setStatus = (e) => {
+    const status = e.target.value
+    setForm((f) => ({ ...f, status, name: !isNew && status !== 'Inactive' ? item.name : f.name }))
+  }
+  const statusField = <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={setStatus} options={['Active', 'Inactive']} />}</Field>
   const save = useMutation(
     () => {
       const body = { name: form.name.trim(), surchargeRate: (Number(form.surcharge) || 0) / 100, status: form.status }
@@ -61,12 +68,15 @@ function EditDrawer({ item, onClose }) {
       }
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
-      <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} disabled={!isNew} placeholder="e.g. Deluxe" />}</Field>
+      {!isNew && statusField}
+      <Field label="Name" helper={isNew ? undefined : renamable ? 'The tier is inactive, so its name can change.' : 'Set the status to Inactive to change the name.'}>
+        {(id) => <Input id={id} value={form.name} onChange={set('name')} disabled={!renamable} placeholder="e.g. Deluxe" />}
+      </Field>
       <Field label="Surcharge (%)" helper="Added to every room type base price for this class.">
         {(id) => <Input id={id} value={form.surcharge} onChange={set('surcharge')} inputMode="numeric" />}
       </Field>
       <p className="text-sm text-fg-tertiary">{t('Students see the furniture the class requires (Furniture in the list).')}</p>
-      <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}</Field>
+      {isNew && statusField}
     </Drawer>
   )
 }
