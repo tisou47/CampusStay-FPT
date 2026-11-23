@@ -38,7 +38,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Timer,
-  TriangleAlert,
   Upload,
   User,
   Users,
@@ -137,9 +136,9 @@ export const backOffice = {
           { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
           { label: 'Family Days', icon: HeartHandshake, to: '/staff/family-days' },
           { label: 'Family Day statistics', icon: ChartColumn, to: '/staff/family-day-stats' },
+          { label: 'Announcements', icon: Megaphone, to: '/staff/announcements' },
         ],
       },
-      { items: [{ label: 'Announcements', icon: Megaphone, to: '/staff/announcements' }] },
     ],
   },
   manager: {
@@ -210,11 +209,11 @@ export const backOffice = {
       {
         title: 'Operations',
         items: [
-          { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
           { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
+          { label: 'Announcements', icon: Megaphone, to: '/manager/announcements' },
           {
             label: 'Block settings',
             icon: Settings,
@@ -251,7 +250,6 @@ export const backOffice = {
           },
         ],
       },
-      { items: [{ label: 'Announcements', icon: Megaphone, to: '/manager/announcements' }] },
       {
         title: 'Reports',
         items: [

@@ -82,10 +82,11 @@ function examplesOf(item) {
  * The side panel of the check-in inventory: the item being answered and what each condition means for it. Picking a
  * level here answers the item, like the dropdown.
  */
-export function ConditionGuide({ item, value, onPick, disabled, photosRequired }) {
+export function ConditionGuide({ item, value, onPick, disabled, photosRequired, levels }) {
   const examples = examplesOf(item)
   return (
-    <Card className="flex flex-col gap-3 lg:sticky lg:top-4">
+    // On a computer it keeps its own height and scrolls inside, so the page never jumps when another item is picked.
+    <Card className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
       <div className="flex items-start gap-2">
         <Info size={18} className="mt-0.5 shrink-0 text-fg-brand" aria-hidden="true" />
         <div className="flex min-w-0 flex-col">
@@ -100,7 +101,7 @@ export function ConditionGuide({ item, value, onPick, disabled, photosRequired }
           const active = value === c
           const content = (
             <>
-              <Tag tone={conditionTone[c] ?? 'neutral'}>{conditionName(c)}</Tag>
+              <Tag tone={conditionTone[c] ?? 'neutral'}>{conditionName(c, levels)}</Tag>
               <span className="text-sm text-fg">{t(GENERAL[c])}</span>
               {examples?.[c] && <span className="text-sm text-fg-secondary">{t('E.g. {text}', { text: t(examples[c]) })}</span>}
             </>

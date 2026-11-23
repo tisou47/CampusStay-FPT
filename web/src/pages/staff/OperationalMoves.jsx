@@ -154,7 +154,7 @@ export default function OperationalMoves() {
   const items = history.data?.items ?? []
   return (
     <>
-      <PageHeader title="Operational moves" description="Move a student to another bed for an operational reason. Nothing is charged." />
+      <PageHeader title="Operational moves" />
       <form
         className="flex shrink-0 items-end gap-3"
         onSubmit={(e) => {

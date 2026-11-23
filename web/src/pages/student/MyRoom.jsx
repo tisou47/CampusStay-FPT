@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { Bed, KeyRound, Package } from 'lucide-react'
+import { Bed, FileText, History, Package } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -15,14 +15,14 @@ import { NextTermCard } from './room/NextTermCard'
 import { StayActivityLogCard, StayContractCard } from './room/StayContractCard'
 import { HandoverBanner } from './room/HandoverBanner'
 import { BalanceCard, CheckInHeaderWidget, DoorCodeCard, LateCheckInCard, RoomQuickLinksCard } from './room/RoomAccessAndFinance'
-import { FurnitureCard, RoomHeroCard, RoommatesCard } from './room/RoomHeroAndDetails'
+import { FurnitureCard, RoomHeroCard } from './room/RoomHeroAndDetails'
 
 function RoomSegmentedTabs({ items, value, onChange }) {
   return (
     <div
       role="tablist"
       aria-label={t('My room')}
-      className="flex w-full shrink-0 gap-1.5 overflow-x-auto rounded-xl border border-line bg-surface p-1.5 sm:w-fit scrollbar-none"
+      className="flex w-full shrink-0 gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 scrollbar-none"
     >
       {items.map((item) => {
         const active = item.key === value
@@ -37,7 +37,7 @@ function RoomSegmentedTabs({ items, value, onChange }) {
             aria-controls={`room-panel-${item.key}`}
             onClick={() => onChange(item.key)}
             className={cx(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-base font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
+              'flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
               active ? 'bg-primary font-semibold text-fg-on-brand shadow-card' : 'text-fg-secondary hover:bg-subtle hover:text-fg',
             )}
           >
@@ -67,17 +67,16 @@ function Room({ data }) {
   const [tab, setTab] = useState('overview')
   const furnitureQuery = useQuery(['my-furniture'], ({ signal }) => api.me.furniture(undefined, { signal }))
   const furnitureItems = furnitureQuery.data?.items
-  const furnitureCount = furnitureItems?.length
+  // Your bed's items and the shared ones (the roommates' personal sets are not yours).
+  const furnitureCount = furnitureItems?.filter((i) => !i.personal || i.bed === a.bed).length
 
-  const hasContractAttention =
-    (balance && balance.status !== 'Paid') ||
-    data.nextTerm?.state === 'Awaiting extension' ||
-    data.nextTerm?.fee?.status === 'Unpaid'
+  const nextTermAttention = data.nextTerm?.state === 'Awaiting extension' || data.nextTerm?.fee?.status === 'Unpaid'
 
   const tabs = [
-    { key: 'overview', label: t('Room overview'), icon: Bed },
+    { key: 'overview', label: t('Room details'), icon: Bed },
     { key: 'furniture', label: t('Furniture & equipment'), icon: Package, count: furnitureCount },
-    { key: 'contract', label: t('Contract & utilities'), icon: KeyRound, dot: hasContractAttention },
+    { key: 'contract', label: t('Stay & next term'), icon: FileText, dot: nextTermAttention },
+    { key: 'activity', label: t('Activity'), icon: History },
   ]
 
   return (
@@ -97,57 +96,28 @@ function Room({ data }) {
       )}
 
       <RoomSegmentedTabs items={tabs} value={tab} onChange={setTab} />
-
-      {/* Tab 1: Room overview */}
-      {tab === 'overview' && (
-        <div
-          id="room-panel-overview"
-          role="tabpanel"
-          aria-labelledby="room-tab-overview"
-          className="grid animate-fade-in grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6 lg:overflow-y-auto"
-        >
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-7 xl:col-span-8">
+      {/* Each tab has its own layout: the main card on the left, what goes with it on the right. */}
+      <div id={`room-panel-${tab}`} role="tabpanel" aria-labelledby={`room-tab-${tab}`} className="animate-fade-in lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5">
             <RoomHeroCard data={data} furnitureItems={furnitureItems} />
+            <div className="flex flex-col gap-3">
+              <DoorCodeCard />
+              <BalanceCard balance={balance} />
+              {!checkIn?.checkedInAt && !resident && <LateCheckInCard />}
+              <RoomQuickLinksCard rulesUrl={data.rulesUrl} />
+            </div>
           </div>
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-5 xl:col-span-4">
-            <RoommatesCard roommates={roommates} capacity={data.roommateCapacity} roomCode={a.room} />
-            <RoomQuickLinksCard rulesUrl={data.rulesUrl} />
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Furniture & equipment */}
-      {tab === 'furniture' && (
-        <div
-          id="room-panel-furniture"
-          role="tabpanel"
-          aria-labelledby="room-tab-furniture"
-          className="flex animate-fade-in flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden"
-        >
-          <FurnitureCard furnitureQuery={furnitureQuery} />
-        </div>
-      )}
-
-      {/* Tab 3: Contract & utilities */}
-      {tab === 'contract' && (
-        <div
-          id="room-panel-contract"
-          role="tabpanel"
-          aria-labelledby="room-tab-contract"
-          className="grid animate-fade-in grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6 lg:overflow-y-auto"
-        >
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+        )}
+        {tab === 'furniture' && <FurnitureCard furnitureQuery={furnitureQuery} myBed={a.bed} />}
+        {tab === 'contract' && (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-start xl:gap-5">
             <StayContractCard data={data} />
-            <StayActivityLogCard data={data} />
             <NextTermCard data={data} />
           </div>
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
-            <BalanceCard balance={balance} />
-            <DoorCodeCard />
-            {!checkIn?.checkedInAt && !resident && <LateCheckInCard />}
-          </div>
-        </div>
-      )}
+        )}
+        {tab === 'activity' && <StayActivityLogCard data={data} />}
+      </div>
     </div>
   )
 }

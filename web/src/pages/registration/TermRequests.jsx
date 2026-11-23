@@ -628,7 +628,6 @@ export default function TermRequests() {
     <>
       <PageHeader
         title="Registration-period requests"
-        description={manager ? 'Ask the admin to open a term with its dates, rooms, places and prices; follow every answer here.' : 'Requests from managers to open a term. Build the term from one in the wizard.'}
         actions={
           manager && (
             <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>

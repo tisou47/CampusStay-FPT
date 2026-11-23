@@ -36,7 +36,15 @@ public interface MaintenanceRequests {
     boolean isOpen(long requestId);
 
     /** Assigns an open request (a routing rule, or the Block Manager after an escalation); {@code why} goes in its log. */
-    void assign(long requestId, long assigneeId, String why);
+    default void assign(long requestId, long assigneeId, String why) {
+        assign(requestId, assigneeId, why, null, null);
+    }
+
+    /**
+     * Assigns an open request in the name of {@code actorId} ({@code actorRole} e.g. MANAGER), who then shows in its log
+     * as for an assignment at the desk; without an actor it is the system's, with {@code why} in the text.
+     */
+    void assign(long requestId, long assigneeId, String why, Long actorId, String actorRole);
 
     /** Back to the Block queue (Submitted, nobody in charge) with a history line; nothing when it is closed. */
     void unassign(long requestId, String why);

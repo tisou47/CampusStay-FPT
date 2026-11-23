@@ -6,6 +6,7 @@ import {
   Building,
   CalendarClock,
   Check,
+  ChevronRight,
   CreditCard,
   Download,
   FileText,
@@ -94,7 +95,7 @@ export default function ManagerDashboard() {
       tone: 'warning',
       title: t('{n} transfers to confirm', { n: formatNumber(claim.count) }),
       meta: t('{amount} that students say they transferred; their deadlines are paused until you decide', { amount: formatCompactVnd(claim.amount) }),
-      action: { label: t('Confirm'), to: '/manager/payment-claims', primary: true, className: 'min-w-24 justify-center' },
+      action: { label: t('Confirm'), to: '/manager/payment-claims', primary: true, className: 'w-28 justify-center' },
     },
     w?.toReview > 0 && {
       id: 'applications',
@@ -102,7 +103,7 @@ export default function ManagerDashboard() {
       tone: 'info',
       title: t('{n} applications to review', { n: formatNumber(w.toReview) }),
       meta: t('{s} Submitted · {u} Under Review', { s: w.submitted, u: w.underReview }),
-      action: { label: t('Review'), to: '/manager/applications', className: 'min-w-24 justify-center' },
+      action: { label: t('Review'), to: '/manager/applications', className: 'w-28 justify-center' },
     },
     proposal && proposal.committedBlocks < proposal.totalBlocks && {
       id: 'proposal',
@@ -110,7 +111,7 @@ export default function ManagerDashboard() {
       tone: proposal.conflicts ? 'warning' : 'info',
       title: t('{run}: {c} of {n} blocks committed', { run: proposal.runId, c: proposal.committedBlocks, n: proposal.totalBlocks }),
       meta: proposal.conflicts ? t('{n} conflicts to resolve before committing', { n: proposal.conflicts }) : t('{n} students proposed; commit each block to allocate them', { n: proposal.proposed }),
-      action: { label: proposal.conflicts ? t('Resolve') : t('Commit'), to: `/manager/assignment/${proposal.runId}`, className: 'min-w-24 justify-center' },
+      action: { label: proposal.conflicts ? t('Resolve') : t('Commit'), to: `/manager/assignment/${proposal.runId}`, className: 'w-28 justify-center' },
     },
     r2?.waitlisted > 0 && {
       id: 'round2',
@@ -118,7 +119,7 @@ export default function ManagerDashboard() {
       tone: 'info',
       title: t('{n} waitlisted students without a Round 2 offer', { n: formatNumber(r2.waitlisted) }),
       meta: r2.freeBeds ? t('{n} free beds can be offered', { n: formatNumber(r2.freeBeds) }) : t('No free bed yet: they get one when a bed frees up'),
-      action: { label: t('Round 2'), to: '/manager/assignment?tab=round2', className: 'min-w-24 justify-center' },
+      action: { label: t('Round 2'), to: '/manager/assignment?tab=round2', className: 'w-28 justify-center' },
     },
     r2?.openOffers > 0 && {
       id: 'round2-open',
@@ -126,7 +127,7 @@ export default function ManagerDashboard() {
       tone: 'info',
       title: t('{n} Round 2 offers waiting for an answer', { n: formatNumber(r2.openOffers) }),
       meta: t('Their beds are held until each offer expires'),
-      action: { label: t('See who'), to: '/manager/assignment?tab=round2', className: 'min-w-24 justify-center' },
+      action: { label: t('See who'), to: '/manager/assignment?tab=round2', className: 'w-28 justify-center' },
     },
     a?.lateCheckIn > 0 && {
       id: 'late',
@@ -134,7 +135,7 @@ export default function ManagerDashboard() {
       tone: 'warning',
       title: t('{n} late check-ins to decide', { n: formatNumber(a.lateCheckIn) }),
       meta: t('Students asked to move in after the check-in window'),
-      action: { label: t('Decide'), to: '/manager/approvals', className: 'min-w-24 justify-center' },
+      action: { label: t('Decide'), to: '/manager/approvals', className: 'w-28 justify-center' },
     },
     a?.swaps > 0 && {
       id: 'swaps',
@@ -142,7 +143,7 @@ export default function ManagerDashboard() {
       tone: 'info',
       title: t('{n} swaps waiting for a manager', { n: formatNumber(a.swaps) }),
       meta: t('Both students agreed; the swap needs your decision'),
-      action: { label: t('Decide'), to: '/manager/approvals?tab=swaps', className: 'min-w-24 justify-center' },
+      action: { label: t('Decide'), to: '/manager/approvals?tab=swaps', className: 'w-28 justify-center' },
     },
     k?.escalationsWaiting > 0 && {
       id: 'escalations',
@@ -150,7 +151,7 @@ export default function ManagerDashboard() {
       tone: 'error',
       title: t('{n} overdue requests', { n: formatNumber(k.escalationsWaiting) }),
       meta: t('Past their time limit: reassign them or offer a temporary bed'),
-      action: { label: t('Handle'), to: '/manager/escalations', primary: true, className: 'min-w-24 justify-center' },
+      action: { label: t('Handle'), to: '/manager/maintenance?view=overdue', primary: true, className: 'w-28 justify-center' },
     },
     k?.refundsWaiting > 0 && {
       id: 'refunds',
@@ -158,7 +159,7 @@ export default function ManagerDashboard() {
       tone: 'warning',
       title: t('{n} refunds to decide', { n: formatNumber(k.refundsWaiting) }),
       meta: t('Cancelled applications, ended stays and terminations'),
-      action: { label: t('Decide'), to: '/manager/finance', className: 'min-w-24 justify-center' },
+      action: { label: t('Decide'), to: '/manager/finance', className: 'w-28 justify-center' },
     },
     ...(d?.waiting ?? [])
       .filter((x) => x.kind === 'check-out' || x.kind === 'meter-period')
@@ -168,7 +169,7 @@ export default function ManagerDashboard() {
         tone: x.severity === 'error' ? 'error' : x.severity === 'warning' ? 'warning' : 'info',
         title: attentionText(x).title,
         meta: attentionText(x).body,
-        action: x.link ? { label: x.cta ?? t('Open'), to: x.link, className: 'min-w-24 justify-center' } : null,
+        action: x.link ? { label: x.cta ?? t('Open'), to: x.link, className: 'w-28 justify-center' } : null,
       })),
   ].filter(Boolean)
 
@@ -180,7 +181,7 @@ export default function ManagerDashboard() {
       tone: 'error',
       title: t('No routing rules for Blocks {list}', { list: gapBlocks.join(', ') }),
       meta: t('{n} routing rules missing; new requests stay unassigned until set up', { n: routingGaps.length }),
-      action: { label: t('Add rule'), to: '/manager/routing-rules', primary: true, className: 'min-w-24 justify-center' },
+      action: { label: t('Add rule'), to: '/manager/routing-rules', primary: true, className: 'w-28 justify-center' },
     })
   }
 
@@ -243,7 +244,6 @@ export default function ManagerDashboard() {
       <PageHeader
         compact
         title={d?.block ? t('Block {code} overview', { code: d.block }) : t('Dormitory overview')}
-        description={formatDate(new Date())}
         actions={
           <Button size="sm" icon={Download} to="/manager/reports">
             {t('Reports')}
@@ -257,51 +257,40 @@ export default function ManagerDashboard() {
       {term && (
         <section
           aria-label={t('Term {name}', { name: term.name })}
-          className="flex shrink-0 flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs"
+          className="flex shrink-0 flex-col gap-3 rounded-xl border border-line bg-surface px-5 pt-4 pb-3 shadow-xs"
         >
           {/* Full 5-stage timeline with connected lines, checkmarks, stage names & dates */}
           <SemesterProgress steps={journey} aria-label={t('Stages of the term')} />
 
-          {/* Current stage description line */}
-          {nowStep && (
-            <div className="border-t border-line/70 pt-2.5">
-              <p className="text-xs text-fg-secondary leading-relaxed select-none">
-                <span className="font-semibold text-fg">
-                  {t('Now: {stage}.', { stage: t(nowStep.label) })}{' '}
-                </span>
-                <span>{t(nowStep.why)}</span>
-              </p>
-            </div>
-          )}
-
-          {/* 5 Stage action chips: rounded-xl, smooth hover, tooltips, even gap */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-0.5" aria-label={t('Work of this stage:')}>
-            {stageScreens.map((sc, i) => {
-              const c = stageCounts[sc.to]
-              return (
-                <Tooltip
-                  key={sc.to}
-                  label={c?.title ? `${t(sc.why)} · ${c.title}` : t(sc.why)}
-                  delay={150}
-                  side="bottom"
-                >
-                  <Link
-                    to={sc.to}
-                    className="group flex h-8 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-xs font-medium text-fg shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-primary hover:bg-primary-subtle/30 hover:text-fg-brand hover:shadow-xs focus-visible:outline-2 focus-visible:outline-focus whitespace-nowrap"
-                  >
-                    <span className="flex size-4.5 items-center justify-center rounded-md bg-subtle text-[11px] font-bold text-fg-secondary tabular transition-colors group-hover:bg-primary group-hover:text-fg-on-brand">
-                      {i + 1}
-                    </span>
-                    <span>{t(sc.label)}</span>
-                    {c && (
-                      <span className={cx('rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular', badgeTone[c.tone ?? 'neutral'])}>
-                        {c.label}
+          {/* Now: the current stage in a line, and the screens of its work beside it */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line/70 pt-3">
+            {nowStep && (
+              <Tooltip label={t(nowStep.why)} delay={150} className="min-w-60 flex-1">
+                <p tabIndex={0} className="line-clamp-1 text-sm text-fg-secondary">
+                  <span className="mr-1.5 inline-flex items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-fg-brand">{t('Now: {stage}', { stage: t(nowStep.label) })}</span>
+                  {t(nowStep.why)}
+                </p>
+              </Tooltip>
+            )}
+            <div className="flex flex-wrap items-center gap-2" aria-label={t('Work of this stage:')}>
+              {stageScreens.map((sc, i) => {
+                const c = stageCounts[sc.to]
+                return (
+                  <Tooltip key={sc.to} label={c?.title ? `${t(sc.why)} · ${c.title}` : t(sc.why)} delay={150} side="bottom">
+                    <Link
+                      to={sc.to}
+                      className="group flex h-8 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-xs font-medium whitespace-nowrap text-fg transition-colors hover:border-primary hover:bg-primary-subtle/30 hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-focus"
+                    >
+                      <span className="flex size-4.5 items-center justify-center rounded-md bg-subtle text-[11px] font-bold text-fg-secondary tabular transition-colors group-hover:bg-primary group-hover:text-fg-on-brand">
+                        {i + 1}
                       </span>
-                    )}
-                  </Link>
-                </Tooltip>
-              )
-            })}
+                      <span>{t(sc.label)}</span>
+                      {c && <span className={cx('rounded-full px-1.5 text-[10px] font-bold tabular', badgeTone[c.tone ?? 'neutral'])}>{c.label}</span>}
+                    </Link>
+                  </Tooltip>
+                )
+              })}
+            </div>
           </div>
         </section>
       )}
@@ -347,7 +336,7 @@ export default function ManagerDashboard() {
 
         {/* 3. Overdue requests (Link to /manager/escalations) */}
         <Link
-          to="/manager/escalations"
+          to="/manager/maintenance?view=overdue"
           className="flex min-w-0 flex-1 flex-col justify-between rounded-lg border border-line bg-surface p-4 transition-colors hover:border-error/40 hover:bg-error-bg/10 focus-visible:ring-2 focus-visible:ring-focus"
         >
           <div className="flex items-center gap-2 text-fg-tertiary">
@@ -357,8 +346,9 @@ export default function ManagerDashboard() {
           <p className={cx('text-kpi font-semibold tabular whitespace-nowrap', (k?.escalationsWaiting ?? 0) > 0 ? 'text-error-fg' : 'text-fg')}>
             {formatNumber(k?.escalationsWaiting ?? 0)}
           </p>
-          <p className="truncate text-xs text-fg-secondary">
-            {t('Click to resolve')}
+          <p className="flex items-center gap-1 truncate text-xs font-medium text-fg-link">
+            {(k?.escalationsWaiting ?? 0) > 0 ? t('Reassign them in Maintenance') : t('Nothing past its time limit')}
+            {(k?.escalationsWaiting ?? 0) > 0 && <ChevronRight size={13} aria-hidden="true" />}
           </p>
         </Link>
 
@@ -393,7 +383,6 @@ export default function ManagerDashboard() {
                 </Tag>
               ) : null
             }
-            subtitle={t('Every decision that needs a manager, the most urgent first')}
             className="h-full shadow-xs"
             bodyClassName="flex-1 overflow-y-auto pr-1"
           >

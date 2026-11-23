@@ -516,7 +516,6 @@ export default function Furniture() {
     <>
       <PageHeader
         title="Furniture"
-        description={manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
       />
       <Tabs
         className="shrink-0"

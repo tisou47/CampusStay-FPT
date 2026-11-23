@@ -102,7 +102,7 @@ export default function RoomClassesByTerm() {
 
   return (
     <>
-      <PageHeader title="Room tiers by term" description="The room tier of every room for a term. A class set for a term stays for the terms after it." />
+      <PageHeader title="Room tiers by term" />
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <Select
           wrapperClassName="w-60"

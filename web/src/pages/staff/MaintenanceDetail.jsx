@@ -18,6 +18,7 @@ import { cx } from '@/lib/cx'
 import { campusToday, formatDateTime } from '@/lib/format'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
+import { Candidate, useOverdue } from '@/pages/manager/Escalations'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-11 Maintenance Detail (Figma 42:2739). Shared with the Manager portal.
@@ -135,11 +136,29 @@ function RequestDetail({ r, staff, priorities }) {
   const open = OPEN.includes(r.status)
   const options = { invalidates: ['maintenance', 'dashboard'] }
 
-  const save = useMutation(() => api.maintenance.update(r.id, { priority, assigneeId: assigneeId || null, visitWindow: visit.trim() || null }), {
-    ...options,
-    onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
-    onError: (e) => notifyError(e, 'Could not save'),
-  })
+  // Overdue (a Manager): the staff of the request's block are listed with duty and workload, and choosing someone else
+  // reassigns it through the escalation (which clears the overdue state), then the rest is saved as usual.
+  const overdue = useOverdue('maintenance', base === '/manager')
+  const escalation = base === '/manager' ? overdue.items.find((e) => e.id === r.id && !e.handled) : null
+  // The staff of this block only (overdue: the escalation's list, else the request's own), with duty and workload.
+  const candidates = escalation?.candidates?.length ? escalation.candidates : r.blockStaff ?? []
+  const maxOpen = Math.max(1, ...candidates.map((c) => c.open))
+  const [note, setNote] = useState('')
+  const reassigning = escalation && assigneeId && String(assigneeId) !== String(r.assignee?.id ?? '')
+  const save = useMutation(
+    async () => {
+      if (reassigning) await api.escalations.act(escalation.id, { action: 'reassign', assigneeId, note: note.trim() || undefined })
+      return api.maintenance.update(r.id, { priority, assigneeId: assigneeId || null, visitWindow: visit.trim() || null })
+    },
+    {
+      invalidates: ['maintenance', 'dashboard', 'escalations'],
+      onSuccess: () => {
+        setNote('')
+        notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) })
+      },
+      onError: (e) => notifyError(e, 'Could not save'),
+    },
+  )
   // The person in charge does the work: other Staff take the request over first (Managers may act on any request).
   const { user } = useSession()
   const isStaff = user?.role === 'staff'
@@ -188,12 +207,6 @@ function RequestDetail({ r, staff, priorities }) {
         badge={
           <span className="mr-6 flex shrink-0 items-center gap-2">
             <StatusTag status={r.status} />
-          </span>
-        }
-        description={
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
-            {[r.reporter?.name, r.reporter?.role ? tr(r.reporter.role) : null, formatDateTime(r.reportedAt)].filter(Boolean).join(' · ')}
-            {r.urgency === 'Urgent' && <StatusTag status={r.urgency} tone="error" />}
           </span>
         }
         actions={
@@ -303,8 +316,9 @@ function RequestDetail({ r, staff, priorities }) {
           </Card>
         </div>
 
-        {/* 3 · What the desk decides */}
-        <Card className="flex min-h-0 flex-col gap-3.5 self-start xl:max-h-full xl:overflow-y-auto">
+        {/* 3 · What the desk decides (a Manager also reassigns it here when it is overdue) */}
+        <div className="flex min-h-0 flex-col gap-4 self-start xl:max-h-full xl:overflow-y-auto">
+        <Card className="flex shrink-0 flex-col gap-3.5">
           <h2 className="text-h3 font-semibold text-fg">{t('Handling')}</h2>
           {r.slaDueAt && open && (
             <div className="flex items-center justify-between gap-3 rounded-md bg-subtle px-3 py-2 text-sm text-fg-secondary">
@@ -318,21 +332,37 @@ function RequestDetail({ r, staff, priorities }) {
           <Field label="Priority" helper={studentRequest && r.urgency ? t('The student marked it {urgency}.', { urgency: tr(r.urgency) }) : undefined}>
             {(id) => <Select id={id} value={priority ?? ''} onChange={(e) => setPriority(e.target.value)} options={priorities} />}
           </Field>
-          <Field label="Assignee">
-            {(id) => (
-              <Select
-                id={id}
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
-              />
-            )}
-          </Field>
+          {candidates.length ? (
+            <div className="flex flex-col gap-2">
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="text-base font-medium text-fg">{t('Assignee')}</span>
+                <span className="text-xs text-fg-tertiary">{t('Staff of this block · open requests')}</span>
+              </span>
+              <ul role="radiogroup" aria-label={t('Assignee')} className="flex flex-col gap-1.5">
+                {candidates.map((c) => (
+                  <Candidate key={c.id} c={{ ...c, owner: escalation ? c.owner : false }} kind="maintenance" maxOpen={maxOpen} selected={String(assigneeId) === String(c.id)} onSelect={setAssigneeId} />
+                ))}
+              </ul>
+              {reassigning && <Textarea aria-label={t('Manager note')} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manager note…" className="resize-none" />}
+            </div>
+          ) : (
+            <Field label="Assignee">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
+                />
+              )}
+            </Field>
+          )}
           <VisitWindowField value={visit} onChange={setVisit} />
           <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
-            {studentRequest ? 'Save and notify student' : 'Save'}
+            {reassigning ? t('Reassign and save') : studentRequest ? 'Save and notify student' : 'Save'}
           </Button>
         </Card>
+        </div>
       </div>
     </>
   )

@@ -35,7 +35,6 @@ export default function FinancialReport() {
     <>
       <PageHeader
         title="Financial report"
-        description={`${t('Invoiced, collected and refunded amounts (₫)')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>

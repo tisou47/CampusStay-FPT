@@ -94,7 +94,6 @@ export default function ApplicationQueue() {
     <>
       <PageHeader
         title="Applications"
-        description="Applications reach this queue after the deposit is paid."
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>

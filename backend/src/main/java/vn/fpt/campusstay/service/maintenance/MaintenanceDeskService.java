@@ -91,7 +91,16 @@ public class MaintenanceDeskService {
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
             String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
             Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions,
-            InspectionFinding inspectionFinding) {
+            InspectionFinding inspectionFinding, List<StaffChoice> blockStaff) {
+    }
+
+    /**
+     * A staff member of the request's Block to assign it to: on duty or not, whether they handle maintenance, how many
+     * requests they have open, whether they hold this one and whether they are the suggested one. Those who handle
+     * maintenance first, then on duty, then the least busy.
+     */
+    public record StaffChoice(String id, String name, boolean onDuty, boolean handles, long open, boolean owner,
+            boolean suggested) {
     }
 
     /**
@@ -289,17 +298,48 @@ public class MaintenanceDeskService {
                 .filter(f -> f.id().equals(String.valueOf(r.furnitureItemId()))).findFirst()
                 .map(f -> new FurnitureRef(f.id(), f.assetCode(), f.type(), f.typeVi()))
                 .orElse(new FurnitureRef(String.valueOf(r.furnitureItemId()), null, null, null));
+        String suggested = r.assigneeId() == null ? suggestedAssignee(r.buildingId()).map(String::valueOf).orElse(null) : null;
         return new Detail(r.code(), r.title(), RequestStore.statusLabel(r.status()), r.roomCode(), bed,
                 labels.label("MAINTENANCE_CATEGORY", r.category()), labels.label("MAINTENANCE_LOCATION", r.location()),
                 r.reportedAt(), new Reporter(names.get(r.reporterId()), SOURCES.get(r.source())),
                 RequestStore.urgencyLabel(r.urgency()), RequestStore.priorityLabel(r.priority()), r.staffMayEnter(),
                 r.description(), photos, assignee(r.assigneeId(), names),
-                r.assigneeId() == null ? suggestedAssignee(r.buildingId()).map(String::valueOf).orElse(null) : null,
+                suggested,
                 RequestStore.visitWindow(r.visitStart(), r.visitEnd()),
                 history.stream().map(e -> new DeskEvent(e.actorId() == null ? "CampusStay" : names.get(e.actorId()),
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
-                room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null);
+                room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null,
+                blockStaff(r, suggested));
+    }
+
+    /** The Block's staff as assignment choices (the request's own Block only: nobody else may take it). */
+    private List<StaffChoice> blockStaff(RequestStore.Request r, String suggested) {
+        List<UserDirectory.StaffMember> staff = users.staffOf(List.of(r.buildingId()));
+        Map<Long, Long> load = openLoad(staff.stream().map(UserDirectory.StaffMember::userId).toList());
+        return staff.stream().map(m -> new StaffChoice(String.valueOf(m.userId()), m.name(), m.onDuty(),
+                m.handles().contains(MaintenanceService.MAINTENANCE), load.getOrDefault(m.userId(), 0L),
+                Objects.equals(m.userId(), r.assigneeId()), String.valueOf(m.userId()).equals(suggested)))
+                .sorted(Comparator.comparing((StaffChoice c) -> !c.handles())
+                        .thenComparing(c -> !c.onDuty())
+                        .thenComparingLong(StaffChoice::open)
+                        .thenComparing(StaffChoice::name))
+                .toList();
+    }
+
+    /** Open (assigned or in progress) maintenance requests of each of these staff members. */
+    private Map<Long, Long> openLoad(List<Long> staffIds) {
+        Map<Long, Long> load = new HashMap<>();
+        if (staffIds.isEmpty()) {
+            return load;
+        }
+        jdbc.sql("""
+                SELECT assignee_id, count(*) AS n FROM mnt_request
+                WHERE assignee_id IN (:ids) AND status IN ('ASSIGNED', 'IN_PROGRESS') GROUP BY assignee_id
+                """).param("ids", staffIds)
+                .query((rs, i) -> Map.entry(rs.getLong("assignee_id"), rs.getLong("n"))).list()
+                .forEach(e -> load.put(e.getKey(), e.getValue()));
+        return load;
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */

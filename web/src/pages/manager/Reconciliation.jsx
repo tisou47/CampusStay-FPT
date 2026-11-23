@@ -167,7 +167,6 @@ export default function Reconciliation() {
     <>
       <PageHeader
         title="Reconciliation"
-        description="Compare the enrolled list of a term with its residents and applicants, and resolve every difference."
         actions={
           o?.terms?.length > 0 && (
             <Select

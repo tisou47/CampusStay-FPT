@@ -31,7 +31,7 @@ export default function FamilyDayStats() {
 
   return (
     <>
-      <PageHeader title="Family Day statistics" description="Family Days that are over: registrations, guests registered and those who came, guests who stayed past their time slot." />
+      <PageHeader title="Family Day statistics" />
 
       <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiTile icon={ChartColumn} label="Family Days" value={formatNumber(totals?.familyDays)} />

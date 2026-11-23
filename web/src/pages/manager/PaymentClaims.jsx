@@ -194,7 +194,6 @@ export default function PaymentClaims() {
     <>
       <PageHeader
         title="Payment confirmations"
-        description="Students said they transferred. Find each amount and transfer content on the bank statement, then confirm or reject."
         actions={
           <>
             <Button tip="Send the ticked claims back to the students with your reason. Their invoices stay unpaid." icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
