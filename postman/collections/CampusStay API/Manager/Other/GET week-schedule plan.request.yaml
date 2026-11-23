@@ -1,0 +1,15 @@
+$kind: http-request
+name: '/week-schedule/plan'
+method: GET
+url: '{{baseUrl}}/week-schedule/plan?block={{block}}'
+order: 4000
+description: |-
+  `GET /week-schedule/plan?block&week` → `{ start, end, editable, nextWeek, staff: [{ id, name, title, blocks, shifts, planned }], sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }`
+
+  Contract: `tools/postman/api-contract.md` › Manager › Other
+queryParams:
+  - key: block
+    value: '{{block}}'
+  - key: week
+    value: ''
+    disabled: true

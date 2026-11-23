@@ -1,11 +1,6 @@
 package vn.fpt.campusstay.controller.setting;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Size;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,32 +17,11 @@ import vn.fpt.campusstay.service.setting.TermWizardService;
  * Admin › Registration periods › Terms. The wizard (A-27, spec §6.4) creates a Draft
  * ({@code POST /admin/terms/drafts}, from a Manager's request or empty), reads it
  * ({@code GET /{id}/wizard}), saves one step at a time ({@code PUT /{id}/wizard/{step}}) and publishes it. The
- * one-form create and update stay for existing clients: fields may be null (the form sends empty fields as null);
- * the service names each missing one, and a null {@code depositHours} takes the default of Admin › Fees.
+ * one-form create and update were removed (BE-3RD-08): every Term goes through the wizard.
  */
 @RestController
 @RequestMapping("/admin/terms")
 class AdminTermController {
-
-    record TermRequest(
-            @Size(max = 100, message = "Use at most 100 characters.") String name,
-            LocalDate stayStart,
-            LocalDate stayEnd,
-            Instant registrationOpensAt,
-            Instant registrationClosesAt,
-            Instant resultsPublishedAt,
-            Integer roommateHours,
-            Integer depositHours,
-            Instant balanceDueAt,
-            LocalDate checkInStart,
-            LocalDate checkInEnd,
-            LocalDate checkOutBy) {
-
-        AdminTermService.TermValues values() {
-            return new AdminTermService.TermValues(name, stayStart, stayEnd, registrationOpensAt, registrationClosesAt,
-                    resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy);
-        }
-    }
 
     record TermList(List<AdminTermService.TermItem> items) {
     }
@@ -66,16 +40,6 @@ class AdminTermController {
     @GetMapping
     TermList list() {
         return new TermList(terms.list());
-    }
-
-    @PostMapping
-    Saved create(@Valid @RequestBody TermRequest body) {
-        return new Saved(String.valueOf(terms.create(body.values())));
-    }
-
-    @PutMapping("/{id}")
-    Saved update(@PathVariable long id, @Valid @RequestBody TermRequest body) {
-        return new Saved(String.valueOf(terms.update(id, body.values())));
     }
 
     @PostMapping("/drafts")

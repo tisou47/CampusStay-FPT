@@ -188,6 +188,7 @@ public class StaffAccountService {
         if (status != was) {
             if (status == UserEntity.Status.DISABLED) {
                 user.disable();
+                staffBlocks.releaseWork(user.getId(), Set.of(), "the account was disabled");
                 sessions.revokeAll(user.getId());
             } else if (was == UserEntity.Status.DISABLED) {
                 user.restore();

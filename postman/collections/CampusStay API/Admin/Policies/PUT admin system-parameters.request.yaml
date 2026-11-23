@@ -23,7 +23,8 @@ body:
               "label": "",
               "value": "",
               "helper": "",
-              "options": []
+              "options": [],
+              "type": ""
             }
           ]
         }

@@ -225,6 +225,7 @@ public class AdminUserService {
         }
         if (target == UserEntity.Status.DISABLED) {
             user.disable();
+            staffBlocks.releaseWork(user.getId(), Set.of(), "the account was disabled");
             sessions.revokeAll(user.getId());
         } else if (current == UserEntity.Status.DISABLED) {
             user.restore();

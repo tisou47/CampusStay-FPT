@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/check-in/today?termId={{termId}}&block={{block}}'
 order: 1000
 description: |-
-  `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null }` (`expected` = every Allocation of the Term in the Blocks; A-63)
+  `GET /check-in/today?termId&block` → `{ date, block, expected, checkedIn, waiting, blocked, recent: [{ name, studentCode, bed, at }], termId, termName, checkInStart, checkInEnd, window: 'UPCOMING'|'OPEN'|'CLOSED'|null, waitingList, blockedList }` (`expected` = every Allocation of the Term in the Blocks; A-63; `waitingList` / `blockedList`: up to 30 students not checked in, paid / still owing, same shape as `recent` with `at` null, A-81)
 
   Contract: `tools/postman/api-contract.md` › Staff (also used by the Manager for its Block) › Desk
 queryParams:

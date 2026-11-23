@@ -62,6 +62,8 @@ public class AssistantService {
 
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final int MAX_TURNS = 12;
+    /** Characters of conversation sent to the model, so a long chat cannot push the data out of its context. */
+    private static final int MAX_HISTORY_CHARS = 6000;
     /**
      * Put just before the student's latest question: the language and the rules sit thousands of tokens of English data
      * earlier, and Qwen models drift into Chinese in long answers.
@@ -114,6 +116,21 @@ public class AssistantService {
         return new Status(config.enabled());
     }
 
+
+    /**
+     * The last {@value #MAX_TURNS} turns within {@value #MAX_HISTORY_CHARS} characters, the oldest dropped first; the
+     * question (the last turn) is always kept (BE-PLT-03).
+     */
+    static List<Turn> history(List<Turn> turns) {
+        int from = turns.size() - 1;
+        int chars = turns.getLast().content().length();
+        while (from > 0 && turns.size() - from < MAX_TURNS
+                && chars + turns.get(from - 1).content().length() <= MAX_HISTORY_CHARS) {
+            from--;
+            chars += turns.get(from).content().length();
+        }
+        return turns.subList(from, turns.size());
+    }
     /** @param turns the conversation so far, ending with the student's question */
     public Reply chat(List<Turn> turns) {
         AuthenticatedUser user = currentUser.require(Role.STUDENT);
@@ -128,14 +145,15 @@ public class AssistantService {
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
         String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
-            return reply(DOOR_CODE_ANSWERS.get(locale));
+            return reply(user, DOOR_CODE_ANSWERS.get(locale));
         }
 
         List<AssistantModel.Message> messages = new ArrayList<>();
         messages.add(new AssistantModel.Message("system", systemPrompt(user, locale)));
         List<Turn> genuine = turns.stream()
-                .filter(t -> !"assistant".equals(t.role()) || sign(t.content()).equals(t.signature())).toList();
-        genuine.subList(Math.max(0, genuine.size() - MAX_TURNS), genuine.size())
+                .filter(t -> !"assistant".equals(t.role()) || sign(user.userId(), t.content()).equals(t.signature()))
+                .toList();
+        history(genuine)
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
 
@@ -149,19 +167,19 @@ public class AssistantService {
         if (text.isEmpty() || CJK.matcher(text).find()) {
             throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
         }
-        return reply(text);
+        return reply(user, text);
     }
 
-    private Reply reply(String text) {
-        return new Reply(text, sign(text));
+    private Reply reply(AuthenticatedUser user, String text) {
+        return new Reply(text, sign(user.userId(), text));
     }
 
-    /** HMAC-SHA256 of an answer, Base64. */
-    String sign(String text) {
+    /** HMAC-SHA256 of {@code userId|answer}, Base64: an answer signed for one student is not valid for another (M6). */
+    String sign(long userId, String text) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(signingKey, "HmacSHA256"));
-            return Base64.getEncoder().encodeToString(mac.doFinal((text == null ? "" : text.strip())
+            return Base64.getEncoder().encodeToString(mac.doFinal((userId + "|" + (text == null ? "" : text.strip()))
                     .getBytes(StandardCharsets.UTF_8)));
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);

@@ -865,7 +865,20 @@ class _FormState extends State<_Form> {
               child: BusyButton(
                 label: t('Submit inventory', 'Nộp biên bản'),
                 busy: _busy,
-                onPressed: () => _send(true),
+                // Wave 2: a matching inventory becomes final at once, so the student confirms first.
+                onPressed: () async {
+                  final ok = await confirm(
+                    context,
+                    title: t('Submit the inventory?', 'Nộp biên bản?'),
+                    body: t(
+                      'When it matches the Room it becomes final at once and cannot be changed.',
+                      'Nếu khớp với phòng, biên bản được chốt ngay và không sửa được nữa.',
+                    ),
+                    yes: t('Submit', 'Nộp'),
+                    no: t('Back', 'Quay lại'),
+                  );
+                  if (ok) await _send(true);
+                },
               ),
             ),
           ],
@@ -1236,7 +1249,20 @@ class _Charges extends StatelessWidget {
   final Json data;
   final Future<void> Function() reload;
 
-  Future<void> _answer(String id, bool acknowledge) async {
+  Future<void> _answer(BuildContext context, Json claim, bool acknowledge) async {
+    final id = claim.text('id');
+    if (acknowledge) {
+      final ok = await confirm(
+        context,
+        title: t('Confirm the damage?', 'Xác nhận hư hỏng?'),
+        body:
+            '${money(claim.number('amount'))} ${t('is charged at your check-out. This cannot be undone.', 'sẽ được tính khi bạn trả phòng. Không thể hoàn tác.')}',
+        yes: t('Confirm', 'Xác nhận'),
+        no: t('Back', 'Quay lại'),
+        danger: true,
+      );
+      if (!ok) return;
+    }
     final done = await attempt(
       () => Api.post('/students/me/damage-claims/${Uri.encodeComponent(id)}', {'acknowledge': acknowledge}),
       success: acknowledge
@@ -1371,13 +1397,13 @@ class _Charges extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _answer(c.text('id'), false),
+                      onPressed: () => _answer(context, c, false),
                       child: Text(t('Decline', 'Từ chối')),
                     ),
                   ),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => _answer(c.text('id'), true),
+                      onPressed: () => _answer(context, c, true),
                       child: Text(t('Confirm', 'Xác nhận')),
                     ),
                   ),
@@ -1473,6 +1499,15 @@ class _Charges extends StatelessWidget {
                 label: t('Agree with the charges', 'Đồng ý với khoản đền'),
                 icon: Icons.check_circle_outline,
                 onPressed: () async {
+                  final ok = await confirm(
+                    context,
+                    title: t('Agree with the charges?', 'Đồng ý với khoản đền?'),
+                    body:
+                        '${t('Total', 'Tổng')}: ${money(data.number('total'))}. ${t('Staff then complete your check-out with this amount.', 'Nhân viên sẽ hoàn tất trả phòng với số tiền này.')}',
+                    yes: t('Agree', 'Đồng ý'),
+                    no: t('Back', 'Quay lại'),
+                  );
+                  if (!ok) return;
                   final done = await attempt(
                     () => Api.post('/students/me/check-out/agree'),
                     success: t(

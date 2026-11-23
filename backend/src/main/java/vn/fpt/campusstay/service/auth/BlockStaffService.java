@@ -103,7 +103,7 @@ public class BlockStaffService {
     private static final int MAX_NOTE = 300;
     private static final int MAX_ITEMS = 100;
     /** Kinds of work in column order, with their labels and the handle (request type) a receiver needs. */
-    private static final Map<String, String> TYPE_LABELS = labels();
+    static final Map<String, String> TYPE_LABELS = labels();
     private static final Map<String, String> TYPE_HANDLES = Map.of(StaffWorkload.MAINTENANCE, "MAINTENANCE",
             StaffWorkload.ROOM_CHANGE, "ROOM_CHANGES", StaffWorkload.INSPECTION, "INSPECTIONS");
     private static final Map<String, String[]> QUEUES = Map.of(

@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/upcoming'
 method: GET
 url: '{{baseUrl}}/inspection-runs/upcoming?block={{block}}'
-order: 6000
+order: 9000
 description: |-
   `GET /inspection-runs/upcoming?block` → `{ items: [{ id, date, scope, scheduleName }] }`
 

@@ -191,10 +191,16 @@ ThemeData campusTheme() {
 final messenger = GlobalKey<ScaffoldMessengerState>();
 
 /// A short message at the bottom of the screen (the web's toast).
-void toast(String text, {bool error = false}) {
+void toast(String text, {bool error = false, String? actionLabel, VoidCallback? onAction}) {
   messenger.currentState
     ?..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text), backgroundColor: error ? Tone.error.mark : null));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: error ? Tone.error.mark : null,
+        action: actionLabel == null || onAction == null ? null : SnackBarAction(label: actionLabel, onPressed: onAction),
+      ),
+    );
 }
 
 /// Opens [page] on top of the current screen; resolves when it is closed.

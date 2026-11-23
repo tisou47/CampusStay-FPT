@@ -10,8 +10,8 @@ import { ConfigPage, useConfigForm } from './shared'
 import { t } from '@/i18n'
 
 // SCR-CFG-20 Utility (Figma 100:3830 — utility part).
-// GET /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld,
-//   blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }
+// GET /admin/utility → { priceKwh, priceM3, paymentDueDays, rounding, estimateMonthly, monthsHeld, blockChangesWhenOverdue,
+//   options: { paymentDueDays, rounding } } (the reading day and overdue reminder were removed: nothing used them, BE-3RD-07)
 // PUT /admin/utility (same shape). Meter Readings and utility Invoices use these values.
 
 const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0
@@ -80,12 +80,8 @@ export default function UtilitySettings() {
               {amount('priceM3', 'Water price (₫/m³)')}
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {select('readingDay', 'Monthly reading day', o.readingDays)}
               {select('paymentDueDays', 'Payment due', o.paymentDueDays)}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               {select('rounding', 'Rounding of each share', o.rounding)}
-              {select('overdueReminder', 'Overdue reminder', o.overdueReminder)}
             </div>
           </Card>
           <Card className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">

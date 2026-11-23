@@ -31,4 +31,12 @@ class RoomChangeAssignments {
                 WHERE id = :id AND status IN ('SUBMITTED', 'PENDING')
                 """).param("a", assigneeId).param("id", requestId).update() > 0;
     }
+
+    /** Back to the Block queue: nobody in charge while it is open. */
+    void release(long requestId) {
+        jdbc.sql("""
+                UPDATE req_room_change SET assignee_id = NULL, version = version + 1
+                WHERE id = :id AND status IN ('SUBMITTED', 'PENDING')
+                """).param("id", requestId).update();
+    }
 }

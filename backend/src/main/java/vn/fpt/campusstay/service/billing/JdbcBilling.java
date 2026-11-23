@@ -320,6 +320,22 @@ class JdbcBilling implements Billing {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<Long, InvoiceLine> nextDue(Collection<Long> studentIds, long termId) {
+        if (studentIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, InvoiceLine> result = new HashMap<>();
+        jdbc.sql("SELECT DISTINCT ON (student_id) " + InvoiceStore.COLUMNS + """
+                 FROM bil_invoice WHERE student_id = ANY(:students) AND term_id = :term AND status IN ('UNPAID', 'OVERDUE')
+                ORDER BY student_id, due_at, id
+                """)
+                .param("students", studentIds.toArray(Long[]::new)).param("term", termId)
+                .query(InvoiceStore::map).list().forEach(i -> result.put(i.studentId(), line(i)));
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Set<Long> withUnpaid(long termId) {
         return Set.copyOf(jdbc.sql("""
                 SELECT DISTINCT student_id FROM bil_invoice WHERE term_id = :term AND status IN ('UNPAID', 'OVERDUE')

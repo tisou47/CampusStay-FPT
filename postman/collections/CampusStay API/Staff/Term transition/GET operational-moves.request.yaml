@@ -2,7 +2,7 @@ $kind: http-request
 name: '/operational-moves'
 method: GET
 url: '{{baseUrl}}/operational-moves?termId={{termId}}&block={{block}}'
-order: 12000
+order: 9000
 description: |-
   `GET /operational-moves?termId&block&page&pageSize` → `{ items, total, reasons }` (A-45)
 

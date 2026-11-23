@@ -53,6 +53,11 @@ class JdbcRound2Placements implements Round2Placements {
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<String> place(long applicationId, long bedId, long termPrice) {
         Applications.Candidate app = applications.find(applicationId).orElseThrow();
+        // The Bed may have gone out of service or been retired since the offer (BE-3RD-04).
+        if (inventory.assignableBeds(app.termId()).stream().noneMatch(b -> b.bedId() == bedId)) {
+            throw ApiException.conflict("BED_UNAVAILABLE",
+                    "This Bed is no longer available. Ask Staff for another option.");
+        }
         Inventory.BedSlot bed = inventory.beds(app.termId(), List.of(bedId)).get(bedId);
         TermSummary term = terms.findPublished(app.termId()).orElseThrow();
         Instant now = Instant.now(clock);

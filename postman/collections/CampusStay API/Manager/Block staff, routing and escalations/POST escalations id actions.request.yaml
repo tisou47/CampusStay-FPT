@@ -2,7 +2,7 @@ $kind: http-request
 name: '/escalations/{id}/actions'
 method: POST
 url: '{{baseUrl}}/escalations/:id/actions'
-order: 11000
+order: 13000
 description: |-
   `POST /escalations/{id}/actions` `{ action: 'reassign', assigneeId, note? }` or `{ action: 'temporary-bed', note? }`
 

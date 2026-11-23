@@ -2,9 +2,9 @@ $kind: http-request
 name: '/room-changes'
 method: POST
 url: '{{baseUrl}}/room-changes'
-order: 15000
+order: 12000
 description: |-
-  `POST /room-changes` `{ termId (the window's next Term), kind: 'same'|'class'|'type', roomTypeId, roomClassId, reason, details? }` → `{ id }`
+  `POST /room-changes` `{ termId (the window's next Term), kind: 'same'|'type' (no 'class' since A-73: a room change keeps the Room Class), roomTypeId, reason, details? }` → `{ id }`
 
   Contract: `tools/postman/api-contract.md` › Student › My Room and requests
 headers:

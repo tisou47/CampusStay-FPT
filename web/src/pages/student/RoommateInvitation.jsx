@@ -7,15 +7,20 @@ import { useToast } from '@/app/toast'
 import { useMobileBar } from '@/components/layout/MobileBar'
 import { StudentContainer } from '@/components/layout/StudentLayout'
 import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Choice'
 import { Card, DetailRows, Note } from '@/components/ui/Display'
+import { Select } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDate, formatDateRange, formatDateTime, formatDuration, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { PrivacyNotice } from './apply/ApplyPersonal'
 
 // SCR-APP-04 Roommate Invitation (Figma 40:1439) — centred 720 px card.
 // GET /students/me/roommate-invitation → { invitation: { id, fromName, expiresAt, termName, stayStart, stayEnd,
 //   roomTypeName, roomClassName, surchargeRate, termPrice, deposit, depositWindowHours, registrationClosesAt } | null }
-// POST /roommate-invitations/:id/respond { accept } → { applicationId, depositInvoiceId }
+// POST /roommate-invitations/:id/respond { accept, stayTerms } → { applicationId, depositInvoiceId }
+// Accepting needs the same consents as applying (WEB-STU-02) and a stay length up to maxStayTerms of
+// GET /applications/eligibility (WEB-STU-01; the invitation's Term is the one open for registration).
 
 const steps = [
   [FileText, 'Confirm your contact details and matching consent'],
@@ -39,7 +44,13 @@ function Invitation({ inv }) {
   const { notify, notifyError } = useToast()
   const left = useTimeLeft(inv.expiresAt)
   const firstName = inv.fromName?.trim().split(/\s+/).at(-1)
-  const respond = useMutation((accept) => api.roommateInvitations.respond(inv.id, { accept }), {
+  const eligibility = useQuery(['eligibility'], ({ signal }) => api.applications.eligibility(undefined, { signal }))
+  const maxTerms = eligibility.data?.maxStayTerms ?? 1
+  const [stayTerms, setStayTerms] = useState(1)
+  const [consent, setConsent] = useState({ matching: false, rules: false })
+  const [privacyOpen, setPrivacyOpen] = useState(false)
+  const consented = consent.matching && consent.rules
+  const respond = useMutation((accept) => api.roommateInvitations.respond(inv.id, accept ? { accept, stayTerms: Math.min(stayTerms, maxTerms) } : { accept }), {
     invalidates: ['home', 'applications', 'invoices', 'notifications'],
     onSuccess: (result, accept) => {
       if (accept) {
@@ -104,6 +115,34 @@ function Invitation({ inv }) {
         ))}
       </ol>
 
+      <div className="flex flex-col gap-2">
+        <p className="text-base font-medium text-fg">{t('How long do you want to stay?')}</p>
+        <Select
+          wrapperClassName="w-full lg:w-60"
+          aria-label={t('Stay length')}
+          value={String(Math.min(stayTerms, maxTerms))}
+          onChange={(e) => setStayTerms(Number(e.target.value))}
+          options={Array.from({ length: maxTerms }, (_, i) => ({ value: String(i + 1), label: t(i === 0 ? '{n} term' : '{n} terms', { n: i + 1 }) }))}
+        />
+      </div>
+
+      <div className="flex flex-col items-start gap-2">
+        <Checkbox
+          label={t('I agree that CampusStay uses my gender, major and hometown to match roommates for {term}.', { term: inv.termName })}
+          checked={consent.matching}
+          onChange={(e) => setConsent((c) => ({ ...c, matching: e.target.checked }))}
+        />
+        <Checkbox
+          label="I have read the dormitory rules and the Privacy Notice."
+          checked={consent.rules}
+          onChange={(e) => setConsent((c) => ({ ...c, rules: e.target.checked }))}
+        />
+        <Button variant="text" onClick={() => setPrivacyOpen(true)}>
+          Read the Privacy Notice
+        </Button>
+      </div>
+      <PrivacyNotice open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+
       <Note>
         {inv.registrationClosesAt
           ? t('Declining is private: {name} only sees that the invitation was not accepted. You can still apply on your own before {date}.', { name: firstName ?? t('the other student'), date: formatDateTime(inv.registrationClosesAt) })
@@ -114,7 +153,7 @@ function Invitation({ inv }) {
         <Button size="lg" icon={X} onClick={() => respond.run(false)} disabled={respond.pending || left === 'Expired'}>
           Decline
         </Button>
-        <Button variant="primary" size="lg" icon={Check} onClick={() => respond.run(true)} disabled={respond.pending || left === 'Expired'}>
+        <Button variant="primary" size="lg" icon={Check} onClick={() => respond.run(true)} disabled={respond.pending || left === 'Expired' || !consented}>
           Accept invitation
         </Button>
       </div>

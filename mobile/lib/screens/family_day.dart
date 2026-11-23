@@ -259,6 +259,29 @@ class _Registration extends StatelessWidget {
               'Hãy gửi cho mỗi khách ảnh mã vào của họ. Mỗi mã cho một khách vào một lần, trong khung giờ này.',
             ),
           ),
+        // Guests still inside after the time slot: the student tells the desk they are safe (MOB-08, contract A-71).
+        if (r.flag('canConfirmSafety'))
+          BusyButton(
+            label: t('My guests are safe', 'Khách của tôi vẫn an toàn'),
+            onPressed: () async {
+              final ok = await confirm(
+                context,
+                title: t('Your guests are safe?', 'Khách của bạn vẫn an toàn?'),
+                body: t(
+                  'The desk sees that you confirmed it. Your guests must still check out at the gate.',
+                  'Quầy trực sẽ thấy bạn đã xác nhận. Khách vẫn phải ra cổng để check-out.',
+                ),
+                yes: t('Confirm', 'Xác nhận'),
+                no: t('Back', 'Quay lại'),
+              );
+              if (!ok) return;
+              final done = await attempt(
+                () => Api.post('$path/registration/safety-confirmation'),
+                success: t('Thank you. The desk was told.', 'Cảm ơn bạn. Quầy trực đã được báo.'),
+              );
+              if (done != null) await reload();
+            },
+          ),
         if (r.flag('canCancel'))
           BusyButton(
             label: t('Cancel registration', 'Huỷ đăng ký'),

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -114,7 +115,9 @@ class TermWizardIT {
                 .formatted(name, stayStart, stayEnd)).andExpect(status().isOk());
         send("PUT", base + "timeline", admin, "{\"timeline\":" + timeline(20, checkIn, checkIn, stayEnd) + "}")
                 .andExpect(status().isOk());
-        send("PUT", base + "rooms", admin, "{\"blockIds\":[],\"excludedRooms\":[],\"reservedNewPercent\":10}")
+        String blocks = String.join(",", jdbc.sql("SELECT '\"' || id || '\"' FROM inv_building WHERE status = 'ACTIVE'")
+                .query(String.class).list());
+        send("PUT", base + "rooms", admin, "{\"blockIds\":[" + blocks + "],\"excludedRooms\":[],\"reservedNewPercent\":10}")
                 .andExpect(status().isOk());
         String wizard = json("/admin/terms/" + id + "/wizard", admin);
         send("PUT", base + "prices", admin, "{\"prices\":" + prices(wizard, fourBed(), standard(), 7_200_000)
@@ -266,7 +269,9 @@ class TermWizardIT {
                 "{\"blockIds\":[],\"excludedRooms\":[],\"reservedNewPercent\":15,\"roomTypeIds\":[],"
                         + "\"roomClassIds\":[\"" + standard() + "\"]}")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.roomTypeIds").value("Choose at least one active Room Type."));
+                .andExpect(jsonPath("$.details.fields.roomTypeIds").value("Choose at least one active Room Type."))
+                // WEB-ADM-22: no Block chosen is refused, not saved as "every Block".
+                .andExpect(jsonPath("$.details.fields.blockIds").value("Choose at least one Block."));
         mvc.perform(get("/term-requests/" + requestId).header(HttpHeaders.AUTHORIZATION, manager))
                 .andExpect(jsonPath("$.differences", hasSize(1)))
                 .andExpect(jsonPath("$.differences[0].label").value("Deposit"))
@@ -438,5 +443,29 @@ class TermWizardIT {
                 .andExpect(jsonPath("$.code").value("RULES_FIXED"));
         mvc.perform(get("/admin/terms").header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(jsonPath("$.items[?(@.id == '" + id + "')].wizardStep", contains(7)));
+    }
+
+    /**
+     * TC-CFG-034 (moved from TC-CFG-004 when the legacy create/update endpoints went, BE-3RD-08): a Draft is
+     * invisible to students until published; a second publish and a Term whose stay overlaps a published one are
+     * refused.
+     */
+    @Test
+    void publishRules() throws Exception {
+        String admin = bearer(mvc, ADMIN);
+        String id = fullDraft(admin, "Summer 2035", "2035-05-10", "2035-08-20", "2035-05-09");
+        String overlapping = fullDraft(admin, "Overlap 2035", "2035-06-01", "2035-09-01", "2035-05-31");
+        mvc.perform(get("/terms").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.items[*].name", not(hasItem("Summer 2035"))));
+        mvc.perform(post("/admin/terms/" + id + "/publish").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isOk());
+        mvc.perform(get("/terms").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.items[*].name", hasItem("Summer 2035")));
+        mvc.perform(post("/admin/terms/" + id + "/publish").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TERM_ALREADY_PUBLISHED"));
+        mvc.perform(post("/admin/terms/" + overlapping + "/publish").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TERM_OVERLAP"));
     }
 }

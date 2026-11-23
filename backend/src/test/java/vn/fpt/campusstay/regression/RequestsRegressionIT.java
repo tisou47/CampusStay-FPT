@@ -318,4 +318,54 @@ class RequestsRegressionIT {
             jdbc.sql("UPDATE cfg_parameter SET value = :v WHERE key = 'sla.normal_max_hours'").param("v", old).update();
         }
     }
+
+    @Autowired
+    vn.fpt.campusstay.service.assignment.Moves moves;
+
+    @Autowired
+    org.springframework.transaction.support.TransactionTemplate tx;
+
+    /**
+     * TC-REQ-029 (BE-2ND-06): when Staff move a student's next-Term Allocation to another Bed, the room change the
+     * student filed from the old one closes instead of staying open on an Allocation that no longer exists.
+     */
+    @Test
+    void movingANextTermAllocationClosesItsOpenRequests() throws Exception {
+        openNextTermWindow();
+        long next = jdbc.sql("SELECT id FROM cfg_term WHERE code = 'TT32'").query(Long.class).single();
+        continuingResident(18, "A-404");
+        String rc = roomChange(18);
+        long allocation = jdbc.sql("""
+                SELECT a.id FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id
+                WHERE u.email = :e AND a.term_id = :t AND a.status = 'ACTIVE'
+                """).param("e", RegressionSupport.student(18)).param("t", next).query(Long.class).single();
+        long bed = jdbc.sql("""
+                SELECT b.id FROM inv_bed b JOIN inv_room ro ON ro.id = b.room_id WHERE ro.code = 'A-405' AND b.label = 'A'
+                """).query(Long.class).single();
+        long admin = r.userId(TestAuth.ADMIN);
+        tx.executeWithoutResult(s -> moves.move(allocation, bed, "MOVE", admin));
+        String status = jdbc.sql("SELECT status FROM req_room_change WHERE code = :c").param("c", rc)
+                .query(String.class).single();
+        assertThat(status).isEqualTo("CANCELLED");
+    }
+
+    /**
+     * TC-ASG-076 (M5): a resident who already holds a next-Term Bed elsewhere (placed before M2) is not told that
+     * their Bed was taken: the conflict is on the student, not on the Bed.
+     */
+    @Test
+    void residentAlreadyPlacedNextTermIsNotToldTheBedWasTaken() throws Exception {
+        openNextTermWindow();
+        long next = jdbc.sql("SELECT id FROM cfg_term WHERE code = 'TT32'").query(Long.class).single();
+        jdbc.sql("""
+                INSERT INTO asg_allocation (term_id, student_id, bed_id, source, allocated_at)
+                SELECT :t, u.id, b.id, 'MANUAL', now() FROM auth_user u, inv_bed b JOIN inv_room ro ON ro.id = b.room_id
+                WHERE u.email = :e AND ro.code = 'A-406' AND b.label = 'A'
+                """).param("t", next).param("e", RegressionSupport.student(19)).update();
+        continuingResident(19, "A-405");
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification x JOIN auth_user u ON u.id = x.user_id
+                WHERE u.email = :e AND x.event_key = 'NEXT_TERM_BED_TAKEN'
+                """).param("e", RegressionSupport.student(19)).query(Long.class).single()).isZero();
+    }
 }

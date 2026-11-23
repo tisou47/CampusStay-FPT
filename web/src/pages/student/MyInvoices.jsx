@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
-import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Display'
 import { Pagination } from '@/components/ui/Pagination'
@@ -119,7 +118,7 @@ function Summary({ summary, term }) {
         tip={t('The next invoice the dormitory will issue to you, and its amount.')}
         tone={summary?.upcoming ? 'default' : 'muted'}
         value={summary?.upcoming ? formatVnd(summary.upcoming.amount) : '—'}
-        note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming invoice this term')}
+        note={summary?.upcoming ? `${tr(summary.upcoming.typeLabel)} · ${tr(summary.upcoming.note)}` : t('No upcoming invoice')}
       />
     </div>
   )
@@ -482,12 +481,12 @@ function describe(summary, refunds) {
 }
 
 export default function MyInvoices() {
-  const { term } = useSession()
   const [tab, setTab] = useState('invoices')
   const [receipt, setReceipt] = useState(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const query = useQuery(['invoices', 'mine', term?.id, page, pageSize], ({ signal }) => api.me.invoices({ termId: term?.id, page, pageSize }, { signal }))
+  // Every Term, unpaid first (WEB-STU-22): an older Term's unpaid Invoice must not hide behind the Term switch.
+  const query = useQuery(['invoices', 'mine', page, pageSize], ({ signal }) => api.me.invoices({ page, pageSize }, { signal }))
   const refunds = useQuery(['refunds', 'mine'], ({ signal }) => api.me.refunds({ pageSize: 50 }, { signal }))
   const summary = query.data?.summary
   const pendingRefundAmount = refunds.data?.pendingAmount ?? 0
@@ -529,7 +528,7 @@ export default function MyInvoices() {
         </Alert>
       )}
 
-      <Summary summary={summary} term={term} />
+      <Summary summary={summary} />
 
       {/* The one place the refund bank account lives on this page. */}
       <RefundAccountCard pendingAmount={pendingRefundAmount} />

@@ -850,8 +850,8 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             tone: Tone.warning,
             title: t('Important note', 'Lưu ý quan trọng'),
             body: t(
-              'Reporting a transfer before paying or with incorrect content may lead to rejection and losing your Bed reservation.',
-              'Khai báo đã chuyển khoản khi chưa thực hiện hoặc sai nội dung có thể khiến yêu cầu bị từ chối và mất giữ chỗ phòng.',
+              'Reporting a transfer before paying or with incorrect content may lead to rejection and losing your Bed reservation. A report rejected twice cancels a Deposit or a Balance.',
+              'Khai báo đã chuyển khoản khi chưa thực hiện hoặc sai nội dung có thể khiến yêu cầu bị từ chối và mất giữ chỗ phòng. Bị từ chối hai lần sẽ huỷ tiền cọc hoặc tiền phòng.',
             ),
           ),
         ],

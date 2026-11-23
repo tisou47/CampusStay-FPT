@@ -125,7 +125,7 @@ function LateCheckInModal({ person, termId, onClose }) {
   )
 }
 
-function StudentPanel({ person, onDone }) {
+function StudentPanel({ person, termId, onDone }) {
   const { notify, notifyError } = useToast()
   const { term } = useSession()
   const items = person.handOverItems ?? []
@@ -174,7 +174,7 @@ function StudentPanel({ person, onDone }) {
     ) : (
       statusTag[person.status]
     )
-  const confirm = useMutation(() => api.desk.checkIn({ studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
+  const confirm = useMutation(() => api.desk.checkIn({ termId, studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
     onSuccess: () => {
       notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed }) })
@@ -262,7 +262,7 @@ function StudentPanel({ person, onDone }) {
             {t('Record when {name} will arrive. Once a manager approves it, check-in opens here until the approved day.', { name: person.name })}
           </Alert>
         )}
-        {late && <LateCheckInModal person={person} termId={term?.id} onClose={() => setLate(false)} />}
+        {late && <LateCheckInModal person={person} termId={termId ?? term?.id} onClose={() => setLate(false)} />}
 
         {person.status === 'blocked' && owing > 0 && (
           <Alert type="error" title="Check-in blocked">
@@ -600,6 +600,7 @@ export default function CheckInDesk() {
           <StudentPanel
             key={`${person.studentCode}-${person.status}`}
             person={person}
+            termId={scope.termId}
             onDone={() => {
               setQ('')
               setSearch('')

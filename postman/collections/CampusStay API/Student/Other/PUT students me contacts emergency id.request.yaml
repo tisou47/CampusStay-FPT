@@ -2,7 +2,7 @@ $kind: http-request
 name: '/students/me/contacts/emergency/{id}'
 method: PUT
 url: '{{baseUrl}}/students/me/contacts/emergency/:id'
-order: 2000
+order: 4000
 description: |-
   Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `update_1` of `student-contact-controller`). Add it to the contract or remove it from the backend.
 pathVariables:

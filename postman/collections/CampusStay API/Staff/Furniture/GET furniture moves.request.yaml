@@ -2,7 +2,7 @@ $kind: http-request
 name: '/furniture/moves'
 method: GET
 url: '{{baseUrl}}/furniture/moves?block={{block}}'
-order: 4000
+order: 5000
 description: |-
   `GET /furniture/moves?block&status=Planned|Done|Cancelled&page&pageSize` → `{ items: [{ id, itemId, assetCode, type, typeVi, from, to, reason, status, createdBy, createdAt, closedBy, closedAt }], total, statuses }`
 

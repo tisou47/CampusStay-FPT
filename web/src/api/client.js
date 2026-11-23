@@ -10,6 +10,7 @@
  *   messages in Vietnamese or English; the client's own messages go through t().
  */
 
+import { sessionStore } from '@/lib/sessionStore'
 import { getLang, t } from '@/i18n'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
@@ -29,21 +30,15 @@ export class ApiError extends Error {
   }
 }
 
+const store = sessionStore(globalThis.localStorage, globalThis.sessionStorage, SESSION_KEY)
+
 export function readSession() {
-  try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY)) ?? null
-  } catch {
-    return null
-  }
+  return store.read()
 }
 
-export function writeSession(session) {
-  try {
-    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-    else localStorage.removeItem(SESSION_KEY)
-  } catch {
-    // Storage unavailable (private mode): the session lives only in memory.
-  }
+/** @param remember true/false at sign-in ("Remember me"); left out, the session stays in the store it is in */
+export function writeSession(session, remember) {
+  store.write(session, remember)
   window.dispatchEvent(new Event('campusstay:session'))
 }
 

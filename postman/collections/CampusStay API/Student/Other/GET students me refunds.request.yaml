@@ -2,7 +2,7 @@ $kind: http-request
 name: '/students/me/refunds'
 method: GET
 url: '{{baseUrl}}/students/me/refunds'
-order: 5000
+order: 14000
 description: |-
   Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `myRefunds` of `finance-controller`). Add it to the contract or remove it from the backend.
 queryParams:

@@ -2,7 +2,7 @@ $kind: http-request
 name: '/operational-moves'
 method: POST
 url: '{{baseUrl}}/operational-moves'
-order: 14000
+order: 11000
 description: |-
   `POST /operational-moves` `{ allocationId, bedId, reason, note?, nextTerm: 'follow'|'keep', fromElectricity, fromWater, toElectricity, toWater }` → `{ allocationId, room, bed, nextTerm, note }`
 

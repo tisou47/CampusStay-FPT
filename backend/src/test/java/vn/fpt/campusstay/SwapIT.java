@@ -3,6 +3,7 @@ package vn.fpt.campusstay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -187,8 +188,11 @@ class SwapIT {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roomTypeId\":\"%s\",\"roomClassId\":\"%s\"}"
                         .formatted(flow.roomTypeId("4-bed"), flow.roomClassId("Basic"))))
                 .andExpect(status().isNoContent());
-        String other = JsonPath.read(getAs("/swap-board", standard).andReturn().getResponse().getContentAsString(),
-                "$.items[0].id");
+        // WEB-STU-21: the board shows only posts the viewer's Bed matches, so this one is not listed ...
+        getAs("/swap-board", standard).andExpect(jsonPath("$.items", hasSize(0)));
+        // ... and asking for it anyway is still refused.
+        String other = jdbc.sql("SELECT id::text FROM req_swap_post WHERE status = 'ACTIVE' ORDER BY id DESC LIMIT 1")
+                .query(String.class).single();
         stay.postJson("/swap-board/posts/" + other + "/request", standard, "{}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_A_MATCH"));

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
+import com.jayway.jsonpath.JsonPath;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -136,6 +137,60 @@ class DeskRegressionIT {
         long xCharged = damageInvoices(4);
         assertThat(yCharged).as("DAMAGE Invoices of Y, who moved in after the check-out (X has %d)", xCharged).isZero();
         assertThat(xCharged).as("DAMAGE Invoices of X, a roommate at the check-out").isEqualTo(1);
+    }
+
+    /** TC-INV-030 (BE-OPS-09): a resident's in-stay furniture report shows on My Room and at the check-out desk. */
+    @Test
+    void inStayFurnitureReportReachesTheCheckOutDesk() throws Exception {
+        long allocation = r.livesIn(11, "A-108", "A", true);
+        long item = jdbc.sql("""
+                SELECT i.id FROM inv_furniture_item i JOIN inv_room ro ON ro.id = i.room_id
+                WHERE ro.code = 'A-108' AND i.bed_id IS NULL AND i.status <> 'DISPOSED' ORDER BY i.id LIMIT 1
+                """).query(Long.class).single();
+        String student = r.bearer(RegressionSupport.student(11));
+        mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"itemId\":\"furniture-%d\",\"condition\":\"Damaged\",\"note\":\"Wardrobe door cracked\"}".formatted(item)))
+                .andExpect(status().isOk());
+        String mine = RegressionSupport.body(r.getAs("/students/me/furniture", student));
+        assertThat((List<String>) JsonPath.read(mine, "$.items[?(@.reportedNote == 'Wardrobe door cracked')].reportedCondition"))
+                .containsExactly("Damaged");
+        String desk = RegressionSupport.body(r.getAs("/check-outs/" + allocation + "/furniture", r.bearer(TestAuth.STAFF_A)));
+        assertThat((List<String>) JsonPath.read(desk, "$.items[?(@.studentReportedNote == 'Wardrobe door cracked')].studentReportedCondition"))
+                .containsExactly("Damaged");
+    }
+
+    /** TC-ASG-075 (BE-ASG-10): a shared item's damage split among 3 residents invoices each roommate full/3 (rounded down). */
+    @Test
+    void sharedDamageIsSplitEvenlyAmongTheRoommates() {
+        long leaver = r.livesIn(8, "A-107", "A", true);
+        r.livesIn(9, "A-107", "B", true);
+        r.livesIn(10, "A-107", "C", true);
+        long item = jdbc.sql("""
+                SELECT i.id FROM inv_furniture_item i JOIN inv_room ro ON ro.id = i.room_id
+                WHERE ro.code = 'A-107' AND i.bed_id IS NULL AND i.status <> 'DISPOSED' ORDER BY i.id LIMIT 1
+                """).query(Long.class).single();
+        long checkOut = jdbc.sql("""
+                INSERT INTO asg_check_out (allocation_id, reason, status, electricity, water, condition_good, key_returned,
+                                           completed_at)
+                VALUES (:a, 'TERM_END', 'COMPLETED', 10, 1, FALSE, TRUE, now()) RETURNING id
+                """).param("a", leaver).query(Long.class).single();
+        jdbc.sql("""
+                INSERT INTO asg_check_out_damage (check_out_id, furniture_item_id, amount, condition, percent,
+                                                  manager_review, shared_with, full_amount)
+                VALUES (:c, :i, 333334, 'DAMAGED', 100, 'KEPT', 3, 1000000)
+                """).param("c", checkOut).param("i", item).update();
+        jdbc.sql("UPDATE asg_allocation SET status = 'ENDED', end_reason = 'CHECK_OUT', ended_at = now() WHERE id = :id")
+                .param("id", leaver).update();
+
+        checkOutFurniture.chargeRoommates(leaver, item);
+        for (int n : new int[] { 9, 10 }) {
+            long amount = jdbc.sql("""
+                    SELECT coalesce(sum(i.amount), 0) FROM bil_invoice i JOIN auth_user u ON u.id = i.student_id
+                    WHERE u.email = :e AND i.type = 'DAMAGE'
+                    """).param("e", RegressionSupport.student(n)).query(Long.class).single();
+            assertThat(amount).as("roommate %d's share of 1,000,000 ÷ 3", n).isEqualTo(333_333);
+        }
     }
 
     private long damageInvoices(int n) {

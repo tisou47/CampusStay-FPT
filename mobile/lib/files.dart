@@ -36,17 +36,36 @@ Future<void> openReceipt(String invoiceId) async {
 /// A file the student picked: its name and its path on the phone.
 typedef Picked = ({String name, String path});
 
+/// What the API accepts (MOB-05): no HEIC or WebP, which the back office cannot show everywhere.
+const _imageTypes = ['jpg', 'jpeg', 'png'];
+
+/// The API's upload limit (MOB-06): a larger file is refused here instead of failing after a long upload.
+const maxUploadBytes = 5 * 1024 * 1024;
+
+bool _fits(({String name, String path}) f) {
+  if (File(f.path).lengthSync() <= maxUploadBytes) return true;
+  toast(
+    t(
+      '{name} is larger than 5 MB. Take the photo again at a lower resolution.',
+      '{name} lớn hơn 5 MB. Hãy chụp lại ở độ phân giải thấp hơn.',
+    ).replaceAll('{name}', f.name),
+    error: true,
+  );
+  return false;
+}
+
 /// Lets the student pick images (maintenance photos), up to [max].
 Future<List<Picked>> pickImages(int max) async {
-  final result = await FilePicker.pickFiles(type: FileType.image);
+  final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: _imageTypes);
   return [
     for (final f in result)
-      if (f.path != null) (name: f.name, path: f.path!),
+      if (f.path != null && _fits((name: f.name, path: f.path!))) (name: f.name, path: f.path!),
   ].take(max).toList();
 }
 
 /// Opens the back camera for one photo (the check-in inventory: the item or the meter as it is in the Room, like the
-/// web's `capture="environment"`); null when the student closes the camera. The photo is scaled down for the upload.
+/// web's `capture="environment"`); null when the student closes the camera. The photo is scaled down and saved as a
+/// JPEG (an image type the API accepts), and kept under the upload limit.
 Future<Picked?> takePhoto() async {
   try {
     final shot = await ImagePicker().pickImage(
@@ -56,7 +75,9 @@ Future<Picked?> takePhoto() async {
       maxHeight: 2048,
       imageQuality: 85,
     );
-    return shot == null ? null : (name: shot.name, path: shot.path);
+    if (shot == null) return null;
+    final photo = (name: shot.name, path: shot.path);
+    return _fits(photo) ? photo : null;
   } catch (_) {
     toast(t('Could not open the camera.', 'Không mở được camera.'), error: true);
     return null;
@@ -65,10 +86,7 @@ Future<Picked?> takePhoto() async {
 
 /// Lets the student pick one document: an image or a PDF (late check-in evidence).
 Future<Picked?> pickDocument() async {
-  final f = await FilePicker.pickFile(
-    type: FileType.custom,
-    allowedExtensions: ['jpg', 'jpeg', 'png', 'heic', 'webp', 'pdf'],
-  );
+  final f = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: [..._imageTypes, 'pdf']);
   final path = f?.path;
-  return path == null ? null : (name: f!.name, path: path);
+  return path == null || !_fits((name: f!.name, path: path)) ? null : (name: f.name, path: path);
 }

@@ -17,6 +17,27 @@ class Push {
   static bool _available = false;
   static StreamSubscription<String>? _refresh;
   static StreamSubscription<RemoteMessage>? _messages;
+  static StreamSubscription<String?>? _opened;
+
+  /// The link of the notification that started the app (tapped while it was closed); replaceable in tests.
+  static Future<String?> Function() initialLink = () async =>
+      _available ? (await FirebaseMessaging.instance.getInitialMessage())?.data['link'] as String? : null;
+
+  /// Links of notifications tapped while the app runs in the background; replaceable in tests.
+  static Stream<String?> Function() openedLinks = () => _available
+      ? FirebaseMessaging.onMessageOpenedApp.map((m) => m.data['link'] as String?)
+      : const Stream<String?>.empty();
+
+  /// Signed in: opens the link of a tapped notification (MOB-02), the one that started the app first. Only the
+  /// shell calls it, so a tap while signed out opens nothing; the link waits for the next sign-in's shell.
+  static Future<void> listenForTaps(void Function(String link) open) async {
+    await _opened?.cancel();
+    _opened = openedLinks().listen((link) {
+      if (link != null && link.isNotEmpty) open(link);
+    });
+    final first = await initialLink();
+    if (first != null && first.isNotEmpty) open(first);
+  }
 
   /// Starts Firebase if the project file was built in; false when push is not set up.
   static Future<bool> init() async {
@@ -58,14 +79,23 @@ class Push {
   static Future<void> unregister() async {
     await _refresh?.cancel();
     await _messages?.cancel();
+    await _opened?.cancel();
     _refresh = null;
     _messages = null;
+    _opened = null;
     final value = await token();
     if (value == null) return;
     try {
       await Api.post('/devices/unregister', {'token': value});
     } catch (_) {
       // signing out goes on
+    }
+    try {
+      // The token itself goes too (MOB-03): a later send gets UNREGISTERED and the API disables it, even if the
+      // unregister call above did not reach the server.
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {
+      // best effort
     }
   }
 

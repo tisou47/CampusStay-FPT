@@ -2,8 +2,8 @@ $kind: http-request
 name: '/block-staff/me'
 method: GET
 url: '{{baseUrl}}/block-staff/me'
-order: 3000
+order: 2000
 description: |-
-  `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }`
+  `GET /block-staff/me` → `{ id, onDuty, handles, blocks, open, resolved7d }` (A-60; `onDuty` follows sign-in and sign-out, nobody sets it by hand: B-17)
 
   Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations

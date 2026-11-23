@@ -14,6 +14,9 @@ const apiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://campusstay-api.eastasia.cloudapp.azure.com/api',
 );
 
+/// The web app: pages the app does not have open there (Forgot password, MOB-09).
+const webBaseUrl = String.fromEnvironment('WEB_BASE_URL', defaultValue: 'https://campusstay-fpt-ten.vercel.app');
+
 /// An error answer of the API (`{ message, code?, details? }`, contract "Errors"): [message] is written for the user
 /// and shown as is; [fields] are the messages of `details.fields`.
 class ApiException implements Exception {
@@ -44,8 +47,12 @@ class Api {
 
   static Future<Map<String, dynamic>> get(String path) => _call('GET', path);
 
-  static Future<Map<String, dynamic>> post(String path, [Map<String, dynamic> body = const {}]) =>
-      _call('POST', path, body);
+  /// [timeout]: how long to wait for the answer (30 s by default; the assistant's model needs longer, MOB-04).
+  static Future<Map<String, dynamic>> post(
+    String path, [
+    Map<String, dynamic> body = const {},
+    Duration timeout = const Duration(seconds: 30),
+  ]) => _call('POST', path, body, timeout);
 
   static Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) => _call('PUT', path, body);
 
@@ -70,7 +77,8 @@ class Api {
     for (final (field, file) in files) {
       request.files.add(await http.MultipartFile.fromPath(field, file));
     }
-    return _send(request);
+    // Photos over a slow campus network take longer than a JSON call (MOB-06).
+    return _send(request, const Duration(seconds: 120));
   }
 
   /// A file of the API (a receipt PDF), with the bearer token.
@@ -107,22 +115,39 @@ class Api {
 
   static Uri _url(String path) => Uri.parse(apiBaseUrl.replaceAll(RegExp(r'/+$'), '') + path);
 
-  static Future<Map<String, dynamic>> _call(String method, String path, [Map<String, dynamic>? body]) {
+  static Future<Map<String, dynamic>> _call(
+    String method,
+    String path, [
+    Map<String, dynamic>? body,
+    Duration timeout = const Duration(seconds: 30),
+  ]) {
     final request = http.Request(method, _url(path));
     if (body != null) {
       request.headers['Content-Type'] = 'application/json; charset=utf-8';
       request.body = jsonEncode(body);
     }
-    return _send(request);
+    return _send(request, timeout);
   }
 
-  static Future<Map<String, dynamic>> _send(http.BaseRequest request) async {
+  static Future<Map<String, dynamic>> _send(
+    http.BaseRequest request, [
+    Duration timeout = const Duration(seconds: 30),
+  ]) async {
     request.headers['Accept-Language'] = isVietnamese() ? 'vi' : 'en';
     final bearer = token;
     if (bearer != null) request.headers['Authorization'] = 'Bearer $bearer';
     final http.Response response;
     try {
-      response = await http.Response.fromStream(await client.send(request).timeout(const Duration(seconds: 30)));
+      response = await http.Response.fromStream(await client.send(request).timeout(timeout));
+    } on TimeoutException {
+      throw ApiException(
+        0,
+        'TIMEOUT',
+        t(
+          'The server is taking too long to answer. Try again in a moment.',
+          'Máy chủ phản hồi quá lâu. Hãy thử lại sau ít phút.',
+        ),
+      );
     } on Exception {
       throw ApiException(
         0,

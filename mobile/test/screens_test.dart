@@ -48,11 +48,15 @@ Future<void> show(WidgetTester tester, Widget screen) async {
   tester.view.physicalSize = const Size(1080, 4000);
   tester.view.devicePixelRatio = 2.6;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaterialApp(
-    theme: campusTheme(),
-    scaffoldMessengerKey: messenger,
-    home: screen is SubPage || screen is RegistrationPeriodScreen || screen is ApplyScreen ? screen : Scaffold(body: screen),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: campusTheme(),
+      scaffoldMessengerKey: messenger,
+      home: screen is SubPage || screen is RegistrationPeriodScreen || screen is ApplyScreen
+          ? screen
+          : Scaffold(body: screen),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -79,10 +83,13 @@ void main() {
       expect(timeLeft('2026-11-16T12:00:00Z', now), '3 days');
       expect(timeLeft('2026-11-12T12:00:00Z', now), isNull);
       expect(dueIn('2026-11-12T12:00:00Z', now), 'Overdue');
-      expect(countLines([
-        {'name': 'Bed', 'quantity': 2},
-        {'name': 'Desk', 'quantity': 1},
-      ]), '2 × Bed, Desk');
+      expect(
+        countLines([
+          {'name': 'Bed', 'quantity': 2},
+          {'name': 'Desk', 'quantity': 1},
+        ]),
+        '2 × Bed, Desk',
+      );
       expect(surcharge(0.15), '+15%');
       expect(toneOf('Overdue'), Tone.error);
       expect(toneOf('Paid'), Tone.success);
@@ -101,12 +108,28 @@ void main() {
       },
       '/students/me/board': {
         'items': [
-          {'id': 'ann-1', 'category': 'Registration', 'title': 'Spring registration opens', 'body': 'Apply now.', 'pinned': true, 'read': false, 'createdAt': _past},
+          {
+            'id': 'ann-1',
+            'category': 'Registration',
+            'title': 'Spring registration opens',
+            'body': 'Apply now.',
+            'pinned': true,
+            'read': false,
+            'createdAt': _past,
+          },
         ],
         'unread': 1,
       },
       '/registration-periods/current': {
-        'card': {'termId': 'SP27', 'name': 'Spring 2027', 'status': 'Open', 'countdownTo': _future, 'stayStart': '2027-01-04', 'stayEnd': '2027-05-01', 'fromPrice': 3000000},
+        'card': {
+          'termId': 'SP27',
+          'name': 'Spring 2027',
+          'status': 'Open',
+          'countdownTo': _future,
+          'stayStart': '2027-01-04',
+          'stayEnd': '2027-05-01',
+          'fromPrice': 3000000,
+        },
       },
       '/registration-periods/SP27': {'timeline': <Object>[]},
       '/students/me/roommate-invitation': {'invitation': null},
@@ -116,7 +139,15 @@ void main() {
     expect(find.text('Apply for a Bed for Spring 2027'), findsOneWidget);
     expect(find.text('Start application'), findsOneWidget);
     // The features as tiles: notifications, applications, registration period, board, requests, Family Days, payments.
-    for (final tile in ['Notifications', 'Applications', 'Registration period', 'Dormitory board', 'Requests', 'Family Days', 'Payments']) {
+    for (final tile in [
+      'Notifications',
+      'Applications',
+      'Registration period',
+      'Dormitory board',
+      'Requests',
+      'Family Days',
+      'Payments',
+    ]) {
       expect(find.text(tile), findsOneWidget, reason: tile);
     }
   });
@@ -130,7 +161,14 @@ void main() {
         'openRequests': 0,
       },
       '/notifications': {'items': <Object>[], 'unread': 0},
-      '/students/me/handover': {'id': 'H1', 'status': 'Draft', 'room': 'A902', 'dueAt': '2026-12-31T10:00:00Z', 'items': <Object>[], 'meterPhotos': <Object>[]},
+      '/students/me/handover': {
+        'id': 'H1',
+        'status': 'Draft',
+        'room': 'A902',
+        'dueAt': '2026-12-31T10:00:00Z',
+        'items': <Object>[],
+        'meterPhotos': <Object>[],
+      },
       '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
     });
     await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
@@ -145,16 +183,44 @@ void main() {
     useApi({
       '/students/me/invoices': {
         'items': [
-          {'id': 'INV-1', 'typeLabel': 'Deposit', 'title': 'Deposit', 'amount': 900000, 'dueAt': _future, 'status': 'Unpaid'},
+          {
+            'id': 'INV-1',
+            'typeLabel': 'Deposit',
+            'title': 'Deposit',
+            'amount': 900000,
+            'dueAt': _future,
+            'status': 'Unpaid',
+          },
         ],
-        'summary': {'outstanding': 900000, 'dueCount': 1, 'nextDueAt': _future, 'paidTotal': 0, 'paidCount': 0, 'awaitingCount': 1},
+        'summary': {
+          'outstanding': 900000,
+          'dueCount': 1,
+          'nextDueAt': _future,
+          'paidTotal': 0,
+          'paidCount': 0,
+          'awaitingCount': 1,
+        },
       },
       '/students/me/refunds': {'items': <Object>[]},
       '/students/me/refund-account': {'holder': null, 'number': null},
       '/banks': [
-        {'bin': '970415', 'shortName': 'VietinBank', 'name': 'Vietnam Joint Stock Commercial Bank for Industry and Trade'},
+        {
+          'bin': '970415',
+          'shortName': 'VietinBank',
+          'name': 'Vietnam Joint Stock Commercial Bank for Industry and Trade',
+        },
       ],
-      '/invoices/INV-1': {'id': 'INV-1', 'title': 'Deposit', 'type': 'deposit', 'amount': 900000, 'status': 'Unpaid', 'dueAt': _future, 'lines': [{'label': 'Deposit', 'amount': 900000}]},
+      '/invoices/INV-1': {
+        'id': 'INV-1',
+        'title': 'Deposit',
+        'type': 'deposit',
+        'amount': 900000,
+        'status': 'Unpaid',
+        'dueAt': _future,
+        'lines': [
+          {'label': 'Deposit', 'amount': 900000},
+        ],
+      },
     });
     await show(tester, const PaymentsScreen());
     expect(find.text('900,000 VND'), findsWidgets);
@@ -191,7 +257,7 @@ void main() {
     await tester.pumpAndSettle();
     // The student checks the amount and the transfer content before the claim is sent.
     expect(find.text('Confirm transfer submission'), findsOneWidget);
-    expect(calls, isNot(contains('POST /invoices/INV-1/claim')));
+    expect(calls, isNot(contains('POST /invoices/INV-1/claim')), reason: 'asks first (MOB-25)');
     await tester.tap(find.text('Yes, I have transferred'));
     await tester.pumpAndSettle();
     expect(calls, contains('POST /invoices/INV-1/claim'));
@@ -199,7 +265,11 @@ void main() {
 
   testWidgets('My Room: no Room offers to start an application', (tester) async {
     useApi({
-      '/students/me/allocation': {'allocation': null, 'application': null, 'term': {'name': 'Spring 2027'}},
+      '/students/me/allocation': {
+        'allocation': null,
+        'application': null,
+        'term': {'name': 'Spring 2027'},
+      },
     });
     await show(tester, const RoomScreen());
     expect(find.text('No Room assigned yet'), findsOneWidget);
@@ -210,8 +280,18 @@ void main() {
     useApi({
       '/students/me/allocation': {
         'term': {'name': 'Fall 2026', 'stayStart': '2026-09-01', 'stayEnd': '2026-12-31'},
-        'allocation': {'room': 'A101', 'bed': '1', 'block': 'Block A', 'roomTypeName': '2-bed', 'roomClassName': 'Standard', 'status': 'Resident', 'allocatedAt': _past},
-        'roommates': [{'name': 'Trần Thị Mẫu', 'bed': '2'}],
+        'allocation': {
+          'room': 'A101',
+          'bed': '1',
+          'block': 'Block A',
+          'roomTypeName': '2-bed',
+          'roomClassName': 'Standard',
+          'status': 'Resident',
+          'allocatedAt': _past,
+        },
+        'roommates': [
+          {'name': 'Trần Thị Mẫu', 'bed': '2'},
+        ],
         'roommateCapacity': 1,
         'stay': {'committedTerms': 2, 'termsUsed': 1, 'termsLeft': 1},
         'nextTerm': {
@@ -226,7 +306,11 @@ void main() {
       },
       '/students/me/door-code': {'room': 'A101', 'status': 'Ready', 'changedAt': _past},
       'POST /students/me/door-code/reveal': {'code': '4821'},
-      '/students/me/furniture': {'items': [{'assetCode': 'F-1', 'type': 'Bed', 'status': 'In use'}]},
+      '/students/me/furniture': {
+        'items': [
+          {'assetCode': 'F-1', 'type': 'Bed', 'status': 'In use'},
+        ],
+      },
       '/students/me/late-check-in': {'request': null, 'canRequest': false},
     });
     await show(tester, const RoomScreen());
@@ -256,14 +340,42 @@ void main() {
   testWidgets('Activity: applications, requests with their actions, and notifications', (tester) async {
     useApi({
       '/students/me/applications': {
-        'items': [{'id': 'APP-1', 'termName': 'Spring 2027', 'roomTypeName': '2-bed', 'roomClassName': 'Standard', 'status': 'Awaiting Deposit'}],
+        'items': [
+          {
+            'id': 'APP-1',
+            'termName': 'Spring 2027',
+            'roomTypeName': '2-bed',
+            'roomClassName': 'Standard',
+            'status': 'Awaiting Deposit',
+          },
+        ],
         'activeTermName': 'Spring 2027',
       },
       '/students/me/requests': {
-        'items': [{'id': 'SW-1', 'typeLabel': 'Swap', 'summary': 'Swap with Room A-605 · Bed B', 'status': 'Invited', 'invitationId': 'SW-1'}],
+        'items': [
+          {
+            'id': 'SW-1',
+            'typeLabel': 'Swap',
+            'summary': 'Swap with Room A-605 · Bed B',
+            'status': 'Invited',
+            'invitationId': 'SW-1',
+          },
+        ],
         'counts': {'maintenance': 0, 'roomChanges': 1},
       },
-      '/notifications': {'items': [{'id': 'n1', 'title': 'Deposit due', 'body': 'Pay by Friday.', 'createdAt': _past, 'read': false, 'link': '/student/invoices'}], 'unread': 1},
+      '/notifications': {
+        'items': [
+          {
+            'id': 'n1',
+            'title': 'Deposit due',
+            'body': 'Pay by Friday.',
+            'createdAt': _past,
+            'read': false,
+            'link': '/student/invoices',
+          },
+        ],
+        'unread': 1,
+      },
     });
     await show(tester, const ApplicationsPage());
     expect(find.text('Spring 2027'), findsOneWidget);
@@ -279,7 +391,19 @@ void main() {
 
   testWidgets('Notifications: a page grouped by day, with mark all as read', (tester) async {
     useApi({
-      '/notifications': {'items': [{'id': 'n1', 'title': 'Deposit due', 'body': 'Pay by Friday.', 'createdAt': _past, 'read': false, 'link': '/student/invoices'}], 'unread': 1},
+      '/notifications': {
+        'items': [
+          {
+            'id': 'n1',
+            'title': 'Deposit due',
+            'body': 'Pay by Friday.',
+            'createdAt': _past,
+            'read': false,
+            'link': '/student/invoices',
+          },
+        ],
+        'unread': 1,
+      },
     });
     await show(tester, const NotificationsScreen());
     expect(find.text('Earlier'), findsOneWidget);
@@ -289,9 +413,36 @@ void main() {
 
   testWidgets('Notifications: an announcement opens in a sheet and the page stays', (tester) async {
     useApi({
-      '/notifications': {'items': [{'id': 'a1', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': false, 'link': '/student', 'kind': 'announcement'}], 'unread': 1},
+      '/notifications': {
+        'items': [
+          {
+            'id': 'a1',
+            'title': 'Room prices of Spring',
+            'body': 'Prices are 5% higher.',
+            'createdAt': _past,
+            'read': false,
+            'link': '/student',
+            'kind': 'announcement',
+          },
+        ],
+        'unread': 1,
+      },
       'POST /notifications/a1/read': <String, Object>{},
-      '/students/me/board': {'items': [{'id': 'a1', 'category': 'Finance', 'title': 'Room prices of Spring', 'body': 'Prices are 5% higher.', 'createdAt': _past, 'read': true, 'changes': [{'field': 'Price', 'type': 'MONEY', 'before': 9000000, 'after': 9450000}]}]},
+      '/students/me/board': {
+        'items': [
+          {
+            'id': 'a1',
+            'category': 'Finance',
+            'title': 'Room prices of Spring',
+            'body': 'Prices are 5% higher.',
+            'createdAt': _past,
+            'read': true,
+            'changes': [
+              {'field': 'Price', 'type': 'MONEY', 'before': 9000000, 'after': 9450000},
+            ],
+          },
+        ],
+      },
     });
     await show(tester, const NotificationsScreen());
     await tester.tap(find.text('Room prices of Spring'));
@@ -313,8 +464,19 @@ void main() {
         'roomClassName': 'Standard',
         'twoBed': false,
         'stayTerms': 2,
-        'events': [{'title': 'Submitted', 'at': _past, 'state': 'done'}],
-        'invoices': [{'id': 'INV-1', 'type': 'deposit', 'title': 'Deposit', 'amount': 900000, 'status': 'Unpaid', 'dueAt': _future}],
+        'events': [
+          {'title': 'Submitted', 'at': _past, 'state': 'done'},
+        ],
+        'invoices': [
+          {
+            'id': 'INV-1',
+            'type': 'deposit',
+            'title': 'Deposit',
+            'amount': 900000,
+            'status': 'Unpaid',
+            'dueAt': _future,
+          },
+        ],
         'canCancel': true,
       },
     });
@@ -331,12 +493,20 @@ void main() {
         'term': {'id': 'SP27', 'name': 'Spring 2027', 'depositWindowHours': 48},
         'eligible': true,
         'maxStayTerms': 3,
-        'checks': [{'title': 'Enrolled this Term', 'passed': true}],
+        'checks': [
+          {'title': 'Enrolled this Term', 'passed': true},
+        ],
       },
       '/catalog': {
-        'roomTypes': [{'id': 'T4', 'name': '4-bed', 'beds': 4}],
-        'roomClasses': [{'id': 'STD', 'name': 'Standard', 'surchargeRate': 0}],
-        'prices': [{'roomTypeId': 'T4', 'roomClassId': 'STD', 'termPrice': 3000000}],
+        'roomTypes': [
+          {'id': 'T4', 'name': '4-bed', 'beds': 4},
+        ],
+        'roomClasses': [
+          {'id': 'STD', 'name': 'Standard', 'surchargeRate': 0},
+        ],
+        'prices': [
+          {'roomTypeId': 'T4', 'roomClassId': 'STD', 'termPrice': 3000000},
+        ],
         'depositRate': 0.3,
         'utilityDeposit': 500000,
       },
@@ -374,6 +544,8 @@ void main() {
     expect(find.text('B202 · Bed 2'), findsOneWidget);
     await tester.tap(find.text('Accept swap'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Accept swap').last);
+    await tester.pumpAndSettle();
     expect(calls, contains('POST /swap-invitations/SW-1/respond'));
   });
 
@@ -382,10 +554,23 @@ void main() {
       '/students/me/verification': {
         'status': 'Profile needed',
         'locked': false,
-        'form': {'studentCode': 'SE000001', 'name': 'Nguyễn Văn Demo', 'gender': 'M', 'dateOfBirth': '2006-01-02', 'major': 'SE', 'cohort': 'K20', 'phone': ''},
+        'form': {
+          'studentCode': 'SE000001',
+          'name': 'Nguyễn Văn Demo',
+          'gender': 'M',
+          'dateOfBirth': '2006-01-02',
+          'major': 'SE',
+          'cohort': 'K20',
+          'phone': '',
+        },
         'options': {
-          'genders': [{'value': 'M', 'label': 'Male'}, {'value': 'F', 'label': 'Female'}],
-          'majors': [{'value': 'SE', 'label': 'Software Engineering'}],
+          'genders': [
+            {'value': 'M', 'label': 'Male'},
+            {'value': 'F', 'label': 'Female'},
+          ],
+          'majors': [
+            {'value': 'SE', 'label': 'Software Engineering'},
+          ],
         },
       },
     });
@@ -407,10 +592,15 @@ void main() {
       },
     });
     late BuildContext context;
-    await show(tester, Builder(builder: (c) {
-      context = c;
-      return const SizedBox();
-    }));
+    await show(
+      tester,
+      Builder(
+        builder: (c) {
+          context = c;
+          return const SizedBox();
+        },
+      ),
+    );
     var opened = -1;
     openTab = (tab, [_]) => opened = tab;
     openLink(context, '/student/invoices/INV-9/pay');
@@ -431,12 +621,26 @@ void main() {
         'status': 'Open',
         'stayStart': '2027-01-04',
         'stayEnd': '2027-05-01',
-        'timeline': [{'key': 'resultsPublishedAt', 'label': 'Results published', 'at': _future}],
-        'prices': [{'roomTypeId': 'T4', 'roomType': '4-bed', 'roomClassId': 'STD', 'roomClass': 'Standard', 'price': 3000000, 'deposit': 900000, 'places': 12}],
+        'timeline': [
+          {'key': 'resultsPublishedAt', 'label': 'Results published', 'at': _future},
+        ],
+        'prices': [
+          {
+            'roomTypeId': 'T4',
+            'roomType': '4-bed',
+            'roomClassId': 'STD',
+            'roomClass': 'Standard',
+            'price': 3000000,
+            'deposit': 900000,
+            'places': 12,
+          },
+        ],
         'depositPercent': 30,
         'utilityDeposit': 500000,
         'houseRules': 'Quiet hours from 23:00.',
-        'faq': [{'question': 'Can I cook?', 'answer': 'In the shared kitchen.'}],
+        'faq': [
+          {'question': 'Can I cook?', 'answer': 'In the shared kitchen.'},
+        ],
       },
     });
     await show(tester, const RegistrationPeriodScreen(termId: 'SP27'));
@@ -461,7 +665,11 @@ void main() {
 
   testWidgets('New maintenance request: category, title and description are required', (tester) async {
     useApi({
-      '/maintenance-requests/options': {'categories': ['Electrical', 'Plumbing'], 'locations': ['Bathroom'], 'furniture': <Object>[]},
+      '/maintenance-requests/options': {
+        'categories': ['Electrical', 'Plumbing'],
+        'locations': ['Bathroom'],
+        'furniture': <Object>[],
+      },
     });
     await show(tester, const NewMaintenanceScreen());
     await tester.tap(find.text('Submit request'));
@@ -476,7 +684,16 @@ void main() {
       '/students/me/family-days': {
         'resident': true,
         'items': [
-          {'id': 'FD-1', 'block': 'A', 'title': 'Family Day – Spring', 'area': 'Lobby A', 'status': 'Registration open', 'startsAt': _future, 'endsAt': _future, 'registration': null},
+          {
+            'id': 'FD-1',
+            'block': 'A',
+            'title': 'Family Day – Spring',
+            'area': 'Lobby A',
+            'status': 'Registration open',
+            'startsAt': _future,
+            'endsAt': _future,
+            'registration': null,
+          },
         ],
       },
       '/students/me/family-days/FD-1': {
@@ -536,7 +753,16 @@ void main() {
           'slotStartsAt': _future,
           'slotEndsAt': _future,
           'canCancel': true,
-          'guests': [{'id': 'G1', 'fullName': 'Nguyễn Văn Khách', 'relationship': 'Father', 'birthYear': 1970, 'status': 'Not arrived', 'passToken': 'PASS-1'}],
+          'guests': [
+            {
+              'id': 'G1',
+              'fullName': 'Nguyễn Văn Khách',
+              'relationship': 'Father',
+              'birthYear': 1970,
+              'status': 'Not arrived',
+              'passToken': 'PASS-1',
+            },
+          ],
         },
       },
     });
@@ -548,7 +774,9 @@ void main() {
 
   testWidgets('Assistant: a suggestion is sent and the reply shown', (tester) async {
     AssistantScreen.messages.clear();
-    useApi({'POST /students/me/assistant/chat': {'reply': 'You have **one** Invoice to pay.'}});
+    useApi({
+      'POST /students/me/assistant/chat': {'reply': 'You have **one** Invoice to pay.'},
+    });
     await show(tester, const AssistantScreen());
     await tester.tap(find.text('Which Invoices do I still have to pay?'));
     await tester.pumpAndSettle();
@@ -571,13 +799,37 @@ void main() {
   testWidgets('Check-in inventory: conditions as chips, the guide, the count and photos', (tester) async {
     useApi({
       '/students/me/handover': {
-        'id': 'H1', 'status': 'Draft', 'room': 'A101', 'bed': '1', 'dueAt': _future,
+        'id': 'H1',
+        'status': 'Draft',
+        'room': 'A101',
+        'bed': '1',
+        'dueAt': _future,
         'items': [
-          {'itemId': 'i1', 'assetCode': 'CH-1', 'type': 'Chair', 'typeVi': 'Ghế', 'bed': '1', 'personal': true, 'condition': null, 'photos': <Object>[]},
-          {'itemId': 'i2', 'assetCode': 'AC-1', 'type': 'Air conditioner', 'typeVi': 'Điều hoà', 'personal': false, 'condition': 'Good',
-            'photos': [{'id': 'p1', 'url': 'http://localhost/files/1'}]},
+          {
+            'itemId': 'i1',
+            'assetCode': 'CH-1',
+            'type': 'Chair',
+            'typeVi': 'Ghế',
+            'bed': '1',
+            'personal': true,
+            'condition': null,
+            'photos': <Object>[],
+          },
+          {
+            'itemId': 'i2',
+            'assetCode': 'AC-1',
+            'type': 'Air conditioner',
+            'typeVi': 'Điều hoà',
+            'personal': false,
+            'condition': 'Good',
+            'photos': [
+              {'id': 'p1', 'url': 'http://localhost/files/1'},
+            ],
+          },
         ],
-        'meterPhotos': <Object>[], 'photosRequired': true, 'maxPhotos': 3,
+        'meterPhotos': <Object>[],
+        'photosRequired': true,
+        'maxPhotos': 3,
       },
       '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
     });
@@ -598,12 +850,31 @@ void main() {
   testWidgets('Check-in inventory: the final record with its steps and what Staff checked', (tester) async {
     useApi({
       '/students/me/handover': {
-        'id': 'H1', 'status': 'Final', 'room': 'A101', 'source': 'Checked in the Room',
-        'openedAt': _past, 'submittedAt': _past, 'visitAt': _past, 'finalizedAt': _past, 'utilityFrom': _past,
-        'electricity': 120, 'water': 30, 'staffElectricity': 121, 'staffWater': 30,
+        'id': 'H1',
+        'status': 'Final',
+        'room': 'A101',
+        'source': 'Checked in the Room',
+        'openedAt': _past,
+        'submittedAt': _past,
+        'visitAt': _past,
+        'finalizedAt': _past,
+        'utilityFrom': _past,
+        'electricity': 120,
+        'water': 30,
+        'staffElectricity': 121,
+        'staffWater': 30,
         'items': [
-          {'itemId': 'i1', 'assetCode': 'CH-1', 'type': 'Chair', 'personal': true, 'bed': '1', 'condition': 'Good',
-            'staffCondition': 'Worn', 'staffNote': 'Scratches', 'photos': <Object>[]},
+          {
+            'itemId': 'i1',
+            'assetCode': 'CH-1',
+            'type': 'Chair',
+            'personal': true,
+            'bed': '1',
+            'condition': 'Good',
+            'staffCondition': 'Worn',
+            'staffNote': 'Scratches',
+            'photos': <Object>[],
+          },
         ],
         'meterPhotos': <Object>[],
       },
@@ -628,12 +899,19 @@ void main() {
   });
 
   testWidgets('Links open Family Day screens', (tester) async {
-    useApi({'/students/me/family-days': {'resident': false, 'items': <Object>[]}});
+    useApi({
+      '/students/me/family-days': {'resident': false, 'items': <Object>[]},
+    });
     late BuildContext context;
-    await show(tester, Builder(builder: (c) {
-      context = c;
-      return const SizedBox();
-    }));
+    await show(
+      tester,
+      Builder(
+        builder: (c) {
+          context = c;
+          return const SizedBox();
+        },
+      ),
+    );
     openLink(context, '/student/family-days');
     await tester.pumpAndSettle();
     expect(find.text('Family Days are for students who live in the dormitory.'), findsOneWidget);

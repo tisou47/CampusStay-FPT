@@ -327,7 +327,8 @@ export default function RoomChangeQueue() {
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
-  const [status, setStatus] = useState('Pending')
+  // A link to one request (?id=) lists every status, so a decided request is found too (WEB-OPS-26).
+  const [status, setStatus] = useState(params.get('id') ? '' : 'Pending')
   const [kind, setKind] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -337,7 +338,9 @@ export default function RoomChangeQueue() {
   const filters = { block: scope.block, status, kind, page, pageSize }
   const query = useQuery(['room-changes', filters], ({ signal }) => api.roomChanges.list(filters, { signal }))
   const items = query.data?.items ?? []
-  const selected = items.find((r) => r.id === selectedId) ?? items[0]
+  // The request asked for, never another one in its place; without an id, the first row.
+  const selected = items.find((r) => r.id === selectedId) ?? (selectedId ? null : items[0])
+  const missing = Boolean(selectedId) && !selected && !query.loading
   const exporting = useMutation(() => api.exports.download('room-changes', { ...filters, page: undefined, pageSize: undefined }, 'room-change-requests.csv'), { onError: (e) => notifyError(e, 'Export failed') })
   const filter = (set) => (e) => {
     set(e.target.value)
@@ -424,7 +427,13 @@ export default function RoomChangeQueue() {
           <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
         ) : (
           <Card className="flex w-95 shrink-0 flex-col">
-            <EmptyBlock icon={Repeat} title="Select a request" />
+            {missing ? (
+              <EmptyBlock icon={Repeat} title="Request not on this page">
+                {t('{id} is not in this list. Change the filters or the page, or pick another request.', { id: selectedId })}
+              </EmptyBlock>
+            ) : (
+              <EmptyBlock icon={Repeat} title="Select a request" />
+            )}
           </Card>
         )}
       </div>

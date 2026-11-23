@@ -1,0 +1,28 @@
+$kind: http-request
+name: '/block-staff/{id}/shifts'
+method: PUT
+url: '{{baseUrl}}/block-staff/:id/shifts'
+order: 7000
+description: |-
+  `PUT /block-staff/{id}/shifts` `{ shifts: [{ weekday, start, end }] }` → `{ shifts }`
+
+  Contract: `tools/postman/api-contract.md` › Manager › Block staff, routing and escalations
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "shifts": [
+        {
+          "weekday": 0,
+          "start": "",
+          "end": ""
+        }
+      ]
+    }

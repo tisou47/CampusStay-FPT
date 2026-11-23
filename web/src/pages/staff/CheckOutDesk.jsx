@@ -340,11 +340,11 @@ export function CheckOutPanel({ d, embedded = false }) {
           <div className="flex items-center gap-2">
             {d.handoverReport ? (
               <Button size="sm" icon={FileText} onClick={() => setShowHandover(true)}>
-                Xem hợp đồng / biên bản nhận phòng (Report Final)
+                {t('View the move-in report (Report Final)')}
               </Button>
             ) : (
               <span className="rounded-md bg-subtle px-2 py-1 text-[11px] text-fg-tertiary">
-                Không có Report Final
+                {t('No Report Final')}
               </span>
             )}
           </div>
@@ -355,21 +355,21 @@ export function CheckOutPanel({ d, embedded = false }) {
             {d.handoverReport.finalizedAt && (
               <>
                 <span>·</span>
-                <span>Chốt: {formatDateTime(d.handoverReport.finalizedAt)}</span>
+                <span>{t('Finalized: {date}', { date: formatDateTime(d.handoverReport.finalizedAt) })}</span>
               </>
             )}
             {d.handoverReport.electricity != null && d.handoverReport.water != null && (
               <>
                 <span>·</span>
                 <span className="font-medium text-fg tabular">
-                  Điện {formatNumber(d.handoverReport.electricity)} kWh · Nước {formatNumber(d.handoverReport.water)} m³
+                  {t('Electricity {kwh} kWh · Water {m3} m³', { kwh: formatNumber(d.handoverReport.electricity), m3: formatNumber(d.handoverReport.water) })}
                 </span>
               </>
             )}
             {d.handoverReport.staffName && (
               <>
                 <span>·</span>
-                <span>Staff duyệt: {d.handoverReport.staffName}</span>
+                <span>{t('Approved by Staff: {name}', { name: d.handoverReport.staffName })}</span>
               </>
             )}
           </div>
@@ -583,49 +583,49 @@ export function CheckOutPanel({ d, embedded = false }) {
           open={showHandover}
           onClose={() => setShowHandover(false)}
           size="lg"
-          title={`Biên bản nhận phòng (Report Final) · ${d.name}`}
-          description={`${d.studentCode} · ${d.room} · Giường ${d.bed} · ${d.handoverReport.id}`}
-          footer={<Button onClick={() => setShowHandover(false)}>Đóng</Button>}
+          title={t('Move-in report (Report Final) · {name}', { name: d.name })}
+          description={`${d.studentCode} · ${t('{room} · Bed {bed}', { room: d.room, bed: d.bed })} · ${d.handoverReport.id}`}
+          footer={<Button onClick={() => setShowHandover(false)}>Close</Button>}
         >
           <div className="flex flex-col gap-4">
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-line bg-subtle/40 p-3.5 text-sm sm:grid-cols-4">
               <div>
-                <dt className="text-xs text-fg-tertiary">Nguồn chốt</dt>
+                <dt className="text-xs text-fg-tertiary">{t('Finalized by')}</dt>
                 <dd className="font-medium text-fg">
                   {d.handoverReport.source === 'STUDENT'
-                    ? 'Sinh viên khai khớp'
+                    ? t('The student’s report matched')
                     : d.handoverReport.source === 'AUTO'
-                      ? 'Hệ thống tự động chốt'
-                      : 'Nhân viên & Sinh viên xác nhận'}
+                      ? t('Finalized by the system')
+                      : t('Confirmed by Staff and the student')}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-fg-tertiary">Thời điểm bàn giao</dt>
+                <dt className="text-xs text-fg-tertiary">{t('Handed over at')}</dt>
                 <dd className="font-medium text-fg">
                   {d.handoverReport.finalizedAt ? formatDateTime(d.handoverReport.finalizedAt) : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-fg-tertiary">Điện đầu kỳ</dt>
+                <dt className="text-xs text-fg-tertiary">{t('Electricity at move-in')}</dt>
                 <dd className="font-semibold text-fg tabular">
                   {d.handoverReport.electricity != null ? `${formatNumber(d.handoverReport.electricity)} kWh` : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-fg-tertiary">Nước đầu kỳ</dt>
+                <dt className="text-xs text-fg-tertiary">{t('Water at move-in')}</dt>
                 <dd className="font-semibold text-fg tabular">
                   {d.handoverReport.water != null ? `${formatNumber(d.handoverReport.water)} m³` : '—'}
                 </dd>
               </div>
               {d.handoverReport.staffName && (
                 <div className="col-span-2">
-                  <dt className="text-xs text-fg-tertiary">Nhân viên kiểm tra / duyệt</dt>
+                  <dt className="text-xs text-fg-tertiary">{t('Checked and approved by')}</dt>
                   <dd className="font-medium text-fg">{d.handoverReport.staffName}</dd>
                 </div>
               )}
               {d.handoverReport.studentSubmittedAt && (
                 <div className="col-span-2">
-                  <dt className="text-xs text-fg-tertiary">Sinh viên xác nhận lúc</dt>
+                  <dt className="text-xs text-fg-tertiary">{t('Student confirmed at')}</dt>
                   <dd className="font-medium text-fg">{formatDateTime(d.handoverReport.studentSubmittedAt)}</dd>
                 </div>
               )}
@@ -633,16 +633,16 @@ export function CheckOutPanel({ d, embedded = false }) {
 
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
-                Tình trạng nội thất lúc nhận phòng ({d.handoverReport.items?.length ?? 0} món)
+                {t('Furniture condition at move-in ({n} items)', { n: d.handoverReport.items?.length ?? 0 })}
               </p>
               <div className="max-h-72 overflow-y-auto rounded-xl border border-line">
                 <Table>
                   <THead>
                     <tr>
-                      <Th>Nội thất</Th>
-                      <Th className="w-32">Mã tài sản</Th>
-                      <Th className="w-36">Tình trạng lúc nhận</Th>
-                      <Th>Ghi chú</Th>
+                      <Th>Furniture</Th>
+                      <Th className="w-32">Asset code</Th>
+                      <Th className="w-36">Condition at move-in</Th>
+                      <Th>Note</Th>
                     </tr>
                   </THead>
                   <TBody>
@@ -658,7 +658,7 @@ export function CheckOutPanel({ d, embedded = false }) {
                           </Tag>
                         </Td>
                         <Td className="text-xs text-fg-secondary">
-                          {it.note || (it.preExisting ? 'Đã ghi nhận có sẵn từ trước' : '—')}
+                          {it.note || (it.preExisting ? t('Recorded as already there') : '—')}
                         </Td>
                       </Tr>
                     ))}

@@ -363,6 +363,11 @@ function Payment({ data, reload }) {
                     {sendClaim.pending ? t('Sending…') : t('I have transferred')}
                   </Button>
                 </div>
+              ) : invoice.status === 'Upcoming' ? (
+                // WEB-STU-04: why a transfer is not offered depends on the status, not only on the deadline.
+                <Note>{t('This invoice is not open for payment yet. You are told when it is.')}</Note>
+              ) : ['Void', 'Refunded'].includes(invoice.status) ? (
+                <Note>{t('This invoice was cancelled or refunded: there is nothing to pay.')}</Note>
               ) : (
                 <Alert type="error" title="The deadline has passed">
                   {t('This invoice can no longer be paid by transfer. Contact the dormitory office.')}

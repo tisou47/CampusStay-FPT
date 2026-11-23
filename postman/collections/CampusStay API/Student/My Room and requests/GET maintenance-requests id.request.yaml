@@ -2,7 +2,7 @@ $kind: http-request
 name: '/maintenance-requests/{id}'
 method: GET
 url: '{{baseUrl}}/maintenance-requests/:id'
-order: 12000
+order: 9000
 description: |-
   `GET /maintenance-requests/{id}` (student view) → `{ id, title, status, room, category, location, reportedAt, assignee, visitWindow, description, events: [{ who, at, message }] }` (public updates only)
 

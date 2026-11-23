@@ -4,6 +4,6 @@ method: GET
 url: '{{baseUrl}}/admin/utility'
 order: 3000
 description: |-
-  `GET|PUT /admin/utility` → `{ priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding, overdueReminder } }`
+  `GET|PUT /admin/utility` → `{ priceKwh, priceM3, paymentDueDays, rounding, estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { paymentDueDays, rounding } }` (the reading day and the overdue reminder were removed: nothing used them, BE-3RD-07)
 
   Contract: `tools/postman/api-contract.md` › Admin › Policies

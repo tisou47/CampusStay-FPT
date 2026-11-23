@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/{id}/rooms/{room}'
 method: PUT
 url: '{{baseUrl}}/inspection-runs/:id/rooms/:room'
-order: 3000
+order: 6000
 description: |-
   `PUT /inspection-runs/{id}/rooms/{room}` `{ results }` → `{ createdRequests: [id] }`. A failed item creates a Maintenance Request; its severity sets the request priority.
 
@@ -25,7 +25,14 @@ body:
         {
           "itemId": "",
           "result": "",
-          "note": ""
+          "note": "",
+          "condition": "",
+          "restock": false
         }
-      ]
+      ],
+      "meters": {
+        "electricity": 0,
+        "water": 0,
+        "replaced": false
+      }
     }

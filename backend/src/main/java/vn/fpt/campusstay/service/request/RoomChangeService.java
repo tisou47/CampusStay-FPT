@@ -469,16 +469,16 @@ public class RoomChangeService {
             throw ApiException.conflict("RESERVED_FOR_NEW_STUDENTS",
                     "The free Beds of this kind are kept for new students.");
         }
-        moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
-        cancelSwapsOf(r.allocationId(), now);
         String termName = terms.findPublished(r.termId()).map(TermSummary::name).orElse("the next Term");
         String text = "In " + termName + " you move to Room " + bed.room() + " · Bed " + bed.bed() + ".";
+        // Decided before the move, so the AllocationMoved listener closes only the other requests (BE-2ND-06).
         jdbc.sql("""
                 UPDATE req_room_change SET status = 'APPROVED', target_bed_id = :bed, decided_by = :by, decided_at = :now,
                        decision_note = :note, version = version + 1
                 WHERE id = :id
                 """).param("bed", bed.bedId()).param("by", user.userId()).param("now", Timestamp.from(now))
                 .param("note", text).param("id", r.id()).update();
+        moves.move(r.allocationId(), bed.bedId(), "ROOM_CHANGE", user.userId());
         audit.record("ROOM_CHANGE_APPROVED", AuditLog.Tone.SUCCESS, "Room-Change Request", r.id(), r.code(),
                 Map.of("bed", bed.code(), "term", termName));
         events.publishEvent(new RoomChangeDecided(r.id(), r.code(), r.studentId(), "approved", text));
@@ -494,15 +494,13 @@ public class RoomChangeService {
                 """).param("now", Timestamp.from(now)).param("a", allocationId).update();
     }
 
-    /** A next-Term Allocation that moved closes the swaps it was part of (their Bed is not that one any more). */
-    private void cancelSwapsOf(long allocationId, Instant now) {
+    /** The Allocation moved to another Bed: its open room change closes. */
+    void allocationMoved(long allocationId, Instant now) {
         jdbc.sql("""
-                UPDATE req_swap SET status = 'CANCELLED', decision_reason = 'The next-Term Bed changed.',
-                       decided_at = :now, version = version + 1
-                WHERE (a_allocation_id = :a OR b_allocation_id = :a) AND status IN ('INVITED', 'PENDING', 'TO_MANAGER')
+                UPDATE req_room_change SET status = 'CANCELLED', decided_at = :now, version = version + 1,
+                       decision_note = 'Cancelled: Staff moved you to another Bed.'
+                WHERE allocation_id = :a AND status IN ('SUBMITTED', 'PENDING')
                 """).param("now", Timestamp.from(now)).param("a", allocationId).update();
-        jdbc.sql("UPDATE req_swap_post SET status = 'CLOSED', updated_at = :now WHERE allocation_id = :a AND status = 'ACTIVE'")
-                .param("now", Timestamp.from(now)).param("a", allocationId).update();
     }
 
     // ---------------------------------------------------------------- helpers

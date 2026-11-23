@@ -1,0 +1,20 @@
+$kind: http-request
+name: '/students/me/damage-claims/{id}'
+method: POST
+url: '{{baseUrl}}/students/me/damage-claims/:id'
+order: 10000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `answer` of `check-out-furniture-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "acknowledge": false
+    }

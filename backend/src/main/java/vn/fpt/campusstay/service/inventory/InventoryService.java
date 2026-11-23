@@ -3,6 +3,7 @@ package vn.fpt.campusstay.service.inventory;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -26,6 +27,7 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.setting.Catalog;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.setting.TermCatalog;
+import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.service.inventory.BedOccupancy;
 import vn.fpt.campusstay.common.audit.AuditLog;
@@ -325,6 +327,14 @@ public class InventoryService {
             throw ApiException.conflict("ROOM_OCCUPIED", "Move the " + residents
                     + (residents == 1 ? " resident" : " residents") + " of Room " + room.code()
                     + " before you set it out of service.");
+        }
+        // Beds offered in Round 2, proposed by a live run or given for a coming Term must stay usable (BE-3RD-04).
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        List<Long> open = terms.publishedTerms().stream().filter(t -> !t.stayEnd().isBefore(today))
+                .map(TermSummary::id).toList();
+        if (!occupancy.bedsPromised(open, bedIds).isEmpty()) {
+            throw ApiException.conflict("ROOM_PROMISED", "Beds of Room " + room.code() + " are offered or given to "
+                    + "students for a coming Term. Move or withdraw them before you set it out of service.");
         }
         if (!"IN_SERVICE".equals(room.status())) {
             throw ApiException.conflict("ROOM_ALREADY_OUT_OF_SERVICE", "Room " + room.code() + " is already out of service.");

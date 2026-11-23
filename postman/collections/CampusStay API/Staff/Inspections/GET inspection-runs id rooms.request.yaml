@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/{id}/rooms'
 method: GET
 url: '{{baseUrl}}/inspection-runs/:id/rooms'
-order: 2000
+order: 5000
 description: |-
   `GET /inspection-runs/{id}/rooms?page&pageSize` → `{ items: [{ room, roomTypeName, roomClassName, status, results: [{ itemId, result: 'Pass'|'Fail'|'Not checked', note }] }], total }`
 

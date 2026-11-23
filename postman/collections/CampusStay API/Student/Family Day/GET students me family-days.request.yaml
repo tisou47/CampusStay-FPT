@@ -4,4 +4,4 @@ method: GET
 url: '{{baseUrl}}/students/me/family-days'
 order: 4000
 description: |-
-  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `list_13` of `student-family-day-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `list_12` of `student-family-day-controller`). Add it to the contract or remove it from the backend.

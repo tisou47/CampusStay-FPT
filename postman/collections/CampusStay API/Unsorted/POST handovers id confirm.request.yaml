@@ -1,12 +1,10 @@
 $kind: http-request
-name: '/room-class-changes/{id}/consent'
+name: '/handovers/{id}/confirm'
 method: POST
-url: '{{baseUrl}}/room-class-changes/:id/consent'
-order: 4000
+url: '{{baseUrl}}/handovers/:id/confirm'
+order: 5000
 description: |-
-  `POST /room-class-changes/{id}/consent` `{ agree }` → `204` (A-42)
-
-  Contract: `tools/postman/api-contract.md` › Student › My Room and requests
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `confirm_5` of `handover-controller`). Add it to the contract or remove it from the backend.
 pathVariables:
   - key: id
     value: ''
@@ -18,5 +16,5 @@ body:
   type: json
   content: |-
     {
-      "agree": false
+      "reason": ""
     }

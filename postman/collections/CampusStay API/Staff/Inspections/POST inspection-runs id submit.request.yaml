@@ -2,7 +2,7 @@ $kind: http-request
 name: '/inspection-runs/{id}/submit'
 method: POST
 url: '{{baseUrl}}/inspection-runs/:id/submit'
-order: 4000
+order: 7000
 description: |-
   `POST /inspection-runs/{id}/submit`
 
@@ -11,3 +11,12 @@ pathVariables:
   - key: id
     value: ''
     description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "confirmed": false
+    }

@@ -187,6 +187,16 @@ public class ReconciliationService {
                 .param("file", fileName == null || fileName.isBlank() ? "list" : fileName.strip())
                 .param("rows", table.lines().size()).param("by", user.userId()).param("now", Timestamp.from(now))
                 .query(Long.class).single();
+        // An earlier list of the same kind for this Term is replaced: its open items close (BE-3RD-06).
+        jdbc.sql("""
+                UPDATE auth_reconciliation_item i
+                SET status = 'RESOLVED', outcome = 'SUPERSEDED', note = 'Replaced by a newer list.',
+                    resolved_by = :by, resolved_at = :now
+                FROM auth_reconciliation r
+                WHERE r.id = i.reconciliation_id AND r.term_id = :t AND r.kind = :kind AND r.id <> :run
+                  AND i.status = 'OPEN'
+                """).param("by", user.userId()).param("now", Timestamp.from(now)).param("t", term.id())
+                .param("kind", k).param("run", runId).update();
         Set<Long> listed = new HashSet<>();
         Set<String> seen = new HashSet<>();
         for (StudentListFile.Line line : table.lines()) {
@@ -297,6 +307,13 @@ public class ReconciliationService {
                     """).param("now", Timestamp.from(now)).param("u", row.studentId()).update();
             events.publishEvent(new StudentNotEnrolled(row.studentId(), termId, text));
         }
+        if (o.equals("ENROLLED") && row.studentId() != null) {
+            // The Manager checked: the student is enrolled after all (BE-3RD-05).
+            jdbc.sql("""
+                    UPDATE auth_student SET enrollment_status = 'ENROLLED', synced_at = :now
+                    WHERE user_id = :u AND enrollment_status <> 'ENROLLED'
+                    """).param("now", Timestamp.from(now)).param("u", row.studentId()).update();
+        }
         audit.record("RECONCILIATION_ITEM_RESOLVED", o.equals("NOT_ENROLLED") ? AuditLog.Tone.WARNING
                 : AuditLog.Tone.INFO, "Reconciliation", runId, row.code(),
                 Map.of("group", row.grp(), "outcome", OUTCOMES.get(o), "note", text));
@@ -400,7 +417,7 @@ public class ReconciliationService {
                 : java.util.Arrays.stream(r.roles().split(",")).map(ROLES::get).toList();
         return new Item(String.valueOf(r.id()), r.grp(), r.code(), r.name(), roles, label(r.fileStatus()),
                 label(r.directoryStatus()), r.line(), ITEM_STATUSES.get(r.status()),
-                r.outcome() == null ? null : OUTCOMES.get(r.outcome()), r.note(),
+                r.outcome() == null ? null : OUTCOMES.getOrDefault(r.outcome(), "Superseded"), r.note(),
                 r.resolvedBy() == null ? null : resolvers.get(r.resolvedBy()), r.resolvedAt());
     }
 
