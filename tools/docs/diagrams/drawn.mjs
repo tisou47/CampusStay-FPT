@@ -566,7 +566,7 @@ export const activities = [
 const graph = (name, kind, title, dir, nodes, edges, groups) => ({
   name, kind, title, dir, groups,
   nodes: nodes.map(([id, label, shape, parent]) => ({ id, label, shape: shape ?? 'round', ...(parent ? { parent } : {}) })),
-  edges: edges.map(([from, to, label, dashed]) => ({ from, to, ...(label ? { label } : {}), ...(dashed ? { dashed: true } : {}) })),
+  edges: edges.map(([from, to, label, dashed, arrow]) => ({ from, to, ...(label ? { label } : {}), ...(dashed ? { dashed: true } : {}), ...(arrow ? { arrow } : {}) })),
 })
 
 // External systems: AuthProperties / GoogleIdTokenVerifier (Google), FcmPushSender, MailProperties (SMTP),
@@ -581,7 +581,8 @@ export const context = graph('01_Context/context', 'flow', 'System context: Camp
   ['student', 'cs', 'apply, pay, requests, room'], ['staff', 'cs', 'desk, maintenance, inspections'], ['manager', 'cs', 'review, assign, confirm payments'],
   ['admin', 'cs', 'Terms, prices, Buildings, users'], ['guest', 'cs', 'pass at the gate'],
   ['cs', 'google', 'verify sign-in'], ['cs', 'fcm', 'push'], ['cs', 'smtp', 'emails'], ['cs', 'qr', 'QR image'], ['cs', 'ai', 'questions'],
-  ['student', 'bank', 'transfer', true], ['school', 'cs', 'list uploaded by a Manager', true],
+  // Laid out on the right with the other systems; the arrow (drawn at the source) shows the list coming in.
+  ['student', 'bank', 'transfer', true], ['cs', 'school', 'enrolled list, uploaded by a Manager', true, 'start'],
 ])
 
 export const architecture = graph('03_Architecture/architecture', 'flow', 'Deployment architecture', 'LR', [
