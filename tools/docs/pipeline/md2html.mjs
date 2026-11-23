@@ -9,9 +9,16 @@ import path from 'node:path';
 
 const [, , input, output] = process.argv;
 const base = path.dirname(path.resolve(input));
-// '@include <file>' on its own line inlines another Markdown file (relative to the including file).
-const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r/g, '').split('\n')
-  .flatMap((l) => (/^@include\s+/.test(l) ? read(path.resolve(path.dirname(file), l.replace(/^@include\s+/, '').trim())) : [l]));
+// '@include <file>' on its own line inlines another Markdown file (relative to the including file);
+// '@include <file> => # <heading>' also replaces that file's first top-level heading (Report 7 renumbers Reports 1–6).
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r/g, '').split('\n').flatMap((l) => {
+  const m = l.match(/^@include\s+(.+?)(?:\s+=>\s+(# .+))?\s*$/);
+  if (!m) return [l];
+  const inner = read(path.resolve(path.dirname(file), m[1]));
+  const first = inner.findIndex((x) => x.startsWith('# '));
+  if (m[2] && first >= 0) inner[first] = m[2];
+  return inner;
+});
 const lines = read(path.resolve(input));
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -20,7 +20,8 @@ const COVER_PLACE_DATE = 'Ho Chi Minh City, November 2026'
 
 /** Per document: where the replaced body starts, and extra cover replacements. */
 const OPTIONS = {
-  Report7: { bodyStart: 'Acknowledgement' },
+  // The final report's template has no Record of Changes table.
+  Report7: { bodyStart: 'Acknowledgement', replace: [['<Group Name>', 'GFA26SE104']], noRecordOfChanges: true },
 }
 
 // The tables the Markdown includes (tools/docs/src/_*.md) are regenerated from the data and git first.
@@ -67,7 +68,7 @@ for (const name of names) {
   execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', here('pipeline/build-report.ps1'), '-Config', cfg], { stdio: 'inherit' })
   try {
     execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', here('check-docx.ps1'),
-      '-Path', path.join(root, `${out}.docx`), '-Outline', here('outlines', `${name}.json`)], { stdio: 'inherit' })
+      '-Path', path.join(root, `${out}.docx`), '-Outline', here('outlines', `${name}.json`), ...(opt.noRecordOfChanges ? ['-NoRecordOfChanges'] : [])], { stdio: 'inherit' })
   } catch {
     failed++
   }
