@@ -4897,6 +4897,7 @@ const wave2 = {
   'Managers can schedule it again. Its schedules stay paused until a Manager resumes them.': 'Quản lý có thể lên lịch lại. Các lịch của danh mục vẫn tạm dừng cho đến khi một Quản lý tiếp tục chúng.',
   'Choose at least one block.': 'Hãy chọn ít nhất một tòa.',
   'Enter a refund from 0 to 100%.': 'Nhập tỷ lệ hoàn tiền từ 0 đến 100%.',
+  'Fix the meter readings first.': 'Hãy sửa chỉ số công tơ trước.',
 }
 
 export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover, ...wave2 }

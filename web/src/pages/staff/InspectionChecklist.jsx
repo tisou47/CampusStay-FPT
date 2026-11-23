@@ -18,6 +18,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { photoAllowed } from '@/lib/inspection'
 import { downloadCsv, h, printDocument } from '@/lib/report'
 import { getLang, t, tr } from '@/i18n'
 
@@ -485,7 +486,7 @@ function Checklist({ run, room }) {
                     ) : (
                       <div className="flex flex-col gap-1">
                         <Input size="sm" aria-label={t('Note for {item}', { item: item.label })} value={r.note ?? ''} onChange={(e) => setNote(item.id, e.target.value)} placeholder={item.furniture ? 'What do you see?' : 'What is wrong?'} />
-                        {r.result === 'Fail' && (
+                        {photoAllowed(item, r) && (
                           <label className="flex cursor-pointer items-center gap-1 text-xs text-fg-brand">
                             <input
                               type="file"

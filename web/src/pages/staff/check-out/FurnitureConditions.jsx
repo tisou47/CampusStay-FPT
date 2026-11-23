@@ -82,6 +82,8 @@ export function FurnitureConditions({
   // null = what the server last recorded (WEB-OPS-24)
   const [present, setPresent] = useState(null)
   const studentPresent = present ?? Boolean(data?.studentPresent)
+  // A reading that is not a number ("1.360" is ambiguous) must not be dropped silently on Save (final review #5).
+  const readingsBad = [electricity, water].some((v) => Number.isNaN(parseDecimal(v)))
 
   useEffect(() => {
     if (!data) return
@@ -488,7 +490,8 @@ export function FurnitureConditions({
                 if (!condition) onConditionChange?.(flaggedLines.length > 0 ? 'damaged' : 'good')
                 save.run()
               }}
-              disabled={save.pending}
+              disabled={save.pending || readingsBad}
+              tip={readingsBad ? 'Fix the meter readings first.' : undefined}
             >
               {t('Record furniture')}
             </Button>
