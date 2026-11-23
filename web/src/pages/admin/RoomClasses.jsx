@@ -14,6 +14,7 @@ import { StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { countLines, typeName } from '@/lib/furniture'
 import { formatNumber, formatVnd } from '@/lib/format'
+import { parseDecimal } from '@/lib/numbers'
 import { t, tr } from '@/i18n'
 
 // SCR-CFG-03 Room Classes (Figma 25:837)
@@ -41,7 +42,7 @@ function EditDrawer({ item, onClose }) {
   const statusField = <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={setStatus} options={['Active', 'Inactive']} />}</Field>
   const save = useMutation(
     () => {
-      const body = { name: form.name.trim(), surchargeRate: (Number(form.surcharge) || 0) / 100, status: form.status }
+      const body = { name: form.name.trim(), surchargeRate: (parseDecimal(form.surcharge) ?? 0) / 100, status: form.status }
       return isNew ? api.admin.roomClasses.create(body) : api.admin.roomClasses.update(item.id, body)
     },
     {
@@ -61,7 +62,7 @@ function EditDrawer({ item, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} onClick={() => save.run()} disabled={!form.name.trim() || save.pending}>
+          <Button variant="primary" icon={Check} onClick={() => save.run()} disabled={!form.name.trim() || save.pending || Number.isNaN(parseDecimal(form.surcharge))}>
             Save
           </Button>
         </>

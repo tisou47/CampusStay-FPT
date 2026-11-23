@@ -1,0 +1,12 @@
+$kind: http-request
+name: '/week-schedule'
+method: GET
+url: '{{baseUrl}}/week-schedule?block={{block}}'
+order: 3000
+description: |-
+  `GET /week-schedule?block` → `{ start, end, sentBlocks, pendingBlocks, sentAt, sentBy }`
+
+  Contract: `tools/postman/api-contract.md` › Manager › Other
+queryParams:
+  - key: block
+    value: '{{block}}'

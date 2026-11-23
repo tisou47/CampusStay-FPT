@@ -31,12 +31,11 @@ const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progre
 const blank = { name: '', checklistId: '', scope: '', repeat: '', assignee: '', dueWithinDays: 3, createRequests: true, notifyResidents: true }
 const NEW_ITEM = {}
 const ALL = 'all'
-const PRE_ARRIVAL_KEYS = ['pre-arrival', 'trước nhận phòng', 'trước khi nhận phòng', 'trước khi giao', 'đón sinh viên mới', 'bàn giao', 'incoming']
+const PRE_ARRIVAL_KEYS = ['pre-arrival', 'incoming']
 
+// A schedule is pre-arrival by its scope only (WEB-OPS-07): names are free text in any language.
 function isPreArrivalSchedule(s) {
-  if (s?.scope === 'INCOMING') return true
-  const text = `${s?.checklistId ?? ''} ${s?.name ?? ''} ${tr(s?.name) ?? ''}`.toLowerCase()
-  return PRE_ARRIVAL_KEYS.some((k) => text.includes(k))
+  return s?.scope === 'INCOMING'
 }
 
 function isPreArrivalRun(r) {
@@ -77,7 +76,7 @@ function Editor({ item, options, block, onSaved, onCancel }) {
   const opt = (list, placeholder = 'Choose…') => [{ value: '', label: placeholder, disabled: true }, ...(list ?? [])]
   const complete = form.name.trim() && form.checklistId && form.scope && form.repeat && form.assignee
   const checklist = options?.checklists?.find((c) => c.value === form.checklistId)
-  const assigneePlaceholder = block ? `-- Chọn nhân viên Tòa ${block} --` : '-- Chọn nhân viên --'
+  const assigneePlaceholder = block ? t('-- Choose a staff member of Block {code} --', { code: block }) : t('-- Choose a staff member --')
 
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
@@ -90,10 +89,10 @@ function Editor({ item, options, block, onSaved, onCancel }) {
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
       {isNew && <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Air-conditioner filters" />}</Field>}
       <Field label="Checklist" helper={checklist ? undefined : t('{n} published checklists to choose from.', { n: options?.checklists?.length ?? 0 })}>
-        {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists, '-- Chọn danh mục kiểm tra --')} />}
+        {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists, t('-- Choose a checklist --'))} />}
       </Field>
-      <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes, '-- Chọn phạm vi --')} />}</Field>
-      <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats, '-- Chọn tần suất --')} />}</Field>
+      <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes, t('-- Choose a scope --'))} />}</Field>
+      <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats, t('-- Choose how often --'))} />}</Field>
       <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees, assigneePlaceholder)} />}</Field>
       <Field label="Due within (days)">{(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}</Field>
       <Checkbox label="Create maintenance requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
@@ -101,7 +100,7 @@ function Editor({ item, options, block, onSaved, onCancel }) {
       <div className="flex justify-end gap-2">
         {!isNew && onCancel && (
           <Button onClick={onCancel}>
-            Hủy
+            Cancel
           </Button>
         )}
         {!isNew && (
@@ -127,8 +126,8 @@ function ScheduleCard({ item, options, onEdit }) {
   })
   const completeSchedule = useMutation(() => api.inspections.updateSchedule(item.id, { status: 'Completed' }), {
     invalidates: ['inspection-schedules'],
-    onSuccess: () => notify({ title: 'Đã kết thúc lịch kiểm tra', message: tr(item.name) }),
-    onError: (e) => notifyError(e, 'Không thể kết thúc lịch kiểm tra'),
+    onSuccess: () => notify({ title: 'Inspection schedule ended', message: tr(item.name) }),
+    onError: (e) => notifyError(e, 'Could not end the inspection schedule'),
   })
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
   const isCompleted = item.status === 'Completed'
@@ -156,21 +155,21 @@ function ScheduleCard({ item, options, onEdit }) {
         <dd className="text-fg">{item.dueWithinDays}</dd>
       </dl>
       {!isCompleted && item.latestRunSubmitted && (
-        <Alert type="success" title="Nhân viên đã nộp kết quả kiểm tra">
-          Đợt kiểm tra của lịch này đã được nhân viên nộp báo cáo. Bạn có thể ghi nhận hoàn thành và bấm kết thúc lịch.
+        <Alert type="success" title="Staff submitted the inspection results">
+          {t('Staff submitted the report of this schedule’s run. You can record it as done and end the schedule.')}
         </Alert>
       )}
       {!isCompleted && (
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <Button size="sm" onClick={onEdit}>
-            Chỉnh sửa
+            Edit
           </Button>
           <Button onClick={() => pause.run()} disabled={pause.pending}>
             {item.status === 'Paused' ? t('Resume') : t('Pause')}
           </Button>
           {item.latestRunSubmitted && (
             <Button variant="primary" onClick={() => completeSchedule.run()} disabled={completeSchedule.pending}>
-              Kết thúc lịch
+              End schedule
             </Button>
           )}
         </div>

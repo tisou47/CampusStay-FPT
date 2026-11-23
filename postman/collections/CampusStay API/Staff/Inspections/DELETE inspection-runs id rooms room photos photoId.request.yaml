@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/inspection-runs/{id}/rooms/{room}/photos/{photoId}'
+method: DELETE
+url: '{{baseUrl}}/inspection-runs/:id/rooms/:room/photos/:photoId'
+order: 10000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `removePhoto_1` of `inspection-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+  - key: room
+    value: ''
+    description: 'Room code, e.g. A-305'
+  - key: photoId
+    value: ''

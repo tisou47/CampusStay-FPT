@@ -233,7 +233,12 @@ public class TerminationService {
                 .orElseThrow(() -> ApiException.notFound("This termination does not exist."));
         Inventory.BedSlot bed = inventory.beds(List.of(r.bedId())).get(r.bedId());
         blockScope.check(bed.buildingId());
-        if (!r.status().equals("NOTICE_SENT") && !r.status().equals("OVERDUE")) {
+        if (r.status().equals("OVERDUE")) {
+            // Overdue already gave up the next-Term Bed and rotated the door code (BE-ASG-06).
+            throw ApiException.conflict("TERMINATION_OVERDUE", "This termination is overdue: the next-Term Bed was "
+                    + "released and the door code changed. Place the student again instead of cancelling.");
+        }
+        if (!r.status().equals("NOTICE_SENT")) {
             throw ApiException.conflict("TERMINATION_CLOSED", "This termination is already closed.");
         }
         Instant now = Instant.now(clock);
@@ -243,11 +248,17 @@ public class TerminationService {
                 WHERE id = :id
                 """).param("why", why).param("now", Timestamp.from(now)).param("by", user.userId())
                 .param("id", r.id()).update();
+        // Put back a check-out that was pending for another reason; delete only the one the termination created.
+        jdbc.sql("""
+                UPDATE asg_check_out SET reason = previous_reason, previous_reason = NULL
+                WHERE allocation_id = :a AND reason = 'TERMINATION' AND previous_reason IS NOT NULL
+                  AND status <> 'COMPLETED'
+                """).param("a", r.allocationId()).update();
         jdbc.sql("DELETE FROM asg_check_out WHERE allocation_id = :a AND status = 'PENDING' AND reason = 'TERMINATION'")
                 .param("a", r.allocationId()).update();
         audit.record("TERMINATION_CANCELLED", AuditLog.Tone.INFO, "Allocation", r.allocationId(),
                 "Room " + bed.roomCode() + " · Bed " + bed.bedLabel(), Map.of("reason", why));
-        events.publishEvent(new TerminationCancelled(r.id(), r.studentId(), bed.roomCode()));
+        events.publishEvent(new TerminationCancelled(r.id(), r.allocationId(), r.studentId(), bed.roomCode()));
     }
 
     // ---------------------------------------------------------------- the move-out date and the desk
@@ -368,7 +379,8 @@ public class TerminationService {
         // The student appears on the check-out list with the reason Termination.
         jdbc.sql("""
                 INSERT INTO asg_check_out (allocation_id, reason, status) VALUES (:a, 'TERMINATION', 'PENDING')
-                ON CONFLICT (allocation_id) DO UPDATE SET reason = 'TERMINATION' WHERE asg_check_out.status <> 'COMPLETED'
+                ON CONFLICT (allocation_id) DO UPDATE SET previous_reason = asg_check_out.reason, reason = 'TERMINATION'
+                WHERE asg_check_out.status <> 'COMPLETED' AND asg_check_out.reason <> 'TERMINATION'
                 """).param("a", a.id()).update();
         Inventory.BedSlot bed = inventory.beds(List.of(a.bedId())).get(a.bedId());
         String label = bed == null ? null : "Room " + bed.roomCode() + " · Bed " + bed.bedLabel();

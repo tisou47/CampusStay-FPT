@@ -29,6 +29,8 @@ import { t, tr } from '@/i18n'
 // already attached to the claim.
 
 const AWAITING = 'Awaiting confirmation'
+/** Statuses a Manager may confirm: a claim, or a transfer the student never reported. */
+const CONFIRMABLE = [AWAITING, 'Unpaid', 'Overdue']
 
 /**
  * One Invoice confirmed with its transfer receipt and a reference (POST /payments/:invoiceId/confirm), also when the student never
@@ -135,7 +137,10 @@ export default function Payments() {
   const exporting = useMutation(() => api.exports.download('payments', { ...filters, page: undefined, pageSize: undefined }, 'payments.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
 
   const confirmId = params.get('confirm')
-  const confirming = confirmId ? items.find((p) => p.invoiceId === confirmId && p.status === AWAITING) ?? null : null
+  const linked = useQuery(['payments', 'one', confirmId], ({ signal }) => api.payments.list({ q: confirmId, pageSize: 5 }, { signal }), { enabled: Boolean(confirmId) })
+  const confirming = confirmId
+    ? [...items, ...(linked.data?.items ?? [])].find((p) => p.invoiceId === confirmId && CONFIRMABLE.includes(p.status)) ?? null
+    : null
   const close = () => setParams({}, { replace: true })
   const filter = (set) => (e) => {
     set(e.target.value)
@@ -258,7 +263,7 @@ export default function Payments() {
               <Td className={p.paidAt ? 'whitespace-nowrap' : 'max-w-40 truncate text-fg-tertiary'}>{p.paidAt ? formatDateTime(p.paidAt) : `— ${t('due {date}', { date: formatDateTime(p.dueAt) })}`}</Td>
               <Td>{p.status === AWAITING ? <Tag tone="warning">{AWAITING}</Tag> : <StatusTag status={p.status} />}</Td>
               <Td onClick={stop}>
-                {p.status === AWAITING ? (
+                {CONFIRMABLE.includes(p.status) ? (
                   <Button onClick={() => setParams({ confirm: p.invoiceId })}>Confirm</Button>
                 ) : (
                   <Button variant="text" onClick={() => setView(p)}>

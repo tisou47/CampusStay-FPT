@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CircleCheck, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -86,15 +86,15 @@ function ItemModal({ item, categories, severities, onClose, onSave, onRemove }) 
   )
 }
 
-function Editor({ checklist, categories, severities, onRemoved }) {
+function Editor({ checklist, categories, severities, onRemoved, onDirtyChange }) {
   const { notify, notifyError } = useToast()
   const [items, setItems] = useState(checklist.items ?? [])
-  useEffect(() => setItems(checklist.items ?? []), [checklist])
   const [editing, setEditing] = useState(null)
   const [archiving, setArchiving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(null)
   const dirty = JSON.stringify(items) !== JSON.stringify(checklist.items ?? [])
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange])
   const isDraft = checklist.status === 'Draft'
   const isArchived = checklist.status === 'Archived'
   const nextVersion = isDraft ? checklist.version : checklist.version + 1
@@ -115,7 +115,7 @@ function Editor({ checklist, categories, severities, onRemoved }) {
   const restore = useMutation(() => api.inspections.restoreChecklist(checklist.id), {
     invalidates: ['admin-checklists', 'inspection-schedules'],
     onSuccess: () => {
-      notify({ title: t('{name} restored', { name: checklist.name }), message: 'Managers can schedule this checklist again.' })
+      notify({ title: t('{name} restored', { name: checklist.name }), message: 'Managers can schedule it again. Its schedules stay paused until a Manager resumes them.' })
     },
     onError: (e) => notifyError(e, 'Could not restore checklist'),
   })
@@ -276,7 +276,7 @@ function Editor({ checklist, categories, severities, onRemoved }) {
         open={archiving}
         onClose={() => setArchiving(false)}
         title={t('Archive {name}?', { name: checklist.name })}
-        description="Managers can no longer schedule it. Scheduled runs that use it keep working until they finish."
+        description="Managers can no longer schedule it, and its active schedules are paused. Runs already started keep working until they finish."
         footer={
           <>
             <Button onClick={() => setArchiving(false)}>Cancel</Button>
@@ -321,6 +321,12 @@ export default function InspectionChecklists() {
   const archivedFamilies = all.filter((c) => c.status === 'Archived')
   const replaced = all.flatMap((c) => (c.replaced ?? []).map((r) => ({ key: `${c.id}-v${r.version}`, name: c.name, version: r.version, count: r.itemCount, note: t('replaced') })))
   const [selectedId, setSelectedId] = useState(null)
+  const editorDirty = useRef(false)
+  const choose = (id) => {
+    if (editorDirty.current && !window.confirm(t('Discard the unsaved changes to this checklist?'))) return
+    editorDirty.current = false
+    setSelectedId(id)
+  }
   const selected = all.find((c) => c.id === selectedId) ?? active[0] ?? archivedFamilies[0]
   const [creating, setCreating] = useState(null)
   const exists = creating && all.some((c) => c.name.toLowerCase() === creating.trim().toLowerCase())
@@ -362,7 +368,7 @@ export default function InspectionChecklists() {
                         <button
                           type="button"
                           aria-pressed={on}
-                          onClick={() => setSelectedId(c.id)}
+                          onClick={() => choose(c.id)}
                           className={cx('flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors', on ? 'bg-primary-subtle' : 'hover:bg-subtle')}
                         >
                           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -400,7 +406,7 @@ export default function InspectionChecklists() {
         </div>
 
         {selected ? (
-          <Editor key={`${selected.id}-${selected.version}-${selected.status}`} checklist={selected} categories={query.data?.categories ?? []} severities={query.data?.severities ?? []} onRemoved={() => setSelectedId(null)} />
+          <Editor key={`${selected.id}-${selected.version}-${selected.status}`} checklist={selected} categories={query.data?.categories ?? []} severities={query.data?.severities ?? []} onRemoved={() => setSelectedId(null)} onDirtyChange={(d) => (editorDirty.current = d)} />
         ) : (
           <Card className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={CircleCheck} title="Select a checklist" />

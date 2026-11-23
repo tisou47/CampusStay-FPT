@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,7 +36,7 @@ class OllamaAssistantModel implements AssistantModel {
     record ChatRequest(String model, List<Message> messages, boolean stream, Map<String, Object> options) {
     }
 
-    record ChatResponse(Message message) {
+    record ChatResponse(Message message, @JsonProperty("prompt_eval_count") Integer promptEvalCount) {
     }
 
     private final AssistantProperties config;
@@ -82,6 +84,15 @@ class OllamaAssistantModel implements AssistantModel {
         if (response == null || response.message() == null) {
             log.error("Assistant model server answered without a message");
             throw offline();
+        }
+        if (response.promptEvalCount() != null) {
+            // Near num_ctx the model silently drops the start of the prompt: the rules and the data (BE-PLT-03).
+            if (response.promptEvalCount() >= config.contextTokens()) {
+                log.warn("Assistant prompt filled the context: {} of {} tokens", response.promptEvalCount(),
+                        config.contextTokens());
+            } else {
+                log.debug("Assistant prompt: {} of {} tokens", response.promptEvalCount(), config.contextTokens());
+            }
         }
         return response.message().content() == null ? "" : response.message().content();
     }

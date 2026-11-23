@@ -24,6 +24,12 @@ public interface FeePolicy {
     OptionalLong termPrice(long termId, long roomTypeId, long roomClassId);
 
     /**
+     * Whether the Term's frozen price table offers this Room Type × Room Class (a Term without a table yet, a Draft,
+     * offers everything at the default prices).
+     */
+    boolean priced(long termId, long roomTypeId, long roomClassId);
+
+    /**
      * Default price per Bed for new Terms = Room Type base price × (1 + Room Class surcharge), rounded up to the
      * pricing step (system parameter). Empty when the Room Type or Room Class is unknown or inactive.
      */

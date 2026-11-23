@@ -2,7 +2,7 @@ $kind: http-request
 name: '/reconciliations'
 method: POST
 url: '{{baseUrl}}/reconciliations'
-order: 9000
+order: 7000
 description: |-
   `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }`
 

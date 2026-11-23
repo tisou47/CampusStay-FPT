@@ -25,15 +25,25 @@ class JdbcFeePolicy implements FeePolicy {
 
     @Override
     public OptionalLong termPrice(long termId, long roomTypeId, long roomClassId) {
+        // A Term's price table is a snapshot taken when it was published: a Room Type or Class made Inactive later
+        // keeps its price for that Term (BE-3RD-03). Only defaults for new Terms skip inactive ones.
         Optional<Long> price = jdbc.sql("""
                 SELECT p.price FROM cfg_term_price p
-                JOIN cfg_room_type t ON t.id = p.room_type_id AND t.status = 'ACTIVE'
-                JOIN cfg_room_class c ON c.id = p.room_class_id AND c.status = 'ACTIVE'
                 WHERE p.term_id = :term AND p.room_type_id = :type AND p.room_class_id = :class
                 """)
                 .param("term", termId).param("type", roomTypeId).param("class", roomClassId)
                 .query(Long.class).optional();
         return price.isPresent() ? OptionalLong.of(price.get()) : defaultTermPrice(roomTypeId, roomClassId);
+    }
+
+    @Override
+    public boolean priced(long termId, long roomTypeId, long roomClassId) {
+        return jdbc.sql("""
+                SELECT NOT EXISTS (SELECT 1 FROM cfg_term_price WHERE term_id = :term)
+                    OR EXISTS (SELECT 1 FROM cfg_term_price
+                               WHERE term_id = :term AND room_type_id = :type AND room_class_id = :class)
+                """).param("term", termId).param("type", roomTypeId).param("class", roomClassId)
+                .query(Boolean.class).single();
     }
 
     @Override

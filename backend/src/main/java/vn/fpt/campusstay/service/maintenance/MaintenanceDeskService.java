@@ -460,8 +460,14 @@ public class MaintenanceDeskService {
                 jdbc.sql("UPDATE mnt_request SET status = 'RESOLVED', resolved_at = :now WHERE id = :id")
                         .param("now", Timestamp.from(now)).param("id", r.id()).update();
             }
-            case "CLOSED" -> jdbc.sql("UPDATE mnt_request SET status = 'CLOSED', closed_at = :now WHERE id = :id")
-                    .param("now", Timestamp.from(now)).param("id", r.id()).update();
+            case "CLOSED" -> {
+                // Closing skips the fix and the student's confirmation unless the request was resolved first (BE-OPS-06).
+                if (!from.equals("RESOLVED")) {
+                    throw ApiException.conflict("NOT_RESOLVED", "Mark the request resolved before you close it.");
+                }
+                jdbc.sql("UPDATE mnt_request SET status = 'CLOSED', closed_at = :now WHERE id = :id")
+                        .param("now", Timestamp.from(now)).param("id", r.id()).update();
+            }
             default -> throw FieldErrors.single("status", "To send it back to the queue, remove the assignee.");
         }
         return to;

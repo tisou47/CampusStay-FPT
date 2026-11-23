@@ -492,6 +492,24 @@ const vi = {
   'How do I report a broken item in my room?': 'Làm sao báo hỏng đồ trong phòng?',
   'The assistant is writing…': 'Trợ lý đang trả lời…',
   'Type your question': 'Nhập câu hỏi của bạn',
+
+  // Wave 1 fixes: numbers with a decimal comma, refunds marked paid, inspection schedules, turnover
+  'Enter a number, e.g. 12,5': 'Nhập một số, ví dụ 12,5',
+  'Enter a number, e.g. 1360,5': 'Nhập một số, ví dụ 1360,5',
+  '{id} marked paid': 'Đã ghi nhận chuyển tiền {id}',
+  '{amount} was transferred to {name}.': 'Đã chuyển {amount} cho {name}.',
+  'Mark {id} paid': 'Ghi nhận đã chuyển tiền {id}',
+  'Mark {amount} paid': 'Đã chuyển {amount}',
+  'Transfer {amount} to {name}, then mark it paid.': 'Hãy chuyển {amount} cho {name}, sau đó ghi nhận đã chuyển.',
+  'Bank transfer reference': 'Mã tham chiếu chuyển khoản',
+  'Mark paid': 'Ghi nhận đã chuyển',
+  'Could not mark the refund paid': 'Không ghi nhận được việc chuyển tiền hoàn',
+  'Inspection schedule ended': 'Đã kết thúc lịch kiểm tra',
+  'Staff submitted the inspection results': 'Nhân viên đã nộp kết quả kiểm tra',
+  'Temporary bed arranged': 'Đã sắp xếp giường tạm',
+  "Write in the note which bed and until when: the student and the request's owner are told.": 'Ghi rõ giường nào và đến khi nào: sinh viên và người phụ trách yêu cầu sẽ được thông báo.',
+  "Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.": 'Các phòng có người ở hoặc hạng phòng thay đổi. Chỉ số điện nước được ghi khi từng người rời phòng trả phòng.',
+  'Their residents are told that the code changed (never the code itself).': 'Người ở được báo rằng mã đã đổi (không bao giờ gửi chính mã).',
 }
 
 export default vi

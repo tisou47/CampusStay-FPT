@@ -355,6 +355,8 @@ export const api = {
     summary: g('/finance/summary'),
     refunds: g('/refunds'),
     decideRefund: (id, body) => http.post(`/refunds/${id}/decision`, body),
+    /** Approved → Paid after the bank transfer: { reference, note? } (BE-APP-BIL-03). */
+    markRefundPaid: (id, body) => http.post(`/refunds/${id}/paid`, body),
     /** R-19: in-app and push reminder to enter the refund bank account → { remindedAt }. */
     remindAccount: (id) => http.post(`/refunds/${id}/account-reminder`),
     overdue: g('/finance/overdue'),
@@ -523,8 +525,6 @@ export const api = {
   admin: {
     terms: {
       list: g('/admin/terms'),
-      create: (body) => http.post('/admin/terms', body),
-      update: (id, body) => http.put(`/admin/terms/${id}`, body),
       publish: (id, body) => http.post(`/admin/terms/${id}/publish`, body),
       /** The wizard (A-27): { name, stayStart, stayEnd, requestId? } → { id } (a Draft, or the request's Draft). */
       createDraft: (body) => http.post('/admin/terms/drafts', body),

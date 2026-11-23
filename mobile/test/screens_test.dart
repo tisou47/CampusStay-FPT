@@ -162,6 +162,9 @@ void main() {
     expect(find.text('Or transfer manually'), findsOneWidget);
     await tester.tap(find.text('I have transferred'));
     await tester.pumpAndSettle();
+    expect(calls, isNot(contains('POST /invoices/INV-1/claim')), reason: 'asks first (MOB-25)');
+    await tester.tap(find.text('I have transferred').last);
+    await tester.pumpAndSettle();
     expect(calls, contains('POST /invoices/INV-1/claim'));
   });
 
@@ -331,6 +334,8 @@ void main() {
     await show(tester, const SwapInvitationScreen(id: 'SW-1'));
     expect(find.text('B202 · Bed 2'), findsOneWidget);
     await tester.tap(find.text('Accept swap'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Accept swap').last);
     await tester.pumpAndSettle();
     expect(calls, contains('POST /swap-invitations/SW-1/respond'));
   });

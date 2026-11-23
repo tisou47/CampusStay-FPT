@@ -14,6 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -75,6 +77,10 @@ public class EmailCampaignService {
     }
 
     private record Audience(List<Recipient> recipients, TermSummary term, Map<Long, Long> buildingOf) {
+    }
+
+    /** Block codes and the next Invoice of every recipient, read once for the whole campaign (BE-PLT-06). */
+    private record Lookups(Map<Long, String> blockCodes, Map<Long, Billing.InvoiceLine> due) {
     }
 
     private record EmailTemplate(String key, String name, String subject, String body) {
@@ -151,7 +157,7 @@ public class EmailCampaignService {
             return new PreviewResult(0, null);
         }
         Recipient first = audience.recipients().getFirst();
-        Map<String, String> values = values(first, audience, subject);
+        Map<String, String> values = values(first, audience, subject, lookups(audience, List.of(first)));
         return new PreviewResult(audience.recipients().size(), new Preview(first.name(),
                 Templates.render(subject, values, false), lines(Templates.render(template.body(), values, true))));
     }
@@ -184,25 +190,33 @@ public class EmailCampaignService {
                 .param("channel", withPush ? "EMAIL_PUSH" : "EMAIL").param("sendAt", Timestamp.from(sendAt))
                 .param("by", currentUser.id()).param("now", Timestamp.from(Instant.now(clock)))
                 .query(Long.class).single();
+        Lookups lookups = lookups(audience, audience.recipients());
+        Set<String> demo = users.demoEmails(audience.recipients().stream().map(Recipient::email)
+                .filter(e -> e != null && !e.isBlank()).toList());
+        List<Long> ids = audience.recipients().stream().map(Recipient::studentId).toList();
+        Map<Long, String> locales = withPush ? users.locales(ids) : Map.of();
+        InAppNotifier.Template campaignTemplate = withPush ? notifier.template("CAMPAIGN") : null;
         int queued = 0;
         for (Recipient r : audience.recipients()) {
-            Map<String, String> values = values(r, audience, subject);
+            Map<String, String> values = values(r, audience, subject, lookups);
             String body = Templates.render(template.body(), values, true);
             String renderedSubject = Templates.render(subject, values, false);
             if (r.email() != null && !r.email().isBlank()) {
-                outbox.enqueue(campaign, r.email(), renderedSubject, body, sendAt);
+                outbox.enqueue(campaign, r.email(), renderedSubject, body, sendAt,
+                        demo.contains(r.email().trim().toLowerCase(Locale.ROOT)));
                 queued++;
             }
             if (withPush) {
                 String text = String.join(" ", lines(body));
-                notifier.notify(r.studentId(), "CAMPAIGN", Map.of("subject", renderedSubject,
-                        "message", text.length() <= NOTICE_CHARS ? text : text.substring(0, NOTICE_CHARS - 1) + "…"), null);
+                notifier.notify(r.studentId(), "CAMPAIGN", campaignTemplate, Map.of("subject", renderedSubject,
+                        "message", text.length() <= NOTICE_CHARS ? text : text.substring(0, NOTICE_CHARS - 1) + "…"),
+                        null, locales.get(r.studentId()));
             }
         }
         jdbc.sql("UPDATE ntf_email_campaign SET queued_count = :n WHERE id = :id").param("n", queued)
                 .param("id", campaign).update();
         audit.record("EMAIL_CAMPAIGN_QUEUED", AuditLog.Tone.INFO, "Email campaign", campaign, subject,
-                Map.of("recipients", queued, "group", one ? "One student" : GROUPS.get(text(request.group())),
+                Map.of("recipients", queued, "group", one ? "One student" : GROUPS.get(text(request.group()).toLowerCase(Locale.ROOT)),
                         "sendAt", WHEN.format(sendAt)));
         return new Queued(queued);
     }
@@ -259,7 +273,16 @@ public class EmailCampaignService {
     }
 
     /** What the templates may use: the recipient, the Term, the check-in window and the next Invoice to pay. */
-    private Map<String, String> values(Recipient r, Audience audience, String subject) {
+    private Lookups lookups(Audience audience, List<Recipient> recipients) {
+        if (audience.term() == null) {
+            return new Lookups(Map.of(), Map.of());
+        }
+        List<Long> ids = recipients.stream().map(Recipient::studentId).toList();
+        return new Lookups(blocks.codesByIds(ids.stream().map(audience.buildingOf()::get).filter(Objects::nonNull)
+                .distinct().toList()), billing.nextDue(ids, audience.term().id()));
+    }
+
+    private Map<String, String> values(Recipient r, Audience audience, String subject, Lookups lookups) {
         Map<String, String> values = new HashMap<>();
         values.put("name", r.name());
         values.put("subject", subject);
@@ -271,8 +294,8 @@ public class EmailCampaignService {
             values.put("end", term.checkInEnd() == null ? "" : DAY.format(term.checkInEnd()));
             Long building = audience.buildingOf().get(r.studentId());
             values.put("location", building == null ? "the Block desk"
-                    : "the Block " + blocks.codesByIds(List.of(building)).getOrDefault(building, "") + " desk");
-            billing.dueSummary(r.studentId(), term.id()).next().ifPresent(i -> {
+                    : "the Block " + lookups.blockCodes().getOrDefault(building, "") + " desk");
+            Optional.ofNullable(lookups.due().get(r.studentId())).ifPresent(i -> {
                 values.put("title", i.title());
                 values.put("amount", NumberFormat.getIntegerInstance(Locale.US).format(i.amount()) + " VND");
                 values.put("dueAt", i.dueAt() == null ? "" : WHEN.format(i.dueAt()));

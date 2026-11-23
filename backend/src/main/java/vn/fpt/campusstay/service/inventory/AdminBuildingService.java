@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.inventory;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.setting.TermSummary;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -86,9 +89,11 @@ public class AdminBuildingService {
     private final BedOccupancy occupancy;
     private final TermCatalog terms;
     private final AuditLog audit;
+    private final Clock clock;
 
     public AdminBuildingService(JdbcClient jdbc, Catalog catalog, Parameters parameters, BedOccupancy occupancy,
-            TermCatalog terms, AuditLog audit) {
+            TermCatalog terms, AuditLog audit, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
         this.catalog = catalog;
         this.parameters = parameters;
@@ -199,6 +204,19 @@ public class AdminBuildingService {
         return id;
     }
 
+    /**
+     * Beds someone lives in, or that a Term not over yet already promised (live run, Round-2 option, next-Term
+     * Allocation): a Block's gender or status must not change under them (BE-2ND-03).
+     */
+    private Set<Long> promised(List<Long> beds) {
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
+        List<Long> open = terms.publishedTerms().stream().filter(t -> !t.stayEnd().isBefore(today))
+                .map(TermSummary::id).toList();
+        Set<Long> result = new HashSet<>(occupancy.bedsInUse(beds));
+        result.addAll(occupancy.bedsPromised(open, beds));
+        return result;
+    }
+
     /** Gender and status only; a Block's name is fixed. Both are locked while students live there. */
     @Transactional
     public long update(long id, BlockValues values) {
@@ -215,8 +233,8 @@ public class AdminBuildingService {
         errors.throwIfAny();
         boolean genderChanges = !gender.equals(b.gender());
         boolean deactivates = "INACTIVE".equals(status) && !"INACTIVE".equals(b.status());
-        if ((genderChanges || deactivates) && !occupancy.bedsInUse(bedIds(id)).isEmpty()) {
-            throw ApiException.conflict("BLOCK_IN_USE", "Students live in Block " + b.code() + ", so its "
+        if ((genderChanges || deactivates) && !promised(bedIds(id)).isEmpty()) {
+            throw ApiException.conflict("BLOCK_IN_USE", "Students live in or are placed in Block " + b.code() + ", so its "
                     + (genderChanges ? "gender cannot change." : "status cannot become Inactive."));
         }
         Map<String, Object> change = new LinkedHashMap<>();

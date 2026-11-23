@@ -224,7 +224,7 @@ public class InspectionRunService {
                 SELECT r.* FROM mnt_inspection_run r
                 LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
                 WHERE r.building_id IN (:b) AND r.status <> 'SUBMITTED' AND r.run_date <= :today
-                  AND (:staffOnly = FALSE OR r.inspector_id = :me)
+                  AND (:staffOnly = FALSE OR r.inspector_id = :me OR r.inspector_id IS NULL)
                 ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC,
                          (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
                 LIMIT 1
@@ -497,7 +497,7 @@ public class InspectionRunService {
                 SELECT r.* FROM mnt_inspection_run r
                 LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
                 WHERE r.building_id IN (:b) AND r.run_date <= :today
-                  AND (:staffOnly = FALSE OR r.inspector_id = :me)
+                  AND (:staffOnly = FALSE OR r.inspector_id = :me OR r.inspector_id IS NULL)
                   AND (r.status <> 'SUBMITTED' OR r.run_date >= :since)
                 ORDER BY (s.kind = 'PRE_ARRIVAL' OR s.scope = 'INCOMING') DESC, (r.status = 'SUBMITTED'),
                          (r.inspector_id = :me) DESC NULLS LAST, r.run_date, r.id
@@ -637,7 +637,8 @@ public class InspectionRunService {
                 new ChecklistView(version.name(), "v" + version.version(), items),
                 run.status().equals("SUBMITTED") ? "Submitted" : "Open",
                 blockCodes.codesByIds(Set.of(run.buildingId())).get(run.buildingId()),
-                run.inspectorId() != null && run.inspectorId() == currentUser.id(),
+                run.inspectorId() != null ? run.inspectorId() == currentUser.id()
+                        : currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF,
                 !run.status().equals("SUBMITTED") && run.dueAt().isBefore(Instant.now(clock)),
                 inventory.conditionLevels());
     }
@@ -809,7 +810,18 @@ public class InspectionRunService {
         }
     }
 
-    private void requireAssigned(Run run) {
+    /**
+     * A run nobody holds (its inspector left or was disabled) is open to the Block's Staff (the scope was checked):
+     * reading it is allowed, and the first one to change it takes it.
+     */
+    private void requireAssigned(Run run, boolean lock) {
+        if (run.inspectorId() == null && currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF) {
+            if (lock) {
+                jdbc.sql("UPDATE mnt_inspection_run SET inspector_id = :me WHERE id = :id AND inspector_id IS NULL")
+                        .param("me", currentUser.id()).param("id", run.id()).update();
+            }
+            return;
+        }
         if (run.inspectorId() == null || run.inspectorId() != currentUser.id()) {
             throw ApiException.forbidden("INSPECTION_NOT_ASSIGNED",
                     "This inspection run is assigned to another staff member.");
@@ -829,7 +841,7 @@ public class InspectionRunService {
                 .orElseThrow(() -> ApiException.notFound("This inspection run does not exist."));
         blockScope.check(run.buildingId());
         if (lock || currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF) {
-            requireAssigned(run);
+            requireAssigned(run, lock);
         }
         return run;
     }

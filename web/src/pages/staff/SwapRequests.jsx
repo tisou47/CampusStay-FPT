@@ -7,7 +7,8 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, Divider, Note } from '@/components/ui/Display'
-import { Select } from '@/components/ui/Field'
+import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -50,14 +51,18 @@ function Line({ label, children }) {
 
 function Review({ swap: s }) {
   const { notify, notifyError } = useToast()
-  const decide = useMutation((decision) => api.swaps.decide(s.id, { decision }), {
+  const [rejecting, setRejecting] = useState(false)
+  const [reason, setReason] = useState('')
+  const decide = useMutation((decision) => api.swaps.decide(s.id, { decision, reason: decision === 'Rejected' ? reason.trim() : undefined }), {
     invalidates: ['swaps'],
-    onSuccess: (_, decision) =>
+    onSuccess: (_, decision) => {
+      setRejecting(false)
       notify({
         type: decision === 'Approved' ? 'success' : 'warning',
         title: t(decision === 'Approved' ? '{id} approved' : '{id} rejected', { id: s.id }),
         message: decision === 'Approved' ? t('{a} and {b} swap beds on the move date.', { a: s.a.name, b: s.b.name }) : 'Both students were notified.',
-      }),
+      })
+    },
     onError: (e) => notifyError(e, 'Could not save the decision'),
   })
   const waiting = s.status === 'Waiting for Staff'
@@ -99,7 +104,7 @@ function Review({ swap: s }) {
       <p className="text-sm text-fg-tertiary">{t('Meter readings are cut for both rooms on the move date. Current roommates of both rooms are notified.')}</p>
       {waiting ? (
         <div className="flex justify-end gap-2">
-          <Button variant="danger" onClick={() => decide.run('Rejected')} disabled={decide.pending}>
+          <Button variant="danger" onClick={() => setRejecting(true)} disabled={decide.pending}>
             Reject
           </Button>
           <Button variant="primary" onClick={() => decide.run('Approved')} disabled={blocked || decide.pending}>
@@ -114,6 +119,26 @@ function Review({ swap: s }) {
               ? `${t('{status} by {name}', { status: t(s.status), name: s.decision.by })} · ${formatDate(s.decision.at)}${s.decision.reason ? ` · ${tr(s.decision.reason)}` : ''}`
               : t(s.status)}
         </Note>
+      )}
+      {rejecting && (
+        <Modal
+          open
+          onClose={() => setRejecting(false)}
+          title={t('Reject {id}', { id: s.id })}
+          description="Both students are told the reason."
+          footer={
+            <>
+              <Button onClick={() => setRejecting(false)}>Cancel</Button>
+              <Button variant="danger" onClick={() => decide.run('Rejected')} disabled={!reason.trim() || decide.pending}>
+                Reject
+              </Button>
+            </>
+          }
+        >
+          <Field label="Reason" required>
+            {(id) => <Textarea id={id} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
+          </Field>
+        </Modal>
       )}
     </Card>
   )

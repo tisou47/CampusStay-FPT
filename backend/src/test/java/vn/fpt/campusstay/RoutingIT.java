@@ -100,7 +100,7 @@ class RoutingIT {
         long ab = stay.userId(STAFF_AB);
         getAs("/routing-rules?block=B", manager)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.types", contains("Maintenance", "Room change", "Swap", "Payment", "Late check-in")))
+                .andExpect(jsonPath("$.types", contains("Maintenance", "Room change")))
                 .andExpect(jsonPath("$.categories[0]").value("All"))
                 .andExpect(jsonPath("$.categories").value(hasItem("Plumbing")))
                 .andExpect(jsonPath("$.staff[*].name").value(hasItem("Do Ngoc Lan")))

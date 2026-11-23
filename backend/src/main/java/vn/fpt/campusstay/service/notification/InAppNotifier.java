@@ -29,7 +29,7 @@ class InAppNotifier {
     /** Values that are words of the system, not text people typed, and so have a Vietnamese form. */
     private static final Set<String> SYSTEM_WORDS = Set.of("decision", "status", "kind", "note", "why", "reason");
 
-    private record Template(String titleEn, String titleVi, String bodyEn, String bodyVi, boolean inApp, boolean push) {
+    record Template(String titleEn, String titleVi, String bodyEn, String bodyVi, boolean inApp, boolean push) {
     }
 
     private final JdbcClient jdbc;
@@ -48,19 +48,31 @@ class InAppNotifier {
 
     @Transactional(propagation = Propagation.MANDATORY)
     void notify(long userId, String templateKey, Map<String, String> values, String link) {
-        Template template = jdbc.sql("SELECT title_en, title_vi, body, body_vi, in_app, push FROM ntf_template WHERE key = :key")
+        notify(userId, templateKey, template(templateKey), values, link, null);
+    }
+
+    /** The Admin's template, read once by a caller that notifies many people. */
+    Template template(String templateKey) {
+        return jdbc.sql("SELECT title_en, title_vi, body, body_vi, in_app, push FROM ntf_template WHERE key = :key")
                 .param("key", templateKey)
                 .query((rs, i) -> new Template(rs.getString("title_en"), rs.getString("title_vi"), rs.getString("body"),
                         rs.getString("body_vi"), rs.getBoolean("in_app"), rs.getBoolean("push")))
                 .optional()
                 .orElseThrow(() -> new IllegalStateException("Missing notification template " + templateKey));
+    }
+
+    /** @param locale the user's language when the caller already read it, else null (read when a push needs it) */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void notify(long userId, String templateKey, Template template, Map<String, String> values, String link,
+            String locale) {
         Map<String, String> vi = vietnamese(values);
-        String title = Templates.render(template.titleEn(), values, false);
-        String body = Templates.render(template.bodyEn(), values, false);
-        String titleVi = Templates.render(template.titleVi(), vi, false);
-        String bodyVi = Templates.render(template.bodyVi(), vi, false);
+        // Cut to the columns: a long note in a long template must not roll back the action that notified (BE-PLT-08).
+        String title = cut(Templates.render(template.titleEn(), values, false), 200);
+        String body = cut(Templates.render(template.bodyEn(), values, false), 1000);
+        String titleVi = cut(Templates.render(template.titleVi(), vi, false), 200);
+        String bodyVi = cut(Templates.render(template.bodyVi(), vi, false), 1000);
         if (template.push()) {
-            boolean inVietnamese = Locales.VI.equals(users.locale(userId));
+            boolean inVietnamese = Locales.VI.equals(locale != null ? locale : users.locale(userId));
             push.afterCommit(userId, inVietnamese ? titleVi : title, inVietnamese ? bodyVi : body, link);
         }
         if (!template.inApp()) {
@@ -79,6 +91,10 @@ class InAppNotifier {
                 .param("link", link)
                 .param("now", Timestamp.from(Instant.now(clock)))
                 .update();
+    }
+
+    private static String cut(String text, int max) {
+        return text == null || text.length() <= max ? text : text.substring(0, max - 1) + "…";
     }
 
     private Map<String, String> vietnamese(Map<String, String> values) {

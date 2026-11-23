@@ -54,6 +54,8 @@ export default function SendEmail() {
   const ready = Boolean(debounced.templateKey) && (debounced.mode === 'bulk' ? Boolean(debounced.group) : Boolean(debounced.studentCode.trim()))
   const preview = useQuery(['admin-email-preview', recipients], ({ signal }) => api.admin.emails.preview(recipients, { signal }), { enabled: ready })
   const count = preview.data?.count
+  // The count shown must be the one sent to: no Send while the preview is loading or behind the form (WEB-ADM-07).
+  const stale = form !== debounced || preview.loading
 
   const send = useMutation(() => api.admin.emails.send({ ...recipients, channel: form.channel, sendAt: form.sendAt }), {
     onSuccess: (res) => {
@@ -73,7 +75,7 @@ export default function SendEmail() {
       actions={
         <>
           <Button to="/admin/notifications">Templates</Button>
-          <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count}>
+          <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count || stale}>
             Send email
           </Button>
         </>
@@ -178,7 +180,7 @@ export default function SendEmail() {
         footer={
           <>
             <Button onClick={() => setConfirming(false)}>Cancel</Button>
-            <Button variant="primary" icon={Send} onClick={() => send.run()} disabled={send.pending}>
+            <Button variant="primary" icon={Send} onClick={() => send.run()} disabled={send.pending || stale}>
               Send email
             </Button>
           </>

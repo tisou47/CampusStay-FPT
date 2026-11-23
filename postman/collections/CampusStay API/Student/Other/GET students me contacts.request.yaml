@@ -2,6 +2,6 @@ $kind: http-request
 name: '/students/me/contacts'
 method: GET
 url: '{{baseUrl}}/students/me/contacts'
-order: 1000
+order: 3000
 description: |-
-  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `mine_1` of `student-contact-controller`). Add it to the contract or remove it from the backend.
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `mine_2` of `student-contact-controller`). Add it to the contract or remove it from the backend.

@@ -2,7 +2,7 @@ $kind: http-request
 name: '/maintenance-requests'
 method: POST
 url: '{{baseUrl}}/maintenance-requests'
-order: 11000
+order: 8000
 description: |-
   `POST /maintenance-requests` (multipart) `title, description, category, location, urgency, staffMayEnter, photos` (one `photos` part per file) → `{ id }`
 

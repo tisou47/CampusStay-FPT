@@ -26,7 +26,7 @@ public interface MaintenanceRequests {
      * @param category code of the {@code MAINTENANCE_CATEGORY} list; {@code urgency} {@code NORMAL} or {@code URGENT}
      */
     record OpenRequest(long id, String code, Long termId, long buildingId, String room, String title, String category,
-            String urgency, String status, Long assigneeId, Instant reportedAt, int reopenCount) {
+            String urgency, String status, Long assigneeId, Instant reportedAt, int reopenCount, Instant slaDueAt) {
     }
 
     /** Open requests of the Blocks, oldest first. */
@@ -37,6 +37,9 @@ public interface MaintenanceRequests {
 
     /** Assigns an open request (a routing rule, or the Block Manager after an escalation); {@code why} goes in its log. */
     void assign(long requestId, long assigneeId, String why);
+
+    /** Back to the Block queue (Submitted, nobody in charge) with a history line; nothing when it is closed. */
+    void unassign(long requestId, String why);
 
     /** Sets the time by which the request must be finished (the Block's timer when it is routed, spec §6.18). */
     void setSlaDue(long requestId, Instant dueAt);

@@ -34,6 +34,7 @@ import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.maintenance.MaintenanceRequests;
 import vn.fpt.campusstay.event.EscalationAssigned;
+import vn.fpt.campusstay.event.TemporaryBedArranged;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -143,8 +144,11 @@ public class EscalationService {
             RoutingService.Sla sla = slas.computeIfAbsent(r.buildingId(), routing::sla);
             int limit = "URGENT".equals(r.urgency()) ? sla.urgent() : sla.normal();
             Reason reason = null;
-            if (r.reportedAt().plus(Duration.ofHours(limit)).isBefore(now)) {
-                reason = new Reason("SLA_BREACH", "Past the " + limit + "-hour limit", "DANGER");
+            // The deadline stored when the request was routed wins over today's timer (BE-OPS-05).
+            Instant due = r.slaDueAt() != null ? r.slaDueAt() : r.reportedAt().plus(Duration.ofHours(limit));
+            if (due.isBefore(now)) {
+                long hoursAllowed = Math.max(1, Duration.between(r.reportedAt(), due).toHours());
+                reason = new Reason("SLA_BREACH", "Past the " + hoursAllowed + "-hour limit", "DANGER");
             } else if (r.assigneeId() == null && r.reportedAt().plus(Duration.ofHours(unassignedHours)).isBefore(now)) {
                 reason = new Reason("NO_ASSIGNEE", "No assignee after " + hours(unassignedHours), "WARNING");
             } else if (r.reopenCount() > 0) {
@@ -332,9 +336,17 @@ public class EscalationService {
             if (!e.sourceType().equals(ROOM_CHANGE)) {
                 throw FieldErrors.single("action", "A temporary Bed can only be offered for a Room-Change Request.");
             }
+            if (text == null) {
+                throw FieldErrors.single("note", "Write which temporary Bed was arranged and until when.");
+            }
+            long student = jdbc.sql("SELECT student_id FROM req_room_change WHERE id = :id").param("id", e.sourceId())
+                    .query(Long.class).single();
             handle(e, "TEMPORARY_BED", e.ownerId(), text, now);
-            event(e.id(), "Temporary Bed offered", now);
-            audit.record("ESCALATION_TEMPORARY_BED", AuditLog.Tone.INFO, "Escalation", e.id(), e.sourceCode(), null);
+            event(e.id(), "Temporary Bed arranged", now);
+            audit.record("ESCALATION_TEMPORARY_BED", AuditLog.Tone.INFO, "Escalation", e.id(), e.sourceCode(),
+                    Map.of("note", text));
+            // The request stays open; the student and its owner are told what was arranged (BE-OPS-02).
+            events.publishEvent(new TemporaryBedArranged(student, e.ownerId(), e.sourceCode(), text));
         } else {
             throw FieldErrors.single("action", "Choose reassign or temporary-bed.");
         }

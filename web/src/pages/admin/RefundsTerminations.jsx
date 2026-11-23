@@ -11,6 +11,7 @@ import { EmptyBlock } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { ConfigPage, useConfigForm } from './shared'
 import { t, tr } from '@/i18n'
+import { parseDecimal } from '@/lib/numbers'
 
 // SCR-CFG-25 Refunds, penalties and terminations (spec §9, D-25): the refund rule of every trigger.
 // Refund rules: GET|PUT /admin/fees (rules: [{ id, when, refundPercent, approver, active }], approverOptions)
@@ -19,6 +20,9 @@ import { t, tr } from '@/i18n'
 
 function RuleModal({ rule, approvers, onClose, onSave }) {
   const [form, setForm] = useState({ when: '', refundPercent: 0, approver: approvers[0] ?? '', active: true, ...rule })
+  // A blank percent is an error, never a silent 0 % (M2).
+  const percent = parseDecimal(form.refundPercent)
+  const percentError = percent == null ? t('Enter a refund from 0 to 100%.') : Number.isNaN(percent) || percent < 0 || percent > 100 ? t('Enter a refund from 0 to 100%.') : null
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   return (
     <Modal
@@ -28,7 +32,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!String(form.when).trim()} onClick={() => onSave({ ...form, refundPercent: Number(form.refundPercent) || 0 })}>
+          <Button variant="primary" icon={Check} disabled={!String(form.when).trim() || percentError != null} onClick={() => onSave({ ...form, refundPercent: parseDecimal(form.refundPercent) })}>
             Save rule
           </Button>
         </>
@@ -36,7 +40,7 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
     >
       <Field label="When">{(id) => <Input id={id} value={form.when} onChange={set('when')} placeholder="e.g. student cancels during the stay" />}</Field>
       <div className="flex gap-3">
-        <Field label="Refund of paid amount (%)" className="flex-1">
+        <Field label="Refund of paid amount (%)" className="flex-1" required error={percentError}>
           {(id) => <Input id={id} value={form.refundPercent} onChange={set('refundPercent')} inputMode="numeric" />}
         </Field>
         <Field label="Approved by" className="flex-1">

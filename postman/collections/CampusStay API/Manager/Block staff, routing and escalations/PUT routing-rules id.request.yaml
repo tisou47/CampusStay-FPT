@@ -2,7 +2,7 @@ $kind: http-request
 name: '/routing-rules/{id}'
 method: PUT
 url: '{{baseUrl}}/routing-rules/:id'
-order: 7000
+order: 9000
 description: |-
   `PUT /routing-rules/{id}` `{ type, scope, condition, assigneeId, fallbackId, active }`
 

@@ -40,4 +40,17 @@ public interface StaffWork {
      * longer open. Runs inside the caller's transaction.
      */
     void reassign(String type, long id, long toUserId, String note);
+
+    /**
+     * Puts the open item back in its Block's queue with nobody in charge, because its holder left the Block or was
+     * disabled (BE-3RD-01); does nothing when it is no longer open. Runs inside the caller's transaction.
+     */
+    void release(String type, long id, String note);
+
+    /**
+     * What names the person for future work outside {@code keepBlocks} (an inspection schedule's inspector) names
+     * nobody any more, so new runs do not go to someone who left or was disabled. Runs inside the caller's transaction.
+     */
+    default void releaseStanding(long userId, java.util.Set<Long> keepBlocks) {
+    }
 }

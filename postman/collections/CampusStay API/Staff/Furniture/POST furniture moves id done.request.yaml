@@ -2,7 +2,7 @@ $kind: http-request
 name: '/furniture/moves/{id}/done'
 method: POST
 url: '{{baseUrl}}/furniture/moves/:id/done'
-order: 5000
+order: 6000
 description: |-
   `POST /furniture/moves/{id}/done`
 

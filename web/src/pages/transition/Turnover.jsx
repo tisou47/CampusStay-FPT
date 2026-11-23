@@ -48,6 +48,8 @@ function RandomCodesModal({ rooms, onClose }) {
   const { notify, notifyError } = useToast()
   const [drawn, setDrawn] = useState(null) // [{ room, code, error }]
   const [confirmed, setConfirmed] = useState(() => new Set())
+  // Rooms whose confirmation failed, with the server's reason (WEB-OPS-10): shown in their row.
+  const [failed, setFailed] = useState({})
   const draw = useMutation(
     async () => {
       const out = []
@@ -66,20 +68,23 @@ function RandomCodesModal({ rooms, onClose }) {
   const confirm = useMutation(
     async (list) => {
       const done = []
+      const errors = {}
       for (const room of list) {
         try {
           await api.doorCodes.confirm(room)
           done.push(room)
-        } catch {
-          // left unconfirmed: confirm it again here or on Door codes
+        } catch (e) {
+          errors[room] = e.message // left unconfirmed: confirm it again here or on Door codes
         }
       }
-      return done
+      return { done, errors }
     },
     {
       invalidates: ['door-codes', 'inventory', 'turnover'],
-      onSuccess: (done) => {
+      onSuccess: ({ done, errors }) => {
         setConfirmed((all) => new Set([...all, ...done]))
+        setFailed((all) => ({ ...Object.fromEntries(Object.entries(all).filter(([room]) => !done.includes(room))), ...errors }))
+        if (Object.keys(errors).length) notifyError(new Error(t('{n} codes were not confirmed: see their rows.', { n: Object.keys(errors).length })), 'Some codes were not confirmed')
         if (done.length) notify({ title: t('{n} door codes confirmed', { n: done.length }), message: 'Their residents are told that the code changed (never the code itself).' })
       },
       onError: (e) => notifyError(e, 'Could not confirm the codes'),
@@ -130,6 +135,13 @@ function RandomCodesModal({ rooms, onClose }) {
                 <Td align="right">
                   {confirmed.has(x.room) ? (
                     <Tag tone="success">{t('Confirmed')}</Tag>
+                  ) : failed[x.room] ? (
+                    <span className="flex flex-col items-end gap-1">
+                      <span className="text-sm text-error-fg">{failed[x.room]}</span>
+                      <Button size="sm" disabled={confirm.pending} onClick={() => confirm.run([x.room])}>
+                        Try again
+                      </Button>
+                    </span>
                   ) : (
                     x.code && (
                       <Button size="sm" disabled={confirm.pending} onClick={() => confirm.run([x.room])}>

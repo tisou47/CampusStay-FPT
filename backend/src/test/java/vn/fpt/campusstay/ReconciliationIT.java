@@ -220,4 +220,40 @@ class ReconciliationIT {
                 SELECT count(*) FROM asg_termination t JOIN auth_user u ON u.id = t.student_id WHERE u.email = :e
                 """).param("e", student(9)).query(Long.class).single()).isZero();
     }
+
+    /**
+     * TC-AUTH-097 (BE-3RD-05): a list said "Withdrawn" (the directory followed it); the Manager checks and records
+     * "Enrolled": the directory says Enrolled again.
+     */
+    @Test
+    void enrolledOutcomeRestoresTheDirectory() throws Exception {
+        renewal.resident(21, "A-106", "A", 2);
+        renewals.openDue();
+        String manager = bearer(mvc, MANAGER_A);
+        String detail = upload(manager, next, "enrolled", "student_code,enrollment_status\nSE190021,Withdrawn\n")
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String run = JsonPath.read(detail, "$.run.id");
+        stay.postJson("/reconciliations/" + run + "/items/" + item(detail, 1, "SE190021") + "/resolve", manager,
+                "{\"outcome\":\"Enrolled\",\"note\":\"The file was wrong.\"}").andExpect(status().isOk());
+        assertThat(jdbc.sql("SELECT enrollment_status FROM auth_student WHERE student_code = 'SE190021'")
+                .query(String.class).single()).isEqualTo("ENROLLED");
+    }
+
+    /**
+     * TC-AUTH-098 (BE-3RD-06): uploading the corrected list again replaces the first one: its open items close as
+     * superseded, so each student has one open item and the counts do not double.
+     */
+    @Test
+    void aNewListSupersedesTheOpenItemsOfTheLastOne() throws Exception {
+        renewal.resident(22, "A-106", "B", 2);
+        renewals.openDue();
+        String manager = bearer(mvc, MANAGER_A);
+        String csv = "student_code,enrollment_status\nSE190022,Withdrawn\n";
+        upload(manager, next, "enrolled", csv).andExpect(status().isOk());
+        upload(manager, next, "enrolled", csv).andExpect(status().isOk());
+        getAs("/reconciliations?termId=" + next, manager).andExpect(jsonPath("$.openItems").value(1));
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM auth_reconciliation_item WHERE student_code = 'SE190022' AND outcome = 'SUPERSEDED'
+                """).query(Long.class).single()).isEqualTo(1);
+    }
 }

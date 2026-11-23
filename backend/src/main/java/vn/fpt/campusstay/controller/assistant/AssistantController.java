@@ -26,7 +26,8 @@ class AssistantController {
             @NotNull(message = "Choose who wrote this message.")
             @Pattern(regexp = "user|assistant", message = "Choose who wrote this message.") String role,
             @NotBlank(message = "Write your question.")
-            @Size(max = 2000, message = "Use at most 2000 characters.") String content) {
+            @Size(max = 2000, message = "Use at most 2000 characters.") String content,
+            @Size(max = 100, message = "This conversation is not valid. Start a new one.") String signature) {
     }
 
     record ChatRequest(
@@ -49,6 +50,6 @@ class AssistantController {
     @PostMapping("/chat")
     AssistantService.Reply chat(@Valid @RequestBody ChatRequest body) {
         return assistant.chat(body.messages().stream()
-                .map(t -> new AssistantService.Turn(t.role(), t.content())).toList());
+                .map(t -> new AssistantService.Turn(t.role(), t.content(), t.signature())).toList());
     }
 }

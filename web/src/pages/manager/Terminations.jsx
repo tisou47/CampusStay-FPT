@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DoorOpen, Plus, TriangleAlert, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -35,6 +35,13 @@ export default function Terminations() {
   const [starting, setStarting] = useState(false)
   const [form, setForm] = useState({ studentCode: '', reason: 'Manager decision', note: '' })
   const [cancelling, setCancelling] = useState(null)
+  const [code, setCode] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setCode(form.studentCode.trim().toUpperCase()), 300)
+    return () => clearTimeout(timer)
+  }, [form.studentCode])
+  const lookup = useQuery(['students', 'lookup', code], ({ signal }) => api.students.list({ q: code, resident: 'yes', pageSize: 5 }, { signal }), { enabled: starting && code.length >= 6, keepPrevious: false })
+  const found = (lookup.data?.items ?? []).find((x) => x.studentCode?.toUpperCase() === code) ?? null
   const [cancelReason, setCancelReason] = useState('')
 
   const filters = { ...scope, status, page, pageSize }
@@ -161,7 +168,7 @@ export default function Terminations() {
         footer={
           <>
             <Button onClick={() => setStarting(false)}>Cancel</Button>
-            <Button variant="danger" disabled={start.pending || !form.studentCode.trim()} onClick={() => start.run()}>
+            <Button variant="danger" disabled={start.pending || !found || found.studentCode.toUpperCase() !== form.studentCode.trim().toUpperCase()} onClick={() => start.run()}>
               {start.pending ? t('Sending…') : t('Terminate and notify')}
             </Button>
           </>
@@ -171,6 +178,17 @@ export default function Terminations() {
         <Field label="Student code" required error={fields.studentCode}>
           {(id) => <Input id={id} value={form.studentCode} onChange={(e) => setForm({ ...form, studentCode: e.target.value })} placeholder="SE190001" />}
         </Field>
+        {code.length >= 6 && !lookup.loading && (
+          found ? (
+            <Alert type="info" title={found.name}>
+              {[found.studentCode, found.residence].filter(Boolean).join(' · ')}
+            </Alert>
+          ) : (
+            <Alert type="warning" title="No resident with this student code">
+              {t('Check the code: only a student who lives in a Room can be terminated.')}
+            </Alert>
+          )
+        )}
         <Field label="Reason" required error={fields.reason}>
           {(id) => (
             <Select

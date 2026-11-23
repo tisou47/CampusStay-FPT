@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/students/me/handover/late'
+method: POST
+url: '{{baseUrl}}/students/me/handover/late'
+order: 8000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `late` of `handover-controller`). Add it to the contract or remove it from the backend.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "note": ""
+    }

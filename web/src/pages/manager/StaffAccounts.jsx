@@ -39,11 +39,13 @@ function StaffModal({ person, blocks, onClose }) {
     setFields((f) => ({ ...f, [key]: undefined }))
   }
   const chosen = blocks.filter((b) => form.blocks.has(b))
+  // Blocks this Manager cannot see stay as they are: an edit must not take them off the person (WEB-OPS-06).
+  const outside = (person.blocks ?? []).filter((b) => !blocks.includes(b))
   const save = useMutation(
     () =>
       isNew
         ? api.staffAccounts.create({ name: form.name.trim(), email: form.email.trim(), title: form.title.trim(), blocks: chosen })
-        : api.staffAccounts.update(person.id, { name: form.name.trim(), title: form.title.trim(), blocks: chosen, status: form.status }),
+        : api.staffAccounts.update(person.id, { name: form.name.trim(), title: form.title.trim(), blocks: [...outside, ...chosen], status: form.status }),
     {
       invalidates: ['staff-accounts', 'block-staff'],
       onSuccess: () => {

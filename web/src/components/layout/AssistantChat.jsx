@@ -92,10 +92,11 @@ export function AssistantChat({ userId }) {
     setDraft('')
     setPending(true)
     try {
-      const { reply } = await api.me.askAssistant({
-        messages: turns.slice(-SENT_TURNS).map(({ role, content }) => ({ role, content })),
+      // Each answer comes with the server's signature and goes back with it; unsigned turns are ignored (BE-PLT-02).
+      const { reply, signature } = await api.me.askAssistant({
+        messages: turns.slice(-SENT_TURNS).map(({ role, content, signature: sig }) => (sig ? { role, content, signature: sig } : { role, content })),
       })
-      setMessages((m) => [...m, { role: 'assistant', content: reply }])
+      setMessages((m) => [...m, { role: 'assistant', content: reply, signature }])
     } catch (error) {
       setMessages((m) => [...m, { role: 'assistant', content: error.message, error: true }])
     } finally {

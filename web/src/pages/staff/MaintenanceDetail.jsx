@@ -213,11 +213,12 @@ function RequestDetail({ r, staff, priorities }) {
                   </Button>
                 )}
               </>
-            ) : (
+            ) : r.status === 'Resolved' ? (
+              // A Closed request cannot be reopened by the server: only a Resolved one (WEB-OPS-05).
               <Button icon={RotateCcw} onClick={() => setStatus.run(r.assignee ? 'Assigned' : 'Submitted')} disabled={busy}>
                 Reopen
               </Button>
-            )}
+            ) : null}
           </>
         }
       />

@@ -249,6 +249,9 @@ public interface Billing {
 
     DueSummary dueSummary(long studentId, long termId);
 
+    /** Each student's next Invoice to pay in the Term (as {@link DueSummary#next}), in one read; students with none are left out. */
+    Map<Long, InvoiceLine> nextDue(Collection<Long> studentIds, long termId);
+
     /** Any Invoice of the student, from any Term, that is Overdue. */
     boolean hasOverdueInvoice(long studentId);
 

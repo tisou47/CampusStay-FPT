@@ -27,6 +27,18 @@ import vn.fpt.campusstay.service.inventory.BedOccupancy;
 @Transactional(readOnly = true)
 class JdbcBedOccupancy implements BedOccupancy {
 
+    /** Beds proposed in a live (not dry) run of the Terms: promised to someone until the run ends. */
+    static final String LIVE_RUN_BEDS = """
+            SELECT i.bed_id FROM asg_proposal_item i JOIN asg_run r ON r.id = i.run_id
+            WHERE r.kind <> 'DRY_RUN' AND r.status IN ('RUNNING', 'PROPOSED', 'IN_REVIEW') AND r.term_id IN (:terms)
+                  AND i.bed_id IS NOT NULL
+            """;
+
+    /** The Beds of {@link #LIVE_RUN_BEDS} for one Term. */
+    static Set<Long> liveRunBeds(JdbcClient jdbc, long termId) {
+        return Set.copyOf(jdbc.sql(LIVE_RUN_BEDS).param("terms", List.of(termId)).query(Long.class).list());
+    }
+
     private final JdbcClient jdbc;
     private final Applications applications;
     private final Billing billing;
@@ -83,10 +95,7 @@ class JdbcBedOccupancy implements BedOccupancy {
         Set<Long> result = new HashSet<>(jdbc.sql("""
                 SELECT bed_id FROM asg_allocation WHERE status = 'ACTIVE' AND term_id IN (:terms) AND bed_id IN (:beds)
                 UNION
-                SELECT i.bed_id FROM asg_proposal_item i JOIN asg_run r ON r.id = i.run_id
-                WHERE r.kind <> 'DRY_RUN' AND r.status IN ('RUNNING', 'PROPOSED', 'IN_REVIEW') AND r.term_id IN (:terms)
-                      AND i.bed_id IN (:beds)
-                """)
+                """ + LIVE_RUN_BEDS + " AND i.bed_id IN (:beds)")
                 .param("terms", List.copyOf(termIds))
                 .param("beds", List.copyOf(bedIds))
                 .query(Long.class).list());

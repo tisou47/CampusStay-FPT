@@ -50,15 +50,18 @@ class EmailOutbox {
                 .update();
     }
 
-    /** Queues an email already rendered (an Admin campaign), sent from {@code notBefore}. */
+    /**
+     * Queues an email already rendered (an Admin campaign), sent from {@code notBefore}; {@code demo}: the address
+     * belongs to a fictional account (the campaign reads them all at once).
+     */
     @Transactional(propagation = Propagation.MANDATORY)
-    void enqueue(long campaignId, String toEmail, String subject, String bodyHtml, Instant notBefore) {
+    void enqueue(long campaignId, String toEmail, String subject, String bodyHtml, Instant notBefore, boolean demo) {
         jdbc.sql("""
                 INSERT INTO ntf_email_outbox (campaign_id, to_email, subject, body_html, not_before, demo_recipient)
                 VALUES (:campaign, :to, :subject, :body, :notBefore, :demo)
                 """)
                 .param("campaign", campaignId).param("to", toEmail).param("subject", subject).param("body", bodyHtml)
-                .param("notBefore", Timestamp.from(notBefore)).param("demo", demo(toEmail)).update();
+                .param("notBefore", Timestamp.from(notBefore)).param("demo", demo).update();
     }
 
     private boolean demo(String toEmail) {

@@ -2,7 +2,7 @@ $kind: http-request
 name: '/maintenance-requests/{id}/confirm'
 method: POST
 url: '{{baseUrl}}/maintenance-requests/:id/confirm'
-order: 13000
+order: 10000
 description: |-
   `POST /maintenance-requests/{id}/confirm` `{ fixed, comment? }` → `204`
 

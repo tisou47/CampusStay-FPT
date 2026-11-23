@@ -108,9 +108,13 @@ String _two(int n) => n.toString().padLeft(2, '0');
 String _dayOf(DateTime d) =>
     isVietnamese() ? '${_two(d.day)}/${_two(d.month)}/${d.year}' : '${d.day} ${_months[d.month - 1]} ${d.year}';
 
-/// A calendar day `YYYY-MM-DD` as the user reads it.
+/// A calendar day `YYYY-MM-DD` as the user reads it; an instant (with a time) is the campus day it falls on (MOB-24).
 String day(String? value) {
   if (value == null || value.isEmpty) return '—';
+  if (value.length > 10) {
+    final instant = DateTime.tryParse(value);
+    if (instant != null) return _dayOf(instant.toUtc().add(const Duration(hours: 7)));
+  }
   final parsed = DateTime.tryParse(value.length >= 10 ? value.substring(0, 10) : value);
   return parsed == null ? value : _dayOf(parsed);
 }
@@ -177,6 +181,7 @@ class _LoaderState<T> extends State<Loader<T>> {
   T? _data;
   Object? _error;
   bool _hasData = false;
+  DateTime? _loadedAt;
 
   @override
   void initState() {
@@ -194,10 +199,24 @@ class _LoaderState<T> extends State<Loader<T>> {
         setState(() {
           _data = data;
           _hasData = true;
+          _loadedAt = DateTime.now();
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (!mounted) return;
+      setState(() => _error = e);
+      // A failed refresh keeps what is on screen, and says it is not fresh (MOB-07).
+      final at = _loadedAt;
+      if (_hasData && at != null) {
+        final time = '${_two(at.hour)}:${_two(at.minute)}';
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              t('Could not refresh: $e. Showing data from $time.', 'Không làm mới được: $e. Đang hiện dữ liệu lúc $time.'),
+            ),
+          ),
+        );
+      }
     }
   }
 

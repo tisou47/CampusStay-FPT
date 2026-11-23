@@ -59,7 +59,8 @@ class Round2Offers {
     int freeBeds(long termId) {
         Set<Long> occupied = Set.copyOf(jdbc.sql("SELECT bed_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
                 .param("t", termId).query(Long.class).list());
-        Set<Long> held = applications.heldRound2Beds(termId);
+        Set<Long> held = new HashSet<>(applications.heldRound2Beds(termId));
+        held.addAll(JdbcBedOccupancy.liveRunBeds(jdbc, termId));
         return (int) inventory.assignableBeds(termId).stream()
                 .filter(b -> !occupied.contains(b.bedId()) && !held.contains(b.bedId())).count();
     }
@@ -73,6 +74,7 @@ class Round2Offers {
         Set<Long> occupied = Set.copyOf(jdbc.sql("SELECT bed_id FROM asg_allocation WHERE term_id = :t AND status = 'ACTIVE'")
                 .param("t", termId).query(Long.class).list());
         Set<Long> taken = new HashSet<>(applications.heldRound2Beds(termId));
+        taken.addAll(JdbcBedOccupancy.liveRunBeds(jdbc, termId)); // proposed in Blocks not committed yet (BE-ASG-01)
         List<Inventory.BedSlot> assignable = inventory.assignableBeds(termId);
         Map<Long, Long> occupants = assignable.stream().filter(b -> occupied.contains(b.bedId()))
                 .collect(Collectors.groupingBy(Inventory.BedSlot::roomId, Collectors.counting()));

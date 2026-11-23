@@ -52,7 +52,8 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
                 ORDER BY reported_at, id
                 """).param("b", List.copyOf(buildingIds)).query(RequestStore::request).list().stream()
                 .map(r -> new OpenRequest(r.id(), r.code(), r.termId(), r.buildingId(), r.roomCode(), r.title(),
-                        r.category(), r.urgency(), r.status(), r.assigneeId(), r.reportedAt(), r.reopenCount()))
+                        r.category(), r.urgency(), r.status(), r.assigneeId(), r.reportedAt(), r.reopenCount(),
+                        r.slaDueAt()))
                 .toList();
     }
 
@@ -85,6 +86,18 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
             events.publishEvent(new MaintenanceUpdated(r.id(), r.code(), r.reporterId(), r.title(),
                     RequestStore.statusLabel(status), null));
         }
+    }
+
+    @Override
+    public void unassign(long requestId, String why) {
+        RequestStore.Request r = requests.find(String.valueOf(requestId), true).orElse(null);
+        if (r == null || !r.open() || r.assigneeId() == null) {
+            return;
+        }
+        // An open request other than Submitted needs someone in charge (ck_mnt_assigned): it starts again from the queue.
+        jdbc.sql("UPDATE mnt_request SET assignee_id = NULL, status = 'SUBMITTED', version = version + 1 WHERE id = :id")
+                .param("id", r.id()).update();
+        requests.event(r.id(), null, null, "Back to the Block queue (" + why + ")", null, false, Instant.now(clock));
     }
 
     @Override

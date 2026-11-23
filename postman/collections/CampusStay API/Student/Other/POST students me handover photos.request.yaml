@@ -1,0 +1,16 @@
+$kind: http-request
+name: '/students/me/handover/photos'
+method: POST
+url: '{{baseUrl}}/students/me/handover/photos'
+order: 7000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `addPhoto` of `handover-controller`). Add it to the contract or remove it from the backend.
+body:
+  type: formdata
+  content:
+    - key: itemId
+      type: text
+      value: ''
+    - key: photo
+      type: file
+      src: ''

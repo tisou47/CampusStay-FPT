@@ -171,7 +171,7 @@ public class RoutingService {
                     long[] l = load.getOrDefault(m.userId(), new long[2]);
                     return new StaffOption(String.valueOf(m.userId()), m.name(), m.onDuty(), l[0], l[1]);
                 }).toList(),
-                List.copyOf(TYPES.values()), categories, gaps,
+                ROUTED.stream().map(TYPES::get).toList(), categories, gaps,
                 new Timers(hours(sla.urgent()), hours(sla.normal()), hours(sla.roomChange())),
                 new TimerOptions(options(URGENT, "sla.urgent_max_hours"), options(NORMAL, "sla.normal_max_hours"),
                         options(ROOM_CHANGE, "sla.room_change_max_hours")));
@@ -295,8 +295,10 @@ public class RoutingService {
     Sla sla(long buildingId) {
         return jdbc.sql("SELECT urgent_hours, normal_hours, room_change_hours FROM req_sla_policy WHERE building_id = :b")
                 .param("b", buildingId)
-                .query((rs, i) -> new Sla(rs.getInt("urgent_hours"), rs.getInt("normal_hours"),
-                        rs.getInt("room_change_hours")))
+                // An Admin limit lowered later still caps a Block's saved timers (BE-OPS-08).
+                .query((rs, i) -> new Sla(Math.min(rs.getInt("urgent_hours"), parameters.intValue("sla.urgent_max_hours")),
+                        Math.min(rs.getInt("normal_hours"), parameters.intValue("sla.normal_max_hours")),
+                        Math.min(rs.getInt("room_change_hours"), parameters.intValue("sla.room_change_max_hours"))))
                 .optional()
                 .orElseGet(() -> new Sla(parameters.intValue("sla.urgent_max_hours"),
                         parameters.intValue("sla.normal_max_hours"), parameters.intValue("sla.room_change_max_hours")));
@@ -317,8 +319,12 @@ public class RoutingService {
         return selection.singleId();
     }
 
+    /** Only Maintenance and Room-Change Requests are routed today; rules of other kinds would never apply (BE-OPS-04). */
+    private static final List<String> ROUTED = List.of("MAINTENANCE", "ROOM_CHANGE");
+
     private String type(String label) {
-        return TYPES.entrySet().stream().filter(e -> e.getValue().equalsIgnoreCase(label) || e.getKey().equalsIgnoreCase(label))
+        return TYPES.entrySet().stream().filter(e -> ROUTED.contains(e.getKey()))
+                .filter(e -> e.getValue().equalsIgnoreCase(label) || e.getKey().equalsIgnoreCase(label))
                 .map(Map.Entry::getKey).findFirst()
                 .orElseThrow(() -> FieldErrors.single("type", "Choose a request type."));
     }

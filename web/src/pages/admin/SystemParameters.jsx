@@ -19,9 +19,9 @@ import { t, tr } from '@/i18n'
 //   Number fields have no `options`; select fields list theirs.
 // GET|PUT /admin/fees → { depositPercent, … }: only depositPercent is edited here (the refund rules of the same
 //   resource are in Refunds, penalties and terminations). Each Term copies the Deposit when it is built (ADR-20).
-// GET|PUT /admin/utility → { priceKwh, priceM3, readingDay, paymentDueDays, rounding, overdueReminder,
-//   estimateMonthly, monthsHeld, blockChangesWhenOverdue, options: { readingDays, paymentDueDays, rounding,
-//   overdueReminder } }: Meter Readings and utility Invoices use these values from the next billing period.
+// GET|PUT /admin/utility → { priceKwh, priceM3, paymentDueDays, rounding, estimateMonthly, monthsHeld,
+//   blockChangesWhenOverdue, options: { paymentDueDays, rounding } } (no reading day or overdue reminder: nothing used
+//   them, BE-3RD-07): Meter Readings and utility Invoices use these values from the next billing period.
 // GET /admin/settings/{deadlines,refunds,stay} → { appliesFrom, settings: [{ key, label, type, value, unit, min, max, usedIn }] };
 //   PUT { values: { key: value } } with only what changed (SettingsGroup.jsx).
 
@@ -204,10 +204,8 @@ export default function SystemParameters() {
       fields: [
         { key: 'priceKwh', kind: 'money', min: 1, label: 'Electricity price (₫/kWh)', helper: 'One meter per room. Each segment is split equally among its residents.' },
         { key: 'priceM3', kind: 'money', min: 1, label: 'Water price (₫/m³)' },
-        { key: 'readingDay', kind: 'select', label: 'Monthly reading day', options: (d) => d?.options?.readingDays },
         { key: 'paymentDueDays', kind: 'select', label: 'Payment due', options: (d) => d?.options?.paymentDueDays },
         { key: 'rounding', kind: 'select', label: 'Rounding of each share', options: (d) => d?.options?.rounding },
-        { key: 'overdueReminder', kind: 'select', label: 'Overdue reminder', options: (d) => d?.options?.overdueReminder },
       ],
     },
     {

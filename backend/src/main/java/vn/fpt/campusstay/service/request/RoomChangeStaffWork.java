@@ -72,6 +72,11 @@ class RoomChangeStaffWork implements StaffWork {
         }
     }
 
+    @Override
+    public void release(String type, long id, String note) {
+        assignments.release(id);
+    }
+
     private List<Item> items(List<Row> rows) {
         if (rows.isEmpty()) {
             return List.of();

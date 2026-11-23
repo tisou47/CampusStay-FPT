@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.CurrentUser;
+import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.event.InvoiceOverdue;
 import vn.fpt.campusstay.event.RefundAccountReminded;
@@ -123,6 +124,7 @@ public class FinanceService {
 
     @Transactional(readOnly = true)
     public Summary summary(Long termId, String block) {
+        currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
         record Invoices(long invoiced, long count, long collected, long overdueCount, long overdueAmount) {
@@ -152,6 +154,7 @@ public class FinanceService {
 
     @Transactional(readOnly = true)
     public InvoicePage invoices(Long termId, String block, PageQuery page) {
+        currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
         String where = " FROM bil_invoice i WHERE i.term_id = :term AND i.status <> 'VOID' AND " + s.where("i");
@@ -170,6 +173,7 @@ public class FinanceService {
 
     @Transactional(readOnly = true)
     public OverduePage overdue(Long termId, String block, PageQuery page) {
+        currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
         String where = " FROM bil_invoice i WHERE i.term_id = :term AND " + OVERDUE + " AND " + s.where("i");
@@ -250,6 +254,7 @@ public class FinanceService {
     /** @param status Pending, Approved, Rejected or Paid */
     @Transactional(readOnly = true)
     public RefundPage refunds(Long termId, String block, String status, PageQuery page) {
+        currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
         StringBuilder where = new StringBuilder(" FROM bil_refund r WHERE r.term_id = :term AND " + s.where("r"));
@@ -358,13 +363,12 @@ public class FinanceService {
     }
 
     /**
-     * Decided by the refund rule's approver (spec §3): a Manager decides every refund, Staff those whose rule says
-     * Staff (in their Blocks), the Admin those whose rule says Admin. A note is required to reject or to approve an
-     * exception.
+     * Decided by a Manager (Permission.DECIDE_REFUNDS), or by the Admin for rules whose approver is Admin. A note is
+     * required to reject or to approve an exception.
      */
     @Transactional
     public void decideRefund(String id, String decision, String note) {
-        AuthenticatedUser user = currentUser.require(Role.STAFF, Role.MANAGER, Role.ADMIN);
+        AuthenticatedUser user = currentUser.require(Role.MANAGER, Role.ADMIN);
         InvoiceScope.Scope s = scope.resolve(null);
         record Refund(long id, long studentId, long amount, String status, boolean exception, String reason,
                 Long ruleId) {
@@ -380,12 +384,10 @@ public class FinanceService {
         String approver = r.ruleId() == null ? "MANAGER"
                 : Optional.ofNullable(fees.refundRules().get(r.ruleId())).map(FeePolicy.RefundRule::approverRole)
                         .orElse("MANAGER");
-        boolean allowed = user.is(Role.MANAGER) || user.is(Role.STAFF) && approver.equals("STAFF")
-                || user.is(Role.ADMIN) && approver.equals("ADMIN");
+        boolean allowed = user.is(Role.MANAGER) || user.is(Role.ADMIN) && approver.equals("ADMIN");
         if (!allowed) {
             throw ApiException.forbidden("NOT_REFUND_APPROVER", "This refund is decided by "
-                    + (approver.equals("ADMIN") ? "the Admin" : approver.equals("STAFF") ? "the Block's Staff"
-                            : "a Manager") + ".");
+                    + (approver.equals("ADMIN") ? "the Admin" : "a Manager") + ".");
         }
         if (!r.status().equals("PENDING")) {
             throw ApiException.conflict("ALREADY_DECIDED", "This refund was already decided.");
@@ -411,6 +413,46 @@ public class FinanceService {
                 text == null ? Map.of("amount", r.amount())
                         : Map.of("amount", r.amount(), "note", text));
         events.publishEvent(new RefundDecided(r.id(), r.studentId(), r.amount(), approve ? "approved" : "rejected"));
+    }
+
+    /**
+     * A Manager records the transfer of an approved refund (Approved → Paid, with the bank reference). A full refund of
+     * an Invoice turns that Invoice Refunded.
+     */
+    @Transactional
+    public void markRefundPaid(String id, String reference, String note) {
+        AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
+        InvoiceScope.Scope s = scope.resolve(null);
+        record Refund(long id, String status, long amount, long paidAmount, Long invoiceId, String reason) {
+        }
+        Map<String, Object> params = new HashMap<>(s.params());
+        params.put("id", parse(id).orElse(-1L));
+        Refund r = jdbc.sql("SELECT * FROM bil_refund r WHERE r.id = :id AND " + s.where("r") + " FOR UPDATE")
+                .params(params)
+                .query((rs, n) -> new Refund(rs.getLong("id"), rs.getString("status"), rs.getLong("amount"),
+                        rs.getLong("paid_amount"), rs.getObject("invoice_id", Long.class), rs.getString("reason")))
+                .optional().orElseThrow(() -> ApiException.notFound("This refund does not exist."));
+        if (!r.status().equals("APPROVED")) {
+            throw ApiException.conflict("REFUND_NOT_APPROVED", "Only an approved refund can be marked paid.");
+        }
+        String ref = reference == null ? "" : reference.trim();
+        if (ref.isEmpty()) {
+            throw FieldErrors.single("reference", "Enter the bank transfer reference.");
+        }
+        String text = note == null || note.isBlank() ? null : note.trim();
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                UPDATE bil_refund SET status = 'PAID', paid_reference = :ref, paid_at = :now, paid_by = :by,
+                       note = coalesce(:note, note), version = version + 1
+                WHERE id = :id
+                """).param("ref", ref).param("now", Timestamp.from(now)).param("by", user.userId())
+                .param("note", text).param("id", r.id()).update();
+        if (r.invoiceId() != null && r.amount() == r.paidAmount()) {
+            jdbc.sql("UPDATE bil_invoice SET status = 'REFUNDED', updated_at = :now WHERE id = :id AND status = 'PAID'")
+                    .param("now", Timestamp.from(now)).param("id", r.invoiceId()).update();
+        }
+        audit.record("REFUND_PAID", AuditLog.Tone.SUCCESS, "Refund", r.id(), r.reason(),
+                Map.of("amount", r.amount(), "reference", ref));
     }
 
     // ---------------------------------------------------------------- helpers

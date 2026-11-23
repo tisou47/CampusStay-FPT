@@ -1095,15 +1095,22 @@ public class DeskService {
     /** A resident's or a checked-out Allocation in the user's scope. */
     private Placed checkOutTarget(String allocationId, boolean lock) {
         long id = parseId(allocationId).orElseThrow(() -> ApiException.notFound("This Allocation does not exist."));
+        if (lock) {
+            // Scope first, without a lock: Staff of another Block must not hold the row they get a 403 for (M7).
+            checkOutRows(null, null, id).stream().findFirst().ifPresent(p -> blockScope.check(p.bed().buildingId()));
+            // Lock before reading the check-out state: a second submit then sees the first one completed (BE-2ND-02).
+            jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class)
+                    .optional();
+        }
         Optional<Placed> found = checkOutRows(null, null, id).stream().findFirst();
         if (found.isEmpty()) {
-            record Pending(long bedId, long termId, String status, Instant checkedInAt) {
+            record Pending(long bedId, long termId, String status, Instant residentAt) {
             }
-            Pending pending = jdbc.sql("SELECT bed_id, term_id, status, checked_in_at FROM asg_allocation WHERE id = :id")
+            Pending pending = jdbc.sql("SELECT bed_id, term_id, status, resident_at FROM asg_allocation WHERE id = :id")
                     .param("id", id).query((rs, i) -> new Pending(rs.getLong("bed_id"), rs.getLong("term_id"),
-                            rs.getString("status"), instant(rs, "checked_in_at")))
+                            rs.getString("status"), instant(rs, "resident_at")))
                     .optional().orElse(null);
-            if (pending != null && "ACTIVE".equals(pending.status()) && pending.checkedInAt() == null) {
+            if (pending != null && "ACTIVE".equals(pending.status()) && pending.residentAt() == null) {
                 Inventory.BedSlot bed = inventory.beds(pending.termId(), List.of(pending.bedId())).get(pending.bedId());
                 if (bed != null && blockScope.resolve(null).ids().contains(bed.buildingId())) {
                     throw ApiException.badRequest("NOT_CHECKED_IN",
@@ -1114,9 +1121,6 @@ public class DeskService {
         }
         Placed p = found.get();
         blockScope.check(p.bed().buildingId());
-        if (lock) {
-            jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).single();
-        }
         return p;
     }
 
@@ -1126,7 +1130,7 @@ public class DeskService {
         List<Object[]> raw = jdbc.sql("""
                 SELECT a.*, c.reason AS out_reason, c.status AS out_status, c.completed_at AS out_completed
                 FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
-                WHERE %s AND ((a.status = 'ACTIVE' AND a.checked_in_at IS NOT NULL)
+                WHERE %s AND ((a.status = 'ACTIVE' AND a.resident_at IS NOT NULL)
                               OR (a.status = 'ENDED' AND a.end_reason = 'CHECK_OUT'))
                 """.formatted(where))
                 .params(allocationId != null ? Map.of("id", allocationId) : Map.of("term", termId))

@@ -326,6 +326,9 @@ Select at least one Invoice. ⟶ Hãy chọn ít nhất một hóa đơn.
 Send at most 200 reminders at a time. ⟶ Mỗi lần gửi tối đa 200 lời nhắc.
 This refund does not exist. ⟶ Khoản hoàn tiền này không tồn tại.
 This refund was already decided. ⟶ Khoản hoàn tiền này đã được quyết định.
+Only an approved refund can be marked paid. ⟶ Chỉ khoản hoàn tiền đã được duyệt mới có thể đánh dấu đã chuyển.
+Enter the bank transfer reference. ⟶ Nhập mã tham chiếu chuyển khoản.
+Keep the reference under 100 characters. ⟶ Mã tham chiếu tối đa 100 ký tự.
 Write why this exception is approved. ⟶ Hãy ghi lý do duyệt ngoại lệ này.
 Write why the refund is rejected. ⟶ Hãy ghi lý do từ chối hoàn tiền.
 Choose Pending, Approved, Rejected or Paid. ⟶ Hãy chọn Đang chờ, Đã duyệt, Từ chối hoặc Đã chi.
@@ -732,6 +735,7 @@ Approve extension requests of eligible students automatically ⟶ Tự động d
 Share of Beds kept for new students in new Terms (%) ⟶ Tỷ lệ giường dành cho sinh viên mới ở các học kỳ mới (%)
 Alert Managers about undecided requests before the decision deadline (hours) ⟶ Báo Quản lý về yêu cầu chưa quyết định trước hạn quyết định (giờ)
 Application cancelled before results are published ⟶ Hủy đơn trước khi công bố kết quả
+Application not approved by the dormitory office (the whole Deposit) ⟶ Đơn không được ban quản lý duyệt (hoàn toàn bộ tiền đặt cọc)
 Application cancelled after results, before Check-in ⟶ Hủy đơn sau khi có kết quả, trước khi nhận phòng
 Check-out before the end of the Term (unused days) ⟶ Trả phòng trước khi hết học kỳ (số ngày chưa ở)
 Utility Deposit at Check-out, minus unpaid Utility and damage ⟶ Tiền đặt cọc điện nước khi trả phòng, trừ điện nước chưa trả và hư hỏng
@@ -1108,3 +1112,27 @@ An inventory with a major difference is checked in the Room with the student: se
 Choose when you come to the Room. ⟶ Hãy chọn thời gian xuống phòng.
 Choose a time from {0}:00 to {1}:00, from now until {2}. ⟶ Hãy chọn giờ từ {0}:00 đến {1}:00, từ bây giờ đến hết ngày {2}.
 The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again. ⟶ Chỉ số không được thấp hơn chỉ số công tơ gần nhất. Hãy kiểm tra lại đồng hồ tại phòng.
+This month has not ended yet. Close it from the first day of next month. ⟶ Tháng này chưa kết thúc. Hãy đóng kỳ từ ngày đầu tiên của tháng sau.
+Allow closing a meter period before its month ends ⟶ Cho phép chốt kỳ điện nước trước khi hết tháng
+For demonstrations only: Utility Invoices then miss the last days of the month. ⟶ Chỉ dùng khi trình diễn: hóa đơn điện nước sẽ thiếu những ngày cuối tháng.
+Meter readings: Close the month ⟶ Chỉ số điện nước: Chốt tháng
+The only free Bed of that kind is in a Block already committed. Choose another option or the waitlist. ⟶ Giường trống duy nhất thuộc loại này nằm trong một tòa đã chốt. Hãy chọn phương án khác hoặc danh sách chờ.
+{0} proposed Bed was taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
+{0} proposed Beds were taken since the run. Resolve them in Block {1} and commit again. ⟶ {0} giường được đề xuất đã có người nhận sau lượt xếp. Hãy xử lý chúng trong tòa {1} rồi chốt lại.
+The proposed Bed was taken since the run ⟶ Giường được đề xuất đã có người nhận sau lượt xếp
+This stay is being terminated. Cancel the termination before moving the student. ⟶ Chỗ ở này đang bị chấm dứt. Hãy hủy việc chấm dứt trước khi chuyển sinh viên.
+This termination is overdue: the next-Term Bed was released and the door code changed. Place the student again instead of cancelling. ⟶ Việc chấm dứt này đã quá hạn: giường học kỳ sau đã được trả và mã cửa đã đổi. Hãy xếp lại chỗ cho sinh viên thay vì hủy.
+Too many attempts from this device. Wait a few minutes and try again. ⟶ Thiết bị này đã thử quá nhiều lần. Hãy đợi vài phút rồi thử lại.
+Write which temporary Bed was arranged and until when. ⟶ Hãy ghi giường tạm đã sắp xếp và đến khi nào.
+Mark the request resolved before you close it. ⟶ Hãy đánh dấu yêu cầu đã xử lý xong trước khi đóng.
+The stay must end on or after the last Check-in day saved in the timeline ({0}). ⟶ Thời gian ở phải kết thúc vào hoặc sau ngày nhận phòng cuối cùng đã lưu trong mốc thời gian ({0}).
+The stay must start on or before the Check-out deadline saved in the timeline ({0}). ⟶ Thời gian ở phải bắt đầu vào hoặc trước hạn trả phòng đã lưu trong mốc thời gian ({0}).
+Students live in or are placed in Block {0}, so its gender cannot change. ⟶ Tòa {0} đang có sinh viên ở hoặc đã được xếp chỗ, nên không thể đổi giới tính.
+Students live in or are placed in Block {0}, so its status cannot become Inactive. ⟶ Tòa {0} đang có sinh viên ở hoặc đã được xếp chỗ, nên không thể chuyển sang Ngừng hoạt động.
+Room {0}'s Room Type has no price in {1} for {2}. Choose another Room Class. ⟶ Loại phòng của phòng {0} chưa có giá ở {1} trong {2}. Hãy chọn hạng phòng khác.
+This Bed is no longer available. Ask Staff for another option. ⟶ Giường này không còn trống. Hãy hỏi nhân viên để chọn phương án khác.
+Beds of Room {0} are offered or given to students for a coming Term. Move or withdraw them before you set it out of service. ⟶ Giường của phòng {0} đã được đề nghị hoặc xếp cho sinh viên ở học kỳ tới. Hãy chuyển hoặc rút lại trước khi tạm ngừng phòng.
+The gender cannot change while the student holds a Bed or a live Application. ⟶ Không thể đổi giới tính khi sinh viên đang giữ giường hoặc có đơn đăng ký đang xử lý.
+The workbook is too large once unpacked. Keep only the list in it and upload it again. ⟶ Tệp quá lớn khi giải nén. Chỉ giữ lại danh sách trong tệp và tải lên lại.
+The refund of a rejected Application cannot be switched off. Change its percent instead. ⟶ Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.
+This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này không hợp lệ. Hãy bắt đầu cuộc trò chuyện mới.

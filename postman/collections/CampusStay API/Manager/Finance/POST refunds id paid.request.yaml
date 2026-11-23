@@ -1,0 +1,21 @@
+$kind: http-request
+name: '/refunds/{id}/paid'
+method: POST
+url: '{{baseUrl}}/refunds/:id/paid'
+order: 8000
+description: |-
+  Not described in `tools/postman/api-contract.md`: found only in the backend's OpenAPI document (operation `markRefundPaid` of `finance-controller`). Add it to the contract or remove it from the backend.
+pathVariables:
+  - key: id
+    value: ''
+    description: 'The record id or code (Applications APP-…, Invoices INV-…, Maintenance Requests MR-…)'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reference": "",
+      "note": ""
+    }

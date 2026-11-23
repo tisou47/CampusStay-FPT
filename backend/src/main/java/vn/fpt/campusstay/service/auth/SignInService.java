@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import vn.fpt.campusstay.common.RequestInfo;
 import vn.fpt.campusstay.security.AuthenticatedUser;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.exception.ApiException;
@@ -42,13 +43,15 @@ public class SignInService {
     private final UserRepository users;
     private final StudentSignUp signUp;
     private final AuthProperties props;
+    private final AuthRateLimiter limiter;
     private final Clock clock;
     /** Hash of a random string; compared against when the email is unknown, to equalise timing. */
     private final String dummyHash;
 
     public SignInService(AccountStore accounts, SessionService sessions, GoogleIdTokenVerifier google,
             GoogleCodeExchanger googleCodes, PasswordEncoder passwordEncoder, UserRepository users, StudentSignUp signUp,
-            AuthProperties props, Clock clock) {
+            AuthProperties props, AuthRateLimiter limiter, Clock clock) {
+        this.limiter = limiter;
         this.accounts = accounts;
         this.sessions = sessions;
         this.google = google;
@@ -62,14 +65,22 @@ public class SignInService {
     }
 
     public SignInResult signInWithPassword(String email, String password, boolean remember) {
+        String client = RequestInfo.ip();
+        limiter.checkAllowed(AuthRateLimiter.Bucket.SIGN_IN_FAILURES, client);
         Optional<UserEntity> found = accounts.findByEmail(email);
         if (found.isEmpty()) {
             passwordEncoder.matches(password, dummyHash);
+            limiter.record(AuthRateLimiter.Bucket.SIGN_IN_FAILURES, client);
             throw ApiException.unauthorized("INVALID_CREDENTIALS", INVALID);
         }
         UserEntity user = found.get();
         Instant now = Instant.now(clock);
-        if (user.isLockedAt(now)) {
+        limiter.checkAllowed(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
+        String accountClient = user.getId() + "|" + client;
+        // The lock holds against the client that caused it: a stranger cannot lock the owner out (BE-AUTH-02).
+        if (user.isLockedAt(now) && (client == null
+                || limiter.count(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient)
+                        >= AuthRateLimiter.Bucket.ACCOUNT_FAILURES.limit)) {
             throw ApiException.unauthorized("ACCOUNT_LOCKED",
                     "Too many failed attempts. Try again after " + HH_MM.format(user.getLockedUntil()) + ".");
         }
@@ -77,8 +88,12 @@ public class SignInService {
         boolean ok = passwordEncoder.matches(password, hash == null ? dummyHash : hash) && hash != null;
         if (!ok) {
             accounts.recordFailure(user, "PASSWORD");
+            limiter.record(AuthRateLimiter.Bucket.SIGN_IN_FAILURES, client);
+            limiter.record(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
+            limiter.record(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
             throw ApiException.unauthorized("INVALID_CREDENTIALS", INVALID);
         }
+        limiter.clear(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
         checkStatus(user);
         return finish(user.getId(), remember, SessionEntity.Method.PASSWORD, null);
     }
