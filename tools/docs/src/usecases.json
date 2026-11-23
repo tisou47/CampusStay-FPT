@@ -1,0 +1,191 @@
+[
+  {
+    "id": "UC-01", "name": "Sign in with Google or password", "actors": ["Student", "Staff", "Manager", "Admin"], "feature": "AUTH", "diagram": "07_Sequence/seq-01-google-sign-in",
+    "trigger": "A user opens the sign-in page.",
+    "pre": ["The user has an account (a student who signs in with Google for the first time gets one), or is a back-office user with a password.", "Google sign-in needs the Google client id to be set on the server."],
+    "flow": ["The user chooses Google or types an email and password.", "With Google, the web app exchanges the code (or the Android app sends the ID token) and the server verifies it.", "The server finds the user by Google subject or email; for a new @fpt.edu.vn address it creates a student account without a password and with verification Pending.", "The server opens a session (remember me keeps it 30 days idle, otherwise 12 hours) and returns the token and the user.", "A student without a password or without the sign-up form is sent to set the password and fill the form before anything else."],
+    "alt": ["Five wrong passwords lock the account for 15 minutes; a per-client limit also applies.", "A fictional back-office account cannot sign in with Google (GOOGLE_NOT_FOR_DEMO).", "An account linked to another Google account is refused.", "A forgotten password is reset by an emailed link valid for 30 minutes."],
+    "rules": ["Only the @fpt.edu.vn domain is accepted for Google.", "Until a password is set and the sign-up form is sent, the server answers PASSWORD_REQUIRED or PROFILE_REQUIRED."],
+    "endpoints": ["POST /auth/sign-in", "POST /auth/google", "POST /auth/sign-out", "GET /auth/me", "POST /auth/password/forgot", "POST /auth/password/reset", "POST /auth/password/set", "POST /auth/password/change", "PUT /students/me/verification"]
+  },
+  {
+    "id": "UC-02", "name": "Apply for a Bed and pay the Deposit", "actors": ["Student", "Manager"], "feature": "APP", "diagram": "07_Sequence/seq-02-apply-with-deposit",
+    "trigger": "A verified student opens the application wizard while a Term is open for registration.",
+    "pre": ["The student is Verified, enrolled and not already living in a Bed for that Term.", "A Term is published and registration is open."],
+    "flow": ["The wizard checks eligibility (the Term's eligibility rules).", "The student chooses the Room Type and Room Class, the roommate option, the contact details and the consents.", "The system creates the Application in Awaiting Deposit and issues the Deposit Invoice with its due time.", "The student transfers the Deposit and claims it (UC-04).", "When a Manager confirms the payment the Application becomes Submitted (or Awaiting roommate while the partner has not paid).", "A Manager reviews the Application (UC-23)."],
+    "alt": ["The Deposit is not paid by its due time: the Application expires.", "The student cancels before the deadline: the Deposit is refunded by the refund rules."],
+    "rules": ["The prices and the Deposit are those fixed when the Term was published."],
+    "endpoints": ["GET /applications/eligibility", "POST /applications", "GET /applications/{id}", "GET /applications", "POST /applications/{id}/cancel"]
+  },
+  {
+    "id": "UC-03", "name": "Invite a roommate", "actors": ["Student"], "feature": "APP", "diagram": "07_Sequence/seq-03-roommate-invitation",
+    "trigger": "A student applies for a Room Type that allows choosing a roommate and enters a student code.",
+    "pre": ["The Room Type lets students invite a roommate; the number of code checks per Term is not used up."],
+    "flow": ["The student checks the partner's code (a limited number of checks per Term).", "The Application is created together with an invitation (Pending).", "The invited student sees the invitation, accepts or declines.", "On accepting, the partner gets an Application of the same Room Type and Class with its own Deposit Invoice, and the two Applications are linked.", "On declining or expiry the first student is matched automatically."],
+    "alt": ["The invitation expires after its window.", "The inviter cancels the invitation."],
+    "rules": ["A roommate is an enrolled student of the same gender, not yourself, with no Application or pending invitation this Term."],
+    "endpoints": ["POST /applications/roommate-check", "POST /roommate-invitations/{id}/respond"]
+  },
+  {
+    "id": "UC-04", "name": "Claim a payment and confirm it", "actors": ["Student", "Manager"], "feature": "BIL", "diagram": "07_Sequence/seq-04-payment-claim",
+    "trigger": "A student has transferred money for an Invoice, or a Manager opens the payment claims.",
+    "pre": ["An Invoice is Unpaid or Overdue.", "A Manager confirms with the CONFIRM_PAYMENTS permission."],
+    "flow": ["The student opens the Invoice and sees the VietQR image and the transfer content.", "After transferring, the student claims the payment with the bank reference; the Invoice becomes Awaiting confirmation.", "A Manager compares the claims with the bank statement and confirms them (one by one or in bulk).", "The system records the Payment, marks the Invoice Paid and publishes PaymentConfirmed: Applications are submitted, door codes released and receipts sent."],
+    "alt": ["A Manager rejects the claim with a reason: the Invoice goes back to Unpaid or Overdue, or is Void after the last allowed attempt.", "A claim of an Invoice that is not open is refused."],
+    "rules": ["Payments are not matched with a bank automatically.", "The money of an issued Invoice never changes."],
+    "endpoints": ["GET /invoices/{id}/payment", "POST /invoices/{id}/claim", "GET /payment-claims", "POST /payment-claims/confirm", "POST /payment-claims/reject"]
+  },
+  {
+    "id": "UC-05", "name": "Run the assignment and commit it", "actors": ["Manager"], "feature": "ASG", "diagram": "07_Sequence/seq-05-assignment-run",
+    "trigger": "Registration has closed and a Manager starts an assignment run for the Term.",
+    "pre": ["The Term has approved Applications; no other live run (an earlier one is discarded)."],
+    "flow": ["The Manager starts a run (a dry run or a real one).", "The engine matches approved Applications to assignable Beds with the Term's matching criteria and proposes Beds per Block.", "The Manager resolves each conflict by choosing a Bed or waitlisting the student.", "Each Block is submitted for review and approved (or returned with a comment).", "Approving creates the Allocations, moves the Applications to Allocated, issues the Balance Invoices and notifies the students."],
+    "alt": ["Conflicts left in a Block stop its submission (CONFLICTS_LEFT).", "A Block returned by the approver goes back to review."],
+    "rules": ["A Bed is never given twice in a Term (a database constraint).", "Waitlisted students may get a Round 2 offer (UC-06)."],
+    "endpoints": ["POST /assignment-runs", "GET /assignment-runs/{runId}/proposal", "POST /assignment-runs/{runId}/conflicts/{applicationId}/resolve", "POST /assignment-runs/{runId}/commit", "POST /assignment-runs/{runId}/approve", "POST /assignment-runs/{runId}/return"]
+  },
+  {
+    "id": "UC-06", "name": "Answer a Round 2 offer", "actors": ["Manager", "Student"], "feature": "ASG", "diagram": "07_Sequence/seq-06-round2-offer",
+    "trigger": "A Manager runs Round 2 for waitlisted students, or a student opens their offer.",
+    "pre": ["The student is waitlisted and free Beds exist."],
+    "flow": ["The Manager runs Round 2: the system creates an offer with held options.", "The student opens the offer and accepts one option, or declines.", "Accepting places the student in the Bed (Allocation and Balance Invoice).", "Declining cancels the Application and the Deposit is refunded in full."],
+    "alt": ["The offer expires: the Beds are released and the Application is cancelled with a full refund."],
+    "rules": ["A waitlisted student who is not placed gets the whole Deposit back."],
+    "endpoints": ["POST /round2/run", "GET /students/me/round2-offer", "POST /round2-offers/{id}/respond"]
+  },
+  {
+    "id": "UC-07", "name": "Check in with the hand-over report", "actors": ["Student", "Staff"], "feature": "ASG", "diagram": "07_Sequence/seq-07-check-in-handover",
+    "trigger": "A paid student starts the hand-over of their Room.",
+    "pre": ["The Balance is paid and the door code released; the student is within the check-in period."],
+    "flow": ["The student starts the hand-over: a draft with the items of the Room and a due time.", "The student answers the condition of each item, adds photos and meter readings, and submits.", "If the report matches the baseline it becomes Final; otherwise Staff request a visit, verify on site and finalize it.", "Final hand-over records the start of the Utility and the check-in."],
+    "alt": ["No action before the due time: the hand-over becomes Final automatically.", "Staff cancel a hand-over, or accept a late one.", "The student asks to check in late."],
+    "rules": ["The report is compared with the baseline of the Room's furniture and the last meter readings."],
+    "endpoints": ["POST /students/me/handover/start", "PUT /students/me/handover", "POST /students/me/handover/submit", "POST /handovers/{id}/visit", "PUT /handovers/{id}/verification", "POST /handovers/{id}/cancel"]
+  },
+  {
+    "id": "UC-08", "name": "Set and release door codes", "actors": ["Staff", "Manager", "Student"], "feature": "INV", "diagram": "07_Sequence/seq-08-door-code-release",
+    "trigger": "A Balance is paid, or a resident leaves a Room.",
+    "pre": ["Door codes are on (a key is set on the server)."],
+    "flow": ["A resident leaving a Room opens a door-code task for it.", "Staff propose a 6-digit code (or let the system pick one) and confirm it: the old code is retired and the new one becomes Active.", "When the Balance of a student is paid and the Room has no open task, the system releases the code to the student.", "The student reads the code in My Room."],
+    "alt": ["A proposal is cancelled before confirming.", "Codes are imported in bulk from a file."],
+    "rules": ["Codes are stored encrypted; every viewing by Staff is written in the audit log."],
+    "endpoints": ["POST /door-codes/{room}", "POST /door-codes/{room}/confirm", "POST /door-codes/{room}/cancel", "POST /door-codes/{room}/reveal", "POST /door-codes/import"]
+  },
+  {
+    "id": "UC-09", "name": "Report and process a Maintenance Request", "actors": ["Student", "Staff", "Manager"], "feature": "MNT", "diagram": "07_Sequence/seq-09-maintenance-routing-sla",
+    "trigger": "A resident reports a problem in the Room.",
+    "pre": ["The student has a Room (or the reporter is Staff or a Manager)."],
+    "flow": ["The reporter chooses the category and urgency, describes the problem, adds photos and optionally a furniture item.", "The system sets the SLA due time from the Block's timer and applies the routing rule: the matching Staff member is assigned.", "Staff move the request to In progress and Resolved, adding updates.", "The student confirms the fix (Closed) or reopens the request."],
+    "alt": ["When the SLA time passes with the request open, an escalation opens for the Manager, who reassigns or handles it."],
+    "rules": ["A request that is not Submitted needs a person in charge."],
+    "endpoints": ["POST /maintenance-requests", "PATCH /maintenance-requests/{id}", "POST /maintenance-requests/{id}/updates", "POST /maintenance-requests/{id}/confirm"]
+  },
+  {
+    "id": "UC-10", "name": "Inspect Rooms", "actors": ["Staff", "Manager"], "feature": "MNT", "diagram": "07_Sequence/seq-10-inspection-run",
+    "trigger": "A scheduled inspection run starts (every day at 06:00 campus time) or Staff open their current run.",
+    "pre": ["An active schedule with a published checklist exists."],
+    "flow": ["The job creates a run with the Rooms to inspect and notifies the inspector and the residents.", "For each Room the inspector answers the checklist (people and furniture), adds photos and, where it applies, meter readings.", "A failed item creates a Maintenance Request.", "An unreachable Room is marked as such; the run is submitted when no Room is pending."],
+    "alt": ["A checklist is archived: its schedules pause."],
+    "rules": ["A Room is done only when its checks are answered."],
+    "endpoints": ["GET /inspection-runs/current", "POST /inspection-schedules", "POST /inspection-checklists", "POST /inspection-checklists/{id}/publish"]
+  },
+  {
+    "id": "UC-11", "name": "Request a room change", "actors": ["Student", "Staff", "Manager"], "feature": "REQ", "diagram": "07_Sequence/seq-11-room-change",
+    "trigger": "A student files a room-change request during the next-Term requests window.",
+    "pre": ["The requests window of the next Term is open and the student has a next-Term Allocation."],
+    "flow": ["The student sees the options and files the request with a reason.", "Staff of the Block see matching Beds and decide.", "Approving moves the next-Term Allocation to the chosen Bed; rejecting records the reason.", "The student is notified."],
+    "alt": ["The request is cancelled when the Allocation is cancelled or moved."],
+    "rules": ["A change in the next Term does not change the price."],
+    "endpoints": ["POST /room-changes", "GET /room-changes/{id}/matching-beds", "POST /room-changes/{id}/decision"]
+  },
+  {
+    "id": "UC-12", "name": "Swap Beds with another student", "actors": ["Student", "Staff", "Manager"], "feature": "REQ", "diagram": "07_Sequence/seq-12-swap",
+    "trigger": "A student invites another student to swap, or answers a post on the swap board.",
+    "pre": ["The requests window is open; both students have a next-Term Allocation."],
+    "flow": ["A student invites a known student, or posts a wish on the swap board and another student asks.", "The other student accepts or declines.", "Staff decide; if the Beds are in different Blocks the request goes to a Manager.", "Approving swaps the two next-Term Allocations."],
+    "alt": ["An invitation expires.", "Other open requests of the two students are closed when the swap is approved."],
+    "rules": ["A swap needs both students' agreement and an approver."],
+    "endpoints": ["POST /swaps", "PUT /swap-board/my-post", "POST /swap-board/posts/{id}/request", "POST /swap-invitations/{id}/respond", "POST /swaps/{id}/decision"]
+  },
+  {
+    "id": "UC-13", "name": "Open a registration period", "actors": ["Manager", "Admin"], "feature": "CFG", "diagram": "07_Sequence/seq-13-term-wizard-publish",
+    "trigger": "A Manager requests a registration period; an Admin builds and publishes the Term.",
+    "pre": ["The requester has REQUEST_TERMS; the builder has CONFIGURE."],
+    "flow": ["A Manager submits a request (Term name, stay dates, Blocks, prices).", "The Admin may ask for changes; the Manager updates the request.", "The Admin creates a Term draft from the request and fills the wizard step by step (timeline, Blocks, prices, Deposit, rules, documents).", "Publishing fixes the prices, Deposit, eligibility and matching criteria of the Term and marks the request Done."],
+    "alt": ["The Admin rejects a request with a reason.", "The milestones are validated when saved."],
+    "rules": ["After publishing, a date that has passed is fixed and an open deadline can be extended but never shortened."],
+    "endpoints": ["POST /term-requests", "POST /term-requests/{id}/decision", "POST /admin/terms/drafts", "PUT /admin/terms/{id}/wizard/{step}", "POST /admin/terms/{id}/publish"]
+  },
+  {
+    "id": "UC-14", "name": "Renew a stay and pay the next-Term fee", "actors": ["Student", "Manager", "System"], "feature": "ASG", "diagram": "07_Sequence/seq-14-renewal-next-term-fee",
+    "trigger": "The requests window of a Term opens (milestone M2).",
+    "pre": ["The student lives in a Bed and has not chosen to leave."],
+    "flow": ["The job gives every resident not leaving an Allocation on the same Bed for the next Term.", "Students may ask to extend, end their stay, change Room or swap.", "At M3 the filing closes; Managers decide the open requests.", "A Manager issues the next-Term fees; each live Allocation gets one Invoice.", "A student who has not paid by M7 loses the Bed."],
+    "alt": ["A student no longer enrolled loses the next-Term Allocation after the reconciliation (UC-17)."],
+    "rules": ["The Term's milestones (M1 onward) are checked against each other when the Term is built."],
+    "endpoints": ["POST /students/me/stay/extension", "POST /students/me/stay/end", "POST /next-term-requests/decision", "POST /next-term-fees/issue"]
+  },
+  {
+    "id": "UC-15", "name": "Bill utilities", "actors": ["Staff", "System", "Student"], "feature": "BIL", "diagram": "07_Sequence/seq-15-utility-meter-invoice",
+    "trigger": "A new month starts, or a resident moves in or out.",
+    "pre": ["The Room has a meter period for the month."],
+    "flow": ["Staff enter or import the month's readings; a reading above three times the previous use is flagged Check value.", "Staff confirm the readings and close the period.", "The system splits each Room's use by the days each resident lived there and issues Utility Invoices.", "Unpaid Invoices raise warnings and, at the last level, a termination date."],
+    "alt": ["A meter cut when a resident moves splits the month in two parts."],
+    "rules": ["Two overdue months, or a debt that reaches the Utility Deposit, end a stay after the final warning."],
+    "endpoints": ["PUT /meter-periods/{id}/readings/{room}", "POST /meter-periods/{id}/import", "POST /meter-periods/{id}/readings/{room}/confirm", "POST /meter-periods/{id}/close", "POST /turnover/meter-cuts"]
+  },
+  {
+    "id": "UC-16", "name": "Terminate a stay", "actors": ["Manager", "Staff", "System"], "feature": "ASG", "diagram": "07_Sequence/seq-16-termination",
+    "trigger": "A Manager starts a termination, or the utility-debt rule asks for one.",
+    "pre": ["The student has an active Allocation."],
+    "flow": ["A Manager starts the termination with a reason and a move-out date; the student gets a notice.", "The student checks out at the desk before the date: the termination closes and the unused fee is refunded by rule.", "If the date passes, the termination becomes Overdue: the next-Term Bed is released and the door code is changed."],
+    "alt": ["The Manager cancels a termination that has not become Overdue."],
+    "rules": ["An Overdue termination cannot be cancelled: the student is placed again instead."],
+    "endpoints": ["POST /terminations", "POST /terminations/{id}/cancel", "POST /check-out/{allocationId}"]
+  },
+  {
+    "id": "UC-17", "name": "Reconcile enrollment", "actors": ["Manager"], "feature": "AUTH", "diagram": "07_Sequence/seq-17-reconciliation",
+    "trigger": "A Manager uploads the school's list of enrolled students for a Term.",
+    "pre": ["The requests window of the Term is open."],
+    "flow": ["The Manager downloads the template and uploads the list (CSV or XLSX).", "The system updates each student's enrollment status from the file and opens an item for every resident or applicant not listed.", "The Manager resolves each open item.", "A student marked not enrolled loses the next-Term Allocation and the Application."],
+    "alt": ["Items that only inform stay Info."],
+    "rules": ["Fees of the next Term are issued only after the list is reconciled."],
+    "endpoints": ["GET /reconciliations/template", "POST /reconciliations", "POST /reconciliations/{id}/items/{itemId}/resolve"]
+  },
+  {
+    "id": "UC-18", "name": "Hold a Family Day", "actors": ["Manager", "Student", "Staff"], "feature": "VIS", "diagram": "07_Sequence/seq-18-family-day",
+    "trigger": "A Manager creates a Family Day for a Block.",
+    "pre": ["The student lives in the Block."],
+    "flow": ["A Manager creates the Family Day with time slots and places, and publishes it.", "A resident registers guests for one time slot; the places are taken in one step.", "At the gate Staff verify the guest's pass, check the identity and check the guest in, later out.", "A Manager closes the Family Day: guests who did not arrive become No-show."],
+    "alt": ["A guest stays past the slot: Staff remind the student, who confirms the guest is safe.", "The Family Day or a registration is cancelled."],
+    "rules": ["Guests under 18 come with an adult; entry opens 15 minutes before the slot (settings family_day.adult_age and family_day.early_minutes)."],
+    "endpoints": ["POST /family-days", "POST /family-days/{id}/publish", "POST /students/me/family-days/{id}/registration", "POST /family-day-visitors/verify", "POST /family-day-visitors/{id}/check-in", "POST /family-day-visitors/{id}/check-out", "POST /family-days/{id}/close"]
+  },
+  {
+    "id": "UC-19", "name": "Ask the AI assistant", "actors": ["Student"], "feature": "AST", "diagram": "07_Sequence/seq-19-ai-assistant",
+    "trigger": "A student opens the assistant and asks a question.",
+    "pre": ["The server has a model configured; otherwise the assistant says it is offline."],
+    "flow": ["The app sends the conversation (nothing is stored on the server).", "The server answers door-code questions with a fixed text and never asks the model.", "For other questions it puts the student's own data and the dormitory guide in the model's instructions and asks the model.", "The answer is returned in the student's language."],
+    "alt": ["More than 30 questions an hour are refused.", "An answer in Chinese script is asked again once, then refused."],
+    "rules": ["The data is read through the student screens' services, so a student sees only their own data."],
+    "endpoints": ["GET /students/me/assistant", "POST /students/me/assistant/chat"]
+  },
+  {
+    "id": "UC-20", "name": "Receive notifications and push", "actors": ["Student", "Staff", "Manager"], "feature": "NTF", "diagram": "07_Sequence/seq-20-push-notification",
+    "trigger": "A domain event happens (for example an Allocation is created).",
+    "pre": ["For push: the mobile app registered the device token."],
+    "flow": ["The listener writes the in-app notification in the user's language from the template.", "After the transaction commits, the push is sent to each registered device.", "Tapping the notification opens the related screen."],
+    "alt": ["An email is queued in the outbox and retried up to five times."],
+    "rules": ["Notification texts exist in Vietnamese and English."],
+    "endpoints": ["POST /devices", "GET /notifications", "POST /notifications/read-all", "POST /notifications/{id}/read"]
+  },
+  {
+    "id": "UC-21", "name": "Work within a shift", "actors": ["Staff", "Manager"], "feature": "AUTH", "diagram": "07_Sequence/seq-21-staff-shift-gate",
+    "trigger": "A Staff member makes a change.",
+    "pre": ["Staff have a weekly schedule (or none, which counts as outside the shift)."],
+    "flow": ["Before a change runs, the system checks the time against this week's shift and the kind of work the person handles.", "Inside the shift the change runs and is recorded.", "Outside it the system answers SHIFT_CONFIRM_REQUIRED; the person confirms and repeats the call with the acknowledgement header; the change runs and is recorded with the acknowledgement."],
+    "alt": ["Managers plan each week's shifts and send the schedule; they are reminded on the day and hour the Admin chooses."],
+    "rules": ["Every Staff change is recorded in the Staff activity log."],
+    "endpoints": ["GET /staff-activity"]
+  }
+]

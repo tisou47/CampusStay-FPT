@@ -18,9 +18,9 @@ class TerminationController {
     void x() { currentUser.require(Role.STUDENT); }
 }`
   assert.deepEqual(parseController(src, 'TerminationController'), [
-    { method: 'GET', path: '/terminations', controller: 'TerminationController', requires: ['Permission.TERMINATE_STAYS'] },
-    { method: 'POST', path: '/terminations/{id}/cancel', controller: 'TerminationController', requires: [] },
-    { method: 'PUT', path: '/terminations/x', controller: 'TerminationController', requires: ['Role.STUDENT'] },
+    { method: 'GET', path: '/terminations', handler: 'list', controller: 'TerminationController', requires: ['Permission.TERMINATE_STAYS'] },
+    { method: 'POST', path: '/terminations/{id}/cancel', handler: 'cancel', controller: 'TerminationController', requires: [] },
+    { method: 'PUT', path: '/terminations/x', handler: 'x', controller: 'TerminationController', requires: ['Role.STUDENT'] },
   ])
 })
 
@@ -230,4 +230,18 @@ test('transitions: an event listener is named with its event, on(DepositPaid)', 
     }
 }`
   assert.equal(parseTransitions(src, 'ApplicationService')[0].by, 'ApplicationService.on(DepositPaid)')
+})
+
+test('settings from the migrations: inserts with their column lists, then literal updates and deletes, in order', async () => {
+  const { parseSettings } = await import('./parse.mjs')
+  const v1 = `INSERT INTO cfg_parameter (key, section, label, value_type, value, helper, options, sort_order) VALUES
+  ('a.x', 'Sec', 'Label ''A''', 'INT', '5', 'Help, with comma', NULL, 1),
+  ('a.y', 'Sec', 'Old', 'BOOL', 'true', NULL, NULL, 2);`
+  const v2 = `UPDATE cfg_parameter SET label = 'New', helper = 'H' WHERE key = 'a.y';
+UPDATE cfg_parameter SET value = '7' WHERE key LIKE 'a.%';
+DELETE FROM cfg_parameter WHERE key = 'a.gone';`
+  assert.deepEqual(parseSettings([v1, v2]), [
+    { key: 'a.x', section: 'Sec', label: "Label 'A'", valueType: 'INT', value: '7', helper: 'Help, with comma' },
+    { key: 'a.y', section: 'Sec', label: 'New', valueType: 'BOOL', value: '7', helper: 'H' },
+  ])
 })

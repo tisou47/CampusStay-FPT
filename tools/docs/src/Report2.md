@@ -8,7 +8,7 @@
 
 @include _scope.md
 
-Altogether: 63 REST controllers with 353 endpoints, 133 web pages, 31 mobile screens, 37 permissions, 118 tables and 33 views in 100 Flyway migrations (V1–V103), about 60,000 lines of Java, 50,000 of JavaScript and 11,000 of Dart.
+Altogether: 63 REST controllers with 353 endpoints, 133 web pages, 30 mobile screens, 37 permissions, 118 tables and 33 views in 100 Flyway migrations (V1–V103), about 60,000 lines of Java, 50,000 of JavaScript and 11,000 of Dart.
 
 **Estimation.** Estimates made before development are not recorded in the repository; this plan gives what it measured. The repository starts on 20/10/2026 (week 7): weeks 1–6 were analysis and design, so they leave no commits. Weeks 7–12 are measured as commits and *active days* (days on which a member committed):
 

@@ -13,8 +13,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   AUTHORS, accessOf, parseApiErrors, parseController, parseGitLog, parseJunitXml, parseMessagesVi, parseMobileScreens,
-  parsePermissions, parseRoutes, parseSecurityRules, parseTestIds, parseTransitions, statesOfCheck, weekOf,
-} from './parse.mjs'
+  parsePermissions, parseRoutes, parseSecurityRules, parseTestIds, parseTransitions, statesOfCheck, weekOf, parseSettings } from './parse.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const dataDir = path.join(root, 'tools/docs/data')
@@ -91,6 +90,13 @@ function schema() {
     }
     for (const k of constraints) tables.get(k.table_name)?.constraints.push({ name: k.name, type: { p: 'PK', f: 'FK', u: 'UNIQUE', c: 'CHECK', x: 'EXCLUDE' }[k.type] ?? k.type, def: k.def, refTable: k.ref_table })
     write('schema', [...tables.values()])
+    // The settings and refund rules the migrations leave in the base data (the business rules of Report 3).
+    write('settings', {
+      parameters: q(`SELECT coalesce(json_agg(p ORDER BY p.section, p.sort_order, p.key), '[]') FROM (
+          SELECT key, section, label, value_type AS "valueType", value, helper FROM cfg_parameter) p;`),
+      refundRules: q(`SELECT coalesce(json_agg(r ORDER BY r.sort_order), '[]') FROM (
+          SELECT trigger_code AS code, description, refund_percent AS percent, approver_role AS approver, sort_order FROM cfg_refund_rule) r;`),
+    })
   } finally {
     run(['rm', '-f', name], { stdio: 'ignore' })
   }
@@ -195,7 +201,7 @@ function facts() {
     tables: schemaJ.filter((x) => !x.view).length,
     views: schemaJ.filter((x) => x.view).length,
     webPages: screens.web.length,
-    mobileScreens: screens.mobile.length,
+    mobileScreens: screens.mobile.filter((s) => s.screen !== 'SubPage').length, // SubPage is the frame of the sub-screens
     permissions: j('permissions').length,
     statusMachines: j('states').length,
     messages: j('messages').length,
@@ -206,6 +212,21 @@ function facts() {
   })
 }
 
-const steps = { code, schema, states, tests, history, facts }
+/** The settings and refund rules the migrations leave in the base data (Report 3, business rules), read from the
+ *  migration text in order, so no database is needed. */
+function settings() {
+  const sql = migrationFiles().map((f) => read(`${MIGRATIONS}/${f}`))
+  const refundRules = new Map()
+  for (const text of sql.filter((t) => t.includes('cfg_refund_rule'))) {
+    for (const m of text.matchAll(/\('([A-Z_]+)',\s*'((?:[^']|'')*)',\s*(\d+),\s*'([A-Z]+)',\s*(\d+)\)|SELECT '([A-Z_]+)',\s*'((?:[^']|'')*)',\s*(\d+),\s*'([A-Z]+)',\s*(\d+)/g)) {
+      const v = m[1] ? m.slice(1, 6) : m.slice(6, 11)
+      refundRules.set(v[0], { code: v[0], description: v[1].replace(/''/g, "'"), percent: +v[2], approver: v[3], sort_order: +v[4] })
+    }
+  }
+  write('settings', { parameters: parseSettings(sql).sort((a, b) => a.section.localeCompare(b.section) || a.key.localeCompare(b.key)),
+    refundRules: [...refundRules.values()].sort((a, b) => a.sort_order - b.sort_order) })
+}
+
+const steps = { code, schema, settings, states, tests, history, facts }
 const pick = process.argv[2] ?? 'all'
 for (const [name, fn] of Object.entries(steps)) if (pick === 'all' || pick === name) fn()

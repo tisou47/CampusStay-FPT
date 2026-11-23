@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { weekOf } from '../gen/parse.mjs'
+import { pageHeader } from './r3parse.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const REVIEW = process.env.REVIEW_DIR ?? 'D:/Projects/CampusStay/review'
@@ -49,18 +50,29 @@ function firstWeeks(paths) {
   return first
 }
 
-function wbsRows() {
+/** Every routed web page with its source file, counted fields and transactions, and its header (title, subtitle). */
+export function webScreens() {
   const screens = data('screens.json')
   const web = walk(path.join(root, 'web/src'), '.jsx').map((f) => path.relative(root, f).replaceAll('\\', '/'))
   const text = Object.fromEntries(web.map((f) => [f, fs.readFileSync(path.join(root, f), 'utf8')]))
-  const first = firstWeeks(['web/src', 'mobile/lib'])
-  const rows = []
-  const routes = screens.web.filter((r) => r.path !== '/*' && !r.path.startsWith('/dev/'))
-  for (const r of routes) {
+  return screens.web.filter((r) => r.path !== '/*' && !r.path.startsWith('/dev/')).map((r) => {
     const file = web.find((f) => path.basename(f, '.jsx') === r.component) ?? web.find((f) => new RegExp(`function ${r.component}\\b`).test(text[f]))
     const src = file ? text[file] : ''
-    const fields = (src.match(/<(Field|Select|Input|input|textarea|DateField|DateTimeField|TimeField|NumberField|Checkbox)\b/g) ?? []).length
-    const tx = (src.match(/useMutation\(/g) ?? []).length
+    return {
+      ...r, file,
+      fields: (src.match(/<(Field|Select|Input|input|textarea|DateField|DateTimeField|TimeField|NumberField|Checkbox)\b/g) ?? []).length,
+      transactions: (src.match(/useMutation\(/g) ?? []).length,
+      ...pageHeader(src),
+    }
+  })
+}
+
+function wbsRows() {
+  const screens = data('screens.json')
+  const first = firstWeeks(['web/src', 'mobile/lib'])
+  const rows = []
+  for (const r of webScreens()) {
+    const { fields, transactions: tx, file } = r
     const week = file && first[file] ? weekOf(first[file]) : null
     rows.push([humanize(r.component) + ` (${r.portal === 'public' ? 'web' : `web, ${r.portal}`})`, featureOf(r.path), levelOf(fields, tx),
       `${r.path} · fields: ${fields}, transactions: ${tx}`, week ? `Week ${week}` : '', 'Done'])

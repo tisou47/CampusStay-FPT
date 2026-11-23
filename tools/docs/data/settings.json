@@ -1,0 +1,502 @@
+{
+ "parameters": [
+  {
+   "key": "application.cancel_until",
+   "section": "Applications",
+   "label": "Students may cancel until",
+   "valueType": "CHOICE",
+   "value": "RESULTS_PUBLISHED",
+   "helper": null
+  },
+  {
+   "key": "application.roommate_check_attempts",
+   "section": "Applications",
+   "label": "Roommate code checks per Term",
+   "valueType": "INT",
+   "value": "5",
+   "helper": "Each student may check this many roommate codes per Term"
+  },
+  {
+   "key": "round2.offer_hours",
+   "section": "Assignment",
+   "label": "Round-2 offer valid for (hours)",
+   "valueType": "INT",
+   "value": "48",
+   "helper": null
+  },
+  {
+   "key": "audit.retention_months",
+   "section": "Audit",
+   "label": "Audit Log retention (months)",
+   "valueType": "INT",
+   "value": "24",
+   "helper": null
+  },
+  {
+   "key": "block.quiet_from_latest",
+   "section": "Blocks",
+   "label": "Quiet hours start by (latest)",
+   "valueType": "CHOICE",
+   "value": "23:30",
+   "helper": null
+  },
+  {
+   "key": "block.visit_from_earliest",
+   "section": "Blocks",
+   "label": "Visitors may come from (earliest)",
+   "valueType": "CHOICE",
+   "value": "07:00",
+   "helper": null
+  },
+  {
+   "key": "block.visit_until_latest",
+   "section": "Blocks",
+   "label": "Visitors must leave by (latest)",
+   "valueType": "CHOICE",
+   "value": "22:00",
+   "helper": null
+  },
+  {
+   "key": "family_day.adult_age",
+   "section": "Deadlines and reminders",
+   "label": "Age from which a Family Day guest counts as an adult",
+   "valueType": "INT",
+   "value": "18",
+   "helper": "A registration with a younger guest must also have an adult guest."
+  },
+  {
+   "key": "family_day.early_minutes",
+   "section": "Deadlines and reminders",
+   "label": "Minutes before a Family Day time slot when guests may be checked in",
+   "valueType": "INT",
+   "value": "15",
+   "helper": null
+  },
+  {
+   "key": "payment.rejected_claim_min_hours",
+   "section": "Deadlines and reminders",
+   "label": "Time left after a rejected payment claim, at least (hours)",
+   "valueType": "INT",
+   "value": "12",
+   "helper": null
+  },
+  {
+   "key": "payment.rejections_to_cancel",
+   "section": "Deadlines and reminders",
+   "label": "Rejected claims that cancel the Invoice",
+   "valueType": "INT",
+   "value": "2",
+   "helper": null
+  },
+  {
+   "key": "payment.reminder_first_days",
+   "section": "Deadlines and reminders",
+   "label": "First payment reminder (days before the deadline)",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "payment.reminder_second_days",
+   "section": "Deadlines and reminders",
+   "label": "Second payment reminder (days before the deadline)",
+   "valueType": "INT",
+   "value": "1",
+   "helper": null
+  },
+  {
+   "key": "utility.close_before_month_end",
+   "section": "Deadlines and reminders",
+   "label": "Allow closing a meter period before its month ends",
+   "valueType": "BOOL",
+   "value": "false",
+   "helper": "For demonstrations only: Utility Invoices then miss the last days of the month."
+  },
+  {
+   "key": "utility.close_days",
+   "section": "Deadlines and reminders",
+   "label": "Days after a month ends to close its meter period",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "inventory.max_floor",
+   "section": "Inventory",
+   "label": "Highest Floor for bulk Room generation",
+   "valueType": "INT",
+   "value": "10",
+   "helper": "Buildings › Bulk generate Rooms offers Floors 1 to this number"
+  },
+  {
+   "key": "maintenance.sla_target_percent",
+   "section": "Maintenance",
+   "label": "SLA target (%)",
+   "valueType": "INT",
+   "value": "90",
+   "helper": null
+  },
+  {
+   "key": "payment.qr_minutes",
+   "section": "Payments",
+   "label": "VietQR code valid for (minutes)",
+   "valueType": "INT",
+   "value": "15",
+   "helper": "A transfer that arrives after the QR expires is still accepted"
+  },
+  {
+   "key": "pricing.rounding_vnd",
+   "section": "Pricing",
+   "label": "Round term prices to (VND)",
+   "valueType": "INT",
+   "value": "1000",
+   "helper": "Prices are rounded up to this step"
+  },
+  {
+   "key": "late_check_in.max_days",
+   "section": "Refunds, penalties and terminations",
+   "label": "Longest late check-in after the check-in end (days)",
+   "valueType": "INT",
+   "value": "14",
+   "helper": null
+  },
+  {
+   "key": "termination.days_after_final_warning",
+   "section": "Refunds, penalties and terminations",
+   "label": "Days between the final warning and the termination",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "termination.debt_reaches_deposit",
+   "section": "Refunds, penalties and terminations",
+   "label": "End a stay when the Utility debt reaches the Utility Deposit",
+   "valueType": "BOOL",
+   "value": "true",
+   "helper": null
+  },
+  {
+   "key": "termination.move_out_days",
+   "section": "Refunds, penalties and terminations",
+   "label": "Days to move out after a termination notice",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "termination.overdue_months",
+   "section": "Refunds, penalties and terminations",
+   "label": "Overdue Utility months that end a stay",
+   "valueType": "INT",
+   "value": "2",
+   "helper": null
+  },
+  {
+   "key": "sla.normal_max_hours",
+   "section": "Requests",
+   "label": "Longest escalation timer for normal requests (hours)",
+   "valueType": "INT",
+   "value": "72",
+   "helper": "Managers may only choose a shorter timer"
+  },
+  {
+   "key": "sla.room_change_max_hours",
+   "section": "Requests",
+   "label": "Longest decision time for Room-Change Requests (hours)",
+   "valueType": "INT",
+   "value": "96",
+   "helper": "Managers may only choose a shorter time"
+  },
+  {
+   "key": "sla.unassigned_max_hours",
+   "section": "Requests",
+   "label": "Escalate a Maintenance Request still unassigned after (hours)",
+   "valueType": "INT",
+   "value": "1",
+   "helper": "Applies when no routing rule matched the request"
+  },
+  {
+   "key": "sla.urgent_max_hours",
+   "section": "Requests",
+   "label": "Longest escalation timer for urgent requests (hours)",
+   "valueType": "INT",
+   "value": "8",
+   "helper": "Managers may only choose a shorter timer"
+  },
+  {
+   "key": "swap.invitation_hours",
+   "section": "Requests",
+   "label": "Swap invitation valid for (hours)",
+   "valueType": "INT",
+   "value": "48",
+   "helper": null
+  },
+  {
+   "key": "swap.post_days",
+   "section": "Requests",
+   "label": "Swap board post valid for (days)",
+   "valueType": "INT",
+   "value": "14",
+   "helper": null
+  },
+  {
+   "key": "handover.acknowledge_hours",
+   "section": "Room handover",
+   "label": "Hours a student has to acknowledge damage to a shared item",
+   "valueType": "INT",
+   "value": "48",
+   "helper": "Not acknowledged in time: nobody is charged."
+  },
+  {
+   "key": "handover.electricity_per_person_hour",
+   "section": "Room handover",
+   "label": "Electricity use accepted per resident and hour (kWh)",
+   "valueType": "DECIMAL",
+   "value": "0.25",
+   "helper": null
+  },
+  {
+   "key": "handover.electricity_tolerance",
+   "section": "Room handover",
+   "label": "Electricity difference always accepted (kWh)",
+   "valueType": "DECIMAL",
+   "value": "2",
+   "helper": null
+  },
+  {
+   "key": "handover.major_mismatches",
+   "section": "Room handover",
+   "label": "Items that differ from the record before the inventory needs a visit",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "handover.max_photos",
+   "section": "Room handover",
+   "label": "Photos per item or meter, at most",
+   "valueType": "INT",
+   "value": "3",
+   "helper": null
+  },
+  {
+   "key": "handover.photos_required",
+   "section": "Room handover",
+   "label": "Photos are required for Damaged and Missing items and the meters",
+   "valueType": "BOOL",
+   "value": "false",
+   "helper": null
+  },
+  {
+   "key": "handover.required",
+   "section": "Room handover",
+   "label": "New residents file a check-in inventory before they receive the door code",
+   "valueType": "BOOL",
+   "value": "true",
+   "helper": "Off: the door code is released as soon as the Balance is paid, as before."
+  },
+  {
+   "key": "handover.submit_hours",
+   "section": "Room handover",
+   "label": "Hours to file the check-in inventory after receiving the door code",
+   "valueType": "INT",
+   "value": "48",
+   "helper": "After this the inventory is accepted as the Room's recorded condition."
+  },
+  {
+   "key": "handover.visit_from_hour",
+   "section": "Room handover",
+   "label": "Room visits start at (hour, 1–24)",
+   "valueType": "INT",
+   "value": "8",
+   "helper": "The first hour Staff may come to check a Room with the student."
+  },
+  {
+   "key": "handover.visit_to_hour",
+   "section": "Room handover",
+   "label": "Room visits end at (hour, 1–24)",
+   "valueType": "INT",
+   "value": "17",
+   "helper": "A visit starts before this hour."
+  },
+  {
+   "key": "handover.visit_within_days",
+   "section": "Room handover",
+   "label": "A Room visit is set within (days)",
+   "valueType": "INT",
+   "value": "3",
+   "helper": "Counted from today: the student is not left waiting longer."
+  },
+  {
+   "key": "handover.water_per_person_hour",
+   "section": "Room handover",
+   "label": "Water use accepted per resident and hour (m³)",
+   "valueType": "DECIMAL",
+   "value": "0.01",
+   "helper": null
+  },
+  {
+   "key": "handover.water_tolerance",
+   "section": "Room handover",
+   "label": "Water difference always accepted (m³)",
+   "valueType": "DECIMAL",
+   "value": "0.2",
+   "helper": null
+  },
+  {
+   "key": "workload.duty_idle_minutes",
+   "section": "Staff",
+   "label": "Minutes without using the app before a staff member goes off duty",
+   "valueType": "INT",
+   "value": "30",
+   "helper": "Signing in puts Staff and Managers on duty, signing out takes them off; this covers a closed browser."
+  },
+  {
+   "key": "workload.max_open_per_staff",
+   "section": "Staff",
+   "label": "Open items a staff member may hold before they show as overloaded",
+   "valueType": "INT",
+   "value": "8",
+   "helper": "Shown on Manager › Staff and workload only; routing does not use it."
+  },
+  {
+   "key": "workload.schedule_reminder_day",
+   "section": "Staff",
+   "label": "Day Managers are reminded to send next week's schedule",
+   "valueType": "CHOICE",
+   "value": "7",
+   "helper": "Campus time. The reminder goes once that day while some Block's schedule is not sent; \"Off\" sends none."
+  },
+  {
+   "key": "workload.schedule_reminder_hour",
+   "section": "Staff",
+   "label": "Hour Managers are reminded to send next week's schedule",
+   "valueType": "CHOICE",
+   "value": "9",
+   "helper": "Campus time, on the reminder day."
+  },
+  {
+   "key": "student.emergency_contacts_max",
+   "section": "Stay",
+   "label": "Emergency contacts a student may keep",
+   "valueType": "INT",
+   "value": "3",
+   "helper": "The first one is the contact the dormitory calls first."
+  },
+  {
+   "key": "stay.auto_extension",
+   "section": "Stay and renewal",
+   "label": "Approve extension requests of eligible students automatically",
+   "valueType": "BOOL",
+   "value": "true",
+   "helper": null
+  },
+  {
+   "key": "stay.escalate_before_hours",
+   "section": "Stay and renewal",
+   "label": "Alert Managers about undecided requests before the decision deadline (hours)",
+   "valueType": "INT",
+   "value": "48",
+   "helper": null
+  },
+  {
+   "key": "stay.max_terms",
+   "section": "Stay and renewal",
+   "label": "Most Terms a student may commit to (stay length)",
+   "valueType": "INT",
+   "value": "9",
+   "helper": null
+  },
+  {
+   "key": "stay.program_semesters",
+   "section": "Stay and renewal",
+   "label": "Semesters of a study programme (the stay length stops at the last one)",
+   "valueType": "INT",
+   "value": "9",
+   "helper": null
+  },
+  {
+   "key": "stay.reserved_new_percent",
+   "section": "Stay and renewal",
+   "label": "Share of Beds kept for new students in new Terms (%)",
+   "valueType": "INT",
+   "value": "0",
+   "helper": null
+  },
+  {
+   "key": "upload.max_photo_mb",
+   "section": "Uploads",
+   "label": "Max photo size (MB)",
+   "valueType": "INT",
+   "value": "5",
+   "helper": null
+  },
+  {
+   "key": "upload.max_photos",
+   "section": "Uploads",
+   "label": "Max photos per Maintenance Request",
+   "valueType": "INT",
+   "value": "5",
+   "helper": null
+  }
+ ],
+ "refundRules": [
+  {
+   "code": "CANCEL_BEFORE_RESULTS",
+   "description": "Application cancelled before results are published",
+   "percent": 100,
+   "approver": "SYSTEM",
+   "sort_order": 1
+  },
+  {
+   "code": "CANCEL_AFTER_RESULTS",
+   "description": "Application cancelled after results, before Check-in",
+   "percent": 50,
+   "approver": "MANAGER",
+   "sort_order": 2
+  },
+  {
+   "code": "EARLY_CHECK_OUT",
+   "description": "Check-out before the end of the Term (unused days)",
+   "percent": 30,
+   "approver": "MANAGER",
+   "sort_order": 3
+  },
+  {
+   "code": "UTILITY_DEPOSIT",
+   "description": "Utility Deposit at Check-out, minus unpaid Utility and damage",
+   "percent": 100,
+   "approver": "STAFF",
+   "sort_order": 4
+  },
+  {
+   "code": "BALANCE_NOT_PAID",
+   "description": "Balance not paid by its deadline (the Deposit is kept)",
+   "percent": 0,
+   "approver": "SYSTEM",
+   "sort_order": 5
+  },
+  {
+   "code": "NOT_ENROLLED",
+   "description": "Stay ended because the student is no longer enrolled (unused room fee)",
+   "percent": 30,
+   "approver": "MANAGER",
+   "sort_order": 6
+  },
+  {
+   "code": "TERMINATION",
+   "description": "Stay terminated for Utility debt or by a Manager (unused room fee)",
+   "percent": 0,
+   "approver": "SYSTEM",
+   "sort_order": 7
+  },
+  {
+   "code": "APPLICATION_REJECTED",
+   "description": "Application not approved by the dormitory office (the whole Deposit)",
+   "percent": 100,
+   "approver": "SYSTEM",
+   "sort_order": 8
+  }
+ ]
+}

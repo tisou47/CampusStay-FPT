@@ -22,7 +22,9 @@ export function parseController(src, controller) {
     const end = i + 1 < marks.length ? marks[i + 1].index : src.length
     const body = src.slice(m.index, end)
     const requires = [...body.matchAll(/\.require\(\s*((?:Role|Permission)\.[A-Z_]+)/g)].map((r) => r[1])
-    out.push({ method: METHODS[m[1]], path: join(base, annotationPath(m[2])), controller, requires })
+    // The Java method under the annotations: after the other annotations, the name before its parameter list.
+    const handler = body.slice(m[0].length).match(/^(?:\s*@\w+(?:\((?:[^()]|\([^()]*\))*\))?)*\s*(?:public\s+)?[\w<>[\],.? ]+?\s+(\w+)\s*\(/)?.[1] ?? ''
+    out.push({ method: METHODS[m[1]], path: join(base, annotationPath(m[2])), handler, controller, requires })
   })
   return out
 }
@@ -243,4 +245,85 @@ export function statesOfCheck(def) {
   const col = def.match(/CHECK \(+(\w+)\)?(?:::text)?\s*=\s*ANY/)
   if (!col) return null
   return { column: col[1], states: [...def.matchAll(/'([A-Z0-9_]+)'::/g)].map((m) => m[1]) }
+}
+
+/** SQL literal list of a VALUES tuple: 'text' (with '' escapes), NULL, numbers, TRUE/FALSE; other expressions as text. */
+function sqlValues(s) {
+  const out = []
+  let i = 0
+  while (i < s.length) {
+    while (i < s.length && /[\s,]/.test(s[i])) i++
+    if (i >= s.length) break
+    if (s[i] === "'") {
+      let v = ''
+      i++
+      while (i < s.length) {
+        if (s[i] === "'" && s[i + 1] === "'") { v += "'"; i += 2; continue }
+        if (s[i] === "'") { i++; break }
+        v += s[i++]
+      }
+      out.push(v)
+    } else {
+      const m = s.slice(i).match(/^[^,]+/)
+      const raw = m[0].trim()
+      out.push(/^NULL$/i.test(raw) ? null : raw)
+      i += m[0].length
+    }
+  }
+  return out
+}
+
+/** The tuples after VALUES, each as its text between the outer parentheses (quotes respected). */
+function tuples(s) {
+  const out = []
+  let depth = 0
+  let quote = false
+  let start = -1
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (c === "'") { if (quote && s[i + 1] === "'") { i++; continue } quote = !quote; continue }
+    if (quote) continue
+    if (c === '(') { if (depth === 0) start = i + 1; depth++ }
+    else if (c === ')') { depth--; if (depth === 0) out.push(s.slice(start, i)) }
+    else if (depth === 0 && (c === ';' || /^ON\s+CONFLICT/i.test(s.slice(i, i + 12)))) break // "ON CONFLICT (key)" is not a row
+  }
+  return out
+}
+
+/**
+ * The settings (cfg_parameter) the migrations leave, read from their text in order: INSERTs with their column lists,
+ * then UPDATEs of literal values (WHERE key = / LIKE / IN) and DELETEs. Used when no database can be started.
+ */
+export function parseSettings(sqlFiles) {
+  const rows = new Map()
+  const where = (w) => {
+    const eq = w.match(/key\s*=\s*'([^']+)'/)
+    if (eq) return (k) => k === eq[1]
+    const like = w.match(/key\s+LIKE\s+'([^']+)'/i)
+    if (like) { const re = new RegExp('^' + like[1].replace(/[.]/g, '\\.').replace(/%/g, '.*').replace(/_/g, '.') + '$'); return (k) => re.test(k) }
+    const inn = w.match(/key\s+IN\s*\(([^)]*)\)/i)
+    if (inn) { const keys = [...inn[1].matchAll(/'([^']+)'/g)].map((m) => m[1]); return (k) => keys.includes(k) }
+    return () => false
+  }
+  for (const sql of sqlFiles) {
+    const re = /INSERT INTO cfg_parameter\s*\(([^)]*)\)\s*VALUES|UPDATE cfg_parameter\s+SET\s+([\s\S]*?)\s+WHERE\s+([\s\S]*?);|DELETE FROM cfg_parameter\s+WHERE\s+([\s\S]*?);/g
+    for (const m of sql.matchAll(re)) {
+      if (m[1]) {
+        const cols = m[1].split(',').map((c) => c.trim())
+        for (const t of tuples(sql.slice(m.index + m[0].length))) {
+          const v = sqlValues(t)
+          const o = Object.fromEntries(cols.map((c, i) => [c, v[i]]))
+          rows.set(o.key, o)
+        }
+      } else if (m[2]) {
+        const match = where(m[3])
+        const sets = [...m[2].matchAll(/(\w+)\s*=\s*'((?:[^']|'')*)'/g)].map((s) => [s[1], s[2].replace(/''/g, "'")])
+        for (const [k, o] of rows) if (match(k)) for (const [c, v] of sets) o[c] = v
+      } else if (m[4]) {
+        const match = where(m[4])
+        for (const k of [...rows.keys()]) if (match(k)) rows.delete(k)
+      }
+    }
+  }
+  return [...rows.values()].map((o) => ({ key: o.key, section: o.section, label: o.label, valueType: o.value_type, value: o.value, helper: o.helper ?? null }))
 }

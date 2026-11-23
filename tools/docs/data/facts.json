@@ -6,7 +6,7 @@
  "tables": 118,
  "views": 33,
  "webPages": 133,
- "mobileScreens": 31,
+ "mobileScreens": 30,
  "permissions": 37,
  "statusMachines": 134,
  "messages": 323,
@@ -22,5 +22,5 @@
   "js": 50221,
   "dart": 11014
  },
- "generatedFrom": "f3bb9de"
+ "generatedFrom": "0993b04"
 }

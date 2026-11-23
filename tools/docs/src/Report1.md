@@ -125,7 +125,7 @@ For the students and the dormitory office of FPT University's Tân Uyên campus,
 
 ### 6.1 Major Features
 
-One feature per area of the code (each backend package under `service/` with its screens). The system has 63 REST controllers with 353 endpoints, 133 web pages, 31 mobile screens and 37 permissions.
+One feature per area of the code (each backend package under `service/` with its screens). The system has 63 REST controllers with 353 endpoints, 133 web pages, 30 mobile screens and 37 permissions.
 
 - **FE-01 Accounts and sign-in (AUTH):**
   - password or Google (@fpt.edu.vn) sign-in; student sign-up with verification by a Manager;

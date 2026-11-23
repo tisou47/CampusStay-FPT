@@ -25,6 +25,7 @@ const OPTIONS = {
 
 // The tables the Markdown includes (tools/docs/src/_*.md) are regenerated from the data and git first.
 execFileSync('node', [here('src/partials.mjs')], { cwd: root, stdio: 'inherit' })
+execFileSync('node', [here('src/report3.mjs')], { cwd: root, stdio: 'inherit' })
 const names = process.argv.slice(2)
 if (!names.length) { console.error('usage: node tools/docs/build.mjs <Name> […]'); process.exit(2) }
 let failed = 0

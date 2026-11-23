@@ -2,6 +2,7 @@
  {
   "method": "GET",
   "path": "/applications/eligibility",
+  "handler": "eligibility",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -10,6 +11,7 @@
  {
   "method": "POST",
   "path": "/applications/roommate-check",
+  "handler": "roommateCheck",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -18,6 +20,7 @@
  {
   "method": "POST",
   "path": "/applications",
+  "handler": "create",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -26,6 +29,7 @@
  {
   "method": "GET",
   "path": "/applications/{id}",
+  "handler": "detail",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -34,6 +38,7 @@
  {
   "method": "GET",
   "path": "/applications",
+  "handler": "queue",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -42,6 +47,7 @@
  {
   "method": "POST",
   "path": "/applications/{id}/review",
+  "handler": "review",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -50,6 +56,7 @@
  {
   "method": "POST",
   "path": "/applications/bulk-review",
+  "handler": "bulkReview",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -58,6 +65,7 @@
  {
   "method": "POST",
   "path": "/applications/{id}/cancel",
+  "handler": "cancel",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -66,6 +74,7 @@
  {
   "method": "POST",
   "path": "/roommate-invitations/{id}/respond",
+  "handler": "respond",
   "controller": "ApplicationController",
   "requires": [],
   "feature": "application",
@@ -74,6 +83,7 @@
  {
   "method": "GET",
   "path": "/round2/offers",
+  "handler": "offers",
   "controller": "Round2Controller",
   "requires": [],
   "feature": "application",
@@ -82,6 +92,7 @@
  {
   "method": "POST",
   "path": "/applications/{id}/withdraw",
+  "handler": "withdraw",
   "controller": "Round2Controller",
   "requires": [],
   "feature": "application",
@@ -90,6 +101,7 @@
  {
   "method": "GET",
   "path": "/students/me/round2-offer",
+  "handler": "mine",
   "controller": "Round2Controller",
   "requires": [],
   "feature": "application",
@@ -98,6 +110,7 @@
  {
   "method": "POST",
   "path": "/round2-offers/{id}/respond",
+  "handler": "respond",
   "controller": "Round2Controller",
   "requires": [],
   "feature": "application",
@@ -106,6 +119,7 @@
  {
   "method": "GET",
   "path": "/students/me/home",
+  "handler": "home",
   "controller": "StudentController",
   "requires": [],
   "feature": "application",
@@ -114,6 +128,7 @@
  {
   "method": "GET",
   "path": "/students/me/profile",
+  "handler": "profile",
   "controller": "StudentController",
   "requires": [],
   "feature": "application",
@@ -122,6 +137,7 @@
  {
   "method": "GET",
   "path": "/students/me/applications",
+  "handler": "applications",
   "controller": "StudentController",
   "requires": [],
   "feature": "application",
@@ -130,6 +146,7 @@
  {
   "method": "GET",
   "path": "/students/me/roommate-invitation",
+  "handler": "roommateInvitation",
   "controller": "StudentController",
   "requires": [],
   "feature": "application",
@@ -138,6 +155,7 @@
  {
   "method": "GET",
   "path": "/assignment-runs",
+  "handler": "runs",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -146,6 +164,7 @@
  {
   "method": "POST",
   "path": "/assignment-runs",
+  "handler": "start",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -154,6 +173,7 @@
  {
   "method": "GET",
   "path": "/round2",
+  "handler": "round2",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -162,6 +182,7 @@
  {
   "method": "POST",
   "path": "/round2/run",
+  "handler": "runRound2",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -170,6 +191,7 @@
  {
   "method": "GET",
   "path": "/assignment-runs/{runId}/proposal",
+  "handler": "proposal",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -178,6 +200,7 @@
  {
   "method": "GET",
   "path": "/assignment-runs/{runId}/conflicts/{applicationId}",
+  "handler": "conflict",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -186,6 +209,7 @@
  {
   "method": "POST",
   "path": "/assignment-runs/{runId}/conflicts/{applicationId}/resolve",
+  "handler": "resolve",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -194,6 +218,7 @@
  {
   "method": "POST",
   "path": "/assignment-runs/{runId}/commit",
+  "handler": "commit",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -202,6 +227,7 @@
  {
   "method": "GET",
   "path": "/assignment-runs/{runId}/rooms",
+  "handler": "rooms",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -210,6 +236,7 @@
  {
   "method": "POST",
   "path": "/assignment-runs/{runId}/approve",
+  "handler": "approve",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -218,6 +245,7 @@
  {
   "method": "POST",
   "path": "/assignment-runs/{runId}/return",
+  "handler": "returnToStaff",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -226,6 +254,7 @@
  {
   "method": "GET",
   "path": "/approvals/assignment",
+  "handler": "approval",
   "controller": "AssignmentController",
   "requires": [],
   "feature": "assignment",
@@ -234,6 +263,7 @@
  {
   "method": "GET",
   "path": "/check-outs/{allocationId}/furniture",
+  "handler": "view",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -242,6 +272,7 @@
  {
   "method": "PUT",
   "path": "/check-outs/{allocationId}/furniture",
+  "handler": "record",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -250,6 +281,7 @@
  {
   "method": "POST",
   "path": "/check-outs/{allocationId}/damage-claims",
+  "handler": "claim",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -258,6 +290,7 @@
  {
   "method": "GET",
   "path": "/check-out-reviews",
+  "handler": "reviews",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -266,6 +299,7 @@
  {
   "method": "POST",
   "path": "/check-out-reviews/{allocationId}/{itemId}",
+  "handler": "decide",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -274,6 +308,7 @@
  {
   "method": "GET",
   "path": "/students/me/check-out",
+  "handler": "mine",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -282,6 +317,7 @@
  {
   "method": "POST",
   "path": "/students/me/check-out/agree",
+  "handler": "agree",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -290,6 +326,7 @@
  {
   "method": "POST",
   "path": "/students/me/damage-claims/{id}",
+  "handler": "answer",
   "controller": "CheckOutFurnitureController",
   "requires": [],
   "feature": "assignment",
@@ -298,6 +335,7 @@
  {
   "method": "GET",
   "path": "/check-in/today",
+  "handler": "today",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -306,6 +344,7 @@
  {
   "method": "GET",
   "path": "/check-in/lookup",
+  "handler": "lookup",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -314,6 +353,7 @@
  {
   "method": "POST",
   "path": "/check-in",
+  "handler": "checkIn",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -322,6 +362,7 @@
  {
   "method": "GET",
   "path": "/check-out",
+  "handler": "checkOutList",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -330,6 +371,7 @@
  {
   "method": "GET",
   "path": "/check-out/{allocationId}",
+  "handler": "checkOutDetail",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -338,6 +380,7 @@
  {
   "method": "POST",
   "path": "/check-out/{allocationId}",
+  "handler": "checkOut",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -346,6 +389,7 @@
  {
   "method": "GET",
   "path": "/check-out/readings",
+  "handler": "roomReadings",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -354,6 +398,7 @@
  {
   "method": "PUT",
   "path": "/check-out/readings",
+  "handler": "saveRoomReadings",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -362,6 +407,7 @@
  {
   "method": "GET",
   "path": "/check-out/readings/template",
+  "handler": "roomReadingsTemplate",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -370,6 +416,7 @@
  {
   "method": "POST",
   "path": "/check-out/readings",
+  "handler": "uploadRoomReadings",
   "controller": "DeskController",
   "requires": [],
   "feature": "assignment",
@@ -378,6 +425,7 @@
  {
   "method": "GET",
   "path": "/students/me/handover",
+  "handler": "mine",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -386,6 +434,7 @@
  {
   "method": "POST",
   "path": "/students/me/handover/start",
+  "handler": "start",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -394,6 +443,7 @@
  {
   "method": "PUT",
   "path": "/students/me/handover",
+  "handler": "save",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -402,6 +452,7 @@
  {
   "method": "POST",
   "path": "/students/me/handover/photos",
+  "handler": "addPhoto",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -410,6 +461,7 @@
  {
   "method": "DELETE",
   "path": "/students/me/handover/photos/{id}",
+  "handler": "removePhoto",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -418,6 +470,7 @@
  {
   "method": "POST",
   "path": "/students/me/handover/submit",
+  "handler": "submit",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -426,6 +479,7 @@
  {
   "method": "POST",
   "path": "/students/me/handover/agree",
+  "handler": "agree",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -434,6 +488,7 @@
  {
   "method": "POST",
   "path": "/students/me/handover/late",
+  "handler": "late",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -442,6 +497,7 @@
  {
   "method": "GET",
   "path": "/handovers",
+  "handler": "list",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -450,6 +506,7 @@
  {
   "method": "GET",
   "path": "/handovers/{id}",
+  "handler": "detail",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -458,6 +515,7 @@
  {
   "method": "POST",
   "path": "/handovers/{id}/confirm",
+  "handler": "confirm",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -466,6 +524,7 @@
  {
   "method": "POST",
   "path": "/handovers/{id}/visit",
+  "handler": "visit",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -474,6 +533,7 @@
  {
   "method": "PUT",
   "path": "/handovers/{id}/verification",
+  "handler": "verification",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -482,6 +542,7 @@
  {
   "method": "POST",
   "path": "/handovers/{id}/cancel",
+  "handler": "cancel",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -490,6 +551,7 @@
  {
   "method": "POST",
   "path": "/handovers/{id}/late",
+  "handler": "acceptLate",
   "controller": "HandoverController",
   "requires": [],
   "feature": "assignment",
@@ -498,6 +560,7 @@
  {
   "method": "POST",
   "path": "/late-check-ins",
+  "handler": "create",
   "controller": "LateCheckInController",
   "requires": [],
   "feature": "assignment",
@@ -506,6 +569,7 @@
  {
   "method": "GET",
   "path": "/students/me/late-check-in",
+  "handler": "mine",
   "controller": "LateCheckInController",
   "requires": [],
   "feature": "assignment",
@@ -514,6 +578,7 @@
  {
   "method": "POST",
   "path": "/students/me/late-check-in",
+  "handler": "request",
   "controller": "LateCheckInController",
   "requires": [],
   "feature": "assignment",
@@ -522,6 +587,7 @@
  {
   "method": "GET",
   "path": "/late-check-ins",
+  "handler": "list",
   "controller": "LateCheckInController",
   "requires": [],
   "feature": "assignment",
@@ -530,6 +596,7 @@
  {
   "method": "POST",
   "path": "/late-check-ins/{id}/decision",
+  "handler": "decide",
   "controller": "LateCheckInController",
   "requires": [],
   "feature": "assignment",
@@ -538,6 +605,7 @@
  {
   "method": "GET",
   "path": "/operational-moves/options",
+  "handler": "options",
   "controller": "OperationalMoveController",
   "requires": [],
   "feature": "assignment",
@@ -546,6 +614,7 @@
  {
   "method": "POST",
   "path": "/operational-moves",
+  "handler": "move",
   "controller": "OperationalMoveController",
   "requires": [],
   "feature": "assignment",
@@ -554,6 +623,7 @@
  {
   "method": "GET",
   "path": "/operational-moves",
+  "handler": "list",
   "controller": "OperationalMoveController",
   "requires": [],
   "feature": "assignment",
@@ -562,6 +632,7 @@
  {
   "method": "GET",
   "path": "/renewals",
+  "handler": "windows",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -570,6 +641,7 @@
  {
   "method": "GET",
   "path": "/renewals/overview",
+  "handler": "overview",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -578,6 +650,7 @@
  {
   "method": "GET",
   "path": "/next-term-fees",
+  "handler": "preview",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -586,6 +659,7 @@
  {
   "method": "POST",
   "path": "/next-term-fees/issue",
+  "handler": "issue",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -594,6 +668,7 @@
  {
   "method": "GET",
   "path": "/turnover",
+  "handler": "turnover",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -602,6 +677,7 @@
  {
   "method": "POST",
   "path": "/turnover/meter-cuts",
+  "handler": "meterCut",
   "controller": "RenewalController",
   "requires": [],
   "feature": "assignment",
@@ -610,6 +686,7 @@
  {
   "method": "GET",
   "path": "/students/me/allocation",
+  "handler": "mine",
   "controller": "StudentAllocationController",
   "requires": [],
   "feature": "assignment",
@@ -618,6 +695,7 @@
  {
   "method": "GET",
   "path": "/terminations",
+  "handler": "list",
   "controller": "TerminationController",
   "requires": [],
   "feature": "assignment",
@@ -626,6 +704,7 @@
  {
   "method": "POST",
   "path": "/terminations",
+  "handler": "start",
   "controller": "TerminationController",
   "requires": [],
   "feature": "assignment",
@@ -634,6 +713,7 @@
  {
   "method": "POST",
   "path": "/terminations/{id}/cancel",
+  "handler": "cancel",
   "controller": "TerminationController",
   "requires": [],
   "feature": "assignment",
@@ -642,6 +722,7 @@
  {
   "method": "GET",
   "path": "/students/me/assistant",
+  "handler": "status",
   "controller": "AssistantController",
   "requires": [],
   "feature": "assistant",
@@ -650,6 +731,7 @@
  {
   "method": "POST",
   "path": "/students/me/assistant/chat",
+  "handler": "chat",
   "controller": "AssistantController",
   "requires": [],
   "feature": "assistant",
@@ -658,6 +740,7 @@
  {
   "method": "GET",
   "path": "/admin/users",
+  "handler": "list",
   "controller": "AdminUserController",
   "requires": [],
   "feature": "auth",
@@ -666,6 +749,7 @@
  {
   "method": "POST",
   "path": "/admin/users",
+  "handler": "invite",
   "controller": "AdminUserController",
   "requires": [],
   "feature": "auth",
@@ -674,6 +758,7 @@
  {
   "method": "PUT",
   "path": "/admin/users/{id}",
+  "handler": "update",
   "controller": "AdminUserController",
   "requires": [],
   "feature": "auth",
@@ -682,6 +767,7 @@
  {
   "method": "GET",
   "path": "/admin/permissions",
+  "handler": "permissions",
   "controller": "AdminUserController",
   "requires": [],
   "feature": "auth",
@@ -690,6 +776,7 @@
  {
   "method": "GET",
   "path": "/admin/audit-log",
+  "handler": "auditLog",
   "controller": "AdminUserController",
   "requires": [],
   "feature": "auth",
@@ -698,6 +785,7 @@
  {
   "method": "POST",
   "path": "/auth/sign-in",
+  "handler": "signIn",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -706,6 +794,7 @@
  {
   "method": "POST",
   "path": "/auth/google",
+  "handler": "google",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -714,6 +803,7 @@
  {
   "method": "POST",
   "path": "/auth/sign-out",
+  "handler": "signOut",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -722,6 +812,7 @@
  {
   "method": "GET",
   "path": "/auth/me",
+  "handler": "me",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -730,6 +821,7 @@
  {
   "method": "PUT",
   "path": "/auth/me/locale",
+  "handler": "locale",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -738,6 +830,7 @@
  {
   "method": "POST",
   "path": "/auth/password/forgot",
+  "handler": "forgot",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -746,6 +839,7 @@
  {
   "method": "POST",
   "path": "/auth/password/reset",
+  "handler": "reset",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -754,6 +848,7 @@
  {
   "method": "POST",
   "path": "/auth/password/set",
+  "handler": "setFirst",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -762,6 +857,7 @@
  {
   "method": "POST",
   "path": "/auth/password/change",
+  "handler": "change",
   "controller": "AuthController",
   "requires": [],
   "feature": "auth",
@@ -770,6 +866,7 @@
  {
   "method": "GET",
   "path": "/block-staff",
+  "handler": "list",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -778,6 +875,7 @@
  {
   "method": "GET",
   "path": "/block-staff/me",
+  "handler": "me",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -786,6 +884,7 @@
  {
   "method": "PUT",
   "path": "/block-staff/{id}",
+  "handler": "update",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -794,6 +893,7 @@
  {
   "method": "GET",
   "path": "/block-staff/{id}/work",
+  "handler": "work",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -802,6 +902,7 @@
  {
   "method": "POST",
   "path": "/block-staff/{id}/work/reassign",
+  "handler": "reassign",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -810,6 +911,7 @@
  {
   "method": "PUT",
   "path": "/block-staff/{id}/shifts",
+  "handler": "setShifts",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -818,6 +920,7 @@
  {
   "method": "GET",
   "path": "/week-schedule",
+  "handler": "nextWeek",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -826,6 +929,7 @@
  {
   "method": "GET",
   "path": "/week-schedule/plan",
+  "handler": "plan",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -834,6 +938,7 @@
  {
   "method": "PUT",
   "path": "/week-schedule/plan/{staffId}",
+  "handler": "planWeek",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -842,6 +947,7 @@
  {
   "method": "DELETE",
   "path": "/week-schedule/plan/{staffId}",
+  "handler": "resetWeek",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -850,6 +956,7 @@
  {
   "method": "GET",
   "path": "/week-schedule/me",
+  "handler": "mySchedule",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -858,6 +965,7 @@
  {
   "method": "POST",
   "path": "/week-schedule/send",
+  "handler": "sendWeek",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -866,6 +974,7 @@
  {
   "method": "GET",
   "path": "/staff-activity",
+  "handler": "activity",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -874,6 +983,7 @@
  {
   "method": "POST",
   "path": "/staff-account-requests",
+  "handler": "requestAccount",
   "controller": "BlockStaffController",
   "requires": [],
   "feature": "auth",
@@ -882,6 +992,7 @@
  {
   "method": "GET",
   "path": "/reconciliations",
+  "handler": "overview",
   "controller": "ReconciliationController",
   "requires": [],
   "feature": "auth",
@@ -890,6 +1001,7 @@
  {
   "method": "GET",
   "path": "/reconciliations/template",
+  "handler": "template",
   "controller": "ReconciliationController",
   "requires": [],
   "feature": "auth",
@@ -898,6 +1010,7 @@
  {
   "method": "POST",
   "path": "/reconciliations",
+  "handler": "upload",
   "controller": "ReconciliationController",
   "requires": [],
   "feature": "auth",
@@ -906,6 +1019,7 @@
  {
   "method": "GET",
   "path": "/reconciliations/{id}",
+  "handler": "detail",
   "controller": "ReconciliationController",
   "requires": [],
   "feature": "auth",
@@ -914,6 +1028,7 @@
  {
   "method": "POST",
   "path": "/reconciliations/{id}/items/{itemId}/resolve",
+  "handler": "resolve",
   "controller": "ReconciliationController",
   "requires": [],
   "feature": "auth",
@@ -922,6 +1037,7 @@
  {
   "method": "GET",
   "path": "/students/me/refund-account",
+  "handler": "mine",
   "controller": "RefundAccountController",
   "requires": [],
   "feature": "auth",
@@ -930,6 +1046,7 @@
  {
   "method": "PUT",
   "path": "/students/me/refund-account",
+  "handler": "save",
   "controller": "RefundAccountController",
   "requires": [],
   "feature": "auth",
@@ -938,6 +1055,7 @@
  {
   "method": "GET",
   "path": "/banks",
+  "handler": "banks",
   "controller": "RefundAccountController",
   "requires": [],
   "feature": "auth",
@@ -946,6 +1064,7 @@
  {
   "method": "GET",
   "path": "/staff-accounts",
+  "handler": "list",
   "controller": "StaffAccountController",
   "requires": [],
   "feature": "auth",
@@ -954,6 +1073,7 @@
  {
   "method": "POST",
   "path": "/staff-accounts",
+  "handler": "create",
   "controller": "StaffAccountController",
   "requires": [],
   "feature": "auth",
@@ -962,6 +1082,7 @@
  {
   "method": "PUT",
   "path": "/staff-accounts/{id}",
+  "handler": "update",
   "controller": "StaffAccountController",
   "requires": [],
   "feature": "auth",
@@ -970,6 +1091,7 @@
  {
   "method": "POST",
   "path": "/staff-accounts/{id}/invitation",
+  "handler": "resendInvitation",
   "controller": "StaffAccountController",
   "requires": [],
   "feature": "auth",
@@ -978,6 +1100,7 @@
  {
   "method": "GET",
   "path": "/student-accounts",
+  "handler": "list",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -986,6 +1109,7 @@
  {
   "method": "GET",
   "path": "/student-accounts/{id}",
+  "handler": "hub",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -994,6 +1118,7 @@
  {
   "method": "PUT",
   "path": "/student-accounts/{id}",
+  "handler": "edit",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -1002,6 +1127,7 @@
  {
   "method": "POST",
   "path": "/student-accounts/{id}/verify",
+  "handler": "verify",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -1010,6 +1136,7 @@
  {
   "method": "POST",
   "path": "/student-accounts/{id}/reject",
+  "handler": "reject",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -1018,6 +1145,7 @@
  {
   "method": "POST",
   "path": "/student-accounts/{id}/lock",
+  "handler": "lock",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -1026,6 +1154,7 @@
  {
   "method": "POST",
   "path": "/student-accounts/{id}/unlock",
+  "handler": "unlock",
   "controller": "StudentAccountController",
   "requires": [],
   "feature": "auth",
@@ -1034,6 +1163,7 @@
  {
   "method": "GET",
   "path": "/students/me/contacts",
+  "handler": "mine",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1042,6 +1172,7 @@
  {
   "method": "PUT",
   "path": "/students/me/contacts",
+  "handler": "save",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1050,6 +1181,7 @@
  {
   "method": "POST",
   "path": "/students/me/contacts/emergency",
+  "handler": "add",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1058,6 +1190,7 @@
  {
   "method": "PUT",
   "path": "/students/me/contacts/emergency/{id}",
+  "handler": "update",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1066,6 +1199,7 @@
  {
   "method": "POST",
   "path": "/students/me/contacts/emergency/{id}/primary",
+  "handler": "primary",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1074,6 +1208,7 @@
  {
   "method": "DELETE",
   "path": "/students/me/contacts/emergency/{id}",
+  "handler": "remove",
   "controller": "StudentContactController",
   "requires": [],
   "feature": "auth",
@@ -1082,6 +1217,7 @@
  {
   "method": "GET",
   "path": "/student-imports",
+  "handler": "history",
   "controller": "StudentImportController",
   "requires": [],
   "feature": "auth",
@@ -1090,6 +1226,7 @@
  {
   "method": "GET",
   "path": "/student-imports/template",
+  "handler": "template",
   "controller": "StudentImportController",
   "requires": [],
   "feature": "auth",
@@ -1098,6 +1235,7 @@
  {
   "method": "POST",
   "path": "/student-imports",
+  "handler": "upload",
   "controller": "StudentImportController",
   "requires": [],
   "feature": "auth",
@@ -1106,6 +1244,7 @@
  {
   "method": "GET",
   "path": "/student-imports/{id}",
+  "handler": "get",
   "controller": "StudentImportController",
   "requires": [],
   "feature": "auth",
@@ -1114,6 +1253,7 @@
  {
   "method": "POST",
   "path": "/student-imports/{id}/confirm",
+  "handler": "confirm",
   "controller": "StudentImportController",
   "requires": [],
   "feature": "auth",
@@ -1122,6 +1262,7 @@
  {
   "method": "GET",
   "path": "/students/me/verification",
+  "handler": "get",
   "controller": "StudentVerificationController",
   "requires": [],
   "feature": "auth",
@@ -1130,6 +1271,7 @@
  {
   "method": "PUT",
   "path": "/students/me/verification",
+  "handler": "submit",
   "controller": "StudentVerificationController",
   "requires": [],
   "feature": "auth",
@@ -1138,6 +1280,7 @@
  {
   "method": "GET",
   "path": "/finance/summary",
+  "handler": "summary",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1146,6 +1289,7 @@
  {
   "method": "GET",
   "path": "/finance/overdue",
+  "handler": "overdue",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1154,6 +1298,7 @@
  {
   "method": "POST",
   "path": "/finance/reminders",
+  "handler": "remind",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1162,6 +1307,7 @@
  {
   "method": "GET",
   "path": "/invoices",
+  "handler": "invoices",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1170,6 +1316,7 @@
  {
   "method": "GET",
   "path": "/refunds",
+  "handler": "refunds",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1178,6 +1325,7 @@
  {
   "method": "POST",
   "path": "/refunds/{id}/account-reminder",
+  "handler": "remindAccount",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1186,6 +1334,7 @@
  {
   "method": "GET",
   "path": "/students/me/refunds",
+  "handler": "myRefunds",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1194,6 +1343,7 @@
  {
   "method": "POST",
   "path": "/refunds/{id}/decision",
+  "handler": "decideRefund",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1202,6 +1352,7 @@
  {
   "method": "POST",
   "path": "/refunds/{id}/paid",
+  "handler": "markRefundPaid",
   "controller": "FinanceController",
   "requires": [],
   "feature": "billing",
@@ -1210,6 +1361,7 @@
  {
   "method": "GET",
   "path": "/meter-periods",
+  "handler": "periods",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1218,6 +1370,7 @@
  {
   "method": "GET",
   "path": "/meter-periods/{id}/readings",
+  "handler": "readings",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1226,6 +1379,7 @@
  {
   "method": "GET",
   "path": "/meter-periods/{id}/readings/{room}",
+  "handler": "room",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1234,6 +1388,7 @@
  {
   "method": "PUT",
   "path": "/meter-periods/{id}/readings/{room}",
+  "handler": "save",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1242,6 +1397,7 @@
  {
   "method": "POST",
   "path": "/meter-periods/{id}/readings/{room}/confirm",
+  "handler": "confirm",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1250,6 +1406,7 @@
  {
   "method": "GET",
   "path": "/meter-periods/{id}/template",
+  "handler": "template",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1258,6 +1415,7 @@
  {
   "method": "POST",
   "path": "/meter-periods/{id}/import",
+  "handler": "importCsv",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1266,6 +1424,7 @@
  {
   "method": "POST",
   "path": "/meter-periods/{id}/close",
+  "handler": "close",
   "controller": "MeterController",
   "requires": [],
   "feature": "billing",
@@ -1274,6 +1433,7 @@
  {
   "method": "POST",
   "path": "/invoices/{id}/claim",
+  "handler": "claim",
   "controller": "PaymentClaimController",
   "requires": [],
   "feature": "billing",
@@ -1282,6 +1442,7 @@
  {
   "method": "GET",
   "path": "/payment-claims",
+  "handler": "list",
   "controller": "PaymentClaimController",
   "requires": [],
   "feature": "billing",
@@ -1290,6 +1451,7 @@
  {
   "method": "POST",
   "path": "/payment-claims/{invoiceId}/receipt",
+  "handler": "attachReceipt",
   "controller": "PaymentClaimController",
   "requires": [],
   "feature": "billing",
@@ -1298,6 +1460,7 @@
  {
   "method": "POST",
   "path": "/payment-claims/confirm",
+  "handler": "confirm",
   "controller": "PaymentClaimController",
   "requires": [],
   "feature": "billing",
@@ -1306,6 +1469,7 @@
  {
   "method": "POST",
   "path": "/payment-claims/reject",
+  "handler": "reject",
   "controller": "PaymentClaimController",
   "requires": [],
   "feature": "billing",
@@ -1314,6 +1478,7 @@
  {
   "method": "GET",
   "path": "/payments",
+  "handler": "list",
   "controller": "PaymentDeskController",
   "requires": [],
   "feature": "billing",
@@ -1322,6 +1487,7 @@
  {
   "method": "POST",
   "path": "/payments/{invoiceId}/confirm",
+  "handler": "confirm",
   "controller": "PaymentDeskController",
   "requires": [],
   "feature": "billing",
@@ -1330,6 +1496,7 @@
  {
   "method": "GET",
   "path": "/payments/{invoiceId}/receipt-file",
+  "handler": "receiptFile",
   "controller": "PaymentDeskController",
   "requires": [],
   "feature": "billing",
@@ -1338,6 +1505,7 @@
  {
   "method": "GET",
   "path": "/students/me/invoices",
+  "handler": "mine",
   "controller": "StudentInvoiceController",
   "requires": [],
   "feature": "billing",
@@ -1346,6 +1514,7 @@
  {
   "method": "GET",
   "path": "/invoices/{id}",
+  "handler": "detail",
   "controller": "StudentInvoiceController",
   "requires": [],
   "feature": "billing",
@@ -1354,6 +1523,7 @@
  {
   "method": "GET",
   "path": "/invoices/{id}/payment",
+  "handler": "payment",
   "controller": "StudentInvoiceController",
   "requires": [],
   "feature": "billing",
@@ -1362,6 +1532,7 @@
  {
   "method": "POST",
   "path": "/invoices/{id}/payment/refresh",
+  "handler": "refresh",
   "controller": "StudentInvoiceController",
   "requires": [],
   "feature": "billing",
@@ -1370,6 +1541,7 @@
  {
   "method": "GET",
   "path": "/invoices/{id}/receipt",
+  "handler": "receipt",
   "controller": "StudentInvoiceController",
   "requires": [],
   "feature": "billing",
@@ -1378,6 +1550,7 @@
  {
   "method": "GET",
   "path": "/files/{id}",
+  "handler": "file",
   "controller": "FileLinkController",
   "requires": [],
   "feature": "file",
@@ -1386,6 +1559,7 @@
  {
   "method": "GET",
   "path": "/admin/buildings",
+  "handler": "list",
   "controller": "AdminBuildingController",
   "requires": [],
   "feature": "inventory",
@@ -1394,6 +1568,7 @@
  {
   "method": "POST",
   "path": "/admin/buildings",
+  "handler": "create",
   "controller": "AdminBuildingController",
   "requires": [],
   "feature": "inventory",
@@ -1402,6 +1577,7 @@
  {
   "method": "PUT",
   "path": "/admin/buildings/{id}",
+  "handler": "update",
   "controller": "AdminBuildingController",
   "requires": [],
   "feature": "inventory",
@@ -1410,6 +1586,7 @@
  {
   "method": "POST",
   "path": "/admin/buildings/{id}/rooms/bulk",
+  "handler": "generateRooms",
   "controller": "AdminBuildingController",
   "requires": [],
   "feature": "inventory",
@@ -1418,6 +1595,7 @@
  {
   "method": "GET",
   "path": "/admin/buildings/{id}/floors/{floor}/rooms",
+  "handler": "floorRooms",
   "controller": "AdminBuildingController",
   "requires": [],
   "feature": "inventory",
@@ -1426,6 +1604,7 @@
  {
   "method": "GET",
   "path": "/admin/furniture-types",
+  "handler": "types",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1434,6 +1613,7 @@
  {
   "method": "POST",
   "path": "/admin/furniture-types",
+  "handler": "create",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1442,6 +1622,7 @@
  {
   "method": "PUT",
   "path": "/admin/furniture-types/{id}",
+  "handler": "update",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1450,6 +1631,7 @@
  {
   "method": "PUT",
   "path": "/admin/furniture-conditions",
+  "handler": "setConditions",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1458,6 +1640,7 @@
  {
   "method": "GET",
   "path": "/admin/room-class-requirements",
+  "handler": "requirements",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1466,6 +1649,7 @@
  {
   "method": "PUT",
   "path": "/admin/room-class-requirements/{roomClassId}",
+  "handler": "setRequirements",
   "controller": "AdminFurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1474,6 +1658,7 @@
  {
   "method": "GET",
   "path": "/door-codes",
+  "handler": "list",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1482,6 +1667,7 @@
  {
   "method": "POST",
   "path": "/door-codes/import",
+  "handler": "importCsv",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1490,6 +1676,7 @@
  {
   "method": "POST",
   "path": "/door-codes/{room}",
+  "handler": "propose",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1498,6 +1685,7 @@
  {
   "method": "POST",
   "path": "/door-codes/{room}/confirm",
+  "handler": "confirm",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1506,6 +1694,7 @@
  {
   "method": "POST",
   "path": "/door-codes/{room}/cancel",
+  "handler": "cancel",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1514,6 +1703,7 @@
  {
   "method": "POST",
   "path": "/door-codes/{room}/reveal",
+  "handler": "reveal",
   "controller": "DoorCodeController",
   "requires": [],
   "feature": "inventory",
@@ -1522,6 +1712,7 @@
  {
   "method": "GET",
   "path": "/furniture",
+  "handler": "list",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1530,6 +1721,7 @@
  {
   "method": "GET",
   "path": "/furniture/{id}",
+  "handler": "detail",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1538,6 +1730,7 @@
  {
   "method": "POST",
   "path": "/furniture",
+  "handler": "register",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1546,6 +1739,7 @@
  {
   "method": "PUT",
   "path": "/furniture/{id}",
+  "handler": "update",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1554,6 +1748,7 @@
  {
   "method": "GET",
   "path": "/furniture/stock",
+  "handler": "stock",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1562,6 +1757,7 @@
  {
   "method": "GET",
   "path": "/furniture/moves",
+  "handler": "moves",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1570,6 +1766,7 @@
  {
   "method": "POST",
   "path": "/furniture/moves",
+  "handler": "move",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1578,6 +1775,7 @@
  {
   "method": "POST",
   "path": "/furniture/moves/{id}/done",
+  "handler": "done",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1586,6 +1784,7 @@
  {
   "method": "POST",
   "path": "/furniture/moves/{id}/cancel",
+  "handler": "cancel",
   "controller": "FurnitureController",
   "requires": [],
   "feature": "inventory",
@@ -1594,6 +1793,7 @@
  {
   "method": "GET",
   "path": "/inventory/structure",
+  "handler": "structure",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1602,6 +1802,7 @@
  {
   "method": "GET",
   "path": "/inventory/rooms",
+  "handler": "rooms",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1610,6 +1811,7 @@
  {
   "method": "POST",
   "path": "/inventory/room-codes",
+  "handler": "roomCodes",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1618,6 +1820,7 @@
  {
   "method": "GET",
   "path": "/inventory/rooms/{code}",
+  "handler": "room",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1626,6 +1829,7 @@
  {
   "method": "GET",
   "path": "/inventory/rooms/{code}/details",
+  "handler": "details",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1634,6 +1838,7 @@
  {
   "method": "GET",
   "path": "/inventory/rooms/{code}/hub",
+  "handler": "hub",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1642,6 +1847,7 @@
  {
   "method": "POST",
   "path": "/inventory/rooms/{code}/out-of-service",
+  "handler": "outOfService",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1650,6 +1856,7 @@
  {
   "method": "POST",
   "path": "/inventory/rooms/{code}/back-in-service",
+  "handler": "backInService",
   "controller": "InventoryController",
   "requires": [],
   "feature": "inventory",
@@ -1658,6 +1865,7 @@
  {
   "method": "GET",
   "path": "/inventory/room-classes",
+  "handler": "list",
   "controller": "RoomClassController",
   "requires": [],
   "feature": "inventory",
@@ -1666,6 +1874,7 @@
  {
   "method": "PUT",
   "path": "/inventory/room-classes",
+  "handler": "set",
   "controller": "RoomClassController",
   "requires": [],
   "feature": "inventory",
@@ -1674,6 +1883,7 @@
  {
   "method": "GET",
   "path": "/students/me/door-code",
+  "handler": "doorCode",
   "controller": "StudentRoomController",
   "requires": [],
   "feature": "inventory",
@@ -1682,6 +1892,7 @@
  {
   "method": "POST",
   "path": "/students/me/door-code/reveal",
+  "handler": "reveal",
   "controller": "StudentRoomController",
   "requires": [],
   "feature": "inventory",
@@ -1690,6 +1901,7 @@
  {
   "method": "GET",
   "path": "/students/me/furniture",
+  "handler": "furniture",
   "controller": "StudentRoomController",
   "requires": [],
   "feature": "inventory",
@@ -1698,6 +1910,7 @@
  {
   "method": "PUT",
   "path": "/students/me/furniture/report",
+  "handler": "report",
   "controller": "StudentRoomController",
   "requires": [],
   "feature": "inventory",
@@ -1706,6 +1919,7 @@
  {
   "method": "GET",
   "path": "/inspection-checklists",
+  "handler": "checklists",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1714,6 +1928,7 @@
  {
   "method": "POST",
   "path": "/inspection-checklists",
+  "handler": "createChecklist",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1722,6 +1937,7 @@
  {
   "method": "POST",
   "path": "/inspection-checklists/{id}/publish",
+  "handler": "publish",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1730,6 +1946,7 @@
  {
   "method": "POST",
   "path": "/inspection-checklists/{id}/archive",
+  "handler": "archive",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1738,6 +1955,7 @@
  {
   "method": "PUT",
   "path": "/inspection-checklists/{id}",
+  "handler": "renameChecklist",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1746,6 +1964,7 @@
  {
   "method": "POST",
   "path": "/inspection-checklists/{id}/restore",
+  "handler": "restoreChecklist",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1754,6 +1973,7 @@
  {
   "method": "DELETE",
   "path": "/inspection-checklists/{id}",
+  "handler": "deleteChecklist",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1762,6 +1982,7 @@
  {
   "method": "GET",
   "path": "/inspection-schedules",
+  "handler": "schedules",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1770,6 +1991,7 @@
  {
   "method": "POST",
   "path": "/inspection-schedules",
+  "handler": "createSchedule",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1778,6 +2000,7 @@
  {
   "method": "PUT",
   "path": "/inspection-schedules/{id}",
+  "handler": "updateSchedule",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1786,6 +2009,7 @@
  {
   "method": "GET",
   "path": "/inspection-runs/current",
+  "handler": "current",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1794,6 +2018,7 @@
  {
   "method": "GET",
   "path": "/inspection-runs",
+  "handler": "list",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1802,6 +2027,7 @@
  {
   "method": "GET",
   "path": "/inspection-runs/{id:INS-\\\\d+|\\\\d+}",
+  "handler": "run",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1810,6 +2036,7 @@
  {
   "method": "POST",
   "path": "/inspection-runs/{id}/rooms/{room}/photos",
+  "handler": "addPhoto",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1818,6 +2045,7 @@
  {
   "method": "DELETE",
   "path": "/inspection-runs/{id}/rooms/{room}/photos/{photoId}",
+  "handler": "removePhoto",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1826,6 +2054,7 @@
  {
   "method": "GET",
   "path": "/inspection-runs/upcoming",
+  "handler": "upcoming",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1834,6 +2063,7 @@
  {
   "method": "GET",
   "path": "/inspection-runs/{id}/rooms",
+  "handler": "rooms",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1842,6 +2072,7 @@
  {
   "method": "PUT",
   "path": "/inspection-runs/{id}/rooms/{room}",
+  "handler": "saveRoom",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1850,6 +2081,7 @@
  {
   "method": "POST",
   "path": "/inspection-runs/{id}/rooms/{room}/unreachable",
+  "handler": "unreachable",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1858,6 +2090,7 @@
  {
   "method": "POST",
   "path": "/inspection-runs/{id}/submit",
+  "handler": "submit",
   "controller": "InspectionController",
   "requires": [],
   "feature": "maintenance",
@@ -1866,6 +2099,7 @@
  {
   "method": "GET",
   "path": "/maintenance-requests/options",
+  "handler": "options",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1874,6 +2108,7 @@
  {
   "method": "POST",
   "path": "/maintenance-requests",
+  "handler": "report",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1882,6 +2117,7 @@
  {
   "method": "GET",
   "path": "/maintenance-requests",
+  "handler": "queue",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1890,6 +2126,7 @@
  {
   "method": "GET",
   "path": "/maintenance-requests/{id}",
+  "handler": "detail",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1898,6 +2135,7 @@
  {
   "method": "PATCH",
   "path": "/maintenance-requests/{id}",
+  "handler": "update",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1906,6 +2144,7 @@
  {
   "method": "POST",
   "path": "/maintenance-requests/{id}/updates",
+  "handler": "addUpdate",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1914,6 +2153,7 @@
  {
   "method": "POST",
   "path": "/maintenance-requests/{id}/confirm",
+  "handler": "confirm",
   "controller": "MaintenanceController",
   "requires": [],
   "feature": "maintenance",
@@ -1922,6 +2162,7 @@
  {
   "method": "GET",
   "path": "/admin/notification-templates",
+  "handler": "templates",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1930,6 +2171,7 @@
  {
   "method": "PUT",
   "path": "/admin/notification-templates/{key}",
+  "handler": "saveTemplate",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1938,6 +2180,7 @@
  {
   "method": "POST",
   "path": "/admin/notification-templates/{key}/test",
+  "handler": "testTemplate",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1946,6 +2189,7 @@
  {
   "method": "GET",
   "path": "/admin/emails/options",
+  "handler": "emailOptions",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1954,6 +2198,7 @@
  {
   "method": "POST",
   "path": "/admin/emails/preview",
+  "handler": "preview",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1962,6 +2207,7 @@
  {
   "method": "POST",
   "path": "/admin/emails",
+  "handler": "send",
   "controller": "AdminMessagingController",
   "requires": [],
   "feature": "notification",
@@ -1970,6 +2216,7 @@
  {
   "method": "GET",
   "path": "/students/me/board",
+  "handler": "board",
   "controller": "AnnouncementController",
   "requires": [],
   "feature": "notification",
@@ -1978,6 +2225,7 @@
  {
   "method": "GET",
   "path": "/announcements",
+  "handler": "list",
   "controller": "AnnouncementController",
   "requires": [],
   "feature": "notification",
@@ -1986,6 +2234,7 @@
  {
   "method": "GET",
   "path": "/announcements/options",
+  "handler": "options",
   "controller": "AnnouncementController",
   "requires": [],
   "feature": "notification",
@@ -1994,6 +2243,7 @@
  {
   "method": "POST",
   "path": "/announcements",
+  "handler": "create",
   "controller": "AnnouncementController",
   "requires": [],
   "feature": "notification",
@@ -2002,6 +2252,7 @@
  {
   "method": "PUT",
   "path": "/announcements/{id}",
+  "handler": "change",
   "controller": "AnnouncementController",
   "requires": [],
   "feature": "notification",
@@ -2010,6 +2261,7 @@
  {
   "method": "POST",
   "path": "/devices",
+  "handler": "register",
   "controller": "DeviceController",
   "requires": [],
   "feature": "notification",
@@ -2018,6 +2270,7 @@
  {
   "method": "POST",
   "path": "/devices/unregister",
+  "handler": "unregister",
   "controller": "DeviceController",
   "requires": [],
   "feature": "notification",
@@ -2026,6 +2279,7 @@
  {
   "method": "GET",
   "path": "/notifications",
+  "handler": "list",
   "controller": "NotificationController",
   "requires": [],
   "feature": "notification",
@@ -2034,6 +2288,7 @@
  {
   "method": "POST",
   "path": "/notifications/read-all",
+  "handler": "readAll",
   "controller": "NotificationController",
   "requires": [],
   "feature": "notification",
@@ -2042,6 +2297,7 @@
  {
   "method": "POST",
   "path": "/notifications/{id}/read",
+  "handler": "read",
   "controller": "NotificationController",
   "requires": [],
   "feature": "notification",
@@ -2050,6 +2306,7 @@
  {
   "method": "GET",
   "path": "/dashboards/staff",
+  "handler": "staff",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2058,6 +2315,7 @@
  {
   "method": "GET",
   "path": "/dashboards/manager",
+  "handler": "manager",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2066,6 +2324,7 @@
  {
   "method": "GET",
   "path": "/dashboards/term",
+  "handler": "term",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2074,6 +2333,7 @@
  {
   "method": "GET",
   "path": "/dashboards/admin",
+  "handler": "admin",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2082,6 +2342,7 @@
  {
   "method": "GET",
   "path": "/approvals/summary",
+  "handler": "approvals",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2090,6 +2351,7 @@
  {
   "method": "GET",
   "path": "/reports/occupancy",
+  "handler": "occupancy",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2098,6 +2360,7 @@
  {
   "method": "GET",
   "path": "/reports/financial",
+  "handler": "financial",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2106,6 +2369,7 @@
  {
   "method": "GET",
   "path": "/reports/block",
+  "handler": "block",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2114,6 +2378,7 @@
  {
   "method": "GET",
   "path": "/exports/{report}",
+  "handler": "export",
   "controller": "ReportController",
   "requires": [],
   "feature": "report",
@@ -2122,6 +2387,7 @@
  {
   "method": "GET",
   "path": "/search",
+  "handler": "search",
   "controller": "SearchController",
   "requires": [],
   "feature": "report",
@@ -2130,6 +2396,7 @@
  {
   "method": "GET",
   "path": "/escalations",
+  "handler": "list",
   "controller": "EscalationController",
   "requires": [],
   "feature": "request",
@@ -2138,6 +2405,7 @@
  {
   "method": "POST",
   "path": "/escalations/{id}/actions",
+  "handler": "act",
   "controller": "EscalationController",
   "requires": [],
   "feature": "request",
@@ -2146,6 +2414,7 @@
  {
   "method": "POST",
   "path": "/students/me/stay/extension",
+  "handler": "extend",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2154,6 +2423,7 @@
  {
   "method": "POST",
   "path": "/students/me/stay/end",
+  "handler": "end",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2162,6 +2432,7 @@
  {
   "method": "GET",
   "path": "/stay-requests",
+  "handler": "stayRequests",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2170,6 +2441,7 @@
  {
   "method": "POST",
   "path": "/stay-requests/{id}/decision",
+  "handler": "decideStayRequest",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2178,6 +2450,7 @@
  {
   "method": "GET",
   "path": "/next-term-requests",
+  "handler": "open",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2186,6 +2459,7 @@
  {
   "method": "POST",
   "path": "/next-term-requests/decision",
+  "handler": "decide",
   "controller": "NextTermRequestController",
   "requires": [],
   "feature": "request",
@@ -2194,6 +2468,7 @@
  {
   "method": "GET",
   "path": "/room-changes/options",
+  "handler": "options",
   "controller": "RoomChangeController",
   "requires": [],
   "feature": "request",
@@ -2202,6 +2477,7 @@
  {
   "method": "POST",
   "path": "/room-changes",
+  "handler": "create",
   "controller": "RoomChangeController",
   "requires": [],
   "feature": "request",
@@ -2210,6 +2486,7 @@
  {
   "method": "GET",
   "path": "/room-changes",
+  "handler": "queue",
   "controller": "RoomChangeController",
   "requires": [],
   "feature": "request",
@@ -2218,6 +2495,7 @@
  {
   "method": "GET",
   "path": "/room-changes/{id}/matching-beds",
+  "handler": "matchingBeds",
   "controller": "RoomChangeController",
   "requires": [],
   "feature": "request",
@@ -2226,6 +2504,7 @@
  {
   "method": "POST",
   "path": "/room-changes/{id}/decision",
+  "handler": "decide",
   "controller": "RoomChangeController",
   "requires": [],
   "feature": "request",
@@ -2234,6 +2513,7 @@
  {
   "method": "GET",
   "path": "/routing-rules",
+  "handler": "page",
   "controller": "RoutingController",
   "requires": [],
   "feature": "request",
@@ -2242,6 +2522,7 @@
  {
   "method": "POST",
   "path": "/routing-rules",
+  "handler": "create",
   "controller": "RoutingController",
   "requires": [],
   "feature": "request",
@@ -2250,6 +2531,7 @@
  {
   "method": "PUT",
   "path": "/routing-rules/timers",
+  "handler": "timers",
   "controller": "RoutingController",
   "requires": [],
   "feature": "request",
@@ -2258,6 +2540,7 @@
  {
   "method": "PUT",
   "path": "/routing-rules/{id}",
+  "handler": "update",
   "controller": "RoutingController",
   "requires": [],
   "feature": "request",
@@ -2266,6 +2549,7 @@
  {
   "method": "GET",
   "path": "/students/me/requests",
+  "handler": "mine",
   "controller": "StudentRequestsController",
   "requires": [],
   "feature": "request",
@@ -2274,6 +2558,7 @@
  {
   "method": "POST",
   "path": "/swaps",
+  "handler": "direct",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2282,6 +2567,7 @@
  {
   "method": "GET",
   "path": "/swap-board",
+  "handler": "board",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2290,6 +2576,7 @@
  {
   "method": "PUT",
   "path": "/swap-board/my-post",
+  "handler": "myPost",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2298,6 +2585,7 @@
  {
   "method": "POST",
   "path": "/swap-board/posts/{id}/request",
+  "handler": "request",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2306,6 +2594,7 @@
  {
   "method": "GET",
   "path": "/swap-invitations/{id}",
+  "handler": "invitation",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2314,6 +2603,7 @@
  {
   "method": "POST",
   "path": "/swap-invitations/{id}/respond",
+  "handler": "respond",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2322,6 +2612,7 @@
  {
   "method": "GET",
   "path": "/swaps",
+  "handler": "queue",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2330,6 +2621,7 @@
  {
   "method": "POST",
   "path": "/swaps/{id}/decision",
+  "handler": "decide",
   "controller": "SwapController",
   "requires": [],
   "feature": "request",
@@ -2338,6 +2630,7 @@
  {
   "method": "GET",
   "path": "/admin/room-types",
+  "handler": "roomTypes",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2346,6 +2639,7 @@
  {
   "method": "POST",
   "path": "/admin/room-types",
+  "handler": "createRoomType",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2354,6 +2648,7 @@
  {
   "method": "PUT",
   "path": "/admin/room-types/{id}",
+  "handler": "updateRoomType",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2362,6 +2657,7 @@
  {
   "method": "GET",
   "path": "/admin/room-classes",
+  "handler": "roomClasses",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2370,6 +2666,7 @@
  {
   "method": "POST",
   "path": "/admin/room-classes",
+  "handler": "createRoomClass",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2378,6 +2675,7 @@
  {
   "method": "PUT",
   "path": "/admin/room-classes/{id}",
+  "handler": "updateRoomClass",
   "controller": "AdminCatalogController",
   "requires": [],
   "feature": "setting",
@@ -2386,6 +2684,7 @@
  {
   "method": "GET",
   "path": "/admin/settings/{group}",
+  "handler": "settings",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2394,6 +2693,7 @@
  {
   "method": "PUT",
   "path": "/admin/settings/{group}",
+  "handler": "saveSettings",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2402,6 +2702,7 @@
  {
   "method": "GET",
   "path": "/admin/utility",
+  "handler": "utility",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2410,6 +2711,7 @@
  {
   "method": "PUT",
   "path": "/admin/utility",
+  "handler": "saveUtility",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2418,6 +2720,7 @@
  {
   "method": "GET",
   "path": "/admin/fees",
+  "handler": "fees",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2426,6 +2729,7 @@
  {
   "method": "PUT",
   "path": "/admin/fees",
+  "handler": "saveFees",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2434,6 +2738,7 @@
  {
   "method": "GET",
   "path": "/admin/eligibility",
+  "handler": "eligibility",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2442,6 +2747,7 @@
  {
   "method": "PUT",
   "path": "/admin/eligibility",
+  "handler": "saveEligibility",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2450,6 +2756,7 @@
  {
   "method": "GET",
   "path": "/admin/matching",
+  "handler": "matching",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2458,6 +2765,7 @@
  {
   "method": "PUT",
   "path": "/admin/matching",
+  "handler": "saveMatching",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2466,6 +2774,7 @@
  {
   "method": "POST",
   "path": "/admin/matching/preview",
+  "handler": "previewMatching",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2474,6 +2783,7 @@
  {
   "method": "GET",
   "path": "/admin/system-parameters",
+  "handler": "systemParameters",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2482,6 +2792,7 @@
  {
   "method": "PUT",
   "path": "/admin/system-parameters",
+  "handler": "saveSystemParameters",
   "controller": "AdminPolicyController",
   "requires": [],
   "feature": "setting",
@@ -2490,6 +2801,7 @@
  {
   "method": "GET",
   "path": "/admin/terms",
+  "handler": "list",
   "controller": "AdminTermController",
   "requires": [],
   "feature": "setting",
@@ -2498,6 +2810,7 @@
  {
   "method": "POST",
   "path": "/admin/terms/drafts",
+  "handler": "createDraft",
   "controller": "AdminTermController",
   "requires": [],
   "feature": "setting",
@@ -2506,6 +2819,7 @@
  {
   "method": "GET",
   "path": "/admin/terms/{id}/wizard",
+  "handler": "read",
   "controller": "AdminTermController",
   "requires": [],
   "feature": "setting",
@@ -2514,6 +2828,7 @@
  {
   "method": "PUT",
   "path": "/admin/terms/{id}/wizard/{step}",
+  "handler": "saveStep",
   "controller": "AdminTermController",
   "requires": [],
   "feature": "setting",
@@ -2522,6 +2837,7 @@
  {
   "method": "POST",
   "path": "/admin/terms/{id}/publish",
+  "handler": "publish",
   "controller": "AdminTermController",
   "requires": [],
   "feature": "setting",
@@ -2530,6 +2846,7 @@
  {
   "method": "GET",
   "path": "/block-settings",
+  "handler": "get",
   "controller": "BlockSettingsController",
   "requires": [],
   "feature": "setting",
@@ -2538,6 +2855,7 @@
  {
   "method": "PUT",
   "path": "/block-settings",
+  "handler": "save",
   "controller": "BlockSettingsController",
   "requires": [],
   "feature": "setting",
@@ -2546,6 +2864,7 @@
  {
   "method": "GET",
   "path": "/catalog",
+  "handler": "catalog",
   "controller": "CatalogController",
   "requires": [],
   "feature": "setting",
@@ -2554,6 +2873,7 @@
  {
   "method": "GET",
   "path": "/admin/demo",
+  "handler": "status",
   "controller": "DemoController",
   "requires": [],
   "feature": "setting",
@@ -2562,6 +2882,7 @@
  {
   "method": "GET",
   "path": "/admin/demo/files/{kind}",
+  "handler": "file",
   "controller": "DemoController",
   "requires": [],
   "feature": "setting",
@@ -2570,6 +2891,7 @@
  {
   "method": "POST",
   "path": "/admin/demo/reset",
+  "handler": "reset",
   "controller": "DemoController",
   "requires": [],
   "feature": "setting",
@@ -2578,6 +2900,7 @@
  {
   "method": "GET",
   "path": "/registration-periods/current",
+  "handler": "current",
   "controller": "RegistrationPeriodController",
   "requires": [],
   "feature": "setting",
@@ -2586,6 +2909,7 @@
  {
   "method": "GET",
   "path": "/registration-periods/{termId}",
+  "handler": "details",
   "controller": "RegistrationPeriodController",
   "requires": [],
   "feature": "setting",
@@ -2594,6 +2918,7 @@
  {
   "method": "GET",
   "path": "/terms",
+  "handler": "list",
   "controller": "TermController",
   "requires": [],
   "feature": "setting",
@@ -2602,6 +2927,7 @@
  {
   "method": "GET",
   "path": "/term-requests",
+  "handler": "list",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2610,6 +2936,7 @@
  {
   "method": "GET",
   "path": "/term-requests/defaults",
+  "handler": "defaults",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2618,6 +2945,7 @@
  {
   "method": "GET",
   "path": "/term-requests/{id}",
+  "handler": "get",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2626,6 +2954,7 @@
  {
   "method": "POST",
   "path": "/term-requests",
+  "handler": "create",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2634,6 +2963,7 @@
  {
   "method": "PUT",
   "path": "/term-requests/{id}",
+  "handler": "update",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2642,6 +2972,7 @@
  {
   "method": "POST",
   "path": "/term-requests/{id}/comments",
+  "handler": "comment",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2650,6 +2981,7 @@
  {
   "method": "POST",
   "path": "/term-requests/{id}/decision",
+  "handler": "decide",
   "controller": "TermRequestController",
   "requires": [],
   "feature": "setting",
@@ -2658,6 +2990,7 @@
  {
   "method": "GET",
   "path": "/family-days",
+  "handler": "list",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2666,6 +2999,7 @@
  {
   "method": "POST",
   "path": "/family-days",
+  "handler": "create",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2674,6 +3008,7 @@
  {
   "method": "GET",
   "path": "/family-days/{id}",
+  "handler": "detail",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2682,6 +3017,7 @@
  {
   "method": "PUT",
   "path": "/family-days/{id}",
+  "handler": "update",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2690,6 +3026,7 @@
  {
   "method": "POST",
   "path": "/family-days/{id}/publish",
+  "handler": "publish",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2698,6 +3035,7 @@
  {
   "method": "POST",
   "path": "/family-days/{id}/cancel",
+  "handler": "cancel",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2706,6 +3044,7 @@
  {
   "method": "POST",
   "path": "/family-days/{id}/close",
+  "handler": "close",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2714,6 +3053,7 @@
  {
   "method": "GET",
   "path": "/family-days/{id}/registrations",
+  "handler": "registrations",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2722,6 +3062,7 @@
  {
   "method": "POST",
   "path": "/family-day-registrations/{id}/cancel",
+  "handler": "cancelRegistration",
   "controller": "FamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2730,6 +3071,7 @@
  {
   "method": "GET",
   "path": "/family-day-stats",
+  "handler": "overview",
   "controller": "FamilyDayStatsController",
   "requires": [],
   "feature": "visitor",
@@ -2738,6 +3080,7 @@
  {
   "method": "GET",
   "path": "/family-days/{id}/stats",
+  "handler": "stats",
   "controller": "FamilyDayStatsController",
   "requires": [],
   "feature": "visitor",
@@ -2746,6 +3089,7 @@
  {
   "method": "GET",
   "path": "/students/me/family-days",
+  "handler": "list",
   "controller": "StudentFamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2754,6 +3098,7 @@
  {
   "method": "GET",
   "path": "/students/me/family-days/{id}",
+  "handler": "detail",
   "controller": "StudentFamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2762,6 +3107,7 @@
  {
   "method": "POST",
   "path": "/students/me/family-days/{id}/registration",
+  "handler": "register",
   "controller": "StudentFamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2770,6 +3116,7 @@
  {
   "method": "POST",
   "path": "/students/me/family-days/{id}/registration/safety-confirmation",
+  "handler": "confirmSafety",
   "controller": "StudentFamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2778,6 +3125,7 @@
  {
   "method": "POST",
   "path": "/students/me/family-days/{id}/registration/cancel",
+  "handler": "cancel",
   "controller": "StudentFamilyDayController",
   "requires": [],
   "feature": "visitor",
@@ -2786,6 +3134,7 @@
  {
   "method": "GET",
   "path": "/family-days/{id}/visitors",
+  "handler": "visitors",
   "controller": "VisitorDeskController",
   "requires": [],
   "feature": "visitor",
@@ -2794,6 +3143,7 @@
  {
   "method": "POST",
   "path": "/family-days/{id}/overdue-reminders",
+  "handler": "remindOverdue",
   "controller": "VisitorDeskController",
   "requires": [],
   "feature": "visitor",
@@ -2802,6 +3152,7 @@
  {
   "method": "POST",
   "path": "/family-day-visitors/verify",
+  "handler": "verify",
   "controller": "VisitorDeskController",
   "requires": [],
   "feature": "visitor",
@@ -2810,6 +3161,7 @@
  {
   "method": "POST",
   "path": "/family-day-visitors/{id}/check-in",
+  "handler": "checkIn",
   "controller": "VisitorDeskController",
   "requires": [],
   "feature": "visitor",
@@ -2818,6 +3170,7 @@
  {
   "method": "POST",
   "path": "/family-day-visitors/{id}/check-out",
+  "handler": "checkOut",
   "controller": "VisitorDeskController",
   "requires": [],
   "feature": "visitor",
