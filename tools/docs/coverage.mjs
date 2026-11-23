@@ -20,12 +20,28 @@ export function missing(lines) {
   return { routes, endpoints, messages }
 }
 
+/** Report 4: every table and every column of the schema, the columns inside their table's part of the document. */
+export function missingSchema(lines) {
+  const out = []
+  const starts = lines.map((l, i) => [l, i]).filter(([l]) => /^Table \S+ \(\d+ columns\)$/.test(l.trim()))
+  for (const t of data('schema.json').filter((x) => !x.view)) {
+    const at = starts.findIndex(([l]) => l.trim().startsWith(`Table ${t.name} (`))
+    if (at < 0) { out.push(`table ${t.name}`); continue }
+    const part = new Set(lines.slice(starts[at][1], starts[at + 1]?.[1] ?? lines.length).map((l) => l.trim()))
+    for (const c of t.columns) if (!part.has(c.name)) out.push(`${t.name}.${c.name}`)
+  }
+  return out
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const name = process.argv[2] ?? 'Report3'
   const docx = JSON.parse(fs.readFileSync(path.join(root, 'tools/docs/outlines/templates.json'), 'utf8'))[name]
   const out = path.join(root, 'tools/docs/build', `${name}.txt`)
   execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'tools/docs/docx-text.ps1'), '-Path', path.join(root, docx), '-Out', out], { stdio: 'inherit' })
-  const m = missing(fs.readFileSync(out, 'utf8').split(/\r?\n/))
+  const lines = fs.readFileSync(out, 'utf8').split(/\r?\n/)
+  const all = missing(lines)
+  // Report 3 lists screens, endpoints and messages; Report 4 the endpoints and the schema.
+  const m = name === 'Report4' ? { endpoints: all.endpoints, schema: missingSchema(lines) } : all
   for (const [k, v] of Object.entries(m)) {
     console.log(`${k}: ${v.length} missing`)
     for (const x of v.slice(0, 10)) console.log(`  ${x}`)

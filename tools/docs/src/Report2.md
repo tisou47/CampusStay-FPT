@@ -103,7 +103,7 @@ Each member has to hold the knowledge of the areas in section 4. The technologie
 |---|---|---|
 | Java 21, Spring Boot 4, Spring Security, JDBC | REST API, services, security | Trung, Lộc, Luân |
 | PostgreSQL 17, Flyway, Testcontainers | schema, migrations, integration tests | Trung, Lộc |
-| React, Vite, Tailwind, TanStack Query | web app | Trung, Lộc, Luân |
+| React, React Router, Vite, Tailwind | web app | Trung, Lộc, Luân |
 | Flutter and Dart | student mobile app | Duy |
 | Docker Compose, GitHub Actions, Caddy, Azure, Vercel | deployment and CI | Trung |
 | Firebase Cloud Messaging, SMTP, VietQR, Ollama | push, email, payments, assistant | Trung, Luân |
@@ -174,12 +174,12 @@ Meeting minutes and attendance are not kept in the repository; the weekly report
 | Purpose | Tool |
 |---|---|
 | Backend | Java 21, Spring Boot 4, Maven, PostgreSQL 17, Flyway |
-| Web | React, Vite, Tailwind, Vitest |
+| Web | React 19, React Router, Vite, Tailwind CSS 4 |
 | Mobile | Flutter and Dart (Android 8.0 and later) |
 | CI/CD | GitHub Actions (`backend.yml`, `web.yml`), GHCR |
 | Production | Vercel (web), Azure VM with Docker Compose and Caddy (API), Azure Database for PostgreSQL |
 | Environments | local (`docker compose`: PostgreSQL and Mailpit), Vercel previews per pull request, production |
-| Tests | JUnit 5, Testcontainers, Vitest, Flutter test |
+| Tests | JUnit 5, Testcontainers, Node test runner (web), Flutter test |
 | API | OpenAPI and Swagger UI, the Postman collection `CampusStay API` generated from the OpenAPI |
 | Documents | Word and Excel (COM), draw.io, Google Drive |
 | Communication | Zalo or Messenger, Google Meet, Discord |
