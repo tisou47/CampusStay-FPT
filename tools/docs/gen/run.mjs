@@ -164,6 +164,7 @@ function tests() {
     }
   }
   write('tests', {
+    runDate: new Date().toISOString().slice(0, 10),
     cases: ids.map((t) => ({ ...t, level: results.get(`${t.class}#${t.method}`)?.level ?? (t.class.endsWith('IT') ? 'integration' : 'unit'), result: results.get(`${t.class}#${t.method}`)?.result ?? 'Not run' })),
     runs: { backendUnit, backendIt, web: web.length, mobile: mobile.length, backendFailed: [...results.values()].filter((r) => r.result === 'Failed').length,
       webFailed: web.filter((r) => r.result === 'Failed').length, mobileFailed: mobile.filter((r) => r.result === 'Failed').length },

@@ -90,7 +90,7 @@ function build() {
     const a = execFileSync('git', ['log', '--reverse', '--format=%an', '--', file], { cwd: root, encoding: 'utf8' }).split('\n')[0]
     return AUTHORS[a] ?? a
   }
-  const runDate = new Date().toISOString().slice(0, 10)
+  const runDate = t.runDate
 
   const groups = FEATURES.map(([code, name, , , tc]) => {
     const cases = t.cases.filter((c) => c.id.split('-')[1] === tc).sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))
