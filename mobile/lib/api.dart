@@ -3,15 +3,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:http/http.dart' as http;
 
 import 'common.dart';
 
-/// The API the app talks to; production by default. For a local backend on the emulator:
-/// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api`
+/// The API the app talks to: production in a release build, a local backend on the emulator's host in a debug build
+/// (MOB-13, N4: a developer's debug run never writes to production by accident). Any build can name another one:
+/// `--dart-define=API_BASE_URL=https://…/api`.
 const apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://campusstay-api.eastasia.cloudapp.azure.com/api',
+  defaultValue: kReleaseMode ? 'https://campusstay-api.eastasia.cloudapp.azure.com/api' : 'http://10.0.2.2:8080/api',
 );
 
 /// The web app: pages the app does not have open there (Forgot password, MOB-09).
@@ -73,7 +75,16 @@ class Api {
   ]) async {
     final request = http.MultipartRequest('POST', _url(path))..fields.addAll(fields);
     for (final (field, file) in files) {
-      request.files.add(await http.MultipartFile.fromPath(field, file));
+      try {
+        request.files.add(await http.MultipartFile.fromPath(field, file));
+      } on FileSystemException {
+        // The picker's copy was cleaned up meanwhile (MOB-15): an ApiException every caller already handles.
+        throw ApiException(
+          0,
+          'FILE_GONE',
+          t('The chosen file is no longer on the phone. Choose it again.', 'Tệp đã chọn không còn trên máy. Hãy chọn lại.'),
+        );
+      }
     }
     // Photos over a slow campus network take longer than a JSON call (MOB-06).
     return _send(request, const Duration(seconds: 120));
