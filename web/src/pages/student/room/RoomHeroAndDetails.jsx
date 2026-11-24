@@ -100,7 +100,7 @@ export function RoomHeroCard({ data, furnitureItems }) {
               <StatusTag status={a.status ?? 'Allocated'} />
             </div>
             <p className="text-base text-fg-secondary lg:text-lg">
-              {[a.block, a.floor, a.roomTypeName, a.roomClassName].filter(Boolean).map(tr).join(' · ')}
+              {[tr(a.block), a.floor != null && t('Floor {n}', { n: a.floor }), tr(a.roomTypeName), tr(a.roomClassName)].filter(Boolean).join(' · ')}
             </p>
           </div>
         </div>

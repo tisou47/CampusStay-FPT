@@ -22,6 +22,9 @@ import { t, tr } from '@/i18n'
 // PUT /swap-board/my-post { block, roomTypeId, roomClassId } · POST /swap-board/posts/:id/request
 
 
+/** "type · class · any Block | Block X", each part in the language in use; the API joins it in English (WEB-STU-29). */
+const wantsText = (p) => (p.wants ?? '').split(' · ').map((part) => tr(part)).join(' · ')
+
 export default function SwapBoard() {
   const { notify, notifyError } = useToast()
   const catalog = useCatalog()
@@ -122,7 +125,7 @@ export default function SwapBoard() {
                       </div>
                     </Td>
                     <Td>{p.block}</Td>
-                    <Td>{tr(p.wants)}</Td>
+                    <Td>{wantsText(p)}</Td>
                     <Td className="font-medium text-fg-brand">{formatVnd(p.termPrice)}</Td>
                     <Td>
                       <Button onClick={() => request.run(p)} disabled={p.requested || request.pending}>

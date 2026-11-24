@@ -703,6 +703,7 @@ const student = {
   "Optional. The maintenance staff read it.": "Không bắt buộc. Nhân viên bảo trì sẽ đọc nội dung này.",
   "Accept this offer?": "Nhận đề nghị này?",
   "The bed becomes yours for this term and the balance invoice is issued. You cannot change it here afterwards.": "Giường thuộc về bạn trong học kỳ này và hóa đơn tiền phòng còn lại được lập. Sau đó bạn không thể đổi lại tại đây.",
+  "any Block": "mọi tòa",
 }
 const staff = {
   "Check-in desk": "Quầy nhận phòng",

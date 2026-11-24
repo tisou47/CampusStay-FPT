@@ -89,8 +89,8 @@ export default function EligibilityRules() {
               <p className="text-sm text-fg-tertiary">{t('Students of a higher group get a bed first; then the earlier deposit. Use the arrows to reorder.')}</p>
               <ReorderList
                 label="Priority groups"
-                items={(draft.groups ?? []).map((g) => ({ ...g, extra: g.applied != null ? t(g.applied === 1 ? '{n} student in this group' : '{n} students in this group', { n: g.applied }) : null }))}
-                onChange={(groups) => cfg.setValue('groups', groups.map(({ extra: _extra, ...g }) => g))}
+                items={(draft.groups ?? []).map((g) => ({ ...g, note: g.note || 'List uploaded per term', extra: g.applied != null ? t(g.applied === 1 ? '{n} student in this group' : '{n} students in this group', { n: g.applied }) : null }))}
+                onChange={(groups) => cfg.setValue('groups', groups.map(({ extra: _extra, ...g }) => ({ ...g, note: g.note === 'List uploaded per term' ? null : g.note })))}
               />
             </Card>
           </div>
@@ -109,7 +109,7 @@ export default function EligibilityRules() {
                   disabled={!group.title.trim()}
                   onClick={() => {
                     const groups = [...(draft.groups ?? [])]
-                    groups.splice(Math.max(0, groups.length - 1), 0, { title: group.title.trim(), note: group.note.trim() || 'List uploaded per term' })
+                    groups.splice(Math.max(0, groups.length - 1), 0, { title: group.title.trim(), note: group.note.trim() || null })
                     cfg.setValue('groups', groups)
                     setGroup({ title: '', note: '' })
                     setAdding(false)

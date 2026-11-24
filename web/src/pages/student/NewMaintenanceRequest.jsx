@@ -92,7 +92,7 @@ export default function NewMaintenanceRequest() {
             )}
             <Field label="Location" helper="Filled in from your allocation.">
               <StaticField size="lg" className="text-fg-disabled">
-                {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), tr(a.floor)].filter(Boolean).join(' · ') : '—'}
+                {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), a.floor != null && t('Floor {n}', { n: a.floor })].filter(Boolean).join(' · ') : '—'}
               </StaticField>
             </Field>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">

@@ -309,9 +309,9 @@ function Summary({ data }) {
                     · {i.assetCode} · {i.personal ? t('Your Bed {bed}', { bed: i.bed }) : t('Shared')}
                   </span>
                 </span>
-                <span>{i.condition ? <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{conditionName(i.condition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                <span>{i.condition ? <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{conditionName(i.condition, data.conditionLevels)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
                 {visited && (
-                  <span>{i.staffCondition ? <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{conditionName(i.staffCondition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                  <span>{i.staffCondition ? <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{conditionName(i.staffCondition, data.conditionLevels)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
                 )}
               </div>
               {(i.note || i.staffNote) && (
@@ -395,9 +395,9 @@ function FurnitureCharges() {
         description="Only what got worse while you lived here is charged; items that were already damaged and normal wear are not."
       />
       {pending.map((c) => (
-        <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${c.type} ${c.assetCode}` })}>
+        <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${typeName(c)} ${c.assetCode}` })}>
           <div className="flex flex-col gap-2">
-            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: conditionName(c.condition), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
+            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: conditionName(c.condition, d.conditionLevels), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => answer.run(c.id, false)} disabled={answer.pending}>
                 Decline
