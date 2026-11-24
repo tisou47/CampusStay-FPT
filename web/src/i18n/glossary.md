@@ -65,13 +65,11 @@ Components never call `toLocale*` or `Intl.*` themselves; `npm run i18n:check` f
 | `formatDateTime` | 15/11/2026, 08:00 | 15 Nov 2026, 08:00 |
 | `formatTime` | 08:00 | 08:00 |
 | `formatWeekdayDate` | Thứ Hai, 16/11/2026 | Mon, 16 Nov 2026 |
-| `formatDateShort` | 15/11 | 15 Nov |
 | `formatMonthYear` | Tháng 11/2026 | November 2026 |
 | `formatDateRange` (same year) | 26/06 – 11/07/2026 | 26 Jun – 11 Jul 2026 |
 | `formatDateTimeRange` (same day) | 16/11/2026, 08:00 – 10:00 | 16 Nov 2026, 08:00 – 10:00 |
 | `formatRelative` | Hôm nay 08:00 · Hôm qua 14:30 · 3 ngày trước | Today 08:00 · Yesterday 14:30 · 3 days ago |
 | `formatTimeLeft` | Còn 30 ngày · Quá hạn 2 ngày 3 giờ | 30 days left · 2d 3h overdue |
-| `formatPeriod` | Kỳ 11/2026 | Period 11/2026 |
 | `formatCurrency` / `formatVnd` | 2.588.000 ₫ | 2,588,000 ₫ |
 | `formatNumber` | 1.234 | 1,234 |
 

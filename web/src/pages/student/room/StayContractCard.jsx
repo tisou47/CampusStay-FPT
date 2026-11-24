@@ -1,4 +1,4 @@
-﻿import { Bed, Building, Calendar, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
+import { Bed, Building, Calendar, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, Note } from '@/components/ui/Display'
 import { StatusTag, Tag } from '@/components/ui/Tag'
