@@ -4827,6 +4827,20 @@ const managerOverview = {
   "No unfinished inspection forms to export": "Không có phiếu chưa làm nào để xuất",
   "No completed inspection forms to export": "Không có phiếu đã làm nào để xuất",
   "Page {n} / {total}": "Trang {n} / {total}",
+  // Manager overview on one screen (UI rework, 24/11/2026)
+  "Day {d} of {n}": "Ngày {d} / {n}",
+  "{n} of {total} on duty": "{n} / {total} người đang trực",
+  "On duty now; new requests go to them.": "Đang trực; yêu cầu mới được giao cho họ.",
+  "Nobody on duty in Blocks {list}": "Không ai trực ở tòa {list}",
+  "Most open work": "Nhiều việc đang mở nhất",
+  "{amount} still owed": "Còn thiếu {amount}",
+  "Nothing unpaid": "Không còn khoản chưa thu",
+  "Reassign or offer a temporary bed": "Giao lại hoặc bố trí giường tạm",
+  "Nothing past its time limit": "Không có yêu cầu quá hạn",
+  "Last 30 days · target {p}": "30 ngày qua · mục tiêu {p}",
+  "Maintenance on time": "Bảo trì đúng hạn",
+  "Target": "Mục tiêu",
+  "{n} free of {total}": "Còn {n} / {total} chỗ",
 }
 
 
