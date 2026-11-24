@@ -111,23 +111,23 @@ export default function MaintenanceQueue() {
 
       <div className="flex shrink-0 items-center gap-3">
         <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID or room" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-40" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
+        <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
         <Select
-          wrapperClassName="w-36"
+          fit wrapperClassName="max-w-80"
           aria-label={t('Priority')}
           value={priority}
           onChange={filter(setPriority)}
           options={[{ value: '', label: 'Priority: All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: t('Priority: {p}', { p: tr(p) }) }))]}
         />
         <Select
-          wrapperClassName="w-44"
+          fit wrapperClassName="max-w-80"
           aria-label={t('Category')}
           value={category}
           onChange={filter(setCategory)}
           options={[{ value: '', label: 'Category: All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: t('Category: {c}', { c: tr(c) }) }))]}
         />
         <Select
-          wrapperClassName="w-48"
+          fit wrapperClassName="max-w-80"
           aria-label={t('Assignee')}
           value={assigneeId}
           onChange={filter(setAssigneeId)}

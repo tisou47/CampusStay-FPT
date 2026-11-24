@@ -176,57 +176,59 @@ export default function Payments() {
         />
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select
-          wrapperClassName="w-38"
-          aria-label={t('Type')}
-          value={type}
-          onChange={filter(setType)}
-          options={[
-            { value: '', label: 'Type: All' },
-            { value: 'deposit', label: 'Type: deposit' },
-            { value: 'balance', label: 'Type: balance' },
-            { value: 'termFee', label: 'Type: Next-term fee' },
-            { value: 'utility', label: 'Type: utility' },
-            { value: 'roomChange', label: 'Type: room change' },
-          ]}
-        />
-        <Select
-          wrapperClassName="w-44"
-          aria-label={t('Status')}
-          value={status}
-          onChange={filter(setStatus)}
-          options={[
-            { value: '', label: 'Status: All' },
-            { value: AWAITING, label: 'Status: Awaiting' },
-            { value: 'Paid', label: 'Status: Paid' },
-            { value: 'Unpaid', label: 'Status: Unpaid' },
-          ]}
-        />
-        <Select
-          wrapperClassName="w-39"
-          aria-label={t('Method')}
-          value={method}
-          onChange={filter(setMethod)}
-          options={[
-            { value: '', label: 'Method: All' },
-            { value: 'Bank transfer', label: 'Method: Bank transfer' },
-            { value: 'VietQR', label: 'Method: VietQR' },
-            { value: 'Manual transfer', label: 'Method: Manual' },
-          ]}
-        />
-        <Select
-          wrapperClassName="w-42"
-          aria-label={t('Date')}
-          value={date}
-          onChange={filter(setDate)}
-          options={[
-            { value: 'today', label: 'Date: Today' },
-            { value: '7d', label: 'Date: Last 7 days' },
-            { value: 'term', label: 'Date: This term' },
-          ]}
-        />
+      <div className="flex flex-wrap shrink-0 items-center gap-3">
+        <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Type')}
+            value={type}
+            onChange={filter(setType)}
+            options={[
+              { value: '', label: 'Type: All' },
+              { value: 'deposit', label: 'Type: deposit' },
+              { value: 'balance', label: 'Type: balance' },
+              { value: 'termFee', label: 'Type: Next-term fee' },
+              { value: 'utility', label: 'Type: utility' },
+              { value: 'roomChange', label: 'Type: room change' },
+            ]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Status')}
+            value={status}
+            onChange={filter(setStatus)}
+            options={[
+              { value: '', label: 'Status: All' },
+              { value: AWAITING, label: 'Status: Awaiting' },
+              { value: 'Paid', label: 'Status: Paid' },
+              { value: 'Unpaid', label: 'Status: Unpaid' },
+            ]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Method')}
+            value={method}
+            onChange={filter(setMethod)}
+            options={[
+              { value: '', label: 'Method: All' },
+              { value: 'Bank transfer', label: 'Method: Bank transfer' },
+              { value: 'VietQR', label: 'Method: VietQR' },
+              { value: 'Manual transfer', label: 'Method: Manual' },
+            ]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Date')}
+            value={date}
+            onChange={filter(setDate)}
+            options={[
+              { value: 'today', label: 'Date: Today' },
+              { value: '7d', label: 'Date: Last 7 days' },
+              { value: 'term', label: 'Date: This term' },
+            ]}
+          />
+        </div>
       </div>
 
       <Table fill>

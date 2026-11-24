@@ -89,12 +89,50 @@ export function Modal({ open, onClose, title, description, icon, children, foote
   )
 }
 
-// Right-hand drawer (480 px), as in "Room Types – Edit drawer".
-export function Drawer({ open, onClose, title, description, children, footer, width = 480 }) {
+/**
+ * Admin and Manager pages show their drawers as a centred dialog with more room to work in (user decisions
+ * 22/11/2026 and 24/11/2026); Staff and students keep the side drawer.
+ */
+const centredHere = () => typeof window !== 'undefined' && /^\/(admin|manager)(\/|$)/.test(window.location.pathname)
+
+// Right-hand drawer (480 px), as in "Room Types – Edit drawer". On Admin pages (or with placement="center") the same
+// content opens in the middle of the screen, about 40% wider, so forms and lists have more space.
+export function Drawer({ open, onClose, title, description, children, footer, width = 480, placement }) {
   const panelRef = useRef(null)
   useOverlayBehaviour(open, onClose, panelRef)
   const titleId = useId()
   if (!open) return null
+  if (placement === 'center' || (placement !== 'side' && centredHere())) {
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6 max-sm:p-3">
+        <div aria-hidden="true" className="absolute inset-0 animate-fade-in bg-gray-900/45" onClick={onClose} />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          ref={panelRef}
+          tabIndex={-1}
+          style={{ maxWidth: Math.min(Math.round(width * 1.4), 1120) }}
+          className="relative flex max-h-[calc(100dvh-48px)] w-full animate-pop-in flex-col rounded-xl bg-surface shadow-modal outline-none"
+        >
+          <div className="flex items-start gap-4 border-b border-line px-6 pt-6 pb-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h2 id={titleId} className="text-h2 font-semibold text-fg">
+                {tx(title)}
+              </h2>
+              {description && <p className="text-base text-fg-secondary">{tx(description)}</p>}
+            </div>
+            <button type="button" onClick={onClose} aria-label={t('Close')} className="-mr-1 rounded-md p-1 text-fg-secondary hover:bg-subtle hover:text-fg">
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">{children}</div>
+          {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4">{footer}</div>}
+        </div>
+      </div>,
+      document.body,
+    )
+  }
   return createPortal(
     <div className="fixed inset-0 z-50">
       <div aria-hidden="true" className="absolute inset-0 animate-fade-in bg-gray-900/45" onClick={onClose} />

@@ -223,7 +223,8 @@ export default function Reconciliation() {
               <>
                 <div className="flex shrink-0 items-center gap-3">
                   <Select
-                    wrapperClassName="w-120"
+                    fit
+                    wrapperClassName="min-w-120 max-w-full"
                     aria-label={t('File')}
                     value={shownRun}
                     onChange={(e) => setRunId(e.target.value)}

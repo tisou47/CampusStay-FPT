@@ -214,10 +214,10 @@ export default function PaymentClaims() {
 
       {/* Filter Bar & Prominent Bulk Selection Action Bar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Search invoice, student, transfer content or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Search invoice, student, transfer content or reference" value={q} onChange={(e) => setQ(e.target.value)} />
           <Select
-            wrapperClassName="w-40"
+            fit wrapperClassName="max-w-80"
             aria-label={t('Type')}
             value={type}
             onChange={filter(setType)}
@@ -231,7 +231,7 @@ export default function PaymentClaims() {
             ]}
           />
           <Select
-            wrapperClassName="w-48"
+            fit wrapperClassName="max-w-80"
             aria-label={t('Claimed')}
             value={since}
             onChange={filter(setSince)}

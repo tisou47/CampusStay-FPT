@@ -107,33 +107,35 @@ export default function ApplicationQueue() {
       />
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Student name or code, application" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-64" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Room type')}
-          value={roomTypeId}
-          onChange={filter(setRoomTypeId)}
-          options={[{ value: '', label: 'Room type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room type: {name}', { name: tr(type.name) }) }))]}
-        />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Room tier')}
-          value={roomClassId}
-          onChange={filter(setRoomClassId)}
-          options={[{ value: '', label: 'Room tier: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room tier: {name}', { name: tr(c.name) }) }))]}
-        />
-        <Select
-          wrapperClassName="w-44"
-          aria-label={t('Submitted')}
-          value={submittedWithin}
-          onChange={filter(setSubmittedWithin)}
-          options={[
-            { value: '', label: 'Submitted: Any time' },
-            { value: '24h', label: 'Submitted: Last 24 hours' },
-            { value: '7d', label: 'Submitted: Last 7 days' },
-          ]}
-        />
+        <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Student name or code, application" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Room type')}
+            value={roomTypeId}
+            onChange={filter(setRoomTypeId)}
+            options={[{ value: '', label: 'Room type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room type: {name}', { name: tr(type.name) }) }))]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Room tier')}
+            value={roomClassId}
+            onChange={filter(setRoomClassId)}
+            options={[{ value: '', label: 'Room tier: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room tier: {name}', { name: tr(c.name) }) }))]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Submitted')}
+            value={submittedWithin}
+            onChange={filter(setSubmittedWithin)}
+            options={[
+              { value: '', label: 'Submitted: Any time' },
+              { value: '24h', label: 'Submitted: Last 24 hours' },
+              { value: '7d', label: 'Submitted: Last 7 days' },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">

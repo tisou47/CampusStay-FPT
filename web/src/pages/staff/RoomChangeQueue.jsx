@@ -365,8 +365,8 @@ export default function RoomChangeQueue() {
       />
 
       <div className="flex shrink-0 items-center gap-3">
-        <Select wrapperClassName="w-42" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select wrapperClassName="w-60" aria-label={t('Change')} value={kind} onChange={filter(setKind)} options={changeFilters} />
+        <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
+        <Select fit wrapperClassName="max-w-80" aria-label={t('Change')} value={kind} onChange={filter(setKind)} options={changeFilters} />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">

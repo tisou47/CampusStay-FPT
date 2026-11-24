@@ -447,7 +447,7 @@ export default function InspectionSchedule() {
         />
         {!scopeBlock && (
           <Select
-            wrapperClassName="w-56"
+            fit wrapperClassName="max-w-80"
             aria-label={t('Block')}
             value={effectiveFilter}
             onChange={(e) => {

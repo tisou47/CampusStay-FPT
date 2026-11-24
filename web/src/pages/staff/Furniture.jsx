@@ -252,7 +252,7 @@ function Items({ manages }) {
           ]}
         />
         <Select
-          wrapperClassName="w-52"
+          fit wrapperClassName="max-w-80"
           aria-label={t('Furniture type')}
           value={typeId}
           onChange={(e) => {
@@ -262,7 +262,7 @@ function Items({ manages }) {
           options={[{ value: '', label: t('{label}: All', { label: t('Type') }) }, ...(d?.options?.types ?? []).map((x) => ({ value: x.id, label: `${t('Type')}: ${typeName(x)}` }))]}
         />
         <Select
-          wrapperClassName="w-48"
+          fit wrapperClassName="max-w-80"
           aria-label={t('Status')}
           value={status}
           onChange={(e) => {
@@ -271,7 +271,7 @@ function Items({ manages }) {
           }}
           options={[{ value: '', label: t('{label}: All', { label: t('Status') }) }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${t('Status')}: ${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
         />
-        <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />
         <Button icon={QrCode} onClick={() => setModal({ type: 'labels' })} disabled={!items.length}>
           {selected.length ? t('Print {n} labels', { n: selected.length }) : t('Print labels')}

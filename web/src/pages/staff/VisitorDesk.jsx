@@ -377,7 +377,7 @@ export default function VisitorDesk() {
         description={day.data ? t('Block {block} · {area}', { block: day.data.block, area: day.data.area }) : undefined}
       />
 
-      <div className="grid shrink-0 gap-4 lg:grid-cols-[minmax(0,26rem)_1fr]">
+      <div className="grid shrink-0 gap-4 lg:grid-cols-[minmax(0,30rem)_1fr]">
         <Card className="flex flex-col gap-3">
           <form
             className="flex gap-2"
@@ -455,7 +455,7 @@ export default function VisitorDesk() {
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput
-          wrapperClassName="w-72"
+          wrapperClassName="min-w-80 flex-1"
           placeholder="Guest, student or student code"
           value={q}
           onChange={(e) => {
@@ -463,26 +463,28 @@ export default function VisitorDesk() {
             setPage(1)
           }}
         />
-        <Select
-          wrapperClassName="w-52"
-          aria-label={t('Status')}
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
-            setPage(1)
-          }}
-          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: guestStatusLabel(s) }) }))]}
-        />
-        <Select
-          wrapperClassName="w-60"
-          aria-label={t('Time slot')}
-          value={slotId}
-          onChange={(e) => {
-            setSlotId(e.target.value)
-            setPage(1)
-          }}
-          options={[{ value: '', label: 'Every time slot' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: formatDateTimeRange(s.startsAt, s.endsAt) }))]}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Status')}
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value)
+              setPage(1)
+            }}
+            options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: guestStatusLabel(s) }) }))]}
+          />
+          <Select
+            fit wrapperClassName="max-w-80"
+            aria-label={t('Time slot')}
+            value={slotId}
+            onChange={(e) => {
+              setSlotId(e.target.value)
+              setPage(1)
+            }}
+            options={[{ value: '', label: 'Every time slot' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: formatDateTimeRange(s.startsAt, s.endsAt) }))]}
+          />
+        </div>
       </div>
 
       {/* The list keeps the height of its rows and the page scrolls: with "fill" it only got what the pass card and
