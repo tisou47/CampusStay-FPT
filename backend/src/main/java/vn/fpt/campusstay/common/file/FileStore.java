@@ -72,6 +72,19 @@ public class FileStore {
         return new StoredFile(id, name, type, bytes.length);
     }
 
+    /** {@link #info} of several files in one query, by id (ids not found are left out). */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, StoredFile> infos(java.util.Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return jdbc.sql("SELECT id, original_name, content_type, size_bytes FROM shared_file WHERE id IN (:ids)")
+                .param("ids", java.util.List.copyOf(ids))
+                .query((rs, i) -> new StoredFile(rs.getLong("id"), rs.getString("original_name"),
+                        rs.getString("content_type"), rs.getLong("size_bytes")))
+                .list().stream().collect(java.util.stream.Collectors.toMap(StoredFile::id, f -> f));
+    }
+
     @Transactional(readOnly = true)
     public record Usage(long files, long bytes) {
     }

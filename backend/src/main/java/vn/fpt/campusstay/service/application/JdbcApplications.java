@@ -50,7 +50,7 @@ class JdbcApplications implements Applications {
         List<Long> ids = jdbc.sql("""
                 SELECT id FROM app_application WHERE term_id = :term AND status = 'APPROVED' ORDER BY id
                 """).param("term", termId).query(Long.class).list();
-        return ids.stream().map(id -> applications.find(id, false).orElseThrow()).map(this::candidate).toList();
+        return applications.findAll(ids).stream().map(this::candidate).toList();
     }
 
     @Override
@@ -62,7 +62,7 @@ class JdbcApplications implements Applications {
                   AND NOT EXISTS (SELECT 1 FROM app_round2_offer o WHERE o.application_id = a.id AND o.status = 'PENDING')
                 ORDER BY a.id
                 """).param("term", termId).query(Long.class).list();
-        return ids.stream().map(id -> applications.find(id, false).orElseThrow()).map(this::candidate).toList();
+        return applications.findAll(ids).stream().map(this::candidate).toList();
     }
 
     @Override
@@ -90,7 +90,7 @@ class JdbcApplications implements Applications {
     @Transactional(readOnly = true)
     public Map<Long, Candidate> find(Collection<Long> applicationIds) {
         Map<Long, Candidate> result = new HashMap<>();
-        applicationIds.forEach(id -> applications.find(id, false).ifPresent(a -> result.put(id, candidate(a))));
+        applications.findAll(applicationIds).forEach(a -> result.put(a.id(), candidate(a)));
         return result;
     }
 

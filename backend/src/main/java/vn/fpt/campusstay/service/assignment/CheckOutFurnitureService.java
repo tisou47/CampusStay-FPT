@@ -373,12 +373,18 @@ public class CheckOutFurnitureService {
                 .list();
         List<ReviewRow> rows = new ArrayList<>();
         Map<Long, String> names = users.displayNames(raws.stream().map(Raw::studentId).toList());
+        // One Bed lookup per Term and one furniture list per Room (BE-ASG-18), not one of each per line.
+        Map<Long, Map<Long, Inventory.BedSlot>> bedsByTerm = new HashMap<>();
+        raws.stream().collect(java.util.stream.Collectors.groupingBy(Raw::termId,
+                java.util.stream.Collectors.mapping(Raw::bedId, java.util.stream.Collectors.toSet())))
+                .forEach((term, ids) -> bedsByTerm.put(term, inventory.beds(term, ids)));
+        Map<Long, List<Inventory.FurnitureLine>> linesByRoom = new HashMap<>();
         for (Raw r : raws) {
-            Inventory.BedSlot bed = inventory.beds(r.termId(), List.of(r.bedId())).get(r.bedId());
+            Inventory.BedSlot bed = bedsByTerm.get(r.termId()).get(r.bedId());
             if (bed == null || !buildings.contains(bed.buildingId())) {
                 continue;
             }
-            Inventory.FurnitureLine line = inventory.furnitureLines(bed.roomId()).stream()
+            Inventory.FurnitureLine line = linesByRoom.computeIfAbsent(bed.roomId(), inventory::furnitureLines).stream()
                     .filter(l -> l.id() == r.itemId()).findFirst().orElse(null);
             rows.add(new ReviewRow(String.valueOf(r.allocationId()), "furniture-" + r.itemId(),
                     line == null ? null : line.assetCode(), line == null ? null : line.type(), bed.roomCode(),

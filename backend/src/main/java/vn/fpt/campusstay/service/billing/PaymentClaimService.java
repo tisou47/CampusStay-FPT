@@ -252,13 +252,21 @@ public class PaymentClaimService {
                 .params(params).query((rs, i) -> new ClaimSummary(rs.getLong("n"), rs.getLong("amount"))).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
-        List<ClaimItem> items = jdbc.sql("""
+        List<Map.Entry<ClaimItem, Long>> rows = jdbc.sql("""
                 SELECT i.code, i.student_name, i.student_code, i.type, i.title, i.amount, i.due_at, i.transfer_content,
                        c.claimed_at, c.time_left_seconds, c.reference, c.receipt_file_id,
-                       (SELECT count(*) FROM bil_payment_claim r WHERE r.invoice_id = i.id AND r.status = 'REJECTED')
-                           AS rejected
-                """ + from + where + " ORDER BY c.claimed_at, c.id LIMIT :limit OFFSET :offset")
+                       coalesce(rj.n, 0) AS rejected
+                """ + from + """
+                 LEFT JOIN (SELECT invoice_id, count(*) AS n FROM bil_payment_claim WHERE status = 'REJECTED'
+                            GROUP BY invoice_id) rj ON rj.invoice_id = i.id
+                """ + where + " ORDER BY c.claimed_at, c.id LIMIT :limit OFFSET :offset")
                 .params(params).query(this::item).list();
+        Map<Long, FileStore.StoredFile> receipts = files.infos(rows.stream().map(Map.Entry::getValue)
+                .filter(java.util.Objects::nonNull).toList());
+        List<ClaimItem> items = rows.stream().map(e -> withReceipt(e.getKey(),
+                Optional.ofNullable(e.getValue()).map(receipts::get)
+                        .map(file -> new Receipt(file.name(), file.size(), links.link(file.id()))).orElse(null)))
+                .toList();
         return new ClaimPage(items, summary.count(), summary,
                 List.of("Deposit", "Balance", "Utility", "Room change", "Damage"));
     }
@@ -536,15 +544,21 @@ public class PaymentClaimService {
         };
     }
 
-    private ClaimItem item(ResultSet rs, int i) throws SQLException {
+    private static ClaimItem withReceipt(ClaimItem c, Receipt receipt) {
+        return new ClaimItem(c.invoiceId(), c.studentName(), c.studentCode(), c.type(), c.typeLabel(), c.title(),
+                c.amount(), c.claimedAt(), c.dueAt(), c.timeLeftSeconds(), c.reference(), c.rejected(),
+                c.transferContent(), receipt);
+    }
+
+    /** A claim row and its receipt file id (the receipts are read together, BE-APP-BIL-13). */
+    private Map.Entry<ClaimItem, Long> item(ResultSet rs, int i) throws SQLException {
         String type = rs.getString("type");
         Long receiptId = rs.getObject("receipt_file_id", Long.class);
-        Receipt receipt = receiptId == null ? null : files.info(receiptId)
-                .map(f -> new Receipt(f.name(), f.size(), links.link(f.id()))).orElse(null);
-        return new ClaimItem(rs.getString("code"), rs.getString("student_name"), rs.getString("student_code"),
+        ClaimItem claim = new ClaimItem(rs.getString("code"), rs.getString("student_name"), rs.getString("student_code"),
                 InvoiceLabels.type(type), InvoiceLabels.typeLabel(type), rs.getString("title"), rs.getLong("amount"),
                 InvoiceStore.instant(rs, "claimed_at"), InvoiceStore.instant(rs, "due_at"),
                 rs.getLong("time_left_seconds"), rs.getString("reference"), rs.getInt("rejected"),
-                rs.getString("transfer_content"), receipt);
+                rs.getString("transfer_content"), null);
+        return new java.util.AbstractMap.SimpleEntry<>(claim, receiptId);
     }
 }

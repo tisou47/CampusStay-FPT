@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -156,9 +157,11 @@ public class PaymentDeskService {
                  ORDER BY (i.status = 'AWAITING_CONFIRMATION') DESC, coalesce(i.paid_at, i.issued_at) DESC, i.id DESC
                  LIMIT :limit OFFSET :offset
                 """).params(params).query(PaymentDeskService::row).list();
+        Map<Long, FileStore.StoredFile> receipts = files.infos(rows.stream().map(Row::receiptFileId)
+                .filter(java.util.Objects::nonNull).toList());
         List<PaymentItem> items = new ArrayList<>();
         for (Row r : rows) {
-            Receipt receipt = r.receiptFileId() == null ? null : files.info(r.receiptFileId())
+            Receipt receipt = Optional.ofNullable(r.receiptFileId()).map(receipts::get)
                     .map(file -> new Receipt(file.name(), file.size(), links.link(file.id())))
                     .orElse(null);
             items.add(new PaymentItem(r.code(), r.studentName(), r.studentCode(), InvoiceLabels.type(r.type()),
