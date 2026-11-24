@@ -404,7 +404,11 @@ public class DashboardService {
                   AND resolved_at <= coalesce(sla_due_at, reported_at + make_interval(hours => :hours))
                 """, p);
         long refunds = count(PENDING_REFUNDS, p);
-        long escalations = count("SELECT count(*) FROM rpt_v_escalation WHERE building_id IN (:b) AND status = 'OPEN'", p);
+        // The same escalations as the Escalations page for this scope (EscalationService.list): a chosen Term
+        // keeps its own and the term-less ones, no Term chosen keeps every Term's.
+        String escalationTerm = termId == null ? "" : " AND (term_id = :term OR term_id IS NULL)";
+        long escalations = count("SELECT count(*) FROM rpt_v_escalation WHERE building_id IN (:b) AND status = 'OPEN'"
+                + escalationTerm, p);
 
         List<FloorBeds> floors = jdbc.sql("""
                 SELECT b.floor, count(DISTINCT b.bed_id) FILTER (WHERE """ + ReportScope.inService("b") + """
@@ -434,7 +438,8 @@ public class DashboardService {
                 .list().forEach(waiting::add);
         jdbc.sql("""
                 SELECT source_code, title, why, tone FROM rpt_v_escalation
-                WHERE building_id IN (:b) AND status = 'OPEN' ORDER BY (tone = 'DANGER') DESC, opened_at LIMIT :limit
+                WHERE building_id IN (:b) AND status = 'OPEN'""" + escalationTerm + """
+                 ORDER BY (tone = 'DANGER') DESC, opened_at LIMIT :limit
                 """).params(p).query((rs, i) -> new Attention(rs.getString("source_code"), "escalation",
                         rs.getString("tone").equals("DANGER") ? "error" : "warning", rs.getString("title"),
                         rs.getString("why"), "/manager/escalations", "Handle",
