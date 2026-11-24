@@ -25,6 +25,7 @@ const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'E
 // POST /next-term-requests/decision { items: [{ kind, id }], decision: Approved | Rejected, reason }
 //   → { decided, failed: [{ kind, id, message }] } — a room change approved in bulk gets the first matching free Bed.
 
+const MAX_BULK = 200 // NextTermRequestsService.MAX_BULK
 const kindLabels = { 'room-change': 'Room change', swap: 'Swap', extension: 'Extension' }
 const kindFilters = [{ value: '', label: 'Kind: All' }, ...Object.entries(kindLabels).map(([value, label]) => ({ value, label: t('Kind: {k}', { k: t(label) }) }))]
 
@@ -41,10 +42,12 @@ export default function OpenRequests({ termId }) {
   const query = useQuery(['next-term-requests', filters], ({ signal }) => api.nextTermRequests.list(filters, { signal }))
   const items = query.data?.items ?? []
   const key = (r) => `${r.kind}:${r.id}`
-  const all = items.length > 0 && items.every((r) => selected.has(key(r)))
+  // Only visible rows are decided, and the server takes at most MAX_BULK at once (WEB-OPS-31).
+  const chosen = items.filter((r) => selected.has(key(r)))
+  const all = items.length > 0 && items.slice(0, MAX_BULK).every((r) => selected.has(key(r)))
 
   const decide = useMutation(
-    () => api.nextTermRequests.decide({ items: items.filter((r) => selected.has(key(r))).map((r) => ({ kind: r.kind, id: r.id })), decision: deciding, reason: reason.trim() || undefined }),
+    () => api.nextTermRequests.decide({ items: chosen.map((r) => ({ kind: r.kind, id: r.id })), decision: deciding, reason: reason.trim() || undefined }),
     {
       invalidates: ['next-term-requests', 'renewal-overview', 'room-changes', 'swaps', 'stay-requests'],
       onSuccess: (r) => {
@@ -63,13 +66,16 @@ export default function OpenRequests({ termId }) {
   return (
     <>
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <Select wrapperClassName="w-64" aria-label={t('Kind')} value={kind} onChange={(e) => setKind(e.target.value)} options={kindFilters} />
+        <Select wrapperClassName="w-64" aria-label={t('Kind')} value={kind} onChange={(e) => {
+            setKind(e.target.value)
+            setSelected(new Set())
+          }} options={kindFilters} />
         <div className="flex items-center gap-2">
-          <span className="text-sm text-fg-secondary">{t('{n} selected', { n: selected.size })}</span>
-          <Button variant="danger" icon={X} disabled={!selected.size} onClick={() => setDeciding('Rejected')}>
+          <span className="text-sm text-fg-secondary">{t('{n} selected', { n: chosen.length })}</span>
+          <Button variant="danger" icon={X} disabled={!chosen.length} onClick={() => setDeciding('Rejected')}>
             Reject
           </Button>
-          <Button variant="primary" icon={Check} disabled={!selected.size} onClick={() => setDeciding('Approved')}>
+          <Button variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDeciding('Approved')}>
             Approve
           </Button>
         </div>
@@ -89,7 +95,7 @@ export default function OpenRequests({ termId }) {
         <THead>
           <tr>
             <Th className="w-10">
-              <Checkbox aria-label={t('Select all')} checked={all} onChange={() => setSelected(all ? new Set() : new Set(items.map(key)))} />
+              <Checkbox aria-label={t('Select all')} checked={all} onChange={() => setSelected(all ? new Set() : new Set(items.slice(0, MAX_BULK).map(key)))} />
             </Th>
             <Th className="w-44">Kind</Th>
             <Th className="w-40">Request</Th>
@@ -148,7 +154,7 @@ export default function OpenRequests({ termId }) {
       <Modal
         open={Boolean(deciding)}
         onClose={() => setDeciding(null)}
-        title={deciding === 'Approved' ? t('Approve {n} requests', { n: selected.size }) : t('Reject {n} requests', { n: selected.size })}
+        title={deciding === 'Approved' ? t('Approve {n} requests', { n: chosen.length }) : t('Reject {n} requests', { n: chosen.length })}
         footer={
           <>
             <Button onClick={() => setDeciding(null)}>Cancel</Button>

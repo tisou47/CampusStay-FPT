@@ -179,7 +179,7 @@ export const api = {
   /** Enrollment reconciliation of a Term (spec §6.12). */
   reconciliations: {
     overview: g('/reconciliations'),
-    template: (kind) => download('/reconciliations/template', { query: { kind }, fallbackName: `${kind}-template.xlsx` }),
+    template: (kind) => download('/reconciliations/template', { query: { kind }, fallbackName: `${kind}-template.csv` }),
     /** Multipart: termId, kind (enrolled | leavers), file → the run with its items. */
     upload: (formData) => http.post('/reconciliations', formData),
     get: (id, opts) => http.get(`/reconciliations/${id}`, undefined, opts),
@@ -298,7 +298,7 @@ export const api = {
     roomReadings: g('/check-out/readings'),
     /** { readings: [{ room, electricity, water }] } → { rooms, students, problems: [{ line, room, message }] }. */
     saveRoomReadings: (scope, body) => http.put(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, body),
-    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.xlsx' }),
+    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.csv' }),
     /** multipart file (the template filled in, CSV or XLSX) → like saveRoomReadings. */
     uploadRoomReadings: (scope, formData) => http.post(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, formData),
   },
@@ -310,7 +310,7 @@ export const api = {
     save: (periodId, room, body) => http.put(`/meter-periods/${periodId}/readings/${room}`, body),
     confirm: (periodId, room) => http.post(`/meter-periods/${periodId}/readings/${room}/confirm`),
     /** The period's Rooms with their previous values, to fill in Excel (A-59). */
-    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.xlsx` }),
+    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.csv` }),
     /** multipart file: the template filled in (XLSX or CSV) → { imported, skipped }; blank lines are Rooms read later. */
     import: (periodId, formData) => http.post(`/meter-periods/${periodId}/import`, formData),
     close: (periodId) => http.post(`/meter-periods/${periodId}/close`),
@@ -375,7 +375,7 @@ export const api = {
   },
   studentImports: {
     history: g('/student-imports'),
-    template: () => download('/student-imports/template', { fallbackName: 'student-list-template.xlsx' }),
+    template: () => download('/student-imports/template', { fallbackName: 'student-list-template.csv' }),
     /** Multipart file (CSV or XLSX) → the preview. */
     upload: (formData) => http.post('/student-imports', formData),
     get: (id, query, opts) => http.get(`/student-imports/${id}`, query, opts),

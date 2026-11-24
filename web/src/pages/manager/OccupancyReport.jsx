@@ -16,7 +16,7 @@ import { t, tr } from '@/i18n'
 // GET /reports/occupancy?termId → { asOf, roomClasses: [string], note,
 //   summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote },
 //   blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }
-// GET /exports/occupancy?termId (.xlsx)
+// GET /exports/occupancy?termId (.csv)
 
 const sum = (cells, key) => cells.reduce((n, c) => n + (c[key] ?? 0), 0)
 
@@ -28,7 +28,7 @@ export default function OccupancyReport() {
   const query = useQuery(['reports', 'occupancy', params], ({ signal }) => api.reports.occupancy(params, { signal }))
   const d = query.data
   const s = d?.summary
-  const exporting = useMutation(() => api.exports.download('occupancy', params, 'occupancy.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('occupancy', params, 'occupancy.csv'), { onError: (e) => notifyError(e, 'Export failed') })
 
   return (
     <>
@@ -37,7 +37,7 @@ export default function OccupancyReport() {
         description={`${t('Allocated beds out of capacity')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
-            Export .xlsx
+            Export CSV
           </Button>
         }
       />

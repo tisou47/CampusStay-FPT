@@ -263,7 +263,7 @@ export default function ProposalReview() {
     if (!conflicts.some((r) => r.applicationId === selectedId)) setSelectedId(conflicts[0]?.applicationId ?? null)
   }, [items, tab, selectedId, readOnly])
 
-  const exporting = useMutation(() => api.exports.download('assignment-proposal', { runId, block: tab }, `${runId}-proposal.xlsx`), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('assignment-proposal', { runId, block: tab }, `${runId}-proposal.csv`), { onError: (e) => notifyError(e, 'Export failed') })
   const submitted = activeBlock && activeBlock.status !== 'review'
   const ready = activeBlock && activeBlock.conflicts === 0 && !submitted && !readOnly
   const run = data?.run

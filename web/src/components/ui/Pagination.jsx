@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { t } from '@/i18n'
 import { cx } from '@/lib/cx'
@@ -17,6 +18,11 @@ const box = 'flex size-8 shrink-0 items-center justify-center rounded-md bg-surf
 export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPageSizeChange, showSizeChanger = true, sizes = [10, 20, 50, 100], noun = ['item', 'items'], className }) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const go = (p) => onChange?.(Math.min(pages, Math.max(1, p)))
+  // A page past the end (its last row left the filter) moves back to the last page (WEB-ADM-29). A total of 0 may be
+  // a list still loading, so it is left alone.
+  useEffect(() => {
+    if (total > 0 && page > pages) onChange?.(pages)
+  }, [total, page, pages, onChange])
   return (
     <nav aria-label={t('Pagination')} className={cx('flex shrink-0 items-center gap-2', className)}>
       <p className="mr-2 text-base text-fg-secondary">
