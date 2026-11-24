@@ -28,6 +28,8 @@ function Offer({ offer }) {
   const { notify, notifyError } = useToast()
   const [selected, setSelected] = useState(offer.options[0]?.id)
   const [declining, setDeclining] = useState(false)
+  const [accepting, setAccepting] = useState(false)
+  const chosen = offer.options.find((x) => x.id === selected)
   const account = useRefundAccount()
   const app = offer.application
   const respond = useMutation((accept) => api.round2Offers.respond(offer.id, { accept, optionId: accept ? selected : undefined }), {
@@ -110,7 +112,7 @@ function Offer({ offer }) {
           <Button tip="Give up this offer and ask for your deposit back under the refund rules." variant="danger" size="lg" onClick={() => setDeclining(true)} disabled={respond.pending}>
             Decline and request refund
           </Button>
-          <Button tip="Choose a bed first. It then becomes yours for this term." variant="primary" size="lg" onClick={() => respond.run(true)} disabled={!selected || respond.pending}>
+          <Button tip="Choose a bed first. It then becomes yours for this term." variant="primary" size="lg" onClick={() => setAccepting(true)} disabled={!selected || respond.pending}>
             Accept offer
           </Button>
         </div>
@@ -129,6 +131,32 @@ function Offer({ offer }) {
           </div>
         ))}
       </Card>
+
+      <Modal
+        open={accepting && Boolean(chosen)}
+        onClose={() => setAccepting(false)}
+        title="Accept this offer?"
+        description="The bed becomes yours for this term and the balance invoice is issued. You cannot change it here afterwards."
+        footer={
+          <>
+            <Button onClick={() => setAccepting(false)}>Back</Button>
+            <Button variant="primary" onClick={() => respond.run(true)} disabled={respond.pending}>
+              {respond.pending ? t('Saving…') : t('Accept offer')}
+            </Button>
+          </>
+        }
+      >
+        {chosen && (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-base">
+            <dt className="text-fg-secondary">{t('Room')}</dt>
+            <dd className="text-fg">{[tr(chosen.roomTypeName), tr(chosen.roomClassName), chosen.block && t('Block {code}', { code: chosen.block })].filter(Boolean).join(' · ')}</dd>
+            <dt className="text-fg-secondary">{t('Term price')}</dt>
+            <dd className="text-fg tabular">{formatVnd(chosen.termPrice)}</dd>
+            <dt className="text-fg-secondary">{t('Difference')}</dt>
+            <dd className="font-medium text-fg tabular">{signed(chosen.difference)}</dd>
+          </dl>
+        )}
+      </Modal>
 
       <Modal
         open={declining}

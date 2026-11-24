@@ -139,6 +139,8 @@ const one = {
   "{n} registrations in all · {guests} guests of cancelled registrations": "{n} registration in all · {guests} guests of cancelled registrations",
   "{n} students told": "{n} student told",
   "{n} requests · most urgent first": "{n} request · most urgent first",
+  "Copy {n} people": "Copy {n} person",
+  "Sent at {time} to {n} students. Change the form to send another.": "Sent at {time} to {n} student. Change the form to send another.",
 }
 
 export default one

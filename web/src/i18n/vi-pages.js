@@ -697,6 +697,12 @@ const student = {
   "Did you transfer exactly this amount and transfer content?": "Bạn đã chuyển khoản chính xác số tiền và nội dung chuyển khoản dưới đây chưa?",
   "Important note": "Lưu ý quan trọng",
   "Reporting a transfer before paying or with incorrect content may lead to rejection and losing your bed reservation.": "Khai báo đã chuyển khoản khi chưa thực hiện hoặc sai nội dung có thể khiến yêu cầu bị từ chối và mất giữ chỗ phòng.",
+  "Reopen {id}?": "Mở lại {id}?",
+  "The request goes back to the maintenance staff.": "Yêu cầu được chuyển lại cho nhân viên bảo trì.",
+  "What is still wrong?": "Còn hỏng chỗ nào?",
+  "Optional. The maintenance staff read it.": "Không bắt buộc. Nhân viên bảo trì sẽ đọc nội dung này.",
+  "Accept this offer?": "Nhận đề nghị này?",
+  "The bed becomes yours for this term and the balance invoice is issued. You cannot change it here afterwards.": "Giường thuộc về bạn trong học kỳ này và hóa đơn tiền phòng còn lại được lập. Sau đó bạn không thể đổi lại tại đây.",
 }
 const staff = {
   "Check-in desk": "Quầy nhận phòng",
@@ -1624,6 +1630,13 @@ const manager = {
   "Pre-arrival check": "Kiểm tra phòng trước nhận phòng",
   "Room turnover check": "Kiểm tra bàn giao & chuyển kỳ",
   "{name} no longer works in this Block. Choose another assignee.": "{name} không còn làm ở tòa này. Hãy chọn người xử lý khác.",
+  "{done} of {n} people were copied before this error: {message}": "Đã chép {done}/{n} người trước khi gặp lỗi: {message}",
+  "{n} people planned the week before get the same shifts this week. {replaced} of them already have shifts planned this week: those are replaced.": "{n} người đã được xếp lịch tuần trước sẽ nhận cùng ca cho tuần này. {replaced} người trong số đó đã có ca xếp cho tuần này: các ca đó sẽ bị thay thế.",
+  "Nobody was planned the week before: everyone stays on their default shifts.": "Tuần trước không ai được xếp lịch: mọi người giữ ca mặc định.",
+  "Copying…": "Đang sao chép…",
+  "Copy {n} people": "Sao chép {n} người",
+  "Copy the week before?": "Sao chép lịch tuần trước?",
+  "Could not read the week before": "Không đọc được lịch tuần trước",
 }
 const admin = {
   "Move {item} up": "Đưa {item} lên",
@@ -2063,6 +2076,7 @@ const admin = {
   "{n} issues to resolve": "Còn {n} vấn đề cần xử lý",
   "Everything is ready. All configuration requirements have been met.": "Tất cả đã sẵn sàng. Toàn bộ yêu cầu cấu hình đã hoàn tất.",
   "House rules content": "Nội dung nội quy ký túc xá",
+  "Sent at {time} to {n} students. Change the form to send another.": "Đã gửi lúc {time} tới {n} sinh viên. Thay đổi biểu mẫu để gửi thư khác.",
 }
 
 // Accounts (Change Spec v2 phase 2): Google sign-up, the first password, verification, the student list and hub,
@@ -3955,6 +3969,8 @@ const workspace = {
   "{amount} on its way to you": "{amount} đang được hoàn cho bạn",
   "{label} · month {month} of {months} of {term} ({from} – {to})": "{label} · tháng {month}/{months} của {term} ({from} – {to})",
   "View payment": "Xem thanh toán",
+  "End this announcement now?": "Kết thúc thông báo này ngay?",
+  "“{title}” leaves the board of every reader ({n} read it). This cannot be undone.": "“{title}” sẽ bị gỡ khỏi bảng tin của mọi người đọc ({n} người đã đọc). Không thể hoàn tác.",
 }
 
 // Family Day (ADR-29): Manager, visitor desk and student screens
