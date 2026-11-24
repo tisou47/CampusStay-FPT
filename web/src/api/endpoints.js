@@ -168,8 +168,6 @@ export const api = {
     issueFees: (body) => http.post('/next-term-fees/issue', body),
     /** Leavers, movers and Rooms whose residents change between two Terms. */
     turnover: g('/turnover'),
-    /** { room, electricity, water } → 204. */
-    meterCut: (body) => http.post('/turnover/meter-cuts', body),
   },
   /** Operational moves during a Term (spec §6.13): nothing is charged. */
   operationalMoves: {
@@ -322,10 +320,8 @@ export const api = {
     current: g('/inspection-runs/current'),
     /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */
     runs: g('/inspection-runs'),
-    run: (id, opts) => http.get(`/inspection-runs/${id}`, undefined, opts),
     /** multipart: photo, itemId ("furniture-<id>"; none = the meters) → { id, itemId, url }. */
     addPhoto: (runId, room, formData) => http.post(`/inspection-runs/${runId}/rooms/${room}/photos`, formData),
-    removePhoto: (runId, room, photoId) => http.delete(`/inspection-runs/${runId}/rooms/${room}/photos/${photoId}`),
     upcoming: g('/inspection-runs/upcoming'),
     rooms: (runId, query, opts) => http.get(`/inspection-runs/${runId}/rooms`, query, opts),
     saveRoom: (runId, room, body) => http.put(`/inspection-runs/${runId}/rooms/${room}`, body),
@@ -422,7 +418,6 @@ export const api = {
     work: (id, opts) => http.get(`/block-staff/${id}/work`, undefined, opts),
     /** { items: [{ type, id }], toStaffId, note } → { moved }: all or none. */
     reassign: (id, body) => http.post(`/block-staff/${id}/work/reassign`, body),
-    requestAccount: (body) => http.post('/staff-account-requests', body),
   },
   routing: {
     get: g('/routing-rules'),
@@ -597,7 +592,6 @@ export const api = {
       list: g('/admin/room-class-requirements'),
       save: (roomClassId, body) => http.put(`/admin/room-class-requirements/${roomClassId}`, body),
     },
-    /** Replacement prices of furniture types per Room Class (check-out charges): PUT { items: [{ typeId, roomClassId, price }] }. */
     users: {
       list: g('/admin/users'),
       invite: (body) => http.post('/admin/users', body),
@@ -633,7 +627,6 @@ export const api = {
     view: (allocationId, opts) => http.get(`/check-outs/${allocationId}/furniture`, undefined, opts),
     /** { items: [{ itemId, condition, note, amount, overrideReason, managerReview }], studentPresent }. */
     record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
-    claim: (allocationId, body) => http.post(`/check-outs/${allocationId}/damage-claims`, body),
     reviews: g('/check-out-reviews'),
     decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
     mine: g('/students/me/check-out'),

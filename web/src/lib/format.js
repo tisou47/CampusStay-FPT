@@ -142,12 +142,6 @@ export function formatWeekdayDate(value) {
   return c ? `${(vi() ? WEEKDAYS_VI : WEEKDAYS_EN)[c.dow]}, ${dayText(c)}` : '—'
 }
 
-/** "15/11" / "15 Nov". */
-export function formatDateShort(value) {
-  const c = campusClock(value)
-  return c ? shortText(c) : '—'
-}
-
 /** "Tháng 11/2026" / "November 2026". */
 export function formatMonthYear(value) {
   const c = campusClock(value)
@@ -158,18 +152,6 @@ export function formatMonthYear(value) {
 export function formatMonthShort(value) {
   const c = campusClock(value)
   return c ? (vi() ? `T${c.m}` : MONTHS[c.m - 1]) : '—'
-}
-
-/** A billing period: "Kỳ 11/2026" / "Period 11/2026", from "2026-11", "2026-11-01" or (year, month). */
-export function formatPeriod(value, month) {
-  let y, m
-  if (month != null) [y, m] = [Number(value), Number(month)]
-  else {
-    const found = /^(\d{4})-(\d{2})/.exec(String(value ?? ''))
-    if (!found) return '—'
-    ;[y, m] = [Number(found[1]), Number(found[2])]
-  }
-  return `${vi() ? 'Kỳ' : 'Period'} ${pad(m)}/${y}`
 }
 
 /** Two days: "26/06 – 11/07/2026" / "26 Jun – 11 Jul 2026" within a year, both full dates otherwise. */
@@ -187,11 +169,6 @@ export function formatDateTimeRange(from, to) {
   const b = campusClock(to)
   if (!a || !b) return a ? formatDateTime(from) : b ? formatDateTime(to) : '—'
   return a.day === b.day ? `${dayText(a)}, ${timeText(a)} – ${timeText(b)}` : `${formatDateTime(from)} – ${formatDateTime(to)}`
-}
-
-/** "08:00 – 10:00". */
-export function formatTimeRange(from, to) {
-  return `${formatTime(from)} – ${formatTime(to)}`
 }
 
 /** 00:00 of a calendar day ("2027-01-20") on the campus clock, as a Date; an instant is returned as it is. */
