@@ -65,7 +65,7 @@ export default function Students() {
     <>
       <PageHeader
         title="Students"
-        description={manages ? 'Every student account: verification, enrollment and where each student lives.' : 'Residents of your blocks.'}
+        description={manages ? undefined : 'Residents of your blocks.'}
         actions={
           manages && (
             <>

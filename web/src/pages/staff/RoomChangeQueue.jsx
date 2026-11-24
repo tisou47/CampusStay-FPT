@@ -19,6 +19,7 @@ import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-REQ-10 Room-Change Queue (Figma 60:2696) — next-Term Room-Change Requests of the requests window (Change Spec v2
 // phase 6, spec §6.10): approving moves the student's next-Term Bed; nothing is invoiced or refunded.
@@ -324,6 +325,7 @@ function Review({ request: r, onReject }) {
 }
 
 export default function RoomChangeQueue() {
+  const atManager = useRoleBase() === '/manager'
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
@@ -351,7 +353,7 @@ export default function RoomChangeQueue() {
     <>
       <PageHeader
         title="Next-term room changes"
-        description={query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-term bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-change requests of the next term, in your scope.'}
+        description={atManager ? undefined : query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-term bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-change requests of the next term, in your scope.'}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>

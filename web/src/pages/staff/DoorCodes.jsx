@@ -18,6 +18,7 @@ import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-INV-12 Door codes (Change Spec v2 phase 3, ADR-23, spec §6.8). Shared by Staff (their Blocks) and Managers.
 // GET /door-codes?block&status&q&page&pageSize → { items: [{ room, block, floor, status (Change needed, Not set, Active),
@@ -179,6 +180,7 @@ function ImportModal({ onClose }) {
 }
 
 export default function DoorCodes() {
+  const atManager = useRoleBase() === '/manager'
   const { block } = useSession()
   const { notify, notifyError } = useToast()
   const [params] = useSearchParams()
@@ -218,7 +220,7 @@ export default function DoorCodes() {
     <>
       <PageHeader
         title="Door codes"
-        description="One 6-digit code per room. Set the new code on the lock, then confirm it here; residents are told without the code."
+        description={atManager ? undefined : "One 6-digit code per room. Set the new code on the lock, then confirm it here; residents are told without the code."}
         actions={
           <Button icon={Upload} onClick={() => setModal({ type: 'import' })}>
             Import codes

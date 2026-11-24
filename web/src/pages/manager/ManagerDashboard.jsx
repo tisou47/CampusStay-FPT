@@ -9,7 +9,7 @@ import { stageSteps } from '@/components/layout/FlowTrail'
 import { Button } from '@/components/ui/Button'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
-import { SemesterProgress, stageTiming } from '@/components/ui/SemesterProgress'
+import { stageTiming } from '@/components/ui/SemesterProgress'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -21,7 +21,8 @@ import { COLLECTED_RULE, floorPercent } from '@/lib/money'
 import { t, tr } from '@/i18n'
 
 // SCR-HOME-03 Manager overview (Change Spec v2 §11.2). One screen, no page scrolling:
-//   1. the Term: its stage now, the days left and the screens that stage asks for;
+//   1. the Term: its name, the stage it is in with its dates, the days left and the screens that stage asks for
+//      (no stage trail: removed with the page subtitles, 24/11/2026);
 //   2. four headline tiles, each with its gauge (occupancy, collected, overdue requests, maintenance on time);
 //   3. three cards side by side: what needs a Manager (most urgent first), Beds by Block (bar chart) and the Staff on
 //      duty (donut, Blocks with nobody on duty, who carries the most open work).
@@ -68,15 +69,13 @@ function TermCard({ term, journey, counts }) {
   return (
     <section aria-label={t('Term {name}', { name: term.name })} className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="flex min-w-0 items-center gap-4">
-          <SemesterProgress variant="compact" steps={journey} aria-label={t('Stages of the term')} />
-          {now && (
-            <p className="min-w-0 truncate text-base text-fg-secondary">
-              <span className="font-semibold text-fg">{term.name}</span>
-              {now.date && <span> · {now.date}</span>}
-            </p>
-          )}
-        </div>
+        {now && (
+          <p className="min-w-0 truncate text-base text-fg-secondary">
+            <span className="font-semibold text-fg">{term.name}</span>
+            <span className="font-medium text-fg-brand"> · {t(now.label)}</span>
+            {now.date && <span> · {now.date}</span>}
+          </p>
+        )}
         {timing && !timing.before && !timing.after && (
           <div className="flex shrink-0 items-center gap-3">
             <div className="h-1.5 w-40 overflow-hidden rounded-full bg-subtle" title={t('Day {d} of {n}', { d: timing.day, n: timing.total })}>
@@ -86,7 +85,6 @@ function TermCard({ term, journey, counts }) {
           </div>
         )}
       </div>
-      {now && <p className="text-sm text-fg-tertiary">{t(now.why)}</p>}
       <div className="flex flex-wrap items-center gap-2" aria-label={t('Work of this stage:')}>
         {stage.screens.map((sc, i) => {
           const c = counts[sc.to]

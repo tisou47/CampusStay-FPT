@@ -288,6 +288,7 @@ function OutOfServiceModal({ room, reasons, onClose }) {
 }
 
 export default function Inventory() {
+  const atManager = useRoleBase() === '/manager'
   const { term, block: scopeBlock } = useSession()
   const { notifyError } = useToast()
   const base = useRoleBase()
@@ -325,7 +326,7 @@ export default function Inventory() {
     <>
       <PageHeader
         title="Rooms and beds"
-        description="Rooms and beds in your scope. Click a room for details."
+        description={atManager ? undefined : "Rooms and beds in your scope. Click a room for details."}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!block || exporting.pending}>
             Export

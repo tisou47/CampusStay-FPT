@@ -22,6 +22,7 @@ import { cx } from '@/lib/cx'
 import { conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { campusToday, formatDate, formatDateTime, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // Staff › Check-in › Inventories: the students' check-in inventories of the Blocks.
 // GET /handovers?block&status&comparison → { items: [{ id, studentName, studentCode, room, bed, block, status, comparison,
@@ -746,6 +747,7 @@ function Detail({ id }) {
 }
 
 export default function HandoverReview() {
+  const atManager = useRoleBase() === '/manager'
   const scope = useScopeQuery()
   const [params] = useSearchParams()
   const initialStatus = params.get('status')
@@ -763,7 +765,7 @@ export default function HandoverReview() {
     <>
       <PageHeader
         title="Check-in inventories"
-        description="Students file the inventory of their Bed and the Room when they receive it. Matching inventories are final at once; the others wait for you here."
+        description={atManager ? undefined : "Students file the inventory of their Bed and the Room when they receive it. Matching inventories are final at once; the others wait for you here."}
       />
       <Tabs items={tabs.map((x) => ({ ...x, count: x.key === 'To review' ? list.data?.counts?.Submitted : x.key === 'Verifying' ? list.data?.counts?.Verifying : undefined }))} value={tab} onChange={(k) => { setTab(k); setPage(1); setSelected(null) }} />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">

@@ -40,6 +40,7 @@ function FilterTile({ active, onClick, ...tile }) {
 }
 
 export default function MaintenanceQueue() {
+  const atManager = useRoleBase() === '/manager'
   const navigate = useNavigate()
   const base = useRoleBase()
   const [params] = useSearchParams()
@@ -78,7 +79,7 @@ export default function MaintenanceQueue() {
     <>
       <PageHeader
         title="Maintenance"
-        description="Students set urgency; staff set the final priority."
+        description={atManager ? undefined : "Students set urgency; staff set the final priority."}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export

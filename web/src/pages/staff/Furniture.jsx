@@ -20,6 +20,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-INV-13 Furniture (Change Spec v2 phase 3, spec §6.19). Shared by Staff (their Blocks: status, store, moves
 // inside the Block) and Managers (also register items and transfer them between Blocks).
@@ -509,6 +510,7 @@ function Stock() {
 }
 
 export default function Furniture() {
+  const atManager = useRoleBase() === '/manager'
   const { user } = useSession()
   const manages = user?.role === 'manager'
   const [tab, setTab] = useState('items')
@@ -516,7 +518,7 @@ export default function Furniture() {
     <>
       <PageHeader
         title="Furniture"
-        description={manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
+        description={atManager ? undefined : manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
       />
       <Tabs
         className="shrink-0"

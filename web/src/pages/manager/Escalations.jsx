@@ -102,7 +102,7 @@ export default function Escalations() {
 
   return (
     <>
-      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} description="Requests that passed their time limit or were escalated by staff. Reassign them or add a note." />
+      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} />
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <Table fill className="min-w-0">
           <THead>

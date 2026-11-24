@@ -15,6 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-ASG-21 Operational moves — Staff › Rooms (their Blocks) and Manager › Residents (every Block) (Change Spec v2
 // phase 6, spec §6.13, D-14, D-31). Staff or a Manager move a student to another Bed of the same Term for a recorded
@@ -144,6 +145,7 @@ function MoveForm({ options, onDone, onLoadNext }) {
 }
 
 export default function OperationalMoves() {
+  const atManager = useRoleBase() === '/manager'
   const scope = useScopeQuery()
   const [code, setCode] = useState('')
   const [target, setTarget] = useState(null)
@@ -154,7 +156,7 @@ export default function OperationalMoves() {
   const items = history.data?.items ?? []
   return (
     <>
-      <PageHeader title="Operational moves" description="Move a student to another bed for an operational reason. Nothing is charged." />
+      <PageHeader title="Operational moves" description={atManager ? undefined : "Move a student to another bed for an operational reason. Nothing is charged."} />
       <form
         className="flex shrink-0 items-end gap-3"
         onSubmit={(e) => {

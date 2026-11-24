@@ -437,7 +437,8 @@ export function BackOfficeLayout({ role }) {
       <div className="flex min-h-0 flex-1">
         <Sidebar role={role} />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <FlowTrail role={role} />
+          {/* Staff keep the term trail; the Manager and Admin pages do without it (UI rework, 24/11/2026). */}
+          {role === 'staff' && <FlowTrail role={role} />}
           <SectionTabs role={role} />
           <Outlet />
           <ShiftConfirmHost />

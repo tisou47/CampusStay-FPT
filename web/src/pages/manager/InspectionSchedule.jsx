@@ -430,7 +430,6 @@ export default function InspectionSchedule() {
     <>
       <PageHeader
         title={one ? t('Inspection schedules · Block {code}', { code: effectiveFilter }) : 'Inspection schedules'}
-        description="Plan recurring inspections; staff run them with the admin checklist."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => { setView('schedules'); setSelectedId('new'); setEditing(true) }} disabled={!query.data || !one} tip={one ? undefined : 'Choose a Block to create a schedule in it.'}>
             New schedule

@@ -34,7 +34,7 @@ export default function OccupancyReport() {
     <>
       <PageHeader
         title="Occupancy report"
-        description={`${t('Allocated beds out of capacity')}${term ? ` · ${term.name}` : ''}${d?.asOf ? ` · ${t('as of {date}', { date: formatDateTime(d.asOf) })}` : ''}`}
+        description={[term?.name, d?.asOf && t('as of {date}', { date: formatDateTime(d.asOf) })].filter(Boolean).join(' · ')}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
             Export .xlsx

@@ -104,7 +104,6 @@ export default function RoutingRules() {
     <>
       <PageHeader
         title={block ? t('Routing rules · Block {code}', { code: block }) : 'Routing rules'}
-        description="Who receives each new request automatically. Unmatched requests go to the block queue for manual assignment."
         actions={
           <>
             {picker}

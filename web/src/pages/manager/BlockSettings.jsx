@@ -44,7 +44,6 @@ function Form({ saved, block, picker }) {
     <>
       <PageHeader
         title={block ? t('House rules · Block {code}', { code: block }) : 'Block house rules'}
-        description="Visiting hours, quiet hours and the rules residents of this block follow, inside the limits set by admin."
         actions={
           <>
             {picker}

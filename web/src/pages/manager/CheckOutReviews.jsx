@@ -34,7 +34,7 @@ export default function CheckOutReviews() {
   const rows = query.data ?? []
   return (
     <>
-      <PageHeader title="Check-out charges" description="Furniture charges a student did not accept at the desk. Decide the same day: until then the item is not charged." />
+      <PageHeader title="Check-out charges" />
       <Card padding="none" className="flex min-h-0 flex-1 flex-col">
         <Table fill>
           <THead>
