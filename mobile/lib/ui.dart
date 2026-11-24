@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import 'common.dart';
@@ -676,70 +677,6 @@ class NextAction extends StatelessWidget {
               child: SizedBox(width: double.infinity, child: action!),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// A grid of shortcuts (icon, label, optional count badge), three per row: the phone's way to reach every part of the
-/// app from Home without listing their details.
-class QuickGrid extends StatelessWidget {
-  const QuickGrid({super.key, required this.items, this.columns = 3});
-
-  /// Shortcuts per row.
-  final int columns;
-
-  /// (icon, label, badge count or null, onTap)
-  final List<(IconData, String, int?, VoidCallback)> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Panel(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final width = box.maxWidth / columns;
-          return Wrap(
-            children: [
-              for (final (icon, text, badge, onTap) in items)
-                SizedBox(
-                  width: width,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: onTap,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                      child: Column(
-                        spacing: 6,
-                        children: [
-                          Badge(
-                            isLabelVisible: (badge ?? 0) > 0,
-                            label: Text('$badge'),
-                            backgroundColor: Tokens.primary,
-                            child: Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: Tokens.brandSubtle,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(icon, color: Tokens.fgBrand, size: 24),
-                            ),
-                          ),
-                          Text(
-                            text,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Tokens.fg),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
       ),
     );
   }

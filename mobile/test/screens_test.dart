@@ -16,6 +16,7 @@ import 'package:campusstay_student/screens/registration.dart';
 import 'package:campusstay_student/screens/requests.dart';
 import 'package:campusstay_student/screens/room.dart';
 import 'package:campusstay_student/session.dart';
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
