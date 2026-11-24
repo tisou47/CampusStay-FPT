@@ -41,9 +41,18 @@ export default function SwapBoard() {
     onSuccess: () => notify({ title: 'Swap post saved', message: 'Compatible posts are listed below.' }),
     onError: (e) => notifyError(e, 'Could not save your post'),
   })
+  // A post without a room type is taken down (SwapController.myPost, WEB-STU-26).
+  const takeDown = useMutation(() => api.swaps.savePost({ termId: board.data?.window?.termId, roomTypeId: null }), {
+    invalidates: ['swap-board'],
+    onSuccess: () => {
+      setWant({ block: '', roomTypeId: '', roomClassId: '' })
+      notify({ title: 'Swap post removed', message: 'Other students no longer see it.' })
+    },
+    onError: (e) => notifyError(e, 'Could not remove your post'),
+  })
   const request = useMutation((post) => api.swaps.requestPost(post.id), {
     invalidates: ['swap-board', 'requests'],
-    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'If they request you back, a manager approves the cross-block swap.' : 'If they request you back, staff approve the swap.' }),
+    onSuccess: (_, post) => notify({ title: 'Swap requested', message: post.crossBlock ? 'They get an invitation. When they accept, a manager approves the cross-block swap.' : 'They get an invitation. When they accept, staff approve the swap.' }),
     onError: (e) => notifyError(e, 'Could not request this swap'),
   })
 
@@ -88,10 +97,17 @@ export default function SwapBoard() {
                 {myPost ? t('Update post') : t('Post')}
               </Button>
             </div>
-            {myPost?.expiresAt && (
-              <Tag tone="info" className="self-start">
-                {t('Your post is live until {date}', { date: formatDate(myPost.expiresAt) })}
-              </Tag>
+            {myPost && (
+              <div className="flex flex-wrap items-center gap-3">
+                {myPost.expiresAt && (
+                  <Tag tone="info">
+                    {t('Your post is live until {date}', { date: formatDate(myPost.expiresAt) })}
+                  </Tag>
+                )}
+                <Button variant="text" size="sm" onClick={() => takeDown.run()} disabled={takeDown.pending}>
+                  Remove my post
+                </Button>
+              </div>
             )}
           </Card>
 
@@ -136,7 +152,7 @@ export default function SwapBoard() {
                 ))}
               </TBody>
             </Table>
-            <p className="shrink-0 text-sm text-fg-tertiary">{t('When both sides request each other, the swap goes to staff (same block) or a manager (cross-block) for approval.')}</p>
+            <p className="shrink-0 text-sm text-fg-tertiary">{t('The student who posted gets an invitation. When they accept, staff (same block) or a manager (cross-block) approve the swap.')}</p>
           </Card>
         </div>
         <YourRoomNow />

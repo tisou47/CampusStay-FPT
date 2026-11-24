@@ -64,6 +64,21 @@ function FurnitureSummaryValue({ allocationFurniture, furnitureItems }) {
   )
 }
 
+/** Select options for the declared items; identical labels ("Chair · Shared") get a number: "Chair 1 · Shared". */
+function itemOptions(items) {
+  const base = (i) => `${typeName(i)}|${i.personal && i.bed ? i.bed : ''}`
+  const totals = new Map()
+  items.forEach((i) => totals.set(base(i), (totals.get(base(i)) ?? 0) + 1))
+  const seen = new Map()
+  return items.map((i) => {
+    const n = (seen.get(base(i)) ?? 0) + 1
+    seen.set(base(i), n)
+    const name = totals.get(base(i)) > 1 ? `${typeName(i)} ${n}` : typeName(i)
+    const where = i.personal && i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')
+    return { value: i.itemId, label: `${name} · ${where}${i.reportedCondition ? ` (${conditionName(i.reportedCondition)})` : ''}` }
+  })
+}
+
 export function RoomHeroCard({ data, furnitureItems }) {
   const { allocation: a, term: tm } = data
   const detailItems = [
@@ -328,35 +343,26 @@ export function FurnitureCard({ furnitureQuery }) {
       >
         <div className="flex flex-col gap-3">
           <Field label="Furniture item" required>
-            <Select
-              value={selectedItemId}
-              onChange={(e) => {
-                const nextId = e.target.value
-                setSelectedItemId(nextId)
-                const found = reportableItems.find((x) => x.itemId === nextId)
-                setCondition(found?.reportedCondition ?? 'Damaged')
-                setNote(found?.reportedNote ?? '')
-              }}
-              options={reportableItems.map((i) => ({
-                value: i.itemId,
-                label: `${typeName(i)} · ${i.personal && i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}${i.reportedCondition ? ` (${conditionName(i.reportedCondition)})` : ''}`,
-              }))}
-            />
+            {(id) => (
+              <Select
+                id={id}
+                value={selectedItemId}
+                onChange={(e) => {
+                  const nextId = e.target.value
+                  setSelectedItemId(nextId)
+                  const found = reportableItems.find((x) => x.itemId === nextId)
+                  setCondition(found?.reportedCondition ?? 'Damaged')
+                  setNote(found?.reportedNote ?? '')
+                }}
+                options={itemOptions(reportableItems)}
+              />
+            )}
           </Field>
           <Field label="Condition" required>
-            <Select
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-              options={conditionOptions()}
-            />
+            {(id) => <Select id={id} value={condition} onChange={(e) => setCondition(e.target.value)} options={conditionOptions()} />}
           </Field>
           <Field label="Note" helper={t('Describe what happened (optional). Choose Good to clear an existing declaration.')}>
-            <Input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              maxLength={300}
-              placeholder={t('e.g. Broken chair leg, missing locker key…')}
-            />
+            {(id) => <Input id={id} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder={t('e.g. Broken chair leg, missing locker key…')} />}
           </Field>
         </div>
       </Modal>

@@ -345,12 +345,7 @@ function Payment({ data, reload }) {
               {canClaim ? (
                 <div className="flex flex-col gap-3 rounded-xl bg-subtle/60 p-4 sm:flex-row sm:items-end">
                   <Field label="Bank reference (optional)" className="sm:flex-1">
-                    <Input
-                      value={reference}
-                      maxLength={60}
-                      onChange={(e) => setReference(e.target.value)}
-                      placeholder="FT26300012345"
-                    />
+                    {(id) => <Input id={id} value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />}
                   </Field>
                   <Button
                     tip="Tell the dormitory you paid. A manager checks it against the bank statement, then the invoice shows as paid."

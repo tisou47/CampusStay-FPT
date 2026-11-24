@@ -13,7 +13,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { cx } from '@/lib/cx'
 import { formatDate, formatVnd } from '@/lib/format'
 import { catalogHelpers, useCatalog } from './apply/wizard'
-import { t, tx } from '@/i18n'
+import { t, tr, tx } from '@/i18n'
 import { countLines } from '@/lib/furniture'
 
 /**
@@ -233,7 +233,7 @@ export function ReceiptModal({ invoice, onClose }) {
       open={Boolean(invoice)}
       onClose={onClose}
       title={invoice ? t('Receipt · {id}', { id: invoice.id }) : ''}
-      description="Payment confirmed by the bank."
+      description="Payment confirmed by the dormitory office."
       footer={
         <>
           <Button onClick={() => receipt.run(invoice.id)} disabled={receipt.pending}>
@@ -250,7 +250,7 @@ export function ReceiptModal({ invoice, onClose }) {
           rows={[
             ['Invoice', invoice.title ?? invoice.id],
             ['Paid on', formatDate(invoice.paidAt)],
-            ['Method', invoice.paymentMethod ?? '—'],
+            ['Method', tr(invoice.paymentMethod) || '—'],
             ['Transfer content', invoice.transferContent ?? '—'],
             ['Amount', <span className="font-medium">{formatVnd(invoice.amount)}</span>],
           ]}
