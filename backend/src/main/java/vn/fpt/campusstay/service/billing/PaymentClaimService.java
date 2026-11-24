@@ -56,10 +56,13 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
 public class PaymentClaimService {
 
     /** The claim state of one Invoice, for the student's payment page. */
-    public record ClaimView(String status, Instant claimedAt, String reference, int rejected, Rejection lastRejection) {
+    /** @param rejectionsLeft rejected claims left before the Invoice is cancelled, null for a debt (BE-APP-BIL-19) */
+    public record ClaimView(String status, Instant claimedAt, String reference, int rejected, Integer rejectionsLeft,
+            Rejection lastRejection) {
     }
 
-    public record Rejection(String reason, Instant at) {
+    /** @param dueAt the deadline after the latest rejection */
+    public record Rejection(String reason, Instant at, Instant dueAt) {
     }
 
     /** @param since {@code today}, {@code 24h}, {@code 7d} or blank (every claim waiting) */
@@ -187,9 +190,18 @@ public class PaymentClaimService {
         Row latest = rows.getFirst();
         int rejected = (int) rows.stream().filter(r -> r.status().equals("REJECTED")).count();
         Rejection last = rows.stream().filter(r -> r.status().equals("REJECTED")).findFirst()
-                .map(r -> new Rejection(r.reason(), r.decidedAt())).orElse(null);
+                .map(r -> new Rejection(r.reason(), r.decidedAt(), null)).orElse(null);
+        record Inv(String type, Instant dueAt) {
+        }
+        Inv inv = jdbc.sql("SELECT type, due_at FROM bil_invoice WHERE id = :id").param("id", invoiceId)
+                .query((rs, i) -> new Inv(rs.getString("type"), InvoiceStore.instant(rs, "due_at"))).single();
+        if (last != null) {
+            last = new Rejection(last.reason(), last.at(), inv.dueAt());
+        }
+        Integer left = PLACE_TYPES.contains(inv.type())
+                ? Math.max(0, Math.max(1, parameters.intValue("payment.rejections_to_cancel")) - rejected) : null;
         return Optional.of(new ClaimView(statusLabel(latest.status()), latest.claimedAt(), latest.reference(), rejected,
-                last));
+                left, last));
     }
 
     // ---------------------------------------------------------------- Managers: the queue
@@ -388,7 +400,8 @@ public class PaymentClaimService {
                     due = now.plus(back.compareTo(minimum) < 0 ? minimum : back);
                 }
                 jdbc.sql("""
-                        UPDATE bil_invoice SET status = :status, due_at = :due, updated_at = :now, version = version + 1
+                        UPDATE bil_invoice SET status = :status, due_at = :due, reminders_sent = 0, updated_at = :now,
+                               version = version + 1
                         WHERE id = :id
                         """).param("status", due.isAfter(now) || inv.type().equals("DEPOSIT") ? "UNPAID" : "OVERDUE")
                         .param("due", Timestamp.from(due)).param("now", Timestamp.from(now)).param("id", inv.id())

@@ -488,6 +488,20 @@ class JdbcBilling implements Billing {
         return id;
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<RefundRequested> refundInFull(long invoiceId, String sourceType, long sourceId, String reason) {
+        InvoiceStore.Invoice invoice = invoices.find(invoiceId, true).orElse(null);
+        if (invoice == null || !invoice.status().equals("PAID") || invoice.amount() <= 0 || refunded(invoice.id())) {
+            return Optional.empty();
+        }
+        long id = insertRefund(new RefundDraft(invoice.termId(), invoice.studentId(), invoice.buildingId(), invoice.id(),
+                sourceType, sourceId, reason, null, invoice.amount(), invoice.amount(), false));
+        audit.record("REFUND_REQUESTED", AuditLog.Tone.INFO, "Invoice", invoice.id(), invoice.code(),
+                Map.of("amount", invoice.amount(), "source", sourceType, "status", "Pending"));
+        return Optional.of(new RefundRequested(id, invoice.amount()));
+    }
+
     private record RefundDraft(long termId, long studentId, Long buildingId, Long invoiceId, String sourceType,
             long sourceId, String reason, Long ruleId, long paid, long amount, boolean automatic) {
     }

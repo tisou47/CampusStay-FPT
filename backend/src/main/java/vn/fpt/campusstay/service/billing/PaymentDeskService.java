@@ -173,8 +173,8 @@ public class PaymentDeskService {
         params.put("term", termId);
         params.put("today", Timestamp.from(today));
         return jdbc.sql("""
-                SELECT coalesce(sum(p.amount) FILTER (WHERE p.paid_at >= :today), 0) AS collected_today,
-                       count(p.id) FILTER (WHERE p.paid_at >= :today) AS collected_today_count,
+                SELECT coalesce(sum(p.amount) FILTER (WHERE p.created_at >= :today), 0) AS collected_today, -- confirmed today (BE-APP-BIL-10)
+                       count(p.id) FILTER (WHERE p.created_at >= :today) AS collected_today_count,
                        count(*) FILTER (WHERE i.status = 'AWAITING_CONFIRMATION') AS awaiting,
                        count(*) FILTER (WHERE i.type = 'DEPOSIT' AND i.status IN ('UNPAID', 'OVERDUE')) AS unpaid_deposits,
                        count(*) FILTER (WHERE i.type = 'DEPOSIT' AND i.status IN ('PAID', 'REFUNDED')) AS deposits_paid,

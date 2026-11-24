@@ -1137,3 +1137,9 @@ The workbook is too large once unpacked. Keep only the list in it and upload it 
 The refund of a rejected Application cannot be switched off. Change its percent instead. ⟶ Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.
 This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này không hợp lệ. Hãy bắt đầu cuộc trò chuyện mới.
 This device still receives another account's notifications. Sign out of that account first. ⟶ Thiết bị này vẫn đang nhận thông báo của một tài khoản khác. Hãy đăng xuất tài khoản đó trước.
+
+# ---------- wave 3: refunds, claims ----------
+A Utility Deposit settlement keeps its own amount: no rule applies. ⟶ Khoản quyết toán tiền đặt cọc điện nước giữ nguyên số tiền: không áp dụng quy tắc nào.
+Choose one of the active refund rules. ⟶ Hãy chọn một trong các quy tắc hoàn tiền đang áp dụng.
+This rule refunds nothing. Reject the refund instead. ⟶ Quy tắc này không hoàn tiền. Hãy từ chối khoản hoàn tiền.
+The student has not entered a bank account from the list yet. Remind them to enter it. ⟶ Sinh viên chưa nhập tài khoản ngân hàng từ danh sách. Hãy nhắc sinh viên nhập.
