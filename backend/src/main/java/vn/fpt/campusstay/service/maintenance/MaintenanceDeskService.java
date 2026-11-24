@@ -86,12 +86,13 @@ public class MaintenanceDeskService {
     public record RoomSummary(int residents, int capacity, long otherOpen, long pastThisTerm) {
     }
 
+    /** {@code staff}: who may be assigned the request, the staff of its own Block (the PATCH refuses anyone else). */
     public record Detail(String id, String title, String status, String room, String bed, String category,
             String location, Instant reportedAt, Reporter reporter, String urgency, String priority,
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
             String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
             Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions,
-            InspectionFinding inspectionFinding) {
+            InspectionFinding inspectionFinding, List<MaintenanceService.StaffOption> staff) {
     }
 
     /**
@@ -299,7 +300,8 @@ public class MaintenanceDeskService {
                 history.stream().map(e -> new DeskEvent(e.actorId() == null ? "CampusStay" : names.get(e.actorId()),
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
-                room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null);
+                room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null,
+                labels.staffOptions(List.of(r.buildingId())));
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */

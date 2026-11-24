@@ -289,7 +289,7 @@ export default function ManagerDashboard() {
       tone: 'error',
       title: t('{n} overdue requests', { n: formatNumber(k.escalationsWaiting) }),
       meta: t('Past their time limit: reassign them or offer a temporary bed'),
-      action: { label: t('Handle'), to: '/manager/escalations', primary: true, className: 'min-w-24 justify-center' },
+      action: { label: t('Handle'), to: '/manager/maintenance?tab=overdue', primary: true, className: 'min-w-24 justify-center' },
     },
     k?.refundsWaiting > 0 && {
       id: 'refunds',
@@ -372,7 +372,7 @@ export default function ManagerDashboard() {
           {k && <Meter value={k.collected} max={k.invoiced || 1} tone="success" label={t('Collected')} className="mt-1 h-1.5" />}
         </KpiTile>
         <Link
-          to="/manager/escalations"
+          to="/manager/maintenance?tab=overdue"
           className={cx(
             'flex min-w-0 flex-col gap-1 rounded-lg border bg-surface px-4 py-3.5 transition-colors focus-visible:outline-2 focus-visible:outline-focus',
             overdue > 0 ? 'border-error/40 hover:bg-error-bg' : 'border-line hover:bg-subtle',

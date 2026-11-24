@@ -26,7 +26,8 @@ import { t, tr } from '@/i18n'
 //   assignee: { id, name } | null, suggestedAssigneeId, visitWindow,
 //   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm },
 //   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }],
-//   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null }
+//   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null,
+//   staff: [{ id, name, skills }] (who may be assigned: the staff of the request's own Block) }
 // PATCH /maintenance-requests/:id { priority, furnitureItemId, assigneeId, visitWindow, status }
 // POST /maintenance-requests/:id/updates { message, internal }
 
@@ -377,7 +378,7 @@ export default function MaintenanceDetail() {
   const query = useQuery(['maintenance', id], ({ signal }) => api.maintenance.get(id, { signal }))
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))
 
-  if (query.data) return <RequestDetail r={query.data} staff={options.data?.staff ?? []} priorities={options.data?.priorities ?? [query.data.priority].filter(Boolean)} />
+  if (query.data) return <RequestDetail r={query.data} staff={query.data.staff ?? options.data?.staff ?? []} priorities={options.data?.priorities ?? [query.data.priority].filter(Boolean)} />
   return (
     <>
       <PageHeader breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: id }]} />} title={id} />

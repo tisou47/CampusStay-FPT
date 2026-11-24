@@ -56,10 +56,13 @@ public class EscalationService {
     public record Event(String text, Instant at) {
     }
 
-    /** @param kind {@code maintenance} or {@code room-change}; {@code tone} info, warning or error */
+    /**
+     * @param kind {@code maintenance} or {@code room-change}; {@code tone} info, warning or error
+     * @param assignees who the request may be handed to: the staff of its own Block (empty once handled)
+     */
     public record Item(String id, String kind, String title, String subtitle, String room, String why, String tone,
             String openFor, String ownerName, Handled handled, List<Event> events, String suggestedAssigneeId,
-            String link, boolean canOfferTemporaryBed) {
+            String link, boolean canOfferTemporaryBed, List<Assignee> assignees) {
     }
 
     public record Assignee(String id, String name) {
@@ -288,6 +291,12 @@ public class EscalationService {
         List<Item> items = rows.stream().map(r -> {
             boolean isOpen = r.status().equals("OPEN");
             boolean change = r.sourceType().equals(ROOM_CHANGE);
+            String handle = change ? "ROOM_CHANGES" : MAINTENANCE; // STAFF_HANDLE code of the request's kind of work
+            List<Assignee> assignees = !isOpen ? List.of()
+                    : staffByBlock.computeIfAbsent(r.buildingId(), b -> users.staffOf(List.of(b))).stream()
+                            .sorted(Comparator.comparing((UserDirectory.StaffMember m) -> !m.handles().contains(handle))
+                                    .thenComparing(UserDirectory.StaffMember::name))
+                            .map(m -> new Assignee(String.valueOf(m.userId()), m.name())).toList();
             Handled handled = isOpen ? null : new Handled(handledLabel(r, names), r.handledAt(), r.handledNote());
             Instant start = r.sourceAt() != null ? r.sourceAt() : r.openedAt();
             return new Item(r.sourceCode(), change ? "room-change" : "maintenance", r.title(), r.subtitle(), r.room(),
@@ -296,7 +305,7 @@ public class EscalationService {
                     timeline.getOrDefault(r.id(), List.of()),
                     isOpen ? suggest(r, staffByBlock.computeIfAbsent(r.buildingId(), b -> users.staffOf(List.of(b))),
                             load.getOrDefault(r.sourceType(), Map.of())) : null, r.link(),
-                    isOpen && change);
+                    isOpen && change, assignees);
         }).toList();
         return new Page(items, staff.stream().map(m -> new Assignee(String.valueOf(m.userId()), m.name())).toList());
     }

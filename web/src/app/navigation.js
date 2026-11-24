@@ -38,7 +38,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Timer,
-  TriangleAlert,
   Upload,
   User,
   Users,
@@ -210,7 +209,6 @@ export const backOffice = {
       {
         title: 'Operations',
         items: [
-          { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
