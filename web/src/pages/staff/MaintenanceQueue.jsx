@@ -7,7 +7,7 @@ import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { SearchInput, Select } from '@/components/ui/Field'
+import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
@@ -28,8 +28,8 @@ import { t, tr } from '@/i18n'
 // GET /maintenance-requests/options → { categories, priorities, staff: [{ id, name }] }
 
 const statusFilters = [
-  { value: '', label: 'Status: All' },
-  ...['Submitted', 'Assigned', 'In progress', 'Resolved', 'Closed'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) })),
+  { value: '', label: 'All' },
+  ...['Submitted', 'Assigned', 'In progress', 'Resolved', 'Closed'].map((s) => ({ value: s, label: s })),
 ]
 
 /** The list each tab shows: its status and assignee filters. */
@@ -76,8 +76,8 @@ export default function MaintenanceQueue() {
   const s = query.data?.summary
   const overdueOpen = (overdue.data?.items ?? []).filter((e) => !e.handled).length
   const exporting = useMutation(() => api.exports.download('maintenance', { ...filters, page: undefined, pageSize: undefined }, 'maintenance-requests.csv'), { onError: (e) => notifyError(e, 'Export failed') })
-  const filter = (set) => (e) => {
-    set(e.target.value)
+  const pick = (set) => (value) => {
+    set(value)
     setPage(1)
   }
   const openTab = (key) => {
@@ -127,31 +127,15 @@ export default function MaintenanceQueue() {
           <div className="flex shrink-0 flex-wrap items-center gap-3">
             <SearchInput wrapperClassName="min-w-64 flex-1" aria-label={t('Search')} placeholder="Search ID or room" value={q} onChange={(e) => setQ(e.target.value)} />
             <div className="flex flex-wrap items-center gap-3">
-              {tab === 'all' && <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />}
-              <Select
-                fit
-                wrapperClassName="max-w-80"
-                aria-label={t('Priority')}
-                value={priority}
-                onChange={filter(setPriority)}
-                options={[{ value: '', label: 'Priority: All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: t('Priority: {p}', { p: tr(p) }) }))]}
-              />
-              <Select
-                fit
-                wrapperClassName="max-w-80"
-                aria-label={t('Category')}
-                value={category}
-                onChange={filter(setCategory)}
-                options={[{ value: '', label: 'Category: All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: t('Category: {c}', { c: tr(c) }) }))]}
-              />
+              {tab === 'all' && <FilterSelect label="Status" value={status} onChange={pick(setStatus)} options={statusFilters} />}
+              <FilterSelect label="Priority" value={priority} onChange={pick(setPriority)} options={[{ value: '', label: 'All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: tr(p) }))]} />
+              <FilterSelect label="Category" value={category} onChange={pick(setCategory)} options={[{ value: '', label: 'All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: tr(c) }))]} />
               {tab !== 'unassigned' && (
-                <Select
-                  fit
-                  wrapperClassName="max-w-80"
-                  aria-label={t('Assignee')}
+                <FilterSelect
+                  label="Assignee"
                   value={assigneeId}
-                  onChange={filter(setAssigneeId)}
-                  options={[{ value: '', label: 'Assignee: All' }, { value: 'none', label: 'Assignee: Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: t('Assignee: {name}', { name: m.name }) }))]}
+                  onChange={pick(setAssigneeId)}
+                  options={[{ value: '', label: 'All' }, { value: 'none', label: 'Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: m.name }))]}
                 />
               )}
             </div>

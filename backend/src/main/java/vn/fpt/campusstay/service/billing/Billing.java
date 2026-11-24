@@ -110,6 +110,9 @@ public interface Billing {
     /** The Room's latest reading (a cut at a resident change or a monthly reading); empty when it has none. */
     Optional<MeterValue> lastReading(long roomId);
 
+    /** {@link #lastReading} of many Rooms in one query: Room id → its latest reading; Rooms without one left out. */
+    Map<Long, MeterValue> lastReadings(Collection<Long> roomIds);
+
     /**
      * {@link #recordMeterCut} on a given day (a check-in inventory read the meters before it was confirmed). The
      * reading may not be lower than the latest one.

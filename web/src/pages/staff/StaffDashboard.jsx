@@ -7,10 +7,9 @@ import { useToast } from '@/app/toast'
 import { StageWork, stageSteps } from '@/components/layout/FlowTrail'
 import { STAFF_STAGES } from '@/app/managerFlow'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { SemesterProgress, stageTiming } from '@/components/ui/SemesterProgress'
-import { Tag } from '@/components/ui/Tag'
+import { Segmented } from '@/components/ui/Tabs'
 import { CapacityRows, DetailTip, Panel, WorkList } from '@/components/ui/Work'
 import { formatDate, formatDateTime, formatDuration, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
@@ -64,6 +63,7 @@ export default function StaffDashboard() {
   const inspection = useQuery(['dashboard', 'inspection', scope], ({ signal }) => api.inspections.current(scope, { signal }))
 
   // Requests taken on this screen move to "My work" at once (and slide in) while the lists reload.
+  const [workTab, setWorkTab] = useState('mine')
   const [taken, setTaken] = useState(() => new Map())
   const take = useMutation((id) => api.maintenance.update(id, { assigneeId: me.data.id }), {
     invalidates: ['maintenance', 'dashboard', 'me-duty'],
@@ -112,7 +112,7 @@ export default function StaffDashboard() {
         />
       ),
       fresh: Boolean(takenAt) && Date.now() - takenAt < 5000,
-      action: mine ? null : { label: 'Assign to me', onClick: () => take.run(r.id), disabled: take.pending || !me.data },
+      action: mine ? null : { label: 'Assign to me', primary: true, onClick: () => take.run(r.id), disabled: take.pending || !me.data },
     }
   }
   const mineList = mine.data?.items ?? []
@@ -137,7 +137,7 @@ export default function StaffDashboard() {
       tone: 'info',
       title: t('Check-in opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: formatNumber(ci.expected) }),
       meta: t('{blocked} not paid yet', { blocked: ci.blocked }),
-      action: { label: 'Open desk', to: '/staff/check-in' },
+      action: { label: 'Open desk', to: '/staff/check-in', primary: true },
     },
     ci && ci.expected > 0 && !ciUpcoming && !ciClosed && {
       id: 'check-in',
@@ -145,7 +145,7 @@ export default function StaffDashboard() {
       tone: ci.waiting ? 'info' : 'success',
       title: t('{n} check-ins expected today', { n: formatNumber(ci.expected) }),
       meta: t('{done} done · {waiting} waiting · {blocked} blocked', { done: ci.checkedIn, waiting: ci.waiting, blocked: ci.blocked }),
-      action: { label: 'Open desk', to: '/staff/check-in', primary: ci.waiting > 0 },
+      action: { label: 'Open desk', to: '/staff/check-in', primary: true },
     },
     dc && dc.toChange + dc.notSet > 0 && {
       id: 'door-codes',
@@ -153,7 +153,7 @@ export default function StaffDashboard() {
       tone: dc.toChange ? 'warning' : 'info',
       title: t('{n} rooms need a door code', { n: formatNumber(dc.toChange + dc.notSet) }),
       meta: t('{c} to change after a resident left · {s} never set', { c: dc.toChange, s: dc.notSet }),
-      action: { label: 'Set codes', to: '/staff/door-codes' },
+      action: { label: 'Set codes', to: '/staff/door-codes', primary: true },
     },
     ms && ms.missing > 0 && {
       id: 'meters',
@@ -162,7 +162,7 @@ export default function StaffDashboard() {
       title: t('{n} rooms without a meter reading for {period}', { n: formatNumber(ms.missing), period: tr(period?.label) }),
       meta: t('{entered} of {due} entered · download the template to fill them in Excel', { entered: ms.entered, due: ms.roomsDue }),
       progress: { value: ms.entered, max: ms.roomsDue, label: t('Meter readings') },
-      action: { label: 'Enter readings', to: '/staff/meter-readings' },
+      action: { label: 'Enter readings', to: '/staff/meter-readings', primary: true },
     },
     run && run.inspected < run.rooms && {
       id: 'inspection',
@@ -170,7 +170,7 @@ export default function StaffDashboard() {
       tone: run.dueAt && new Date(run.dueAt) < new Date() ? 'error' : 'info',
       title: t('Inspection {name}: {done} of {n} rooms', { name: tr(run.scheduleName), done: run.inspected, n: run.rooms }),
       meta: run.dueAt ? t('Due {date}', { date: formatDate(run.dueAt) }) : null,
-      action: { label: 'Continue', to: '/staff/inspections' },
+      action: { label: 'Continue', to: '/staff/inspections', primary: true },
     },
     ...(d?.attention ?? [])
       // Applications, payments and the proposal are Managers' work (ADR-19).
@@ -181,7 +181,7 @@ export default function StaffDashboard() {
         tone: severityTone[a.severity],
         title: attentionText(a).title,
         meta: attentionText(a).body,
-        action: a.link ? { label: a.cta ?? 'Open', to: a.link } : null,
+        action: a.link ? { label: a.cta ?? 'Open', to: a.link, primary: true } : null,
       })),
   ].filter(Boolean)
 
@@ -232,10 +232,10 @@ export default function StaffDashboard() {
         </div>
         <div className="flex gap-2">
           <Button icon={LogOut} to="/staff/check-out">
-            Check-out desk
+            Check-out
           </Button>
           <Button variant="primary" icon={LogIn} to="/staff/check-in">
-            Check-in desk
+            Check-in
           </Button>
         </div>
       </div>
@@ -254,70 +254,100 @@ export default function StaffDashboard() {
       )}
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <Panel
-          title="My work"
-          badge={
-            me.data ? (
-              <Tag tone={late ? 'error' : 'info'} dot={false}>
-                {[t('{n} in your charge', { n: formatNumber(myOpen) }), late ? t('{n} overdue', { n: late }) : null].filter(Boolean).join(' · ')}
-              </Tag>
-            ) : null
-          }
-          subtitle={me.data ? `${t('{n} requests · most urgent first', { n: myItems.length })} · ${t('{n} resolved in 7 days', { n: me.data.resolved7d })}` : 'Requests in your charge'}
-          action={
-            <Button variant="text" size="sm" to="/staff/maintenance">
-              All requests
-            </Button>
-          }
-        >
-          <QueryState query={me.data ? mine : me} compact isEmpty={() => false}>
-            {() => (
-              <>
-                <WorkList items={myItems} empty={<EmptyBlock icon={CircleCheck} title="You have nothing to do. Nice work!" className="py-6">Take a request below, or wait for routing to give you one while you are on duty.</EmptyBlock>} />
-                {(freeItems.length > 0 || unassignedTotal > 0) && (
-                  <>
-                    <p className="flex items-center gap-2 pt-3 pb-1 text-sm font-semibold tracking-wide text-fg-tertiary uppercase">
-                      {t('Unassigned')}
-                      {unassignedTotal != null && (
-                        <span className="normal-case">
-                          <Tag tone={urgentFree ? 'error' : 'neutral'} dot={false}>
-                            {[formatNumber(unassignedTotal), urgentFree ? t('{n} urgent', { n: urgentFree }) : null].filter(Boolean).join(' · ')}
-                          </Tag>
-                        </span>
-                      )}
-                    </p>
-                    {freeItems.length > 0 ? <WorkList items={freeItems} /> : <p className="py-2 text-sm text-fg-secondary">{t('Requests waiting for someone')}</p>}
-                  </>
-                )}
-              </>
-            )}
-          </QueryState>
-        </Panel>
+        <section className="flex min-h-0 flex-col rounded-lg border border-line bg-surface">
+          <div className="flex shrink-0 flex-col gap-1.5 px-5 pt-4 pb-2">
+            <Segmented
+              className="w-fit self-start"
+              value={workTab}
+              onChange={setWorkTab}
+              options={[
+                { value: 'mine', label: `${t('My work')} (${formatNumber(myItems.length)})` },
+                { value: 'unassigned', label: `${t('Unassigned')} (${formatNumber(unassignedTotal ?? freeItems.length)})` },
+              ]}
+            />
+            <p className="text-sm text-fg-tertiary">
+              {me.data
+                ? t('In your charge: {assigned} · {resolved} resolved in 7 days', {
+                    assigned: formatNumber(myItems.length),
+                    resolved: formatNumber(me.data.resolved7d),
+                  })
+                : t('Requests in your charge')}
+            </p>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+            <QueryState query={me.data ? mine : me} compact isEmpty={() => false}>
+              {() =>
+                workTab === 'mine' ? (
+                  <WorkList
+                    items={myItems}
+                    empty={
+                      <EmptyBlock
+                        icon={CircleCheck}
+                        title="You have nothing to do. Nice work!"
+                        className="py-6"
+                        action={
+                          (unassignedTotal ?? freeItems.length) > 0 ? (
+                            <Button variant="primary" size="sm" onClick={() => setWorkTab('unassigned')}>
+                              {t('View unassigned ({n})', { n: unassignedTotal ?? freeItems.length })}
+                            </Button>
+                          ) : undefined
+                        }
+                      >
+                        {t('Take a request in the Unassigned tab, or wait for routing while you are on duty.')}
+                      </EmptyBlock>
+                    }
+                  />
+                ) : (
+                  <WorkList
+                    items={freeItems}
+                    empty={<EmptyBlock icon={CircleCheck} title="No unassigned requests right now" className="py-6" />}
+                  />
+                )
+              }
+            </QueryState>
+          </div>
+        </section>
 
         <div className="flex flex-col gap-4">
-          {ciOpen && (
-            <KpiTile icon={LogIn} label="Check-ins today" value={`${formatNumber(ci.checkedIn)} / ${formatNumber(ci.expected)}`} note={t('{n} waiting at the desk', { n: ci.waiting })} className="flex-none" />
-          )}
           <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms" className="shrink-0" bodyClassName="overflow-visible">
             <QueryState query={dash} compact isEmpty={() => false}>
               {() => <WorkList items={blockItems} empty={<EmptyBlock icon={ClipboardCheck} title="Your block needs nothing right now" />} />}
             </QueryState>
           </Panel>
 
-          <Panel title="Beds" subtitle="Taken and held beds against the block's capacity" className="shrink-0" bodyClassName="overflow-visible">
-            <QueryState query={dash} compact isEmpty={(x) => !x.bedsByBlock?.length}>
-              {(data) => (
-                <CapacityRows
-                  rows={data.bedsByBlock.map((b) => ({
-                    name: t('Block {code}', { code: b.block }),
-                    used: b.proposed,
-                    total: b.capacity,
-                    detail: d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null,
-                  }))}
-                />
+          {(ciOpen || (d?.bedsByBlock?.length ?? 0) > 0) && (
+            <section className="grid shrink-0 grid-cols-1 gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-2">
+              {ciOpen && (
+                <div className="flex flex-col justify-between gap-1 sm:border-r sm:border-line sm:pr-4">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-fg-secondary">
+                    <LogIn size={14} aria-hidden="true" className="text-fg-brand" />
+                    <span>{t('Check-ins today')}</span>
+                  </div>
+                  <p className="text-xl font-bold text-fg tabular-nums">
+                    {formatNumber(ci.checkedIn)} <span className="text-sm font-normal text-fg-secondary">/ {formatNumber(ci.expected)}</span>
+                  </p>
+                  <p className="text-xs text-fg-secondary">{t('{n} waiting at the desk', { n: ci.waiting })}</p>
+                </div>
               )}
-            </QueryState>
-          </Panel>
+              {(d?.bedsByBlock?.length ?? 0) > 0 && (
+                <div className={ciOpen ? 'flex flex-col gap-2 sm:pl-1' : 'sm:col-span-2 flex flex-col gap-2'}>
+                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-fg-secondary">
+                    <span>{t('Beds')}</span>
+                    {d?.kpis?.roomsOutOfService ? (
+                      <span className="text-fg-tertiary">{t('{n} rooms out of service', { n: d.kpis.roomsOutOfService })}</span>
+                    ) : null}
+                  </div>
+                  <CapacityRows
+                    rows={d.bedsByBlock.map((b) => ({
+                      name: t('Block {code}', { code: b.block }),
+                      used: b.proposed,
+                      total: b.capacity,
+                    }))}
+                  />
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </>

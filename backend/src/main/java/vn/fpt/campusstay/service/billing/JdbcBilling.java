@@ -525,6 +525,12 @@ class JdbcBilling implements Billing {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Map<Long, MeterValue> lastReadings(Collection<Long> roomIds) {
+        return settlements.lastMeters(roomIds);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordMeterCutOn(long roomId, String room, LocalDate day, BigDecimal electricity, BigDecimal water,
             String reason, Long allocationId, long recordedBy) {

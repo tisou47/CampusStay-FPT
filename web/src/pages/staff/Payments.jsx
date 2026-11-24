@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { DetailRows } from '@/components/ui/Display'
-import { Field, FilePicker, Input, SearchInput, Select } from '@/components/ui/Field'
+import { Field, FilePicker, FilterSelect, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -176,59 +176,53 @@ export default function Payments() {
         />
       </div>
 
-      <div className="flex flex-wrap shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="flex flex-wrap items-center gap-3">
-          <Select
-            fit wrapperClassName="max-w-80"
-            aria-label={t('Type')}
-            value={type}
-            onChange={filter(setType)}
-            options={[
-              { value: '', label: 'Type: All' },
-              { value: 'deposit', label: 'Type: deposit' },
-              { value: 'balance', label: 'Type: balance' },
-              { value: 'termFee', label: 'Type: Next-term fee' },
-              { value: 'utility', label: 'Type: utility' },
-              { value: 'roomChange', label: 'Type: room change' },
-            ]}
-          />
-          <Select
-            fit wrapperClassName="max-w-80"
-            aria-label={t('Status')}
-            value={status}
-            onChange={filter(setStatus)}
-            options={[
-              { value: '', label: 'Status: All' },
-              { value: AWAITING, label: 'Status: Awaiting' },
-              { value: 'Paid', label: 'Status: Paid' },
-              { value: 'Unpaid', label: 'Status: Unpaid' },
-            ]}
-          />
-          <Select
-            fit wrapperClassName="max-w-80"
-            aria-label={t('Method')}
-            value={method}
-            onChange={filter(setMethod)}
-            options={[
-              { value: '', label: 'Method: All' },
-              { value: 'Bank transfer', label: 'Method: Bank transfer' },
-              { value: 'VietQR', label: 'Method: VietQR' },
-              { value: 'Manual transfer', label: 'Method: Manual' },
-            ]}
-          />
-          <Select
-            fit wrapperClassName="max-w-80"
-            aria-label={t('Date')}
-            value={date}
-            onChange={filter(setDate)}
-            options={[
-              { value: 'today', label: 'Date: Today' },
-              { value: '7d', label: 'Date: Last 7 days' },
-              { value: 'term', label: 'Date: This term' },
-            ]}
-          />
-        </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <FilterSelect
+          label="Type"
+          value={type}
+          onChange={(v) => filter(setType)({ target: { value: v } })}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'deposit', label: 'deposit' },
+            { value: 'balance', label: 'balance' },
+            { value: 'termFee', label: 'Next-term fee' },
+            { value: 'utility', label: 'utility' },
+            { value: 'roomChange', label: 'room change' },
+          ]}
+        />
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
+          options={[
+            { value: '', label: 'All' },
+            { value: AWAITING, label: 'Awaiting' },
+            { value: 'Paid', label: 'Paid' },
+            { value: 'Unpaid', label: 'Unpaid' },
+          ]}
+        />
+        <FilterSelect
+          label="Method"
+          value={method}
+          onChange={(v) => filter(setMethod)({ target: { value: v } })}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'Bank transfer', label: 'Bank transfer' },
+            { value: 'VietQR', label: 'VietQR' },
+            { value: 'Manual transfer', label: 'Manual' },
+          ]}
+        />
+        <FilterSelect
+          label="Date"
+          value={date}
+          onChange={(v) => filter(setDate)({ target: { value: v } })}
+          options={[
+            { value: 'today', label: 'Today' },
+            { value: '7d', label: 'Last 7 days' },
+            { value: 'term', label: 'This term' },
+          ]}
+        />
       </div>
 
       <Table fill>

@@ -27,7 +27,8 @@ import { t, tr } from '@/i18n'
 //   block, blocks }
 // POST /inspection-schedules · PUT /inspection-schedules/:id
 
-const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progress': 'info', Done: 'success', Completed: 'success' }
+const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', Submitted: 'info', 'In progress': 'info', Done: 'success', Completed: 'success' }
+const scheduleDisplayStatus = (s) => (s?.status !== 'Completed' && s?.latestRunSubmitted ? 'Submitted' : s?.status)
 const blank = { name: '', checklistId: '', scope: '', repeat: '', assignee: '', dueWithinDays: 3, createRequests: true, notifyResidents: true }
 const NEW_ITEM = {}
 const ALL = 'all'
@@ -117,7 +118,7 @@ function Editor({ item, options, block, onSaved, onCancel }) {
 }
 
 /** Compact card for an already-assigned schedule: shows Pause/Resume and a small Edit button. */
-function ScheduleCard({ item, options, onEdit }) {
+function ScheduleCard({ item, options, linkedRunId, onEdit, onViewRun }) {
   const { notify, notifyError } = useToast()
   const pause = useMutation(() => api.inspections.updateSchedule(item.id, { status: item.status === 'Paused' ? 'Active' : 'Paused' }), {
     invalidates: ['inspection-schedules'],
@@ -131,6 +132,8 @@ function ScheduleCard({ item, options, onEdit }) {
   })
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
   const isCompleted = item.status === 'Completed'
+  const displayStatus = scheduleDisplayStatus(item)
+  const targetRunId = item.latestRunId ?? linkedRunId
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
@@ -140,7 +143,7 @@ function ScheduleCard({ item, options, onEdit }) {
             {[item.block && t('Block {code}', { code: item.block }), item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Tag tone={tone[item.status] ?? 'neutral'}>{item.status}</Tag>
+        <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
       </div>
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-fg-secondary">{t('Scope')}</dt>
@@ -159,27 +162,42 @@ function ScheduleCard({ item, options, onEdit }) {
           {t('Staff submitted the report of this schedule’s run. You can record it as done and end the schedule.')}
         </Alert>
       )}
-      {!isCompleted && (
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-          <Button size="sm" onClick={onEdit}>
-            Edit
-          </Button>
-          <Button onClick={() => pause.run()} disabled={pause.pending}>
-            {item.status === 'Paused' ? t('Resume') : t('Pause')}
-          </Button>
-          {item.latestRunSubmitted && (
+      {!isCompleted ? (
+        item.latestRunSubmitted ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            {targetRunId && (
+              <Button onClick={() => onViewRun?.(targetRunId)}>
+                {t('View stats & details')}
+              </Button>
+            )}
             <Button variant="primary" onClick={() => completeSchedule.run()} disabled={completeSchedule.pending}>
-              End schedule
+              {t('Complete schedule')}
             </Button>
-          )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            <Button size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+            <Button onClick={() => pause.run()} disabled={pause.pending}>
+              {item.status === 'Paused' ? t('Resume') : t('Pause')}
+            </Button>
+          </div>
+        )
+      ) : targetRunId ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <Button variant="primary" onClick={() => onViewRun?.(targetRunId)}>
+            {t('View stats & details')}
+          </Button>
         </div>
-      )}
+      ) : null}
     </Card>
   )
 }
 
 /** Every Block is shown: a schedule is read here and changed in its own Block. */
-function ScheduleSummary({ item, onOpenBlock }) {
+function ScheduleSummary({ item, linkedRunId, onOpenBlock, onViewRun }) {
+  const targetRunId = item.latestRunId ?? linkedRunId
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
@@ -197,13 +215,21 @@ function ScheduleSummary({ item, onOpenBlock }) {
         <dd className="text-fg">{item.dueWithinDays}</dd>
         <dt className="text-fg-secondary">{t('Status')}</dt>
         <dd>
-          <Tag tone={tone[item.status] ?? 'neutral'}>{item.status}</Tag>
+          {(() => {
+            const displayStatus = scheduleDisplayStatus(item)
+            return <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
+          })()}
         </dd>
       </dl>
       <Alert type="info" title="Changed in its own Block">
         {t('Every Block is shown. Open Block {code} to change this schedule or create one there.', { code: item.block })}
       </Alert>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {targetRunId && (
+          <Button onClick={() => onViewRun?.(targetRunId)}>
+            {t('View stats & details')}
+          </Button>
+        )}
         <Button variant="primary" onClick={() => onOpenBlock(item.block)}>
           {t('Open Block {code}', { code: item.block })}
         </Button>
@@ -377,20 +403,7 @@ export default function InspectionSchedule() {
   const query = useQuery(
     ['inspection-schedules', effectiveFilter],
     ({ signal }) => api.inspections.schedules({ block: effectiveFilter }, { signal }),
-    { keepPrevious: false },
   )
-  // Staff send their results from their own screens: read the runs again when the Manager comes back to this window
-  // and every 30 seconds, so a run sent shows as Completed with its results without reloading the page.
-  const reloadRuns = query.reload
-  useEffect(() => {
-    const refresh = () => document.visibilityState === 'visible' && reloadRuns()
-    window.addEventListener('focus', refresh)
-    const timer = setInterval(refresh, 30_000)
-    return () => {
-      window.removeEventListener('focus', refresh)
-      clearInterval(timer)
-    }
-  }, [reloadRuns])
   const one = effectiveFilter !== ALL
   const needle = q.trim().toLowerCase()
   const matches = (...texts) => !needle || texts.some((x) => (x ?? '').toLowerCase().includes(needle))
@@ -417,6 +430,18 @@ export default function InspectionSchedule() {
       return String(b.date ?? '').localeCompare(String(a.date ?? ''))
     })
   const selected = selectedId === 'new' ? NEW_ITEM : items.find((s) => s.id === selectedId) ?? items[0]
+  const allRuns = query.data?.runs ?? []
+  const linkedRunOf = (s) => {
+    if (!s || !s.id) return null
+    if (s.latestRunId) return s.latestRunId
+    const found = allRuns.find((r) => r.scheduleId === s.id || (r.block === s.block && r.scheduleName === s.name))
+    return found?.id ?? null
+  }
+  const openRunStats = (runId) => {
+    if (runId) setSelectedRun(runId)
+    setQ('')
+    setView('runs')
+  }
   const run = runs.find((r) => r.id === selectedRun) ?? runs[0]
   const blockOptions = [{ value: ALL, label: t('Every Block in use') }, ...(query.data?.blocks ?? blocks).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]
   const openBlock = (code) => {
@@ -486,7 +511,10 @@ export default function InspectionSchedule() {
                     <Td>{tr(s.repeatLabel)}</Td>
                     <Td>{s.nextRunAt ? formatDate(s.nextRunAt) : s.repeat === 'ONCE' ? <span className="text-sm text-fg-tertiary">{t('One-off (started)')}</span> : '—'}</Td>
                     <Td>
-                      <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>
+                      {(() => {
+                        const displayStatus = scheduleDisplayStatus(s)
+                        return <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
+                      })()}
                     </Td>
                   </Tr>
                 ))}
@@ -511,10 +539,16 @@ export default function InspectionSchedule() {
                 onCancel={selected.assignee ? () => setEditing(false) : undefined}
               />
             ) : (
-              <ScheduleCard item={selected} options={query.data?.options} onEdit={() => setEditing(true)} />
+              <ScheduleCard
+                item={selected}
+                options={query.data?.options}
+                linkedRunId={linkedRunOf(selected)}
+                onEdit={() => setEditing(true)}
+                onViewRun={openRunStats}
+              />
             )
           ) : selected?.id ? (
-            <ScheduleSummary item={selected} onOpenBlock={openBlock} />
+            <ScheduleSummary item={selected} linkedRunId={linkedRunOf(selected)} onOpenBlock={openBlock} onViewRun={openRunStats} />
           ) : (
             <Card className="flex w-95 shrink-0 flex-col">
               <EmptyBlock icon={CalendarDays} title="Select a schedule" />
