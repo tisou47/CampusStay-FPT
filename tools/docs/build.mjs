@@ -29,6 +29,7 @@ const OPTIONS = {
 execFileSync('node', [here('src/partials.mjs')], { cwd: root, stdio: 'inherit' })
 execFileSync('node', [here('src/report3.mjs')], { cwd: root, stdio: 'inherit' })
 execFileSync('node', [here('src/report4.mjs')], { cwd: root, stdio: 'inherit' })
+execFileSync('node', [here('src/brmatrix.mjs')], { cwd: root, stdio: 'inherit' })
 const names = process.argv.slice(2)
 if (!names.length) { console.error('usage: node tools/docs/build.mjs <Name> […]'); process.exit(2) }
 // Report 5 also fills its two workbooks, each from its untouched template (data: tools/docs/build/testcases.json).

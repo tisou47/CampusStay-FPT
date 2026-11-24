@@ -259,5 +259,5 @@ Report 7 includes Reports 1–6, so their notes apply to it too. The feature and
 |---|---|
 | Report3_Project Tracking.xlsx | Filled (WBS, Issues, Defects) · Q&A answers, risk dates and planned iterations are the team's ([TEAM-TODO.md](TEAM-TODO.md), Report 2) |
 | Project Weekly Report_GroupName.xlsx | Filled W1–W12 from git · weeks 1–6 activities, next-week plans and supervisor remarks are the team's |
-| Report5_Test Report.xlsx | Filled: 422 test cases, one run on 23/11/2026, all passed |
+| Report5_Test Report.xlsx | Filled: 422 automated test cases (one run on 23/11/2026, all passed) and 16 system tests still to run ([TEAM-TODO.md](TEAM-TODO.md)) |
 | Report5_Unit Test.xls | Filled: 46 unit tests in 15 sheets, all passed |

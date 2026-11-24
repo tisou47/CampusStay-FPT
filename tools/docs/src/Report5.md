@@ -72,13 +72,21 @@ Each member writes the tests of the features they build (Report 2, section on re
 
 ## 4. Test Cases
 
+**Traceability.**
+
+@include _r5-trace.md
+
+**Exception scenarios.**
+
+@include _r5-exceptions.md
+
 One table per feature: the id, what the case checks (the test's comment), the procedure (the test and the API calls it makes, in order), the expected result (the HTTP statuses it expects and how many checks it makes) and the result of the run. The same rows, with their preconditions, are in Report5_Test Report.xlsx.
 
 @include _r5-cases.md
 
 ## 5. Test Reports
 
-Results of the run, per feature and per level. Pending means the test is in the code but did not run.
+Results of the run, per feature and per level. Pending means the case has not been run yet: the system tests are run by the team on the deployed system, each with a screenshot as evidence.
 
 @include _r5-results.md
 

@@ -49,3 +49,9 @@ The documents are written from the code. These facts are in nobody's repository,
 ## Report 7
 
 - The Acknowledgement thanks Ms. Thân Thị Ngọc Vân for "her weekly guidance and her feedback at every review". Confirm or reword it.
+
+## Report 5: system tests, exception matrix, AI assistant (24/11/2026)
+
+- Run the 16 system tests ST-01…ST-16 (Report 5 §4.15, sheet "System tests" of the Test Report) on the deployed system with the demo stages they name. Keep a screenshot of each result, then mark Passed or Failed. Until then they stay Pending: nobody has run them.
+- Read the Exception Scenario Matrix (Report 5 §4). It files each test case under a "what if…" by the words of its description, so a few may sit under the wrong question. The six situations marked "—" have no test: add one, or prepare the answer for the defense.
+- AI assistant (Report 3 §4.2.7): rate it on a fixed set of questions taken from the guide (for example 30, in both languages), count the correct answers, and give me the result to put in the report.

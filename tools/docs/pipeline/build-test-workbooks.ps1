@@ -14,7 +14,7 @@ $project = 'CampusStay FPT - Dormitory Registration and Room-Scheduling Manageme
 $code = 'FA26SE260'
 $leader = [regex]::Unescape('Lê Thành Minh Trung')
 $day = ([datetime]$d.runDate).ToString('dd/MM/yyyy')
-$tester = @{ unit = 'CI (mvn verify)'; integration = 'CI (mvn verify)'; web = 'CI (npm test)'; mobile = 'flutter test' }
+$tester = @{ unit = 'CI (mvn verify)'; integration = 'CI (mvn verify)'; web = 'CI (npm test)'; mobile = 'flutter test'; system = '' }
 
 function Set-Cover($wb, $docName, $text) {
     $c = $wb.Worksheets.Item('Cover')

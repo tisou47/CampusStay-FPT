@@ -14,3 +14,4 @@
 | AI assistant (AST) | 14 | 5 |
 | Web application logic (node:test) | 7 | — |
 | Mobile application (Flutter test) | 30 | — |
+| System tests on the deployed system (manual) | 16 | 1 |

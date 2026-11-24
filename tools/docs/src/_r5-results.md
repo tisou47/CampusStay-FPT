@@ -14,7 +14,8 @@
 | AI assistant (AST) | 14 | 14 | 0 | 0 |
 | Web application logic (node:test) | 7 | 7 | 0 | 0 |
 | Mobile application (Flutter test) | 30 | 30 | 0 | 0 |
-| **Total** | 422 | 422 | 0 | 0 |
+| System tests on the deployed system (manual) | 16 | 0 | 0 | 16 |
+| **Total** | 438 | 422 | 0 | 16 |
 
 | Level | Tests run | Failed |
 |---|---|---|
