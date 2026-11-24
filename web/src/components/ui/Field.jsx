@@ -1,5 +1,5 @@
-import { Fragment, cloneElement, isValidElement, useId, useRef } from 'react'
-import { ChevronDown, Search, Upload } from 'lucide-react'
+import { Fragment, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
+import { Check, ChevronDown, Search, Upload } from 'lucide-react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { InfoTip } from './Tooltip'
@@ -158,6 +158,94 @@ export function StaticField({ size = 'md', className, children }) {
       )}
     >
       <span className="truncate">{tx(children)}</span>
+    </div>
+  )
+}
+
+/**
+ * Custom filter dropdown: shows `Label: Value` when closed, and only clean options inside the aligned popover menu.
+ */
+export function FilterSelect({ label, icon: Icon, value, onChange, options = [], size = 'md', disabled = false, placement = 'bottom', align = 'left', className, wrapperClassName, 'aria-label': ariaLabel }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const normalized = options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt))
+  const current = normalized.find((o) => String(o.value) === String(value)) ?? normalized[0]
+
+  return (
+    <div ref={ref} className={cx('relative', wrapperClassName)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel ?? (label ? tx(label) : undefined)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={cx(
+          'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-line-strong bg-surface px-3 whitespace-nowrap text-fg transition-colors',
+          'hover:border-primary/60 focus-visible:border-focus focus-visible:shadow-focus focus-visible:outline-none',
+          'disabled:cursor-not-allowed disabled:border-line disabled:bg-subtle disabled:text-fg-disabled',
+          size === 'sm' ? 'h-7 text-sm' : 'h-8 text-base',
+          open && 'border-focus shadow-focus',
+          className,
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5 truncate">
+          {Icon && <Icon size={14} aria-hidden="true" className="shrink-0 text-fg-secondary" />}
+          {label && <span className="shrink-0 text-fg-secondary">{tx(label)}:</span>}
+          <span className="truncate font-medium">{current ? tx(current.label) : ''}</span>
+        </span>
+        <ChevronDown size={15} aria-hidden="true" className={cx('shrink-0 text-fg-secondary transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          aria-label={ariaLabel ?? (label ? tx(label) : undefined)}
+          className={cx(
+            'absolute z-30 max-h-72 min-w-full overflow-y-auto rounded-lg border border-line bg-surface py-1 shadow-dropdown',
+            placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
+            align === 'right' ? 'right-0' : 'left-0',
+          )}
+        >
+          {normalized.map((opt) => {
+            const selected = String(opt.value) === String(value)
+            return (
+              <li key={String(opt.value)} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange?.(opt.value)
+                    setOpen(false)
+                  }}
+                  className={cx(
+                    'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm whitespace-nowrap transition-colors',
+                    selected ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg hover:bg-subtle',
+                  )}
+                >
+                  <span>{tx(opt.label)}</span>
+                  {selected && <Check size={14} aria-hidden="true" className="shrink-0 text-fg-brand" />}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
