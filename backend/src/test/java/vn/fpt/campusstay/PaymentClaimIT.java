@@ -309,6 +309,28 @@ class PaymentClaimIT {
     }
 
     /**
+     * TC-CFG-504: the claim view says how many rejections cancel the Invoice ({@code payment.rejections_to_cancel})
+     * for a Deposit, and {@code null} for a Utility Invoice, which is never cancelled (WEB-STU-09).
+     */
+    @Test
+    void claimViewCarriesTheRejectionLimit() throws Exception {
+        String auth = bearer(mvc, student(37));
+        ApplyFlow.Applied app = flow.apply(auth, "4-bed", "Basic", null);
+        flow.claim(auth, app.depositInvoiceId()).andExpect(status().isOk());
+        getAs("/invoices/" + app.depositInvoiceId() + "/payment", auth)
+                .andExpect(jsonPath("$.claim.rejectionsToCancel").value(2));
+
+        StayFlow stay = new StayFlow(mvc, jdbc, flow, flow.openTerm());
+        stay.livesIn(38, "B-109", "A", true);
+        String code = utilityInvoice(38, "2 days");
+        String debtor = bearer(mvc, student(38));
+        flow.claim(debtor, code).andExpect(status().isOk());
+        getAs("/invoices/" + code + "/payment", debtor)
+                .andExpect(jsonPath("$.claim.status").isString())
+                .andExpect(jsonPath("$.claim.rejectionsToCancel").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    /**
      * TC-BIL-036: Balance reminders go out 3 and 1 days before the deadline, once each, never for a claim waiting;
      * the Managers hear once an hour how many claims wait.
      */

@@ -55,10 +55,14 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
 @Service
 public class PaymentClaimService {
 
-    /** The claim state of one Invoice, for the student's payment page. */
-    /** @param rejectionsLeft rejected claims left before the Invoice is cancelled, null for a debt (BE-APP-BIL-19) */
+    /**
+     * The claim state of one Invoice, for the student's payment page.
+     *
+     * @param rejectionsLeft     rejected claims left before the Invoice is cancelled, null for a debt (BE-APP-BIL-19)
+     * @param rejectionsToCancel rejected claims that cancel the Invoice; null for a debt or charge, never cancelled
+     */
     public record ClaimView(String status, Instant claimedAt, String reference, int rejected, Integer rejectionsLeft,
-            Rejection lastRejection) {
+            Rejection lastRejection, Integer rejectionsToCancel) {
     }
 
     /** @param dueAt the deadline after the latest rejection */
@@ -198,10 +202,10 @@ public class PaymentClaimService {
         if (last != null) {
             last = new Rejection(last.reason(), last.at(), inv.dueAt());
         }
-        Integer left = PLACE_TYPES.contains(inv.type())
-                ? Math.max(0, Math.max(1, parameters.intValue("payment.rejections_to_cancel")) - rejected) : null;
+        Integer toCancel = PLACE_TYPES.contains(inv.type()) ? rejectionsToCancel() : null;
+        Integer left = toCancel == null ? null : Math.max(0, toCancel - rejected);
         return Optional.of(new ClaimView(statusLabel(latest.status()), latest.claimedAt(), latest.reference(), rejected,
-                left, last));
+                left, last, toCancel));
     }
 
     // ---------------------------------------------------------------- Managers: the queue
@@ -349,6 +353,10 @@ public class PaymentClaimService {
         pay(inv, claim, user, ref != null ? ref : claim.reference(), receiptId);
     }
 
+    private int rejectionsToCancel() {
+        return Math.max(1, parameters.intValue("payment.rejections_to_cancel"));
+    }
+
     /** Rejects the open claims of the Invoices with one reason (shown to each student). */
     @Transactional
     public Rejected reject(List<String> invoiceCodes, String reason) {
@@ -361,7 +369,7 @@ public class PaymentClaimService {
             throw FieldErrors.single("reason", "Keep the reason under 500 characters.");
         }
         List<String> codes = codes(invoiceCodes);
-        int limit = Math.max(1, parameters.intValue("payment.rejections_to_cancel"));
+        int limit = rejectionsToCancel();
         Duration minimum = Duration.ofHours(Math.max(0, parameters.intValue("payment.rejected_claim_min_hours")));
         int rejected = 0;
         int cancelled = 0;

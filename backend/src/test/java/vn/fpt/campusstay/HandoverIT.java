@@ -146,6 +146,97 @@ class HandoverIT {
         return "{\"items\":[" + list + "],\"electricity\":" + electricity + ",\"water\":" + water + "}";
     }
 
+    /** Sets an Admin parameter and returns its previous value (put back with the same method). */
+    private String setParameter(String key, String value) {
+        String before = jdbc.sql("SELECT value FROM cfg_parameter WHERE key = :k").param("k", key)
+                .query(String.class).single();
+        jdbc.sql("UPDATE cfg_parameter SET value = :v WHERE key = :k").param("v", value).param("k", key).update();
+        return before;
+    }
+
+    /**
+     * TC-CFG-500: the student's inventory view says how many hours the inventory may take
+     * ({@code handover.submit_hours}) before and after it is started, so the Ready dialog does not hard-code 48
+     * (WEB-STU-27).
+     */
+    @Test
+    void viewCarriesTheSubmitHours() throws Exception {
+        newcomer(29, "A-201", "A");
+        doorCode("A-201");
+        String student = bearer(mvc, StayFlow.student(29));
+        String before = setParameter("handover.submit_hours", "36");
+        try {
+            mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student))
+                    .andExpect(jsonPath("$.status").value("Ready")).andExpect(jsonPath("$.submitHours").value(36));
+            send(post("/students/me/handover/start"), student, "").andExpect(status().isOk());
+            mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student))
+                    .andExpect(jsonPath("$.status").value("Draft")).andExpect(jsonPath("$.submitHours").value(36));
+        } finally {
+            setParameter("handover.submit_hours", before);
+        }
+    }
+
+    /**
+     * TC-CFG-501: the inventory reminders follow {@code handover.remind_hours} (first) and
+     * {@code handover.remind_last_hours} (last) instead of a fixed 24 and 4 hours (BE-ASG-17).
+     */
+    @Test
+    void remindersFollowTheParameters() throws Exception {
+        long allocation = newcomer(37, "A-202", "A");
+        doorCode("A-202");
+        send(post("/students/me/handover/start"), bearer(mvc, StayFlow.student(37)), "").andExpect(status().isOk());
+        jdbc.sql("UPDATE asg_handover SET due_at = now() + interval '40 hours' WHERE allocation_id = :a")
+                .param("a", allocation).update();
+        String first = setParameter("handover.remind_hours", "48");
+        String last = setParameter("handover.remind_last_hours", "4");
+        try {
+            assertThat(jobs.remind()).isEqualTo(1);
+            assertThat(jobs.remind()).isZero();
+            setParameter("handover.remind_last_hours", "45");
+            assertThat(jobs.remind()).isEqualTo(1);
+            assertThat(jdbc.sql("SELECT reminders_sent FROM asg_handover WHERE allocation_id = :a")
+                    .param("a", allocation).query(Integer.class).single()).isEqualTo(2);
+        } finally {
+            setParameter("handover.remind_hours", first);
+            setParameter("handover.remind_last_hours", last);
+        }
+    }
+
+    /**
+     * TC-CFG-502: the roommates' shares of shared furniture damage are due {@code checkout.damage_due_days} after the
+     * check-out, not a fixed 7 days (BE-ASG-17).
+     */
+    @Test
+    void sharedDamageDueDaysFollowTheParameter() throws Exception {
+        stay.livesIn(42, "A-209", "A", true);
+        stay.livesIn(43, "A-209", "B", true);
+        long leaver = jdbc.sql("""
+                SELECT a.id FROM asg_allocation a JOIN auth_user u ON u.id = a.student_id
+                WHERE u.email = :e AND a.status = 'ACTIVE' AND a.term_id = :t
+                """).param("e", StayFlow.student(42)).param("t", stay.termId()).query(Long.class).single();
+        String item = jdbc.sql("""
+                SELECT 'furniture-' || i.id FROM inv_furniture_item i JOIN inv_room r ON r.id = i.room_id
+                JOIN inv_furniture_type t ON t.id = i.furniture_type_id
+                WHERE r.code = 'A-209' AND i.bed_id IS NULL AND t.unit_price > 0 ORDER BY i.id LIMIT 1
+                """).query(String.class).single();
+        String staff = bearer(mvc, STAFF_A);
+        String before = setParameter("checkout.damage_due_days", "10");
+        try {
+            send(put("/check-outs/" + leaver + "/furniture"), staff,
+                    "{\"items\":[{\"itemId\":\"" + item + "\",\"condition\":\"Damaged\"}],\"studentPresent\":false}")
+                    .andExpect(status().isOk());
+            send(post("/check-out/" + leaver), staff,
+                    "{\"electricity\":10,\"water\":1,\"conditionGood\":false,\"draft\":false}")
+                    .andExpect(status().isOk());
+            assertThat(jdbc.sql("""
+                    SELECT due_at BETWEEN now() + interval '9 days 23 hours' AND now() + interval '10 days 1 hour'
+                    FROM bil_invoice WHERE reference LIKE :r
+                    """).param("r", "SHARED-" + leaver + "-%").query(Boolean.class).list()).containsExactly(true);
+        } finally {
+            setParameter("checkout.damage_due_days", before);
+        }
+    }
+
     /**
      * TC-ASG-053: without the Room's door code the start is refused and the condition says why; once the code is set
      * the student starts the inventory, receives the code and is a resident, but Utility does not count yet.
