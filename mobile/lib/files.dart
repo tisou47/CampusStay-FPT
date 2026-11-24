@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -68,4 +69,18 @@ Future<Picked?> pickDocument() async {
   );
   final path = f?.path;
   return path == null || !_fits((name: f!.name, path: path)) ? null : (name: f.name, path: path);
+}
+
+const _secureWindow = MethodChannel('campusstay/secure');
+
+/// Marks the window secure (Android `FLAG_SECURE`: no screenshots, screen recording or recent-apps thumbnail) while
+/// something secret is on screen, the door code (MOB-17). `MainActivity` answers the channel.
+Future<void> secureScreen(bool on) async {
+  try {
+    await _secureWindow.invokeMethod<void>('setSecure', on);
+  } on MissingPluginException {
+    // tests and non-Android hosts
+  } on PlatformException {
+    // best effort
+  }
 }

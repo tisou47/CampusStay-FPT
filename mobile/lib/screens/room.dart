@@ -1,5 +1,6 @@
 import 'dart:async';
 
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -376,7 +377,10 @@ class _NextTermCard extends StatelessWidget {
     final filing = w?.flag('filing') == true;
     final fee = n.obj('fee');
     final stay = data.obj('stay');
-    final left = stay != null ? (9 - (stay.number('committedTerms') ?? 1)).clamp(1, 8).toInt() : 8;
+    // MOB-30: the configured longest stay (`stay.maxTerms`, stay.max_terms) less the Terms already committed, as the
+    // server checks it; 8 when an older server does not send it.
+    final maxTerms = (stay?.number('maxTerms') ?? 8).toInt().clamp(1, 99);
+    final left = (maxTerms - (stay?.number('committedTerms') ?? 0).toInt()).clamp(1, maxTerms);
     final state = n.str('state');
 
     Future<void> open(Widget page) async {
@@ -533,6 +537,7 @@ class _DoorCode extends StatefulWidget {
 
 class _DoorCodeState extends State<_DoorCode> {
   Json? _door;
+  bool _failed = false;
   String? _code;
   bool _busy = false;
   Timer? _hide;
@@ -540,26 +545,42 @@ class _DoorCodeState extends State<_DoorCode> {
   @override
   void initState() {
     super.initState();
-    Api.get('/students/me/door-code').then((d) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _failed = false);
+    try {
+      final d = await Api.get('/students/me/door-code');
       if (mounted) setState(() => _door = d);
-    }, onError: (_) {});
+    } on ApiException catch (e) {
+      // MOB-18: say so instead of hiding the row (404: no Bed this Term, nothing to show)
+      if (mounted && e.status != 404) setState(() => _failed = true);
+    }
   }
 
   @override
   void dispose() {
     _hide?.cancel();
+    if (_code != null) secureScreen(false);
     super.dispose();
+  }
+
+  void _show(String? code) {
+    secureScreen(code != null); // MOB-17: no screenshot or recent-apps thumbnail while the code is on screen
+    setState(() => _code = code);
   }
 
   Future<void> _reveal() async {
     setState(() => _busy = true);
     try {
       final code = (await Api.post('/students/me/door-code/reveal')).text('code');
+      if (!mounted) return;
       _hide?.cancel();
       _hide = Timer(const Duration(seconds: 30), () {
-        if (mounted) setState(() => _code = null);
+        if (mounted) _show(null);
       });
-      setState(() => _code = code);
+      _show(code);
     } on ApiException catch (e) {
       toast(e.message, error: true);
     }
@@ -569,7 +590,9 @@ class _DoorCodeState extends State<_DoorCode> {
   @override
   Widget build(BuildContext context) {
     final d = _door;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed ? RetryRow(what: t('the door code', 'mã cửa'), retry: _load) : const SizedBox.shrink();
+    }
     final code = _code;
     final ready = d.str('status') == 'Ready';
     return Container(
@@ -601,7 +624,7 @@ class _DoorCodeState extends State<_DoorCode> {
                 _busy
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : TextButton(
-                        onPressed: code == null ? _reveal : () => setState(() => _code = null),
+                        onPressed: code == null ? _reveal : () => _show(null),
                         child: Text(code == null ? t('Show door code', 'Hiện mã cửa') : t('Hide', 'Ẩn')),
                       ),
             ],
@@ -628,6 +651,7 @@ class _LateCheckInCard extends StatefulWidget {
 
 class _LateCheckInCardState extends State<_LateCheckInCard> {
   Json? _data;
+  bool _failed = false;
   bool _open = false;
   final _reason = TextEditingController();
   DateTime? _day;
@@ -649,11 +673,12 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _failed = false);
     try {
       final d = await Api.get('/students/me/late-check-in');
       if (mounted) setState(() => _data = d);
-    } on ApiException {
-      // the card stays hidden
+    } on ApiException catch (e) {
+      if (mounted && e.status != 404) setState(() => _failed = true); // MOB-18
     }
   }
 
@@ -678,9 +703,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
           'Đã gửi yêu cầu nhận phòng muộn. Quản lý sẽ quyết định; bạn sẽ được thông báo.',
         ),
       );
+      if (!mounted) return;
       setState(() => _open = false);
       await _load();
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errors = e.fields;
         _error = e.fields.isEmpty ? e.message : null;
@@ -692,7 +719,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   @override
   Widget build(BuildContext context) {
     final d = _data;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed
+          ? Panel(child: RetryRow(what: t('the late check-in', 'yêu cầu nhận phòng muộn'), retry: _load))
+          : const SizedBox.shrink();
+    }
     final r = d.obj('request');
     if (r == null && !d.flag('canRequest')) return const SizedBox.shrink();
     final latest = DateTime.tryParse(d.text('latestDay'));
