@@ -54,7 +54,7 @@ export function database() {
       const fks = t.constraints.filter((c) => c.type === 'FK').map((c) => ({ cols: (c.def.match(/FOREIGN KEY \(([^)]+)\)/)?.[1] ?? '').split(',').map((s) => s.trim()), ref: c.refTable }))
       const keyOf = (col) => [pk.includes(col) ? 'PK' : '', ...fks.filter((f) => f.cols.includes(col)).map((f) => `FK → ${f.ref}`)].filter(Boolean).join(', ')
       const others = t.constraints.filter((c) => c.type === 'UNIQUE' || c.type === 'CHECK' || c.type === 'EXCLUDE')
-      out.push(`*Table* \`${t.name}\` (${t.columns.length} columns)\n\n` +
+      out.push(`Table: \`${t.name}\` (${t.columns.length} columns)\n` +
         table(['Column', 'Type', 'Null', 'Default', 'Key'], t.columns.map((c) => [c.name, c.type, c.nullable ? 'yes' : 'no', (c.default ?? '').slice(0, 40), keyOf(c.name)])) +
         (others.length ? `\n\n*Constraints of ${t.name}:* ` + others.map((c) => `${c.name} (${c.type}): ${c.def.length > 140 ? c.def.slice(0, 140) + '…' : c.def}`).join(' · ') : ''))
     }
@@ -65,7 +65,8 @@ export function database() {
 }
 
 export function erds() {
-  return ['auth', 'cfg', 'inv', 'app', 'asg', 'bil', 'req', 'mnt', 'ntf', 'vis', 'shared'].map((p) => img(`05_ERD/erd-${p}`, `Logical ERD: ${AREA_NAME[p]}`)).join('\n\n')
+  return [img('05_ERD/erd-overview', 'Logical ERD of the whole system (main entities)'),
+    ...['auth', 'cfg', 'inv', 'app', 'asg', 'bil', 'req', 'mnt', 'ntf', 'vis', 'shared'].map((p) => img(`05_ERD/erd-${p}`, `Logical ERD: ${AREA_NAME[p]}`))].join('\n\n')
 }
 
 const PREFIX = { AUTH: 'auth', CFG: 'cfg', INV: 'inv', APP: 'app', ASG: 'asg', BIL: 'bil', REQ: 'req', MNT: 'mnt', NTF: 'ntf', VIS: 'vis' }
@@ -91,7 +92,7 @@ export function detailed() {
       parts.push(`#### 3.${k}.3 State Diagrams\n\n` + states.map((m) => `${m.title}.${m.notWritten.length ? ` Values allowed by the database but not set by the code: ${m.notWritten.join(', ')}.` : ''}\n\n${img(m.name, m.title)}`).join('\n\n'))
     }
     const eps = endpoints.filter((e) => e.feature === ep || (code === 'AUTH' && e.feature === 'file'))
-    parts.push(`#### 3.${k}.4 API\n\n${eps.length} endpoints (request and error details in Report 3).\n\n` + table(['Method', 'Path', 'Access', 'Controller'], eps.map((e) => [e.method, `\`${e.path}\``, e.access, e.controller])))
+    parts.push(`#### 3.${k}.4 API\n\n${eps.length} endpoints (request and error details in Report 3).\n\nTable: Endpoints of ${name} (${code})\n` + table(['Method', 'Path', 'Access', 'Controller'], eps.map((e) => [e.method, `\`${e.path}\``, e.access, e.controller])))
     out.push(parts.join('\n\n'))
     k++
   }

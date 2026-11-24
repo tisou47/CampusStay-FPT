@@ -8,6 +8,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { FEATURES } from './partials.mjs'
 import { AUTHORS } from '../gen/parse.mjs'
+import { stripRefs } from '../pipeline/refs.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '../../..')
@@ -104,7 +105,7 @@ function build() {
           ? `PostgreSQL 17 (Testcontainers) with the Flyway schema and the test seed${before.length ? `; before each test: ${before.join(', ')}` : ''}`
           : 'Objects built in the test; no database'
         const procedure = [`Automated: ${c.class}.${c.method}`, ...steps.slice(0, 8).map((s, i) => `${i + 1}. ${s}`), ...(steps.length > 8 ? [`… ${steps.length - 8} more calls`] : [])].join('\n')
-        return { id: c.id, description: c.title, procedure, expected: `The test's checks hold: ${expectations(body)}`, pre, result: RESULT[c.result] ?? 'Pending', level: c.level }
+        return { id: c.id, description: stripRefs(c.title), procedure, expected: `The test's checks hold: ${expectations(body)}`, pre, result: RESULT[c.result] ?? 'Pending', level: c.level }
       }) }
   }).filter((g) => g.rows.length)
   groups.push({ sheet: 'Web', name: 'Web application logic (node:test)', req: 'Pure functions of web/src/lib: number and date formats, CSV export, photo rules',
@@ -128,7 +129,7 @@ function build() {
         const base = r.method.replace(/[([].*$/, '')
         const doc = (docs.get(base) ?? '').replace(/^TC-[A-Z]+-\d+:?\s*/, '')
         const body = methodBody(src, base)
-        return { name: r.method, what: doc || base.replace(/([a-z\d])([A-Z])/g, '$1 $2').toLowerCase(), expect: expectations(body),
+        return { name: r.method, what: stripRefs(doc) || base.replace(/([a-z\d])([A-Z])/g, '$1 $2').toLowerCase(), expect: expectations(body),
           throws: /assertThatThrownBy|assertThrows|isThrownBy|assertThatExceptionOfType/.test(body), type: caseType(base, doc), result: r.result }
       }),
     }

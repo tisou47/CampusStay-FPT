@@ -1,7 +1,6 @@
 **Accounts (AUTH): 18 tables**
 
-*Table* `auth_action_token` (7 columns)
-
+Table: `auth_action_token` (7 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -14,8 +13,7 @@
 
 *Constraints of auth_action_token:* auth_action_token_purpose_check (CHECK): CHECK (((purpose)::text = ANY ((ARRAY['INVITE'::character varying, 'PASSWORD_RESET'::character varying])::text[]))) · auth_action_token_token_hash_key (UNIQUE): UNIQUE (token_hash)
 
-*Table* `auth_reconciliation` (7 columns)
-
+Table: `auth_reconciliation` (7 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -28,8 +26,7 @@
 
 *Constraints of auth_reconciliation:* auth_reconciliation_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['ENROLLED'::character varying, 'LEAVERS'::character varying])::text[]))) · auth_reconciliation_rows_read_check (CHECK): CHECK ((rows_read >= 0))
 
-*Table* `auth_reconciliation_item` (15 columns)
-
+Table: `auth_reconciliation_item` (15 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -50,8 +47,7 @@
 
 *Constraints of auth_reconciliation_item:* auth_reconciliation_item_grp_check (CHECK): CHECK (((grp >= 1) AND (grp <= 4))) · auth_reconciliation_item_outcome_check (CHECK): CHECK (((outcome)::text = ANY ((ARRAY['NOT_ENROLLED'::character varying, 'ENROLLED'::character varying, 'SUPERSEDED'::character varying])::t… · auth_reconciliation_item_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['OPEN'::character varying, 'RESOLVED'::character varying, 'INFO'::character varying])::text[]))) · ck_reconciliation_open (CHECK): CHECK ((((status)::text = 'OPEN'::text) = ((grp = ANY (ARRAY[1, 2])) AND (resolved_at IS NULL)))) · ck_reconciliation_resolved (CHECK): CHECK ((((status)::text <> 'RESOLVED'::text) OR ((outcome IS NOT NULL) AND (note IS NOT NULL) AND (resolved_by IS NOT NULL))))
 
-*Table* `auth_schedule_send` (4 columns)
-
+Table: `auth_schedule_send` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | week_start | date | no |  | PK |
@@ -59,15 +55,13 @@
 | sent_at | timestamp with time zone | no |  |  |
 | sent_by | bigint | no |  | FK → auth_user |
 
-*Table* `auth_schedule_week` (2 columns)
-
+Table: `auth_schedule_week` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | week_start | date | no |  | PK |
 | reminded_at | timestamp with time zone | yes |  |  |
 
-*Table* `auth_session` (11 columns)
-
+Table: `auth_session` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -84,8 +78,7 @@
 
 *Constraints of auth_session:* auth_session_sign_in_method_check (CHECK): CHECK (((sign_in_method)::text = ANY ((ARRAY['PASSWORD'::character varying, 'GOOGLE'::character varying])::text[]))) · auth_session_token_hash_key (UNIQUE): UNIQUE (token_hash)
 
-*Table* `auth_staff_account_request` (10 columns)
-
+Table: `auth_staff_account_request` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -101,8 +94,7 @@
 
 *Constraints of auth_staff_account_request:* auth_staff_account_request_role_check (CHECK): CHECK (((role)::text = ANY ((ARRAY['STAFF'::character varying, 'MANAGER'::character varying])::text[]))) · auth_staff_account_request_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying])::text[])))
 
-*Table* `auth_staff_activity` (11 columns)
-
+Table: `auth_staff_activity` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('auth_staff_activity_id_seq'::re | PK |
@@ -117,16 +109,14 @@
 | acknowledged | boolean | no | false |  |
 | status | smallint | no |  |  |
 
-*Table* `auth_staff_profile` (3 columns)
-
+Table: `auth_staff_profile` (3 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | user_id | bigint | no |  | PK, FK → auth_user |
 | handles | ARRAY | no | '{}'::text[] |  |
 | on_duty | boolean | no | false |  |
 
-*Table* `auth_staff_shift` (5 columns)
-
+Table: `auth_staff_shift` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('auth_staff_shift_id_seq'::regcl | PK |
@@ -137,8 +127,7 @@
 
 *Constraints of auth_staff_shift:* auth_staff_shift_check (CHECK): CHECK ((start_time <> end_time)) · auth_staff_shift_user_id_weekday_start_time_key (UNIQUE): UNIQUE (user_id, weekday, start_time) · auth_staff_shift_weekday_check (CHECK): CHECK (((weekday >= 1) AND (weekday <= 7)))
 
-*Table* `auth_staff_week` (4 columns)
-
+Table: `auth_staff_week` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | user_id | bigint | no |  | PK, FK → auth_user |
@@ -148,8 +137,7 @@
 
 *Constraints of auth_staff_week:* auth_staff_week_week_start_check (CHECK): CHECK ((EXTRACT(isodow FROM week_start) = (1)::numeric))
 
-*Table* `auth_staff_week_shift` (6 columns)
-
+Table: `auth_staff_week_shift` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('auth_staff_week_shift_id_seq':: | PK |
@@ -161,8 +149,7 @@
 
 *Constraints of auth_staff_week_shift:* auth_staff_week_shift_check (CHECK): CHECK ((start_time <> end_time)) · auth_staff_week_shift_user_id_week_start_weekday_start_time_key (UNIQUE): UNIQUE (user_id, week_start, weekday, start_time) · auth_staff_week_shift_weekday_check (CHECK): CHECK (((weekday >= 1) AND (weekday <= 7)))
 
-*Table* `auth_student` (28 columns)
-
+Table: `auth_student` (28 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | user_id | bigint | no |  | PK, FK → auth_user |
@@ -196,8 +183,7 @@
 
 *Constraints of auth_student:* auth_student_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · auth_student_semester_no_check (CHECK): CHECK (((semester_no >= 0) AND (semester_no <= 12))) · auth_student_student_code_key (UNIQUE): UNIQUE (student_code) · ck_student_enrollment (CHECK): CHECK (((enrollment_status)::text = ANY ((ARRAY['ENROLLED'::character varying, 'SUSPENDED'::character varying, 'GRADUATED'::character varyin… · ck_student_source (CHECK): CHECK (((source)::text = ANY ((ARRAY['DIRECTORY'::character varying, 'IMPORT'::character varying, 'SIGN_UP'::character varying])::text[]))) · ck_student_verification (CHECK): CHECK (((verification)::text = ANY ((ARRAY['VERIFIED'::character varying, 'PENDING'::character varying, 'REJECTED'::character varying])::tex…
 
-*Table* `auth_student_emergency_contact` (8 columns)
-
+Table: `auth_student_emergency_contact` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -209,8 +195,7 @@
 | created_at | timestamp with time zone | no | now() |  |
 | updated_at | timestamp with time zone | no | now() |  |
 
-*Table* `auth_student_import` (15 columns)
-
+Table: `auth_student_import` (15 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -231,8 +216,7 @@
 
 *Constraints of auth_student_import:* auth_student_import_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PREVIEW'::character varying, 'APPLIED'::character varying])::text[])))
 
-*Table* `auth_student_import_row` (8 columns)
-
+Table: `auth_student_import_row` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -246,8 +230,7 @@
 
 *Constraints of auth_student_import_row:* auth_student_import_row_import_id_line_no_key (UNIQUE): UNIQUE (import_id, line_no) · auth_student_import_row_outcome_check (CHECK): CHECK (((outcome)::text = ANY ((ARRAY['NEW'::character varying, 'UPDATE'::character varying, 'UNCHANGED'::character varying, 'ERROR'::charac…
 
-*Table* `auth_user` (16 columns)
-
+Table: `auth_user` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -269,8 +252,7 @@
 
 *Constraints of auth_user:* auth_user_failed_attempts_check (CHECK): CHECK ((failed_attempts >= 0)) · auth_user_google_sub_key (UNIQUE): UNIQUE (google_sub) · auth_user_role_check (CHECK): CHECK (((role)::text = ANY ((ARRAY['STUDENT'::character varying, 'STAFF'::character varying, 'MANAGER'::character varying, 'ADMIN'::characte… · auth_user_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['INVITED'::character varying, 'ACTIVE'::character varying, 'DISABLED'::character varying])::text[]))) · ck_user_locale (CHECK): CHECK (((locale)::text = ANY ((ARRAY['vi'::character varying, 'en'::character varying])::text[])))
 
-*Table* `auth_user_block` (2 columns)
-
+Table: `auth_user_block` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | user_id | bigint | no |  | PK, FK → auth_user |
@@ -278,8 +260,7 @@
 
 **Configuration (CFG): 19 tables**
 
-*Table* `cfg_block_settings` (10 columns)
-
+Table: `cfg_block_settings` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | building_id | bigint | no |  | PK, FK → inv_building |
@@ -295,8 +276,7 @@
 
 *Constraints of cfg_block_settings:* ck_block_desk (CHECK): CHECK ((desk_opens < desk_closes)) · ck_block_visit (CHECK): CHECK ((visit_from < visit_until))
 
-*Table* `cfg_eligibility_criterion` (5 columns)
-
+Table: `cfg_eligibility_criterion` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | key | character varying(40) | no |  | PK |
@@ -305,8 +285,7 @@
 | enabled | boolean | no | true |  |
 | sort_order | smallint | no | 0 |  |
 
-*Table* `cfg_fee_policy` (8 columns)
-
+Table: `cfg_fee_policy` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | smallint | no | 1 | PK |
@@ -320,8 +299,7 @@
 
 *Constraints of cfg_fee_policy:* cfg_fee_policy_balance_days_check (CHECK): CHECK ((balance_days > 0)) · cfg_fee_policy_deposit_hours_check (CHECK): CHECK ((deposit_hours > 0)) · cfg_fee_policy_deposit_percent_check (CHECK): CHECK (((deposit_percent > (0)::numeric) AND (deposit_percent <= (100)::numeric))) · cfg_fee_policy_id_check (CHECK): CHECK ((id = 1))
 
-*Table* `cfg_lookup` (5 columns)
-
+Table: `cfg_lookup` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | list_key | character varying(40) | no |  | PK |
@@ -330,8 +308,7 @@
 | sort_order | smallint | no | 0 |  |
 | active | boolean | no | true |  |
 
-*Table* `cfg_matching_snapshot` (9 columns)
-
+Table: `cfg_matching_snapshot` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -346,8 +323,7 @@
 
 *Constraints of cfg_matching_snapshot:* cfg_matching_snapshot_boost_check (CHECK): CHECK (((boost >= (1)::numeric) AND (boost <= (5)::numeric))) · cfg_matching_snapshot_label_key (UNIQUE): UNIQUE (label)
 
-*Table* `cfg_parameter` (12 columns)
-
+Table: `cfg_parameter` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | key | character varying(60) | no |  | PK |
@@ -365,8 +341,7 @@
 
 *Constraints of cfg_parameter:* cfg_parameter_settings_group_check (CHECK): CHECK (((settings_group)::text = ANY ((ARRAY['DEADLINES'::character varying, 'REFUNDS'::character varying, 'STAY'::character varying])::text… · cfg_parameter_value_type_check (CHECK): CHECK (((value_type)::text = ANY ((ARRAY['INT'::character varying, 'DECIMAL'::character varying, 'BOOL'::character varying, 'TEXT'::characte…
 
-*Table* `cfg_priority_group` (6 columns)
-
+Table: `cfg_priority_group` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -378,8 +353,7 @@
 
 *Constraints of cfg_priority_group:* cfg_priority_group_key_key (UNIQUE): UNIQUE (key)
 
-*Table* `cfg_refund_rule` (7 columns)
-
+Table: `cfg_refund_rule` (7 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -392,8 +366,7 @@
 
 *Constraints of cfg_refund_rule:* cfg_refund_rule_approver_role_check (CHECK): CHECK (((approver_role)::text = ANY ((ARRAY['SYSTEM'::character varying, 'STAFF'::character varying, 'MANAGER'::character varying, 'ADMIN'::… · cfg_refund_rule_refund_percent_check (CHECK): CHECK (((refund_percent >= (0)::numeric) AND (refund_percent <= (100)::numeric)))
 
-*Table* `cfg_room_class` (9 columns)
-
+Table: `cfg_room_class` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -408,8 +381,7 @@
 
 *Constraints of cfg_room_class:* cfg_room_class_name_key (UNIQUE): UNIQUE (name) · cfg_room_class_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying])::text[]))) · cfg_room_class_surcharge_rate_check (CHECK): CHECK (((surcharge_rate >= (0)::numeric) AND (surcharge_rate <= (5)::numeric)))
 
-*Table* `cfg_room_type` (11 columns)
-
+Table: `cfg_room_type` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -426,8 +398,7 @@
 
 *Constraints of cfg_room_type:* cfg_room_type_base_price_check (CHECK): CHECK ((base_price > 0)) · cfg_room_type_beds_check (CHECK): CHECK (((beds >= 1) AND (beds <= 12))) · cfg_room_type_name_key (UNIQUE): UNIQUE (name) · cfg_room_type_roommate_selection_check (CHECK): CHECK (((roommate_selection)::text = ANY ((ARRAY['AUTO'::character varying, 'MUTUAL'::character varying])::text[]))) · cfg_room_type_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying])::text[]))) · ck_room_type_mutual (CHECK): CHECK ((((roommate_selection)::text = 'AUTO'::text) OR (beds = 2)))
 
-*Table* `cfg_term` (37 columns)
-
+Table: `cfg_term` (37 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -470,15 +441,13 @@
 
 *Constraints of cfg_term:* cfg_term_code_key (UNIQUE): UNIQUE (code) · cfg_term_deposit_hours_check (CHECK): CHECK ((deposit_hours > 0)) · cfg_term_deposit_percent_check (CHECK): CHECK (((deposit_percent > (0)::numeric) AND (deposit_percent <= (100)::numeric))) · cfg_term_reserved_new_percent_check (CHECK): CHECK (((reserved_new_percent >= (0)::numeric) AND (reserved_new_percent <= (100)::numeric))) · cfg_term_roommate_hours_check (CHECK): CHECK ((roommate_hours > 0)) · cfg_term_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PUBLISHED'::character varying, 'CLOSED'::character varying])::text[]))) · cfg_term_utility_deposit_check (CHECK): CHECK ((utility_deposit >= 0)) · cfg_term_wizard_step_check (CHECK): CHECK (((wizard_step >= 1) AND (wizard_step <= 7))) · ck_term_checkin (CHECK): CHECK (((check_in_start <= check_in_end) AND (check_in_end <= stay_end))) · ck_term_checkout (CHECK): CHECK ((check_out_by >= stay_start)) · ck_term_published_complete (CHECK): CHECK ((((status)::text = 'DRAFT'::text) OR ((registration_opens_at IS NOT NULL) AND (registration_closes_at IS NOT NULL) AND (results_publi… · ck_term_registration (CHECK): CHECK (((registration_opens_at < registration_closes_at) AND (registration_closes_at <= results_published_at))) · ck_term_renewal_complete (CHECK): CHECK (((num_nulls(publish_at, requests_open_at, requests_close_at, decisions_due_at, reconciliation_due_at, fees_issue_at, fees_due_at) = A… · ck_term_stay (CHECK): CHECK ((stay_start < stay_end)) · ex_term_no_overlap (EXCLUDE): EXCLUDE USING gist (daterange(stay_start, stay_end, '[]'::text) WITH &&) WHERE (((status)::text <> 'DRAFT'::text))
 
-*Table* `cfg_term_block` (2 columns)
-
+Table: `cfg_term_block` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
 | building_id | bigint | no |  | PK, FK → inv_building |
 
-*Table* `cfg_term_price` (4 columns)
-
+Table: `cfg_term_price` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
@@ -488,8 +457,7 @@
 
 *Constraints of cfg_term_price:* cfg_term_price_price_check (CHECK): CHECK ((price > 0))
 
-*Table* `cfg_term_request` (14 columns)
-
+Table: `cfg_term_request` (14 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -509,8 +477,7 @@
 
 *Constraints of cfg_term_request:* cfg_term_request_code_key (UNIQUE): UNIQUE (code) · cfg_term_request_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'IN_PROGRESS'::character varying, 'NEEDS_CHANGES'::character varying, '… · ck_term_request_done (CHECK): CHECK ((((status)::text <> 'DONE'::text) OR (term_id IS NOT NULL))) · ck_term_request_stay (CHECK): CHECK ((stay_start < stay_end))
 
-*Table* `cfg_term_request_event` (6 columns)
-
+Table: `cfg_term_request_event` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -522,29 +489,25 @@
 
 *Constraints of cfg_term_request_event:* cfg_term_request_event_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'UPDATED'::character varying, 'COMMENT'::character varying, 'IN_PROGRESS'…
 
-*Table* `cfg_term_room_class` (2 columns)
-
+Table: `cfg_term_room_class` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
 | room_class_id | bigint | no |  | PK, FK → cfg_room_class |
 
-*Table* `cfg_term_room_excluded` (2 columns)
-
+Table: `cfg_term_room_excluded` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
 | room_id | bigint | no |  | PK, FK → inv_room |
 
-*Table* `cfg_term_room_type` (2 columns)
-
+Table: `cfg_term_room_type` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
 | room_type_id | bigint | no |  | PK, FK → cfg_room_type |
 
-*Table* `cfg_utility_policy` (13 columns)
-
+Table: `cfg_utility_policy` (13 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | smallint | no | 1 | PK |
@@ -565,8 +528,7 @@
 
 **Inventory (INV): 14 tables**
 
-*Table* `inv_bed` (4 columns)
-
+Table: `inv_bed` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -576,8 +538,7 @@
 
 *Constraints of inv_bed:* inv_bed_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['IN_SERVICE'::character varying, 'OUT_OF_SERVICE'::character varying, 'RETIRED'::character varying])::t… · ux_bed (UNIQUE): UNIQUE (room_id, label)
 
-*Table* `inv_building` (8 columns)
-
+Table: `inv_building` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -591,8 +552,7 @@
 
 *Constraints of inv_building:* inv_building_code_key (UNIQUE): UNIQUE (code) · inv_building_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · inv_building_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying])::text[])))
 
-*Table* `inv_door_code` (10 columns)
-
+Table: `inv_door_code` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -608,8 +568,7 @@
 
 *Constraints of inv_door_code:* ck_door_code_confirmed (CHECK): CHECK ((((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'RETIRED'::character varying])::text[])) = (confirmed_at IS NOT NULL))) · ck_door_code_ended (CHECK): CHECK ((((status)::text = ANY ((ARRAY['RETIRED'::character varying, 'CANCELLED'::character varying])::text[])) = (ended_at IS NOT NULL))) · inv_door_code_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['MANUAL'::character varying, 'RANDOM'::character varying, 'IMPORT'::character varying])::text[]))) · inv_door_code_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PROPOSED'::character varying, 'ACTIVE'::character varying, 'RETIRED'::character varying, 'CANCELLED'::…
 
-*Table* `inv_door_code_task` (6 columns)
-
+Table: `inv_door_code_task` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -621,8 +580,7 @@
 
 *Constraints of inv_door_code_task:* ck_door_task_done (CHECK): CHECK (((done_at IS NULL) = (door_code_id IS NULL))) · ck_door_task_reason (CHECK): CHECK (((reason)::text = ANY ((ARRAY['CHECK_OUT'::character varying, 'MOVE_OUT'::character varying, 'TERMINATION'::character varying])::text…
 
-*Table* `inv_floor` (4 columns)
-
+Table: `inv_floor` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -632,8 +590,7 @@
 
 *Constraints of inv_floor:* inv_floor_floor_no_check (CHECK): CHECK (((floor_no >= 0) AND (floor_no <= 60))) · ux_floor (UNIQUE): UNIQUE (building_id, floor_no)
 
-*Table* `inv_floor_layout` (3 columns)
-
+Table: `inv_floor_layout` (3 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | floor_id | bigint | no |  | PK, FK → inv_floor |
@@ -642,8 +599,7 @@
 
 *Constraints of inv_floor_layout:* inv_floor_layout_room_count_check (CHECK): CHECK (((room_count >= 0) AND (room_count <= 200)))
 
-*Table* `inv_furniture_condition` (6 columns)
-
+Table: `inv_furniture_condition` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | code | character varying(16) | no |  | PK |
@@ -655,8 +611,7 @@
 
 *Constraints of inv_furniture_condition:* inv_furniture_condition_value_percent_check (CHECK): CHECK (((value_percent >= 0) AND (value_percent <= 100)))
 
-*Table* `inv_furniture_event` (8 columns)
-
+Table: `inv_furniture_event` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -670,8 +625,7 @@
 
 *Constraints of inv_furniture_event:* inv_furniture_event_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['REGISTERED'::character varying, 'STATUS'::character varying, 'MOVED'::character varying, 'REPAIR'::chara…
 
-*Table* `inv_furniture_item` (12 columns)
-
+Table: `inv_furniture_item` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -689,8 +643,7 @@
 
 *Constraints of inv_furniture_item:* ck_furniture_in_store (CHECK): CHECK ((((status)::text <> 'IN_STORE'::text) OR (store_building_id IS NOT NULL))) · ck_furniture_in_use (CHECK): CHECK ((((status)::text <> 'IN_USE'::text) OR (room_id IS NOT NULL))) · ck_furniture_location (CHECK): CHECK (((room_id IS NULL) <> (store_building_id IS NULL))) · inv_furniture_item_asset_code_key (UNIQUE): UNIQUE (asset_code) · inv_furniture_item_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSING'::chara… · inv_furniture_item_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['IN_USE'::character varying, 'BROKEN'::character varying, 'IN_REPAIR'::character varying, 'IN_STORE'::c…
 
-*Table* `inv_furniture_move` (12 columns)
-
+Table: `inv_furniture_move` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -708,8 +661,7 @@
 
 *Constraints of inv_furniture_move:* ck_move_closed (CHECK): CHECK ((((status)::text = 'PLANNED'::text) = (closed_at IS NULL))) · ck_move_from (CHECK): CHECK (((from_room_id IS NULL) <> (from_store_building_id IS NULL))) · ck_move_to (CHECK): CHECK (((to_room_id IS NULL) <> (to_store_building_id IS NULL))) · inv_furniture_move_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PLANNED'::character varying, 'DONE'::character varying, 'CANCELLED'::character varying])::text[])))
 
-*Table* `inv_furniture_type` (13 columns)
-
+Table: `inv_furniture_type` (13 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -728,8 +680,7 @@
 
 *Constraints of inv_furniture_type:* ck_furniture_type_code (CHECK): CHECK (((code)::text ~ '^[A-Z][A-Z0-9]{0,9}$'::text)) · inv_furniture_type_category_check (CHECK): CHECK (((category)::text = ANY ((ARRAY['APPLIANCE'::character varying, 'FURNITURE'::character varying, 'FIXTURE'::character varying, 'OTHER'… · inv_furniture_type_code_key (UNIQUE): UNIQUE (code) · inv_furniture_type_name_key (UNIQUE): UNIQUE (name) · inv_furniture_type_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying])::text[]))) · inv_furniture_type_unit_price_check (CHECK): CHECK (((unit_price IS NULL) OR ((unit_price >= 0) AND (unit_price <= 1000000000)))) · inv_furniture_type_use_scope_check (CHECK): CHECK (((use_scope)::text = ANY ((ARRAY['PERSONAL'::character varying, 'SHARED'::character varying])::text[])))
 
-*Table* `inv_room` (14 columns)
-
+Table: `inv_room` (14 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -749,8 +700,7 @@
 
 *Constraints of inv_room:* ck_room_oos (CHECK): CHECK ((((status)::text = 'OUT_OF_SERVICE'::text) = ((oos_since IS NOT NULL) AND (oos_reason IS NOT NULL)))) · inv_room_code_key (UNIQUE): UNIQUE (code) · inv_room_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['IN_SERVICE'::character varying, 'OUT_OF_SERVICE'::character varying, 'RETIRED'::character varying])::t…
 
-*Table* `inv_room_class_requirement` (3 columns)
-
+Table: `inv_room_class_requirement` (3 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | room_class_id | bigint | no |  | PK, FK → cfg_room_class |
@@ -759,8 +709,7 @@
 
 *Constraints of inv_room_class_requirement:* inv_room_class_requirement_quantity_check (CHECK): CHECK (((quantity >= 1) AND (quantity <= 20)))
 
-*Table* `inv_room_class_term` (5 columns)
-
+Table: `inv_room_class_term` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | room_id | bigint | no |  | PK, FK → inv_room |
@@ -771,8 +720,7 @@
 
 **Applications (APP): 6 tables**
 
-*Table* `app_application` (31 columns)
-
+Table: `app_application` (31 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -809,8 +757,7 @@
 
 *Constraints of app_application:* app_application_code_key (UNIQUE): UNIQUE (code) · app_application_deposit_amount_check (CHECK): CHECK ((deposit_amount >= 0)) · app_application_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · app_application_roommate_mode_check (CHECK): CHECK (((roommate_mode)::text = ANY ((ARRAY['NONE'::character varying, 'INVITE'::character varying, 'AUTO'::character varying])::text[]))) · app_application_stay_terms_check (CHECK): CHECK (((stay_terms >= 1) AND (stay_terms <= 9))) · app_application_term_price_check (CHECK): CHECK ((term_price > 0)) · ck_app_consent (CHECK): CHECK ((consent_matching AND consent_rules)) · ck_app_partner (CHECK): CHECK (((partner_application_id IS NULL) OR ((roommate_mode)::text = 'INVITE'::text))) · ck_app_pref (CHECK): CHECK (((roommate_preferences IS NULL) OR ((roommate_mode)::text = 'AUTO'::text))) · ck_app_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (decision_note IS NOT NULL))) · ck_app_status (CHECK): CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'AWAITING_ROOMMATE'::character varying, 'AWAITING_DEPOSIT'::character varyi…
 
-*Table* `app_application_event` (8 columns)
-
+Table: `app_application_event` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -822,8 +769,7 @@
 | actor_id | bigint | yes |  | FK → auth_user |
 | at | timestamp with time zone | no | now() |  |
 
-*Table* `app_roommate_check` (5 columns)
-
+Table: `app_roommate_check` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -832,8 +778,7 @@
 | valid | boolean | no |  |  |
 | at | timestamp with time zone | no | now() |  |
 
-*Table* `app_roommate_invitation` (10 columns)
-
+Table: `app_roommate_invitation` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -849,8 +794,7 @@
 
 *Constraints of app_roommate_invitation:* app_roommate_invitation_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACCEPTED'::character varying, 'DECLINED'::character varying, 'EXPIRED'::… · ck_invite_accepted (CHECK): CHECK ((((status)::text <> 'ACCEPTED'::text) OR (invitee_application_id IS NOT NULL)))
 
-*Table* `app_round2_offer` (7 columns)
-
+Table: `app_round2_offer` (7 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -863,8 +807,7 @@
 
 *Constraints of app_round2_offer:* app_round2_offer_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACCEPTED'::character varying, 'DECLINED'::character varying, 'EXPIRED'::…
 
-*Table* `app_round2_option` (12 columns)
-
+Table: `app_round2_option` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -884,8 +827,7 @@
 
 **Assignment (ASG): 16 tables**
 
-*Table* `asg_allocation` (26 columns)
-
+Table: `asg_allocation` (26 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -917,8 +859,7 @@
 
 *Constraints of asg_allocation:* asg_allocation_renewal_check (CHECK): CHECK (((renewal)::text = ANY ((ARRAY['AWAITING_EXTENSION'::character varying, 'CONTINUING'::character varying])::text[]))) · asg_allocation_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'ENDED'::character varying, 'CANCELLED'::character varying])::text[]))) · ck_alloc_code_resident (CHECK): CHECK (((code_released_at IS NULL) OR (resident_at IS NOT NULL))) · ck_alloc_end_reason (CHECK): CHECK (((end_reason)::text = ANY ((ARRAY['CHECK_OUT'::character varying, 'ROOM_CHANGE'::character varying, 'SWAP'::character varying, 'CANCE… · ck_alloc_ended (CHECK): CHECK ((((status)::text = 'ACTIVE'::text) = (ended_at IS NULL))) · ck_alloc_fee_paid (CHECK): CHECK (((fee_paid_at IS NULL) OR ((renewal)::text = 'CONTINUING'::text))) · ck_alloc_source (CHECK): CHECK (((source)::text = ANY ((ARRAY['ASSIGNMENT'::character varying, 'ROUND2'::character varying, 'ROOM_CHANGE'::character varying, 'SWAP':…
 
-*Table* `asg_check_out` (25 columns)
-
+Table: `asg_check_out` (25 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -949,8 +890,7 @@
 
 *Constraints of asg_check_out:* asg_check_out_allocation_id_key (UNIQUE): UNIQUE (allocation_id) · asg_check_out_damage_charge_check (CHECK): CHECK ((damage_charge >= 0)) · asg_check_out_deposit_held_check (CHECK): CHECK ((deposit_held >= 0)) · asg_check_out_refund_amount_check (CHECK): CHECK ((refund_amount >= 0)) · asg_check_out_refund_status_check (CHECK): CHECK (((refund_status)::text = ANY ((ARRAY['NONE'::character varying, 'PENDING'::character varying, 'APPROVED'::character varying, 'PAID'::… · asg_check_out_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'DRAFT'::character varying, 'COMPLETED'::character varying])::text[]))) · asg_check_out_unpaid_utility_check (CHECK): CHECK ((unpaid_utility >= 0)) · asg_check_out_utility_share_check (CHECK): CHECK ((utility_share >= 0)) · ck_checkout_completed (CHECK): CHECK ((((status)::text <> 'COMPLETED'::text) OR ((completed_at IS NOT NULL) AND (electricity IS NOT NULL) AND (water IS NOT NULL) AND (cond…
 
-*Table* `asg_check_out_damage` (16 columns)
-
+Table: `asg_check_out_damage` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | check_out_id | bigint | no |  | PK, FK → asg_check_out |
@@ -972,8 +912,7 @@
 
 *Constraints of asg_check_out_damage:* asg_check_out_damage_amount_check (CHECK): CHECK ((amount >= 0)) · asg_check_out_damage_baseline_condition_check (CHECK): CHECK (((baseline_condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSIN… · asg_check_out_damage_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSING'::chara… · asg_check_out_damage_full_amount_check (CHECK): CHECK ((full_amount >= 0)) · asg_check_out_damage_manager_review_check (CHECK): CHECK (((manager_review)::text = ANY ((ARRAY['PENDING'::character varying, 'KEPT'::character varying, 'DROPPED'::character varying])::text[]… · asg_check_out_damage_percent_check (CHECK): CHECK (((percent >= 0) AND (percent <= 100))) · asg_check_out_damage_shared_with_check (CHECK): CHECK ((shared_with >= 1)) · asg_check_out_damage_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['PERSONAL'::character varying, 'ACKNOWLEDGED'::character varying, 'OVERRIDE'::character varying])::text… · asg_check_out_damage_unit_price_check (CHECK): CHECK ((unit_price >= 0))
 
-*Table* `asg_damage_claim` (11 columns)
-
+Table: `asg_damage_claim` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -990,8 +929,7 @@
 
 *Constraints of asg_damage_claim:* asg_damage_claim_amount_check (CHECK): CHECK ((amount >= 0)) · asg_damage_claim_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['DAMAGED'::character varying, 'MISSING'::character varying])::text[]))) · asg_damage_claim_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACKNOWLEDGED'::character varying, 'DECLINED'::character varying, 'EXPIRE…
 
-*Table* `asg_furniture_report` (7 columns)
-
+Table: `asg_furniture_report` (7 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1004,8 +942,7 @@
 
 *Constraints of asg_furniture_report:* asg_furniture_report_allocation_id_furniture_item_id_key (UNIQUE): UNIQUE (allocation_id, furniture_item_id) · asg_furniture_report_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['WORN'::character varying, 'DAMAGED'::character varying, 'MISSING'::character varying])::text[])))
 
-*Table* `asg_handover` (33 columns)
-
+Table: `asg_handover` (33 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1044,8 +981,7 @@
 
 *Constraints of asg_handover:* asg_handover_comparison_check (CHECK): CHECK (((comparison)::text = ANY ((ARRAY['MATCHED'::character varying, 'MINOR'::character varying, 'MAJOR'::character varying])::text[]))) · asg_handover_electricity_check (CHECK): CHECK ((electricity >= (0)::numeric)) · asg_handover_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['STUDENT'::character varying, 'VERIFIED'::character varying, 'AUTO'::character varying])::text[]))) · asg_handover_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying, 'VERIFYING'::character varying, 'FINAL'::ch… · asg_handover_verified_electricity_check (CHECK): CHECK ((verified_electricity >= (0)::numeric)) · asg_handover_verified_water_check (CHECK): CHECK ((verified_water >= (0)::numeric)) · asg_handover_water_check (CHECK): CHECK ((water >= (0)::numeric)) · ck_handover_final (CHECK): CHECK ((((status)::text <> 'FINAL'::text) OR ((finalized_at IS NOT NULL) AND (source IS NOT NULL))))
 
-*Table* `asg_handover_item` (9 columns)
-
+Table: `asg_handover_item` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | handover_id | bigint | no |  | PK, FK → asg_handover |
@@ -1060,8 +996,7 @@
 
 *Constraints of asg_handover_item:* asg_handover_item_baseline_condition_check (CHECK): CHECK (((baseline_condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSIN… · asg_handover_item_baseline_source_check (CHECK): CHECK (((baseline_source)::text = ANY ((ARRAY['INSPECTION'::character varying, 'HANDOVER'::character varying, 'CHECK_OUT'::character varying… · asg_handover_item_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSING'::chara… · asg_handover_item_verified_condition_check (CHECK): CHECK (((verified_condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSIN…
 
-*Table* `asg_handover_photo` (6 columns)
-
+Table: `asg_handover_photo` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1071,8 +1006,7 @@
 | taken_by | bigint | no |  | FK → auth_user |
 | created_at | timestamp with time zone | no | now() |  |
 
-*Table* `asg_late_check_in` (16 columns)
-
+Table: `asg_late_check_in` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1094,8 +1028,7 @@
 
 *Constraints of asg_late_check_in:* asg_late_check_in_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['DESK'::character varying, 'ONLINE'::character varying])::text[]))) · asg_late_check_in_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying])::text[]))) · ck_late_approved (CHECK): CHECK ((((status)::text <> 'APPROVED'::text) OR (deadline IS NOT NULL))) · ck_late_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (decision_reason IS NOT NULL)))
 
-*Table* `asg_move` (13 columns)
-
+Table: `asg_move` (13 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1114,8 +1047,7 @@
 
 *Constraints of asg_move:* asg_move_next_term_check (CHECK): CHECK (((next_term)::text = ANY ((ARRAY['FOLLOWED'::character varying, 'KEPT'::character varying, 'NONE'::character varying])::text[]))) · ck_move_note (CHECK): CHECK ((((reason)::text <> 'OTHER'::text) OR (note IS NOT NULL)))
 
-*Table* `asg_proposal_item` (12 columns)
-
+Table: `asg_proposal_item` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1133,8 +1065,7 @@
 
 *Constraints of asg_proposal_item:* asg_proposal_item_issue_tone_check (CHECK): CHECK (((issue_tone)::text = ANY ((ARRAY['INFO'::character varying, 'WARNING'::character varying, 'DANGER'::character varying])::text[]))) · ck_proposal_waitlist (CHECK): CHECK (((NOT waitlisted) OR (bed_id IS NULL))) · ux_proposal_app (UNIQUE): UNIQUE (run_id, application_id)
 
-*Table* `asg_renewal` (10 columns)
-
+Table: `asg_renewal` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | term_id | bigint | no |  | PK, FK → cfg_term |
@@ -1150,8 +1081,7 @@
 
 *Constraints of asg_renewal:* ck_renewal_fees (CHECK): CHECK (((fees_issued_at IS NULL) = (fees_issued_by IS NULL))) · ck_renewal_terms (CHECK): CHECK ((term_id <> previous_term_id))
 
-*Table* `asg_run` (16 columns)
-
+Table: `asg_run` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1173,8 +1103,7 @@
 
 *Constraints of asg_run:* asg_run_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['DRY_RUN'::character varying, 'REAL'::character varying, 'ROUND2'::character varying])::text[]))) · asg_run_stage_check (CHECK): CHECK (((stage >= 0) AND (stage <= 5))) · asg_run_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['RUNNING'::character varying, 'PROPOSED'::character varying, 'IN_REVIEW'::character varying, 'COMMITTED…
 
-*Table* `asg_run_block` (10 columns)
-
+Table: `asg_run_block` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | run_id | bigint | no |  | PK, FK → asg_run |
@@ -1190,8 +1119,7 @@
 
 *Constraints of asg_run_block:* asg_run_block_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['REVIEW'::character varying, 'SUBMITTED'::character varying, 'APPROVED'::character varying, 'RETURNED':… · ck_run_block_returned (CHECK): CHECK ((((status)::text <> 'RETURNED'::text) OR (comment IS NOT NULL)))
 
-*Table* `asg_stay` (11 columns)
-
+Table: `asg_stay` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1208,8 +1136,7 @@
 
 *Constraints of asg_stay:* asg_stay_committed_terms_check (CHECK): CHECK (((committed_terms >= 1) AND (committed_terms <= 30))) · asg_stay_end_kind_check (CHECK): CHECK (((end_kind)::text = ANY ((ARRAY['COMPLETED'::character varying, 'ENDED_EARLY'::character varying, 'TERMINATED'::character varying])::… · asg_stay_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'ENDED'::character varying])::text[]))) · asg_stay_terms_used_check (CHECK): CHECK ((terms_used >= 0)) · ck_stay_ended (CHECK): CHECK ((((status)::text = 'ENDED'::text) = ((ended_at IS NOT NULL) AND (end_kind IS NOT NULL))))
 
-*Table* `asg_termination` (16 columns)
-
+Table: `asg_termination` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1233,8 +1160,7 @@
 
 **Billing (BIL): 9 tables**
 
-*Table* `bil_bank_transaction_archive` (16 columns)
-
+Table: `bil_bank_transaction_archive` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1256,8 +1182,7 @@
 
 *Constraints of bil_bank_transaction_archive:* bil_bank_transaction_amount_check (CHECK): CHECK ((amount >= 0)) · bil_bank_transaction_match_status_check (CHECK): CHECK (((match_status)::text = ANY ((ARRAY['PENDING'::character varying, 'MATCHED'::character varying, 'UNMATCHED'::character varying, 'AMOU… · bil_bank_transaction_provider_check (CHECK): CHECK (((provider)::text = ANY ((ARRAY['SEPAY'::character varying, 'MOCK'::character varying])::text[]))) · bil_bank_transaction_transfer_type_check (CHECK): CHECK (((transfer_type)::text = ANY ((ARRAY['in'::character varying, 'out'::character varying])::text[]))) · ux_bank_txn (UNIQUE): UNIQUE (provider, provider_txn_id)
 
-*Table* `bil_invoice` (30 columns)
-
+Table: `bil_invoice` (30 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1293,8 +1218,7 @@
 
 *Constraints of bil_invoice:* bil_invoice_amount_check (CHECK): CHECK ((amount > 0)) · bil_invoice_code_key (UNIQUE): UNIQUE (code) · bil_invoice_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · bil_invoice_reminders_sent_check (CHECK): CHECK (((reminders_sent >= 0) AND (reminders_sent <= 2))) · bil_invoice_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['UPCOMING'::character varying, 'UNPAID'::character varying, 'AWAITING_CONFIRMATION'::character varying,… · bil_invoice_transfer_content_key (UNIQUE): UNIQUE (transfer_content) · bil_invoice_utility_deposit_check (CHECK): CHECK ((utility_deposit >= 0)) · ck_invoice_paid (CHECK): CHECK ((((status)::text = ANY ((ARRAY['PAID'::character varying, 'REFUNDED'::character varying])::text[])) = (paid_at IS NOT NULL))) · ck_invoice_payment_method (CHECK): CHECK (((payment_method)::text = ANY ((ARRAY['VIETQR'::character varying, 'MANUAL'::character varying, 'TRANSFER'::character varying])::text… · ck_invoice_type (CHECK): CHECK (((type)::text = ANY ((ARRAY['DEPOSIT'::character varying, 'BALANCE'::character varying, 'UTILITY'::character varying, 'ROOM_CHANGE'::…
 
-*Table* `bil_meter_cut` (9 columns)
-
+Table: `bil_meter_cut` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1309,8 +1233,7 @@
 
 *Constraints of bil_meter_cut:* ck_meter_cut_reason (CHECK): CHECK (((reason)::text = ANY ((ARRAY['CHECK_IN'::character varying, 'CHECK_OUT'::character varying, 'ROOM_CHANGE'::character varying, 'SWAP'…
 
-*Table* `bil_meter_period` (9 columns)
-
+Table: `bil_meter_period` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1325,8 +1248,7 @@
 
 *Constraints of bil_meter_period:* ck_meter_period (CHECK): CHECK ((period_start < period_end)) · ux_meter_period (UNIQUE): UNIQUE (building_id, period_start)
 
-*Table* `bil_meter_reading` (12 columns)
-
+Table: `bil_meter_reading` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1344,8 +1266,7 @@
 
 *Constraints of bil_meter_reading:* bil_meter_reading_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['MISSING'::character varying, 'ENTERED'::character varying, 'CHECK_VALUE'::character varying, 'CONFIRME… · ck_meter_monotonic (CHECK): CHECK ((((electricity_curr IS NULL) OR (electricity_curr >= electricity_prev)) AND ((water_curr IS NULL) OR (water_curr >= water_prev)))) · ux_meter_reading (UNIQUE): UNIQUE (period_id, room_id)
 
-*Table* `bil_payment` (12 columns)
-
+Table: `bil_payment` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1363,8 +1284,7 @@
 
 *Constraints of bil_payment:* bil_payment_amount_check (CHECK): CHECK ((amount > 0)) · bil_payment_bank_transaction_id_key (UNIQUE): UNIQUE (bank_transaction_id) · bil_payment_claim_id_key (UNIQUE): UNIQUE (claim_id) · bil_payment_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['CONFIRMED'::character varying, 'REVERSED'::character varying])::text[]))) · ck_payment_method (CHECK): CHECK (((method)::text = ANY ((ARRAY['VIETQR'::character varying, 'MANUAL'::character varying, 'TRANSFER'::character varying])::text[]))) · ck_payment_source (CHECK): CHECK (((((method)::text = 'VIETQR'::text) AND (bank_transaction_id IS NOT NULL)) OR (((method)::text = 'MANUAL'::text) AND (confirmed_by IS…
 
-*Table* `bil_payment_claim` (12 columns)
-
+Table: `bil_payment_claim` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1382,8 +1302,7 @@
 
 *Constraints of bil_payment_claim:* bil_payment_claim_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['CLAIMED'::character varying, 'CONFIRMED'::character varying, 'REJECTED'::character varying])::text[]))… · bil_payment_claim_time_left_seconds_check (CHECK): CHECK ((time_left_seconds >= 0)) · ck_claim_decided (CHECK): CHECK ((((status)::text = 'CLAIMED'::text) = (decided_at IS NULL))) · ck_claim_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (reason IS NOT NULL)))
 
-*Table* `bil_refund` (25 columns)
-
+Table: `bil_refund` (25 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1414,8 +1333,7 @@
 
 *Constraints of bil_refund:* bil_refund_amount_check (CHECK): CHECK ((amount >= 0)) · bil_refund_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · bil_refund_paid_amount_check (CHECK): CHECK ((paid_amount >= 0)) · bil_refund_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'PAID'::cha… · ck_refund_amount (CHECK): CHECK ((amount <= paid_amount)) · ck_refund_exception_note (CHECK): CHECK (((NOT (exception AND ((status)::text = 'APPROVED'::text))) OR (note IS NOT NULL))) · ck_refund_note (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (note IS NOT NULL))) · ck_refund_source (CHECK): CHECK (((source_type)::text = ANY ((ARRAY['APPLICATION_CANCEL'::character varying, 'CHECK_OUT'::character varying, 'ROOM_CHANGE'::character …
 
-*Table* `bil_utility_warning` (13 columns)
-
+Table: `bil_utility_warning` (13 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1436,8 +1354,7 @@
 
 **Requests (REQ): 10 tables**
 
-*Table* `req_escalation` (22 columns)
-
+Table: `req_escalation` (22 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1465,8 +1382,7 @@
 
 *Constraints of req_escalation:* req_escalation_handled_action_check (CHECK): CHECK (((handled_action)::text = ANY ((ARRAY['REASSIGN'::character varying, 'TEMPORARY_BED'::character varying, 'CLOSED'::character varying]… · req_escalation_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['SLA_BREACH'::character varying, 'NO_ASSIGNEE'::character varying, 'REOPENED'::character varying, 'NO_BED… · req_escalation_source_type_check (CHECK): CHECK (((source_type)::text = ANY ((ARRAY['MAINTENANCE'::character varying, 'ROOM_CHANGE'::character varying, 'SWAP'::character varying, 'AP… · req_escalation_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['OPEN'::character varying, 'HANDLED'::character varying])::text[]))) · req_escalation_tone_check (CHECK): CHECK (((tone)::text = ANY ((ARRAY['INFO'::character varying, 'WARNING'::character varying, 'DANGER'::character varying])::text[])))
 
-*Table* `req_escalation_event` (4 columns)
-
+Table: `req_escalation_event` (4 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1474,8 +1390,7 @@
 | text | character varying(300) | no |  |  |
 | at | timestamp with time zone | no | now() |  |
 
-*Table* `req_room_change` (23 columns)
-
+Table: `req_room_change` (23 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1504,8 +1419,7 @@
 
 *Constraints of req_room_change:* ck_rc_approved (CHECK): CHECK ((((status)::text <> 'APPROVED'::text) OR (target_bed_id IS NOT NULL))) · ck_rc_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (decision_reason IS NOT NULL))) · req_room_change_code_key (UNIQUE): UNIQUE (code) · req_room_change_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['SAME'::character varying, 'CLASS'::character varying, 'TYPE'::character varying])::text[]))) · req_room_change_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'…
 
-*Table* `req_room_class_change` (19 columns)
-
+Table: `req_room_class_change` (19 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1530,8 +1444,7 @@
 
 *Constraints of req_room_class_change:* ck_class_change_classes (CHECK): CHECK ((from_class_id <> to_class_id)) · ck_class_change_decided (CHECK): CHECK ((((status)::text <> ALL ((ARRAY['APPROVED'::character varying, 'REJECTED'::character varying, 'SET_BACK'::character varying])::text[]… · req_room_class_change_code_key (UNIQUE): UNIQUE (code) · req_room_class_change_requester_role_check (CHECK): CHECK (((requester_role)::text = ANY ((ARRAY['STUDENT'::character varying, 'MANAGER'::character varying])::text[]))) · req_room_class_change_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['AWAITING_CONSENT'::character varying, 'SUBMITTED'::character varying, 'APPROVED'::character varying, '…
 
-*Table* `req_room_class_consent` (6 columns)
-
+Table: `req_room_class_consent` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | change_id | bigint | no |  | PK, FK → req_room_class_change |
@@ -1543,8 +1456,7 @@
 
 *Constraints of req_room_class_consent:* ck_consent_answered (CHECK): CHECK ((((status)::text = 'PENDING'::text) = (answered_at IS NULL))) · req_room_class_consent_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'AGREED'::character varying, 'DECLINED'::character varying])::text[])))
 
-*Table* `req_routing_rule` (11 columns)
-
+Table: `req_routing_rule` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1561,8 +1473,7 @@
 
 *Constraints of req_routing_rule:* ck_routing_fallback (CHECK): CHECK (((fallback_id IS NULL) OR (fallback_id <> assignee_id))) · req_routing_rule_request_type_check (CHECK): CHECK (((request_type)::text = ANY ((ARRAY['MAINTENANCE'::character varying, 'ROOM_CHANGE'::character varying, 'SWAP'::character varying, 'P…
 
-*Table* `req_sla_policy` (6 columns)
-
+Table: `req_sla_policy` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | building_id | bigint | no |  | PK, FK → inv_building |
@@ -1574,8 +1485,7 @@
 
 *Constraints of req_sla_policy:* req_sla_policy_normal_hours_check (CHECK): CHECK ((normal_hours > 0)) · req_sla_policy_room_change_hours_check (CHECK): CHECK ((room_change_hours > 0)) · req_sla_policy_urgent_hours_check (CHECK): CHECK ((urgent_hours > 0))
 
-*Table* `req_stay_request` (17 columns)
-
+Table: `req_stay_request` (17 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1598,8 +1508,7 @@
 
 *Constraints of req_stay_request:* ck_stay_request_extension (CHECK): CHECK ((((kind)::text = 'EXTENSION'::text) = (extra_terms IS NOT NULL))) · ck_stay_request_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (decision_note IS NOT NULL))) · req_stay_request_code_key (UNIQUE): UNIQUE (code) · req_stay_request_extra_terms_check (CHECK): CHECK (((extra_terms >= 1) AND (extra_terms <= 9))) · req_stay_request_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['EXTENSION'::character varying, 'END_OF_STAY'::character varying])::text[]))) · req_stay_request_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'CANCELLE…
 
-*Table* `req_swap` (21 columns)
-
+Table: `req_swap` (21 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1626,8 +1535,7 @@
 
 *Constraints of req_swap:* ck_swap_distinct (CHECK): CHECK ((a_allocation_id <> b_allocation_id)) · ck_swap_rejected (CHECK): CHECK ((((status)::text <> 'REJECTED'::text) OR (decision_reason IS NOT NULL))) · ck_swap_status (CHECK): CHECK (((status)::text = ANY ((ARRAY['INVITED'::character varying, 'DECLINED'::character varying, 'EXPIRED'::character varying, 'PENDING'::c… · req_swap_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['DIRECT'::character varying, 'BOARD'::character varying])::text[])))
 
-*Table* `req_swap_post` (11 columns)
-
+Table: `req_swap_post` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1646,8 +1554,7 @@
 
 **Maintenance (MNT): 11 tables**
 
-*Table* `mnt_checklist` (8 columns)
-
+Table: `mnt_checklist` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1661,8 +1568,7 @@
 
 *Constraints of mnt_checklist:* mnt_checklist_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PUBLISHED'::character varying, 'REPLACED'::character varying, 'ARCHIVED'::… · mnt_checklist_version_check (CHECK): CHECK ((version > 0)) · ux_checklist_version (UNIQUE): UNIQUE (family_key, version)
 
-*Table* `mnt_checklist_item` (6 columns)
-
+Table: `mnt_checklist_item` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1674,8 +1580,7 @@
 
 *Constraints of mnt_checklist_item:* mnt_checklist_item_severity_check (CHECK): CHECK (((severity)::text = ANY ((ARRAY['CRITICAL'::character varying, 'MAJOR'::character varying, 'MINOR'::character varying, 'TRIVIAL'::cha…
 
-*Table* `mnt_inspection_photo` (6 columns)
-
+Table: `mnt_inspection_photo` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1687,8 +1592,7 @@
 
 *Constraints of mnt_inspection_photo:* mnt_inspection_photo_check_key_check (CHECK): CHECK (((check_key IS NULL) OR ((check_key)::text ~ '^FURNITURE:[0-9]+$'::text)))
 
-*Table* `mnt_inspection_result` (5 columns)
-
+Table: `mnt_inspection_result` (5 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | inspection_room_id | bigint | no |  | PK, FK → mnt_inspection_room |
@@ -1699,8 +1603,7 @@
 
 *Constraints of mnt_inspection_result:* mnt_inspection_result_result_check (CHECK): CHECK (((result)::text = ANY ((ARRAY['PASS'::character varying, 'FAIL'::character varying, 'NOT_CHECKED'::character varying])::text[])))
 
-*Table* `mnt_inspection_room` (9 columns)
-
+Table: `mnt_inspection_room` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1715,8 +1618,7 @@
 
 *Constraints of mnt_inspection_room:* mnt_inspection_room_electricity_check (CHECK): CHECK ((electricity >= (0)::numeric)) · mnt_inspection_room_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'INSPECTED'::character varying, 'UNREACHABLE'::character varying])::text[… · mnt_inspection_room_water_check (CHECK): CHECK ((water >= (0)::numeric)) · ux_inspection_room (UNIQUE): UNIQUE (run_id, room_id)
 
-*Table* `mnt_inspection_room_check` (6 columns)
-
+Table: `mnt_inspection_room_check` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | inspection_room_id | bigint | no |  | PK, FK → mnt_inspection_room |
@@ -1728,8 +1630,7 @@
 
 *Constraints of mnt_inspection_room_check:* ck_inspection_check_key (CHECK): CHECK ((((check_key)::text = 'PEOPLE'::text) OR ((check_key)::text ~ '^FURNITURE:[0-9]+$'::text))) · mnt_inspection_room_check_condition_check (CHECK): CHECK (((condition)::text = ANY ((ARRAY['GOOD'::character varying, 'WORN'::character varying, 'DAMAGED'::character varying, 'MISSING'::chara… · mnt_inspection_room_check_result_check (CHECK): CHECK (((result)::text = ANY ((ARRAY['PASS'::character varying, 'FAIL'::character varying, 'NOT_CHECKED'::character varying])::text[])))
 
-*Table* `mnt_inspection_run` (10 columns)
-
+Table: `mnt_inspection_run` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1745,8 +1646,7 @@
 
 *Constraints of mnt_inspection_run:* mnt_inspection_run_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['SCHEDULED'::character varying, 'IN_PROGRESS'::character varying, 'SUBMITTED'::character varying])::tex…
 
-*Table* `mnt_inspection_schedule` (16 columns)
-
+Table: `mnt_inspection_schedule` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1768,8 +1668,7 @@
 
 *Constraints of mnt_inspection_schedule:* ck_inspection_schedule_scope (CHECK): CHECK (((scope)::text = ANY ((ARRAY['ALL_ROOMS'::character varying, 'OCCUPIED'::character varying, 'EMPTY'::character varying, 'FLOORS'::cha… · ck_schedule_floors (CHECK): CHECK ((((scope)::text <> 'FLOORS'::text) OR (floors IS NOT NULL))) · mnt_inspection_schedule_due_within_days_check (CHECK): CHECK ((due_within_days > 0)) · mnt_inspection_schedule_kind_check (CHECK): CHECK (((kind)::text = ANY ((ARRAY['PERIODIC'::character varying, 'PRE_ARRIVAL'::character varying])::text[]))) · mnt_inspection_schedule_repeat_check (CHECK): CHECK (((repeat)::text = ANY ((ARRAY['ONCE'::character varying, 'WEEKLY'::character varying, 'MONTHLY'::character varying, 'TERMLY'::charact… · mnt_inspection_schedule_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'PAUSED'::character varying, 'COMPLETED'::character varying])::text[])))
 
-*Table* `mnt_request` (28 columns)
-
+Table: `mnt_request` (28 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1803,8 +1702,7 @@
 
 *Constraints of mnt_request:* ck_mnt_assigned (CHECK): CHECK ((((status)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'CLOSED'::character varying])::text[])) OR (assignee_id IS NOT NULL))) · ck_mnt_visit (CHECK): CHECK (((visit_window_start IS NULL) OR (visit_window_end > visit_window_start))) · mnt_request_code_key (UNIQUE): UNIQUE (code) · mnt_request_priority_check (CHECK): CHECK (((priority)::text = ANY ((ARRAY['HIGH'::character varying, 'MEDIUM'::character varying, 'LOW'::character varying])::text[]))) · mnt_request_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['STUDENT'::character varying, 'STAFF'::character varying, 'INSPECTION'::character varying])::text[]))) · mnt_request_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['SUBMITTED'::character varying, 'ASSIGNED'::character varying, 'IN_PROGRESS'::character varying, 'RESOL… · mnt_request_urgency_check (CHECK): CHECK (((urgency)::text = ANY ((ARRAY['NORMAL'::character varying, 'URGENT'::character varying])::text[])))
 
-*Table* `mnt_request_event` (8 columns)
-
+Table: `mnt_request_event` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1818,8 +1716,7 @@
 
 *Constraints of mnt_request_event:* ck_mnt_event_content (CHECK): CHECK (((text IS NOT NULL) OR (message IS NOT NULL)))
 
-*Table* `mnt_request_photo` (2 columns)
-
+Table: `mnt_request_photo` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | request_id | bigint | no |  | PK, FK → mnt_request |
@@ -1827,8 +1724,7 @@
 
 **Notifications (NTF): 9 tables**
 
-*Table* `ntf_announcement` (16 columns)
-
+Table: `ntf_announcement` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1850,23 +1746,20 @@
 
 *Constraints of ntf_announcement:* ck_announcement_term (CHECK): CHECK ((((audience)::text <> 'TERM_APPLICANTS'::text) OR (term_id IS NOT NULL))) · ck_announcement_window (CHECK): CHECK (((shown_until IS NULL) OR (shown_until > shown_from))) · ntf_announcement_audience_check (CHECK): CHECK (((audience)::text = ANY ((ARRAY['ALL_STUDENTS'::character varying, 'RESIDENTS'::character varying, 'BLOCK_RESIDENTS'::character varyi… · ntf_announcement_category_check (CHECK): CHECK (((category)::text = ANY ((ARRAY['REGISTRATION'::character varying, 'FINANCE'::character varying, 'RULES'::character varying, 'OPERATI… · ntf_announcement_source_check (CHECK): CHECK (((source)::text = ANY ((ARRAY['TERM_PUBLISHED'::character varying, 'TERM_CHANGED'::character varying, 'POLICY_CHANGED'::character var…
 
-*Table* `ntf_announcement_block` (2 columns)
-
+Table: `ntf_announcement_block` (2 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | announcement_id | bigint | no |  | PK, FK → ntf_announcement |
 | building_id | bigint | no |  | PK, FK → inv_building |
 
-*Table* `ntf_announcement_read` (3 columns)
-
+Table: `ntf_announcement_read` (3 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | announcement_id | bigint | no |  | PK, FK → ntf_announcement |
 | user_id | bigint | no |  | PK, FK → auth_user |
 | read_at | timestamp with time zone | no | now() |  |
 
-*Table* `ntf_device` (8 columns)
-
+Table: `ntf_device` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1880,8 +1773,7 @@
 
 *Constraints of ntf_device:* ntf_device_platform_check (CHECK): CHECK (((platform)::text = ANY ((ARRAY['ANDROID'::character varying, 'WEB'::character varying])::text[]))) · ntf_device_token_hash_key (UNIQUE): UNIQUE (token_hash)
 
-*Table* `ntf_email_campaign` (16 columns)
-
+Table: `ntf_email_campaign` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1903,8 +1795,7 @@
 
 *Constraints of ntf_email_campaign:* ck_campaign_one (CHECK): CHECK ((((mode)::text <> 'ONE'::text) OR (student_id IS NOT NULL))) · ntf_email_campaign_channel_check (CHECK): CHECK (((channel)::text = ANY ((ARRAY['EMAIL'::character varying, 'EMAIL_PUSH'::character varying])::text[]))) · ntf_email_campaign_gender_check (CHECK): CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))) · ntf_email_campaign_mode_check (CHECK): CHECK (((mode)::text = ANY ((ARRAY['ONE'::character varying, 'GROUP'::character varying])::text[]))) · ntf_email_campaign_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['QUEUED'::character varying, 'SENDING'::character varying, 'SENT'::character varying, 'FAILED'::charact…
 
-*Table* `ntf_email_outbox` (12 columns)
-
+Table: `ntf_email_outbox` (12 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1922,8 +1813,7 @@
 
 *Constraints of ntf_email_outbox:* ntf_email_outbox_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'SENT'::character varying, 'FAILED'::character varying])::text[])))
 
-*Table* `ntf_email_template` (8 columns)
-
+Table: `ntf_email_template` (8 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | key | character varying(60) | no |  | PK |
@@ -1935,8 +1825,7 @@
 | subject_vi | character varying(200) | yes |  |  |
 | body_html_vi | text | yes |  |  |
 
-*Table* `ntf_notification` (10 columns)
-
+Table: `ntf_notification` (10 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -1950,8 +1839,7 @@
 | title_vi | character varying(200) | yes |  |  |
 | body_vi | character varying(1000) | yes |  |  |
 
-*Table* `ntf_template` (11 columns)
-
+Table: `ntf_template` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | key | character varying(60) | no |  | PK |
@@ -1968,8 +1856,7 @@
 
 **Family Day (VIS): 4 tables**
 
-*Table* `vis_family_day` (18 columns)
-
+Table: `vis_family_day` (18 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('vis_family_day_id_seq'::regclas | PK |
@@ -1993,8 +1880,7 @@
 
 *Constraints of vis_family_day:* ck_vis_family_day_window (CHECK): CHECK ((registration_closes_at > registration_opens_at)) · vis_family_day_max_guests_check (CHECK): CHECK (((max_guests >= 1) AND (max_guests <= 10))) · vis_family_day_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PUBLISHED'::character varying, 'CANCELLED'::character varying, 'COMPLETED'…
 
-*Table* `vis_registration` (9 columns)
-
+Table: `vis_registration` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('vis_registration_id_seq'::regcl | PK |
@@ -2009,8 +1895,7 @@
 
 *Constraints of vis_registration:* vis_registration_status_check (CHECK): CHECK (((status)::text = ANY ((ARRAY['APPROVED'::character varying, 'CANCELLED'::character varying])::text[])))
 
-*Table* `vis_time_slot` (6 columns)
-
+Table: `vis_time_slot` (6 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('vis_time_slot_id_seq'::regclass | PK |
@@ -2022,8 +1907,7 @@
 
 *Constraints of vis_time_slot:* ck_vis_time_slot_capacity (CHECK): CHECK (((booked >= 0) AND (booked <= capacity))) · ck_vis_time_slot_order (CHECK): CHECK ((ends_at > starts_at)) · vis_time_slot_capacity_check (CHECK): CHECK (((capacity >= 1) AND (capacity <= 5000)))
 
-*Table* `vis_visitor` (16 columns)
-
+Table: `vis_visitor` (16 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no | nextval('vis_visitor_id_seq'::regclass) | PK |
@@ -2047,8 +1931,7 @@
 
 **Shared: 2 tables**
 
-*Table* `shared_audit_log` (11 columns)
-
+Table: `shared_audit_log` (11 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |
@@ -2065,8 +1948,7 @@
 
 *Constraints of shared_audit_log:* shared_audit_log_tone_check (CHECK): CHECK (((tone)::text = ANY ((ARRAY['INFO'::character varying, 'SUCCESS'::character varying, 'WARNING'::character varying, 'DANGER'::characte…
 
-*Table* `shared_file` (9 columns)
-
+Table: `shared_file` (9 columns)
 | Column | Type | Null | Default | Key |
 |---|---|---|---|---|
 | id | bigint | no |  | PK |

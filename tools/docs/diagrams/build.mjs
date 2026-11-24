@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { erdModels, stateModel, mergeTransitions, missingMethods, unresolved, useCaseModels, screenFlowModels, packageModel, parseJavaType, portModel } from './models.mjs'
+import { erdModels, overviewErd, stateModel, mergeTransitions, missingMethods, unresolved, useCaseModels, screenFlowModels, packageModel, parseJavaType, portModel } from './models.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '../../..')
@@ -120,7 +120,26 @@ for (const d of drawn) {
 if (!process.argv.includes('--check')) {
   const out = path.join(here, '../build/models.json')
   fs.mkdirSync(path.dirname(out), { recursive: true })
-  fs.writeFileSync(out, JSON.stringify([...erdModels(data('schema.json')), ...machines, ...useCases, ...flows, packages, entityModel, ...portModels, ...drawn], null, 1))
+  // The whole system at entity level: the main entity of each feature and the ones they hang on.
+  const MAIN = ['auth_user', 'auth_student', 'cfg_term', 'cfg_room_type', 'cfg_room_class', 'inv_building', 'inv_room', 'inv_bed',
+    'inv_furniture_item', 'app_application', 'asg_allocation', 'asg_stay', 'asg_handover', 'asg_check_out', 'bil_invoice',
+    'bil_payment_claim', 'bil_payment', 'bil_refund', 'bil_meter_reading', 'req_room_change', 'req_swap', 'mnt_request',
+    'mnt_inspection_run', 'ntf_notification', 'vis_family_day', 'vis_registration', 'vis_visitor']
+  // Feature tree (Report 1 §6.1): the product, its features FE-nn and their functions, read from the report itself.
+  const r1 = fs.readFileSync(path.join(here, '../src/Report1.md'), 'utf8')
+  const tree = { name: '11_Feature_Tree/feature-tree', kind: 'flow', title: 'Feature tree', dir: 'LR', nodes: [{ id: 'root', label: 'CampusStay FPT', shape: 'menu' }], edges: [] }
+  for (const f of r1.slice(r1.indexOf('### 6.1'), r1.indexOf('### 6.2')).split(/\n(?=- \*\*FE-)/).slice(1)) {
+    const head = f.match(/^- \*\*(FE-\d+) ([^:*]+?)(?: \(\w+\))?:\*\*/)
+    if (!head) continue
+    tree.nodes.push({ id: head[1], label: `${head[1]}\n${head[2]}`, shape: 'rect' })
+    tree.edges.push({ from: 'root', to: head[1] })
+    f.split('\n').filter((l) => /^ {2}- /.test(l)).forEach((l, i) => {
+      const text = l.replace(/^ {2}- /, '').split(/[;:,(]/)[0].trim().replace(/\.$/, '')
+      tree.nodes.push({ id: `${head[1]}-${i}`, label: text.charAt(0).toUpperCase() + text.slice(1), shape: 'round' })
+      tree.edges.push({ from: head[1], to: `${head[1]}-${i}` })
+    })
+  }
+  fs.writeFileSync(out, JSON.stringify([...erdModels(data('schema.json')), overviewErd(data('schema.json'), MAIN), tree, ...machines, ...useCases, ...flows, packages, entityModel, ...portModels, ...drawn], null, 1))
   fs.writeFileSync(path.join(here, '../data/machines.json'), JSON.stringify(machines.map((m) => ({
     name: m.name, title: m.title, notWritten: m.notWritten,
     transitions: m.edges.filter((e) => e.label).map((e) => `${e.from} → ${e.to} (${e.label})`),

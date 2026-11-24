@@ -44,7 +44,7 @@ The web application is organised by portal (`web/src/pages/<portal>`), with shar
 
 ## 2. Database Design
 
-The schema is created by 100 Flyway migrations (V1–V103): 118 tables and 33 views. Tables are named with the prefix of the feature that owns them. Below, the logical ERD of each feature (Chen notation; every foreign key is a relationship; tables of other features are dashed), then every table with its columns, keys and constraints, read from the migrated database.
+The schema is created by 100 Flyway migrations (V1–V103): 118 tables and 33 views. Tables are named with the prefix of the feature that owns them. Below, first the ERD of the whole system with its 27 main entities and their relationships (Chen notation, keys only; the columns recording who decided or created a row are left to the detailed ERDs). Then the ERD of each feature, with up to eight attributes per entity, every foreign key as a relationship and the tables of other features dashed. Last, every table with its columns, keys and constraints, read from the migrated database.
 
 @include _r4-erd.md
 

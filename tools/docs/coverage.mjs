@@ -23,9 +23,10 @@ export function missing(lines) {
 /** Report 4: every table and every column of the schema, the columns inside their table's part of the document. */
 export function missingSchema(lines) {
   const out = []
-  const starts = lines.map((l, i) => [l, i]).filter(([l]) => /^Table \S+ \(\d+ columns\)$/.test(l.trim()))
+  // Each table's part starts at its caption, "Table 45: auth_user (17 columns)".
+  const starts = lines.map((l, i) => [l, i]).filter(([l]) => /^Table \d+: \S+ \(\d+ columns\)$/.test(l.trim()))
   for (const t of data('schema.json').filter((x) => !x.view)) {
-    const at = starts.findIndex(([l]) => l.trim().startsWith(`Table ${t.name} (`))
+    const at = starts.findIndex(([l]) => new RegExp(`^Table \\d+: ${t.name} \\(`).test(l.trim()))
     if (at < 0) { out.push(`table ${t.name}`); continue }
     const part = new Set(lines.slice(starts[at][1], starts[at + 1]?.[1] ?? lines.length).map((l) => l.trim()))
     for (const c of t.columns) if (!part.has(c.name)) out.push(`${t.name}.${c.name}`)

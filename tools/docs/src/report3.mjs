@@ -119,7 +119,7 @@ export function features() {
       const rules = [...new Map(messages.filter((m) => services.includes(m.source)).map((m) => [m.code ?? m.message, m])).values()]
       const msgs = validationMessages(src)
       out.push(`#### 3.${k}.${n} ${humanize(c.replace(/Controller$/, ''))}\n\n${doc ? `${doc}\n\n` : ''}` +
-        table(['Method', 'Path', 'Access', 'Function'], eps.filter((e) => e.controller === c).map((e) => [e.method, `\`${e.path}\``, e.access, humanize(e.handler)])) +
+        `Table: Endpoints of ${humanize(c.replace(/Controller$/, ''))}\n` + table(['Method', 'Path', 'Access', 'Function'], eps.filter((e) => e.controller === c).map((e) => [e.method, `\`${e.path}\``, e.access, humanize(e.handler)])) +
         (msgs.length ? `\n\n*Validation messages:* ${msgs.slice(0, 12).join(' · ')}${msgs.length > 12 ? ` (+${msgs.length - 12} more)` : ''}` : '') +
         (rules.length ? `\n\n*Rules and error conditions (code, message), ${rules.length} in total:*\n\n` +
           table(['Code', 'Message'], rules.slice(0, 10).map((m) => [m.code ?? '', m.message])) + (rules.length > 10 ? `\n\n*+${rules.length - 10} more in section 5.3.*` : '') : ''))

@@ -49,6 +49,24 @@ export function erdModels(schema) {
   })
 }
 
+/** One ERD of the whole system at entity level: the main entities (key only) and the foreign keys between them. */
+export function overviewErd(schema, main) {
+  const tables = schema.filter((t) => !t.view && main.includes(t.name))
+  const relationships = []
+  for (const t of tables) {
+    for (const fk of t.constraints.filter((c) => c.type === 'FK' && main.includes(c.refTable))) {
+      const cols = fkColumn(fk.def)
+      if (/_by$/.test(cols)) continue   // who decided or created it: in the per-feature ERDs, not in the overview
+      const pk = pkColumns(t)
+      relationships.push({ id: `${t.name}.${cols}`, label: cols.split(',')[0].trim().replace(/_id$/, '').replace(/_/g, ' '),
+        from: t.name, fromCard: pk.length === 1 && pk[0] === cols ? '1' : 'N', to: fk.refTable, toCard: '1' })
+    }
+  }
+  const entities = main.filter((n) => tables.some((t) => t.name === n))
+    .map((n) => ({ id: n, label: n, attributes: pkColumns(tables.find((t) => t.name === n)).map((c) => ({ name: c, key: true })) }))
+  return { name: '05_ERD/erd-overview', kind: 'chen', title: 'Logical ERD: the whole system (main entities)', entities, relationships }
+}
+
 const humanize = (s) => s.toLowerCase().replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
 /** A state machine of one enumerated status column: the states of its CHECK, an edge per transition written in the

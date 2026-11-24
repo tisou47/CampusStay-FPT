@@ -83,6 +83,8 @@ const ARROW = {
   none: 'endArrow=none;',
   // laid out from source to target, the arrow drawn at the source (keeps a flow against the layout's direction)
   start: 'endArrow=none;startArrow=block;startFill=1;startSize=8;',
+  // a request and its response on one line
+  both: 'endArrow=block;endFill=1;endSize=8;startArrow=block;startFill=1;startSize=8;',
   open: 'endArrow=open;endFill=0;endSize=10;',
   triangle: 'endArrow=block;endFill=0;endSize=12;',
   diamond: 'endArrow=none;startArrow=diamondThin;startFill=0;startSize=14;',
@@ -915,6 +917,22 @@ function layoutSequence(model) {
     const w = Math.max(p.b.w, 90);
     doc.vertex({ id: safe(p.id), value: p.b.html, style: p.actor ? S.actorLifeline : S.lifeline, x: xs[i] - w / 2, y: 0, w, h: height });
   });
+  // Activation bars: an object is active from its first to its last message; arrows end at the bar's edge.
+  const span = new Map();
+  for (const l of layout) {
+    if (!l.it) continue;
+    for (const id of [l.it.from, l.it.to]) {
+      const k = idx.get(id);
+      if (ps[k].actor) continue;
+      const s = span.get(k) ?? { top: l.y, bottom: l.y };
+      span.set(k, { top: Math.min(s.top, l.y), bottom: Math.max(s.bottom, l.y + (l.self ? 24 : 0)) });
+    }
+  }
+  const BAR = 12;
+  for (const [k, s] of span) {
+    doc.vertex({ value: '', style: 'rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;', x: xs[k] - BAR / 2, y: s.top - 8, w: BAR, h: s.bottom - s.top + 16 });
+  }
+  const edge = (k, toward) => xs[k] + (span.has(k) ? (toward > xs[k] ? BAR / 2 : -BAR / 2) : 0);
   for (const l of layout) {
     if (l.frame) {
       const f = l.frame;
@@ -936,8 +954,10 @@ function layoutSequence(model) {
       continue;
     }
     const m = l.it;
-    const a = xs[idx.get(m.from)];
-    const b = xs[idx.get(m.to)];
+    const ka = idx.get(m.from);
+    const kb = idx.get(m.to);
+    const a = ka === kb ? xs[ka] + (span.has(ka) ? BAR / 2 : 0) : edge(ka, xs[kb]);
+    const b = edge(kb, xs[ka]);
     const st = `${EDGE}verticalAlign=bottom;${m.dashed ? 'dashed=1;endArrow=open;endFill=0;endSize=8;' : 'endArrow=block;endFill=1;endSize=8;'}`;
     if (l.self) {
       doc.edge({ style: `${st}align=left;spacingLeft=4;`, value: m.b.html, sourcePoint: { x: a, y: l.y }, targetPoint: { x: a + 2, y: l.y + 24 }, points: [{ x: a + 40, y: l.y }, { x: a + 40, y: l.y + 24 }], lx: -0.6, offset: { x: 30, y: 0 } });

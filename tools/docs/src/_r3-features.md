@@ -6,6 +6,7 @@
 
 Admin › Users and Roles, the permission matrix and the Audit Log (/admin/** is Admin only).
 
+Table: Endpoints of Admin User
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/users` | ADMIN | List |
@@ -31,6 +32,7 @@ Admin › Users and Roles, the permission matrix and the Audit Log (/admin/** is
 
 Session endpoints of the API contract plus the Google and password additions (see API contract changes).
 
+Table: Endpoints of Auth
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/auth/sign-in` | public | Sign In |
@@ -63,6 +65,7 @@ Session endpoints of the API contract plus the Google and password additions (se
 
 Manager › Staff and workload: handles, duty and work of the Block's staff, and requests for new accounts.
 
+Table: Endpoints of Block Staff
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/block-staff` | signed in | List |
@@ -93,6 +96,7 @@ Manager › Staff and workload: handles, duty and work of the Block's staff, and
 
 Manager › Reconciliation: the enrolled list (or a leavers list) of a Term against its residents (D-28, spec §6.12).
 
+Table: Endpoints of Reconciliation
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/reconciliations` | signed in | Overview |
@@ -114,6 +118,7 @@ Manager › Reconciliation: the enrolled list (or a leavers list) of a Term agai
 
 The student's own refund bank account (A-62) and the banks it can be at (R-22).
 
+Table: Endpoints of Refund Account
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/refund-account` | STUDENT | Mine |
@@ -126,6 +131,7 @@ The student's own refund bank account (A-62) and the banks it can be at (R-22).
 
 Manager › Staff accounts: create, edit, disable Staff and choose their Blocks (spec §3; contract change A-21).
 
+Table: Endpoints of Staff Account
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/staff-accounts` | signed in | List |
@@ -146,6 +152,7 @@ Manager › Staff accounts: create, edit, disable Staff and choose their Blocks 
 
 Manager › Students: the student list, the student hub, directory fields, verification and locking (spec §6.2, §11.3; contract change A-19).
 
+Table: Endpoints of Student Account
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/student-accounts` | signed in | List |
@@ -174,6 +181,7 @@ Manager › Students: the student list, the student hub, directory fields, verif
 
 The student's own contact details and emergency contacts on My profile (/students/** is Student only).
 
+Table: Endpoints of Student Contact
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/contacts` | STUDENT | Mine |
@@ -196,6 +204,7 @@ The student's own contact details and emergency contacts on My profile (/student
 
 Manager › Import student list: template, upload and preview, confirm, history (D-07, spec §6.2; contract change A-20).
 
+Table: Endpoints of Student Import
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/student-imports` | signed in | History |
@@ -216,6 +225,7 @@ Manager › Import student list: template, upload and preview, confirm, history 
 
 The student's own sign-up form and verification status (ADR-26, contract change A-18; /students/** is Student only).
 
+Table: Endpoints of Student Verification
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/verification` | STUDENT | Get |
@@ -237,6 +247,7 @@ The student's own sign-up form and verification status (ADR-26, contract change 
 
 Admin › Room Types and Admin › Room Classes.
 
+Table: Endpoints of Admin Catalog
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/room-types` | ADMIN | Room Types |
@@ -259,6 +270,7 @@ Admin › Room Types and Admin › Room Classes.
 
 Admin configuration screens that load and save one document each (GET|PUT, the PUT body has the GET shape): fees, eligibility, matching criteria, utility, system parameters and the settings groups (/admin/settings/{group}: deadlines, refunds, stay; A-31).
 
+Table: Endpoints of Admin Policy
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/settings/{group}` | ADMIN | Settings |
@@ -286,6 +298,7 @@ Admin configuration screens that load and save one document each (GET|PUT, the P
 
 Admin › Registration periods › Terms.
 
+Table: Endpoints of Admin Term
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/terms` | ADMIN | List |
@@ -309,6 +322,7 @@ Admin › Registration periods › Terms.
 
 Block Manager › Block settings: desk, visitor and quiet hours and the house rules.
 
+Table: Endpoints of Block Settings
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/block-settings` | signed in | Get |
@@ -320,6 +334,7 @@ Block Manager › Block settings: desk, visitor and quiet hours and the house ru
 
 GET /catalog?termId — every signed-in role.
 
+Table: Endpoints of Catalog
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/catalog` | signed in | Catalog |
@@ -328,6 +343,7 @@ GET /catalog?termId — every signed-in role.
 
 Admin › System › Reset demo data (demo servers only, DEMO_TOOLS=true).
 
+Table: Endpoints of Demo
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/demo` | ADMIN | Status |
@@ -347,6 +363,7 @@ Admin › System › Reset demo data (demo servers only, DEMO_TOOLS=true).
 
 /registration-periods — every signed-in role (A-29, spec §6.5): the registration period card of the dormitory board and the details of a published Term.
 
+Table: Endpoints of Registration Period
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/registration-periods/current` | signed in | Current |
@@ -356,6 +373,7 @@ Admin › System › Reset demo data (demo servers only, DEMO_TOOLS=true).
 
 GET /terms — every signed-in role; for a student current is their own Term (C-19).
 
+Table: Endpoints of Term
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/terms` | signed in | List |
@@ -364,6 +382,7 @@ GET /terms — every signed-in role; for a student current is their own Term (C-
 
 /term-requests — registration-period requests (A-28, spec §6.3): Managers send and change their requests; Managers and the Admin read them and comment; the Admin answers (/decision) and builds the Term from one in the wizard.
 
+Table: Endpoints of Term Request
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/term-requests` | signed in | List |
@@ -395,6 +414,7 @@ GET /terms — every signed-in role; for a student current is their own Term (C-
 
 Admin › Buildings (/admin/** is Admin only).
 
+Table: Endpoints of Admin Building
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/buildings` | ADMIN | List |
@@ -419,6 +439,7 @@ Admin › Buildings (/admin/** is Admin only).
 
 Admin › Furniture: furniture types and Room Class requirements (/admin/** is Admin only).
 
+Table: Endpoints of Admin Furniture
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/furniture-types` | ADMIN | Types |
@@ -440,6 +461,7 @@ Admin › Furniture: furniture types and Room Class requirements (/admin/** is A
 
 Staff and Manager › Door codes (ADR-23, spec §6.8): set, import, confirm and view the code of each Room.
 
+Table: Endpoints of Door Code
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/door-codes` | signed in | List |
@@ -461,6 +483,7 @@ Staff and Manager › Door codes (ADR-23, spec §6.8): set, import, confirm and 
 
 Staff and Manager › Furniture: items, the Block stores, moves and transfers (spec §6.19).
 
+Table: Endpoints of Furniture
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/furniture` | signed in | List |
@@ -489,6 +512,7 @@ Staff and Manager › Furniture: items, the Block stores, moves and transfers (s
 
 Staff and Manager › Inventory (Block-scoped).
 
+Table: Endpoints of Inventory
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/inventory/structure` | signed in | Structure |
@@ -516,6 +540,7 @@ Staff and Manager › Inventory (Block-scoped).
 
 Manager › Room Classes: the Room Class of every Room per Term (ADR-24; reading also for Staff and the Admin).
 
+Table: Endpoints of Room Class
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/inventory/room-classes` | signed in | List |
@@ -532,6 +557,7 @@ Manager › Room Classes: the Room Class of every Room per Term (ADR-24; reading
 
 Student › My Room: the door code of the student's Room and its furniture (web now, Android later).
 
+Table: Endpoints of Student Room
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/door-code` | STUDENT | Door Code |
@@ -562,6 +588,7 @@ Student › My Room: the door code of the student's Room and its furniture (web 
 
 Application wizard and the student's Application.
 
+Table: Endpoints of Application
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/applications/eligibility` | signed in | Eligibility |
@@ -597,6 +624,7 @@ Application wizard and the student's Application.
 
 A Waitlisted student's Round-2 offer, and the Managers' list of offers.
 
+Table: Endpoints of Round2
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/round2/offers` | signed in | Offers |
@@ -616,6 +644,7 @@ A Waitlisted student's Round-2 offer, and the Managers' list of offers.
 
 /students/me/** screens owned by Applications (/students/** is Student only).
 
+Table: Endpoints of Student
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/home` | STUDENT | Home |
@@ -637,6 +666,7 @@ A Waitlisted student's Round-2 offer, and the Managers' list of offers.
 
 Assignment runs: a Manager starts a run, resolves conflicts and commits a Block's proposal (ADR-19).
 
+Table: Endpoints of Assignment
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/assignment-runs` | signed in | Runs |
@@ -675,6 +705,7 @@ Assignment runs: a Manager starts a run, resolves conflicts and commits a Block'
 
 Furniture at check-out: Staff record conditions (/check-outs/{allocationId/furniture}), attribute shared damage (/check-outs/{allocationId/damage-claims}); Managers review items a student did not accept; the student reads, agrees and answers claims (/students/me/check-out).
 
+Table: Endpoints of Check Out Furniture
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/check-outs/{allocationId}/furniture` | signed in | View |
@@ -704,6 +735,7 @@ Furniture at check-out: Staff record conditions (/check-outs/{allocationId/furni
 
 The Check-in and Check-out desk (Staff and Managers of the Block).
 
+Table: Endpoints of Desk
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/check-in/today` | signed in | Today |
@@ -735,6 +767,7 @@ The Check-in and Check-out desk (Staff and Managers of the Block).
 
 The check-in inventory: the student's own (/students/me/handover, mobile app) and Staff's review of their Blocks' inventories (/handovers, web).
 
+Table: Endpoints of Handover
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/handover` | STUDENT | Mine |
@@ -776,6 +809,7 @@ The check-in inventory: the student's own (/students/me/handover, mobile app) an
 
 Late check-ins: students ask online, Staff record them at the desk (A-12), a Manager decides.
 
+Table: Endpoints of Late Check In
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/late-check-ins` | signed in | Create |
@@ -802,6 +836,7 @@ Late check-ins: students ask online, Staff record them at the desk (A-12), a Man
 
 Operational moves during a Term (spec §6.13): Staff inside their Blocks, Managers everywhere; nothing is charged.
 
+Table: Endpoints of Operational Move
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/operational-moves/options` | signed in | Options |
@@ -827,6 +862,7 @@ Operational moves during a Term (spec §6.13): Staff inside their Blocks, Manage
 
 The Term transition for Staff and Managers (spec §5.1, §6.10): the requests windows and their overview, the next-Term fees (Managers) and the turnover between two Terms.
 
+Table: Endpoints of Renewal
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/renewals` | signed in | Windows |
@@ -851,6 +887,7 @@ The Term transition for Staff and Managers (spec §5.1, §6.10): the requests wi
 
 The student's Room, Bed, roommates, Check-in window and Balance Invoice.
 
+Table: Endpoints of Student Allocation
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/allocation` | STUDENT | Mine |
@@ -859,6 +896,7 @@ The student's Room, Bed, roommates, Check-in window and Balance Invoice.
 
 Terminations of stays (spec §6.15): Managers start and cancel them; Staff read those of their Blocks.
 
+Table: Endpoints of Termination
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/terminations` | signed in | List |
@@ -885,6 +923,7 @@ Terminations of stays (spec §6.15): Managers start and cancel them; Staff read 
 
 Block Finance: figures, Invoices, overdue Invoices and reminders, refunds.
 
+Table: Endpoints of Finance
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/finance/summary` | signed in | Summary |
@@ -915,6 +954,7 @@ Block Finance: figures, Invoices, overdue Invoices and reminders, refunds.
 
 Meter readings per Block and month; closing a period issues the Utility Invoices.
 
+Table: Endpoints of Meter
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/meter-periods` | signed in | Periods |
@@ -944,6 +984,7 @@ Meter readings per Block and month; closing a period issues the Utility Invoices
 
 Payment claims (ADR-22, spec §6.7): the student's "I have transferred" and the Managers' queue, where claims are confirmed or rejected one by one or in bulk.
 
+Table: Endpoints of Payment Claim
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/invoices/{id}/claim` | signed in | Claim |
@@ -970,6 +1011,7 @@ Payment claims (ADR-22, spec §6.7): the student's "I have transferred" and the 
 
 Manager › Payments: Invoices in scope and the confirmation of one Invoice with a receipt.
 
+Table: Endpoints of Payment Desk
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/payments` | signed in | List |
@@ -986,6 +1028,7 @@ Manager › Payments: Invoices in scope and the confirmation of one Invoice with
 
 Student › Payments.
 
+Table: Endpoints of Student Invoice
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/invoices` | STUDENT | Mine |
@@ -1009,6 +1052,7 @@ Student › Payments.
 
 Block Manager › Escalations; an item is addressed by its request's code (MR-…, RC-…).
 
+Table: Endpoints of Escalation
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/escalations` | signed in | List |
@@ -1027,6 +1071,7 @@ Block Manager › Escalations; an item is addressed by its request's code (MR-�
 
 Next-Term requests besides room changes and swaps (spec §6.10, §6.11): extensions and the end of the stay; and every open request of a requests window in one list, decided in bulk.
 
+Table: Endpoints of Next Term Request
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/students/me/stay/extension` | STUDENT | Extend |
@@ -1051,6 +1096,7 @@ Next-Term requests besides room changes and swaps (spec §6.10, §6.11): extensi
 
 Room-Change Requests: the student asks, Staff of the Block decide.
 
+Table: Endpoints of Room Change
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/room-changes/options` | signed in | Options |
@@ -1078,6 +1124,7 @@ Room-Change Requests: the student asks, Staff of the Block decide.
 
 Block Manager › Routing rules and escalation timers.
 
+Table: Endpoints of Routing
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/routing-rules` | signed in | Page |
@@ -1095,6 +1142,7 @@ Block Manager › Routing rules and escalation timers.
 
 The student's Maintenance and Room-Change Requests.
 
+Table: Endpoints of Student Requests
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/requests` | STUDENT | Mine |
@@ -1103,6 +1151,7 @@ The student's Maintenance and Room-Change Requests.
 
 Bed swaps: direct invitations, the swap board, the invited student's answer and the Staff/Manager decision.
 
+Table: Endpoints of Swap
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/swaps` | signed in | Direct |
@@ -1139,6 +1188,7 @@ Bed swaps: direct invitations, the swap board, the invited student's answer and 
 
 Inspections: checklists (Admin), schedules (Block Manager) and runs (Staff).
 
+Table: Endpoints of Inspection
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/inspection-checklists` | signed in | Checklists |
@@ -1183,6 +1233,7 @@ Inspections: checklists (Admin), schedules (Block Manager) and runs (Staff).
 
 Maintenance Requests.
 
+Table: Endpoints of Maintenance
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/maintenance-requests/options` | signed in | Options |
@@ -1213,6 +1264,7 @@ Maintenance Requests.
 
 Admin › Notification templates and Send email.
 
+Table: Endpoints of Admin Messaging
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/admin/notification-templates` | ADMIN | Templates |
@@ -1232,6 +1284,7 @@ Admin › Notification templates and Send email.
 
 Announcements (A-30, spec §6.5): /announcements for Staff (residents of their Blocks), Managers and the Admin; /students/me/board for students, the announcements shown to them now.
 
+Table: Endpoints of Announcement
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/board` | STUDENT | Board |
@@ -1251,6 +1304,7 @@ Announcements (A-30, spec §6.5): /announcements for Staff (residents of their B
 
 Android registers its FCM token after sign-in and on refresh, and removes it before sign-out.
 
+Table: Endpoints of Device
 | Method | Path | Access | Function |
 |---|---|---|---|
 | POST | `/devices` | signed in | Register |
@@ -1262,6 +1316,7 @@ Android registers its FCM token after sign-in and on refresh, and removes it bef
 
 /notifications: the bell of every layout (all roles); a student's also lists the board's announcements (C-41).
 
+Table: Endpoints of Notification
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/notifications` | signed in | List |
@@ -1282,6 +1337,7 @@ Android registers its FCM token after sign-in and on refresh, and removes it bef
 
 Dashboards, reports and exports.
 
+Table: Endpoints of Report
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/dashboards/staff` | signed in | Staff |
@@ -1304,6 +1360,7 @@ Dashboards, reports and exports.
 
 The back-office search in the top bar (Staff, Managers, Admin).
 
+Table: Endpoints of Search
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/search` | signed in | Search |
@@ -1316,6 +1373,7 @@ The back-office search in the top bar (Staff, Managers, Admin).
 
 Family Days for Managers (organise) and the Block's Staff (read): ADR-29, contract A-69.
 
+Table: Endpoints of Family Day
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/family-days` | signed in | List |
@@ -1346,6 +1404,7 @@ Family Days for Managers (organise) and the Block's Staff (read): ADR-29, contra
 
 Family Day statistics for Staff, Managers and the Admin: contract A-71.
 
+Table: Endpoints of Family Day Stats
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/family-day-stats` | signed in | Overview |
@@ -1361,6 +1420,7 @@ Family Day statistics for Staff, Managers and the Admin: contract A-71.
 
 A resident's Family Days, guests and passes: ADR-29, contract A-69.
 
+Table: Endpoints of Student Family Day
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/family-days` | STUDENT | List |
@@ -1384,6 +1444,7 @@ A resident's Family Days, guests and passes: ADR-29, contract A-69.
 
 The Family Day visitor desk (Staff of the Block, Managers): ADR-29, contract A-69.
 
+Table: Endpoints of Visitor Desk
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/family-days/{id}/visitors` | signed in | Visitors |
@@ -1413,6 +1474,7 @@ The Family Day visitor desk (Staff of the Block, Managers): ADR-29, contract A-6
 
 The students' AI assistant (ADR-28, A-68): whether it is on, and one answer to the conversation sent.
 
+Table: Endpoints of Assistant
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/students/me/assistant` | STUDENT | Status |
@@ -1436,6 +1498,7 @@ The students' AI assistant (ADR-28, A-68): whether it is on, and one answer to t
 
 GET /files/{id?exp&sig}: a stored file through a link from FileLinks.
 
+Table: Endpoints of File Link
 | Method | Path | Access | Function |
 |---|---|---|---|
 | GET | `/files/{id}` | signed in | File |

@@ -57,6 +57,7 @@ Everyone signs in on the same page with an `@fpt.edu.vn` email and a password, o
 
 ![Sign-in page](../../../docs/Screenshots/signin.png)
 
+Table: Roles and their portals
 | Role | Portal | What it is for |
 |---|---|---|
 | Student | Student (web and Android app) | apply for a Bed, pay, see the Room, make requests, register Family Day guests, ask the AI assistant |

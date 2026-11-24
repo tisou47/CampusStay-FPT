@@ -19,7 +19,7 @@ const ADMIN = { id: 'ad', label: 'Admin', actor: true }
 const APP = { id: 'ui', label: 'Web / mobile app' }
 const DB = { id: 'db', label: 'PostgreSQL' }
 
-export const sequences = [
+const rawSequences = [
   seq('seq-01-google-sign-in', 'Google sign-in and sign-up', [
     STUDENT, APP, { id: 'google', label: 'Google' }, { id: 'ctl', label: 'AuthController' },
     { id: 'svc', label: 'SignInService' }, { id: 'up', label: 'StudentSignUp' }, { id: 'ses', label: 'SessionService' }, DB,
@@ -471,6 +471,73 @@ export const sequences = [
   ]),
 ]
 
+// The page each actor works on in a sequence (the web route's screen, or the Android screen). An actor only talks to
+// its page; the page calls the API (UML: actor → Page → controller → service → data access).
+const PAGES = {
+  'seq-01-google-sign-in': { st: 'Sign-in Page' },
+  'seq-02-apply-with-deposit': { st: 'Application Wizard Page' },
+  'seq-03-roommate-invitation': { a: 'Application Wizard Page', b: 'Roommate Invitation Page' },
+  'seq-04-payment-claim': { st: 'Invoice Payment Page', mg: 'Payment Confirmations Page' },
+  'seq-05-assignment-run': { mg: 'Assignment Page' },
+  'seq-06-round2-offer': { mg: 'Assignment Page', st: 'Round 2 Offer Page' },
+  'seq-07-check-in-handover': { st: 'Check-in Inventory Page', sf: 'Check-in Inventories Page' },
+  'seq-08-door-code-release': { mg: 'Payment Confirmations Page', sf: 'Door Codes Page', st: 'My Room Page' },
+  'seq-09-maintenance-routing-sla': { st: 'New Maintenance Request Page', sf: 'Maintenance Page' },
+  'seq-10-inspection-run': { sf: 'Inspections Page' },
+  'seq-11-room-change': { st: 'New Room Change Page', sf: 'Room Changes Page' },
+  'seq-12-swap': { a: 'Swap Board Page', b: 'Swap Invitation Page', sf: 'Swaps Page', mg: 'Swaps Page' },
+  'seq-13-term-wizard-publish': { mg: 'Registration-period Requests Page', ad: 'Term Wizard Page' },
+  'seq-14-renewal-next-term-fee': { st: 'Requests Page', mg: 'Term Transition Page' },
+  'seq-15-utility-meter-invoice': { sf: 'Meter Readings Page', st: 'Payments Page' },
+  'seq-16-termination': { mg: 'Terminations Page', st: 'My Room Page', sf: 'Check-out Desk Page' },
+  'seq-17-reconciliation': { mg: 'Reconciliation Page' },
+  'seq-18-family-day': { mg: 'Family Days Page', st: 'Family Day Page', sf: 'Family Day Desk Page' },
+  'seq-19-ai-assistant': { st: 'Assistant Chat Panel' },
+  'seq-20-push-notification': {},
+  'seq-21-staff-shift-gate': { sf: 'Staff Page (any change)' },
+}
+
+/** One sequence in UML form: a page per actor in place of "Web / mobile app", every object named ":Name". */
+export function normalizeSequence(s, pages) {
+  const actors = new Set(s.participants.filter((p) => p.actor).map((p) => p.id))
+  const page = (a) => (pages[a] ? `pg_${a}` : null)
+  const participants = []
+  for (const p of s.participants) {
+    if (p.id === 'ui') continue
+    if (p.actor) {
+      participants.push(p)
+      if (pages[p.id] && !participants.some((q) => q.label === `:${pages[p.id]}`)) participants.push({ id: `pg_${p.id}`, label: `:${pages[p.id]}` })
+      continue
+    }
+    participants.push({ ...p, label: p.id === 'db' ? ':JdbcClient (PostgreSQL)' : `:${p.label}` })
+  }
+  // Two actors sharing a page (Staff and Manager on the swaps page) use the first one's lifeline.
+  const shared = new Map(Object.entries(pages).map(([a, l]) => [a, `pg_${Object.keys(pages).find((b) => pages[b] === l)}`]))
+  const pg = (a) => (page(a) ? shared.get(a) : null)
+  let cur = [...actors][0]
+  const items = []
+  for (const it of s.items) {
+    if (it.type === 'note') { items.push({ ...it, over: it.over.map((o) => (o === 'ui' ? pg(cur) ?? o : o)) }); continue }
+    if (it.type !== 'msg') { items.push(it); continue }
+    if (actors.has(it.from)) cur = it.from
+    let { from, to } = it
+    if (from === 'ui') from = pg(cur)
+    if (to === 'ui') to = pg(cur)
+    if (actors.has(from) && pg(from) && to !== pg(from)) {
+      // The actor acts on the page; the page makes the call.
+      const verb = /^GET\b/.test(it.text) ? 'Opens the page' : /^(POST|PUT|PATCH|DELETE)\b/.test(it.text) ? 'Submits the form' : it.text
+      items.push({ ...it, from, to: pg(from), text: verb })
+      from = pg(from)
+    }
+    if (actors.has(to) && pg(to) && from !== pg(to)) to = pg(to)
+    items.push({ ...it, from, to })
+  }
+  return { ...s, participants, items }
+}
+
+export const sequences = rawSequences.map((s) => normalizeSequence(s, PAGES[s.name.split('/')[1]] ?? {}))
+
+
 // Activity diagrams with swimlanes: nodes [id, lane, label, shape?], edges [from, to, guard?]; 'i' / 'f1', 'f2' … are
 // the initial and final nodes.
 const activity = (name, title, lanes, nodes, edges) => ({
@@ -571,33 +638,56 @@ const graph = (name, kind, title, dir, nodes, edges, groups) => ({
 
 // External systems: AuthProperties / GoogleIdTokenVerifier (Google), FcmPushSender, MailProperties (SMTP),
 // PaymentProperties (VietQR image), AssistantProperties (Ollama), infra/prod (Vercel, Azure VM, managed PostgreSQL).
+// Context diagram: every external entity is a rectangle; each flow is named by the data it carries (a noun), in both
+// directions where data goes both ways.
 export const context = graph('01_Context/context', 'flow', 'System context: CampusStay FPT', 'LR', [
-  ['student', 'Student', 'actor'], ['staff', 'Staff', 'actor'], ['manager', 'Manager', 'actor'], ['admin', 'Admin', 'actor'], ['guest', 'Family Day guest', 'actor'],
+  ['student', 'Student', 'rect'], ['staff', 'Staff', 'rect'], ['manager', 'Manager', 'rect'], ['admin', 'Admin', 'rect'], ['guest', 'Family Day guest', 'rect'],
   ['cs', 'CampusStay FPT\n(web app, student mobile app, API)', 'menu'],
   ['google', 'Google Sign-In\n(@fpt.edu.vn accounts)', 'rect'], ['fcm', 'Firebase Cloud Messaging\n(push to Android)', 'rect'],
-  ['smtp', 'Email (SMTP)', 'rect'], ['qr', 'VietQR image service\n(bank transfer QR)', 'rect'], ['bank', 'Bank\n(student transfers; Managers check the statement)', 'rect'],
+  ['smtp', 'Email server (SMTP)', 'rect'], ['qr', 'VietQR image service\n(bank transfer QR)', 'rect'], ['bank', 'Bank\n(student transfers; Managers check the statement)', 'rect'],
   ['ai', 'Ollama\n(AI assistant model)', 'rect'], ['school', 'FPT University\n(enrolled-student list file)', 'rect'],
 ], [
-  ['student', 'cs', 'apply, pay, requests, room'], ['staff', 'cs', 'desk, maintenance, inspections'], ['manager', 'cs', 'review, assign, confirm payments'],
-  ['admin', 'cs', 'Terms, prices, Buildings, users'], ['guest', 'cs', 'pass at the gate'],
-  ['cs', 'google', 'verify sign-in'], ['cs', 'fcm', 'push'], ['cs', 'smtp', 'emails'], ['cs', 'qr', 'QR image'], ['cs', 'ai', 'questions'],
+  ['student', 'cs', 'application, payment claim, requests'], ['cs', 'student', 'invoices, allocation, notifications'],
+  ['staff', 'cs', 'readings, inspections, desk records'], ['cs', 'staff', 'work queue, weekly schedule'],
+  ['manager', 'cs', 'decisions, payment confirmations'], ['cs', 'manager', 'reports, pending approvals'],
+  ['admin', 'cs', 'Terms, prices, settings'], ['cs', 'admin', 'audit log, dashboards'],
+  ['cs', 'guest', 'guest pass'], ['guest', 'cs', 'pass at the desk'],
+  ['cs', 'google', 'authorization code'], ['google', 'cs', 'identity token'],
+  ['cs', 'fcm', 'push message'], ['cs', 'smtp', 'email message'],
+  ['cs', 'qr', 'transfer details'], ['qr', 'cs', 'QR image'],
+  ['cs', 'ai', 'question with the student\'s data'], ['ai', 'cs', 'answer'],
   // Laid out on the right with the other systems; the arrow (drawn at the source) shows the list coming in.
-  ['student', 'bank', 'transfer', true], ['cs', 'school', 'enrolled list, uploaded by a Manager', true, 'start'],
+  ['student', 'bank', 'bank transfer', true], ['cs', 'school', 'enrolled-student list (uploaded by a Manager)', true, 'start'],
 ])
 
+// Deployment architecture: a request and its response share one two-headed line ("request / response"); the browser and the Android app call the third parties they
+// use directly (Google Sign-In, the VietQR image, Firebase push), the API the rest.
 export const architecture = graph('03_Architecture/architecture', 'flow', 'Deployment architecture', 'LR', [
   ['browser', 'Browser\n(Student, Staff, Manager, Admin)', 'rect', 'client'], ['android', 'Android app\n(Flutter, students)', 'rect', 'client'],
   ['vercel', 'React + Vite web app\n(static build)', 'round', 'vercel'],
   ['caddy', 'Caddy\n(HTTPS, reverse proxy)', 'round', 'vm'], ['api', 'Spring Boot API\n(Java 21, /api)', 'round', 'vm'],
+  ['files', 'File storage\n(volume api-files: receipts, photos)', 'cylinder', 'vm'],
   ['pg', 'Azure Database for PostgreSQL\n(Flyway migrations)', 'cylinder', 'azure'],
   ['gh', 'GitHub Actions\n(mvn verify, image to GHCR, deploy over SSH)', 'rect', 'ci'],
-  ['ext', 'Google, FCM, SMTP, VietQR, Ollama', 'rect'],
+  ['google', 'Google Sign-In', 'rect', 'ext'], ['qr', 'VietQR image service', 'rect', 'ext'], ['fcm', 'Firebase Cloud Messaging', 'rect', 'ext'],
+  ['smtp', 'Email server (SMTP)', 'rect', 'ext'], ['ollama', 'Ollama (AI model)', 'rect', 'ext'],
 ], [
-  ['browser', 'vercel', 'HTTPS'], ['browser', 'caddy', 'REST + JSON'], ['android', 'caddy', 'REST + JSON'], ['caddy', 'api'], ['api', 'pg', 'JDBC'],
-  ['api', 'ext', 'HTTPS'], ['gh', 'api', 'deploy', true],
+  ['browser', 'vercel', 'HTTPS: page / HTML, JavaScript', false, 'both'],
+  ['browser', 'caddy', 'HTTPS: REST request / JSON response', false, 'both'],
+  ['android', 'caddy', 'HTTPS: REST request / JSON response', false, 'both'],
+  ['caddy', 'api', 'HTTP request / response', false, 'both'],
+  ['api', 'pg', 'SQL (JDBC) / rows', false, 'both'],
+  ['api', 'files', 'write / read files', false, 'both'],
+  ['browser', 'google', 'sign-in popup / authorization code', false, 'both'],
+  ['android', 'google', 'Google Sign-In / ID token', false, 'both'],
+  ['api', 'google', 'code exchange, token check / identity', false, 'both'],
+  ['browser', 'qr', 'QR image request / image', false, 'both'],
+  ['api', 'fcm', 'push request'], ['fcm', 'android', 'push message'],
+  ['api', 'smtp', 'email (SMTP)'], ['api', 'ollama', 'question / answer', false, 'both'],
+  ['gh', 'api', 'deploy', true],
 ], [
   { id: 'client', label: 'Clients' }, { id: 'vercel', label: 'Vercel' }, { id: 'vm', label: 'Azure VM (Docker Compose, /opt/campusstay)' },
-  { id: 'azure', label: 'Azure' }, { id: 'ci', label: 'CI/CD' },
+  { id: 'azure', label: 'Azure' }, { id: 'ci', label: 'CI/CD' }, { id: 'ext', label: 'Third-party services' },
 ])
 
 export const drawn = [...sequences, ...activities, context, architecture]

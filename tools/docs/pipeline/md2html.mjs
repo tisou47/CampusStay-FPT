@@ -1,11 +1,15 @@
 // Converts a document written in Markdown (tools/docs/src/*.md) into the HTML that build-report.ps1 inserts into the
 // school's Word template. Only what the reports use: headings, paragraphs, bullet and numbered lists (two levels),
 // pipe tables, images, page breaks, **bold**, *italic* and `code`. Images and page breaks become placeholders that
-// Word replaces: [[IMG:<absolute path>|<width cm>]] and [[PAGEBREAK]].
+// Word replaces: [[IMG:<absolute path>|<width cm>]] and [[PAGEBREAK]]. Every figure and table gets a numbered caption
+// ([[FIGCAP:text]] below a figure, [[TABCAP:text]] above a table: Word captions with SEQ fields, build-report.ps1)
+// and a sentence before it that refers to it by number. A table's caption is the line `Table: <text>` right before it,
+// else the current heading.
 //
 //   node tools/docs/pipeline/md2html.mjs <report.md> <out.html>
 import fs from 'node:fs';
 import path from 'node:path';
+import { stripRefs } from './refs.mjs';
 
 const [, , input, output] = process.argv;
 const base = path.dirname(path.resolve(input));
@@ -23,7 +27,7 @@ const lines = read(path.resolve(input));
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function inline(s) {
-  let out = esc(s);
+  let out = esc(stripRefs(s));
   out = out.replace(/&lt;br\s*\/?&gt;/g, '<br>');
   out = out.replace(/`([^`]+)`/g, '<span style="font-family:Consolas;font-size:9.5pt">$1</span>');
   out = out.replace(/\[([^\]]+)\]\((https?:[^)\s]+(?:\([^)\s]*\))?[^)\s]*)\)/g, '<a href="$2">$1</a>');
@@ -34,6 +38,12 @@ function inline(s) {
 
 const html = [];
 let figure = 0;
+let tableNo = 0;
+let heading = '';
+let tableCaption = null;
+// Caption text without Markdown marks; its first letter lowered after "shows" unless it starts an acronym.
+const plain = (s) => s.replace(/\*\*|`|\*/g, '').trim();
+const lower = (s) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 let i = 0;
 let para = [];
 const flush = () => {
@@ -48,7 +58,9 @@ while (i < lines.length) {
   if (/^<!--\s*pagebreak\s*-->/.test(line)) { flush(); html.push('<p>[[PAGEBREAK]]</p>'); i++; continue; }
   if (/^<!--/.test(line)) { while (i < lines.length && !lines[i].includes('-->')) i++; i++; continue; }
   const h = line.match(/^(#{1,4})\s+(.*)$/);
-  if (h) { flush(); html.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+  if (h) { flush(); heading = plain(h[2]).replace(/^[IVX]+\.\s+|^\d+(\.\d+)*\.?\s+/, ''); html.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+  const cap = line.match(/^Table:\s+(.+)$/);
+  if (cap) { flush(); tableCaption = plain(cap[1]); i++; continue; }
   const img = line.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+(\d+(?:\.\d+)?))?\)\s*$/);
   if (img) {
     flush();
@@ -58,8 +70,10 @@ while (i < lines.length) {
     const turned = file.replace(/.png$/, '-r.png');
     if (!img[3] && fs.existsSync(turned)) file = turned;
     if (!fs.existsSync(file)) throw new Error(`Missing image ${file}`);
+    const caption = plain(img[1]) || heading;
+    html.push(`<p>Figure ${figure} shows the ${esc(lower(caption).replace(/^the /i, ''))}.</p>`);
     html.push(`<p align="center">[[IMG:${file}|${img[3] ?? ''}]]</p>`);
-    if (img[1]) html.push(`<p align="center"><i>Figure ${figure}: ${inline(img[1])}</i></p>`);
+    html.push(`<p align="center">[[FIGCAP:${esc(caption)}]]</p>`);
     i++;
     continue;
   }
@@ -69,6 +83,14 @@ while (i < lines.length) {
     while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
     const header = cells(rows[0]);
     const body = rows.slice(/^\|[\s:|-]+\|$/.test(rows[1] ?? '') ? 2 : 1).map(cells);
+    tableNo++;
+    // No `Table:` line: a bold or italic lead-in right above the table names it (an italic one under its heading).
+    let back = i - rows.length - 1;
+    while (back >= 0 && /^\s*$/.test(lines[back])) back--;
+    const lead = back >= 0 && /^\*/.test(lines[back]) && !/^\*\s/.test(lines[back]) ? plain(lines[back]).replace(/:$/, '') : null;
+    const caption = tableCaption ?? (lead ? (/^\*\*/.test(lines[back]) ? lead : `${heading}: ${lower(lead)}`) : heading);
+    tableCaption = null;
+    html.push(`<p>Table ${tableNo} lists the ${esc(lower(caption).replace(/^the /i, ''))}.</p>`, `<p align="center">[[TABCAP:${esc(caption)}]]</p>`);
     let t = '<table border="1" cellspacing="0" cellpadding="4" width="100%"><tr>';
     t += header.map((c) => `<th>${inline(c)}</th>`).join('') + '</tr>';
     for (const r of body) t += '<tr>' + header.map((_, k) => `<td>${inline(r[k] ?? '')}</td>`).join('') + '</tr>';
@@ -124,4 +146,4 @@ td, th { vertical-align: top; font-size: 10pt; }
 ${html.join('\n')}
 </body></html>`;
 fs.writeFileSync(output, doc, 'utf8');
-console.log(`${output}: ${html.length} blocks, ${figure} figures`);
+console.log(`${output}: ${html.length} blocks, ${figure} figures, ${tableNo} tables`);

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { erdModels, stateModel, AREAS } from './models.mjs'
+import { erdModels, stateModel, AREAS, overviewErd } from './models.mjs'
 
 const schema = [
   { name: 'asg_termination', prefix: 'asg', view: false, columns: [{ name: 'id' }, { name: 'allocation_id' }, { name: 'status' }],
@@ -157,4 +157,21 @@ test('class diagram: interfaces of a feature with the classes that implement the
   assert.equal(m.name, '06_Class/ports-billing')
   assert.deepEqual(m.nodes.map((n) => n.id), ['Billing', 'JdbcBilling'])
   assert.deepEqual(m.edges, [{ from: 'JdbcBilling', to: 'Billing', dashed: true, arrow: 'triangle' }])
+})
+
+test('overviewErd keeps the main entities and the foreign keys between them only', () => {
+  const t = (name, fks = []) => ({ name, prefix: name.split('_')[0], columns: [{ name: 'id' }], constraints: [
+    { type: 'PK', def: 'PRIMARY KEY (id)' }, ...fks.map(([col, ref]) => ({ type: 'FK', def: `FOREIGN KEY (${col}) REFERENCES ${ref}(id)`, refTable: ref }))] })
+  const schema = [t('auth_user'), t('inv_bed'), t('asg_allocation', [['student_id', 'auth_user'], ['bed_id', 'inv_bed'], ['run_id', 'asg_run']]), t('asg_run')]
+  const m = overviewErd(schema, ['auth_user', 'inv_bed', 'asg_allocation'])
+  assert.equal(m.name, '05_ERD/erd-overview')
+  assert.deepEqual(m.entities.map((e) => e.id), ['auth_user', 'inv_bed', 'asg_allocation'])
+  assert.deepEqual(m.relationships.map((r) => `${r.from}>${r.to}`), ['asg_allocation>auth_user', 'asg_allocation>inv_bed'])
+})
+
+test('overviewErd leaves out the "who did it" columns (…_by)', () => {
+  const t = (name, fks = []) => ({ name, prefix: name.split('_')[0], columns: [{ name: 'id' }], constraints: [
+    { type: 'PK', def: 'PRIMARY KEY (id)' }, ...fks.map(([col, ref]) => ({ type: 'FK', def: `FOREIGN KEY (${col}) REFERENCES ${ref}(id)`, refTable: ref }))] })
+  const m = overviewErd([t('auth_user'), t('bil_invoice', [['student_id', 'auth_user'], ['voided_by', 'auth_user']])], ['auth_user', 'bil_invoice'])
+  assert.deepEqual(m.relationships.map((r) => r.label), ['student'])
 })

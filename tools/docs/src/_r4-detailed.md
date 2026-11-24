@@ -46,6 +46,7 @@ State machine: auth_user.status.
 
 61 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Accounts, staff and audit (AUTH)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/admin/users` | ADMIN | AdminUserController |
@@ -146,6 +147,7 @@ State machine: cfg_term_request.status.
 
 40 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Terms and settings (CFG)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/admin/room-types` | ADMIN | AdminCatalogController |
@@ -237,6 +239,7 @@ State machine: inv_room.status. Values allowed by the database but not set by th
 
 40 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Inventory (INV)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/admin/buildings` | ADMIN | AdminBuildingController |
@@ -316,6 +319,7 @@ State machine: app_round2_offer.status.
 
 17 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Applications (APP)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/applications/eligibility` | signed in | ApplicationController |
@@ -412,6 +416,7 @@ State machine: asg_termination.status.
 
 63 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Assignment and residence (ASG)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/assignment-runs` | signed in | AssignmentController |
@@ -518,6 +523,7 @@ State machine: bil_refund.status.
 
 30 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Billing (BIL)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/finance/summary` | signed in | FinanceController |
@@ -593,6 +599,7 @@ State machine: req_swap_post.status.
 
 26 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Requests and Term transition (REQ)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/escalations` | signed in | EscalationController |
@@ -666,6 +673,7 @@ State machine: mnt_request.status.
 
 27 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Maintenance and inspections (MNT)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/inspection-checklists` | signed in | InspectionController |
@@ -720,6 +728,7 @@ State machine: ntf_email_outbox.status.
 
 16 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Notifications (NTF)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/admin/notification-templates` | ADMIN | AdminMessagingController |
@@ -749,6 +758,7 @@ This feature declares no port: its services are called by its own controllers an
 
 10 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Reports (RPT)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/dashboards/staff` | signed in | ReportController |
@@ -792,6 +802,7 @@ State machine: vis_visitor.status.
 
 21 endpoints (request and error details in Report 3).
 
+Table: Endpoints of Family Day (VIS)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/family-days` | signed in | FamilyDayController |
@@ -834,6 +845,7 @@ UC-19 Ask the AI assistant.
 
 2 endpoints (request and error details in Report 3).
 
+Table: Endpoints of AI assistant (AST)
 | Method | Path | Access | Controller |
 |---|---|---|---|
 | GET | `/students/me/assistant` | STUDENT | AssistantController |

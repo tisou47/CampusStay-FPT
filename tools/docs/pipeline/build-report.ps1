@@ -131,7 +131,53 @@ try {
         }
     }
 
+    # Captions: [[FIGCAP:text]] / [[TABCAP:text]] become "Figure n: text" / "Table n: text" in the Caption style, n being
+    # a SEQ field, so the lists of figures and tables and the numbers stay right when Word updates the fields.
+    $captions = @{ Figure = 0; Table = 0 }
+    foreach ($kind in @(@('FIGCAP', 'Figure'), @('TABCAP', 'Table'))) {
+        while ($true) {
+            $r = $doc.Content
+            if (-not $r.Find.Execute("\[\[$($kind[0]):*\]\]", $false, $false, $true)) { break }
+            $text = $r.Text.Substring($kind[0].Length + 3, $r.Text.Length - $kind[0].Length - 5)
+            $r.Text = "$($kind[1]) #: $text"
+            $p = $r.Paragraphs.Item(1)
+            $p.Style = -35   # wdStyleCaption
+            $p.Alignment = 1
+            if ($kind[1] -eq 'Table') { $p.KeepWithNext = -1 }
+            $h = $p.Range.Duplicate
+            $null = $h.Find.Execute('#')
+            $null = $doc.Fields.Add($h, 12, "$($kind[1]) \* ARABIC", $false)
+            $captions[$kind[1]]++
+        }
+    }
+
+    # Every Heading 1 (Record of Changes, Acknowledgement, II., III., …) starts a page.
+    foreach ($p in $doc.Paragraphs) {
+        if ($p.Style.NameLocal -eq 'Heading 1') { $p.Format.PageBreakBefore = -1 }
+    }
+
+    # List of Figures and List of Tables, each on its own page before the first Heading 1, titled like the TOC.
+    $toc = $doc.TablesOfContents.Item(1)
+    $tocTitle = $doc.Range([Math]::Max(0, $toc.Range.Start - 1), [Math]::Max(0, $toc.Range.Start - 1)).Paragraphs.Item(1).Style
+    foreach ($kind in @(@('Figure', 'List of Figures'), @('Table', 'List of Tables'))) {
+        if ($captions[$kind[0]] -eq 0) { continue }
+        $h1 = $null
+        foreach ($p in $doc.Paragraphs) { if ($p.Style.NameLocal -eq 'Heading 1') { $h1 = $p; break } }
+        $pos = $h1.Range.Start
+        $doc.Range($pos, $pos).InsertParagraphBefore()
+        $doc.Range($pos, $pos).InsertParagraphBefore()
+        $doc.Range($pos, $pos).InsertAfter($kind[1])   # into the first new paragraph, before its paragraph mark
+        $title = $doc.Range($pos, $pos).Paragraphs.Item(1)
+        $title.Style = $tocTitle
+        $title.Format.PageBreakBefore = -1
+        $list = $title.Next(1)
+        $list.Style = -1
+        $list.Format.PageBreakBefore = 0
+        $null = $doc.TablesOfFigures.Add($doc.Range($list.Range.Start, $list.Range.Start), $kind[0])
+    }
+
     foreach ($toc in $doc.TablesOfContents) { $toc.Update() }
+    foreach ($tof in $doc.TablesOfFigures) { $tof.Update() }
     $doc.Fields.Update() | Out-Null
     $doc.SaveAs2("$out.docx", 16)
     $doc.ExportAsFixedFormat("$out.pdf", 17)

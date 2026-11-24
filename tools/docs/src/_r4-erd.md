@@ -1,3 +1,5 @@
+![Logical ERD of the whole system (main entities)](../../../docs/Diagrams/05_ERD/erd-overview.png)
+
 ![Logical ERD: Accounts (AUTH)](../../../docs/Diagrams/05_ERD/erd-auth.png)
 
 ![Logical ERD: Configuration (CFG)](../../../docs/Diagrams/05_ERD/erd-cfg.png)
