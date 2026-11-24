@@ -4,7 +4,7 @@ import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { IconButton } from '@/components/ui/Button'
 import { t } from '@/i18n'
-import { assistantKey } from '@/lib/assistantHistory'
+import { assistantKey, MAX_TURN, turnsToSend } from '@/lib/assistantHistory'
 import { cx } from '@/lib/cx'
 
 /*
@@ -87,14 +87,14 @@ export function AssistantChat({ userId }) {
   async function ask(text) {
     const question = text.trim()
     if (!question || pending) return
-    const turns = [...messages.filter((m) => !m.error), { role: 'user', content: question }]
+    const turns = [...messages, { role: 'user', content: question }]
     setMessages((m) => [...m, { role: 'user', content: question }])
     setDraft('')
     setPending(true)
     try {
       // Each answer comes with the server's signature and goes back with it; unsigned turns are ignored (BE-PLT-02).
       const { reply, signature } = await api.me.askAssistant({
-        messages: turns.slice(-SENT_TURNS).map(({ role, content, signature: sig }) => (sig ? { role, content, signature: sig } : { role, content })),
+        messages: turnsToSend(turns, SENT_TURNS),
       })
       setMessages((m) => [...m, { role: 'assistant', content: reply, signature }])
     } catch (error) {
@@ -178,7 +178,7 @@ export function AssistantChat({ userId }) {
           ref={input}
           rows={1}
           value={draft}
-          maxLength={2000}
+          maxLength={MAX_TURN}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={t('Type your question')}

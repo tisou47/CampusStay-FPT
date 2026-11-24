@@ -133,6 +133,8 @@ export async function download(path, { query, fallbackName = 'export.csv' } = {}
   } catch {
     throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
   }
+  // An expired session signs out here too, as request() does (WEB-STU-14, WEB-ADM-15).
+  if (res.status === 401) writeSession(null)
   if (!res.ok) throw new ApiError(t('Export failed ({status}).', { status: res.status }), { status: res.status })
   const name = /filename="?([^";]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
   const url = URL.createObjectURL(await res.blob())
