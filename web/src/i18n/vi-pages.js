@@ -4541,6 +4541,14 @@ const workspace = {
 
 // Family Day (ADR-29): Manager, visitor desk and student screens
 const familyDay = {
+  // Visitor desk camera: the reason it does not open (24/11/2026)
+  "Camera access is blocked for this site. Click the camera or lock icon in the address bar, allow the camera, then try again.":
+    "Trang này đang bị chặn dùng camera. Bấm biểu tượng camera hoặc ổ khóa trên thanh địa chỉ, cho phép camera rồi thử lại.",
+  "No camera was found on this device. Plug one in, or type or scan the pass code.": "Không tìm thấy camera trên thiết bị này. Hãy cắm camera, hoặc nhập hay quét mã vào.",
+  "The camera is in use by another app (Zoom, Teams, Camera…). Close that app, then try again.":
+    "Camera đang được ứng dụng khác dùng (Zoom, Teams, Camera…). Hãy đóng ứng dụng đó rồi thử lại.",
+  "The camera only works on a secure address (https, or localhost on this computer). Open the site at its https address.":
+    "Camera chỉ hoạt động trên địa chỉ bảo mật (https, hoặc localhost trên chính máy này). Hãy mở trang bằng địa chỉ https.",
   "Family Day": "Ngày thăm thân",
   "Family Days": "Ngày thăm thân",
   "Days on which residents' families visit a common area of their block.": "Những ngày thăm thân sinh viên đến thăm khu vực chung của tòa.",

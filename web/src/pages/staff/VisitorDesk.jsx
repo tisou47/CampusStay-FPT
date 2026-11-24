@@ -16,6 +16,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
@@ -66,11 +67,32 @@ async function qrReader() {
   }
 }
 
+/**
+ * What to tell the desk when the camera does not open, by the browser's reason (DOMException name), so the person
+ * knows what to change instead of a single "could not be opened".
+ */
+function cameraProblem(error) {
+  switch (error?.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return t('Camera access is blocked for this site. Click the camera or lock icon in the address bar, allow the camera, then try again.')
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return t('No camera was found on this device. Plug one in, or type or scan the pass code.')
+    case 'NotReadableError':
+    case 'AbortError':
+      return t('The camera is in use by another app (Zoom, Teams, Camera…). Close that app, then try again.')
+    default:
+      return t('The camera could not be opened. Allow camera access or type the pass code.')
+  }
+}
+
 /** Reads a QR code with the device camera (the back camera on phones, the webcam on a computer). */
 function CameraScanner({ onCode, onClose }) {
   const video = useRef(null)
   const handler = useRef(onCode)
   const [error, setError] = useState(null)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     handler.current = onCode
   }, [onCode])
@@ -79,14 +101,29 @@ function CameraScanner({ onCode, onClose }) {
     let timer
     let stopped = false
     async function start() {
-      // Browsers give the camera only to secure pages (https, or localhost on the same machine).
+      setError(null)
+      // Browsers give the camera only to secure pages (https, or localhost on the same machine): opened from another
+      // device at http://<ip>:5173, navigator.mediaDevices does not exist.
+      if (!window.isSecureContext) {
+        setError(t('The camera only works on a secure address (https, or localhost on this computer). Open the site at its https address.'))
+        return
+      }
       if (!navigator.mediaDevices?.getUserMedia) {
         setError(t('This browser cannot read QR codes with the camera. Use a handheld scanner or type the pass code.'))
         return
       }
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        if (stopped) return
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        } catch (e) {
+          // A computer without a back camera may refuse the preference: take any camera.
+          if (e?.name !== 'OverconstrainedError' && e?.name !== 'NotFoundError') throw e
+          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        }
+        if (stopped) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
         video.current.srcObject = stream
         await video.current.play()
         const read = await qrReader()
@@ -104,8 +141,8 @@ function CameraScanner({ onCode, onClose }) {
           timer = setTimeout(scan, 250)
         }
         scan()
-      } catch {
-        setError(t('The camera could not be opened. Allow camera access or type the pass code.'))
+      } catch (e) {
+        if (!stopped) setError(cameraProblem(e))
       }
     }
     start()
@@ -114,10 +151,22 @@ function CameraScanner({ onCode, onClose }) {
       clearTimeout(timer)
       stream?.getTracks().forEach((track) => track.stop())
     }
-  }, [])
+  }, [attempt])
   return (
-    <Modal open onClose={onClose} title="Scan a pass" footer={<Button onClick={onClose}>Close</Button>}>
-      {error ? <Alert type="warning" title="Camera not available">{error}</Alert> : <video ref={video} className="aspect-square w-full rounded-lg bg-black object-cover" muted playsInline />}
+    <Modal
+      open
+      onClose={onClose}
+      title="Scan a pass"
+      footer={
+        <>
+          {error && <Button onClick={() => setAttempt((n) => n + 1)}>Try again</Button>}
+          <Button onClick={onClose}>Close</Button>
+        </>
+      }
+    >
+      {error && <Alert type="warning" title="Camera not available">{error}</Alert>}
+      {/* Kept mounted (hidden on error) so "Try again" finds the element at once. */}
+      <video ref={video} className={cx('aspect-square w-full rounded-lg bg-black object-cover', error && 'hidden')} muted playsInline />
     </Modal>
   )
 }
