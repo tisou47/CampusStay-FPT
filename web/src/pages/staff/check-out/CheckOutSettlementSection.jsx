@@ -37,13 +37,7 @@ export const CheckOutSettlementSection = forwardRef(function CheckOutSettlementS
             </p>
           </div>
         </div>
-        <Tag tone={done ? 'success' : refund >= 0 ? 'info' : 'error'}>
-          {done
-            ? t('Completed')
-            : refund >= 0
-              ? t('Refund {amount}', { amount: formatVnd(refund) })
-              : t('Owes {amount}', { amount: formatVnd(-refund) })}
-        </Tag>
+        {done && <Tag tone="success">{t('Completed')}</Tag>}
       </div>
 
       <dl className="flex flex-col gap-2 divide-y divide-line/60 rounded-xl border border-line bg-subtle/40 p-5">

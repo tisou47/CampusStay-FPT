@@ -303,7 +303,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
                   setTouched((s) => ({ ...s, electricity: true }))
                 }}
                 onBlur={() => setTouched((s) => ({ ...s, electricity: true }))}
-                className="text-right text-base font-semibold tabular"
+                className="text-left text-base font-semibold tabular"
               />
             </Field>
 
@@ -332,7 +332,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
                   setTouched((s) => ({ ...s, water: true }))
                 }}
                 onBlur={() => setTouched((s) => ({ ...s, water: true }))}
-                className="text-right text-base font-semibold tabular"
+                className="text-left text-base font-semibold tabular"
               />
             </Field>
           </div>
@@ -376,12 +376,26 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
                 <Tr
                   key={item.id}
                   className={cx(
-                    '[&>td]:py-3',
+                    '[&>td]:py-2',
                     (r.condition === 'Damaged' || r.condition === 'Missing' || r.result === 'Fail') && 'bg-warning-bg/35',
                   )}
                 >
                   <Td>
-                    <span className="text-sm font-medium text-fg">{item.label}</span>
+                    {item.furniture ? (
+                      <div className="flex flex-col">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-sm font-medium text-fg">{item.name}</span>
+                          {item.scopeLabel && (
+                            <span className="text-xs font-medium text-fg-brand">{item.scopeLabel}</span>
+                          )}
+                        </div>
+                        {item.assetCode && (
+                          <span className="font-mono text-xs text-fg-tertiary">{item.assetCode}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm font-medium text-fg">{item.label}</span>
+                    )}
                   </Td>
                   <Td>
                     {item.furniture ? (

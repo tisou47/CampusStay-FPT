@@ -244,39 +244,25 @@ export function useCheckOutWorkspace(allocationId) {
   }
 }
 
-export function CheckOutHeaderCard({ d, held, onOpenHandover }) {
+export function CheckOutHeaderCard({ d, onOpenHandover }) {
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
       <div className="flex min-w-0 items-center gap-4">
         <Avatar name={d.name} size={44} />
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-h2 font-semibold text-fg">{d.name}</h1>
+            <span className="rounded-md bg-subtle px-2.5 py-0.5 font-mono text-sm font-semibold text-fg">
+              {d.studentCode}
+            </span>
             <StatusTag status={d.status} tone={CHECKOUT_TONES[d.status]} />
             {d.overdue && <Tag tone="error">Overdue</Tag>}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-fg-secondary">
-            <span className="font-mono text-xs text-fg-tertiary">{d.studentCode}</span>
-            <span className="rounded-md bg-brand-subtle px-2 py-0.5 text-xs font-medium text-fg-brand">
-              {t('{room} · Bed {bed}', { room: d.room, bed: d.bed })}
-            </span>
-            <span>{[tr(d.roomTypeName), tr(d.roomClassName)].filter(Boolean).join(' ')}</span>
-            <span className="text-fg-tertiary">·</span>
-            <span className="font-medium text-fg">{tr(d.reason)}</span>
-            <span className="rounded-md bg-subtle px-2 py-0.5 text-xs font-medium text-fg tabular">
-              {t('Deposit held: {amount}', { amount: formatVnd(held) })}
-            </span>
           </div>
           {d.handoverReport && (
             <div className="flex flex-wrap items-center gap-3 text-xs text-fg-secondary">
               <span className="font-medium text-fg">Report Final ({d.handoverReport.id})</span>
               {d.handoverReport.finalizedAt && (
                 <span className="tabular">{t('Finalized {date}', { date: formatDateTime(d.handoverReport.finalizedAt) })}</span>
-              )}
-              {d.handoverReport.electricity != null && d.handoverReport.water != null && (
-                <span className="font-medium text-fg tabular">
-                  {formatNumber(d.handoverReport.electricity)} kWh / {formatNumber(d.handoverReport.water)} m³
-                </span>
               )}
               {d.handoverReport.staffName && <span>{d.handoverReport.staffName}</span>}
             </div>

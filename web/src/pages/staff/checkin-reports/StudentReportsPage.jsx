@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Columns3, Eye, ImageOff, Images, Lock } from 'lucide-react'
+import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CircleCheck, Columns3, Eye, FileText, ImageOff, Images, Lock } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Avatar } from '@/components/ui/Display'
 import { ErrorState } from '@/components/ui/States'
@@ -8,7 +8,7 @@ import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatDuration, formatNumber } from '@/lib/format'
 import { SeverityBadge, StatusBadge } from './components/Badges'
-import { ReportActionPanel, useReportActions } from './components/ReportUI'
+import { useReportActions } from './components/ReportUI'
 import { differences, itemLabel, photoCount, signedDelta, tabOf, usePhotoCaptureConfig, useQueuePosition, useReport, useReportsBase, useShortcuts } from './checkinReports'
 
 // Staff › Check-in inventories › one student: the three reports side by side (GET /handovers/:id).
@@ -18,45 +18,52 @@ import { differences, itemLabel, photoCount, signedDelta, tabOf, usePhotoCapture
 // LockedFinalCard is also used by ReportDetailPage (Report 3 before the Room visit).
 
 /** Who the inventory is for, where, when it was filed and how long it has waited; the screen's actions at the right. */
-function StudentHeaderCard({ detail, severity, actions }) {
+function StudentHeaderCard({ detail, severity, actions, footer }) {
   const row = detail.row
   const since = row.submittedAt ?? row.openedAt
   const waiting = row.status === 'Submitted' && since ? formatDuration(Date.now() - new Date(since).getTime()) : null
+  const metaParts = [
+    row.studentCode,
+    `${row.room} · ${t('Bed {bed}', { bed: row.bed })}`,
+    tr(row.block),
+    row.submittedAt ? t('Filed {date}', { date: formatDateTime(row.submittedAt) }) : null,
+    waiting ? t('Waiting {time}', { time: waiting }) : null,
+  ].filter(Boolean)
   return (
-    <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar name={row.studentName} size={48} />
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-h2 font-semibold text-fg">{row.studentName}</h1>
-            <SeverityBadge severity={severity} />
-            <Tag tone="neutral" dot={false}>
-              {row.status}
-            </Tag>
+    <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Avatar name={row.studentName} size={48} />
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-h2 font-semibold text-fg">{row.studentName}</h1>
+              <SeverityBadge severity={severity} />
+              <Tag tone="neutral" dot={false}>
+                {row.status}
+              </Tag>
+            </div>
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-fg-secondary">
+              {metaParts.map((part, idx) => (
+                <span key={idx} className="whitespace-nowrap">
+                  {idx > 0 ? `· ${part}` : part}
+                </span>
+              ))}
+            </p>
+            <p className="font-mono text-xs font-semibold text-fg tabular-nums">{row.id}</p>
           </div>
-          <p className="text-sm text-fg-secondary">
-            {[
-              row.studentCode,
-              `${row.room} · ${t('Bed {bed}', { bed: row.bed })}`,
-              tr(row.block),
-              row.submittedAt ? t('Filed {date}', { date: formatDateTime(row.submittedAt) }) : null,
-              waiting ? t('Waiting {time}', { time: waiting }) : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-          <p className="text-xs text-fg-tertiary tabular-nums">{row.id}</p>
         </div>
+        {actions && <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap lg:justify-end">{actions}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {footer}
     </section>
   )
 }
 
 /** "2 differences from the record" with one chip per difference and a link to the comparison. */
-function DiffSummaryStrip({ diff, compareTo }) {
+function DiffSummaryStrip({ diff, compareTo, hideMatch = false }) {
   const list = differences(diff)
   if (!list.length) {
+    if (hideMatch) return null
     return (
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-fg-secondary">
         {t('Same as the record: nothing differs.')}
@@ -102,7 +109,7 @@ export function LockedFinalCard({ title = 'Report 3 · Final', text, actions, la
   return (
     <section
       className={cx(
-        'flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-strong bg-subtle/40 p-6 text-center',
+        'flex h-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-strong bg-subtle/40 p-6 text-center',
         large ? 'min-h-72' : 'min-h-64',
         className,
       )}
@@ -129,10 +136,10 @@ const KICKER = {
 
 function MeterBox({ label, unit, value, extra, warn }) {
   return (
-    <div className={cx('flex flex-col gap-0.5 rounded-md px-3 py-2.5', warn ? 'bg-warning-bg/60' : 'bg-subtle/60')}>
+    <div className={cx('flex min-h-[82px] flex-col justify-center gap-0.5 rounded-md px-3 py-2.5', warn ? 'bg-warning-bg/60' : 'bg-subtle/60')}>
       <span className="text-xs text-fg-secondary">{tx(label)}</span>
       <span className="text-base font-semibold text-fg tabular-nums">{value == null ? '—' : `${formatNumber(value, { decimals: Number.isInteger(value) ? 0 : 2 })} ${unit}`}</span>
-      {extra && <span className={cx('text-xs', warn ? 'font-medium text-warning-fg' : 'text-fg-secondary')}>{extra}</span>}
+      <span className={cx('min-h-4 text-xs', warn ? 'font-medium text-warning-fg' : 'text-fg-secondary')}>{extra ?? ''}</span>
     </div>
   )
 }
@@ -154,8 +161,8 @@ function ReportColumnCard({ kind, kicker, title, meta, to, diff, value, footer, 
     return <MeterBox key={m.key} label={m.label} unit={m.unit} value={v} extra={extra} warn={kind !== 'base' && m.isDiff} />
   }
   return (
-    <section className={cx('flex min-w-0 flex-col gap-3 rounded-lg border bg-surface p-4', ACCENT[kind])}>
-      <header className="flex items-start justify-between gap-2">
+    <section className={cx('flex h-full min-w-0 flex-col gap-3 rounded-lg border bg-surface p-4', ACCENT[kind])}>
+      <header className="flex min-h-[72px] items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           <span className={cx('w-fit rounded-full px-2 py-0.5 text-xs font-semibold', KICKER[kind])}>{tx(kicker)}</span>
           <h2 className="text-h3 font-semibold text-fg">{tx(title)}</h2>
@@ -281,7 +288,9 @@ export default function StudentReportsPage() {
               <>
                 {actions.can.visit && (
                   <Button
+                    size="sm"
                     variant="primary"
+                    className="!bg-[#de601a] hover:!bg-primary"
                     icon={CalendarClock}
                     onClick={() => actions.open('visit')}
                     tip="Schedule a time to visit and inspect the Room on-site together with the student."
@@ -289,10 +298,58 @@ export default function StudentReportsPage() {
                     Check the Room with the student
                   </Button>
                 )}
+                {actions.can.confirm && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="!bg-[#de601a] hover:!bg-primary"
+                    icon={CircleCheck}
+                    onClick={() => actions.run.confirm()}
+                    disabled={actions.pending}
+                    tip="Confirm at the desk: the student's answers become the Final record."
+                  >
+                    Accept the student's report
+                  </Button>
+                )}
+                {actions.can.verify && (
+                  <Button size="sm" variant="primary" className="!bg-[#de601a] hover:!bg-primary" onClick={() => actions.open('verify')}>
+                    {detail.sentToStudent ? 'Change what I found' : 'Record what I found'}
+                  </Button>
+                )}
+                {actions.can.late && (
+                  <Button size="sm" variant="primary" className="!bg-[#de601a] hover:!bg-primary" icon={FileText} onClick={() => actions.open('late')}>
+                    Review the late report
+                  </Button>
+                )}
+                {actions.can.cancel && (
+                  <Button size="sm" variant="danger-text" onClick={() => actions.open('cancel')}>
+                    Cancel inventory
+                  </Button>
+                )}
+                {detail.row.status === 'Final' && (
+                  <p className="max-w-sm text-sm text-fg-secondary sm:text-right">
+                    {t('Final ({source}) on {at}; Utility counts from {from}.', {
+                      source: t(detail.source),
+                      at: formatDateTime(detail.finalizedAt),
+                      from: formatDateTime(detail.utilityFrom),
+                    })}
+                  </p>
+                )}
               </>
             }
+            footer={
+              detail.row.status === 'Submitted' && actions.major ? (
+                <Alert type="error" title="A major difference is checked in the Room">
+                  {t('An item reported Missing, too many items that differ or a meter beyond the limit cannot be confirmed from the desk. Set a time to check the Room with the student.')}
+                </Alert>
+              ) : detail.row.status === 'Verifying' && detail.row.visitAt ? (
+                <Alert type="info" title={t('Room visit at {date}', { date: formatDateTime(detail.row.visitAt) })}>
+                  {detail.sentToStudent ? t('Sent to the student: the inventory is final once they agree.') : t('In the Room, record what you find and send it to the student.')}
+                </Alert>
+              ) : null
+            }
           />
-          <DiffSummaryStrip diff={diff} />
+          <DiffSummaryStrip diff={diff} hideMatch={detail.row.status === 'Final'} />
           {detail.lateNote && (
             <Alert type="info" title="Late report from the student">
               {detail.lateNote}
@@ -304,12 +361,12 @@ export default function StudentReportsPage() {
             </Alert>
           )}
 
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-start gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-stretch gap-4">
             <ReportColumnCard
               kind="base"
               kicker="Report 1 · Record"
-              title="The Room's record (Staff)"
-              meta={detail.electricity?.baselineAt ? t('Recorded by Staff before the student moved in ({date}).', { date: formatDateTime(detail.electricity.baselineAt) }) : t('Recorded by Staff before the student moved in.')}
+              title="The Room's record"
+              meta={detail.electricity?.baselineAt ? t('Recorded {date}', { date: formatDateTime(detail.electricity.baselineAt) }) : t('Recorded before check-in')}
               to={`${here}/report/1${from}`}
               diff={diff}
               value={(i) => i.base}
@@ -319,7 +376,7 @@ export default function StudentReportsPage() {
               kind="student"
               kicker="Report 2 · Student"
               title="Filed by the student"
-              meta={detail.row.submittedAt ? t('Filed by the student on {date}.', { date: formatDateTime(detail.row.submittedAt) }) : t('Not submitted yet.')}
+              meta={detail.row.submittedAt ? t('Submitted {date}', { date: formatDateTime(detail.row.submittedAt) }) : t('Not submitted yet.')}
               to={`${here}/report/2${from}`}
               diff={diff}
               value={(i) => i.student}
@@ -332,7 +389,7 @@ export default function StudentReportsPage() {
                 kind="final"
                 kicker="Report 3 · Final"
                 title="Checked in the Room"
-                meta={detail.finalizedAt ? t('Signed {date}.', { date: formatDateTime(detail.finalizedAt) }) : t('Recorded by Staff in the Room with the student.')}
+                meta={detail.finalizedAt ? t('Signed {date}', { date: formatDateTime(detail.finalizedAt) }) : t('Checked in the Room')}
                 to={`${here}/report/3${from}`}
                 diff={diff}
                 value={(i) => i.final}
@@ -347,31 +404,10 @@ export default function StudentReportsPage() {
                       ? t('Nothing recorded in the Room yet.')
                       : t('No Room visit: Staff confirm at the desk, or check a major difference in the Room.')
                 }
-                actions={
-                  <>
-                    {actions.can.verify && (
-                      <Button variant="primary" onClick={() => actions.open('verify')}>
-                        Record what I found
-                      </Button>
-                    )}
-                    {actions.can.confirm && (
-                      <Button onClick={() => actions.run.confirm()} disabled={actions.pending}>
-                        Confirm at the desk
-                      </Button>
-                    )}
-                  </>
-                }
               />
             )}
           </div>
 
-          <section className="rounded-lg border border-line bg-surface p-4">
-            <h2 className="mb-3 text-h3 font-semibold text-fg">{t('What to do')}</h2>
-            <ReportActionPanel detail={detail} actions={actions} layout="row" />
-          </section>
-          <p className="text-xs text-fg-tertiary">
-            {t('Keys: J / K next and previous student · 1 / 2 / 3 open a report · C compare')}
-          </p>
           {actions.dialogs}
         </>
       )}

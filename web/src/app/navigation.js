@@ -105,10 +105,11 @@ export const backOffice = {
         ],
       },
       {
-        title: 'Desk',
+        title: 'Check-in & Check-out',
         items: [
           { label: 'Check-in', icon: LogIn, to: '/staff/check-in', end: true },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/staff/check-in/inventories' },
+          { label: 'Final reports', icon: ScrollText, to: '/staff/final-reports' },
           { label: 'Check-out', icon: LogOut, to: '/staff/check-out' },
         ],
       },
@@ -126,7 +127,7 @@ export const backOffice = {
           { label: 'Rooms and beds', icon: Building, to: '/staff/inventory' },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
-          { label: 'Operational moves', icon: ArrowRightLeft, to: '/staff/moves' },
+          { label: 'Room transfers', icon: ArrowRightLeft, to: '/staff/moves' },
         ],
       },
       {
@@ -186,7 +187,7 @@ export const backOffice = {
             to: '/manager/room-changes',
             tabs: [
               { label: 'Room changes and swaps', to: '/manager/room-changes' },
-              { label: 'Operational moves', to: '/manager/moves' },
+              { label: 'Room transfers', to: '/manager/moves' },
             ],
           },
         ],

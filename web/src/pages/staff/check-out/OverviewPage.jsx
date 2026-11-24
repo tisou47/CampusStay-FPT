@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { AlertTriangle, ArrowRight, ClipboardCheck, Gauge, LogOut } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ClipboardCheck, LogOut } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Avatar } from '@/components/ui/Display'
 import { Button } from '@/components/ui/Button'
-import { SearchInput, Select } from '@/components/ui/Field'
+import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
+import { Tabs } from '@/components/ui/Tabs'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
-import { KpiTabs, ProgressSegmentBar } from '../checkin-reports/components/ReportUI'
-import { CHECKOUT_TONES, RoomReadingsModal } from './checkOutShared'
+import { ProgressSegmentBar } from '../checkin-reports/components/ReportUI'
+import { CHECKOUT_TONES } from './checkOutShared'
 
 const STATUS_TABS = [
   { key: 'All', label: 'All', hint: 'All leavers in the current scope' },
@@ -36,7 +37,6 @@ export default function CheckOutOverviewPage() {
   const [reason, setReason] = useState(params.get('reason') ?? '')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [readingsOpen, setReadingsOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,7 +83,7 @@ export default function CheckOutOverviewPage() {
     <>
       <PageHeader
         compact
-        title="Check-out desk"
+        title="Check-out"
         tip={tipText}
         actions={
           <>
@@ -100,24 +100,19 @@ export default function CheckOutOverviewPage() {
                 { key: 'pending', label: 'Pending', value: Math.max(0, pendingCount - overdueCount), className: 'bg-warning' },
               ]}
             />
-            <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>
-              Readings by room
+            <Button
+              variant="primary"
+              icon={ClipboardCheck}
+              disabled={!firstActionable}
+              onClick={() => firstActionable && navigate(`/staff/check-out/${firstActionable.allocationId}`)}
+            >
+              {t('Start check-out ({n})', { n: formatNumber(pendingCount) })}
             </Button>
-            {firstActionable && (
-              <Button
-                variant="primary"
-                icon={ClipboardCheck}
-                onClick={() => navigate(`/staff/check-out/${firstActionable.allocationId}`)}
-              >
-                {t('Start check-out ({n})', { n: formatNumber(pendingCount) })}
-              </Button>
-            )}
           </>
         }
       />
-      <RoomReadingsModal open={readingsOpen} onClose={() => setReadingsOpen(false)} scope={scope} />
 
-      <KpiTabs
+      <Tabs
         label={t('Check-out status')}
         value={status}
         onChange={setStatusTab}
@@ -136,17 +131,16 @@ export default function CheckOutOverviewPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <Select
-            wrapperClassName="w-56"
-            aria-label={t('Reason')}
+          <FilterSelect
+            label="Reason"
             value={reason}
-            onChange={(e) => {
-              setReason(e.target.value)
+            onChange={(v) => {
+              setReason(v)
               setPage(1)
             }}
             options={[
-              { value: '', label: 'Reason: All' },
-              ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: t('Reason: {r}', { r: tr(r) }) })),
+              { value: '', label: 'All' },
+              ...(list.data?.reasons ?? []).map((r) => ({ value: r, label: tr(r) })),
             ]}
           />
         </div>
@@ -163,31 +157,22 @@ export default function CheckOutOverviewPage() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <Table fill>
+        <Table fill tableClassName="table-fixed">
           <THead>
             <tr>
-              <Th>Student</Th>
-              <Th>Room · Bed</Th>
-              <Th>Reason</Th>
-              <Th className="w-40">Status</Th>
-              <Th className="w-40 text-right">Action</Th>
+              <Th className="w-[30%]">Student</Th>
+              <Th className="w-[26%]">Room · Bed</Th>
+              <Th className="w-[22%]">Reason</Th>
+              <Th>Status</Th>
+              <Th className="w-10">
+                <span className="sr-only">{t('Open')}</span>
+              </Th>
             </tr>
           </THead>
           <TBody>
             <TableStatus query={list} colSpan={5} emptyIcon={LogOut} emptyTitle="No allocations match these filters" />
             {items.map((r) => (
-              <Tr
-                key={r.allocationId}
-                tabIndex={0}
-                onClick={() => navigate(`/staff/check-out/${r.allocationId}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    navigate(`/staff/check-out/${r.allocationId}`)
-                  }
-                }}
-                className="cursor-pointer transition-colors hover:bg-subtle/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus [&>td]:py-3"
-              >
+              <Tr key={r.allocationId} onClick={() => navigate(`/staff/check-out/${r.allocationId}`)} className="cursor-pointer [&>td]:py-3">
                 <Td>
                   <div className="flex items-center gap-3">
                     <Avatar name={r.name} size={36} />
@@ -199,33 +184,21 @@ export default function CheckOutOverviewPage() {
                 </Td>
                 <Td>
                   <div className="flex flex-col">
-                    <span className="font-medium text-fg tabular">{t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}</span>
-                    <span className="text-xs text-fg-secondary">
+                    <span className="truncate font-medium text-fg tabular">{t('{room} · Bed {bed}', { room: r.room, bed: r.bed })}</span>
+                    <span className="truncate text-xs text-fg-secondary">
                       {[tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' ')}
                     </span>
                   </div>
                 </Td>
-                <Td className="text-sm text-fg-secondary">{tr(r.reason)}</Td>
+                <Td className="truncate text-sm text-fg-secondary">{tr(r.reason)}</Td>
                 <Td>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusTag status={r.status} tone={CHECKOUT_TONES[r.status]} />
                     {r.overdue && <Tag tone="error">Overdue</Tag>}
                   </div>
                 </Td>
-                <Td className="text-right">
-                  <Button
-                    size="sm"
-                    variant={r.status === 'Checked out' ? 'secondary' : 'primary'}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/staff/check-out/${r.allocationId}`)
-                    }}
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      {r.status === 'Checked out' ? t('View details') : t('Process check-out')}
-                      <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
-                    </span>
-                  </Button>
+                <Td>
+                  <ChevronRight size={16} aria-hidden="true" className="text-fg-tertiary" />
                 </Td>
               </Tr>
             ))}

@@ -391,7 +391,7 @@ export function CheckOutPanel({ d, embedded = false }) {
               type="button"
               onClick={() => setStep(item.n)}
               className={cx(
-                'flex min-w-0 flex-col gap-0.5 border-b-2 px-3.5 py-2.5 text-left transition-colors focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus',
+                'flex min-w-0 flex-col gap-0.5 border-b-2 px-3 py-2.5 text-left transition-colors focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus',
                 active
                   ? 'border-b-primary bg-surface'
                   : 'border-b-transparent text-fg-secondary hover:bg-surface/60 hover:text-fg',
@@ -900,7 +900,7 @@ export default function CheckOutDesk() {
   return (
     <>
       <PageHeader
-        title="Check-out desk"
+        title="Check-out"
         description={
           list.data
             ? [

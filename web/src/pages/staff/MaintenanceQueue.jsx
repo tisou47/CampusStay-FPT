@@ -8,7 +8,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
-import { SearchInput, Select } from '@/components/ui/Field'
+import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
@@ -108,29 +108,31 @@ export default function MaintenanceQueue() {
         <KpiTile size="md" icon={CircleCheck} label="Resolved this week" value={formatNumber(s?.resolvedThisWeek)} note={s ? t('{n} waiting for student confirmation', { n: formatNumber(s.waitingConfirmation) }) : null} />
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput wrapperClassName="w-65" aria-label={t('Search')} placeholder="Search ID or room" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-40" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select
-          wrapperClassName="w-36"
-          aria-label={t('Priority')}
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
+          options={statusFilters.map((o) => ({ value: o.value, label: String(o.label).replace(/^Status:\s*/i, '') }))}
+        />
+        <FilterSelect
+          label="Priority"
           value={priority}
-          onChange={filter(setPriority)}
-          options={[{ value: '', label: 'Priority: All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: t('Priority: {p}', { p: tr(p) }) }))]}
+          onChange={(v) => filter(setPriority)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: tr(p) }))]}
         />
-        <Select
-          wrapperClassName="w-44"
-          aria-label={t('Category')}
+        <FilterSelect
+          label="Category"
           value={category}
-          onChange={filter(setCategory)}
-          options={[{ value: '', label: 'Category: All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: t('Category: {c}', { c: tr(c) }) }))]}
+          onChange={(v) => filter(setCategory)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: tr(c) }))]}
         />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Assignee')}
+        <FilterSelect
+          label="Assignee"
           value={assigneeId}
-          onChange={filter(setAssigneeId)}
-          options={[{ value: '', label: 'Assignee: All' }, { value: 'none', label: 'Assignee: Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: t('Assignee: {name}', { name: m.name }) }))]}
+          onChange={(v) => filter(setAssigneeId)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, { value: 'none', label: 'Unassigned' }, ...(options.data?.staff ?? []).map((m) => ({ value: m.id, label: m.name }))]}
         />
       </div>
 

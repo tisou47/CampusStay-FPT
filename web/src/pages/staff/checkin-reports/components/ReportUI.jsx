@@ -140,26 +140,22 @@ export function ProgressSegmentBar({ title, done, total, segments, note, compact
 
 /* --------------------------------------------------------------------------------------------- bulk actions */
 
-function Kbd({ children }) {
-  return <kbd className="rounded border border-white/30 px-1 font-sans text-[11px] leading-4 text-white/80">{children}</kbd>
-}
-
 /**
- * Floating at the foot of the screen while rows are selected: the count, clear (Esc), and the bulk actions.
- * actions: [{ key, label, onClick, kbd?, primary?, disabled?, tip? }]
+ * Floating at the foot of the screen while rows are selected: the count, clear, and the bulk actions.
+ * actions: [{ key, label, onClick, primary?, disabled?, tip? }]
  */
 export function BulkActionBar({ count, onClear, actions }) {
   if (!count) return null
   return (
     <div role="region" aria-label={t('Bulk actions')} className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-      <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-lg bg-fg px-4 py-2.5 text-white shadow-[0_16px_32px_-8px_#3f1d0a29,0_4px_8px_-2px_#3f1d0a0f]">
+      <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-surface px-4 py-2.5 text-fg shadow-[0_16px_32px_-8px_#3f1d0a29,0_4px_8px_-2px_#3f1d0a0f]">
         <span className="text-sm font-semibold tabular-nums" aria-live="polite">
           {t('{n} selected', { n: count })}
         </span>
-        <button type="button" onClick={onClear} className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm text-white/80 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white">
-          {t('Clear selection')} <Kbd>Esc</Kbd>
+        <button type="button" onClick={onClear} className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm text-fg-secondary hover:bg-subtle hover:text-fg focus-visible:outline-2 focus-visible:outline-focus">
+          {t('Clear selection')}
         </button>
-        <span aria-hidden="true" className="h-5 w-px bg-white/20" />
+        <span aria-hidden="true" className="h-5 w-px bg-line" />
         {actions.map((a) => {
           const button = (
             <button
@@ -168,12 +164,11 @@ export function BulkActionBar({ count, onClear, actions }) {
               onClick={a.onClick}
               disabled={a.disabled}
               className={cx(
-                'inline-flex min-h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-45',
-                a.primary ? 'bg-primary text-white hover:bg-primary-hover' : 'border border-white/30 text-white hover:bg-white/10',
+                'inline-flex min-h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-45',
+                a.primary ? 'bg-[#de601a] text-white hover:bg-primary' : 'border border-line-strong bg-surface text-fg hover:bg-subtle',
               )}
             >
               {t(a.label)}
-              {a.kbd && <Kbd>{a.kbd}</Kbd>}
             </button>
           )
           return a.tip ? (
@@ -267,7 +262,6 @@ export function FocusTopBar({ back, detail, current, reportTo, compareTo, childr
         {compareTo && (
           <Button to={compareTo} icon={Columns3} variant={current ? 'default' : 'primary'}>
             {t('Compare')}
-            <kbd className="ml-1 rounded border border-current/30 px-1 font-sans text-[11px] leading-4 opacity-70">C</kbd>
           </Button>
         )}
       </div>
@@ -317,10 +311,16 @@ export function VerificationModal({ detail, prefill = {}, onClose }) {
       onError: (e) => notifyError(e, 'Could not save what you found'),
     },
   )
-  const helper = (m, unit) =>
-    m?.baselineAt
-      ? t(`Previous reading: {value} ${unit} (recorded {date}) · Student: {student}`, { value: m?.baseline ?? '—', date: formatDate(m.baselineAt), student: m?.student ?? '—' })
-      : t('Record {value} · Student {student}', { value: m?.baseline ?? '—', student: m?.student ?? '—' })
+  const helper = (m, unit) => (
+    <span className="flex flex-col gap-0.5">
+      <span>
+        {m?.baselineAt
+          ? t(`Previous reading: {value} ${unit} (recorded {date})`, { value: m?.baseline ?? '—', date: formatDate(m.baselineAt) })
+          : t('Record: {value}', { value: m?.baseline ?? '—' })}
+      </span>
+      <span>{t(`Student: {student} ${unit}`, { student: m?.student ?? '—' })}</span>
+    </span>
+  )
   return (
     <Modal
       open
@@ -613,6 +613,7 @@ export function ReportActionPanel({ detail, actions, layout = 'stack' }) {
         key="visit"
         block={stack}
         variant="primary"
+        className="!bg-[#de601a] hover:!bg-primary"
         icon={CalendarClock}
         onClick={() => open('visit')}
         tip="Schedule a time to visit and inspect the Room on-site together with the student."
@@ -623,21 +624,30 @@ export function ReportActionPanel({ detail, actions, layout = 'stack' }) {
   }
   if (can.confirm) {
     buttons.push(
-      <Button key="confirm" block={stack} variant="primary" icon={CircleCheck} onClick={() => run.confirm()} disabled={pending} tip="Confirm at the desk: the student's answers become the Final record.">
+      <Button
+        key="confirm"
+        block={stack}
+        variant="primary"
+        className="!bg-[#de601a] hover:!bg-primary"
+        icon={CircleCheck}
+        onClick={() => run.confirm()}
+        disabled={pending}
+        tip="Confirm at the desk: the student's answers become the Final record."
+      >
         Accept the student's report
       </Button>,
     )
   }
   if (can.verify) {
     buttons.push(
-      <Button key="verify" block={stack} variant="primary" onClick={() => open('verify')}>
+      <Button key="verify" block={stack} variant="primary" className="!bg-[#de601a] hover:!bg-primary" onClick={() => open('verify')}>
         {detail.sentToStudent ? 'Change what I found' : 'Record what I found'}
       </Button>,
     )
   }
   if (can.late) {
     buttons.push(
-      <Button key="late" block={stack} variant="primary" icon={FileText} onClick={() => open('late')}>
+      <Button key="late" block={stack} variant="primary" className="!bg-[#de601a] hover:!bg-primary" icon={FileText} onClick={() => open('late')}>
         Review the late report
       </Button>,
     )

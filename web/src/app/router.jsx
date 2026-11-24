@@ -80,6 +80,7 @@ const CheckinStudentReports = () => import('@/pages/staff/checkin-reports/Studen
 const CheckinReportDetail = () => import('@/pages/staff/checkin-reports/ReportDetailPage')
 const CheckinCompare = () => import('@/pages/staff/checkin-reports/ComparePage')
 const CheckinEvidence = () => import('@/pages/staff/checkin-reports/EvidencePage')
+const FinalReports = () => import('@/pages/staff/checkin-reports/FinalReportsPage')
 const MeterReadings = () => import('@/pages/staff/MeterReadings')
 const InspectionChecklist = () => import('@/pages/staff/InspectionChecklist')
 const InspectionRoomPage = () => import('@/pages/staff/inspections/InspectionRoomPage')
@@ -257,6 +258,7 @@ export const router = createBrowserRouter([
         { path: 'moves', ...page(OperationalMoves) },
         { path: 'check-in', ...page(CheckInDesk) },
         ...checkinReportRoutes,
+        { path: 'final-reports', ...page(FinalReports) },
         { path: 'check-out', ...page(CheckOutOverview) },
         { path: 'check-out/:id', ...page(CheckOutStudent) },
         { path: 'check-out/:id/meters', ...page(CheckOutMeters) },

@@ -10,7 +10,7 @@ import { FurnitureLabels } from './FurnitureLabels'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Note } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
@@ -250,25 +250,23 @@ function Items({ manages }) {
             { value: 'store', label: 'In stores' },
           ]}
         />
-        <Select
-          wrapperClassName="w-52"
-          aria-label={t('Furniture type')}
+        <FilterSelect
+          label="Type"
           value={typeId}
-          onChange={(e) => {
-            setTypeId(e.target.value)
+          onChange={(v) => {
+            setTypeId(v)
             setPage(1)
           }}
-          options={[{ value: '', label: t('{label}: All', { label: t('Type') }) }, ...(d?.options?.types ?? []).map((x) => ({ value: x.id, label: `${t('Type')}: ${typeName(x)}` }))]}
+          options={[{ value: '', label: 'All' }, ...(d?.options?.types ?? []).map((x) => ({ value: x.id, label: typeName(x) }))]}
         />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Status')}
+        <FilterSelect
+          label="Status"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
+          onChange={(v) => {
+            setStatus(v)
             setPage(1)
           }}
-          options={[{ value: '', label: t('{label}: All', { label: t('Status') }) }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${t('Status')}: ${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
+          options={[{ value: '', label: 'All' }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
         />
         <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />

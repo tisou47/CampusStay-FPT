@@ -6,12 +6,12 @@ import { invalidate } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Field'
-import { Segmented } from '@/components/ui/Tabs'
+import { FilterSelect } from '@/components/ui/Field'
+import { Segmented, Tabs } from '@/components/ui/Tabs'
 import { EmptyBlock } from '@/components/ui/States'
 import { t } from '@/i18n'
 import { QueueTable } from './components/QueueTable'
-import { BulkActionBar, KpiTabs, ProgressSegmentBar, UndoToast } from './components/ReportUI'
+import { BulkActionBar, ProgressSegmentBar, UndoToast } from './components/ReportUI'
 import { TABS, severityOf, tabOf, useCounts, useQueue, useReportsBase, useShortcuts } from './checkinReports'
 
 // Staff › Check-in › Inventories (and Manager › Check-in inventories): the queue of check-in inventories.
@@ -86,7 +86,7 @@ function QueueView({ base }) {
         }
       />
 
-      <KpiTabs label={t('Inventory queues')} value={tab} onChange={(key) => set({ tab: key === 'review' ? null : key, severity: null })} items={TABS.map((x) => ({ ...x, count: counts[x.key] }))} />
+      <Tabs label={t('Inventory queues')} value={tab} onChange={(key) => set({ tab: key === 'review' ? null : key, severity: null })} items={TABS.map((x) => ({ ...x, count: counts[x.key] }))} />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <Segmented
@@ -98,20 +98,17 @@ function QueueView({ base }) {
             { value: 'minor', label: 'Minor difference' },
           ]}
         />
-        <label className="ml-1 inline-flex items-center gap-1.5 text-sm text-fg-secondary">
-          <ArrowUpDown size={14} aria-hidden="true" />
-          <span className="sr-only">{t('Sort')}</span>
-          <Select
-            size="sm"
-            wrapperClassName="w-44"
-            value={sort}
-            onChange={(e) => set({ sort: e.target.value === 'severity' ? null : e.target.value })}
-            options={[
-              { value: 'severity', label: 'Major first' },
-              { value: 'waiting', label: 'Longest waiting first' },
-            ]}
-          />
-        </label>
+        <FilterSelect
+          size="sm"
+          icon={ArrowUpDown}
+          aria-label={t('Sort')}
+          value={sort}
+          onChange={(v) => set({ sort: v === 'severity' ? null : v })}
+          options={[
+            { value: 'severity', label: 'Major first' },
+            { value: 'waiting', label: 'Longest waiting first' },
+          ]}
+        />
         {tab === 'review' && (
           <div className="ml-auto">
             <Button size="sm" variant="text" icon={ListChecks} to={`${base}?mode=bulk`} tip={t('Accept the minor differences in one go. Major differences are not selectable: open them one by one.')}>
@@ -127,7 +124,7 @@ function QueueView({ base }) {
         base={base}
         from={tab}
         waitingLabel={tab === 'visit' ? 'Room visit' : 'Waiting'}
-        summaries={tab === 'review' || tab === 'visit'}
+        summaries
         empty={<EmptyBlock icon={tab === 'done' ? ClipboardCheck : ClipboardList} title={EMPTY[tab]} className="py-8" />}
       />
     </>

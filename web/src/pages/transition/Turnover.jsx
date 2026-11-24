@@ -156,7 +156,7 @@ function CheckOutSheet({ allocationId, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={t('Check-out')}>
       <button type="button" aria-label={t('Close')} className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-[520px] flex-col bg-surface shadow-xl">
+      <div className="relative flex h-full w-full max-w-[680px] flex-col bg-surface shadow-xl">
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4">
           <h2 className="text-h3 font-semibold text-fg">{t('Check-out')}</h2>
           <IconButton icon={X} aria-label={t('Close')} onClick={onClose} />

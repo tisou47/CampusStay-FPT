@@ -149,20 +149,6 @@ export default function ReportDetailPage() {
             <LockedFinalCard
               large
               text={detail.row.status === 'Final' ? t('Confirmed without a Room visit: there is no Final report.') : t('Only when Staff check the Room with the student.')}
-              actions={
-                <>
-                  {actions.can.visit && (
-                    <Button variant="primary" onClick={() => actions.open('visit')}>
-                      Check the Room with the student
-                    </Button>
-                  )}
-                  {actions.can.verify && (
-                    <Button variant="primary" onClick={() => actions.open('verify')}>
-                      Record what I found
-                    </Button>
-                  )}
-                </>
-              }
             />
           ) : (
             <section className="overflow-hidden rounded-lg border border-line bg-surface">

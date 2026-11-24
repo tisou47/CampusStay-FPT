@@ -304,14 +304,17 @@ SELECT x.id, c.room_id,
        CASE c.state WHEN 'AUTO' THEN 'AUTO' WHEN 'MATCHED' THEN 'STUDENT' WHEN 'NO_RECORD' THEN 'STUDENT' END,
        c.opened, c.due, c.submitted,
        CASE c.state WHEN 'MATCHED' THEN m.e + 1.5 WHEN 'NO_RECORD' THEN m.e + 1.5 WHEN 'MINOR' THEN m.e + 2
-                    WHEN 'MAJOR' THEN m.e + 45 WHEN 'VERIFYING' THEN m.e + 38 END,
-       CASE WHEN c.state IN ('MATCHED', 'NO_RECORD', 'MINOR', 'MAJOR', 'VERIFYING') THEN m.w + 0.1 END,
+                    WHEN 'MAJOR' THEN m.e + 45 WHEN 'VERIFYING' THEN m.e + 38
+                    WHEN 'DRAFT' THEN m.e + 2 WHEN 'AUTO' THEN m.e END,
+       CASE WHEN c.state IN ('MATCHED', 'NO_RECORD', 'MINOR', 'MAJOR', 'VERIFYING', 'DRAFT') THEN m.w + 0.1
+            WHEN c.state = 'AUTO' THEN m.w END,
        CASE WHEN c.state = 'NO_RECORD' THEN m.e - 12 ELSE m.e END,
        CASE WHEN c.state = 'NO_RECORD' THEN m.w - 1 ELSE m.w END,
        CASE WHEN c.state = 'NO_RECORD' THEN NULL
             ELSE ((t.n_end + 2) + TIME '15:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE c.state WHEN 'MINOR' THEN 'MINOR' WHEN 'MAJOR' THEN 'MAJOR' WHEN 'VERIFYING' THEN 'MAJOR'
-                    WHEN 'MATCHED' THEN 'MATCHED' WHEN 'NO_RECORD' THEN 'MATCHED' END,
+                    WHEN 'DRAFT' THEN 'MINOR'
+                    WHEN 'MATCHED' THEN 'MATCHED' WHEN 'NO_RECORD' THEN 'MATCHED' WHEN 'AUTO' THEN 'MATCHED' END,
        CASE c.state WHEN 'MINOR' THEN 'Desk: Good → Damaged'
                     WHEN 'MAJOR' THEN 'Wardrobe: Good → Missing' || chr(10) || 'Electricity +45 kWh (allowed 6 kWh)'
                     WHEN 'VERIFYING' THEN 'Electricity +38 kWh (allowed 7.5 kWh)' END,
@@ -341,8 +344,8 @@ FROM asg_handover ho JOIN asg_allocation x ON x.id = ho.allocation_id
 JOIN demo_checkin_time c ON c.student_id = x.student_id
 JOIN demo_checkin_item i ON i.room_id = c.room_id AND (i.bed_id IS NULL OR i.bed_id = c.bed_id)
 CROSS JOIN LATERAL (SELECT CASE
-        WHEN c.state = 'AUTO' THEN NULL
-        WHEN c.state = 'DRAFT' THEN CASE WHEN i.bed_id IS NOT NULL THEN i.condition END
+        WHEN c.state = 'AUTO' THEN coalesce(i.condition, 'GOOD')
+        WHEN c.state = 'DRAFT' AND i.type_code = 'DESK' AND i.condition = 'GOOD' THEN 'WORN'
         WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'DAMAGED'
         WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'MISSING'
         ELSE i.condition END AS answer) a

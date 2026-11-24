@@ -57,7 +57,7 @@ export function QueueTable({ query, rows, base, from, empty, selection, waitingL
   const open = (id) => navigate(`${base}/${id}/report/2?from=${from}`)
   const cols = selection ? 7 : 6
   return (
-    <Table fill>
+    <Table fill tableClassName="table-fixed">
       <THead>
         <tr>
           {selection && (
@@ -71,7 +71,7 @@ export function QueueTable({ query, rows, base, from, empty, selection, waitingL
               />
             </Th>
           )}
-          <Th>{t('Student')}</Th>
+          <Th className="w-64">{t('Student')}</Th>
           <Th className="w-36">{t('Room · Bed')}</Th>
           <Th>{t('Differs from the record')}</Th>
           <Th className="w-40">{t('Severity')}</Th>

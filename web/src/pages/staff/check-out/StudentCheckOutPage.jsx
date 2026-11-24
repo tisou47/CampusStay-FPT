@@ -4,7 +4,6 @@ import { ArrowLeft, ClipboardCheck, LogOut, Receipt, Save, Zap } from 'lucide-re
 import { Button } from '@/components/ui/Button'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { ErrorState, LoadingState } from '@/components/ui/States'
-import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
@@ -55,8 +54,6 @@ export default function StudentCheckOutPage() {
     hasSharedSplit,
     submit,
   } = ws
-
-  const hasCondition = Boolean(condition)
 
   const jumpTo = (key, ref) => {
     setActiveSeg(key)
@@ -169,13 +166,6 @@ export default function StudentCheckOutPage() {
               </p>
             </div>
           </div>
-          <Tag tone={hasCondition ? (condition === 'good' ? 'success' : 'warning') : 'neutral'}>
-            {!hasCondition
-              ? t('Not checked')
-              : condition === 'good'
-                ? t('Good condition')
-                : `− ${formatVnd(damageAmount)}`}
-          </Tag>
         </div>
 
         <FurnitureConditions

@@ -128,6 +128,21 @@ export async function request(path, { method = 'GET', query, body, signal, heade
 }
 
 /** Downloads a file response (CSV/XLSX exports) and saves it with the server's file name. */
+/** Calls an export endpoint without saving its file: the server still records the export in the Audit Log. */
+export async function recordExport(path, { query } = {}) {
+  const token = readSession()?.token
+  let res
+  try {
+    res = await fetch(buildUrl(path, query), {
+      headers: { 'Accept-Language': getLang(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+  } catch {
+    throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
+  }
+  if (!res.ok) throw new ApiError(t('Export failed ({status}).', { status: res.status }), { status: res.status })
+  await res.blob()
+}
+
 export async function download(path, { query, fallbackName = 'export.csv' } = {}) {
   const token = readSession()?.token
   let res

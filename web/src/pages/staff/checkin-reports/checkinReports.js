@@ -24,9 +24,10 @@ const METERS = [
 
 const num = (v) => (v == null || v === '' ? null : Number(v))
 
-/** Whether Staff recorded anything in the Room: the Final report (Report 3) exists. */
+/** Whether the Final report (Report 3) exists: recorded in the Room OR confirmed as Final by Staff at the desk. */
 export function hasFinal(detail) {
   if (!detail) return false
+  if (detail.row?.status === 'Final') return true
   return (
     (detail.items ?? []).some((i) => i.verified != null) ||
     detail.electricity?.verified != null ||
@@ -54,7 +55,7 @@ export function diffReports(detail) {
       unit: m.unit,
       base,
       student,
-      final: num(v.verified),
+      final: final ? (num(v.verified) ?? student) : null,
       baseAt: v.baselineAt ?? null,
       delta: base != null && student != null ? Math.round((student - base) * 1000) / 1000 : null,
       isDiff: note != null,

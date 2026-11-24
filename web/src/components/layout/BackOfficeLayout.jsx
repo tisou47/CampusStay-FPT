@@ -11,7 +11,6 @@ import { InfoTip, Tooltip, isTruncated } from '@/components/ui/Tooltip'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
-import { FlowTrail } from './FlowTrail'
 import { SectionTabs } from './SectionTabs'
 import { ShiftConfirmHost } from './ShiftConfirm'
 import { LanguageSwitch } from './LanguageSwitch'
@@ -440,7 +439,8 @@ export function BackOfficeLayout({ role }) {
       <div className="flex min-h-0 flex-1">
         {!focus && <Sidebar role={role} />}
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          {!focus && <FlowTrail role={role} />}
+          {/* The Term stage trail (FlowTrail) is no longer shown above every page: the screens get its height back
+              (user decision 24/11/2026). The dashboards still use its stage steps. */}
           {!focus && <SectionTabs role={role} />}
           <Outlet />
           <ShiftConfirmHost />

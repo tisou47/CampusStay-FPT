@@ -8,6 +8,7 @@ import { Radio } from '@/components/ui/Choice'
 import { Alert } from '@/components/ui/Display'
 import { Input, Select } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
+import { InfoTip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
 import { conditionLossRates, conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
@@ -145,10 +146,10 @@ export function FurnitureConditions({
     (!data.saved
       ? condition === 'damaged' || computedLines.some((l) => l.answer.condition !== (l.item.atCheckIn ?? 'Good') || Boolean(l.answer.note?.trim()))
       : computedLines.some((l) => {
-          const savedCond = l.item.atCheckOut ?? l.item.atCheckIn ?? 'Good'
-          const savedNote = l.item.note ?? ''
-          return l.answer.condition !== savedCond || (l.answer.note ?? '') !== savedNote
-        }))
+        const savedCond = l.item.atCheckOut ?? l.item.atCheckIn ?? 'Good'
+        const savedNote = l.item.note ?? ''
+        return l.answer.condition !== savedCond || (l.answer.note ?? '') !== savedNote
+      }))
 
   const totalCbRef = useRef(onLiveTotalChange)
   const summaryCbRef = useRef(onLiveSummaryChange)
@@ -210,22 +211,24 @@ export function FurnitureConditions({
     <div className="flex flex-col gap-4">
       {/* Top Condition Mode Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-subtle/40 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="text-sm font-medium text-fg">{t('Room condition')}:</span>
-          <Radio
-            name="room-condition"
-            label="Bed, mattress and locker in good condition"
-            checked={condition === 'good'}
-            disabled={done}
-            onChange={selectAllGood}
-          />
-          <Radio
-            name="room-condition"
-            label="Damage found (adds a charge)"
-            checked={condition === 'damaged'}
-            disabled={done}
-            onChange={() => onConditionChange?.('damaged')}
-          />
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-fg-secondary">{t('Room condition')}:</span>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Radio
+              name="room-condition"
+              label="Bed, mattress and locker in good condition"
+              checked={condition === 'good'}
+              disabled={done}
+              onChange={selectAllGood}
+            />
+            <Radio
+              name="room-condition"
+              label="Damage found (adds a charge)"
+              checked={condition === 'damaged'}
+              disabled={done}
+              onChange={() => onConditionChange?.('damaged')}
+            />
+          </div>
         </div>
         {liveTotal > 0 ? (
           <span className="rounded-md bg-warning-bg px-3 py-1 text-sm font-semibold text-warning-fg tabular">
@@ -238,27 +241,43 @@ export function FurnitureConditions({
         ) : null}
       </div>
 
-      {/* Condition rate reference & baseline */}
+      {/* Compact reference line with InfoTip for full rate schedule & shared-split rules */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-secondary">
-        <div className="flex flex-wrap items-center gap-2">
-          <Package size={15} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-fg-brand" />
-          <span className="font-medium text-fg">{t('Condition rate schedule:')}</span>
-          {['Good', 'Worn', 'Damaged', 'Missing'].map((c) => (
-            <span key={c} className="inline-flex items-center gap-1 rounded bg-subtle px-2 py-0.5 text-fg">
-              <span className="text-fg-secondary">{conditionName(c, levels)}:</span>
-              <strong className="font-semibold tabular">{rates[c] ?? DEFAULT_RATES[c]}%</strong>
-            </span>
-          ))}
+        <div className="flex items-center gap-1.5">
+          <Package size={14} strokeWidth={1.5} aria-hidden="true" className="shrink-0 text-fg-brand" />
+          <span className="font-medium text-fg">
+            {data.checkInReport ? `Final ${data.checkInReport.id}` : t('No Final report')}
+          </span>
+          <InfoTip
+            label={
+              <span className="flex flex-col gap-1 text-left">
+                <span>
+                  {t('Condition rate schedule:')}{' '}
+                  {['Good', 'Worn', 'Damaged', 'Missing']
+                    .map((c) => `${conditionName(c, levels)} ${rates[c] ?? DEFAULT_RATES[c]}%`)
+                    .join(' · ')}
+                </span>
+                <span>
+                  {data.checkInReport
+                    ? t('Compared with the Final report {id} ({how}, {date}): kept from check-in until check-out.', {
+                      id: data.checkInReport.id,
+                      how: tr(data.checkInReport.source),
+                      date: formatDateTime(data.checkInReport.finalizedAt),
+                    })
+                    : t('No final check-in inventory for this stay: every item is compared as Good.')}
+                </span>
+                <span>
+                  {t('Select the actual condition on site for each item. Shared items with damage are split evenly among {n} residents in the room.', { n: residents })}
+                </span>
+              </span>
+            }
+          />
         </div>
-        <span className="text-fg-tertiary">
-          {data.checkInReport
-            ? t('Compared with the Final report {id} ({how}, {date}): kept from check-in until check-out.', {
-                id: data.checkInReport.id,
-                how: tr(data.checkInReport.source),
-                date: formatDateTime(data.checkInReport.finalizedAt),
-              })
-            : t('No final check-in inventory for this stay: every item is compared as Good.')}
-        </span>
+        {residents > 1 && (
+          <span className="text-fg-tertiary">
+            {t('Shared items split ÷ {n} residents', { n: residents })}
+          </span>
+        )}
       </div>
 
       {/* Student stay-time declarations banner */}
@@ -281,10 +300,6 @@ export function FurnitureConditions({
       {/* Item-by-item inspection list (flat divided rows, no nested cards) */}
       {(condition === 'damaged' || data.saved || flaggedLines.length > 0 || studentReportedItems.length > 0) && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-fg-secondary">
-            {t('Select the actual condition on site for each item. Shared items with damage are split evenly among {n} residents in the room.', { n: residents })}
-          </p>
-
           <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
             {computedLines.map(({ item: i, answer: a, deltaPct, nowPct, amount, fullAmount, split, effectiveReview }) => {
               const hasIssue = a.condition !== 'Good'
@@ -301,7 +316,11 @@ export function FurnitureConditions({
                       <div className="flex flex-wrap items-baseline gap-2.5">
                         <span className="text-base font-semibold text-fg">{typeName(i)}</span>
                         <span className="text-xs font-medium text-fg-brand">
-                          {i.personal ? t('Bed {bed}', { bed: i.bed }) : t('Shared ({n} residents)', { n: residents })}
+                          {i.personal
+                            ? t('Bed {bed}', { bed: i.bed })
+                            : residents > 1
+                              ? `${t('Shared')} ÷${residents}`
+                              : t('Shared')}
                         </span>
                         <span className="font-mono text-xs text-fg-tertiary">{i.assetCode}</span>
                         {i.studentReportedCondition && (
@@ -311,13 +330,11 @@ export function FurnitureConditions({
                           </Tag>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-secondary">
-                        <span className="tabular">
-                          {t('Base price')}: <strong className="font-semibold text-fg">{formatVnd(i.unitPrice ?? 0)}</strong>
-                        </span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-secondary">
+                        <span className="font-medium text-fg tabular">{formatVnd(i.unitPrice ?? 0)}</span>
                         <span>
                           {t('At check-in')}: <strong className="font-medium text-fg">{conditionName(i.atCheckIn ?? 'Good')}</strong>
-                          {i.preExisting ? ` (${t('Pre-existing')})` : ''}
+                          {i.preExisting ? ` · ${t('Pre-existing')}` : ''}
                         </span>
                       </div>
                     </div>
@@ -328,14 +345,11 @@ export function FurnitureConditions({
                           <span className="text-base font-semibold text-fg tabular">
                             {formatVnd(amount)}
                           </span>
-                          <span className="text-xs text-fg-secondary tabular">
-                            {i.preExisting
-                              ? t('Pre-existing (0%)')
-                              : deltaPct !== nowPct
-                                ? `${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}% (${nowPct}% − ${nowPct - deltaPct}%)`
-                                : `${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}%`}
-                            {split > 1 ? ` ÷ ${split} ${t('residents')}` : ''}
-                          </span>
+                          {amount > 0 && (
+                            <span className="text-xs text-fg-secondary tabular">
+                              {`${formatVnd(i.unitPrice ?? 0)} × ${deltaPct}%${split > 1 ? ` ÷ ${split}` : ''}`}
+                            </span>
+                          )}
                         </div>
                       )}
                       {effectiveReview && <Tag tone={reviewTone[effectiveReview] ?? 'neutral'}>{t(effectiveReview)}</Tag>}
@@ -359,18 +373,15 @@ export function FurnitureConditions({
 
                   {/* On-site inspection note input */}
                   {(hasIssue || Boolean(a.note) || Boolean(i.studentReportedNote)) && (
-                    <div className="flex items-center gap-2">
-                      <span className="shrink-0 text-xs font-medium text-fg-secondary">{t('Note')}:</span>
-                      <Input
-                        size="sm"
-                        disabled={done}
-                        aria-label={t('Note for {item}', { item: i.assetCode })}
-                        value={a.note}
-                        onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...a, note: e.target.value } }))}
-                        placeholder={t('On-site inspection note (optional)...')}
-                        maxLength={300}
-                      />
-                    </div>
+                    <Input
+                      size="sm"
+                      disabled={done}
+                      aria-label={t('Note for {item}', { item: i.assetCode })}
+                      value={a.note}
+                      onChange={(e) => setAnswers((s) => ({ ...s, [i.itemId]: { ...a, note: e.target.value } }))}
+                      placeholder={t('Note (optional)...')}
+                      maxLength={300}
+                    />
                   )}
                 </li>
               )
@@ -454,23 +465,6 @@ export function FurnitureConditions({
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {!done && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line/60 pt-2">
-            <Button
-              size="sm"
-              variant="primary"
-              icon={Save}
-              onClick={() => {
-                if (!condition) onConditionChange?.(flaggedLines.length > 0 ? 'damaged' : 'good')
-                save.run()
-              }}
-              disabled={save.pending}
-            >
-              {t('Record furniture')}
-            </Button>
           </div>
         )}
       </div>

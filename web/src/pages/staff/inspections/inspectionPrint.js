@@ -21,15 +21,22 @@ export function roomItems(run, room) {
   }
   return [
     ...checklist,
-    ...(room.checks ?? []).map((c) => ({
-      id: c.id,
-      kind: c.kind,
-      furniture: c.kind === 'furniture',
-      label:
-        c.kind === 'people'
-          ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 })
-          : `${typeName(c)} · ${c.assetCode}${c.bed ? ` · ${t('Bed {bed}', { bed: c.bed })}` : ` · ${t('Shared')}`}`,
-    })),
+    ...(room.checks ?? []).map((c) => {
+      const name = c.kind === 'people' ? t('Number of people matches the residents ({n})', { n: c.expected ?? 0 }) : typeName(c)
+      const scopeLabel = c.kind === 'furniture' ? (c.bed ? t('Bed {bed}', { bed: c.bed }) : t('Shared')) : null
+      return {
+        id: c.id,
+        kind: c.kind,
+        furniture: c.kind === 'furniture',
+        name,
+        assetCode: c.assetCode,
+        scopeLabel,
+        label:
+          c.kind === 'people'
+            ? name
+            : `${name} · ${c.assetCode} · ${scopeLabel}`,
+      }
+    }),
   ]
 }
 

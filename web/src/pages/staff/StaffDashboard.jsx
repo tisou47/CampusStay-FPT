@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building, CircleCheck, ClipboardCheck, Gauge, Hand, KeyRound, LogIn, LogOut, TriangleAlert, Wrench } from 'lucide-react'
+import { Building, CircleCheck, ClipboardCheck, Gauge, Hand, KeyRound, LogIn, LogOut, TriangleAlert, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/Button'
 import { EmptyBlock, QueryState, StaleNotice } from '@/components/ui/States'
 import { SemesterProgress, stageTiming } from '@/components/ui/SemesterProgress'
 import { Segmented } from '@/components/ui/Tabs'
-import { Tag } from '@/components/ui/Tag'
 import { CapacityRows, DetailTip, Panel, WorkList } from '@/components/ui/Work'
 import { formatDate, formatDateTime, formatDuration, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
@@ -233,10 +232,10 @@ export default function StaffDashboard() {
         </div>
         <div className="flex gap-2">
           <Button icon={LogOut} to="/staff/check-out">
-            Check-out desk
+            Check-out
           </Button>
           <Button variant="primary" icon={LogIn} to="/staff/check-in">
-            Check-in desk
+            Check-in
           </Button>
         </div>
       </div>
@@ -255,38 +254,30 @@ export default function StaffDashboard() {
       )}
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <Panel
-          title="My work"
-          badge={
-            me.data ? (
-              <Tag tone={late ? 'error' : 'info'} dot={false}>
-                {[t('{n} in your charge', { n: formatNumber(myItems.length) }), late ? t('{n} overdue', { n: late }) : null].filter(Boolean).join(' · ')}
-              </Tag>
-            ) : null
-          }
-          subtitle={me.data ? t('{n} resolved in 7 days', { n: me.data.resolved7d }) : 'Requests in your charge'}
-          action={
-            <Button variant="text" size="sm" to="/staff/maintenance">
-              <span className="inline-flex items-center gap-1">
-                {t('All requests')}
-                <ArrowRight size={14} aria-hidden="true" />
-              </span>
-            </Button>
-          }
-        >
-          <QueryState query={me.data ? mine : me} compact isEmpty={() => false}>
-            {() => (
-              <div className="flex flex-col gap-3">
-                <Segmented
-                  className="w-fit self-start"
-                  value={workTab}
-                  onChange={setWorkTab}
-                  options={[
-                    { value: 'mine', label: `${t('My work')} (${formatNumber(myItems.length)})` },
-                    { value: 'unassigned', label: `${t('Unassigned')} (${formatNumber(unassignedTotal ?? freeItems.length)})` },
-                  ]}
-                />
-                {workTab === 'mine' ? (
+        <section className="flex min-h-0 flex-col rounded-lg border border-line bg-surface">
+          <div className="flex shrink-0 flex-col gap-1.5 px-5 pt-4 pb-2">
+            <Segmented
+              className="w-fit self-start"
+              value={workTab}
+              onChange={setWorkTab}
+              options={[
+                { value: 'mine', label: `${t('My work')} (${formatNumber(myItems.length)})` },
+                { value: 'unassigned', label: `${t('Unassigned')} (${formatNumber(unassignedTotal ?? freeItems.length)})` },
+              ]}
+            />
+            <p className="text-sm text-fg-tertiary">
+              {me.data
+                ? t('In your charge: {assigned} · {resolved} resolved in 7 days', {
+                    assigned: formatNumber(myItems.length),
+                    resolved: formatNumber(me.data.resolved7d),
+                  })
+                : t('Requests in your charge')}
+            </p>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+            <QueryState query={me.data ? mine : me} compact isEmpty={() => false}>
+              {() =>
+                workTab === 'mine' ? (
                   <WorkList
                     items={myItems}
                     empty={
@@ -311,11 +302,11 @@ export default function StaffDashboard() {
                     items={freeItems}
                     empty={<EmptyBlock icon={CircleCheck} title="No unassigned requests right now" className="py-6" />}
                   />
-                )}
-              </div>
-            )}
-          </QueryState>
-        </Panel>
+                )
+              }
+            </QueryState>
+          </div>
+        </section>
 
         <div className="flex flex-col gap-4">
           <Panel title="Your block today" subtitle="Desk, door codes, readings, inspections and rooms" className="shrink-0" bodyClassName="overflow-visible">

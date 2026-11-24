@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Breadcrumb, Card, Note } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, Input, SearchInput, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -414,25 +414,23 @@ export default function VisitorDesk() {
             setPage(1)
           }}
         />
-        <Select
-          wrapperClassName="w-52"
-          aria-label={t('Status')}
+        <FilterSelect
+          label="Status"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
+          onChange={(v) => {
+            setStatus(v)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Status: All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: guestStatusLabel(s) }) }))]}
+          options={[{ value: '', label: 'All' }, ...(query.data?.statuses ?? []).map((s) => ({ value: s, label: guestStatusLabel(s) }))]}
         />
-        <Select
-          wrapperClassName="w-60"
-          aria-label={t('Time slot')}
+        <FilterSelect
+          label="Time slot"
           value={slotId}
-          onChange={(e) => {
-            setSlotId(e.target.value)
+          onChange={(v) => {
+            setSlotId(v)
             setPage(1)
           }}
-          options={[{ value: '', label: 'Every time slot' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: formatDateTimeRange(s.startsAt, s.endsAt) }))]}
+          options={[{ value: '', label: 'All' }, ...(day.data?.slots ?? []).map((s) => ({ value: s.id, label: formatDateTimeRange(s.startsAt, s.endsAt) }))]}
         />
       </div>
 
