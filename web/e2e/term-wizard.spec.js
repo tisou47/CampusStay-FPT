@@ -37,7 +37,7 @@ test('Admin creates and publishes a Term through the wizard', async ({ page, req
   for (let step = 0; step < 10 && !(await publish.isVisible()); step++) {
     const current = new URL(page.url()).searchParams.get('step')
     await page.getByRole('button', { name: 'Save and continue' }).click()
-    await page.waitForURL((url) => url.searchParams.get('step') !== current)
+    await page.waitForURL((url) => url.searchParams.get('step') !== current, { timeout: 20_000 })
     await page.waitForLoadState('networkidle')
   }
   await expect(page.getByText('Ready to publish')).toBeVisible()

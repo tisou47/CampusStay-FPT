@@ -19,15 +19,17 @@ test('Staff checks a student out at the desk with the final readings and the set
   await page.getByLabel('Water (m³)').fill('9999')
   await page.getByRole('radio', { name: 'Bed, mattress and locker in good condition' }).check()
   await page.getByRole('button', { name: 'Confirm check-out' }).click()
-  if (await shift.isVisible().catch(() => false)) await shift.getByRole('button', { name: 'Confirm and continue' }).click()
-
   const summary = page.getByRole('dialog', { name: /Settlement summary/ })
+  // The shift question (when shown) arrives after the click's request: wait for whichever comes first.
+  await expect(summary.or(shift)).toBeVisible()
+  if (await shift.isVisible()) await shift.getByRole('button', { name: 'Confirm and continue' }).click()
   await expect(summary).toBeVisible()
   await expect(summary.getByText('Utility deposit held')).toBeVisible()
   await summary.getByRole('button', { name: 'Confirm and complete' }).click()
-  if (await shift.isVisible().catch(() => false)) await shift.getByRole('button', { name: 'Confirm and continue' }).click()
-
-  await expect(page.getByText(/checked out/).first()).toBeVisible()
+  const done = page.getByText(/checked out/).first()
+  await expect(done.or(shift)).toBeVisible()
+  if (await shift.isVisible()) await shift.getByRole('button', { name: 'Confirm and continue' }).click()
+  await expect(done).toBeVisible()
   await page.getByRole('tab', { name: /Checked out/ }).click()
   await expect(page.getByText('SE210004 · ', { exact: false }).first()).toBeVisible()
 })
