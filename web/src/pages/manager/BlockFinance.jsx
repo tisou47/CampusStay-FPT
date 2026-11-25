@@ -57,6 +57,7 @@ function PaidModal({ refund, onClose }) {
       {paid.error && !paid.error.fields?.reference && (
         <Alert type="error" title="Could not mark the refund paid">{paid.error.message}</Alert>
       )}
+      <RefundQr refund={refund} />
       <Field label="Bank transfer reference" required error={paid.error?.fields?.reference}>
         {(id) => <Input id={id} value={reference} maxLength={100} onChange={(e) => setReference(e.target.value)} placeholder="e.g. FT2611210001" />}
       </Field>
@@ -64,6 +65,36 @@ function PaidModal({ refund, onClose }) {
     </Modal>
   )
 }
+
+/** W3-D4 (BE-APP-BIL-18): scan this VietQR in the bank app; the content names the refund for the reference. */
+function RefundQr({ refund }) {
+  const query = useQuery(['refunds', 'payment', refund.id], ({ signal }) => api.finance.refundPayment(refund.id, { signal }), { retry: false })
+  if (query.error) {
+    return (
+      <Alert type="info" title="No QR for this refund">
+        {query.error.code === 'NO_REFUND_ACCOUNT' ? t('{name} has not entered a bank account from the list yet: remind them, or transfer by hand.', { name: refund.name }) : query.error.message}
+      </Alert>
+    )
+  }
+  const p = query.data
+  if (!p) return null
+  return (
+    <div className="flex items-center gap-4 rounded-lg border border-border p-3">
+      <img src={p.qr.image} alt={t('VietQR for {amount}', { amount: formatVnd(p.amount) })} className="size-36 shrink-0 rounded-md bg-white" />
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="text-fg-secondary">{t('Bank')}</dt>
+        <dd>{p.bank.name}</dd>
+        <dt className="text-fg-secondary">{t('Account')}</dt>
+        <dd className="tabular">{p.bank.accountNumber} · {p.bank.holder}</dd>
+        <dt className="text-fg-secondary">{t('Amount')}</dt>
+        <dd className="tabular">{formatVnd(p.amount)}</dd>
+        <dt className="text-fg-secondary">{t('Transfer content')}</dt>
+        <dd className="font-mono">{p.content}</dd>
+      </dl>
+    </div>
+  )
+}
+
 
 function DecisionModal({ refund, decision, onClose }) {
   const { notify } = useToast()

@@ -2242,4 +2242,7 @@ export default {
   "Erase data": "Xóa dữ liệu",
   "Erase for good": "Xóa vĩnh viễn",
   "Reject request": "Từ chối yêu cầu",
+  "{name} has not entered a bank account from the list yet: remind them, or transfer by hand.": "{name} chưa nhập tài khoản ngân hàng theo danh sách: hãy nhắc sinh viên, hoặc chuyển khoản thủ công.",
+  "VietQR for {amount}": "Mã VietQR cho {amount}",
+  "No QR for this refund": "Không có mã QR cho khoản hoàn tiền này",
 }

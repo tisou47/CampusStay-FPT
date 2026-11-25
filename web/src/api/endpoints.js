@@ -359,6 +359,8 @@ export const api = {
     decideRefund: (id, body) => http.post(`/refunds/${id}/decision`, body),
     /** Approved → Paid after the bank transfer: { reference, note? } (BE-APP-BIL-03). */
     markRefundPaid: (id, body) => http.post(`/refunds/${id}/paid`, body),
+    /** W3-D4: { refundId, amount, status, content, bank: { bin, name, holder, accountNumber }, qr: { image } }; 409 NO_REFUND_ACCOUNT, REFUND_CLOSED. */
+    refundPayment: (id, opts) => http.get(`/refunds/${id}/payment`, undefined, opts),
     /** R-19: in-app and push reminder to enter the refund bank account → { remindedAt }. */
     remindAccount: (id) => http.post(`/refunds/${id}/account-reminder`),
     overdue: g('/finance/overdue'),
