@@ -10,8 +10,18 @@ export function Tabs({ items, value, onChange, className }) {
   // Tabs that are links go to other pages: they are navigation (the active one is the current page), not a tablist.
   const isNav = items.some((item) => item.to)
   const Box = isNav ? 'nav' : 'div'
+  const onKeyDown = (e) => {
+    const keys = items.map((item) => item.key)
+    const i = keys.indexOf(value)
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: keys.length - 1 }[e.key]
+    if (next == null || !keys.length) return
+    e.preventDefault()
+    const key = keys[(next + keys.length) % keys.length]
+    onChange?.(key)
+    e.currentTarget.querySelector(`[data-tab-key="${CSS.escape(String(key))}"]`)?.focus()
+  }
   return (
-    <Box role={isNav ? undefined : 'tablist'} className={cx('flex items-start gap-6 border-b border-line', className)}>
+    <Box role={isNav ? undefined : 'tablist'} onKeyDown={isNav ? undefined : onKeyDown} className={cx('flex items-start gap-6 border-b border-line', className)}>
       {items.map((item) => {
         const active = item.key === value
         const label = item.count != null ? `${tx(item.label)} · ${item.count}` : tx(item.label)
@@ -28,6 +38,8 @@ export function Tabs({ items, value, onChange, className }) {
             key={item.key}
             type="button"
             role={isNav ? undefined : 'tab'}
+            data-tab-key={item.key}
+            tabIndex={isNav || active || !items.some((x) => x.key === value) ? undefined : -1}
             aria-selected={isNav ? undefined : active}
             aria-current={isNav && active ? 'true' : undefined}
             onClick={() => onChange?.(item.key)} className={classes}>

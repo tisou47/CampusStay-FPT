@@ -99,14 +99,17 @@ function StageTip({ step, index, now }) {
 }
 
 /** The focusable anchor of a stage: a link to its page when it has one, else a plain stop for the keyboard. */
-function StageAnchor({ step, describedBy, label, className, children }) {
-  const common = { 'aria-describedby': describedBy, 'aria-label': label, 'aria-current': step.state === 'current' ? 'step' : undefined }
+function StageAnchor({ step, describedBy, label, duplicate, className, children }) {
+  // duplicate: a second anchor of the same stage (its name under the circle), for the mouse only.
+  const common = duplicate
+    ? { tabIndex: -1, 'aria-hidden': true }
+    : { 'aria-describedby': describedBy, 'aria-label': label, 'aria-current': step.state === 'current' ? 'step' : undefined }
   return step.link ? (
     <Link to={step.link.to} {...common} className={cx('outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2', className)}>
       {children}
     </Link>
   ) : (
-    <span tabIndex={0} {...common} className={cx('cursor-default outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2', className)}>
+    <span tabIndex={duplicate ? undefined : 0} {...common} className={cx('cursor-default outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2', className)}>
       {children}
     </span>
   )
@@ -151,7 +154,7 @@ function Full({ steps, now, className, ariaLabel }) {
             <div className="flex min-w-0 flex-col items-center gap-0.5 px-2 pt-1.5 text-center">
               <Tooltip label={<StageTip step={s} index={i} now={now} />} delay={150} align={i === 0 ? 'start' : last ? 'end' : 'center'} className="max-w-full" bubbleClassName="max-w-none">
                 {({ describedBy }) => (
-                  <StageAnchor step={s} describedBy={describedBy} className="rounded-sm">
+                  <StageAnchor step={s} describedBy={describedBy} duplicate className="rounded-sm">
                     <span className={cx('line-clamp-2 text-base leading-tight', s.state === 'current' ? 'font-semibold text-fg-brand' : s.state === 'done' ? 'text-fg' : 'text-fg-secondary')}>
                       {tx(s.label)}
                     </span>

@@ -66,7 +66,7 @@ export function Alert({ type = 'info', title, children, action, onClose, classNa
   const Glyph = kind.icon
   return (
     <div
-      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
+      role={type === 'error' ? 'alert' : 'status'}
       className={cx('flex items-start gap-3 rounded-lg px-4 py-3', kind.box, className)}
     >
       <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', kind.iconColor)} />
