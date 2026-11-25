@@ -1144,3 +1144,6 @@ Choose one of the active refund rules. ⟶ Hãy chọn một trong các quy tắ
 This rule refunds nothing. Reject the refund instead. ⟶ Quy tắc này không hoàn tiền. Hãy từ chối khoản hoàn tiền.
 The student has not entered a bank account from the list yet. Remind them to enter it. ⟶ Sinh viên chưa nhập tài khoản ngân hàng từ danh sách. Hãy nhắc sinh viên nhập.
 You already asked for a late check-in this Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong học kỳ này.
+This Bed is in the student's own Room. Choose a Bed in another Room. ⟶ Giường này ở ngay phòng hiện tại của sinh viên. Hãy chọn giường ở phòng khác.
+The student does not live in a Room now: there is nothing to move. ⟶ Sinh viên hiện không ở phòng nào: không có gì để chuyển.
+No Bed is free in another Room for this student. ⟶ Không còn giường trống ở phòng khác cho sinh viên này.
