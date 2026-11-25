@@ -267,9 +267,6 @@ class Wave3QaLoadIT {
      * answers are 200, every Invoice is paid exactly once and the two answers add up to the total.
      */
     @Test
-    @org.junit.jupiter.api.Disabled("Wave 3 QA finding (new, PaymentClaimService.java:282 and :501): bulk confirm locks"
-            + " the Invoices in request order, so two overlapping bulks in opposite orders deadlock; Postgres aborts one"
-            + " whole batch and that Manager gets 409 BUSY (data stays correct). Fix: lock in a stable order.")
     void twoManagersConfirmTheSameClaimsAtOnce() throws Exception {
         students();
         ApplyFlow flow = new ApplyFlow(mvc, jdbc);
