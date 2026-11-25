@@ -170,19 +170,21 @@ function ShiftRow({ person, editable, pastDays = 0, badge, action, onEdit }) {
         const past = i < pastDays
         const open = editable && !past
         return (
-          <Td key={name} className={cx('p-1 align-top', past && 'bg-subtle/60')}>
+          <Td key={name} className="p-1 align-top">
             <button
               type="button"
               disabled={!open}
               onClick={() => onEdit(i + 1)}
               title={past ? t('This day is over: its shifts can no longer change.') : undefined}
               aria-label={t('Edit {name} on {day}', { name: person.name, day: t(name) })}
-              className={cx('flex min-h-14 w-full flex-col items-start gap-1 rounded-md p-1.5 text-left', open && 'hover:bg-subtle', past && 'opacity-60')}
+              className={cx('flex min-h-14 w-full flex-col items-stretch gap-1 rounded-md p-1 text-center', open && 'hover:bg-subtle', past && 'cursor-not-allowed bg-subtle')}
             >
-              {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
+              {mine.length === 0 && <span className="py-0.5 text-sm text-fg-tertiary">{t('Day off')}</span>}
               {mine.map((s) => (
-                <span key={s.start} className="rounded bg-primary-subtle px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-fg-brand tabular">
-                  {s.start}–{s.end}
+                // Start and end wrap onto two lines when the column is too narrow for one.
+                <span key={s.start} className={cx('flex flex-wrap justify-center rounded bg-primary-subtle px-1 py-0.5 text-sm font-medium text-fg-brand tabular', past && 'opacity-60')}>
+                  <span>{s.start}–</span>
+                  <span>{s.end}</span>
                 </span>
               ))}
             </button>
