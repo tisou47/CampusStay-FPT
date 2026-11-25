@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Widget tests of the student screens against a fake API (fictional data only). The test machine's language is
 // English, so the English texts are checked.
@@ -59,6 +60,8 @@ Future<void> show(WidgetTester tester, Widget screen) async {
 const session = Session('token', 'Nguyễn Văn Demo', 'demo@fpt.edu.vn', 'SE000001', true, 'Verified');
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({})); // My Room keeps its offline copy there (MOB-22)
+
   group('helpers', () {
     test('the schedule joins the registration window and marks the current row', () {
       final now = DateTime.utc(2026, 11, 13);

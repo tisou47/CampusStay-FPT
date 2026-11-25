@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 // ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../common.dart';
@@ -18,13 +20,36 @@ import 'requests.dart';
 /// audited), the check-in pass as a QR code (A-11), late check-in, the check-in window and the Balance.
 /// `GET /students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`,
 /// `/students/me/late-check-in`, `POST /students/me/stay/extension|end`.
+/// My Room's data, and the last copy kept on the phone for the desk when the network fails (MOB-22, N1): the check-in
+/// pass and the Room still show, marked "offline, as of …" (`_offlineAt`). Signing out clears the preferences, so the
+/// copy goes with the student.
+Future<Json> loadAllocation() async {
+  try {
+    final data = await Api.get('/students/me/allocation');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('allocation', jsonEncode(data));
+      await prefs.setString('allocationAt', DateTime.now().toUtc().toIso8601String());
+    } catch (_) {
+      // the copy is a convenience
+    }
+    return data;
+  } on ApiException catch (e) {
+    if (e.status != 0) rethrow; // only a network failure or a timeout falls back to the copy
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('allocation');
+    if (saved == null) rethrow;
+    return {...jsonDecode(saved) as Json, '_offlineAt': prefs.getString('allocationAt')};
+  }
+}
+
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Loader<Json>(
-      fetch: () => Api.get('/students/me/allocation'),
+      fetch: loadAllocation,
       builder: (context, data, reload) {
         final a = data.obj('allocation');
         final term = data.obj('term');
@@ -93,6 +118,15 @@ class _Room extends StatelessWidget {
     // A phone shows what matters now (alerts, the Room, what to pay or do); the rest folds into "Room information".
     return Cards(
       children: [
+        if (data.str('_offlineAt') != null)
+          Alert(
+            tone: Tone.warning,
+            title: t('Offline', 'Không có mạng'),
+            body: t(
+              'Showing your Room as of ${moment(data.str('_offlineAt'))}. Pull down to refresh.',
+              'Đang hiện thông tin phòng lúc ${moment(data.str('_offlineAt'))}. Kéo xuống để làm mới.',
+            ),
+          ),
         if (termination != null)
           Alert(
             tone: Tone.error,
