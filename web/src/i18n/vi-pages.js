@@ -4739,6 +4739,15 @@ const familyDay = {
   "Registration open": "Đang mở đăng ký",
   "Registration closed": "Đã đóng đăng ký",
   "Not arrived": "Chưa đến",
+  // Family Days list and detail: what each stage shows (25/11/2026)
+  "Opens {time}": "Mở lúc {time}",
+  "Open until {time}": "Mở đến {time}",
+  "{n} inside now": "{n} đang ở trong",
+  "{n} past their time slot": "{n} khách quá khung giờ",
+  "{n} places in all": "Tổng {n} chỗ",
+  "Created by {name} · {time}": "Tạo bởi {name} · {time}",
+  "Published {time}": "Công bố {time}",
+  "Closed {time}": "Kết thúc {time}",
   // Visitor desk
   "Pass code": "Mã vào",
   "Scan or type the pass code": "Quét hoặc nhập mã vào",
