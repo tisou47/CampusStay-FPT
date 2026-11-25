@@ -60,6 +60,20 @@ public class AssistantService {
     public record Reply(String reply, String signature) {
     }
 
+    /**
+     * A question checked and counted, with what the model needs, made on the request thread (it reads the student's
+     * data and the request's language); {@code fixed} is an answer given without the model.
+     */
+    public record Prepared(long userId, String locale, List<AssistantModel.Message> messages, String fixed) {
+    }
+
+    /** Where a streamed answer goes: text to show, and {@code reset} to clear it before the model is asked again. */
+    public interface Stream {
+        void delta(String text);
+
+        void reset();
+    }
+
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final int MAX_TURNS = 12;
     /** Characters of conversation sent to the model, so a long chat cannot push the data out of its context. */
@@ -134,6 +148,33 @@ public class AssistantService {
     }
     /** @param turns the conversation so far, ending with the student's question */
     public Reply chat(List<Turn> turns) {
+        Prepared p = prepare(turns);
+        return answer(p, model::chat, () -> { });
+    }
+
+    /**
+     * The streamed answer (BE-PLT-26) of a {@link #prepare prepared} question, with the rules of {@link #chat}: text
+     * with Chinese script is never passed on; such an answer is cleared ({@link Stream#reset}) and asked once more.
+     * May run off the request thread: it only calls the model.
+     */
+    public Reply stream(Prepared p, Stream out) {
+        if (p.fixed() != null) {
+            out.delta(p.fixed());
+            return answer(p, null, null);
+        }
+        return answer(p, messages -> {
+            boolean[] held = { false };
+            return model.stream(messages, chunk -> {
+                held[0] |= CJK.matcher(chunk).find();
+                if (!held[0]) {
+                    out.delta(chunk);
+                }
+            });
+        }, out::reset);
+    }
+
+    /** Checks the conversation and the role, counts the question and builds the model's messages. */
+    public Prepared prepare(List<Turn> turns) {
         AuthenticatedUser user = currentUser.require(Role.STUDENT);
         if (!config.enabled()) {
             throw OllamaAssistantModel.offline();
@@ -146,7 +187,7 @@ public class AssistantService {
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
         String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
-            return reply(user, DOOR_CODE_ANSWERS.get(locale));
+            return new Prepared(user.userId(), locale, List.of(), DOOR_CODE_ANSWERS.get(locale));
         }
 
         List<AssistantModel.Message> messages = new ArrayList<>();
@@ -157,22 +198,31 @@ public class AssistantService {
         history(genuine)
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
+        return new Prepared(user.userId(), locale, List.copyOf(messages), null);
+    }
 
-        String text = model.chat(messages).strip();
+    private Reply answer(Prepared p, java.util.function.Function<List<AssistantModel.Message>, String> ask,
+            Runnable onRetry) {
+        if (p.fixed() != null) {
+            return reply(p.userId(), p.fixed());
+        }
+        List<AssistantModel.Message> messages = new ArrayList<>(p.messages());
+        String text = ask.apply(messages).strip();
         if (CJK.matcher(text).find()) {
+            onRetry.run();
             messages.add(new AssistantModel.Message("assistant", text));
-            messages.add(new AssistantModel.Message("system", RETRIES.get(locale)));
-            text = model.chat(messages).strip();
+            messages.add(new AssistantModel.Message("system", RETRIES.get(p.locale())));
+            text = ask.apply(messages).strip();
         }
         // Never shown to the student: a blank answer, or one still in the wrong script.
         if (text.isEmpty() || CJK.matcher(text).find()) {
             throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
         }
-        return reply(user, text);
+        return reply(p.userId(), text);
     }
 
-    private Reply reply(AuthenticatedUser user, String text) {
-        return new Reply(text, sign(user.userId(), text));
+    private Reply reply(long userId, String text) {
+        return new Reply(text, sign(userId, text));
     }
 
     /** HMAC-SHA256 of {@code userId|answer}, Base64: an answer signed for one student is not valid for another (M6). */
