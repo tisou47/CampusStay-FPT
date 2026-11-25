@@ -2245,4 +2245,8 @@ export default {
   "{name} has not entered a bank account from the list yet: remind them, or transfer by hand.": "{name} chưa nhập tài khoản ngân hàng theo danh sách: hãy nhắc sinh viên, hoặc chuyển khoản thủ công.",
   "VietQR for {amount}": "Mã VietQR cho {amount}",
   "No QR for this refund": "Không có mã QR cho khoản hoàn tiền này",
+  "{percent}% of {paid}": "{percent}% của {paid}",
+  "Keep the rule the refund was opened with, or apply a rule the Admin added.": "Giữ quy tắc lúc mở khoản hoàn, hoặc áp một quy tắc do Admin thêm.",
+  "As opened: {rule}": "Như lúc mở: {rule}",
+  "Refund rule": "Quy tắc hoàn tiền",
 }

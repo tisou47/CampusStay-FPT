@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Alert } from '@/components/ui/Display'
-import { Field, Input, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -96,11 +96,15 @@ function RefundQr({ refund }) {
 }
 
 
-function DecisionModal({ refund, decision, onClose }) {
+function DecisionModal({ refund, decision, ruleOptions = [], onClose }) {
   const { notify } = useToast()
   const [note, setNote] = useState('')
+  const [ruleId, setRuleId] = useState('')
+  // BE-3RD-10: a custom rule the Admin added sets the amount to paid × its percent (not for a Utility Deposit settlement).
+  const canChooseRule = decision === 'Approved' && refund.selectable !== false && ruleOptions.length > 0
+  const chosen = ruleOptions.find((o) => String(o.id) === ruleId)
   const needsNote = decision === 'Rejected' || refund.exception
-  const decide = useMutation(() => api.finance.decideRefund(refund.id, { decision, note: note.trim() || undefined }), {
+  const decide = useMutation(() => api.finance.decideRefund(refund.id, { decision, note: note.trim() || undefined, ruleId: canChooseRule && ruleId ? ruleId : undefined }), {
     invalidates: ['refunds', 'finance', 'approvals', 'dashboard'],
     onSuccess: () => {
       notify({
@@ -122,7 +126,7 @@ function DecisionModal({ refund, decision, onClose }) {
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant={decision === 'Approved' ? 'primary' : 'danger'} disabled={(needsNote && !note.trim()) || decide.pending} onClick={() => decide.run()}>
-            {decision === 'Approved' ? t('Approve {amount}', { amount: formatVnd(refund.amount) }) : t('Reject refund')}
+            {decision === 'Approved' ? t('Approve {amount}', { amount: formatVnd(chosen ? Math.floor((refund.paid * Number(chosen.percent)) / 100) : refund.amount) }) : t('Reject refund')}
           </Button>
         </>
       }
@@ -132,6 +136,18 @@ function DecisionModal({ refund, decision, onClose }) {
         <Alert type="warning" title="This refund is above the rule">
           {tr(refund.rule)}. {t('Your reason is written to the audit log for admin review.')}
         </Alert>
+      )}
+      {canChooseRule && (
+        <Field label="Refund rule" helper={chosen ? t('{percent}% of {paid}', { percent: chosen.percent, paid: formatVnd(refund.paid) }) : t('Keep the rule the refund was opened with, or apply a rule the Admin added.')}>
+          {(id) => (
+            <Select
+              id={id}
+              value={ruleId}
+              onChange={(e) => setRuleId(e.target.value)}
+              options={[{ value: '', label: t('As opened: {rule}', { rule: tr(refund.rule) }) }, ...ruleOptions.map((o) => ({ value: String(o.id), label: `${tr(o.when)} · ${o.percent}%` }))]}
+            />
+          )}
+        </Field>
       )}
       <Field label={decision === 'Approved' ? 'Reason for the exception' : 'Reason shown to the student'} required={needsNote}>
         {(id) => <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />}
@@ -244,7 +260,7 @@ function RefundsTab({ scope }) {
         </TBody>
       </Table>
       {pagination}
-      {deciding && <DecisionModal {...deciding} onClose={() => setDeciding(null)} />}
+      {deciding && <DecisionModal {...deciding} ruleOptions={query.data?.ruleOptions ?? []} onClose={() => setDeciding(null)} />}
       {paying && <PaidModal refund={paying} onClose={() => setPaying(null)} />}
     </>
   )
