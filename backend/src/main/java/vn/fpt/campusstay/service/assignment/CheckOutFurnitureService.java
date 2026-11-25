@@ -446,8 +446,9 @@ public class CheckOutFurnitureService {
         Optional<Long> allocation = jdbc.sql("""
                 SELECT a.id FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
                 WHERE a.student_id = :s AND (a.status = 'ACTIVE' OR c.status = 'COMPLETED')
-                ORDER BY (c.id IS NOT NULL) DESC, a.id DESC LIMIT 1
+                ORDER BY (a.status = 'ACTIVE' AND c.id IS NOT NULL) DESC, (a.status = 'ACTIVE') DESC, a.id DESC LIMIT 1
                 """).param("s", me).query(Long.class).optional();
+        // the current stay before an older completed check-out (BE-ASG-19)
         return allocation.map(id -> view(targetOf(id))).orElse(null);
     }
 

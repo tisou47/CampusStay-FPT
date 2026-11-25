@@ -1177,3 +1177,5 @@ This inspection run is assigned to another staff member. ⟶ Đợt kiểm tra n
 Choose Active, Paused or Completed. ⟶ Hãy chọn Đang hoạt động, Tạm dừng hoặc Hoàn tất.
 Enter an hour from 1 to 24. ⟶ Hãy nhập giờ từ 1 đến 24.
 Visit start hour must be earlier than end hour. ⟶ Giờ bắt đầu đến xử lý phải sớm hơn giờ kết thúc.
+The reading is higher than the cut of {0} ({1} kWh). ⟶ Chỉ số cao hơn lần chốt ngày {0} ({1} kWh).
+The reading is higher than the cut of {0} ({1} m³). ⟶ Chỉ số cao hơn lần chốt ngày {0} ({1} m³).

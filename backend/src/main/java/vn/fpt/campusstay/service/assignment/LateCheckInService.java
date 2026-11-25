@@ -365,7 +365,7 @@ public class LateCheckInService {
      */
     @Transactional
     public void decide(String id, String decision, String deadline, String balanceDue, String reason) {
-        AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
+        AuthenticatedUser user = currentUser.require(Permission.DECIDE_LATE_CHECK_INS); // its own permission (BE-ASG-22)
         record Target(long id, long allocationId, long termId, long studentId, long bedId, String status,
                 String allocationStatus) {
         }
