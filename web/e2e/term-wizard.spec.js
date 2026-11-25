@@ -32,8 +32,12 @@ test('Admin creates and publishes a Term through the wizard', async ({ page, req
 
   // Every later step keeps its defaults (prices from the Term before, every Block): save each until the review.
   const publish = page.getByRole('button', { name: 'Publish the term' })
+  // Each step remounts after its save: wait for the next step's address before clicking again, or the click lands
+  // on the button of the step being replaced.
   for (let step = 0; step < 10 && !(await publish.isVisible()); step++) {
+    const current = new URL(page.url()).searchParams.get('step')
     await page.getByRole('button', { name: 'Save and continue' }).click()
+    await page.waitForURL((url) => url.searchParams.get('step') !== current)
     await page.waitForLoadState('networkidle')
   }
   await expect(page.getByText('Ready to publish')).toBeVisible()
