@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from '@/lib/uploads'
 import { parseReading } from '@/lib/numbers'
 import { Camera, CircleCheck, ClipboardList, KeyRound, Printer, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -60,7 +61,13 @@ function PhotoButton({ itemId, onAdded }) {
     <label className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-fg-brand">
       <Camera size={16} aria-hidden="true" />
       {upload.pending ? t('Uploading…') : t('Add photo')}
-      <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && upload.run(e.target.files[0])} />
+      <input type="file" accept={PHOTO_ACCEPT} capture="environment" className="sr-only" onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (!file) return
+          if (photoProblem(file)) notifyError(new Error(photoProblem(file) === 'size' ? t('{name} is larger than {n} MB. Take a smaller photo.', { name: file.name, n: PHOTO_MAX_MB }) : t('{name} is not a JPEG or PNG photo.', { name: file.name })), 'Could not add the photo')
+          else upload.run(file)
+        }} />
     </label>
   )
 }

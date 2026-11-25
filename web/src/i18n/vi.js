@@ -532,6 +532,9 @@ const vi = {
   "Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.": 'Các phòng có người ở hoặc hạng phòng thay đổi. Chỉ số điện nước được ghi khi từng người rời phòng trả phòng.',
   "Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.": 'Các phòng có người ở hoặc hạng phòng thay đổi. Chỉ số điện nước được ghi khi từng người rời phòng trả phòng.',
   'Their residents are told that the code changed (never the code itself).': 'Người ở được báo rằng mã đã đổi (không bao giờ gửi chính mã).',
+  "{name} is larger than {n} MB. Take a smaller photo.": "{name} lớn hơn {n} MB. Hãy chụp ảnh nhỏ hơn.",
+  "{name} is not a JPEG or PNG photo.": "{name} không phải ảnh JPEG hoặc PNG.",
+  "Some photos were not added": "Một số ảnh không được thêm",
 }
 
 export default vi

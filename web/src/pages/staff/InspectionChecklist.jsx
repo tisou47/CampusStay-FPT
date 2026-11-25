@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from '@/lib/uploads'
 import { parseReading } from '@/lib/numbers'
 import { CalendarDays, CheckCheck, CircleCheck, Download, FileText, Printer } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -486,13 +487,14 @@ function Checklist({ run, room }) {
                           <label className="flex cursor-pointer items-center gap-1 text-xs text-fg-brand">
                             <input
                               type="file"
-                              accept="image/*"
+                              accept={PHOTO_ACCEPT}
                               className="sr-only"
                               disabled={addPhoto.pending}
                               onChange={(e) => {
                                 const file = e.target.files?.[0]
                                 e.target.value = ''
-                                if (file) addPhoto.run({ itemId: item.id, file })
+                                if (file && photoProblem(file)) notifyError(new Error(photoProblem(file) === 'size' ? t('{name} is larger than {n} MB. Take a smaller photo.', { name: file.name, n: PHOTO_MAX_MB }) : t('{name} is not a JPEG or PNG photo.', { name: file.name })), 'Could not add the photo')
+                                else if (file) addPhoto.run({ itemId: item.id, file })
                               }}
                             />
                             {t('Add a photo ({n} so far)', { n: (room.photos ?? []).filter((p) => p.itemId === item.id).length })}
