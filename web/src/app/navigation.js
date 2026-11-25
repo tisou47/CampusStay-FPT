@@ -123,7 +123,7 @@ export const backOffice = {
       {
         title: 'Rooms',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory', match: ['/staff/rooms'] },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
           { label: 'Room transfers', icon: ArrowRightLeft, to: '/staff/moves' },
@@ -228,7 +228,7 @@ export const backOffice = {
       {
         title: 'Inventory',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory', match: ['/manager/rooms'] },
           { label: 'Room tiers by term', icon: Layers, to: '/manager/room-classes' },
           { label: 'Furniture', icon: Package, to: '/manager/furniture' },
           { label: 'Door codes', icon: KeyRound, to: '/manager/door-codes' },

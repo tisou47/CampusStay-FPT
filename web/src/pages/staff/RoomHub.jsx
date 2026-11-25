@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams } from 'react-router'
 import { BedDouble, ClipboardCheck, Gauge, KeyRound, Package, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -13,6 +14,7 @@ import { countLines, typeName } from '@/lib/furniture'
 import { formatDate, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
+import { SetCodeModal } from './DoorCodes'
 
 // SCR-INV-14 Room hub (spec §11.3): residents of the current and the next Term, Room Class per Term and furniture
 // conformance, door code, meter readings, Maintenance Requests and inspections. Shared by Staff and Managers.
@@ -165,6 +167,8 @@ export default function RoomHub() {
   const base = useRoleBase()
   const { term } = useSession()
   const query = useQuery(['inventory', 'hub', code, term?.id], ({ signal }) => api.inventory.hub(code, { termId: term?.id }, { signal }))
+  // The door code is changed here, in the Door codes page's modal; both screens refresh.
+  const [changingCode, setChangingCode] = useState(false)
   const breadcrumb = <Breadcrumb items={[{ label: 'Rooms', to: `${base}/inventory` }, { label: code }]} />
   if (query.loading && !query.data) return <LoadingState />
   if (query.error) {
@@ -193,8 +197,8 @@ export default function RoomHub() {
               Furniture
             </Button>
             {d.doorCode && (
-              <Button icon={KeyRound} to={`${base}/door-codes?room=${d.room}`}>
-                Door code
+              <Button icon={KeyRound} onClick={() => setChangingCode(true)}>
+                Set new code
               </Button>
             )}
           </>
@@ -286,6 +290,7 @@ export default function RoomHub() {
           </div>
         </div>
       </div>
+      {changingCode && <SetCodeModal room={{ room: d.room }} onClose={() => setChangingCode(false)} />}
     </>
   )
 }

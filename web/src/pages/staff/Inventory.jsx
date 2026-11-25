@@ -18,6 +18,7 @@ import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { saveXlsx } from '@/lib/xlsx'
 import { inventoryWorkbook } from './inventoryWorkbook'
+import { SetCodeModal } from './DoorCodes'
 import { t, tr } from '@/i18n'
 
 // SCR-INV-10 Room and Bed Inventory (Figma 37:2075). Shared with the Manager portal.
@@ -38,6 +39,7 @@ import { t, tr } from '@/i18n'
 
 /** The bed states in the order of the status list (spec §11.5). */
 const STATES = ['unpaid', 'paid', 'resident', 'leaving', 'next_term', 'available', 'oos']
+const STATUS_OPEN_KEY = 'inventory.roomStatusOpen'
 
 // Fill, border and ink of a bed square. Held beds orange, free beds green outlined, waiting for the door code light
 // blue, out of service sand; the others keep their own mark (unpaid amber, leaving and next term dashed).
@@ -219,8 +221,9 @@ function Metric({ label, value, className }) {
 }
 
 /**
- * The floor card: floor tabs, its fill bar and counts on the left; the seven bed states on the right, each with how
- * many beds of the floor are in it and a checkbox that shows or hides the rooms holding such beds.
+ * The floor card, one row: floor tabs, its fill bar and counts, and a Room status button that unfolds the seven bed
+ * states below, each with how many beds of the floor are in it and a checkbox that shows or hides the rooms holding
+ * such beds. The button says how many states are shown and turns orange while some are hidden.
  */
 function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, shown, onToggle }) {
   const beds = summary?.beds ?? 0
@@ -231,12 +234,28 @@ function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, s
     { key: 'unpaid', value: count(['unpaid']), fill: 'bg-warning' },
     { key: 'other', value: count(['paid', 'next_term']), fill: 'bg-orange-300' },
   ]
+  // The status list folds away (remembered per browser) so the room list and profile below get the height.
+  const [open, setOpenState] = useState(() => {
+    try {
+      return localStorage.getItem(STATUS_OPEN_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const setOpen = (next) => {
+    setOpenState(next)
+    try {
+      localStorage.setItem(STATUS_OPEN_KEY, next ? '1' : '0')
+    } catch {
+      /* private window: the choice lasts until reload */
+    }
+  }
+  const filtered = shown.size < STATES.length
   return (
-    <section aria-label={title} className="@container shrink-0 rounded-lg border border-line bg-surface px-5 py-4">
-      <div className="flex flex-wrap items-stretch gap-x-6 gap-y-4">
-        <div className="flex flex-none flex-col gap-3 max-[720px]:w-full">
-          {floors.length > 0 && <FloorTabs floors={floors} floor={floor} onPick={onPick} />}
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <section aria-label={title} className="shrink-0 rounded-lg border border-line bg-surface px-5 py-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        {floors.length > 0 && <FloorTabs floors={floors} floor={floor} onPick={onPick} />}
+        <div className="flex min-w-0 flex-1 flex-wrap items-end gap-x-6 gap-y-3 max-[720px]:w-full">
             <div className="flex min-w-48 flex-1 flex-col gap-1.5">
               <div className="flex items-baseline justify-between gap-3 text-sm whitespace-nowrap">
                 <span className="font-medium text-fg-secondary">{title}</span>
@@ -264,12 +283,29 @@ function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, s
               <Metric label="Available" value={summary?.available ?? 0} className="text-success-fg" />
               <Metric label="Out of service" value={summary?.outOfService ?? 0} className={summary?.outOfService ? 'text-error-fg' : 'text-fg-tertiary'} />
             </dl>
-          </div>
         </div>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="inventory-room-status"
+          onClick={() => setOpen(!open)}
+          className={cx(
+            'flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-3 text-base font-medium whitespace-nowrap',
+            ease,
+            ring,
+            filtered ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line text-fg hover:bg-subtle',
+          )}
+        >
+          {t('Room status')}
+          <span className={cx('text-sm tabular', filtered ? 'text-fg-brand' : 'text-fg-tertiary')}>{t('{n} of {total}', { n: shown.size, total: STATES.length })}</span>
+          <ChevronDown size={16} aria-hidden="true" className={cx('transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-180')} />
+        </button>
+      </div>
 
-        <fieldset className="w-full min-w-0 border-t border-line pt-3 @min-[980px]:w-auto @min-[980px]:flex-[1_1_440px] @min-[980px]:border-t-0 @min-[980px]:border-l @min-[980px]:pt-0 @min-[980px]:pl-6">
-          <legend className="float-left mb-1 w-full text-sm font-semibold text-fg-secondary">{t('Room status')}</legend>
-          <div className="clear-both grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4">
+      {open && (
+        <fieldset id="inventory-room-status" className="mt-3 min-w-0 border-t border-line pt-3">
+          <legend className="sr-only">{t('Room status')}</legend>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4">
             {STATES.map((s) => {
               const n = counts?.[s] ?? 0
               const on = shown.has(s)
@@ -284,7 +320,7 @@ function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, s
             })}
           </div>
         </fieldset>
-      </div>
+      )}
     </section>
   )
 }
@@ -324,7 +360,9 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
   const { notify, notifyError } = useToast()
   const details = useRoomDetails(room, termId)
   const d = details.data
-  const back = useMutation(() => api.inventory.backInService(room.code), {
+  // Door code changes happen here, in the same modal as the Door codes page; it refreshes both screens.
+  const [changingCode, setChangingCode] = useState(false)
+  const back =useMutation(() => api.inventory.backInService(room.code), {
     invalidates: ['inventory', 'dashboard'],
     onSuccess: () => notify({ title: t('Room {code} is back in service', { code: room.code }), message: t('{n} beds can be allocated again.', { n: room.capacity }) }),
     onError: (e) => notifyError(e, 'Could not update the room'),
@@ -366,9 +404,9 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
             className="justify-center px-3"
             disabled={!d?.doorCode}
             title={d && !d.doorCode ? t('This room has no door code.') : undefined}
-            onClick={() => navigate(`${base}/door-codes?room=${room.code}`)}
+            onClick={() => setChangingCode(true)}
           >
-            Door code
+            Set new code
           </Button>
         </div>
       </header>
@@ -457,17 +495,27 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
         </div>
         {!oos && allocated > 0 && <Note>{t('Move the {n} residents before you set this room out of service.', { n: allocated })}</Note>}
       </Section>
+      {changingCode && <SetCodeModal room={{ room: room.code }} onClose={() => setChangingCode(false)} />}
     </article>
   )
 }
 
 /** The door code: its state, a hidden code that Show code reveals (written to the Audit Log), hidden again per room. */
 function DoorCodeSection({ room, details }) {
-  const { notifyError } = useToast()
+  const { notify, notifyError } = useToast()
   const [codes, setCodes] = useState(null)
   const reveal = useMutation(() => api.doorCodes.reveal(room.code), {
     onSuccess: setCodes,
     onError: (e) => notifyError(e, 'Could not show the code'),
+  })
+  // A new code proposed earlier (here or on the Door codes page) is confirmed here once it is on the lock.
+  const confirm = useMutation(() => api.doorCodes.confirm(room.code), {
+    invalidates: ['door-codes', 'inventory'],
+    onSuccess: () => {
+      setCodes(null)
+      notify({ title: t('Door code of Room {code} changed', { code: room.code }), message: 'Its residents are told that the code changed (never the code itself).' })
+    },
+    onError: (e) => notifyError(e, 'Could not change the door code'),
   })
   const d = details.data
   const door = d?.doorCode
@@ -497,16 +545,23 @@ function DoorCodeSection({ room, details }) {
             </span>
             {codes?.proposed && <span className="text-sm text-fg-tertiary">{t('New code: {code}', { code: codes.proposed })}</span>}
           </span>
-          {canReveal &&
-            (codes ? (
-              <Button icon={EyeOff} onClick={() => setCodes(null)}>
-                Hide code
+          <span className="flex flex-wrap gap-2">
+            {canReveal &&
+              (codes ? (
+                <Button icon={EyeOff} onClick={() => setCodes(null)}>
+                  Hide code
+                </Button>
+              ) : (
+                <Button icon={Eye} tip="Show the current code. Every view is written to the audit log." onClick={() => reveal.run()} disabled={reveal.pending}>
+                  Show code
+                </Button>
+              ))}
+            {door.proposed && (
+              <Button variant="primary" icon={Check} onClick={() => confirm.run()} disabled={confirm.pending}>
+                The lock uses this code
               </Button>
-            ) : (
-              <Button icon={Eye} tip="Show the current code. Every view is written to the audit log." onClick={() => reveal.run()} disabled={reveal.pending}>
-                Show code
-              </Button>
-            ))}
+            )}
+          </span>
         </div>
       ) : (
         <p className="text-base text-fg-tertiary">{t('This room has no door code.')}</p>
@@ -627,8 +682,12 @@ export default function Inventory() {
       setBlock(deepLink.data.block)
       setFloor(deepLink.data.floor)
     } else if (blocks.length && (block || !params.get('room') || deepLink.error)) {
-      setBlock(blocks[0].block)
-      setFloor(blocks[0].floors[0])
+      // ?block=A&floor=3 (a floor bar of Staff › Today) opens that floor while its Block is in scope.
+      const wanted = !block && blocks.find((b) => b.block === params.get('block'))
+      const first = wanted || blocks[0]
+      const floorParam = Number(params.get('floor'))
+      setBlock(first.block)
+      setFloor(wanted && first.floors.includes(floorParam) ? floorParam : first.floors[0])
       setSelected(null)
     }
   }, [block, blocks, deepLink.data, deepLink.error, params])

@@ -145,6 +145,11 @@ const one = {
   "{n} registrations in all · {guests} guests of cancelled registrations": "{n} registration in all · {guests} guests of cancelled registrations",
   "{n} students told": "{n} student told",
   "{n} requests · most urgent first": "{n} request · most urgent first",
+  "{n} tasks": "{n} task",
+  "{n} tasks · sorted by due time": "{n} task · sorted by due time",
+  "{n} students check out today": "{n} student checks out today",
+  "Check-in · {n} students": "Check-in · {n} student",
+  "Check-out deadline · {n} students left": "Check-out deadline · {n} student left",
 }
 
 export default one

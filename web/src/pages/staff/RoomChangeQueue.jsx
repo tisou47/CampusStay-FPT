@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ArrowDown, ArrowRight, CalendarClock, Check, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarClock, Check, ChevronRight, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -8,7 +8,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Radio } from '@/components/ui/Choice'
-import { Card, Note } from '@/components/ui/Display'
+import { Avatar, Card, Note } from '@/components/ui/Display'
 import { Field, FilterSelect, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
@@ -44,9 +44,9 @@ function ChangeStatus({ status }) {
 
 function Row({ label, children, valueClassName }) {
   return (
-    <div className="flex items-center justify-between gap-4 text-base">
+    <div className="flex items-center justify-between gap-4 py-2.5 text-sm first:pt-0 last:pb-0">
       <dt className="shrink-0 text-fg-secondary">{t(label)}</dt>
-      <dd className={cx('min-w-0 text-right', valueClassName ?? 'text-fg')}>{children}</dd>
+      <dd className={cx('min-w-0 font-medium text-right', valueClassName ?? 'text-fg')}>{children}</dd>
     </div>
   )
 }
@@ -215,7 +215,7 @@ function BedSelectionModal({ open, onClose, beds, selectedBed, onSelect, request
   )
 }
 
-function Review({ request: r, onReject }) {
+function Review({ request: r, onReject, onClose }) {
   const { notify, notifyError } = useToast()
   const pending = r.status === 'Pending'
   const beds = useQuery(['room-changes', 'beds', r.id], ({ signal }) => api.roomChanges.matchingBeds(r.id, { signal }), { enabled: pending, keepPrevious: false })
@@ -229,118 +229,202 @@ function Review({ request: r, onReject }) {
   })
 
   const bedItems = beds.data?.items ?? []
+  const changeKindLabel =
+    r.kind === 'same' ? t('Same type, other room') : r.kind === 'class' ? t('Change room class') : t('Change room type')
 
   return (
-    <Card className="flex min-h-0 w-80 shrink-0 flex-col gap-3 overflow-y-auto 2xl:w-95" aria-label={t('Review {id}', { id: r.id })}>
-      <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-medium text-fg-tertiary tabular">
-          {r.id}
-          {r.studentCode && <span className="font-normal"> · {r.studentCode}</span>}
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 truncate text-h3 font-semibold text-fg">{r.studentName}</h2>
-          <ChangeStatus status={r.status} />
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4" aria-label={t('Review {id}', { id: r.id })}>
+      {/* Top Back Button & Breadcrumb Bar */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" icon={ArrowLeft} onClick={onClose}>
+            {t('Back')}
+          </Button>
+          <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-1.5 text-sm text-fg-secondary">
+            <button type="button" onClick={onClose} className="cursor-pointer hover:text-fg-brand">
+              {t('Next-term room changes')}
+            </button>
+            <span aria-hidden="true">/</span>
+            <span className="font-mono font-medium text-fg">{r.id}</span>
+          </nav>
         </div>
       </div>
 
-      {/* The move itself: where the student is next term, and what they asked for. */}
-      <dl className="flex flex-col rounded-lg border border-line bg-subtle/60 px-3 py-2.5">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-sm text-fg-tertiary">{t('From')}</dt>
-          <dd className="flex flex-wrap items-baseline gap-x-2 text-base">
-            <span className="font-semibold text-fg tabular">
-              {r.from.room} · {r.from.bed}
+      {/* Student Header + Horizontal Move Strip */}
+      <Card className="flex shrink-0 flex-col gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <Avatar name={r.studentName} size={48} />
+            <div className="flex min-w-0 flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="truncate text-h2 font-semibold text-fg">{r.studentName}</h1>
+                {r.studentCode && (
+                  <span className="rounded-md bg-subtle px-2 py-0.5 font-mono text-xs font-semibold text-fg-secondary">
+                    {r.studentCode}
+                  </span>
+                )}
+              </div>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-fg-secondary tabular">
+                <span className="font-mono font-semibold text-fg">{r.id}</span>
+                <span>·</span>
+                <span>{t('Submitted on')}: {formatDateTime(r.submittedAt)}</span>
+                {r.dueAt && (
+                  <>
+                    <span>·</span>
+                    <span>{t('Decide by')}: {formatDateTime(r.dueAt)}</span>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <ChangeStatus status={r.status} />
+            <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
+          </div>
+        </div>
+
+        {/* Horizontal From -> To Comparison */}
+        <div className="grid grid-cols-1 items-center gap-3 rounded-xl border border-line bg-subtle/40 p-3.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface px-4 py-3">
+            <span className="text-xs font-medium tracking-wide text-fg-tertiary uppercase">{t('Current allocation')}</span>
+            <span className="text-base font-semibold text-fg tabular">
+              {r.from.room} · {t('Bed {bed}', { bed: r.from.bed })}
             </span>
-            <span className="text-sm text-fg-secondary">
+            <span className="text-xs text-fg-secondary">
               {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
             </span>
-          </dd>
-        </div>
-        <ArrowDown size={16} className="my-1 ml-0.5 text-fg-tertiary" aria-hidden="true" />
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-sm text-fg-tertiary">{t('To')}</dt>
-          <dd className="text-base font-semibold text-fg">{target(r)}</dd>
-        </div>
-      </dl>
-
-      <dl className="flex flex-col gap-2.5">
-        <Row label="Reason" valueClassName="text-fg">
-          {tr(r.reason) || '—'}
-        </Row>
-        <Row label="Decide by">
-          <span className="inline-flex flex-wrap items-center justify-end gap-2 tabular">
-            {formatDateTime(r.dueAt)}
-            {pending && <SlaBadge dueAt={r.dueAt} done={false} warnHours={48} />}
-          </span>
-        </Row>
-      </dl>
-
-      {!pending && r.decision && (
-        <dl className="flex flex-col gap-2.5 border-t border-line pt-3">
-          {r.decision.bed && (
-            <Row label="New bed" valueClassName="font-semibold text-fg tabular">
-              {r.decision.bed}
-            </Row>
-          )}
-          {r.decision.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
-          <Row label="Decided">
-            {r.decision.by} · <span className="tabular">{formatDate(r.decision.at)}</span>
-          </Row>
-        </dl>
-      )}
-
-      {!pending ? (
-        r.decision?.note && <Note>{tr(r.decision.note)}</Note>
-      ) : (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-medium text-fg">{t('Free beds that match')}</p>
-            {bedItems.length > 0 && (
-              <Button
-                variant="text"
-                size="sm"
-                icon={Maximize2}
-                onClick={() => setModalOpen(true)}
-                className="-mr-2"
-              >
-                {t('View all ({n})', { n: bedItems.length })}
-              </Button>
-            )}
           </div>
-          <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
-            {() => (
-              <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-48 flex-col divide-y divide-line overflow-y-auto border-y border-line">
-                {bedItems.map((b) => (
-                  <div
-                    key={b.bedId}
-                    onClick={() => setBed(b.bedId)}
-                    className={cx(
-                      'flex cursor-pointer items-center justify-between gap-3 px-2.5 py-2 transition-colors',
-                      bed === b.bedId ? 'bg-primary-subtle' : 'hover:bg-subtle',
-                    )}
-                  >
-                    <Radio name={`bed-${r.id}`} label={b.bedId} checked={bed === b.bedId} onChange={() => setBed(b.bedId)} />
-                    <span className="shrink-0 text-sm text-fg-secondary tabular">
-                      {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
-                    </span>
-                  </div>
-                ))}
+
+          <div className="flex items-center justify-center">
+            <span className="flex size-8 items-center justify-center rounded-full bg-brand-subtle text-fg-brand max-sm:rotate-90">
+              <ArrowRight size={16} aria-hidden="true" />
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-brand-subtle/40 px-4 py-3">
+            <span className="text-xs font-medium tracking-wide text-fg-brand uppercase">{t('Requested change')}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {r.decision?.bed && (
+                <span className="rounded-md bg-success-bg px-2 py-0.5 font-mono text-sm font-semibold text-success-fg tabular">
+                  {r.decision.bed}
+                </span>
+              )}
+              <span className="text-base font-semibold text-fg">{target(r)}</span>
+            </div>
+            <span className="text-xs text-fg-secondary">
+              {r.decision?.bed ? `${t('New bed')}: ${r.decision.bed} · ${changeKindLabel}` : changeKindLabel}
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      {/* Equal-Height Details & Decision Grid */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+        <Card className="flex flex-col justify-between gap-4 p-5">
+          <div className="flex flex-col gap-3">
+            <h2 className="text-h3 font-semibold text-fg">{t('Request details')}</h2>
+            <dl className="flex flex-col divide-y divide-line">
+              <Row label="Request" valueClassName="font-mono text-fg tabular">
+                {r.id}
+              </Row>
+              <Row label="Change type">{changeKindLabel}</Row>
+              <Row label="Reason" valueClassName="text-fg">
+                {tr(r.reason) || '—'}
+              </Row>
+              <Row label="Submitted on">
+                <span className="tabular">{formatDateTime(r.submittedAt)}</span>
+              </Row>
+              <Row label="Decide by">
+                <span className="inline-flex flex-wrap items-center justify-end gap-2 tabular">
+                  {formatDateTime(r.dueAt)}
+                  {pending && <SlaBadge dueAt={r.dueAt} done={false} warnHours={48} />}
+                </span>
+              </Row>
+            </dl>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col justify-between gap-4 p-5">
+          {!pending ? (
+            <div className="flex flex-1 flex-col justify-between gap-4">
+              <div className="flex flex-col gap-3">
+                <h2 className="text-h3 font-semibold text-fg">{t('Decision result')}</h2>
+                <dl className="flex flex-col divide-y divide-line">
+                  <Row label="Status">
+                    <ChangeStatus status={r.status} />
+                  </Row>
+                  {r.decision?.bed && (
+                    <Row label="New bed" valueClassName="font-semibold text-fg-brand tabular">
+                      {r.decision.bed}
+                    </Row>
+                  )}
+                  {r.decision?.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
+                  {r.decision && (
+                    <>
+                      <Row label="Decided by">{r.decision.by}</Row>
+                      <Row label="Decided">
+                        <span className="tabular">{formatDate(r.decision.at)}</span>
+                      </Row>
+                    </>
+                  )}
+                </dl>
               </div>
-            )}
-          </QueryState>
-          <div className="flex gap-2">
-            <Button variant="danger" icon={X} className="flex-1" onClick={onReject}>
-              Reject
-            </Button>
-            <Button variant="primary" icon={Check} className="flex-1" disabled={!bed || approve.pending} onClick={() => approve.run()}>
-              {t('Approve')}
-            </Button>
-          </div>
-          <p className="text-sm text-fg-tertiary">
-            {t('The student moves to this bed at the start of the next term and pays its next-term price with the next-term fee; nothing is invoiced or refunded now.')}
-          </p>
-        </>
-      )}
+              {r.decision?.note && <Note>{tr(r.decision.note)}</Note>}
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col gap-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-h3 font-semibold text-fg">{t('Free beds that match')}</h2>
+                {bedItems.length > 0 && (
+                  <Button
+                    variant="text"
+                    size="sm"
+                    icon={Maximize2}
+                    onClick={() => setModalOpen(true)}
+                    className="-mr-2"
+                  >
+                    {t('View all ({n})', { n: bedItems.length })}
+                  </Button>
+                )}
+              </div>
+              <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
+                {() => (
+                  <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-60 flex-col divide-y divide-line overflow-y-auto rounded-lg border border-line">
+                    {bedItems.map((b) => (
+                      <div
+                        key={b.bedId}
+                        onClick={() => setBed(b.bedId)}
+                        className={cx(
+                          'flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 transition-colors',
+                          bed === b.bedId ? 'bg-primary-subtle' : 'hover:bg-subtle',
+                        )}
+                      >
+                        <Radio name={`bed-${r.id}`} label={b.bedId} checked={bed === b.bedId} onChange={() => setBed(b.bedId)} />
+                        <span className="shrink-0 text-sm text-fg-secondary tabular">
+                          {t('Floor {n}', { n: b.floor })} · {t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </QueryState>
+              <div className="mt-auto flex flex-col gap-2.5 pt-1">
+                <div className="flex gap-2.5">
+                  <Button variant="danger" icon={X} className="flex-1" onClick={onReject}>
+                    Reject
+                  </Button>
+                  <Button variant="primary" icon={Check} className="flex-1" disabled={!bed || approve.pending} onClick={() => approve.run()}>
+                    {t('Approve')}
+                  </Button>
+                </div>
+                <p className="text-xs text-fg-tertiary">
+                  {t('The student moves to this bed at the start of the next term and pays its next-term price with the next-term fee; nothing is invoiced or refunded now.')}
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {modalOpen && (
         <BedSelectionModal
@@ -352,7 +436,7 @@ function Review({ request: r, onReject }) {
           request={r}
         />
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -361,8 +445,7 @@ export default function RoomChangeQueue() {
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
-  // A link to one request (?id=) lists every status, so a decided request is found too (WEB-OPS-26).
-  const [status, setStatus] = useState(params.get('id') ? '' : 'Pending')
+  const [status, setStatus] = useState('')
   const [kind, setKind] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -372,13 +455,44 @@ export default function RoomChangeQueue() {
   const filters = { block: scope.block, status, kind, page, pageSize }
   const query = useQuery(['room-changes', filters], ({ signal }) => api.roomChanges.list(filters, { signal }))
   const items = query.data?.items ?? []
-  // The request asked for, never another one in its place; without an id, the first row.
-  const selected = items.find((r) => r.id === selectedId) ?? (selectedId ? null : items[0])
+  // Only open the right-hand review panel when a request is explicitly clicked or linked via ?id=.
+  const selected = selectedId ? items.find((r) => r.id === selectedId) ?? null : null
   const missing = Boolean(selectedId) && !selected && !query.loading
   const exporting = useMutation(() => api.exports.download('room-changes', { ...filters, page: undefined, pageSize: undefined }, 'room-change-requests.csv'), { onError: (e) => notifyError(e, 'Export failed') })
   const filter = (set) => (e) => {
     set(e.target.value)
     setPage(1)
+  }
+
+  if (selected) {
+    return (
+      <>
+        <Review
+          key={`${selected.id}-${selected.status}`}
+          request={selected}
+          onReject={() => setRejecting(selected)}
+          onClose={() => setSelectedId(null)}
+        />
+        {rejecting && <RejectModal request={rejecting} reasons={query.data?.rejectReasons ?? []} onClose={() => setRejecting(null)} />}
+      </>
+    )
+  }
+
+  if (missing) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <div>
+          <Button size="sm" icon={ArrowLeft} onClick={() => setSelectedId(null)}>
+            {t('Next-term room changes')}
+          </Button>
+        </div>
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <EmptyBlock icon={Repeat} title="Request not on this page">
+            {t('{id} is not in this list. Change the filters or the page, or pick another request.', { id: selectedId })}
+          </EmptyBlock>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -411,95 +525,94 @@ export default function RoomChangeQueue() {
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <Table fill>
-            <THead>
-              <tr>
-                <Th className="w-36">Request</Th>
-                <Th className="w-40">Student</Th>
-                <Th>From → To</Th>
-                <Th className="w-28">Submitted on</Th>
-                <Th className="w-36">Status</Th>
-              </tr>
-            </THead>
-            <TBody>
-              <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
-              {items.map((r) => (
-                <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)}>
-                  <Td className="font-medium whitespace-nowrap text-fg-brand tabular">{r.id}</Td>
-                  <Td>
-                    <TwoLine primary={r.studentName} secondary={r.studentCode} />
-                  </Td>
-                  <Td className="max-w-0">
-                    {/* From on the first line, the requested target under it: nothing is cut in the middle of the move. */}
-                    <div className="flex min-w-0 flex-col gap-0.5" title={`${r.from.room} · ${r.from.bed} · ${tr(r.from.roomTypeName)} · ${tr(r.from.roomClassName)} → ${target(r)}`}>
-                      <span className="flex min-w-0 items-baseline gap-2">
-                        <span className="shrink-0 font-medium text-fg tabular">
-                          {r.from.room} · {r.from.bed}
-                        </span>
-                        <span className="truncate text-sm text-fg-tertiary">
-                          {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
-                        </span>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <Table fill>
+          <THead>
+            <tr>
+              <Th className="w-36">Request</Th>
+              <Th className="w-48">Student</Th>
+              <Th>From → To</Th>
+              <Th className="w-32">Submitted on</Th>
+              <Th className="w-40">Status</Th>
+              <Th className="w-10">
+                <span className="sr-only">{t('Open')}</span>
+              </Th>
+            </tr>
+          </THead>
+          <TBody>
+            <TableStatus query={query} colSpan={6} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
+            {items.map((r) => (
+              <Tr
+                key={r.id}
+                onClick={() => setSelectedId(r.id)}
+                className="cursor-pointer"
+              >
+                <Td className="font-medium whitespace-nowrap text-fg-brand tabular">{r.id}</Td>
+                <Td>
+                  <TwoLine primary={r.studentName} secondary={r.studentCode} />
+                </Td>
+                <Td className="max-w-0">
+                  {/* From on the first line, the requested target under it: nothing is cut in the middle of the move. */}
+                  <div className="flex min-w-0 flex-col gap-0.5" title={`${r.from.room} · ${r.from.bed} · ${tr(r.from.roomTypeName)} · ${tr(r.from.roomClassName)} → ${target(r)}`}>
+                    <span className="flex min-w-0 items-baseline gap-2">
+                      <span className="shrink-0 font-medium text-fg tabular">
+                        {r.from.room} · {r.from.bed}
                       </span>
-                      <span className="flex min-w-0 items-center gap-1.5 text-sm text-fg-secondary">
-                        <ArrowRight size={14} className="shrink-0 text-fg-tertiary" aria-label={t('To')} />
-                        <span className="truncate">{target(r)}</span>
+                      <span className="truncate text-sm text-fg-tertiary">
+                        {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
                       </span>
-                    </div>
-                  </Td>
-                  <Td className="whitespace-nowrap tabular">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-fg">{formatDate(r.submittedAt)}</span>
-                      <span className="text-sm text-fg-tertiary">{formatTime(r.submittedAt)}</span>
-                    </div>
-                  </Td>
-                  <Td>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <ChangeStatus status={r.status} />
-                        <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
-                      </span>
-                      {r.dueAt && (
-                        <span className="flex items-center gap-1 text-sm whitespace-nowrap text-fg-tertiary tabular" title={t('decide by {date}', { date: formatDateTime(r.dueAt) })}>
-                          <CalendarClock size={13} aria-hidden="true" />
-                          <span className="sr-only">{t('Decide by')}</span>
-                          {formatDate(r.dueAt)}
+                    </span>
+                    <span className="flex min-w-0 items-center gap-1.5 text-sm text-fg-secondary">
+                      <ArrowRight size={14} className="shrink-0 text-fg-tertiary" aria-label={t('To')} />
+                      {r.decision?.bed && (
+                        <span className="shrink-0 rounded bg-success-bg px-1.5 py-0.5 font-mono text-xs font-semibold text-success-fg tabular">
+                          {r.decision.bed}
                         </span>
                       )}
-                    </div>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
-          <div className="flex shrink-0 justify-end">
-            <Pagination
-              total={query.data?.total ?? 0}
-              page={page}
-              pageSize={pageSize}
-              onChange={setPage}
-              onPageSizeChange={(n) => {
-                setPageSize(n)
-                setPage(1)
-              }}
-            />
-          </div>
+                      <span className="truncate">{target(r)}</span>
+                    </span>
+                  </div>
+                </Td>
+                <Td className="whitespace-nowrap tabular">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-fg">{formatDate(r.submittedAt)}</span>
+                    <span className="text-sm text-fg-tertiary">{formatTime(r.submittedAt)}</span>
+                  </div>
+                </Td>
+                <Td>
+                  <div className="flex flex-col items-start gap-1">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <ChangeStatus status={r.status} />
+                      <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
+                    </span>
+                    {r.dueAt && (
+                      <span className="flex items-center gap-1 text-sm whitespace-nowrap text-fg-tertiary tabular" title={t('decide by {date}', { date: formatDateTime(r.dueAt) })}>
+                        <CalendarClock size={13} aria-hidden="true" />
+                        <span className="sr-only">{t('Decide by')}</span>
+                        {formatDate(r.dueAt)}
+                      </span>
+                    )}
+                  </div>
+                </Td>
+                <Td>
+                  <ChevronRight size={16} aria-hidden="true" className="text-fg-tertiary" />
+                </Td>
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
+        <div className="flex shrink-0 justify-end">
+          <Pagination
+            total={query.data?.total ?? 0}
+            page={page}
+            pageSize={pageSize}
+            onChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+          />
         </div>
-
-        {selected ? (
-          <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
-        ) : (
-          <Card className="flex w-80 shrink-0 flex-col 2xl:w-95">
-            {missing ? (
-              <EmptyBlock icon={Repeat} title="Request not on this page">
-                {t('{id} is not in this list. Change the filters or the page, or pick another request.', { id: selectedId })}
-              </EmptyBlock>
-            ) : (
-              <EmptyBlock icon={Repeat} title="Select a request" />
-            )}
-          </Card>
-        )}
       </div>
 
       {rejecting && <RejectModal request={rejecting} reasons={query.data?.rejectReasons ?? []} onClose={() => setRejecting(null)} />}
