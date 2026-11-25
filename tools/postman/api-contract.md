@@ -33,6 +33,7 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 - **API documentation:** Swagger UI and `/v3/api-docs` exist only on a server started with the `dev` profile (BE-AUTH-07). Production answers `401`/`404`. `tools/postman/generate-postman.mjs` reads them from a local dev backend.
 
 - `GET /search?q` (back office) → `{ q, items: [{ kind, id, title, detail }] }`: students, Rooms, Invoices, Applications, Maintenance Requests and next-Term request codes inside the user's Blocks (A-47)
+- `GET /work/summary` (back office) → `{ at, items: [{ kind, link, count, overdue, dueSoon, oldestAt }] }`: the work waiting for the caller, most urgent first (overdue, then due within 24 hours, then the oldest). Staff: their assigned Maintenance Requests (`maintenance`), inspection runs (`inspection`), Room-Change Requests (`room-change`); in their Blocks: swaps (`swap`), next-Term requests (`next-term-request`), check-in inventories to review or visit (`check-in-inventory`), overdue leavers (`leaver-overdue`), door codes to set (`door-code`), meter periods due (`meter-period`), overdue Family Day guests (`guest-overdue`). Managers, every Block: `application`, `assignment`, `late-check-in`, `termination-overdue`, `swap-manager`, `escalation`, `payment-claim`, `refund`, `erasure`, `reconciliation`, `guest-overdue`. Admin: `term-request`, `job-failed`. `link` is the menu path of the screen that handles it (A-82)
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |

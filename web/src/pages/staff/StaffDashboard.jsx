@@ -15,6 +15,7 @@ import { CapacityRows, DetailTip, Panel, WorkList } from '@/components/ui/Work'
 import { formatDate, formatDateTime, formatDuration, formatNumber, formatRelative, formatTimeLeft, greeting as greet } from '@/lib/format'
 import { attentionText } from '@/lib/attention'
 import { t, tr } from '@/i18n'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 
 // SCR-HOME-02 Staff home "Today" (Change Spec v2 §11.2), rebuilt around the person's work: their shift, the
 // requests they are in charge of, what the Block needs today and where the Term stands. Each line carries its action.
@@ -252,6 +253,8 @@ export default function StaffDashboard() {
           <StageWork role="staff" term={term} counts={stageCounts} className="border-t border-line pt-3" />
         </section>
       )}
+
+      <WorkInboxPanel className="shrink-0" />
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <Panel

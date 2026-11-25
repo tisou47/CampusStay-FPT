@@ -505,6 +505,8 @@ export const api = {
   banks: g('/banks'),
   /** Back-office search in the top bar: { q } → { q, items: [{ kind, id, title, detail }] } (spec §11.3). */
   search: (q, opts) => http.get('/search', { q }, opts),
+  /** The work waiting for the caller, most urgent first: { at, items: [{ kind, link, count, overdue, dueSoon, oldestAt }] }. */
+  workSummary: (opts) => http.get('/work/summary', undefined, opts),
   dashboards: {
     staff: g('/dashboards/staff'),
     manager: g('/dashboards/manager'),
