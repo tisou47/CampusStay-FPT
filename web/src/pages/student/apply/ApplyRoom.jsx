@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
@@ -23,6 +24,12 @@ export default function ApplyRoom() {
   const eligibility = useQuery(['eligibility', term?.id], ({ signal }) => api.applications.eligibility({ termId: term?.id }, { signal }), { enabled: Boolean(term) })
   const maxTerms = eligibility.data?.maxStayTerms ?? 1
   const stayTerms = Math.min(draft.stayTerms ?? 1, maxTerms)
+  // A draft kept from an earlier visit may ask for more Terms than allowed now: write the capped value back, so
+  // Review shows and sends what this step shows (WEB-STU-07).
+  const tooLong = eligibility.data && (draft.stayTerms ?? 1) > maxTerms
+  useEffect(() => {
+    if (tooLong) setDraft({ stayTerms: maxTerms })
+  }, [tooLong, maxTerms, setDraft])
 
   return (
     <WizardLayout

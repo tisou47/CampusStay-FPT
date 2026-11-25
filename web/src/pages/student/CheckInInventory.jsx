@@ -104,7 +104,7 @@ function Start({ data }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Start the check-in inventory?"
-        description="Do it when you are at the Room. You receive the door code now, and you have 48 hours to file the inventory: after that the Room's recorded condition is used and you can no longer report damage that was already there."
+        description={t("Do it when you are at the Room. You receive the door code now, and you have {n} hours to file the inventory: after that the Room's recorded condition is used and you can no longer report damage that was already there.", { n: data.submitHours ?? 48 })} // shortcut: 48 until the B8 API (submitHours) is deployed, then drop the fallback
         footer={
           <>
             <Button onClick={() => setOpen(false)}>Not yet</Button>
