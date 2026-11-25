@@ -34,6 +34,7 @@ class DoorCodeRotation {
         this.clock = clock;
     }
 
+    // Same transaction: the door-code task opens with the move-out that requires it.
     @EventListener
     void on(ResidentLeftRoom e) {
         int opened = jdbc.sql("""

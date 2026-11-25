@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.config.TimeConfig;
@@ -37,19 +36,19 @@ class HandoverNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInAvailable e) {
         notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "hours", String.valueOf(e.hours())),
                 "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventoryDue e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_DUE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
                 "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventorySubmitted e) {
         for (long staff : e.staffIds()) {
             notifier.notify(staff, "CHECK_IN_INVENTORY_SUBMITTED",
@@ -58,36 +57,36 @@ class HandoverNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInVisit e) {
         notifier.notify(e.studentId(), "CHECK_IN_VISIT",
                 Map.of("room", e.room(), "visitAt", e.visitAt() == null ? "soon" : when(e.visitAt())), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInToAgree e) {
         notifier.notify(e.studentId(), "CHECK_IN_TO_AGREE", Map.of("room", e.room()), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventoryFinal e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_FINAL",
                 Map.of("room", e.room(), "from", when(e.utilityFrom())), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(DamageToAcknowledge e) {
         notifier.notify(e.studentId(), "DAMAGE_TO_ACKNOWLEDGE", Map.of("item", e.item(), "room", e.room(),
                 "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckOutToAgree e) {
         notifier.notify(e.studentId(), "CHECK_OUT_TO_AGREE", Map.of("room", e.room(), "amount", money(e.amount())),
                 "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckOutCompleted e) {
         if (e.refundPending() && e.refund() > 0) {
             notifier.notify(e.studentId(), "CHECK_OUT_REFUND_PENDING",

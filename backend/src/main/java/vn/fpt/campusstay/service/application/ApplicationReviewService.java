@@ -286,6 +286,7 @@ public class ApplicationReviewService {
      * their live Application of the Term that holds no Bed yet is rejected; a paid Deposit is refunded by the rule
      * "Not enrolled". An Allocated one is Assignment's to end (it holds a Bed).
      */
+    // Same transaction: the rejection and refund are part of the reconciliation's decision.
     @EventListener
     void on(StudentNotEnrolled e) {
         AuthenticatedUser user = currentUser.get();

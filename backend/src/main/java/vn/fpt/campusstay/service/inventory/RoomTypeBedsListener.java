@@ -20,6 +20,7 @@ class RoomTypeBedsListener {
         this.jdbc = jdbc;
     }
 
+    // Same transaction: the Rooms' Beds follow the Room Type change.
     @EventListener
     void on(RoomTypeBedsChanged event) {
         jdbc.sql("""

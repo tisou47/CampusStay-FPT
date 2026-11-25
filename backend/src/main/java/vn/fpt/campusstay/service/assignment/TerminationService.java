@@ -200,7 +200,7 @@ public class TerminationService {
         return new Started(String.valueOf(id), moveOutBy(id));
     }
 
-    /** Billing's Utility debt rule fired (same transaction). */
+    /** Billing's Utility debt rule fired. Same transaction: the termination is part of Billing's debt decision. */
     @EventListener
     void on(UtilityTerminationDue e) {
         resident(e.studentId(), e.allocationId()).ifPresent(a -> insertQuietly(a, "UTILITY_DEBT", null, e.debt()));
@@ -347,7 +347,7 @@ public class TerminationService {
     /** A stay already terminated keeps its open termination. */
     private void insertQuietly(Resident a, String reason, String note, Long debt) {
         if (!terminated(a.id())) {
-            insert(a, reason, note, debt, null);
+            insert(a, reason, note, debt, null, true);
         }
     }
 
@@ -357,25 +357,38 @@ public class TerminationService {
     }
 
     private long insert(Resident a, String reason, String note, Long debt, Long by) {
+        return insert(a, reason, note, debt, by, false);
+    }
+
+    /**
+     * @param quiet a termination opened meanwhile by someone else is kept and nothing is done (-1): the listener path
+     *              must not roll back the publisher's transaction (BE-ASG-21)
+     */
+    private long insert(Resident a, String reason, String note, Long debt, Long by, boolean quiet) {
         if (terminated(a.id())) {
             throw ApiException.conflict("ALREADY_TERMINATED", "This stay is already terminated.");
         }
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
         LocalDate moveOutBy = today.plusDays(Math.max(0, parameters.intValue("termination.move_out_days")));
         Instant now = Instant.now(clock);
-        long id;
+        Optional<Long> inserted;
         try {
-            id = jdbc.sql("""
+            inserted = jdbc.sql("""
                     INSERT INTO asg_termination (allocation_id, term_id, student_id, reason, note, debt, started_at,
                                                  started_by, move_out_by)
-                    VALUES (:a, :term, :student, :reason, :note, :debt, :now, :by, :moveOutBy) RETURNING id
-                    """)
+                    VALUES (:a, :term, :student, :reason, :note, :debt, :now, :by, :moveOutBy)
+                    """ + (quiet ? " ON CONFLICT (allocation_id) WHERE status IN ('NOTICE_SENT', 'OVERDUE') DO NOTHING" : "")
+                    + " RETURNING id")
                     .param("a", a.id()).param("term", a.termId()).param("student", a.studentId()).param("reason", reason)
                     .param("note", note).param("debt", debt).param("now", Timestamp.from(now)).param("by", by)
-                    .param("moveOutBy", moveOutBy).query(Long.class).single();
+                    .param("moveOutBy", moveOutBy).query(Long.class).optional();
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict("ALREADY_TERMINATED", "This stay is already terminated.");
         }
+        if (inserted.isEmpty()) {
+            return -1;
+        }
+        long id = inserted.get();
         // The student appears on the check-out list with the reason Termination.
         jdbc.sql("""
                 INSERT INTO asg_check_out (allocation_id, reason, status) VALUES (:a, 'TERMINATION', 'PENDING')

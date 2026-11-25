@@ -80,6 +80,7 @@ public class DoorCodeRelease {
     }
 
     /** A new code was confirmed on the Room's lock: those who waited for it receive it. */
+    // Same transaction: the release is part of confirming the code on the lock.
     @EventListener
     void on(DoorCodeActivated e) {
         List<Long> beds = inventory.bedsOfRoom(e.roomId()).stream().map(Inventory.BedSlot::bedId).toList();
