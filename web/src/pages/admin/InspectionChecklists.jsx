@@ -94,7 +94,9 @@ function Editor({ checklist, categories, severities, onRemoved, onDirtyChange })
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(null)
   const dirty = JSON.stringify(items) !== JSON.stringify(checklist.items ?? [])
-  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange])
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
   const isDraft = checklist.status === 'Draft'
   const isArchived = checklist.status === 'Archived'
   const nextVersion = isDraft ? checklist.version : checklist.version + 1
@@ -407,7 +409,9 @@ export default function InspectionChecklists() {
         </div>
 
         {selected ? (
-          <Editor key={`${selected.id}-${selected.version}-${selected.status}`} checklist={selected} categories={query.data?.categories ?? []} severities={query.data?.severities ?? []} onRemoved={() => setSelectedId(null)} onDirtyChange={(d) => (editorDirty.current = d)} />
+          <Editor key={`${selected.id}-${selected.version}-${selected.status}`} checklist={selected} categories={query.data?.categories ?? []} severities={query.data?.severities ?? []} onRemoved={() => setSelectedId(null)} onDirtyChange={(d) => {
+            editorDirty.current = d
+          }} />
         ) : (
           <Card className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={CircleCheck} title="Select a checklist" />
