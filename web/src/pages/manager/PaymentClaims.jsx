@@ -6,7 +6,7 @@ import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
+import { StatStrip } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, DescriptionList, Note } from '@/components/ui/Display'
 import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
@@ -198,10 +198,12 @@ export default function PaymentClaims() {
       {/* Tick claims to confirm or reject them together: the bar beside the filters appears with the choice. */}
       <PageHeader title="Payment confirmations" />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Clock} label="Claims waiting" value={formatNumber(s?.count)} valueTone={s?.count ? 'warning' : undefined} note="The students' deadlines are paused" />
-        <KpiTile size="md" icon={HandCoins} label="Amount waiting" value={s ? formatVnd(s.amount) : '—'} note="To find on the bank statement" />
-      </div>
+      <StatStrip
+        stats={[
+          { label: 'Claims waiting', value: formatNumber(s?.count), tone: s?.count ? 'warning' : undefined, note: "The students' deadlines are paused" },
+          { label: 'Amount waiting', value: s ? formatVnd(s.amount) : '—', note: 'To find on the bank statement' },
+        ]}
+      />
 
       {/* Filter Bar & Prominent Bulk Selection Action Bar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">

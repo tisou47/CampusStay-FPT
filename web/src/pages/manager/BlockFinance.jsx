@@ -7,7 +7,7 @@ import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
+import { StatStrip } from '@/components/ui/Charts'
 import { Alert, DescriptionList } from '@/components/ui/Display'
 import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
@@ -17,7 +17,7 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDate, formatDateTime, formatNumber, formatPercent, formatVnd } from '@/lib/format'
+import { formatCompactVnd, formatDate, formatDateTime, formatNumber, formatPercent, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-BIL-20 Block Finance (Figma 61:707)
@@ -424,12 +424,15 @@ export default function BlockFinance() {
         }
       />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? t('{n} invoices', { n: formatNumber(s.invoices) }) : null} />
-        <KpiTile size="md" label="Collected" value={s ? formatVnd(s.collected) : '—'} note={s?.invoiced ? formatPercent(s.collected / s.invoiced, 0) : null} />
-        <KpiTile size="md" label="Overdue" value={formatNumber(s?.overdueCount)} note={s ? formatVnd(s.overdueAmount) : null} />
-        <KpiTile size="md" label="Refunds pending" value={formatNumber(s?.refundsPendingCount)} note={s ? formatVnd(s.refundsPendingAmount) : null} />
-      </div>
+      <StatStrip
+        stats={[
+          // Amounts in short form ("16,11 tỷ ₫") so every label stays whole; the exact amount is in the "?".
+          { label: 'Invoiced', value: s ? formatCompactVnd(s.invoiced) : '—', note: s ? `${formatVnd(s.invoiced)} · ${t('{n} invoices', { n: formatNumber(s.invoices) })}` : null },
+          { label: 'Collected', value: s ? (s.invoiced ? `${formatCompactVnd(s.collected)} · ${formatPercent(s.collected / s.invoiced, 0)}` : formatCompactVnd(s.collected)) : '—', note: s ? formatVnd(s.collected) : null },
+          { label: 'Overdue', value: s ? formatCompactVnd(s.overdueAmount) : '—', tone: s?.overdueCount ? 'error' : undefined, note: s ? `${formatVnd(s.overdueAmount)} · ${t('{n} invoices', { n: formatNumber(s.overdueCount) })}` : null },
+          { label: 'Refunds pending', value: s ? formatCompactVnd(s.refundsPendingAmount) : '—', tone: s?.refundsPendingCount ? 'warning' : undefined, note: s ? `${formatVnd(s.refundsPendingAmount)} · ${t('{n} refunds', { n: formatNumber(s.refundsPendingCount) })}` : null },
+        ]}
+      />
 
       <Tabs
         className="shrink-0"
@@ -444,7 +447,7 @@ export default function BlockFinance() {
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput
-          wrapperClassName="w-96 max-w-full"
+          wrapperClassName="w-full max-w-xl"
           aria-label={t('Search')}
           placeholder={tab === 'refunds' ? 'Search student name or student code' : 'Search student, student code or invoice'}
           value={q}

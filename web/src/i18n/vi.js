@@ -211,6 +211,8 @@ const vi = {
   'entries': 'mục',
   'announcement': 'thông báo',
   'announcements': 'thông báo',
+  'invoice': 'hóa đơn',
+  'invoices': 'hóa đơn',
   '{n} / page': '{n} / trang',
   'Something went wrong': 'Đã xảy ra lỗi',
   'Just now': 'Vừa xong',

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Banknote, Check, Clock, CreditCard, Download, Eye, ReceiptText, TriangleAlert } from 'lucide-react'
+import { Check, Download, Eye, ReceiptText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
+import { StatStrip } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { DetailRows } from '@/components/ui/Display'
 import { Field, FilePicker, FilterSelect, Input, SearchInput, Select } from '@/components/ui/Field'
@@ -158,21 +158,21 @@ export default function Payments() {
         }
       />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Banknote} label="Collected today" value={s ? formatVnd(s.collectedToday) : '—'} note={s ? t('{n} payments', { n: formatNumber(s.collectedTodayCount) }) : null} />
-        <KpiTile size="md" icon={Clock} label="Awaiting confirmation" value={formatNumber(s?.awaitingConfirmation)} valueTone={s?.awaitingConfirmation ? 'warning' : undefined} note="Reported by students" />
-        <KpiTile size="md" icon={TriangleAlert} label="Unpaid deposits" value={formatNumber(s?.unpaidDeposits)} note="Expire at their deadline" />
-        <KpiTile
-          size="md"
-          icon={CreditCard}
-          label="Deposits paid"
-          value={s ? `${formatNumber(s.depositsPaid)} / ${formatNumber(s.depositsSubmitted)}` : '—'}
-          note={s?.depositsSubmitted ? t('{p} of submitted', { p: formatPercent(s.depositsPaid / s.depositsSubmitted, 0) }) : null}
-        />
-      </div>
+      <StatStrip
+        stats={[
+          { label: 'Collected today', value: s ? `${formatVnd(s.collectedToday)} · ${t('{n} payments', { n: formatNumber(s.collectedTodayCount) })}` : '—' },
+          { label: 'Awaiting confirmation', value: formatNumber(s?.awaitingConfirmation), tone: s?.awaitingConfirmation ? 'warning' : undefined, note: 'Reported by students' },
+          { label: 'Unpaid deposits', value: formatNumber(s?.unpaidDeposits), note: 'Expire at their deadline' },
+          {
+            label: 'Deposits paid',
+            value: s ? `${formatNumber(s.depositsPaid)} / ${formatNumber(s.depositsSubmitted)}` : '—',
+            note: s?.depositsSubmitted ? t('{p} of submitted', { p: formatPercent(s.depositsPaid / s.depositsSubmitted, 0) }) : null,
+          },
+        ]}
+      />
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="min-w-80 flex-1" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
         <FilterSelect
           label="Type"
           value={type}
@@ -280,6 +280,7 @@ export default function Payments() {
             setPageSize(n)
             setPage(1)
           }}
+          noun={['invoice', 'invoices']}
         />
       </div>
 

@@ -55,6 +55,28 @@ export function MeterRows({ rows, max, labelWidth = 'w-24', trackWidth = 'w-45',
 
 /** Small KPI tile used on back-office dashboards (16/14 px padding, Display/KPI value). */
 // size "lg" = Display/KPI value (dashboards); "md" = Heading/H2 value with 16 px padding (Payments, Finance…).
+/**
+ * A list page's figures as one thin strip, each on one line: label, value (no icon: the words say it). What the figure means (`note`) is in
+ * the "?" beside it, so the list below keeps most of the screen; put a second figure that matters in the value
+ * itself ("103 · 196,403,000 ₫"). `stats`: [{ label, value, note?, tone? }], tone = warning | error | success.
+ */
+export function StatStrip({ stats, className }) {
+  const tone = { warning: 'text-warning-fg', error: 'text-error-fg', success: 'text-success-fg' }
+  return (
+    <div className={cx('flex shrink-0 flex-wrap divide-x divide-line rounded-lg border border-line bg-surface', className)}>
+      {stats.map(({ label, value, note, tone: t }) => (
+        <div key={label} className="flex min-w-[200px] flex-1 items-center gap-2 px-4 py-2.5">
+          <span className="min-w-0 truncate text-sm text-fg-secondary" title={tx(label)}>
+            {tx(label)}
+          </span>
+          {note && <InfoTip label={note} size={13} />}
+          <span className={cx('ml-auto shrink-0 text-base font-semibold whitespace-nowrap tabular', t ? tone[t] : 'text-fg')}>{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function KpiTile({ icon: Glyph, label, tip, value, note, noteTone = 'secondary', noteClassName, valueTone, size = 'lg', className, children }) {
   const tone = { secondary: 'text-fg-secondary', warning: 'text-warning-fg', error: 'text-error-fg', success: 'text-success-fg', brand: 'text-fg-brand', tertiary: 'text-fg-tertiary' }
   return (
