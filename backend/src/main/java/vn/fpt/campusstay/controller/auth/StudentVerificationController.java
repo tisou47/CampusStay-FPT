@@ -22,7 +22,8 @@ class StudentVerificationController {
 
     record FormRequest(@Size(max = 20) String studentCode, @Size(max = 150, message = "Use at most 150 characters.") String name,
             @Size(max = 10) String gender, LocalDate dateOfBirth, @Size(max = 100) String major,
-            @Size(max = 10) String cohort, @Size(max = 20, message = "Enter a phone number of 8 to 15 digits.") String phone) {
+            @Size(max = 10) String cohort, @Size(max = 20, message = "Enter a phone number of 8 to 15 digits.") String phone,
+            @Size(max = 20) String privacyNoticeVersion) {
     }
 
     private final StudentVerificationService verification;
@@ -40,6 +41,6 @@ class StudentVerificationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void submit(@Valid @RequestBody FormRequest body) {
         verification.submit(new StudentVerificationService.Form(body.studentCode(), body.name(), body.gender(),
-                body.dateOfBirth(), body.major(), body.cohort(), body.phone()));
+                body.dateOfBirth(), body.major(), body.cohort(), body.phone()), body.privacyNoticeVersion());
     }
 }

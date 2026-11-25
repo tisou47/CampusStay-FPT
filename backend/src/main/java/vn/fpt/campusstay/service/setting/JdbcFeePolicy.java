@@ -122,6 +122,18 @@ class JdbcFeePolicy implements FeePolicy {
     }
 
     @Override
+    public java.util.List<RefundRule> customRules() {
+        return jdbc.sql("""
+                SELECT id, trigger_code, description, refund_percent, approver_role FROM cfg_refund_rule
+                WHERE trigger_code = 'CUSTOM' AND active ORDER BY sort_order, id
+                """)
+                .query((rs, i) -> new RefundRule(rs.getLong("id"), rs.getString("trigger_code"),
+                        rs.getString("description"), Decimals.plain(rs.getBigDecimal("refund_percent")),
+                        rs.getString("approver_role")))
+                .list();
+    }
+
+    @Override
     public Optional<RefundRule> refundRule(String triggerCode) {
         return jdbc.sql("""
                 SELECT id, trigger_code, description, refund_percent, approver_role FROM cfg_refund_rule

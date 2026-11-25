@@ -26,7 +26,8 @@ class FinanceController {
     }
 
     record RefundDecisionRequest(@Size(max = 20) String decision,
-            @Size(max = 500, message = "Keep the note under 500 characters.") String note) {
+            @Size(max = 500, message = "Keep the note under 500 characters.") String note,
+            @Size(max = 20) String ruleId) {
     }
 
     record RefundPaidRequest(@Size(max = 100, message = "Keep the reference under 100 characters.") String reference,
@@ -90,7 +91,13 @@ class FinanceController {
     @PostMapping("/refunds/{id}/decision")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void decideRefund(@PathVariable String id, @Valid @RequestBody RefundDecisionRequest body) {
-        finance.decideRefund(id, body.decision(), body.note());
+        finance.decideRefund(id, body.decision(), body.note(), body.ruleId());
+    }
+
+    /** W3-D4: the transfer of a refund, with a VietQR of the student's account. */
+    @GetMapping("/refunds/{id}/payment")
+    FinanceService.RefundPayment refundPayment(@PathVariable String id) {
+        return finance.refundPayment(id);
     }
 
     @PostMapping("/refunds/{id}/paid")

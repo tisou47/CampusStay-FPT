@@ -99,11 +99,25 @@ public class RefundAccountService implements RefundAccounts {
         record Row(long id, Account account) {
         }
         List<Row> rows = jdbc.sql("""
-                SELECT user_id, refund_account_holder, refund_account_number, refund_bank FROM auth_student
+                SELECT user_id, refund_account_holder, refund_account_number, refund_bank, refund_bank_bin FROM auth_student
                 WHERE user_id IN (:ids) AND refund_account_number IS NOT NULL
                 """).param("ids", Set.copyOf(studentIds))
-                .query((rs, i) -> new Row(rs.getLong(1), new Account(rs.getString(2), rs.getString(3), rs.getString(4))))
+                .query((rs, i) -> new Row(rs.getLong(1), new Account(rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getString(5))))
                 .list();
         return rows.stream().collect(Collectors.toMap(Row::id, Row::account));
+    }
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public int clear(Collection<Long> studentIds) {
+        if (studentIds.isEmpty()) {
+            return 0;
+        }
+        return jdbc.sql("""
+                UPDATE auth_student SET refund_account_holder = NULL, refund_account_number = NULL, refund_bank = NULL,
+                       refund_bank_bin = NULL, refund_account_accepted_at = NULL, refund_account_at = NULL
+                WHERE user_id IN (:ids) AND refund_account_number IS NOT NULL
+                """).param("ids", Set.copyOf(studentIds)).update();
     }
 }

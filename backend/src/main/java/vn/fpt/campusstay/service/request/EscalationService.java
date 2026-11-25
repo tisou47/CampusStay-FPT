@@ -306,6 +306,12 @@ public class EscalationService {
     /** {@code reassign} (with {@code assigneeId}) or {@code temporary-bed} (Room-Change Requests); closes the escalation. */
     @Transactional
     public void act(String id, String action, Object assigneeId, String note) {
+        act(id, action, assigneeId, note, null);
+    }
+
+    /** @param bedId the temporary Bed (code or id), null for the first free one: same Block, fullest Room first */
+    @Transactional
+    public void act(String id, String action, Object assigneeId, String note, String bedId) {
         currentUser.require(Permission.MANAGE_BLOCK);
         Row e = find(id);
         blockScope.check(e.buildingId());
@@ -336,17 +342,39 @@ public class EscalationService {
             if (!e.sourceType().equals(ROOM_CHANGE)) {
                 throw FieldErrors.single("action", "A temporary Bed can only be offered for a Room-Change Request.");
             }
-            if (text == null) {
-                throw FieldErrors.single("note", "Write which temporary Bed was arranged and until when.");
+            record Request(long studentId, long termId) {
             }
-            long student = jdbc.sql("SELECT student_id FROM req_room_change WHERE id = :id").param("id", e.sourceId())
-                    .query(Long.class).single();
-            handle(e, "TEMPORARY_BED", e.ownerId(), text, now);
-            event(e.id(), "Temporary Bed arranged", now);
+            Request rc = jdbc.sql("SELECT student_id, term_id FROM req_room_change WHERE id = :id")
+                    .param("id", e.sourceId())
+                    .query((rs, i) -> new Request(rs.getLong("student_id"), rs.getLong("term_id"))).single();
+            // A real hold (BE-OPS-21): the student moves now, in the Term they live in, to a free Bed of another
+            // Room; the next-Term request stays open for its final decision.
+            Moves.Placement p = moves.placements(moves.allocationsOf(rc.studentId())).values().stream()
+                    .filter(x -> x.active() && x.residentAt() != null && x.termId() != rc.termId())
+                    .max(Comparator.comparing(Moves.Placement::residentAt))
+                    .orElseThrow(() -> ApiException.conflict("NOT_RESIDENT",
+                            "The student does not live in a Room now: there is nothing to move."));
+            List<Moves.FreeBed> free = moves.freeBeds(p.termId(), p.gender()).stream()
+                    .filter(b -> b.roomId() != p.roomId())
+                    .sorted(Comparator.comparing((Moves.FreeBed b) -> b.buildingId() != p.buildingId()))
+                    .toList();
+            String wanted = bedId == null ? "" : bedId.trim();
+            Moves.FreeBed bed = wanted.isEmpty()
+                    ? free.stream().findFirst().orElseThrow(() -> ApiException.conflict("NO_FREE_BED",
+                            "No Bed is free in another Room for this student."))
+                    : free.stream().filter(b -> b.code().equalsIgnoreCase(wanted) || String.valueOf(b.bedId()).equals(wanted))
+                            .findFirst().orElseThrow(() -> ApiException.conflict("BED_NOT_AVAILABLE",
+                                    "This Bed is not free for this request any more. Choose another one."));
+            moves.move(p.allocationId(), bed.bedId(), "TEMPORARY", currentUser.id());
+            String arranged = "Temporary Bed: Room " + bed.room() + " · Bed " + bed.bed()
+                    + (text == null ? "" : ". " + text);
+            handle(e, "TEMPORARY_BED", e.ownerId(), arranged, now);
+            event(e.id(), "Temporary Bed arranged: Room " + bed.room() + " · Bed " + bed.bed(), now);
             audit.record("ESCALATION_TEMPORARY_BED", AuditLog.Tone.INFO, "Escalation", e.id(), e.sourceCode(),
-                    Map.of("note", text));
+                    text == null ? Map.of("bed", bed.code(), "from", p.bedCode())
+                            : Map.of("bed", bed.code(), "from", p.bedCode(), "note", text));
             // The request stays open; the student and its owner are told what was arranged (BE-OPS-02).
-            events.publishEvent(new TemporaryBedArranged(student, e.ownerId(), e.sourceCode(), text));
+            events.publishEvent(new TemporaryBedArranged(rc.studentId(), e.ownerId(), e.sourceCode(), arranged));
         } else {
             throw FieldErrors.single("action", "Choose reassign or temporary-bed.");
         }

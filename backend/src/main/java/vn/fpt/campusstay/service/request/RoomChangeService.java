@@ -463,6 +463,9 @@ public class RoomChangeService {
                 .findFirst()
                 .orElseThrow(() -> ApiException.conflict("BED_NOT_AVAILABLE",
                         "This Bed is not free for this request any more. Choose another one."));
+        if (bed.roomId() == p.roomId()) { // a room change leaves the Room (BE-OPS-12)
+            throw ApiException.conflict("SAME_ROOM", "This Bed is in the student's own Room. Choose a Bed in another Room.");
+        }
         if (!mayMoveInto(user, bed.buildingId())) {
             throw ApiException.forbidden("CROSS_BLOCK", "A move to another Block is decided by a Manager.");
         }

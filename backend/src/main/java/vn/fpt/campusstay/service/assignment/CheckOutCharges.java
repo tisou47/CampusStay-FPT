@@ -135,6 +135,21 @@ class CheckOutCharges {
                     return null;
                 }).list();
         Map<Long, String> worst = residentAt == null ? Map.of() : inspections.worstSince(roomId, residentAt);
+        // Shared damage another check-out of this Room already recorded during this stay is not charged again
+        // (BE-ASG-12), unless the item was repaired since (INV puts it back to Good).
+        Map<Long, String> recorded = new HashMap<>();
+        if (residentAt != null) {
+            jdbc.sql("""
+                    SELECT d.furniture_item_id, d.condition FROM asg_check_out_damage d
+                    JOIN asg_check_out c ON c.id = d.check_out_id
+                    WHERE c.status = 'COMPLETED' AND c.allocation_id <> :a AND c.completed_at >= :since
+                      AND d.condition IS NOT NULL
+                    """).param("a", allocationId).param("since", java.sql.Timestamp.from(residentAt))
+                    .query((rs, i) -> {
+                        recorded.merge(rs.getLong(1), rs.getString(2), (x, y) -> percent(x) >= percent(y) ? x : y);
+                        return null;
+                    }).list();
+        }
         Map<Long, Long> prices = inventory.furniturePrices();
         int residents = roommates(allocationId, termId, roomId).size() + 1;
         List<Line> lines = new ArrayList<>();
@@ -158,6 +173,10 @@ class CheckOutCharges {
             } else {
                 long amount = acknowledged.getOrDefault(f.id(), 0L);
                 String claimed = acknowledgedCondition.get(f.id());
+                String already = "GOOD".equals(f.condition()) ? null : recorded.get(f.id());
+                if (already != null && percent(already) > percent(at == null ? "GOOD" : at)) {
+                    at = already;
+                }
                 boolean staffRecorded = claimed == null && answers.containsKey(f.id())
                         && percent(found) > percent(at == null ? "GOOD" : at);
                 if (staffRecorded) {

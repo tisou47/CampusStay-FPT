@@ -316,14 +316,17 @@ public class StudentAccountService {
         errors.check(hometown == null || hometown.length() <= 100, "hometown", "Use at most 100 characters.");
         errors.throwIfAny();
 
+        // a field left out keeps its stored value, like priorityGroups (BE-3RD-20)
+        java.time.LocalDate dob = edit.dateOfBirth() != null ? edit.dateOfBirth() : r.dateOfBirth();
+        Integer semester = edit.semester() != null ? edit.semester() : r.semester();
         Map<String, Object> change = new LinkedHashMap<>();
         diff(change, "name", r.name(), name);
         diff(change, "studentCode", r.code(), code);
         diff(change, "gender", r.gender(), gender);
-        diff(change, "dateOfBirth", r.dateOfBirth(), edit.dateOfBirth());
+        diff(change, "dateOfBirth", r.dateOfBirth(), dob);
         diff(change, "major", r.major(), major);
         diff(change, "cohort", r.cohort(), cohort);
-        diff(change, "semester", r.semester(), edit.semester());
+        diff(change, "semester", r.semester(), semester);
         diff(change, "hometown", r.hometown(), hometown);
         diff(change, "region", r.region(), region);
         diff(change, "enrollment", StudentFields.ENROLLMENT.get(r.enrollment()), StudentFields.ENROLLMENT.get(enrollment));
@@ -344,8 +347,8 @@ public class StudentAccountService {
                            enrollment_status = :enrollment, priority_groups = :groups, phone = :phone
                     WHERE user_id = :id
                     """)
-                    .param("code", code).param("gender", gender).param("dob", edit.dateOfBirth()).param("major", major)
-                    .param("cohort", cohort).param("semester", edit.semester()).param("hometown", hometown)
+                    .param("code", code).param("gender", gender).param("dob", dob).param("major", major)
+                    .param("cohort", cohort).param("semester", semester).param("hometown", hometown)
                     .param("region", region).param("enrollment", enrollment)
                     .param("groups", groups.toArray(String[]::new)).param("phone", phone).param("id", r.id())
                     .update();

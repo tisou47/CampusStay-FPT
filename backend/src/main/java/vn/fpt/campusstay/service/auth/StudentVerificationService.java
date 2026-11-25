@@ -42,7 +42,9 @@ public class StudentVerificationService {
     }
 
     /** {@code note}: what the Manager wrote when rejecting (only seen at sign-in, since the account is locked). */
-    public record Status(Verification status, boolean locked, String note, Form form, Options options) {
+    /** {@code privacyNoticeVersion}: the notice the form asks the student to accept (W3-D3). */
+    public record Status(Verification status, boolean locked, String note, Form form, Options options,
+            String privacyNoticeVersion) {
     }
 
     private record Directory(String code, String gender, LocalDate dateOfBirth, String major, String cohort,
@@ -55,10 +57,12 @@ public class StudentVerificationService {
     private final StudentCodes codes;
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
+    private final PrivacyService privacy;
     private final Clock clock;
 
     StudentVerificationService(JdbcClient jdbc, CurrentUser currentUser, StudentFields fields, StudentCodes codes,
-            ApplicationEventPublisher events, AuditLog audit, Clock clock) {
+            ApplicationEventPublisher events, AuditLog audit, PrivacyService privacy, Clock clock) {
+        this.privacy = privacy;
         this.jdbc = jdbc;
         this.currentUser = currentUser;
         this.fields = fields;
@@ -83,12 +87,13 @@ public class StudentVerificationService {
         Verification status = Verification.of(record.map(Directory::verification).orElse(null));
         return new Status(status, status == Verification.VERIFIED, record.map(Directory::note).orElse(null), form,
                 new Options(List.of(new Option("M", "Male"), new Option("F", "Female")),
-                        fields.majors().stream().map(m -> new Option(m.code(), m.label())).toList()));
+                        fields.majors().stream().map(m -> new Option(m.code(), m.label())).toList()),
+                privacy.noticeVersion());
     }
 
     /** Saves the form; the first time, the account becomes Pending verification and every Manager is told. */
     @Transactional
-    public void submit(Form form) {
+    public void submit(Form form, String privacyNoticeVersion) {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
         Optional<Directory> record = directory(me.userId());
         if (record.map(d -> "VERIFIED".equals(d.verification())).orElse(false)) {
@@ -114,8 +119,11 @@ public class StudentVerificationService {
             codes.holder(code).filter(h -> !h.demo() && h.userId() != me.userId()).ifPresent(h -> errors.add(
                     "studentCode", "This student code belongs to another account. Contact the dormitory office."));
         }
+        errors.check(privacyNoticeVersion != null && privacyNoticeVersion.strip().equals(privacy.noticeVersion()),
+                "privacyNoticeVersion", "Read and accept the privacy notice to continue.");
         errors.throwIfAny();
 
+        privacy.accept(me.userId(), privacyNoticeVersion); // Decree 13/2023: the consent, with its time (W3-D3)
         codes.releaseFromDemo(code);
         Instant now = Instant.now(clock);
         jdbc.sql("""
