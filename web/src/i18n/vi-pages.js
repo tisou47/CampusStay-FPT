@@ -1531,4 +1531,5 @@ export default {
   "My data": "Dữ liệu của tôi",
   "Open My data": "Mở Dữ liệu của tôi",
   "Download what CampusStay holds about you, or ask for it to be erased (Decree 13/2023).": "Tải về dữ liệu CampusStay đang lưu về bạn, hoặc yêu cầu xóa (Nghị định 13/2023).",
+  "Stop": "Dừng",
 }
