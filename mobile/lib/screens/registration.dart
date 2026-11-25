@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -22,49 +23,65 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Loader<Json>(
-      fetch: () => Api.get('/registration-periods/${Uri.encodeComponent(widget.termId)}'),
-      builder: (context, d, reload) => SubPage(
-        title: d.text('name'),
-        bottom: d.str('status') == 'Open'
-            ? BusyButton(label: t('Apply now', 'Đăng ký ngay'), onPressed: () => push(context, const ApplyScreen()))
-            : null,
-        body: Cards(
+    // The top bar stays while the period loads or fails, so the back arrow is always there (MOB-34).
+    return SubPage(
+      title: t('Registration period', 'Kỳ đăng ký'),
+      body: Loader<Json>(
+        fetch: () => Api.get('/registration-periods/${Uri.encodeComponent(widget.termId)}'),
+        builder: (context, d, reload) => Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    t('Stay ', 'Thời gian ở ') + range(d.str('stayStart'), d.str('stayEnd')),
-                    style: const TextStyle(color: Tokens.fgSecondary),
+            Expanded(
+              child: Cards(
+                children: [
+                  Text(d.text('name'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          t('Stay ', 'Thời gian ở ') + range(d.str('stayStart'), d.str('stayEnd')),
+                          style: const TextStyle(color: Tokens.fgSecondary),
+                        ),
+                      ),
+                      Tag(
+                        label(d.str('status')),
+                        tone: switch (d.str('status')) {
+                          'Open' => Tone.success,
+                          'Opens soon' => Tone.info,
+                          _ => Tone.neutral,
+                        },
+                      ),
+                    ],
+                  ),
+                  Segments(
+                    value: _tab,
+                    onChanged: (v) => setState(() => _tab = v),
+                    items: [
+                      ('timeline', t('Timeline', 'Lịch')),
+                      ('prices', t('Prices', 'Giá')),
+                      ('rules', t('Rules', 'Nội quy')),
+                      ('faq', t('FAQ', 'Hỏi đáp')),
+                    ],
+                  ),
+                  ...switch (_tab) {
+                    'timeline' => _timeline(d),
+                    'prices' => _prices(d),
+                    'rules' => _rules(d),
+                    _ => _faq(d),
+                  },
+                ],
+              ),
+            ),
+            if (d.str('status') == 'Open')
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: BusyButton(
+                    label: t('Apply now', 'Đăng ký ngay'),
+                    onPressed: () => push(context, const ApplyScreen()),
                   ),
                 ),
-                Tag(
-                  label(d.str('status')),
-                  tone: switch (d.str('status')) {
-                    'Open' => Tone.success,
-                    'Opens soon' => Tone.info,
-                    _ => Tone.neutral,
-                  },
-                ),
-              ],
-            ),
-            Segments(
-              value: _tab,
-              onChanged: (v) => setState(() => _tab = v),
-              items: [
-                ('timeline', t('Timeline', 'Lịch')),
-                ('prices', t('Prices', 'Giá')),
-                ('rules', t('Rules', 'Nội quy')),
-                ('faq', t('FAQ', 'Hỏi đáp')),
-              ],
-            ),
-            ...switch (_tab) {
-              'timeline' => _timeline(d),
-              'prices' => _prices(d),
-              'rules' => _rules(d),
-              _ => _faq(d),
-            },
+              ),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -40,6 +41,7 @@ class HandoverCard extends StatefulWidget {
 class _HandoverCardState extends State<HandoverCard> {
   Json? _inventory;
   Json? _charges;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _HandoverCardState extends State<HandoverCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _failed = false);
     try {
       final inventory = await Api.get('/students/me/handover');
       Json? charges;
@@ -63,14 +66,18 @@ class _HandoverCardState extends State<HandoverCard> {
         });
       }
     } on ApiException {
-      // the card stays hidden
+      if (mounted) setState(() => _failed = true); // MOB-33: say so instead of hiding the prompt
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final h = _inventory;
-    if (h == null) return const SizedBox.shrink();
+    if (h == null) {
+      return _failed
+          ? Panel(child: RetryRow(what: t('the check-in inventory', 'biên bản kiểm kê'), retry: _load))
+          : const SizedBox.shrink();
+    }
     final status = h.str('status');
     final c = _charges;
     final claims = c?.objects('claims').where((x) => x.str('status') == 'Pending').length ?? 0;
@@ -261,22 +268,34 @@ class _FormState extends State<_Form> {
       for (final e in _conditions.entries)
         if (e.value != null) {'itemId': e.key, 'condition': e.value, 'note': _notes[e.key]!.text.trim()},
     ],
-    if (_electricity.text.trim().isNotEmpty) 'electricity': num.tryParse(_electricity.text.trim()),
-    if (_water.text.trim().isNotEmpty) 'water': num.tryParse(_water.text.trim()),
+    if (_electricity.text.trim().isNotEmpty) 'electricity': meterReading(_electricity.text),
+    if (_water.text.trim().isNotEmpty) 'water': meterReading(_water.text),
   };
+
+  /// Field errors for meter readings that are not numbers; nothing is saved while there is one (MOB-29).
+  bool _readingsOk() {
+    final bad = {
+      for (final (field, c) in [('electricity', _electricity), ('water', _water)])
+        if (c.text.trim().isNotEmpty && meterReading(c.text) == null)
+          field: t('Enter a number such as 1360.5 (1.360 is unclear)', 'Hãy nhập một số như 1360,5 (1.360 không rõ nghĩa)'),
+    };
+    if (bad.isNotEmpty) setState(() => _errors = bad);
+    return bad.isEmpty;
+  }
 
   Future<void> _photo(String? itemId) async {
     final picked = await pickImages(1);
-    if (picked.isEmpty) return;
-    await Api.put('/students/me/handover', _body());
-    final done = await attempt(
-      () => Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', picked.first.path)]),
-      success: t('Photo added', 'Đã thêm ảnh'),
-    );
+    if (picked.isEmpty || !_readingsOk()) return;
+    // The draft is saved first, inside the error handling (MOB-14).
+    final done = await attempt(() async {
+      await Api.put('/students/me/handover', _body());
+      return Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', picked.first.path)]);
+    }, success: t('Photo added', 'Đã thêm ảnh'));
     if (done != null) await widget.reload();
   }
 
   Future<void> _send(bool submit) async {
+    if (!_readingsOk()) return;
     setState(() {
       _busy = true;
       _errors = const {};
@@ -292,7 +311,7 @@ class _FormState extends State<_Form> {
       );
       if (submit) await widget.reload();
     } on ApiException catch (e) {
-      setState(() => _errors = e.fields);
+      if (mounted) setState(() => _errors = e.fields);
       if (e.fields.isEmpty) toast(e.message, error: true);
     }
     if (mounted) setState(() => _busy = false);
@@ -438,7 +457,7 @@ class _SummaryState extends State<_Summary> {
     return Section(
       title: '${t('Check-in inventory', 'Kiểm kê nhận phòng')} · ${d.text('room')}',
       subtitle: subtitle,
-      trailing: Tag(status == 'Final' ? t('Final', 'Đã chốt') : status ?? '', tone: status == 'Final' ? Tone.success : Tone.info),
+      trailing: Tag(status == 'Final' ? t('Final', 'Đã chốt') : label(status), tone: status == 'Final' ? Tone.success : Tone.info),
       children: [
         for (final i in d.objects('items'))
           Row(
@@ -532,7 +551,7 @@ class _Charges extends StatelessWidget {
         for (final c in pending)
           Alert(
             tone: Tone.warning,
-            title: '${t('Did you damage', 'Bạn có làm hỏng')} ${c.text('type')} ${c.text('assetCode')}?',
+            title: '${t('Did you damage', 'Bạn có làm hỏng')} ${furnitureName(c)} ${c.text('assetCode')}?',
             body:
                 '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: nobody is charged.', 'sẽ tính khi trả phòng. Từ chối: không ai bị tính.')}',
             action: Row(

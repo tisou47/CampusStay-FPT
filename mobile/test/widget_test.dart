@@ -1,5 +1,6 @@
 import 'package:campusstay_student/common.dart';
 import 'package:campusstay_student/screens/sign_in.dart';
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

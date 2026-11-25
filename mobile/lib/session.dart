@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'common.dart';
@@ -17,16 +19,35 @@ class Session {
   final String? verification;
 }
 
-/// Keeps the session in the app's private preferences, so the student stays signed in.
+/// Keeps the session, so the student stays signed in: the bearer token in the Android Keystore
+/// (`flutter_secure_storage`, MOB-11), the name and status in the app's private preferences.
 class SessionStore {
-  SessionStore(this._prefs);
+  SessionStore(this._prefs, this._secure, this._token);
 
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secure;
+  String? _token;
 
-  static Future<SessionStore> open() async => SessionStore(await SharedPreferences.getInstance());
+  static Future<SessionStore> open([FlutterSecureStorage secure = const FlutterSecureStorage()]) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token;
+    try {
+      token = await secure.read(key: 'token');
+    } on PlatformException {
+      token = null; // an unreadable keystore entry (restored phone): sign in again
+    }
+    // MOB-11: a version before 1.1 kept the token in plain preferences; move it to the keystore once.
+    final old = prefs.getString('token');
+    if (old != null) {
+      token ??= old;
+      await secure.write(key: 'token', value: token);
+      await prefs.remove('token');
+    }
+    return SessionStore(prefs, secure, token);
+  }
 
   Session? load() {
-    final token = _prefs.getString('token');
+    final token = _token;
     if (token == null) return null;
     return Session(
       token,
@@ -47,7 +68,8 @@ class SessionStore {
       user['passwordSet'] != false,
       user.str('verification'),
     );
-    await _prefs.setString('token', token);
+    if (token != _token) await _secure.write(key: 'token', value: token);
+    _token = token;
     await _prefs.setString('name', session.name);
     await _prefs.setString('email', session.email);
     await _set('studentCode', session.studentCode);
@@ -61,7 +83,11 @@ class SessionStore {
     return load();
   }
 
-  Future<void> clear() => _prefs.clear();
+  Future<void> clear() async {
+    _token = null;
+    await _secure.delete(key: 'token');
+    await _prefs.clear();
+  }
 
   Future<void> _set(String key, String? value) => value == null ? _prefs.remove(key) : _prefs.setString(key, value);
 }
