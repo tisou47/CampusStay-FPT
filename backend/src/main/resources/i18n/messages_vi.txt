@@ -1136,3 +1136,4 @@ The gender cannot change while the student holds a Bed or a live Application. �
 The workbook is too large once unpacked. Keep only the list in it and upload it again. ⟶ Tệp quá lớn khi giải nén. Chỉ giữ lại danh sách trong tệp và tải lên lại.
 The refund of a rejected Application cannot be switched off. Change its percent instead. ⟶ Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.
 This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này không hợp lệ. Hãy bắt đầu cuộc trò chuyện mới.
+This device still receives another account's notifications. Sign out of that account first. ⟶ Thiết bị này vẫn đang nhận thông báo của một tài khoản khác. Hãy đăng xuất tài khoản đó trước.

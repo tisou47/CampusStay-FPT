@@ -169,6 +169,7 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public QueuePage queue(Filter f, PageQuery page) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE); // BE-OPS-10: Block scope alone let the Admin read it
         Set<Long> scope = blockScope.resolve(f.block()).ids();
         Map<String, Object> params = new HashMap<>();
         params.put("scope", List.copyOf(scope));
@@ -260,6 +261,7 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public Detail detail(String idOrCode) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE);
         RequestStore.Request r = inScope(idOrCode, false);
         List<RequestStore.Event> history = requests.events(r.id());
         List<Long> people = new ArrayList<>(history.stream().map(RequestStore.Event::actorId).filter(Objects::nonNull)

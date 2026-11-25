@@ -51,7 +51,7 @@ class EmailOutboxDispatcherIT {
         for (int attempt = 1; attempt <= props.maxAttempts(); attempt++) {
             jdbc.sql("UPDATE ntf_email_outbox SET not_before = now() - interval '1 minute' WHERE id = :id AND status = 'PENDING'")
                     .param("id", id).update();
-            dispatcher.dispatch();
+            dispatcher.dispatchOnce();
             var row = jdbc.sql("SELECT attempts, status, not_before FROM ntf_email_outbox WHERE id = :id").param("id", id)
                     .query((rs, i) -> new Object[] { rs.getInt(1), rs.getString(2), rs.getTimestamp(3).toInstant() })
                     .single();

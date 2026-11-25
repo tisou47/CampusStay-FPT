@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.assignment;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,8 +24,11 @@ class ResidenceJobs {
     private final HandoverJobService handovers;
     private final CheckOutFurnitureService furniture;
 
-    ResidenceJobs(ForfeitService forfeits, DoorCodeRelease release, TerminationService terminations,
+    private final ScheduledJobs jobs;
+
+    ResidenceJobs(ScheduledJobs jobs, ForfeitService forfeits, DoorCodeRelease release, TerminationService terminations,
             HandoverJobService handovers, CheckOutFurnitureService furniture) {
+        this.jobs = jobs;
         this.furniture = furniture;
         this.handovers = handovers;
         this.forfeits = forfeits;
@@ -34,36 +39,40 @@ class ResidenceJobs {
     @Scheduled(fixedDelayString = "${campusstay.asg.forfeit-interval:5m}",
             initialDelayString = "${campusstay.asg.forfeit-interval:5m}")
     void forfeit() {
-        step("forfeit", () -> {
-            int n = forfeits.forfeitDue();
-            if (n > 0) {
-                log.info("{} Allocations forfeited: Balance not paid by its deadline", n);
-            }
+        jobs.run("asg.forfeit", () -> {
+            step("forfeit", () -> {
+                int n = forfeits.forfeitDue();
+                if (n > 0) {
+                    log.info("{} Allocations forfeited: Balance not paid by its deadline", n);
+                }
+            });
         });
     }
 
     @Scheduled(fixedDelayString = "${campusstay.asg.release-interval:15m}",
             initialDelayString = "${campusstay.asg.release-interval:15m}")
     void release() {
-        step("door codes", () -> {
-            int released = release.releaseDue();
-            if (released > 0) {
-                log.info("{} door codes released", released);
-            }
-        });
-        step("check-in inventories", () -> {
-            int closed = handovers.closeDue();
-            if (closed > 0) {
-                log.info("{} check-in inventories closed by their deadline", closed);
-            }
-        });
-        step("inventory reminders", handovers::remind);
-        step("furniture claims", furniture::expireClaims);
-        step("terminations", () -> {
-            int overdue = terminations.markOverdue();
-            if (overdue > 0) {
-                log.info("{} terminations overdue", overdue);
-            }
+        jobs.run("asg.release", () -> {
+            step("door codes", () -> {
+                int released = release.releaseDue();
+                if (released > 0) {
+                    log.info("{} door codes released", released);
+                }
+            });
+            step("check-in inventories", () -> {
+                int closed = handovers.closeDue();
+                if (closed > 0) {
+                    log.info("{} check-in inventories closed by their deadline", closed);
+                }
+            });
+            step("inventory reminders", handovers::remind);
+            step("furniture claims", furniture::expireClaims);
+            step("terminations", () -> {
+                int overdue = terminations.markOverdue();
+                if (overdue > 0) {
+                    log.info("{} terminations overdue", overdue);
+                }
+            });
         });
     }
 

@@ -83,6 +83,7 @@ public class UtilityDebtService {
     }
 
     /** Paying a Utility Invoice may close the warnings at once. */
+    // Same transaction: the warnings close with the payment.
     @EventListener
     void on(PaymentConfirmed e) {
         if (e.type().equals("UTILITY")) {
@@ -91,6 +92,7 @@ public class UtilityDebtService {
     }
 
     /** A termination for another reason does not need the warnings any more. */
+    // Same transaction: the warnings close with the termination that replaces them.
     @EventListener
     void on(TerminationStarted e) {
         close(e.studentId(), "TERMINATED");
@@ -100,6 +102,7 @@ public class UtilityDebtService {
      * A Manager cancelled the termination: the warnings it closed come back, the final one with a new termination
      * day, so the debt rule keeps working (BE-2ND-05).
      */
+    // Same transaction: the warnings must come back with the cancelled termination.
     @EventListener
     void on(TerminationCancelled e) {
         LocalDate terminateOn = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE))

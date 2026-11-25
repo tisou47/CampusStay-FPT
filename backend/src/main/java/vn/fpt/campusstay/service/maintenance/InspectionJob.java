@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.maintenance;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,15 +15,20 @@ class InspectionJob {
 
     private final InspectionScheduleService schedules;
 
-    InspectionJob(InspectionScheduleService schedules) {
+    private final ScheduledJobs jobs;
+
+    InspectionJob(ScheduledJobs jobs, InspectionScheduleService schedules) {
+        this.jobs = jobs;
         this.schedules = schedules;
     }
 
     @Scheduled(cron = "${campusstay.mnt.inspection-cron:0 0 6 * * *}", zone = "Asia/Ho_Chi_Minh")
     void run() {
-        int started = schedules.startDue();
-        if (started > 0) {
-            log.info("{} inspection runs started", started);
-        }
+        jobs.run("mnt.inspection", () -> {
+            int started = schedules.startDue();
+            if (started > 0) {
+                log.info("{} inspection runs started", started);
+            }
+        });
     }
 }

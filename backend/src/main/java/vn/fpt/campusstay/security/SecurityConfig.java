@@ -1,6 +1,7 @@
 package vn.fpt.campusstay.security;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,16 @@ import vn.fpt.campusstay.service.auth.SessionService;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /** Student actions on resources shared with the back office (the services still check owner and role). */
+    private static final String[] STUDENT_GETS = { "/applications/eligibility", "/applications/{id}",
+            "/invoices/{id}", "/invoices/{id}/payment", "/invoices/{id}/receipt", "/maintenance-requests/options",
+            "/maintenance-requests/{id}", "/room-changes/options", "/swap-board", "/swap-invitations/{id}" };
+    private static final String[] STUDENT_POSTS = { "/applications", "/applications/roommate-check",
+            "/applications/{id}/cancel", "/applications/{id}/withdraw", "/roommate-invitations/{id}/respond",
+            "/round2-offers/{id}/respond", "/invoices/{id}/claim", "/invoices/{id}/payment/refresh",
+            "/maintenance-requests", "/maintenance-requests/{id}/confirm", "/room-changes", "/swaps",
+            "/swap-board/posts/{id}/request", "/swap-invitations/{id}/respond" };
+
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, SessionService sessions) throws Exception {
         http
@@ -52,12 +63,22 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")
                         .requestMatchers("/students/**").hasRole("STUDENT")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                        .requestMatchers("/auth/**", "/notifications", "/notifications/**", "/terms", "/banks",
+                                "/catalog", "/registration-periods/**", "/devices", "/devices/unregister")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.GET, STUDENT_GETS).authenticated()
+                        .requestMatchers(HttpMethod.POST, STUDENT_POSTS).authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/swap-board/my-post").authenticated()
+                        // Default deny for students (BE-AUTH-08): a new endpoint is back office until listed above.
+                        .anyRequest().hasAnyRole("STAFF", "MANAGER", "ADMIN"))
                 .addFilterBefore(new BearerTokenFilter(sessions), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
+
+    private static final String REGEX = "regex:";
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -70,12 +91,24 @@ public class SecurityConfig {
      * origin patterns, so one entry such as {@code https://campusstay-*-tisou.vercel.app}
      * also admits the Vercel preview deployments. Auth is a bearer token, not a
      * cookie, so an admitted origin still cannot act as a signed-in user.
+     * <p>An entry {@code regex:<pattern>} must match the whole origin: production lists only the shapes of this
+     * project's Vercel previews, since a {@code *} also admits any project someone names to fit (BE-AUTH-09).
      */
     @Bean
     CorsConfigurationSource corsConfigurationSource(
             @Value("${campusstay.cors.allowed-origins:}") List<String> allowedOrigins) {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(allowedOrigins.stream().map(String::trim).filter(o -> !o.isBlank()).toList());
+        List<String> entries = allowedOrigins.stream().map(String::trim).filter(o -> !o.isBlank()).toList();
+        List<Pattern> exact = entries.stream().filter(o -> o.startsWith(REGEX)).map(o -> Pattern.compile(o.substring(REGEX.length())))
+                .toList();
+        CorsConfiguration config = new CorsConfiguration() {
+            @Override
+            public String checkOrigin(String origin) {
+                String admitted = super.checkOrigin(origin);
+                return admitted != null || origin == null ? admitted
+                        : exact.stream().anyMatch(p -> p.matcher(origin).matches()) ? origin : null;
+            }
+        };
+        config.setAllowedOriginPatterns(entries.stream().filter(o -> !o.startsWith(REGEX)).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", ShiftGate.ACK_HEADER));
         config.setExposedHeaders(List.of("Content-Disposition"));

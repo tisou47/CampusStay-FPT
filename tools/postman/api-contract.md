@@ -29,6 +29,9 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 
 ## Session and shared
 
+- **Who may call what (BE-AUTH-08, wave 3):** a student token reaches only `/students/**`, `/auth/**`, `/files/**`, `/notifications/**`, `/terms`, `/banks`, `/catalog`, `/registration-periods/**`, `/devices`, and the student actions on shared resources listed in this contract (`/applications` create/read/cancel/withdraw/eligibility/roommate-check, `/roommate-invitations/{id}/respond`, `/round2-offers/{id}/respond`, `/invoices/{id}` read/payment/claim/receipt, `/maintenance-requests` create/options/read/confirm, `/room-changes` options/create, `/swaps` create, `/swap-board`, `/swap-invitations/{id}`). Every other path answers a student `403 FORBIDDEN` before any service runs; inside the allowed paths a student asking for someone else's record still gets `404`.
+- **API documentation:** Swagger UI and `/v3/api-docs` exist only on a server started with the `dev` profile (BE-AUTH-07). Production answers `401`/`404`. `tools/postman/generate-postman.mjs` reads them from a local dev backend.
+
 - `GET /search?q` (back office) → `{ q, items: [{ kind, id, title, detail }] }`: students, Rooms, Invoices, Applications, Maintenance Requests and next-Term request codes inside the user's Blocks (A-47)
 
 | Method | Path | Request | Response |
@@ -42,15 +45,15 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 | POST | `/auth/password/forgot` | `{ email }` | `204` always (does not reveal whether the email exists) |
 | POST | `/auth/password/reset` | `{ token, newPassword }` — used by both the reset and the set-password (invitation) page | `204`; every session of the user is signed out |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `204`; the user's other sessions are signed out |
-| POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204`; notifications are then also pushed (C-25) |
+| POST | `/devices` · `/devices/unregister` | Android only: `{ token, platform: 'android' }` after sign-in and on token refresh · `{ token }` before sign-out | `204`; notifications are then also pushed (C-25). A token held by another account that is still signed in on some device → `409 DEVICE_IN_USE` (BE-PLT-20): it moves only once its owner unregistered it or has no live session. |
 | GET | `/terms` | — | `{ items: [{ id, name, current, registrationOpen, stayStart, stayEnd, registrationOpensAt, registrationClosesAt, resultsPublishedAt, balanceDueAt, checkInStart, checkInEnd, depositWindowHours }], total }` |
-| GET | `/files/{id}?exp&sig` | A signed link handed out by another endpoint (`receipt.url`, `photos[].url`); no token | The file; `404` once expired (A-10) |
+| GET | `/files/{id}?exp&sig` | A signed link handed out by another endpoint (`receipt.url`, `photos[].url`); no token | The file; `404` once expired (A-10). Served with `Content-Security-Policy: sandbox; default-src 'none'` and `X-Content-Type-Options: nosniff` (BE-PLT-16): an image still shows inline, a PDF downloads (`Content-Disposition: attachment`: browsers do not open their PDF viewer in a sandboxed page); nothing in it runs on the API origin. |
 | GET | `/notifications?limit` | — | `{ items: [{ id, title, body, createdAt, link, read, kind: 'notification'\|'announcement' }], unread }`; a student's list also holds the board's announcements (`id: 'ann-<n>'`) and `unread` counts them (C-41) |
 | POST | `/notifications/read-all`, `/notifications/{id}/read` | `id` may be `ann-<n>` (an announcement) | `204` |
 | GET | `/registration-periods/current` | — | `{ card: { termId, name, status: 'Opens soon'\|'Open'\|'Closed', opensAt, closesAt, countdownTo, stayStart, stayEnd, places, fromPrice } \| null }` (A-29) |
 | GET | `/registration-periods/{termId}` | — | A published Term for students: `{ id, name, status, stayStart, stayEnd, timeline: [{ key, label, at, date, until, done }], prices: [{ roomTypeId, roomType, beds, roomClassId, roomClass, price, deposit, places, furniture: [{ name, nameVi, quantity }] }], depositPercent, utilityDeposit, houseRules, faq: [{ question, answer }], documents: [{ title, url }] }`; `places`: Beds of the reader's gender for a student; `404` for a Draft (A-29, B-14) |
 
-- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `403 GOOGLE_NOT_FOR_DEMO` (a fictional back-office account of the base data signs in with its password only), `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
+- **Sign-in errors:** `401 INVALID_CREDENTIALS` (same text for an unknown email and a wrong password), `401 ACCOUNT_LOCKED` (after 5 failures, for 15 minutes; answered only to the right password, a wrong one keeps getting `INVALID_CREDENTIALS`, so the answer never tells whether an email exists, BE-AUTH-06), `403 ACCOUNT_DISABLED`, `403 ACCOUNT_REJECTED` (with the Manager's reason), `403 NO_ACCOUNT`, `403 GOOGLE_DOMAIN_NOT_ALLOWED`, `403 GOOGLE_ACCOUNT_MISMATCH`, `403 GOOGLE_NOT_FOR_DEMO` (a fictional back-office account of the base data signs in with its password only), `401 GOOGLE_TOKEN_INVALID` (try again), `503 GOOGLE_SIGN_IN_DISABLED`, `503 GOOGLE_UNAVAILABLE` (Google cannot be reached or the server is misconfigured). `POST /auth/google` without exactly one of `code` and `credential` → `400 VALIDATION_FAILED`.
 - **Password rule:** 8–64 characters, at least one letter and one number, not containing the email name; otherwise `400 WEAK_PASSWORD` with a message to show as is.
 - **Email links:** invitation and reset emails open the web pages `/set-password?token=…` (valid 72 hours) and `/reset-password?token=…` (valid 30 minutes). Both call `POST /auth/password/reset`, then go to Sign In. Each token works once. Students sign up with Google (A-17); back-office accounts are invited.
 
@@ -361,6 +364,11 @@ Notification templates and Send email: C-35.
 - `GET /reports/occupancy?termId&block` (A-14) → `{ asOf, roomClasses: [string], note, summary: { capacity, rooms, blocks, allocated, checkedIn, notArrived, waitlisted, waitlistNote }, blocks: [{ block, rows: [{ roomTypeName, cells: [{ allocated, capacity }] }] }] }`
 - `GET /reports/financial?termId&block` → `{ asOf, blocks: [string], rows: [{ block, invoiced, collected, outstanding, refunded }], summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }`
 - `GET /admin/audit-log?q&actor&action&role=Student|Staff|Manager|Admin|System&range=7d|30d|90d|all&page&pageSize` → `{ items: [{ id, at, actor, action, tone, object, change }], total, actors, actions, retentionMonths }`
+
+### System health (D2, wave 3)
+
+- `GET /admin/system/health` (Admin only; Staff, Manager and students get `403`) → `{ checkedAt, jobs: [{ job, lastStartedAt, lastFinishedAt, ok, running, errorClass, errorCode, failedLast24h }], serverErrorsLastHour, uploads: { files, bytes }, emailOutbox: { pending, failed, oldestPendingAt } }`. `jobs` lists every scheduled job that ran at least once (`sys_job_run`); `ok: null` while a run is in progress. `errorClass`/`errorCode` never hold personal data (the exception's class and, for an API error, its code). `serverErrorsLastHour` counts 5xx answers of the server that answers the call.
+- `GET /actuator/metrics`, `/actuator/metrics/{name}`: Admin only (Spring Boot's metrics). `/actuator/health` stays public.
 
 ## Exports
 

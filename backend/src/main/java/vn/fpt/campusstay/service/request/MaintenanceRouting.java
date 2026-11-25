@@ -27,6 +27,7 @@ class MaintenanceRouting {
         this.clock = clock;
     }
 
+    // Same transaction: a request is never stored without its route and SLA.
     @EventListener
     void on(MaintenanceReported event) {
         RoutingService.Sla sla = routing.sla(event.buildingId());

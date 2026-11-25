@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.auth;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -28,7 +30,10 @@ public class DutyPresence {
     private final Clock clock;
     private final Parameters parameters;
 
-    DutyPresence(JdbcClient jdbc, Clock clock, Parameters parameters) {
+    private final ScheduledJobs jobs;
+
+    DutyPresence(ScheduledJobs jobs, JdbcClient jdbc, Clock clock, Parameters parameters) {
+        this.jobs = jobs;
         this.jdbc = jdbc;
         this.clock = clock;
         this.parameters = parameters;
@@ -56,11 +61,13 @@ public class DutyPresence {
             initialDelayString = "${campusstay.auth.duty-interval:5m}")
     @Transactional
     public void sweep() {
-        int off = jdbc.sql("UPDATE auth_staff_profile p SET on_duty = FALSE WHERE p.on_duty AND NOT " + LIVE_SESSION)
-                .params(window()).update();
-        if (off > 0) {
-            log.info("{} staff went off duty (signed out or idle)", off);
-        }
+        jobs.run("auth.duty", () -> {
+            int off = jdbc.sql("UPDATE auth_staff_profile p SET on_duty = FALSE WHERE p.on_duty AND NOT " + LIVE_SESSION)
+                    .params(window()).update();
+            if (off > 0) {
+                log.info("{} staff went off duty (signed out or idle)", off);
+            }
+        });
     }
 
     private static final String LIVE_SESSION = """

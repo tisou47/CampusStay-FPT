@@ -73,6 +73,15 @@ public class FileStore {
     }
 
     @Transactional(readOnly = true)
+    public record Usage(long files, long bytes) {
+    }
+
+    /** What the uploads hold, from their metadata (Admin › System health, D2). */
+    public Usage usage() {
+        return jdbc.sql("SELECT count(*) AS files, coalesce(sum(size_bytes), 0) AS bytes FROM shared_file")
+                .query((rs, i) -> new Usage(rs.getLong("files"), rs.getLong("bytes"))).single();
+    }
+
     public Optional<StoredFile> info(long id) {
         return jdbc.sql("SELECT id, original_name, content_type, size_bytes FROM shared_file WHERE id = :id")
                 .param("id", id)
