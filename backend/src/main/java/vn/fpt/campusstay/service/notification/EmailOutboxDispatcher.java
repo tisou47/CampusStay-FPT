@@ -54,12 +54,15 @@ class EmailOutboxDispatcher {
 
     @Scheduled(fixedDelayString = "${campusstay.mail.dispatch-interval:30s}")
     public void dispatch() {
-        jobs.run("ntf.email-outbox", () -> {
-            List<Pending> due = tx.execute(s -> claim());
-            for (Pending p : due) {
-                send(p);
-            }
-        });
+        jobs.run("ntf.email-outbox", this::dispatchOnce);
+    }
+
+    /** One pass without the job lock (tests call it directly, so a scheduled run holding the lock cannot skip it). */
+    void dispatchOnce() {
+        List<Pending> due = tx.execute(s -> claim());
+        for (Pending p : due) {
+            send(p);
+        }
     }
 
     private List<Pending> claim() {
