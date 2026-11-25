@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 import qrcode from 'qrcode-generator'
 import { Plus, ShieldCheck, Trash2, TriangleAlert, UserPlus } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useMutation, useQuery } from '@/api/hooks'
+import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Card, Note } from '@/components/ui/Display'
@@ -58,7 +58,8 @@ function RegisterForm({ day }) {
     {
       invalidates: ['my-family-day', 'my-family-days'],
       onSuccess: () => notify({ title: 'Guests registered', message: 'Each guest has their own pass below. Send it to them before the day.' }),
-      onError: () => {},
+      // A full slot (FAMILY_DAY_SLOT_FULL) means the places shown are stale: reload them (WEB-STU-36).
+      onError: () => invalidate('my-family-day'),
     },
   )
   const fields = register.error?.details?.fields ?? {}

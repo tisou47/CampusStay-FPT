@@ -8,6 +8,7 @@ import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, Facts } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
+import { Checkbox } from '@/components/ui/Choice'
 import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate } from '@/lib/format'
@@ -29,6 +30,7 @@ function DetailsForm({ data, onSent }) {
   const { notify } = useToast()
   const [form, setForm] = useState(() => ({ ...data.form, dateOfBirth: data.form.dateOfBirth ?? '' }))
   const [fields, setFields] = useState({})
+  const [accepted, setAccepted] = useState(false)
   const set = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }))
     setFields((f) => ({ ...f, [key]: undefined }))
@@ -44,6 +46,7 @@ function DetailsForm({ data, onSent }) {
         major: form.major,
         cohort: form.cohort?.trim(),
         phone: form.phone?.trim(),
+        privacyNoticeVersion: accepted ? data.privacyNoticeVersion : null, // Decree 13/2023 (W3-D3)
       }),
     {
       invalidates: ['verification'],
@@ -57,7 +60,7 @@ function DetailsForm({ data, onSent }) {
       onError: (err) => setFields(err.fields ?? {}),
     },
   )
-  const ready = ['studentCode', 'name', 'gender', 'dateOfBirth', 'major', 'cohort', 'phone'].every((k) => String(form[k] ?? '').trim())
+  const ready = ['studentCode', 'name', 'gender', 'dateOfBirth', 'major', 'cohort', 'phone'].every((k) => String(form[k] ?? '').trim()) && accepted
   return (
     <Card padding="lg" className="flex flex-col gap-4">
       <h2 className="text-h3 font-semibold text-fg">{first ? t('Your student details') : t('Correct your details')}</h2>
@@ -102,6 +105,15 @@ function DetailsForm({ data, onSent }) {
         <Field label="Phone" required error={fields.phone}>
           {(id) => <Input id={id} type="tel" inputMode="tel" value={form.phone ?? ''} onChange={set('phone')} autoComplete="tel" />}
         </Field>
+      </div>
+      <div className="flex flex-col gap-1">
+        <Checkbox
+          checked={accepted}
+          onChange={(e) => setAccepted(e.target.checked)}
+          label={t('I have read and accept the privacy notice ({version})', { version: data.privacyNoticeVersion ?? '—' })}
+          description={t('CampusStay keeps your details to run your stay and payments, shows them only to dormitory staff, and erases them on request once you no longer hold a Bed or owe money. See My data after verification.')}
+        />
+        {fields.privacyNoticeVersion && <p className="text-sm text-error-fg">{fields.privacyNoticeVersion}</p>}
       </div>
       <div className="flex flex-col gap-2 lg:flex-row lg:justify-end">
         <Button variant="primary" size="lg" icon={Send} disabled={!ready || send.pending} onClick={() => send.run()}>

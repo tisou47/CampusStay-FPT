@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, RotateCcw, Send, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useMutation, useQuery } from '@/api/hooks'
+import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
@@ -129,18 +129,43 @@ export default function StaffSchedule() {
     invalidates: ['week-schedule', 'block-staff', 'me-duty'],
     onError: (e) => notifyError(e, 'Could not reset the week'),
   })
-  const copyPrevious = useMutation(
+  // Copying is confirmed first and takes only the people planned the week before: people on their default shifts
+  // stay on them. One request per person; a failure says how many were already copied (WEB-OPS-40).
+  const [copying, setCopying] = useState(null) // { people, replaced } once the week before is read
+  const prepareCopy = useMutation(
     async () => {
       const prev = await api.weekSchedule.plan({ block: block ?? undefined, week: addDays(start, -7) })
-      for (const p of prev.staff) {
-        if (staff.some((s) => s.id === p.id)) await api.weekSchedule.setWeek(p.id, start, { shifts: p.shifts })
+      const people = prev.staff.filter((p) => p.planned && staff.some((s) => s.id === p.id))
+      const replaced = people.filter((p) => staff.find((s) => s.id === p.id)?.planned).length
+      setCopying({ people, replaced })
+    },
+    { onError: (e) => notifyError(e, 'Could not read the week before') },
+  )
+  const copyPrevious = useMutation(
+    async () => {
+      let done = 0
+      try {
+        for (const p of copying.people) {
+          await api.weekSchedule.setWeek(p.id, start, { shifts: p.shifts })
+          done++
+        }
+      } catch (e) {
+        e.message = t('{done} of {n} people were copied before this error: {message}', { done, n: copying.people.length, message: e.message })
+        throw e
       }
-      return prev.staff.length
+      return done
     },
     {
       invalidates: ['week-schedule', 'block-staff'],
-      onSuccess: (n) => notify({ title: t('Copied the week before for {n} staff', { n }) }),
-      onError: (e) => notifyError(e, 'Could not copy the week before'),
+      onSuccess: (n) => {
+        setCopying(null)
+        notify({ title: t('Copied the week before for {n} staff', { n }) })
+      },
+      onError: (e) => {
+        setCopying(null)
+        invalidate('week-schedule')
+        notifyError(e, 'Could not copy the week before')
+      },
     },
   )
   const send = useMutation(() => api.weekSchedule.send({ block: block ?? undefined }), {
@@ -174,7 +199,7 @@ export default function StaffSchedule() {
         <div className="ml-auto flex gap-2">
           <SearchInput wrapperClassName="w-64" aria-label={t('Search staff')} placeholder="Search staff name" value={q} onChange={(e) => setQ(e.target.value)} />
           {d?.editable && (
-            <Button icon={Copy} onClick={() => copyPrevious.run()} disabled={copyPrevious.pending || staff.length === 0}>
+            <Button icon={Copy} onClick={() => prepareCopy.run()} disabled={prepareCopy.pending || copyPrevious.pending || staff.length === 0}>
               Copy the week before
             </Button>
           )}
@@ -256,6 +281,24 @@ export default function StaffSchedule() {
           onClose={() => setEditing(null)}
         />
       )}
+      <Modal
+        open={Boolean(copying)}
+        onClose={() => setCopying(null)}
+        title="Copy the week before?"
+        description={
+          copying?.people.length
+            ? t('{n} people planned the week before get the same shifts this week. {replaced} of them already have shifts planned this week: those are replaced.', { n: copying.people.length, replaced: copying.replaced })
+            : t('Nobody was planned the week before: everyone stays on their default shifts.')
+        }
+        footer={
+          <>
+            <Button onClick={() => setCopying(null)}>Cancel</Button>
+            <Button variant="primary" icon={Copy} disabled={!copying?.people.length || copyPrevious.pending} onClick={() => copyPrevious.run()}>
+              {copyPrevious.pending ? t('Copying…') : t('Copy {n} people', { n: copying?.people.length ?? 0 })}
+            </Button>
+          </>
+        }
+      />
     </>
   )
 }

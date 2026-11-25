@@ -7,7 +7,8 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { DetailRows, Note, ProgressTimeline } from '@/components/ui/Display'
-import { Drawer } from '@/components/ui/Overlay'
+import { Field, Textarea } from '@/components/ui/Field'
+import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
@@ -24,7 +25,7 @@ import { t, tr } from '@/i18n'
 //   room-change item (next-Term requests: room change, swap, extension, end of stay):
 //     { id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }
 // GET /maintenance-requests/:id → { …item, room, description, events: [{ who, at, message }] }
-// POST /maintenance-requests/:id/confirm { fixed }
+// POST /maintenance-requests/:id/confirm { fixed, comment? } (comment: what is still wrong, read by Staff)
 
 function MaintenanceStatus({ status }) {
   if (status === 'Resolved') return <Tag tone="success">Resolved · confirm the fix</Tag>
@@ -43,6 +44,31 @@ function progressOf(r) {
     { title: 'Fixed by maintenance staff', time: r.status === 'In progress' ? 'Work in progress' : '—', state: fixed ? 'done' : ['Assigned', 'In progress'].includes(r.status) ? 'current' : 'upcoming' },
     { title: 'Confirmed by you', time: r.status === 'Closed' ? 'Closed' : '—', state: r.status === 'Closed' ? 'done' : r.status === 'Resolved' ? 'current' : 'upcoming' },
   ]
+}
+
+/** Reopening asks what is still wrong, so Staff know what to fix (WEB-STU-10). */
+function ReopenModal({ request, pending, onClose, onReopen }) {
+  const [comment, setComment] = useState('')
+  return (
+    <Modal
+      open={Boolean(request)}
+      onClose={onClose}
+      title={t('Reopen {id}?', { id: request?.id })}
+      description="The request goes back to the maintenance staff."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" disabled={pending} onClick={() => onReopen(request, comment.trim())}>
+            {pending ? t('Saving…') : t('Reopen')}
+          </Button>
+        </>
+      }
+    >
+      <Field label="What is still wrong?" helper="Optional. The maintenance staff read it.">
+        {(id) => <Textarea id={id} rows={3} maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} />}
+      </Field>
+    </Modal>
+  )
 }
 
 function RequestDrawer({ id, onClose, onConfirm, confirming }) {
@@ -123,11 +149,13 @@ export default function MyRequests() {
   const items = query.data?.items ?? []
   const counts = query.data?.counts
 
-  const confirm = useMutation((r, fixed) => api.maintenance.confirm(r.id, { fixed }), {
+  const [reopening, setReopening] = useState(null)
+  const confirm = useMutation((r, fixed, comment) => api.maintenance.confirm(r.id, comment ? { fixed, comment } : { fixed }), {
     invalidates: ['requests', 'maintenance', 'home'],
     onSuccess: (_, r, fixed) => {
       notify(fixed ? { title: 'Thanks for confirming', message: t('{id} is now closed.', { id: r.id }) } : { type: 'info', title: 'Request reopened', message: t('{id} goes back to the maintenance staff.', { id: r.id }) })
       setOpenId(null)
+      setReopening(null)
     },
     onError: (e) => notifyError(e, 'Could not update the request'),
   })
@@ -233,7 +261,7 @@ export default function MyRequests() {
                   <h2 className="text-base font-medium text-fg">{t('Is “{title}” fixed?', { title: resolved.title })}</h2>
                   <p className="text-sm text-fg-secondary">{t('Confirm to close {id}, or reopen it.', { id: resolved.id })}</p>
                   <div className="flex gap-2 pt-1 *:flex-1">
-                    <Button size="lg" onClick={() => confirm.run(resolved, false)} disabled={confirm.pending}>
+                    <Button size="lg" onClick={() => setReopening(resolved)} disabled={confirm.pending}>
                       Reopen
                     </Button>
                     <Button variant="primary" size="lg" onClick={() => confirm.run(resolved, true)} disabled={confirm.pending}>
@@ -279,7 +307,7 @@ export default function MyRequests() {
                 </Td>
                 <Td onClick={stop}>
                   {r.status === 'Resolved' ? (
-                    <Button onClick={() => confirm.run(r, true)} disabled={confirm.pending}>
+                    <Button onClick={() => setOpenId(r.id)}>
                       Confirm
                     </Button>
                   ) : (
@@ -355,7 +383,8 @@ export default function MyRequests() {
         />
       </div>
 
-      <RequestDrawer id={openId} onClose={() => setOpenId(null)} onConfirm={(r, fixed) => confirm.run(r, fixed)} confirming={confirm.pending} />
+      <RequestDrawer id={openId} onClose={() => setOpenId(null)} onConfirm={(r, fixed) => (fixed ? confirm.run(r, true) : setReopening(r))} confirming={confirm.pending} />
+      {reopening && <ReopenModal request={reopening} pending={confirm.pending} onClose={() => setReopening(null)} onReopen={(r, comment) => confirm.run(r, false, comment)} />}
     </StudentPage>
   )
 }

@@ -12,7 +12,7 @@ import { t, tr } from '@/i18n'
 
 // SCR-RPT-10 Block Reports (Figma 70:1180)
 // GET /reports/block?termId&block → { allocated, weekly: [{ label, value }], notCheckedIn, followUpBy }
-// Exports: GET /exports/block-occupancy|block-collections|block-maintenance|block-residents?termId&block (.xlsx)
+// Exports: GET /exports/block-occupancy|block-collections|block-maintenance|block-residents?termId&block (.csv)
 
 const reports = [
   { key: 'occupancy', icon: Bed, title: 'Occupancy', body: 'Beds by floor, room type and room tier' },
@@ -27,7 +27,7 @@ export default function BlockReports() {
   const { notify, notifyError } = useToast()
   const query = useQuery(['reports', 'block', scope], ({ signal }) => api.reports.block(scope, { signal }))
   const d = query.data
-  const exporting = useMutation((report) => api.exports.download(`block-${report.key}`, scope, `block-${block ?? 'all'}-${report.key}.xlsx`), {
+  const exporting = useMutation((report) => api.exports.download(`block-${report.key}`, scope, `block-${block ?? 'all'}-${report.key}.csv`), {
     onSuccess: (_, report) => notify({ title: t('{report} report exported', { report: t(report.title) }), message: [block && t('Block {code}', { code: block }), term?.name].filter(Boolean).join(' · ') }),
     onError: (e) => notifyError(e, 'Export failed'),
   })
@@ -37,7 +37,7 @@ export default function BlockReports() {
     <>
       <PageHeader
         title={block ? t('Reports · Block {code}', { code: block }) : 'Reports'}
-        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are .xlsx and include the blocks in your scope.')}`}
+        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are CSV files and include the blocks in your scope.')}`}
       />
 
       <div className="flex shrink-0 items-stretch gap-4">
@@ -51,7 +51,7 @@ export default function BlockReports() {
               </h2>
               <p className="text-sm text-fg-secondary">{t(r.body)}</p>
               <Button icon={Download} onClick={() => exporting.run(r)} disabled={exporting.pending} className="mt-auto">
-                Export .xlsx
+                Export CSV
               </Button>
             </Card>
           )
