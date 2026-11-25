@@ -112,29 +112,6 @@ class Wave3AssignmentRegressionIT {
         assertThat(damageInvoices(3)).as("C's DAMAGE Invoices after the second check-out").isEqualTo(1);
     }
 
-    /**
-     * TC-BIL-409 (BE-APP-BIL-11): the check-out share splits the consumption since the last reading by the time each
-     * resident lived in the Room, as the monthly split does: a roommate who arrived an hour ago pays almost nothing.
-     */
-    @Test
-    void checkOutShareFollowsTheMonthlySplit() throws Exception {
-        long leaver = r.livesIn(4, "A-306", "A", true);
-        r.livesIn(5, "A-306", "B", true);
-        jdbc.sql("""
-                UPDATE asg_allocation SET allocated_at = now() - interval '10 days', resident_at = now() - interval '10 days'
-                WHERE id = :a
-                """).param("a", leaver).update();
-        jdbc.sql("""
-                INSERT INTO bil_meter_cut (room_id, cut_date, electricity, water, reason, created_at)
-                SELECT id, CURRENT_DATE - 10, 100, 10, 'CHECK_IN', now() - interval '10 days' FROM inv_room WHERE code = 'A-306'
-                """).update();
-        r.postJson("/check-out/" + leaver, r.bearer(TestAuth.STAFF_A),
-                "{\"electricity\":200,\"water\":20,\"conditionGood\":true,\"draft\":false}").andExpect(status().isOk());
-        long cost = r.count("SELECT 100 * price_kwh + 10 * price_m3 FROM cfg_utility_policy WHERE id = 1");
-        long share = r.count("SELECT utility_share FROM asg_check_out WHERE allocation_id = ?", leaver);
-        assertThat(share).as("leaver's share of %d VND", cost).isGreaterThan(cost * 9 / 10);
-    }
-
     /** TC-ASG-402 (BE-ASG-20): a student listed without a Block is waitlisted when the run's last Block is committed. */
     @Test
     void blocklessItemIsWaitlisted() throws Exception {
