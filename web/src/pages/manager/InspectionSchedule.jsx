@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { CalendarDays, ClipboardCheck, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -300,6 +301,8 @@ function RunStats({ run }) {
   const stat = { done: 0, unreachable: 0, open: 0, Worn: 0, Damaged: 0, Missing: 0, failedChecks: 0 }
   const byType = new Map()
   const found = []
+  // Every Room Staff finished, with how many items were found wrong (0 = fine): each opens its report.
+  const checked = []
   for (const r of rooms) {
     if (r.status === 'Done') stat.done += 1
     else if (r.status === 'Not reachable') stat.unreachable += 1
@@ -322,6 +325,7 @@ function RunStats({ run }) {
       }
     }
     if (items.length) found.push({ room: r.room, items })
+    if (r.status === 'Done' || r.status === 'Not reachable') checked.push({ room: r.room, unreachable: r.status === 'Not reachable', count: items.length })
   }
   const types = [...byType.values()].sort((a, b) => b.Damaged + b.Missing - (a.Damaged + a.Missing))
   return (
@@ -379,12 +383,44 @@ function RunStats({ run }) {
               </ul>
             )}
           </div>
+          <RoomReportList run={run} rooms={checked} />
         </>
       )}
     </section>
   )
 }
 
+
+/** Each Room Staff finished in the run with its damage count (0 when fine), opening the Room's report. */
+function RoomReportList({ run, rooms }) {
+  const navigate = useNavigate()
+  if (!rooms.length) return null
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-fg">{t('Room reports ({n})', { n: rooms.length })}</span>
+      <ul className="flex max-h-72 flex-col divide-y divide-line/70 overflow-y-auto rounded-lg border border-line text-sm">
+        {[...rooms]
+          .sort((a, b) => b.count - a.count || a.room.localeCompare(b.room))
+          .map((r) => (
+            <li key={r.room}>
+              <button
+                type="button"
+                onClick={() => navigate(`/manager/inspections/${encodeURIComponent(run.id)}/rooms/${encodeURIComponent(r.room)}?from=schedule`)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-subtle"
+              >
+                <span className="font-semibold text-fg tabular">{r.room}</span>
+                {r.unreachable ? (
+                  <Tag tone="warning">{t('Not reachable')}</Tag>
+                ) : (
+                  <Tag tone={r.count ? 'error' : 'success'}>{t('{n} damaged items', { n: r.count })}</Tag>
+                )}
+              </button>
+            </li>
+          ))}
+      </ul>
+    </div>
+  )
+}
 export default function InspectionSchedule() {
   const { block: scopeBlock, blocks } = useSession()
   const [filter, setFilter] = useState(scopeBlock ?? ALL)

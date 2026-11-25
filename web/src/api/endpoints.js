@@ -318,6 +318,8 @@ export const api = {
     close: (periodId) => http.post(`/meter-periods/${periodId}/close`),
   },
   inspections: {
+    /** ?block&room&q&page&pageSize → { items: [{ runId, room, block, floor, name, kind, status, inspectedAt, inspector, failed, submitted, submittedAt }], total }: every finished Room report. */
+    reports: g('/inspection-reports'),
     // Staff runs
     current: g('/inspection-runs/current'),
     /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */

@@ -163,7 +163,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
     <div className="flex flex-col gap-5 pb-8">
       {/* Sticky Header Segment Bar */}
       <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface/95 px-3 py-2 backdrop-blur-xs">
-        <Button size="sm" icon={ArrowLeft} onClick={() => navigate('/staff/inspections')}>
+        <Button size="sm" icon={ArrowLeft} onClick={() => (new URLSearchParams(window.location.search).get('from') ? navigate(-1) : navigate('/staff/inspections'))}>
           {t('Back to rooms')}
         </Button>
 

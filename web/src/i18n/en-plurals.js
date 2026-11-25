@@ -5,6 +5,7 @@
  * the i18n check (web/scripts/i18n-check.mjs) reports a key that is no longer used.
  */
 const one = {
+  "{n} damaged items": "{n} damaged item",
   "{n} items left": "{n} item left",
   "{n} days ago": "{n} day ago",
   "{n} days left": "{n} day left",

@@ -132,10 +132,19 @@ public class HandoverDeskService {
      */
     @Transactional(readOnly = true)
     public Page list(String block, String status, String comparison, PageQuery page) {
+        return list(block, status, comparison, null, page);
+    }
+
+    /** {@code room}: a Room code ({@code A-301}) keeps that Room's inventories (Rooms and beds). */
+    @Transactional(readOnly = true)
+    public Page list(String block, String status, String comparison, String room, PageQuery page) {
         currentUser.require(Permission.DESK);
         Set<Long> buildings = blockScope.resolve(block).ids();
         Map<Long, Inventory.BedSlot> beds = new HashMap<>();
         buildings.forEach(b -> inventory.bedsOfBuilding(b).forEach(s -> beds.put(s.bedId(), s)));
+        if (room != null && !room.isBlank()) {
+            beds.values().removeIf(s -> !s.roomCode().equalsIgnoreCase(room.trim()));
+        }
         if (beds.isEmpty()) {
             return new Page(List.of(), 0, Map.of());
         }

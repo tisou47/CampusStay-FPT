@@ -415,4 +415,49 @@ class InspectionIT {
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
                 .andExpect(jsonPath("$.items[?(@.room == 'A-405')].createdRequests[*]").value(hasItem(request)));
     }
+
+    /**
+     * TC-MNT-018: every finished Room of an inspection is a report kept with its Room (user decision 25/11/2026): the
+     * report summary lists it (once the run is sent to the Managers) with the inspection and the inspector, filtered by
+     * kind (report 1 pre-arrival or other inspections) or by Room; pending Rooms and unsent runs are not reports, and
+     * another Block's Staff cannot read them.
+     */
+    @Test
+    void inspectionReportsAreKeptWithTheRoom() throws Exception {
+        long run = jdbc.sql("""
+                INSERT INTO mnt_inspection_run (building_id, checklist_id, run_date, due_at, inspector_id, status,
+                                                submitted_at)
+                SELECT b.id, (SELECT id FROM mnt_checklist WHERE status = 'PUBLISHED' ORDER BY id LIMIT 1), current_date,
+                       now() + interval '1 day', u.id, 'SUBMITTED', now()
+                FROM inv_building b, auth_user u WHERE b.code = 'A' AND u.email = :staff
+                RETURNING id
+                """).param("staff", STAFF_A).query(Long.class).single();
+        jdbc.sql("""
+                INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at)
+                SELECT :run, id, CASE code WHEN 'A-509' THEN 'INSPECTED' ELSE 'PENDING' END,
+                       CASE code WHEN 'A-509' THEN now() END
+                FROM inv_room WHERE code IN ('A-509', 'A-510')
+                """).param("run", run).update();
+        String staff = bearer(mvc, STAFF_A);
+        String code = "INS-" + run;
+
+        getAs("/inspection-reports?block=A&pageSize=100", staff).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.runId == '" + code + "')].room").value(contains("A-509")))
+                .andExpect(jsonPath("$.items[?(@.runId == '" + code + "')].submitted").value(hasItem(true)))
+                .andExpect(jsonPath("$.items[?(@.runId == '" + code + "')].status").value(hasItem("Inspected")))
+                .andExpect(jsonPath("$.items[?(@.runId == '" + code + "')].inspector").value(hasItem("Nguyen Van Binh")));
+        getAs("/inspection-reports?room=A-509", staff)
+                .andExpect(jsonPath("$.items[*].room").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("A-509"))))
+                .andExpect(jsonPath("$.items[*].runId").value(hasItem(code)));
+        getAs("/inspection-reports?room=A-510", staff).andExpect(jsonPath("$.items[*].runId").value(not(hasItem(code))));
+        getAs("/inspection-reports?q=" + code, bearer(mvc, MANAGER_A)).andExpect(jsonPath("$.total").value(1));
+        getAs("/inspection-reports?kind=Periodic&q=" + code, staff).andExpect(jsonPath("$.total").value(1));
+        getAs("/inspection-reports?kind=Pre-arrival&q=" + code, staff).andExpect(jsonPath("$.total").value(0));
+        // A run not sent to the Managers yet is not a report of its Rooms.
+        jdbc.sql("UPDATE mnt_inspection_run SET status = 'IN_PROGRESS', submitted_at = NULL WHERE id = :id").param("id", run)
+                .update();
+        getAs("/inspection-reports?room=A-509", staff).andExpect(jsonPath("$.items[*].runId").value(not(hasItem(code))));
+        getAs("/inspection-reports?block=A", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
+        getAs("/inspection-reports?room=A-509", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isNotFound());
+    }
 }

@@ -212,6 +212,7 @@ export const backOffice = {
         items: [
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
+          { label: 'Final reports', icon: ScrollText, to: '/manager/final-reports' },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
           { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
           {

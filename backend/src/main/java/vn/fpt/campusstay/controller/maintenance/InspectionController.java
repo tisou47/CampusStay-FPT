@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.fpt.campusstay.service.maintenance.ChecklistService;
+import vn.fpt.campusstay.service.maintenance.InspectionReportService;
 import vn.fpt.campusstay.service.maintenance.InspectionRunService;
 import vn.fpt.campusstay.service.maintenance.InspectionScheduleService;
 import vn.fpt.campusstay.dto.PageQuery;
@@ -47,8 +48,11 @@ class InspectionController {
     private final ChecklistService checklists;
     private final InspectionScheduleService schedules;
     private final InspectionRunService runs;
+    private final InspectionReportService reports;
 
-    InspectionController(ChecklistService checklists, InspectionScheduleService schedules, InspectionRunService runs) {
+    InspectionController(ChecklistService checklists, InspectionScheduleService schedules, InspectionRunService runs,
+            InspectionReportService reports) {
+        this.reports = reports;
         this.checklists = checklists;
         this.schedules = schedules;
         this.runs = runs;
@@ -120,6 +124,18 @@ class InspectionController {
     InspectionRunService.Current current(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block) {
         return runs.current(block);
+    }
+
+    /**
+     * Every finished Room report of the inspections in the user's Blocks (any schedule: pre-arrival, Wi-Fi, fire
+     * safety …), newest first; {@code room} keeps one Room's reports (Rooms and beds).
+     */
+    @GetMapping("/inspection-reports")
+    InspectionReportService.ReportPage reports(@RequestParam(required = false) String block,
+            @RequestParam(required = false) String room, @RequestParam(required = false) String q,
+            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return reports.list(block, room, q, kind, PageQuery.of(page, pageSize));
     }
 
     /** Every run of the user's Blocks they can open: open ones (their own first) and the ones sent lately. */

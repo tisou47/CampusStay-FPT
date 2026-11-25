@@ -32,6 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import vn.fpt.campusstay.service.assignment.DoorCodeRelease;
 import vn.fpt.campusstay.service.assignment.HandoverJobService;
 import vn.fpt.campusstay.service.billing.FinanceService;
 
@@ -58,6 +59,9 @@ class HandoverIT {
 
     @Autowired
     FinanceService finance;
+
+    @Autowired
+    DoorCodeRelease release;
 
     StayFlow stay;
 
@@ -179,6 +183,39 @@ class HandoverIT {
         assertThat(row.resident()).isTrue();
         assertThat(row.counted()).isFalse();
         send(post("/students/me/handover/start"), student, "").andExpect(status().isConflict());
+    }
+
+    /**
+     * TC-ASG-077: on the check-in day a paid new resident receives the door code without a start step (user decision
+     * 25/11/2026): the release opens their check-in inventory (report 1) and tells them; the start is no longer
+     * needed, and Utility waits for the inventory as before.
+     */
+    @Test
+    void checkInDayReleasesTheCodeAndOpensTheInventory() throws Exception {
+        long allocation = newcomer(38, "A-204", "A");
+        String student = bearer(mvc, StayFlow.student(38));
+        doorCode("A-204");
+        assertThat(release.releaseDue()).isGreaterThanOrEqualTo(1);
+
+        record Row(boolean released, boolean counted, String handover) {
+        }
+        Row row = jdbc.sql("""
+                SELECT a.code_released_at IS NOT NULL, a.utility_from IS NOT NULL,
+                       (SELECT h.status FROM asg_handover h WHERE h.allocation_id = a.id AND h.status <> 'CANCELLED')
+                FROM asg_allocation a WHERE a.id = :id
+                """).param("id", allocation)
+                .query((rs, i) -> new Row(rs.getBoolean(1), rs.getBoolean(2), rs.getString(3))).single();
+        assertThat(row.released()).isTrue();
+        assertThat(row.counted()).isFalse();
+        assertThat(row.handover()).isEqualTo("DRAFT");
+        mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Draft"));
+        send(post("/students/me/handover/start"), student, "").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVENTORY_STARTED"));
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = 'CHECK_IN_AVAILABLE'
+                """).param("e", StayFlow.student(38)).query(Long.class).single()).isEqualTo(1);
     }
 
     /**

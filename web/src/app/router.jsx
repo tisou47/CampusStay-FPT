@@ -308,6 +308,9 @@ export const router = createBrowserRouter([
         { path: 'maintenance', ...page(MaintenanceQueue) },
         { path: 'maintenance/:id', ...page(MaintenanceDetail) },
         { path: 'inspections', ...page(InspectionSchedule) },
+        // The runs Staff sent: each Room's report, read-only (user decision 25/11/2026).
+        { path: 'inspections/:runId/rooms/:roomCode', ...page(InspectionRoomPage) },
+        { path: 'final-reports', ...page(FinalReports) },
         ...checkinReportRoutes,
         { path: 'finance', ...page(BlockFinance) },
         { path: 'staff', ...page(BlockStaff) },

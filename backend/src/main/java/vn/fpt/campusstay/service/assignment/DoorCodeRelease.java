@@ -39,7 +39,9 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
  * then (spec §6.14); the desk check-in only records the hand-over. A first release starts the student's Stay; the
  * release of a next-Term Allocation ends the Allocation of the Term before (turnover, spec §5.1 M9). It runs when a
  * Balance or next-Term fee is paid, when Staff confirm a Room's code and every 15 minutes (the check-in start). A
- * terminated student past the move-out date is never released a code.
+ * terminated student past the move-out date is never released a code. A new resident who must file a check-in
+ * inventory receives the code the same way (user decision 25/11/2026): the inventory opens with it, so the student
+ * enters and files report 1 without a start step.
  */
 @Component
 public class DoorCodeRelease {
@@ -57,9 +59,12 @@ public class DoorCodeRelease {
     private final AuditLog audit;
     private final Clock clock;
     private final Parameters parameters;
+    private final HandoverCore handovers;
 
     DoorCodeRelease(JdbcClient jdbc, JdbcStays stays, Billing billing, Inventory inventory, TermCatalog terms,
-            ApplicationEventPublisher events, AuditLog audit, Clock clock, Parameters parameters) {
+            ApplicationEventPublisher events, AuditLog audit, Clock clock, Parameters parameters,
+            HandoverCore handovers) {
+        this.handovers = handovers;
         this.parameters = parameters;
         this.jdbc = jdbc;
         this.stays = stays;
@@ -177,17 +182,15 @@ public class DoorCodeRelease {
             if (bed == null || !ready.contains(bed.roomId())) {
                 continue;
             }
-            if (!Long.valueOf(w.id()).equals(forced) && needsInventory(w.previousBedId(), w.bedId())) {
-                // The student receives the code when they start the check-in inventory at the Room.
-                if (!w.eligible()) {
-                    jdbc.sql("""
-                            UPDATE asg_allocation SET eligible_at = :now, handover_needed = TRUE, version = version + 1
-                            WHERE id = :id
-                            """).param("now", Timestamp.from(now)).param("id", w.id()).update();
-                    events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
-                            parameters.intValue("handover.submit_hours")));
-                }
-                continue;
+            boolean needsReport = needsInventory(w.previousBedId(), w.bedId());
+            if (needsReport && !Long.valueOf(w.id()).equals(forced)) {
+                // Check-in day and everything paid (user decision 25/11/2026): the new resident receives the code at
+                // once and their check-in inventory (report 1) opens; they file it in the Room and Staff review it.
+                jdbc.sql("""
+                        UPDATE asg_allocation SET eligible_at = coalesce(eligible_at, :now), handover_needed = TRUE,
+                               version = version + 1
+                        WHERE id = :id
+                        """).param("now", Timestamp.from(now)).param("id", w.id()).update();
             }
             if (Long.valueOf(w.id()).equals(forced)) {
                 jdbc.sql("UPDATE asg_allocation SET handover_needed = TRUE, eligible_at = coalesce(eligible_at, :now) "
@@ -204,6 +207,11 @@ public class DoorCodeRelease {
                 endPreviousTerm(w, bed, now);
             } else {
                 stays.joinStay(w.id(), now);
+            }
+            if (needsReport && !Long.valueOf(w.id()).equals(forced) && handovers.ofAllocation(w.id(), false).isEmpty()) {
+                handovers.allocation(w.id()).ifPresent(a -> handovers.open(a, bed, now));
+                events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
+                        parameters.intValue("handover.submit_hours")));
             }
             byRoom.computeIfAbsent(bed.roomCode(), r -> new ArrayList<>()).add(w.studentId());
         }
