@@ -273,7 +273,7 @@ function Items({ manages }) {
         <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />
         <Button icon={QrCode} onClick={() => setModal({ type: 'labels' })} disabled={!items.length}>
-          {selected.length ? t('Print {n} labels', { n: selected.length }) : t('Print labels')}
+          {selected.length ? t('Print {n} labels', { n: selected.length }) : t("Print this page's labels")}
         </Button>
         <Button icon={MoveRight} onClick={() => setModal({ type: 'move' })} disabled={!selected.length}>
           {selected.length ? t(selected.length === 1 ? 'Move {n} item' : 'Move {n} items', { n: selected.length }) : t('Move')}

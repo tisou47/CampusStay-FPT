@@ -1274,6 +1274,10 @@ const staff = {
   "Confirm and complete": "Xác nhận và hoàn tất",
   "Go back": "Quay lại",
   "Enter readings as numbers, e.g. 1234,5": "Nhập chỉ số bằng số, ví dụ 1234,5",
+  "Print this page's labels": "In nhãn của trang này",
+  "Pass for another Family Day": "Thẻ của Ngày thăm thân khác",
+  "This pass is for {title}, not the day of this desk.": "Thẻ này dành cho {title}, không phải ngày của quầy này.",
+  "Last reminder {date}": "Lần nhắc gần nhất {date}",
 }
 const manager = {
   "Late check-in approved": "Đã duyệt nhận phòng muộn",
@@ -3672,7 +3676,6 @@ const operations = {
   "Stick each label on its item; scanning it gives the asset code.": "Dán mỗi nhãn lên đúng đồ; quét nhãn sẽ ra mã tài sản.",
   "Print": "In",
   "Print {n} labels": "In {n} nhãn",
-  "Print labels": "In nhãn",
   "Number of people matches the residents ({n})": "Số người khớp với số sinh viên đang ở ({n})",
   "Check out by {date}": "Trả phòng trước {date}",
   "{n} leavers are past the check-out date": "{n} sinh viên đã quá hạn trả phòng",

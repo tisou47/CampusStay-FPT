@@ -258,8 +258,8 @@ function OverdueTab({ scope }) {
                 <Tag tone="error">{t('{n} days', { n: o.daysOverdue })}</Tag>
               </Td>
               <Td>
-                <Button icon={Bell} disabled={Boolean(o.remindedAt) || remind.pending} onClick={() => remind.run(o)}>
-                  {o.remindedAt ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
+                <Button icon={Bell} disabled={remindedToday(o.remindedAt) || remind.pending} title={o.remindedAt ? t('Last reminder {date}', { date: formatDate(o.remindedAt) }) : undefined} onClick={() => remind.run(o)}>
+                  {remindedToday(o.remindedAt) ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
                 </Button>
               </Td>
             </Tr>

@@ -185,10 +185,8 @@ export default function ManagerDashboard() {
   }
 
   // Sort items: error (highest) -> warning -> info -> neutral
-  const items = useMemo(() => {
-    const toneRank = { error: 0, warning: 1, info: 2, neutral: 3 }
-    return [...rawItems].sort((x, y) => (toneRank[x.tone] ?? 2) - (toneRank[y.tone] ?? 2))
-  }, [rawItems])
+  const toneRank = { error: 0, warning: 1, info: 2, neutral: 3 }
+  const items = [...rawItems].sort((x, y) => (toneRank[x.tone] ?? 2) - (toneRank[y.tone] ?? 2))
 
   const journey = stageSteps(MANAGER_STAGES, term, undefined, {
     assignment: w?.toReview
@@ -219,7 +217,7 @@ export default function ManagerDashboard() {
   const s = staff.data?.summary
 
   // Staff on duty calculations
-  const allBlocks = useMemo(() => d?.bedsByBlock?.map((b) => b.block) ?? ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], [d])
+  const allBlocks = useMemo(() => d?.bedsByBlock?.map((b) => b.block) ?? [], [d]) // nothing to warn about until the dashboard loads (WEB-OPS-37)
   const blocksWithDutyStaff = useMemo(
     () => new Set(people.filter((p) => p.onDuty).flatMap((p) => p.blocks ?? [])),
     [people],

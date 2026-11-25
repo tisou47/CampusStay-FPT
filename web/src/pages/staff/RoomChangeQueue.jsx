@@ -274,7 +274,7 @@ function Review({ request: r, onReject }) {
               </Button>
             )}
           </div>
-          <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>No free bed matches this change right now. Reject the request or wait until a bed frees up.</Note>}>
+          <QueryState query={beds} compact isEmpty={(d) => !d.items?.length} empty={<Note>{beds.data?.note ? tr(beds.data.note) : t('No free bed matches this change right now. Reject the request or wait until a bed frees up.')}</Note>}>
             {() => (
               <div role="radiogroup" aria-label={t('Free beds that match')} className="flex max-h-48 flex-col divide-y divide-line overflow-y-auto border-y border-line">
                 {bedItems.map((b) => (
