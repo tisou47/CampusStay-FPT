@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.application;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,7 +19,10 @@ class ApplicationExpiryJob {
     private final ApplicationService applications;
     private final Round2Service round2;
 
-    ApplicationExpiryJob(ApplicationService applications, Round2Service round2) {
+    private final ScheduledJobs jobs;
+
+    ApplicationExpiryJob(ScheduledJobs jobs, ApplicationService applications, Round2Service round2) {
+        this.jobs = jobs;
         this.applications = applications;
         this.round2 = round2;
     }
@@ -25,17 +30,19 @@ class ApplicationExpiryJob {
     @Scheduled(fixedDelayString = "${campusstay.app.expiry-interval:5m}",
             initialDelayString = "${campusstay.app.expiry-interval:5m}")
     void run() {
-        int expired = applications.expireOverdue();
-        if (expired > 0) {
-            log.info("{} Applications expired (Deposit window passed)", expired);
-        }
-        int offers = round2.expire();
-        if (offers > 0) {
-            log.info("{} Round-2 offers expired", offers);
-        }
-        int ended = round2.endWaitlists();
-        if (ended > 0) {
-            log.info("{} waitlisted Applications cancelled: check-in started", ended);
-        }
+        jobs.run("app.expiry", () -> {
+            int expired = applications.expireOverdue();
+            if (expired > 0) {
+                log.info("{} Applications expired (Deposit window passed)", expired);
+            }
+            int offers = round2.expire();
+            if (offers > 0) {
+                log.info("{} Round-2 offers expired", offers);
+            }
+            int ended = round2.endWaitlists();
+            if (ended > 0) {
+                log.info("{} waitlisted Applications cancelled: check-in started", ended);
+            }
+        });
     }
 }

@@ -18,7 +18,7 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
  * whether its recipient is a fictional account: only those may go to the demo mailbox (spec O-3).
  */
 @Component
-class EmailOutbox {
+class EmailOutbox implements EmailBacklog {
 
     private final JdbcClient jdbc;
     private final UserDirectory users;
@@ -26,6 +26,17 @@ class EmailOutbox {
     EmailOutbox(JdbcClient jdbc, UserDirectory users) {
         this.jdbc = jdbc;
         this.users = users;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Backlog backlog() {
+        return jdbc.sql("""
+                SELECT count(*) FILTER (WHERE status = 'PENDING') AS pending, count(*) FILTER (WHERE status = 'FAILED') AS failed,
+                       min(created_at) FILTER (WHERE status = 'PENDING') AS oldest
+                FROM ntf_email_outbox
+                """).query((rs, i) -> new Backlog(rs.getLong("pending"), rs.getLong("failed"),
+                        rs.getTimestamp("oldest") == null ? null : rs.getTimestamp("oldest").toInstant())).single();
     }
 
     /** Renders the template in {@code locale} ({@code vi} or {@code en}, ADR-25); English where a Vietnamese text is missing. */

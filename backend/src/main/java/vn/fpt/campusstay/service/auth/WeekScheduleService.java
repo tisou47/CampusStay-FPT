@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.auth;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -76,9 +78,12 @@ public class WeekScheduleService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
 
-    WeekScheduleService(JdbcClient jdbc, Clock clock, CurrentUser currentUser, BlockScope blockScope,
+    private final ScheduledJobs jobs;
+
+    WeekScheduleService(ScheduledJobs jobs, JdbcClient jdbc, Clock clock, CurrentUser currentUser, BlockScope blockScope,
             BlockDirectory blocks, StaffShifts shifts, Parameters parameters, ApplicationEventPublisher events,
             AuditLog audit) {
+        this.jobs = jobs;
         this.jdbc = jdbc;
         this.clock = clock;
         this.currentUser = currentUser;
@@ -178,7 +183,9 @@ public class WeekScheduleService {
     @Scheduled(cron = "0 5 * * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void remindJob() {
-        remind(now());
+        jobs.run("auth.schedule-reminder", () -> {
+            remind(now());
+        });
     }
 
     /** The reminder at {@code at}; returns whether the Managers were reminded. */

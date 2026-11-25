@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.notification;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -35,8 +37,11 @@ class EmailOutboxDispatcher {
     /** How long a claimed email waits before another run may take it again. */
     private static final Duration LEASE = Duration.ofMinutes(10);
 
-    EmailOutboxDispatcher(JdbcClient jdbc, EmailSender sender, MailProperties props, PlatformTransactionManager tm,
+    private final ScheduledJobs jobs;
+
+    EmailOutboxDispatcher(ScheduledJobs jobs, JdbcClient jdbc, EmailSender sender, MailProperties props, PlatformTransactionManager tm,
             Clock clock) {
+        this.jobs = jobs;
         this.tx = new TransactionTemplate(tm);
         this.jdbc = jdbc;
         this.sender = sender;
@@ -49,10 +54,12 @@ class EmailOutboxDispatcher {
 
     @Scheduled(fixedDelayString = "${campusstay.mail.dispatch-interval:30s}")
     public void dispatch() {
-        List<Pending> due = tx.execute(s -> claim());
-        for (Pending p : due) {
-            send(p);
-        }
+        jobs.run("ntf.email-outbox", () -> {
+            List<Pending> due = tx.execute(s -> claim());
+            for (Pending p : due) {
+                send(p);
+            }
+        });
     }
 
     private List<Pending> claim() {
