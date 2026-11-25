@@ -30,7 +30,7 @@ class MaintenanceDemoData implements DemoData {
         jdbc.execute("DELETE FROM mnt_inspection_photo");
         jdbc.execute("DELETE FROM mnt_inspection_room");
         jdbc.execute("DELETE FROM mnt_inspection_run");
-        jdbc.execute("DELETE FROM mnt_inspection_schedule WHERE name LIKE '% (demo)' OR name LIKE 'Pre-arrival check%' OR name LIKE 'Kiểm tra phòng trước nhận phòng%' OR name LIKE 'Kiểm tra định kỳ điện nước & PCCC%' OR name LIKE 'Kiểm tra an ninh & khóa mã cửa%' OR name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm%'");
+        jdbc.execute("DELETE FROM mnt_inspection_schedule WHERE name LIKE '% (demo)' OR name LIKE 'Pre-arrival check%' OR name LIKE 'Kiểm tra phòng trước nhận phòng%' OR name LIKE 'Kiểm tra định kỳ điện nước & PCCC%' OR name LIKE 'Kiểm tra an ninh & khóa mã cửa%' OR name LIKE 'Kiểm tra nhà vệ sinh & nhà tắm%' OR name LIKE 'Kiểm tra phòng trống trước khi xếp thêm%'");
         jdbc.execute("DELETE FROM mnt_checklist_item WHERE checklist_id IN (SELECT id FROM mnt_checklist WHERE family_key IN ('DEMO_TURNOVER', 'CL_FIRE_SAFETY', 'CL_PLUMBING_AC', 'CL_HYGIENE_FURNITURE'))");
         jdbc.execute("DELETE FROM mnt_checklist WHERE family_key IN ('DEMO_TURNOVER', 'CL_FIRE_SAFETY', 'CL_PLUMBING_AC', 'CL_HYGIENE_FURNITURE')");
         jdbc.execute("DELETE FROM mnt_request_photo");

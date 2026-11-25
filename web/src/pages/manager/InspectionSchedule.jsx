@@ -269,8 +269,6 @@ function RunDetail({ run }) {
         <dd className={run.overdue ? 'font-semibold text-error-fg' : 'text-fg'}>{run.dueAt ? formatDateTime(run.dueAt) : '—'}</dd>
         <dt className="text-fg-secondary">{t('Rooms inspected')}</dt>
         <dd className="text-fg tabular">{run.inspected}</dd>
-        <dt className="text-fg-secondary">{t('Not reachable')}</dt>
-        <dd className="text-fg tabular">{run.unreachable}</dd>
         <dt className="text-fg-secondary">{t('Items not passed')}</dt>
         <dd className={run.failed ? 'font-semibold text-error-fg tabular' : 'text-fg tabular'}>{run.failed}</dd>
       </dl>
@@ -335,11 +333,11 @@ function RunStats({ run }) {
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
               { label: 'Rooms done', value: stat.done },
-              { label: 'Not reachable', value: stat.unreachable },
               { label: 'Rooms not finished', value: stat.open },
               { label: 'Damaged', value: stat.Damaged, warn: true },
               { label: 'Missing', value: stat.Missing, warn: true },
               { label: 'Worn', value: stat.Worn },
+              { label: 'Items not passed', value: stat.failedChecks, warn: true },
             ].map((x) => (
               <div key={x.label} className="rounded-lg bg-subtle/60 px-2 py-2">
                 <p className={x.warn && x.value ? 'text-h3 font-semibold text-error-fg tabular' : 'text-h3 font-semibold text-fg tabular'}>{x.value}</p>

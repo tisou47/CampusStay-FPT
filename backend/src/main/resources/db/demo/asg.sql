@@ -220,7 +220,7 @@ INSERT INTO asg_handover_item (handover_id, furniture_item_id, condition, note, 
                                verified_condition, pre_existing)
 SELECT ho.id, i.id,
        CASE h.scenario
-            WHEN 'S41' THEN CASE WHEN i.bed_id IS NOT NULL AND ft.code <> 'DESK' THEN 'GOOD' END
+            WHEN 'S41' THEN NULL -- still being filed by the student: nothing answered in advance
             WHEN 'S42' THEN CASE WHEN ft.code = 'WRD' THEN 'MISSING' WHEN i.bed_id IS NULL THEN 'WORN' ELSE 'GOOD' END
             WHEN 'S44' THEN CASE WHEN ft.code = 'DESK' THEN 'DAMAGED' ELSE 'GOOD' END
             ELSE 'GOOD' END,

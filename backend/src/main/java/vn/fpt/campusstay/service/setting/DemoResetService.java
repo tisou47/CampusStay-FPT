@@ -128,9 +128,10 @@ public class DemoResetService {
                     "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
                             + "residents receive (report 1, sent to the Managers) and rotated their door codes, and Term N+1's "
                             + "check-in opened three days ago: paid new residents received the door code that day with their "
-                            + "check-in inventory open (report 2, due at the end of the check-in period); inventories are not "
-                            + "filed yet, drafts, matching, waiting for Staff or checked in the Room. One Room waits for its "
-                            + "door code and its report 1 repair (D22)."));
+                            + "check-in inventory open (report 2, due at the end of the check-in period); inventories are open "
+                            + "with nothing filed (the students fill them in), matching, waiting for Staff or checked in the Room. "
+                            + "One Room waits for its door code and its report 1 repair (D22); a second report 1 run of Block A "
+                            + "has three Rooms left for staffa01 (D23)."));
 
     private final JdbcClient jdbc;
     private final JdbcTemplate template;

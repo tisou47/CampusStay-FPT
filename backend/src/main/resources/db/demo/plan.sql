@@ -390,9 +390,9 @@ FROM placed p LEFT JOIN named nm ON nm.student_id = p.student_id;
 -- Everyone in the Room of D8 waits for its door code; everyone in the Room of D9 has no inspection record.
 UPDATE demo_checkin c SET state = 'WAITING'
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8);
--- The Room of D9 was not reachable in report 1: everyone in it filed an inventory that became the record.
-UPDATE demo_checkin c SET state = 'NO_RECORD'
-WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9);
+-- Staff hold every Room's door code, so report 1 always covers the Room (no "not reachable"): D9 filed a matching
+-- inventory that is final.
+UPDATE demo_checkin SET state = 'MATCHED' WHERE state = 'NO_RECORD';
 -- Everyone in the three clean demo rooms (D1's room, S12's A-603, and the extra READY room in Block A) starts READY from scratch (no handover yet).
 UPDATE demo_checkin c SET state = 'READY'
 WHERE c.room_id IN (
@@ -409,6 +409,9 @@ UPDATE demo_checkin SET state = 'WAITING' WHERE scenario = 'S17';
 -- inventory is due at the end of the check-in period (x_ci_end), still ahead. Both are OPENED: code received, nothing
 -- filed yet; if still nothing is filed by x_ci_end, report 1 becomes the final report and Utility counts from the code.
 UPDATE demo_checkin SET state = 'OPENED' WHERE state IN ('READY', 'AUTO');
+-- A report 2 still being filed is the student's to fill in (user decision 25/11/2026): nothing is answered in advance,
+-- so every draft is an OPENED inventory with no answer and no meter reading.
+UPDATE demo_checkin SET state = 'OPENED' WHERE state = 'DRAFT';
 
 -- What the pre-arrival inspection found in those Rooms (read by asg.sql as the record and written by mnt.sql): most
 -- items Good, a few Worn or Damaged (already reported for repair), never charged to the new residents.

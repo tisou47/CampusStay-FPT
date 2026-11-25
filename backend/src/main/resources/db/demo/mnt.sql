@@ -214,18 +214,16 @@ JOIN inv_building b ON b.id = s.building_id
 JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
 WHERE t.stage = 'D' AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %';
 
--- Every Room was inspected on n_end + 1 or n_end + 2 (furniture and meters), except the Room of D9: not reachable,
--- so its new residents have no record to compare with.
+-- Every Room was inspected on n_end + 1 or n_end + 2 (furniture and meters): Staff hold every door code, so no Room is
+-- left "not reachable".
 INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
 SELECT ru.id, r.room_id,
-       CASE WHEN r.room_id = d9.room_id THEN 'UNREACHABLE' ELSE 'INSPECTED' END,
+       'INSPECTED',
        ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
            + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120),
-       CASE WHEN r.room_id IS DISTINCT FROM d9.room_id THEN m.e END,
-       CASE WHEN r.room_id IS DISTINCT FROM d9.room_id THEN m.w END,
+       m.e, m.w,
        ru.inspector_id
 FROM (SELECT DISTINCT room_id, building_id FROM demo_checkin) r CROSS JOIN demo_t t
-LEFT JOIN (SELECT room_id FROM demo_checkin WHERE named = 9 LIMIT 1) d9 ON TRUE
 JOIN mnt_inspection_run ru ON ru.building_id = r.building_id AND ru.run_date = t.n_end + 1
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_room_meter m ON m.room_id = r.room_id
@@ -316,6 +314,52 @@ SELECT r.furniture_item_id, 'REPAIR', r.code, 'Reported', left(r.title, 500), r.
        r.reported_at + interval '1 second'
 FROM mnt_request r JOIN mnt_inspection_room_check c ON c.created_request_id = r.id
 WHERE r.source = 'INSPECTION' AND r.furniture_item_id IS NOT NULL;
+
+-- ---------- check-in week (D): report 1 still being made (for the demo) ----------
+-- A second pre-arrival run of Block A, given to staffa01 today: five empty Rooms are prepared for the students placed
+-- next (Round 2, late arrivals). Two are inspected (every item Good, meters read); three are left for Staff to inspect
+-- during the demo (each item and the meters), then the run is sent; each saved Room shows in Final reports › Report 1
+-- and in Rooms and beds, and the Manager follows the run's progress (Inspection schedule).
+INSERT INTO mnt_inspection_schedule (building_id, name, checklist_family, scope, repeat, assignee_id, due_within_days,
+                                     create_requests, notify_residents, next_run_at, status, created_at, kind)
+SELECT b.id, 'Kiểm tra phòng trống trước khi xếp thêm · Tòa A', 'DEMO_TURNOVER', 'INCOMING', 'ONCE',
+       (SELECT id FROM demo_staff WHERE account = 'staffa01'), 2, TRUE, FALSE, NULL, 'ACTIVE',
+       t.now - interval '3 hours', 'PRE_ARRIVAL'
+FROM inv_building b CROSS JOIN demo_t t WHERE b.code = 'A' AND t.stage = 'D';
+
+INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
+                                created_at)
+SELECT s.id, s.building_id, c.id, t.today, ((t.today + 2) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       s.assignee_id, 'IN_PROGRESS', t.now - interval '3 hours'
+FROM mnt_inspection_schedule s CROSS JOIN demo_t t
+JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
+WHERE t.stage = 'D' AND s.name = 'Kiểm tra phòng trống trước khi xếp thêm · Tòa A';
+
+INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
+SELECT ru.id, x.room_id, CASE WHEN x.n <= 2 THEN 'INSPECTED' ELSE 'PENDING' END,
+       CASE WHEN x.n <= 2 THEN t.now - interval '2 hours' + interval '25 minutes' * x.n END,
+       CASE WHEN x.n <= 2 THEN m.e END, CASE WHEN x.n <= 2 THEN m.w END,
+       CASE WHEN x.n <= 2 THEN ru.inspector_id END
+FROM mnt_inspection_run ru JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+CROSS JOIN demo_t t
+CROSS JOIN LATERAL (
+    SELECT r.id AS room_id, row_number() OVER (ORDER BY r.code) AS n
+    FROM inv_room r JOIN inv_building b ON b.id = r.building_id
+    WHERE b.code = 'A' AND r.status = 'IN_SERVICE' AND r.code NOT IN ('A-509', 'A-803')
+      AND NOT EXISTS (SELECT 1 FROM inv_bed bd JOIN asg_allocation a ON a.bed_id = bd.id
+                      WHERE bd.room_id = r.id AND a.status = 'ACTIVE')
+      AND NOT EXISTS (SELECT 1 FROM demo_checkin c WHERE c.room_id = r.id)
+      AND EXISTS (SELECT 1 FROM inv_furniture_item f WHERE f.room_id = r.id AND f.status <> 'DISPOSED')
+    ORDER BY r.code LIMIT 5) x
+JOIN demo_room_meter m ON m.room_id = x.room_id
+WHERE s.name = 'Kiểm tra phòng trống trước khi xếp thêm · Tòa A';
+
+INSERT INTO mnt_inspection_room_check (inspection_room_id, check_key, result, condition)
+SELECT ir.id, 'FURNITURE:' || f.id, 'PASS', 'GOOD'
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name = 'Kiểm tra phòng trống trước khi xếp thêm · Tòa A'
+JOIN inv_furniture_item f ON f.room_id = ir.room_id AND f.status <> 'DISPOSED'
+WHERE ir.status = 'INSPECTED';
 
 -- ---------- open runs of the Block's first Staff (every stage) ----------
 -- Two weekly checks started by the Managers and assigned to staff<block>01, still in progress, so the Staff page lists

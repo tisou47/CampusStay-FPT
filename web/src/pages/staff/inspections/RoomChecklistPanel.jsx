@@ -121,11 +121,6 @@ export function RoomChecklistPanel({ run, room }) {
     },
   )
 
-  const unreachable = useMutation(() => api.inspections.unreachable(run.id, room.room), {
-    invalidates: ['inspections'],
-    onSuccess: () => notify({ title: t('{room} marked not reachable', { room: room.room }), message: 'It moves to the next run.' }),
-    onError: (e) => notifyError(e, 'Could not mark the room'),
-  })
   const addPhoto = useMutation(
     ({ itemId, file }) => {
       const data = new FormData()
@@ -163,11 +158,6 @@ export function RoomChecklistPanel({ run, room }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!done && room.status !== 'Not reachable' && (
-            <Button size="sm" disabled={unreachable.pending} onClick={() => unreachable.run()} tip="Nobody could open the Room: it moves to the next run.">
-              Not reachable
-            </Button>
-          )}
           <Button
             size="sm"
             icon={FileText}
