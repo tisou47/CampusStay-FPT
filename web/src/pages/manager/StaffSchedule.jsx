@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, RotateCcw, Send, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -11,8 +12,9 @@ import { SearchInput, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
+import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
-import { formatDateTime } from '@/lib/format'
+import { campusToday, formatDateTime } from '@/lib/format'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
 
@@ -20,8 +22,10 @@ import { t, tr } from '@/i18n'
 // GET /week-schedule/plan?block&week → { start, end, editable, nextWeek, staff: [{ id, name, title, blocks, shifts, planned }],
 //   sentBlocks, pendingBlocks, sentAt, sentBy, reminderDay, reminderHour }
 // PUT /week-schedule/plan/:staffId?week { shifts } · DELETE /week-schedule/plan/:staffId?week · POST /week-schedule/send { block }
-// A week not planned uses each person's default weekly shifts (Edit on Staff and workload). Planning next week never
-// changes this week; Staff see next week once it is sent.
+// GET /block-staff → items[].shifts (default weekly shifts) · PUT /block-staff/:id/shifts { shifts }.
+// The one place shifts are edited (user decision 25/11/2026): Week by week plans one week (it then keeps its own shifts),
+// Default weekly shifts is the pattern every week not planned on its own follows. Planning next week never changes this
+// week; Staff see next week once it is sent.
 
 /** Lower case without Vietnamese marks, so "dinh" finds "Đinh". */
 const fold = (s) => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
@@ -45,7 +49,7 @@ const dayMonth = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 const sortShifts = (list) => [...list].sort((a, b) => a.weekday - b.weekday || a.start.localeCompare(b.start))
 
 /** One person's shifts on one day: remove some, add a preset or custom hours, then save the person's week. */
-function DayModal({ person, weekday, date, onSave, saving, error, onClose }) {
+function DayModal({ person, weekday, date, onSave, saving, error, onClose, description = 'Only this week changes; the default weekly shifts stay as they are.' }) {
   const [list, setList] = useState(person.shifts.filter((s) => s.weekday === weekday))
   const [custom, setCustom] = useState({ start: '08:00', end: '17:00' })
   const add = (start, end) => {
@@ -58,8 +62,8 @@ function DayModal({ person, weekday, date, onSave, saving, error, onClose }) {
       open
       onClose={onClose}
       width={520}
-      title={t('{name} · {day} {date}', { name: person.name, day: t(DAYS[weekday - 1]), date: dayMonth(date) })}
-      description="Only this week changes; the default weekly shifts stay as they are."
+      title={date ? t('{name} · {day} {date}', { name: person.name, day: t(DAYS[weekday - 1]), date: dayMonth(date) }) : t('{name} · every {day}', { name: person.name, day: t(DAYS[weekday - 1]) })}
+      description={description}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -107,18 +111,122 @@ function DayModal({ person, weekday, date, onSave, saving, error, onClose }) {
   )
 }
 
+/** Monday of the current week on the campus clock, as 'YYYY-MM-DD'. */
+function thisMonday() {
+  const today = campusToday()
+  const weekday = new Date(`${today}T00:00:00Z`).getUTCDay() || 7
+  return addDays(today, 1 - weekday)
+}
+
+/** One row of the week grid: a person and their shifts per day; a day opens the editor. */
+function ShiftRow({ person, editable, start, badge, action, onEdit }) {
+  return (
+    <Tr>
+      <Td>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar name={person.name} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <TwoLine primary={person.name} secondary={`${t('Blocks {codes}', { codes: person.blocks.join(', ') })} · ${tr(person.title ?? 'Staff')}`} />
+            {badge}
+          </div>
+        </div>
+      </Td>
+      {DAYS.map((name, i) => {
+        const mine = person.shifts.filter((s) => s.weekday === i + 1)
+        return (
+          <Td key={name} className="p-1 align-top">
+            <button
+              type="button"
+              disabled={!editable}
+              onClick={() => onEdit(i + 1)}
+              aria-label={t('Edit {name} on {day}', { name: person.name, day: t(name) })}
+              className={cx('flex min-h-14 w-full flex-col items-start gap-1 rounded-md p-1.5 text-left', editable && 'hover:bg-subtle')}
+            >
+              {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
+              {mine.map((s) => (
+                <span key={s.start} className="rounded bg-primary-subtle px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-fg-brand tabular">
+                  {s.start}–{s.end}
+                </span>
+              ))}
+            </button>
+          </Td>
+        )
+      })}
+      <Td className="whitespace-nowrap">{action}</Td>
+    </Tr>
+  )
+}
+
+function GridHead({ start }) {
+  return (
+    <THead>
+      <tr>
+        <Th className="w-60">Staff</Th>
+        {DAYS.map((name, i) => (
+          <Th key={name}>
+            {start ? `${t(name)} ${dayMonth(addDays(start, i))}` : t(name)}
+          </Th>
+        ))}
+        <Th className="w-40">
+          <span className="sr-only">{t('Actions')}</span>
+        </Th>
+      </tr>
+    </THead>
+  )
+}
+
+/** The default weekly shifts: the pattern every week follows unless it is planned on its own. */
+function DefaultShifts({ block, needle }) {
+  const [editing, setEditing] = useState(null)
+  const query = useQuery(['block-staff', block], ({ signal }) => api.blockStaff.list({ block: block ?? undefined }, { signal }))
+  const staff = (query.data?.items ?? []).filter((p) => p.role === 'Staff').map((p) => ({ ...p, shifts: p.shifts ?? [] }))
+  const shown = needle ? staff.filter((p) => fold(p.name).includes(needle)) : staff
+  const save = useMutation(({ id, shifts }) => api.blockStaff.setShifts(id, { shifts }), {
+    invalidates: ['block-staff', 'week-schedule', 'me-duty'],
+    onSuccess: () => setEditing(null),
+    onError: () => {},
+  })
+  return (
+    <>
+      <Table fill className="min-h-[420px] shrink-0" tableClassName="table-fixed">
+        <GridHead />
+        <TBody>
+          <TableStatus query={query} rows={shown} colSpan={9} emptyIcon={CalendarDays} emptyTitle={needle ? 'No staff match this name' : 'No staff in these blocks'} />
+          {shown.map((p) => (
+            <ShiftRow key={p.id} person={p} editable onEdit={(weekday) => setEditing({ person: p, weekday })} />
+          ))}
+        </TBody>
+      </Table>
+      {editing && (
+        <DayModal
+          person={editing.person}
+          weekday={editing.weekday}
+          description="Every week that is not planned on its own uses this day. Weeks already planned keep their shifts."
+          saving={save.pending}
+          error={save.error}
+          onSave={(shifts) => save.run({ id: editing.person.id, shifts })}
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </>
+  )
+}
+
 export default function StaffSchedule() {
   const { block } = useSession()
   const { notify, notifyError } = useToast()
-  const [week, setWeek] = useState(null) // null = next week (the server's default)
+  const [params, setParams] = useSearchParams()
+  const view = params.get('view') === 'default' ? 'default' : 'week'
+  const [week, setWeek] = useState(() => (params.get('view') === 'this-week' ? thisMonday() : null)) // null = next week (the server's default)
   const [editing, setEditing] = useState(null)
-  const query = useQuery(['week-schedule', 'plan', block, week], ({ signal }) => api.weekSchedule.plan({ block: block ?? undefined, week: week ?? undefined }, { signal }))
+  const query = useQuery(['week-schedule', 'plan', block, week], ({ signal }) => api.weekSchedule.plan({ block: block ?? undefined, week: week ?? undefined }, { signal }), { enabled: view === 'week' })
   const d = query.data
   const start = d?.start
   const staff = d?.staff ?? []
   const [q, setQ] = useState('')
   const needle = fold(q.trim())
   const shown = needle ? staff.filter((p) => fold(p.name).includes(needle)) : staff
+  const current = thisMonday()
 
   const save = useMutation(({ id, shifts }) => api.weekSchedule.setWeek(id, start, { shifts }), {
     invalidates: ['week-schedule', 'block-staff', 'me-duty'],
@@ -143,6 +251,18 @@ export default function StaffSchedule() {
       onError: (e) => notifyError(e, 'Could not copy the week before'),
     },
   )
+  const resetAll = useMutation(
+    async () => {
+      const own = staff.filter((p) => p.planned)
+      for (const p of own) await api.weekSchedule.resetWeek(p.id, start)
+      return own.length
+    },
+    {
+      invalidates: ['week-schedule', 'block-staff', 'me-duty'],
+      onSuccess: (n) => notify({ title: t('{n} staff follow the default weekly shifts this week', { n }) }),
+      onError: (e) => notifyError(e, 'Could not reset the week'),
+    },
+  )
   const send = useMutation(() => api.weekSchedule.send({ block: block ?? undefined }), {
     invalidates: ['week-schedule'],
     onSuccess: (r) => notify({ title: t('Schedule sent to {n} staff', { n: r.notified }) }),
@@ -150,111 +270,121 @@ export default function StaffSchedule() {
   })
 
   const goTo = (offset) => setWeek(addDays(start, offset * 7))
+  const setView = (next) => setParams(next === 'default' ? { view: 'default' } : {}, { replace: true })
   const pending = d?.pendingBlocks?.length > 0
+  const planned = staff.filter((p) => p.planned).length
 
   return (
     <>
-      <PageHeader
-        title="Work schedule"
-      />
+      <PageHeader title="Work schedule" />
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <IconButton icon={ChevronLeft} variant="outline" aria-label={t('Previous week')} onClick={() => goTo(-1)} disabled={!d} />
-        <div className="flex items-center gap-2">
-          <CalendarDays size={18} aria-hidden="true" className="text-fg-brand" />
-          <span className="text-lg font-semibold text-fg tabular">{d ? `${dayMonth(d.start)} – ${dayMonth(d.end)}` : '—'}</span>
-          {d?.nextWeek && <Tag tone="brand">Next week</Tag>}
-          {d && !d.editable && <Tag>Past week · read only</Tag>}
-          {d && d.sentBlocks.length > 0 && <Tag tone="success">{t('Sent: Blocks {list}', { list: d.sentBlocks.join(', ') })}</Tag>}
-          {d && pending && <Tag tone="warning">{t('Not sent: Blocks {list}', { list: d.pendingBlocks.join(', ') })}</Tag>}
-        </div>
-        <IconButton icon={ChevronRight} variant="outline" aria-label={t('Next week')} onClick={() => goTo(1)} disabled={!d} />
-        <Button size="sm" variant="text" onClick={() => setWeek(null)} disabled={!d || d.nextWeek}>
-          Back to next week
-        </Button>
-        <div className="ml-auto flex gap-2">
-          <SearchInput wrapperClassName="w-64" aria-label={t('Search staff')} placeholder="Search staff name" value={q} onChange={(e) => setQ(e.target.value)} />
-          {d?.editable && (
-            <Button icon={Copy} onClick={() => copyPrevious.run()} disabled={copyPrevious.pending || staff.length === 0}>
-              Copy the week before
-            </Button>
-          )}
-          {d?.nextWeek && (
-            <Button variant="primary" icon={Send} onClick={() => send.run()} disabled={send.pending || staff.length === 0}>
-              {pending ? 'Send next week’s schedule' : 'Send again'}
-            </Button>
-          )}
-        </div>
-      </div>
-      {d?.nextWeek && d.sentAt && <p className="text-sm text-fg-secondary">{t('Sent by {by} on {at}.', { by: d.sentBy, at: formatDateTime(d.sentAt) })}</p>}
-      {d?.editable && !d.nextWeek && <p className="text-sm text-fg-secondary">{t('Changes to this week apply at once: in or out of shift follows them.')}</p>}
-
-      <Table fill className="min-h-[420px] shrink-0">
-        <THead>
-          <tr>
-            <Th className="sticky left-0 z-20 min-w-56 bg-subtle">Staff</Th>
-            {DAYS.map((name, i) => (
-              <Th key={name} className="min-w-32">
-                {d ? `${t(name)} ${dayMonth(addDays(d.start, i))}` : t(name)}
-              </Th>
-            ))}
-            <Th className="w-12">
-              <span className="sr-only">{t('Actions')}</span>
-            </Th>
-          </tr>
-        </THead>
-        <TBody>
-          <TableStatus query={query} rows={shown} colSpan={9} emptyIcon={CalendarDays} emptyTitle={needle ? 'No staff match this name' : 'No staff in these blocks'} />
-          {shown.map((p) => (
-            <Tr key={p.id}>
-              <Td className="sticky left-0 z-[1] bg-surface">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={p.name} />
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <TwoLine primary={p.name} secondary={`${tr(p.title ?? 'Staff')} · ${t('Blocks {codes}', { codes: p.blocks.join(', ') })}`} />
-                    <span>{p.planned ? <Tag tone="brand">Planned for this week</Tag> : <Tag>Default weekly shifts</Tag>}</span>
-                  </div>
-                </div>
-              </Td>
-              {DAYS.map((name, i) => {
-                const mine = p.shifts.filter((s) => s.weekday === i + 1)
-                return (
-                  <Td key={name} className="p-1 align-top">
-                    <button
-                      type="button"
-                      disabled={!d.editable}
-                      onClick={() => setEditing({ person: p, weekday: i + 1 })}
-                      aria-label={t('Edit {name} on {day}', { name: p.name, day: t(name) })}
-                      className={cx('flex min-h-14 w-full flex-col items-start gap-1 rounded-md p-1.5 text-left', d.editable && 'hover:bg-subtle')}
-                    >
-                      {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
-                      {mine.map((s) => (
-                        <span key={s.start} className="rounded bg-primary-subtle px-1.5 py-0.5 text-sm font-medium text-fg-brand tabular">
-                          {s.start}–{s.end}
-                        </span>
-                      ))}
-                    </button>
-                  </Td>
-                )
-              })}
-              <Td>
-                {d.editable && p.planned && (
-                  <IconButton icon={RotateCcw} aria-label={t('Use the default weekly shifts for this week')} onClick={() => reset.run(p.id)} disabled={reset.pending} />
-                )}
-              </Td>
-            </Tr>
-          ))}
-        </TBody>
-      </Table>
-      {editing && (
-        <DayModal
-          person={editing.person}
-          weekday={editing.weekday}
-          date={addDays(start, editing.weekday - 1)}
-          saving={save.pending}
-          error={save.error}
-          onSave={(shifts) => save.run({ id: editing.person.id, shifts })}
-          onClose={() => setEditing(null)}
+        <Segmented
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'week', label: 'Week by week' },
+            { value: 'default', label: 'Default weekly shifts' },
+          ]}
         />
+        <SearchInput wrapperClassName="ml-auto w-64" aria-label={t('Search staff')} placeholder="Search staff name" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+
+      {view === 'default' ? (
+        <>
+          <Alert type="info" title="The pattern every week repeats" className="shrink-0">
+            {t('A week that is not planned on its own follows these shifts. To change one week only (a day off, a swap), use Week by week: that week then keeps its own shifts.')}
+          </Alert>
+          <DefaultShifts block={block} needle={needle} />
+        </>
+      ) : (
+        <>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <IconButton icon={ChevronLeft} variant="outline" aria-label={t('Previous week')} onClick={() => goTo(-1)} disabled={!d} />
+            <div className="flex items-center gap-2">
+              <CalendarDays size={18} aria-hidden="true" className="text-fg-brand" />
+              <span className="text-lg font-semibold text-fg tabular">{d ? `${dayMonth(d.start)} – ${dayMonth(d.end)}` : '—'}</span>
+              {d?.start === current && <Tag tone="brand">This week</Tag>}
+              {d?.nextWeek && <Tag tone="brand">Next week</Tag>}
+              {d && !d.editable && <Tag>Past week · read only</Tag>}
+              {d && d.sentBlocks.length > 0 && <Tag tone="success">{t('Sent: Blocks {list}', { list: d.sentBlocks.join(', ') })}</Tag>}
+              {d && pending && <Tag tone="warning">{t('Not sent: Blocks {list}', { list: d.pendingBlocks.join(', ') })}</Tag>}
+            </div>
+            <IconButton icon={ChevronRight} variant="outline" aria-label={t('Next week')} onClick={() => goTo(1)} disabled={!d} />
+            <Button size="sm" variant="text" onClick={() => setWeek(current)} disabled={!d || d.start === current}>
+              This week
+            </Button>
+            <Button size="sm" variant="text" onClick={() => setWeek(null)} disabled={!d || d.nextWeek}>
+              Next week
+            </Button>
+            <div className="ml-auto flex gap-2">
+              {d?.editable && planned > 0 && (
+                <Button
+                  icon={RotateCcw}
+                  onClick={() => window.confirm(t('{n} staff have their own shifts this week. Put the whole week back on the default weekly shifts?', { n: planned })) && resetAll.run()}
+                  disabled={resetAll.pending}
+                >
+                  Whole week to default
+                </Button>
+              )}
+              {d?.editable && (
+                <Button icon={Copy} onClick={() => copyPrevious.run()} disabled={copyPrevious.pending || staff.length === 0}>
+                  Copy the week before
+                </Button>
+              )}
+              {d?.nextWeek && (
+                <Button variant="primary" icon={Send} onClick={() => send.run()} disabled={send.pending || staff.length === 0}>
+                  {pending ? 'Send next week’s schedule' : 'Send again'}
+                </Button>
+              )}
+            </div>
+          </div>
+          {d && (
+            <p className="shrink-0 text-sm text-fg-secondary">
+              {[
+                t('{n} of {total} staff have their own shifts this week; the others follow the default weekly shifts.', { n: planned, total: staff.length }),
+                d.editable ? (d.nextWeek ? t('Changing a day here changes this week only.') : t('Changing a day here changes this week only, at once: in or out of shift follows it.')) : null,
+                d.nextWeek && d.sentAt ? t('Sent by {by} on {at}.', { by: d.sentBy, at: formatDateTime(d.sentAt) }) : null,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            </p>
+          )}
+
+          <Table fill className="min-h-[420px] shrink-0" tableClassName="table-fixed">
+            <GridHead start={d?.start} />
+            <TBody>
+              <TableStatus query={query} rows={shown} colSpan={9} emptyIcon={CalendarDays} emptyTitle={needle ? 'No staff match this name' : 'No staff in these blocks'} />
+              {shown.map((p) => (
+                <ShiftRow
+                  key={p.id}
+                  person={p}
+                  editable={d.editable}
+                  onEdit={(weekday) => setEditing({ person: p, weekday })}
+                  badge={<span>{p.planned ? <Tag tone="warning">Own shifts this week</Tag> : <Tag>Follows the default shifts</Tag>}</span>}
+                  action={
+                    d.editable &&
+                    p.planned && (
+                      <Button size="sm" variant="text" icon={RotateCcw} iconSize={16} onClick={() => reset.run(p.id)} disabled={reset.pending} tip="This week follows the default weekly shifts again.">
+                        Use default
+                      </Button>
+                    )
+                  }
+                />
+              ))}
+            </TBody>
+          </Table>
+          {editing && (
+            <DayModal
+              person={editing.person}
+              weekday={editing.weekday}
+              date={addDays(start, editing.weekday - 1)}
+              saving={save.pending}
+              error={save.error}
+              onSave={(shifts) => save.run({ id: editing.person.id, shifts })}
+              onClose={() => setEditing(null)}
+            />
+          )}
+        </>
       )}
     </>
   )
