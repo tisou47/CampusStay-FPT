@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { Ban, Building, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Eye, EyeOff, KeyRound, Package, SearchX, Wrench } from 'lucide-react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Ban, Building, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Package, SearchX, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -10,15 +10,15 @@ import { Alert, Note } from '@/components/ui/Display'
 import { Field, FilterSelect, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
-import { StatusTag, Tag } from '@/components/ui/Tag'
+import { Tag } from '@/components/ui/Tag'
 import { InfoTip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
-import { countLines, typeName } from '@/lib/furniture'
+import { countLines } from '@/lib/furniture'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { saveXlsx } from '@/lib/xlsx'
 import { inventoryWorkbook } from './inventoryWorkbook'
-import { SetCodeModal } from './DoorCodes'
+import { DoorCodeButton } from './inventory/DoorCodeButton'
 import { t, tr } from '@/i18n'
 
 // SCR-INV-10 Room and Bed Inventory (Figma 37:2075). Shared with the Manager portal.
@@ -225,7 +225,7 @@ function Metric({ label, value, className }) {
  * states below, each with how many beds of the floor are in it and a checkbox that shows or hides the rooms holding
  * such beds. The button says how many states are shown and turns orange while some are hidden.
  */
-function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, shown, onToggle }) {
+function FloorOverview({ floors, floor, onPick, title, floorClass, rooms, summary, counts, shown, onToggle }) {
   const beds = summary?.beds ?? 0
   const pct = (n) => (beds > 0 ? (n / beds) * 100 : 0)
   const count = (states) => rooms.reduce((a, r) => a + r.beds.filter((b) => states.includes(b.state)).length, 0)
@@ -253,53 +253,61 @@ function FloorOverview({ floors, floor, onPick, title, rooms, summary, counts, s
   const filtered = shown.size < STATES.length
   return (
     <section aria-label={title} className="shrink-0 rounded-lg border border-line bg-surface px-5 py-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        {floors.length > 0 && <FloorTabs floors={floors} floor={floor} onPick={onPick} />}
-        <div className="flex min-w-0 flex-1 flex-wrap items-end gap-x-6 gap-y-3 max-[720px]:w-full">
-            <div className="flex min-w-48 flex-1 flex-col gap-1.5">
-              <div className="flex items-baseline justify-between gap-3 text-sm whitespace-nowrap">
-                <span className="font-medium text-fg-secondary">{title}</span>
-                {summary && <span className="font-semibold text-fg tabular">{Math.round(pct(summary.allocated))}%</span>}
-              </div>
-              <div
-                role="img"
-                aria-label={summary ? t('{allocated} of {beds} beds allocated', { allocated: formatNumber(summary.allocated), beds: formatNumber(beds) }) : undefined}
-                className="flex h-1.5 overflow-hidden rounded-full bg-subtle"
-              >
-                {summary && segments.map((s) => (s.value > 0 ? <span key={s.key} className={cx('h-full', s.fill)} style={{ width: `${pct(s.value)}%` }} /> : null))}
-              </div>
-              <span className="text-sm whitespace-nowrap text-fg-tertiary tabular">
-                {summary
-                  ? t('{beds} beds · {allocated} allocated · {available} available', {
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          {floors.length > 0 && <FloorTabs floors={floors} floor={floor} onPick={onPick} />}
+          {(floorClass || summary) && (
+            <div className="flex flex-wrap items-center gap-2.5 pl-12 text-sm max-[560px]:pl-0">
+              {floorClass && (
+                <span className="inline-flex items-center rounded-md bg-primary-subtle px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-fg-brand">
+                  {floorClass}
+                </span>
+              )}
+              {summary && (
+                <>
+                  <div
+                    role="img"
+                    aria-label={t('{allocated} of {beds} beds allocated', { allocated: formatNumber(summary.allocated), beds: formatNumber(beds) })}
+                    className="flex h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-subtle"
+                  >
+                    {segments.map((s) => (s.value > 0 ? <span key={s.key} className={cx('h-full', s.fill)} style={{ width: `${pct(s.value)}%` }} /> : null))}
+                  </div>
+                  <span className="font-semibold whitespace-nowrap text-fg tabular">{Math.round(pct(summary.allocated))}%</span>
+                  <span className="whitespace-nowrap text-fg-tertiary tabular">
+                    {t('{beds} beds · {allocated} allocated · {available} available', {
                       beds: formatNumber(summary.beds),
                       allocated: formatNumber(summary.allocated),
                       available: formatNumber(summary.available),
-                    })
-                  : ' '}
-              </span>
+                    })}
+                  </span>
+                </>
+              )}
             </div>
-            <dl className="flex gap-6">
-              <Metric label="Allocated" value={summary?.allocated ?? 0} className="text-fg" />
-              <Metric label="Available" value={summary?.available ?? 0} className="text-success-fg" />
-              <Metric label="Out of service" value={summary?.outOfService ?? 0} className={summary?.outOfService ? 'text-error-fg' : 'text-fg-tertiary'} />
-            </dl>
-        </div>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="inventory-room-status"
-          onClick={() => setOpen(!open)}
-          className={cx(
-            'flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-3 text-base font-medium whitespace-nowrap',
-            ease,
-            ring,
-            filtered ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line text-fg hover:bg-subtle',
           )}
-        >
-          {t('Room status')}
-          <span className={cx('text-sm tabular', filtered ? 'text-fg-brand' : 'text-fg-tertiary')}>{t('{n} of {total}', { n: shown.size, total: STATES.length })}</span>
-          <ChevronDown size={16} aria-hidden="true" className={cx('transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-180')} />
-        </button>
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
+          <dl className="flex gap-6">
+            <Metric label="Allocated" value={summary?.allocated ?? 0} className="text-fg" />
+            <Metric label="Available" value={summary?.available ?? 0} className="text-success-fg" />
+            <Metric label="Out of service" value={summary?.outOfService ?? 0} className={summary?.outOfService ? 'text-error-fg' : 'text-fg-tertiary'} />
+          </dl>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="inventory-room-status"
+            onClick={() => setOpen(!open)}
+            className={cx(
+              'flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-3 text-base font-medium whitespace-nowrap',
+              ease,
+              ring,
+              filtered ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line text-fg hover:bg-subtle',
+            )}
+          >
+            {t('Room status')}
+            <span className={cx('text-sm tabular', filtered ? 'text-fg-brand' : 'text-fg-tertiary')}>{t('{n} of {total}', { n: shown.size, total: STATES.length })}</span>
+            <ChevronDown size={16} aria-hidden="true" className={cx('transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-180')} />
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -354,15 +362,19 @@ const useRoomDetails = (room, termId) =>
   useQuery(['inventory', 'details', room.code, termId], ({ signal }) => api.inventory.details(room.code, { termId }, { signal }))
 
 /** The selected room: its links, facts, beds, door code, furniture and operations. */
-function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMaintenance }) {
+function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMaintenance, backTo }) {
   const base = useRoleBase()
   const navigate = useNavigate()
   const { notify, notifyError } = useToast()
   const details = useRoomDetails(room, termId)
   const d = details.data
-  // Door code changes happen here, in the same modal as the Door codes page; it refreshes both screens.
-  const [changingCode, setChangingCode] = useState(false)
-  const back =useMutation(() => api.inventory.backInService(room.code), {
+  // Furniture: green when the room matches its class and every item is in use; the button's title says what is off.
+  const c = d?.conformance
+  const furnitureOk = Boolean(d) && c?.status === 'Matches' && d.furniture.every((f) => f.status === 'In use')
+  const furnitureNote = c
+    ? [c.missing.length ? t('Missing: {items}', { items: countLines(c.missing) }) : null, c.extra.length ? t('Remove: {items}', { items: countLines(c.extra) }) : null].filter(Boolean).join(' · ')
+    : ''
+  const back = useMutation(() => api.inventory.backInService(room.code), {
     invalidates: ['inventory', 'dashboard'],
     onSuccess: () => notify({ title: t('Room {code} is back in service', { code: room.code }), message: t('{n} beds can be allocated again.', { n: room.capacity }) }),
     onError: (e) => notifyError(e, 'Could not update the room'),
@@ -388,26 +400,33 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
             <IconButton icon={ChevronRight} variant="outline" aria-label={t('Next room')} tip="Next room" disabled={!next} onClick={() => onStep(next)} />
           </div>
         </div>
-        {/* Three fixed slots: the door code button stays (disabled until the details say the room has one), so the
-            profile does not jump when another room is picked. */}
+        {/* Three fixed slots, one place per action: the room hub, the room's furniture (its own page, with a way back
+            to this room) and the door code (seen and changed in its popover). */}
         <div className="grid grid-cols-3 gap-2 max-[720px]:grid-cols-1">
-          <Button variant="primary" size="lg" block className="justify-center px-3" onClick={() => navigate(`${base}/rooms/${room.code}`)}>
-            Room hub
-          </Button>
-          <Button icon={Package} size="lg" block className="justify-center px-3" onClick={() => navigate(`${base}/furniture?room=${room.code}`)}>
-            Furniture
-          </Button>
           <Button
-            icon={KeyRound}
+            variant="primary"
             size="lg"
             block
             className="justify-center px-3"
-            disabled={!d?.doorCode}
-            title={d && !d.doorCode ? t('This room has no door code.') : undefined}
-            onClick={() => setChangingCode(true)}
+            onClick={() => navigate(`${base}/rooms/${room.code}?back=${encodeURIComponent(backTo)}`, { state: { fromInventory: true } })}
           >
-            Set new code
+            Room hub
           </Button>
+          <Button
+            icon={Package}
+            size="lg"
+            block
+            className="justify-center px-3"
+            title={furnitureNote || undefined}
+            onClick={() => navigate(`${base}/furniture?room=${room.code}&from=inventory&back=${encodeURIComponent(backTo)}`, { state: { fromInventory: true } })}
+          >
+            <span className="flex items-center gap-2">
+              {d ? t('Furniture · {n} items', { n: d.furniture.length }) : t('Furniture')}
+              {d && <span aria-hidden="true" className={cx('size-2 rounded-full', furnitureOk ? 'bg-success' : 'bg-accent')} />}
+              {d && <span className="sr-only">{furnitureOk ? t('Matches') : t('Needs attention')}</span>}
+            </span>
+          </Button>
+          <DoorCodeButton key={room.code} room={room.code} door={d?.doorCode} loading={!d} />
         </div>
       </header>
 
@@ -475,9 +494,6 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
         </ul>
       </Section>
 
-      <DoorCodeSection key={room.code} room={room} details={details} />
-      <FurnitureSection details={details} />
-
       <Section id="inventory-operations" title="Operations">
         <div className="flex flex-wrap gap-2">
           <Button icon={Wrench} onClick={onMaintenance}>
@@ -495,127 +511,7 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
         </div>
         {!oos && allocated > 0 && <Note>{t('Move the {n} residents before you set this room out of service.', { n: allocated })}</Note>}
       </Section>
-      {changingCode && <SetCodeModal room={{ room: room.code }} onClose={() => setChangingCode(false)} />}
     </article>
-  )
-}
-
-/** The door code: its state, a hidden code that Show code reveals (written to the Audit Log), hidden again per room. */
-function DoorCodeSection({ room, details }) {
-  const { notify, notifyError } = useToast()
-  const [codes, setCodes] = useState(null)
-  const reveal = useMutation(() => api.doorCodes.reveal(room.code), {
-    onSuccess: setCodes,
-    onError: (e) => notifyError(e, 'Could not show the code'),
-  })
-  // A new code proposed earlier (here or on the Door codes page) is confirmed here once it is on the lock.
-  const confirm = useMutation(() => api.doorCodes.confirm(room.code), {
-    invalidates: ['door-codes', 'inventory'],
-    onSuccess: () => {
-      setCodes(null)
-      notify({ title: t('Door code of Room {code} changed', { code: room.code }), message: 'Its residents are told that the code changed (never the code itself).' })
-    },
-    onError: (e) => notifyError(e, 'Could not change the door code'),
-  })
-  const d = details.data
-  const door = d?.doorCode
-  const canReveal = door && (door.status === 'Active' || door.proposed)
-  return (
-    <Section
-      id="inventory-door"
-      title="Door code"
-      aside={
-        <>
-          {door && <StatusTag status={door.status} />}
-          {door?.proposed && (
-            <Tag tone="info" dot={false}>
-              New code waiting
-            </Tag>
-          )}
-        </>
-      }
-    >
-      {!d ? (
-        <div aria-busy="true" className="h-10 animate-pulse rounded-lg bg-subtle motion-reduce:animate-none" />
-      ) : door ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="flex flex-col">
-            <span aria-live="polite" className="font-mono text-h1 font-semibold tracking-[0.3em] whitespace-nowrap text-fg tabular">
-              {codes ? (codes.active ?? '—') : '••••••'}
-            </span>
-            {codes?.proposed && <span className="text-sm text-fg-tertiary">{t('New code: {code}', { code: codes.proposed })}</span>}
-          </span>
-          <span className="flex flex-wrap gap-2">
-            {canReveal &&
-              (codes ? (
-                <Button icon={EyeOff} onClick={() => setCodes(null)}>
-                  Hide code
-                </Button>
-              ) : (
-                <Button icon={Eye} tip="Show the current code. Every view is written to the audit log." onClick={() => reveal.run()} disabled={reveal.pending}>
-                  Show code
-                </Button>
-              ))}
-            {door.proposed && (
-              <Button variant="primary" icon={Check} onClick={() => confirm.run()} disabled={confirm.pending}>
-                The lock uses this code
-              </Button>
-            )}
-          </span>
-        </div>
-      ) : (
-        <p className="text-base text-fg-tertiary">{t('This room has no door code.')}</p>
-      )}
-    </Section>
-  )
-}
-
-/** Furniture and its conformance (spec §11.3 "Room"), folded behind Show details. */
-function FurnitureSection({ details }) {
-  const [open, setOpen] = useState(false)
-  const d = details.data
-  if (!d)
-    return (
-      <section aria-busy="true" className="border-t border-line pt-5">
-        <div className="h-16 animate-pulse rounded-lg bg-subtle motion-reduce:animate-none" />
-      </section>
-    )
-  const c = d.conformance
-  const inUse = d.furniture.filter((f) => f.status === 'In use').length
-  return (
-    <Section
-      id="inventory-furniture"
-      title="Furniture"
-      aside={
-        <>
-          <StatusTag status={c.status} />
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            className={cx('ml-auto flex h-7 cursor-pointer items-center gap-1 rounded-md px-2 text-base font-medium whitespace-nowrap text-fg-brand hover:bg-primary-subtle', ease, ring)}
-          >
-            {open ? t('Hide') : t('Show details')}
-            <ChevronDown size={16} aria-hidden="true" className={cx('transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-180')} />
-          </button>
-        </>
-      }
-    >
-      <p className="text-base text-fg-secondary">{d.furniture.length ? t('{n} items · {inUse} in use', { n: d.furniture.length, inUse }) : t('No furniture recorded in this room.')}</p>
-      {c.missing.length > 0 && <p className="text-base text-error-fg">{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
-      {c.extra.length > 0 && <p className="text-base text-fg-secondary">{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
-      {open && d.furniture.length > 0 && (
-        <ul className="flex flex-col divide-y divide-line rounded-lg border border-line px-3" aria-label={t('Furniture')}>
-          {d.furniture.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 py-2 text-base">
-              <span className="shrink-0 font-medium text-fg tabular">{f.assetCode}</span>
-              <span className="min-w-0 flex-1 text-fg-secondary">{typeName(f)}</span>
-              <StatusTag status={f.status} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
   )
 }
 
@@ -662,15 +558,21 @@ export default function Inventory() {
   const { notifyError } = useToast()
   const base = useRoleBase()
   const navigate = useNavigate()
-  const [params] = useSearchParams()
+  const location = useLocation()
+  const [params, setParams] = useSearchParams()
   const structure = useQuery(['inventory', 'structure', scopeBlock], ({ signal }) => api.inventory.structure({ block: scopeBlock ?? undefined }, { signal }))
   const blocks = structure.data?.blocks ?? []
   const [block, setBlock] = useState(null)
   const [floor, setFloor] = useState(null)
   const [selected, setSelected] = useState(params.get('room'))
   const [settingOos, setSettingOos] = useState(false)
-  const [search, setSearch] = useState('')
-  const [shown, setShown] = useState(() => new Set(STATES))
+  // The page's state lives in the URL too (?block&floor&room&hide&q), so Back, a reload or a shared link (and the
+  // way back from a room's Furniture) open the same floor, room, statuses and search.
+  const [search, setSearch] = useState(() => params.get('q') ?? '')
+  const [shown, setShown] = useState(() => {
+    const hidden = (params.get('hide') ?? '').split(',')
+    return new Set(STATES.filter((s) => !hidden.includes(s)))
+  })
   const rowRefs = useRef({})
 
   // Deep link (?room=A-0712) opens that Room's Block and floor; otherwise the first Block and floor. A Block that left
@@ -725,6 +627,31 @@ export default function Inventory() {
   const visible = q ? found.flatMap((f) => f.rooms) : rooms.filter(passes)
   const room = visible.find((r) => r.code === selected) ?? visible.find((r) => r.outOfService) ?? visible[0]
   const at = room ? visible.indexOf(room) : -1
+
+  // Mirror the state into the URL (replace: picking rooms does not fill the history), once the floor is known.
+  const ready = Boolean(block && floor != null && floorQuery.data)
+  const wanted = new URLSearchParams()
+  if (block) wanted.set('block', block)
+  if (floor != null) wanted.set('floor', String(floor))
+  if (room) wanted.set('room', room.code)
+  if (shown.size < STATES.length) wanted.set('hide', STATES.filter((s) => !shown.has(s)).join(','))
+  if (search.trim()) wanted.set('q', search.trim())
+  const wantedText = wanted.toString()
+  // Only while this page is the one on screen: during a move to another (lazy) page the URL already is that page's.
+  const ownPath = useRef(location.pathname)
+  const here = location.pathname === ownPath.current
+  useEffect(() => {
+    if (here && ready && wantedText !== params.toString()) setParams(new URLSearchParams(wantedText), { replace: true })
+  }, [here, ready, wantedText, params, setParams])
+  const backTo = `${location.pathname}?${wantedText}`
+
+  // Coming back (Back, or the Furniture page's way back): the selected room is scrolled into view once.
+  const scrolled = useRef(false)
+  useEffect(() => {
+    if (scrolled.current || !room || !ready) return
+    scrolled.current = true
+    rowRefs.current[room.code]?.scrollIntoView({ block: 'nearest' })
+  }, [room, ready])
 
   const goFloor = (f) => {
     setFloor(f)
@@ -816,7 +743,18 @@ export default function Inventory() {
         </div>
       </div>
 
-      <FloorOverview floors={floors} floor={floor} onPick={goFloor} title={title} rooms={rooms} summary={summary} counts={counts} shown={shown} onToggle={toggle} />
+      <FloorOverview
+        floors={floors}
+        floor={floor}
+        onPick={goFloor}
+        title={title}
+        floorClass={floorClasses(floorQuery.data)}
+        rooms={rooms}
+        summary={summary}
+        counts={counts}
+        shown={shown}
+        onToggle={toggle}
+      />
 
       <div className="flex shrink-0 flex-col gap-4 xl:min-h-0 xl:flex-1 xl:shrink xl:flex-row xl:items-start">
         <section
@@ -866,7 +804,8 @@ export default function Inventory() {
               next={visible[at + 1]}
               onStep={step}
               onSetOutOfService={() => setSettingOos(true)}
-              onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}`)}
+              onMaintenance={() => navigate(`${base}/maintenance?room=${room.code}&from=inventory&back=${encodeURIComponent(backTo)}`, { state: { fromInventory: true } })}
+              backTo={backTo}
             />
           </div>
         )}

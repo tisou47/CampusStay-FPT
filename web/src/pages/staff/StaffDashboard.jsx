@@ -415,17 +415,17 @@ export default function StaffDashboard() {
   const floorQuery = !oneBlock ? dash : structure.data === undefined ? structure : floorList.length ? floorData : structure
 
   return (
-    <div className="flex flex-col gap-5.5">
-      {/* 1. Greeting and shift */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-2">
-          <h1 className="text-[34px] leading-tight font-extrabold tracking-tight text-fg">{greeting(user?.name)}</h1>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-base text-fg-secondary">
+    <>
+      {/* 1. Greeting and shift (the page fills one screen: the queue and today's schedule scroll inside their cards) */}
+      <div className="flex shrink-0 flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h1 className="text-h1 font-semibold text-fg">{greeting(user?.name)}</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-fg-secondary">
             <span>
               {[formatWeekdayDate(now), oneBlock ? t('Block {code}', { code: oneBlock }) : blocks.length ? t('Blocks: {list}', { list: blocks.join(', ') }) : null].filter(Boolean).join(' · ')}
             </span>
             {me.loading && !me.data ? (
-              <Skeleton className="h-6 w-56 rounded-full" />
+              <Skeleton className="h-5 w-48 rounded-full" />
             ) : (
               pill && (
                 <ShiftPill tone={pill.tone} title={t(me.data.onDuty ? 'On duty' : 'Off duty')}>
@@ -435,14 +435,26 @@ export default function StaffDashboard() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="lg" icon={LogOut} to="/staff/check-out" className="h-12! px-5">
-            Check-out
-          </Button>
-          <Button size="lg" variant="primary" icon={LogIn} to="/staff/check-in" className="h-12! px-5">
-            Check-in
-          </Button>
-        </div>
+        {/* The person's last seven days, on one line beside the greeting */}
+        <section aria-labelledby="staff-stats" className={cx(CARD, 'flex min-w-0 flex-col gap-1 px-4 py-2')}>
+          <h2 id="staff-stats" className="text-sm font-semibold whitespace-nowrap text-fg">
+            {t('Your performance')} <span className="font-normal text-fg-tertiary">· {t('last 7 days')}</span>
+          </h2>
+          {me.data === undefined && me.error ? (
+            <Button size="sm" onClick={me.reload}>
+              {t('Retry')}
+            </Button>
+          ) : me.data === undefined ? (
+            <Skeleton className="h-5 w-72" />
+          ) : (
+            <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+              <Stat label="Requests resolved" value={formatNumber(me.data.resolved7d)} />
+              <Stat label="On time" missing />
+              <Stat label="Average handling time" missing />
+              <Stat label="Most common issues" missing />
+            </dl>
+          )}
+        </section>
       </div>
 
       <StaleNotice query={dash} />
@@ -459,41 +471,40 @@ export default function StaffDashboard() {
       )}
 
       {/* 3. What needs handling: each tile filters the queue */}
-      <div role="group" aria-label={t('Filter the work queue')} className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]">
+      <div role="group" aria-label={t('Filter the work queue')} className="grid shrink-0 grid-cols-2 gap-3 min-[720px]:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]">
         {tiles.map(({ key, ...tile }) => (
           <Tile key={key} {...tile} loading={queueLoading} pressed={filter === key} onToggle={() => toggle(key)} />
         ))}
       </div>
 
-      {/* 4. The queue, and today beside it */}
-      <div className="flex flex-wrap items-start gap-5.5">
+      {/* 4. The queue, and today beside it: both fill the rest of the screen and scroll inside */}
+      <div className="grid min-h-[34rem] flex-1 shrink-0 grid-cols-1 lg:min-h-64 lg:shrink gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:grid-rows-[minmax(0,1fr)]">
         <Section
-          className="min-w-0 flex-[1_1_560px]"
+          scroll
+          className="max-lg:max-h-[36rem]"
           title="Work to do"
           subtitle={t('{n} tasks · sorted by due time', { n: formatNumber(visible.length) })}
+          aside={filter && <FilterChip label={FILTERS[filter].label} onClear={() => setFilter(null)} />}
         >
-          <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-fg-tertiary">
-              {me.data
-                ? t('In your charge: {assigned} · {resolved} resolved in 7 days', { assigned: formatNumber(myTotal), resolved: formatNumber(me.data.resolved7d) })
-                : t('Requests in your charge')}
-            </p>
-            {filter && <FilterChip label={FILTERS[filter].label} onClear={() => setFilter(null)} />}
-          </div>
+          <p className="-mt-1 text-sm text-fg-tertiary">
+            {me.data
+              ? t('In your charge: {assigned} · {resolved} resolved in 7 days', { assigned: formatNumber(myTotal), resolved: formatNumber(me.data.resolved7d) })
+              : t('Requests in your charge')}
+          </p>
           <Block query={me.data ? (mine.data === undefined && mine.error ? mine : unassigned) : me} rows={4}>
             <Queue
               groups={groups}
               empty={
                 filter ? (
-                  <EmptyBlock icon={CircleCheck} title="Nothing left in this list." className="py-8" />
+                  <EmptyBlock icon={CircleCheck} title="Nothing left in this list." className="py-6" />
                 ) : (
                   <EmptyBlock
                     icon={CircleCheck}
                     title="You have nothing to do. Nice work!"
-                    className="py-8"
+                    className="py-6"
                     action={
                       freeTotal > 0 ? (
-                        <Button variant="primary" onClick={() => setFilter('unassigned')}>
+                        <Button variant="primary" size="sm" onClick={() => setFilter('unassigned')}>
                           {t('View unassigned ({n})', { n: freeTotal })}
                         </Button>
                       ) : undefined
@@ -505,79 +516,55 @@ export default function StaffDashboard() {
               }
             />
             {moreThanShown && (
-              <Button variant="text" to="/staff/maintenance" className="self-start">
+              <Button variant="text" size="sm" to="/staff/maintenance" className="self-start">
                 {t('See all {n} in the maintenance queue', { n: formatNumber(filter === 'mine' ? myTotal : freeTotal) })}
               </Button>
             )}
           </Block>
         </Section>
 
-        <div className="@container flex min-w-0 flex-[1_1_360px] min-[1100px]:max-w-[460px]">
-          <div className="grid w-full items-start gap-5.5 @min-[720px]:grid-cols-2">
-            <Section title="Today's schedule" link={{ to: '/staff/schedule', label: 'Work schedule' }}>
-              <Block query={me} rows={4}>
-                {timeline.length ? (
-                  <Timeline entries={timelineEntries} />
-                ) : (
-                  <EmptyBlock icon={CircleCheck} title="Nothing scheduled today" className="py-6" />
-                )}
-                <p className="text-sm text-fg-tertiary">{t('Check-in appointments by the hour: no data yet.')}</p>
-              </Block>
-            </Section>
+        <div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-hidden">
+          <Section scroll className="min-h-36 flex-1 max-lg:max-h-80" title="Today's schedule" link={{ to: '/staff/schedule', label: 'Work schedule' }}>
+            <Block query={me} rows={3}>
+              {timeline.length ? <Timeline entries={timelineEntries} /> : <EmptyBlock icon={CircleCheck} title="Nothing scheduled today" className="py-3" />}
+              <p className="text-sm text-fg-tertiary">{t('Check-in appointments by the hour: no data yet.')}</p>
+            </Block>
+          </Section>
 
-            {oneBlock ? (
-              <Section title={t('Block {code} today', { code: oneBlock })} link={{ to: '/staff/inventory', label: 'Rooms and beds' }}>
-                <Block query={floorQuery} rows={5}>
-                  {floors.length ? (
-                    <>
-                      <p className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="text-[40px] leading-none font-extrabold text-fg-brand tabular">{bedsTotal ? Math.round((bedsUsed / bedsTotal) * 100) : 0}%</span>
-                        <span className="text-base text-fg-secondary">{t('of beds given out')}</span>
-                      </p>
-                      <p className="-mt-2 text-sm text-fg-tertiary">
-                        {[t('{used} of {total} beds taken', { used: formatNumber(bedsUsed), total: formatNumber(bedsTotal) }), d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null]
+          {oneBlock ? (
+            <Section scroll className="min-h-52 flex-[1.5] max-lg:max-h-96" title={t('Block {code} today', { code: oneBlock })} link={{ to: '/staff/inventory', label: 'Rooms and beds' }}>
+              <Block query={floorQuery} rows={4}>
+                {floors.length ? (
+                  <>
+                    <p className="-mt-1 flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-h2 font-semibold text-fg-brand tabular">{bedsTotal ? Math.round((bedsUsed / bedsTotal) * 100) : 0}%</span>
+                      <span className="text-sm text-fg-secondary">
+                        {[t('of beds given out'), t('{used} of {total} beds taken', { used: formatNumber(bedsUsed), total: formatNumber(bedsTotal) }), d?.kpis?.roomsOutOfService ? t('{n} rooms out of service', { n: d.kpis.roomsOutOfService }) : null]
                           .filter(Boolean)
                           .join(' · ')}
-                      </p>
-                      <FloorBars floors={floors} />
-                    </>
-                  ) : (
-                    <EmptyBlock icon={Building} title="No data yet" className="py-6" />
-                  )}
-                </Block>
-              </Section>
-            ) : (
-              <Section title="Your blocks today" link={{ to: '/staff/inventory', label: 'Rooms and beds' }}>
-                <Block query={dash} rows={3}>
-                  {(d?.bedsByBlock?.length ?? 0) > 0 ? (
-                    <CapacityRows rows={d.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />
-                  ) : (
-                    <EmptyBlock icon={Building} title="No data yet" className="py-6" />
-                  )}
-                  {d?.kpis?.roomsOutOfService ? <p className="text-sm text-fg-tertiary">{t('{n} rooms out of service', { n: d.kpis.roomsOutOfService })}</p> : null}
-                </Block>
-              </Section>
-            )}
-          </div>
+                      </span>
+                    </p>
+                    <FloorBars floors={floors} />
+                  </>
+                ) : (
+                  <EmptyBlock icon={Building} title="No data yet" className="py-3" />
+                )}
+              </Block>
+            </Section>
+          ) : (
+            <Section scroll className="max-h-[22rem] shrink-0" title="Your blocks today" link={{ to: '/staff/inventory', label: 'Rooms and beds' }}>
+              <Block query={dash} rows={3}>
+                {(d?.bedsByBlock?.length ?? 0) > 0 ? (
+                  <CapacityRows rows={d.bedsByBlock.map((b) => ({ name: t('Block {code}', { code: b.block }), used: b.proposed, total: b.capacity }))} />
+                ) : (
+                  <EmptyBlock icon={Building} title="No data yet" className="py-3" />
+                )}
+                {d?.kpis?.roomsOutOfService ? <p className="text-sm text-fg-tertiary">{t('{n} rooms out of service', { n: d.kpis.roomsOutOfService })}</p> : null}
+              </Block>
+            </Section>
+          )}
         </div>
       </div>
-
-      {/* 5. The person's last seven days */}
-      <section aria-labelledby="staff-stats" className={cx(CARD, 'flex flex-col gap-3 px-5 py-4')}>
-        <h2 id="staff-stats" className="text-base font-bold text-fg">
-          {t('Your performance')} <span className="font-normal text-fg-tertiary">· {t('last 7 days')}</span>
-        </h2>
-        <Block query={me} rows={1}>
-          <dl className="flex flex-wrap gap-x-8 gap-y-4">
-            <Stat label="Requests resolved" value={formatNumber(me.data?.resolved7d)}>
-              <span className="pb-1 text-sm text-fg-tertiary">{t('By day: no data yet')}</span>
-            </Stat>
-            <Stat label="On time" missing />
-            <Stat label="Average handling time" missing />
-            <Stat label="Most common issues" missing />
-          </dl>
-        </Block>
-      </section>
-    </div>
+    </>
   )
 }

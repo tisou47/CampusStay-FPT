@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { Download, Wrench } from 'lucide-react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { ArrowLeft, Download, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -41,8 +41,11 @@ const tabFilters = {
 export default function MaintenanceQueue() {
   const atManager = useRoleBase() === '/manager'
   const navigate = useNavigate()
+  const location = useLocation()
   const base = useRoleBase()
   const [params, setParams] = useSearchParams()
+  // Opened from a room of Rooms and beds (?from=inventory&back=…): a way back to that floor, room, filters and search.
+  const back = params.get('from') === 'inventory' && params.get('back')?.startsWith('/') ? params.get('back') : null
   const scope = useScopeQuery()
   const { notifyError } = useToast()
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))
@@ -98,6 +101,14 @@ export default function MaintenanceQueue() {
 
   return (
     <>
+      {back && (
+        <div className="flex shrink-0 items-center gap-3">
+          <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={() => (location.state?.fromInventory ? navigate(-1) : navigate(back))}>
+            {t('Back')}
+          </Button>
+          <span className="text-sm text-fg-secondary">{t('Rooms and beds · {room}', { room: params.get('room') ?? '' })}</span>
+        </div>
+      )}
       <PageHeader
         title="Maintenance"
         description={atManager ? undefined : 'Students set urgency; staff set the final priority.'}

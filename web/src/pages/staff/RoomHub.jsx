@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useParams } from 'react-router'
-import { BedDouble, ClipboardCheck, Gauge, KeyRound, Package, Wrench } from 'lucide-react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ArrowLeft, BedDouble, ClipboardCheck, Gauge, KeyRound, Package, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -36,9 +36,9 @@ function SectionTitle({ icon: Glyph, title, aside }) {
   )
 }
 
-function Section({ id, icon, title, items, empty, link, aside }) {
+function Section({ id, icon, title, items, empty, link, aside, className }) {
   return (
-    <Card id={id} className="flex min-h-0 scroll-mt-4 flex-col gap-3">
+    <Card id={id} className={cx('flex h-full min-h-0 scroll-mt-4 flex-col gap-3', className)}>
       <SectionTitle icon={icon} title={title} aside={aside} />
       <ul className="flex min-h-0 flex-col divide-y divide-line">
         {items.map((item) => {
@@ -69,11 +69,12 @@ function Section({ id, icon, title, items, empty, link, aside }) {
 }
 
 /** One tile per section: its state in words, and a jump to the section. */
-function Tile({ href, label, value, note, noteTone = 'tertiary' }) {
+function Tile({ href, onClick, label, value, note, noteTone = 'tertiary' }) {
   const tone = { tertiary: 'text-fg-tertiary', success: 'text-success-fg', warning: 'text-warning-fg', error: 'text-error-fg' }[noteTone]
   return (
     <a
       href={href}
+      onClick={onClick}
       className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-line bg-surface px-4 py-3 transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       <span className="truncate text-sm font-medium text-fg-tertiary">{t(label)}</span>
@@ -115,9 +116,9 @@ function splitReading(detail) {
   return m ? { power: m[1], water: m[2] } : null
 }
 
-function MeterReadings({ items }) {
+function MeterReadings({ items, className }) {
   return (
-    <Card id="meters" className="flex min-w-0 scroll-mt-4 flex-col gap-3">
+    <Card id="meters" className={cx('flex min-w-0 scroll-mt-4 flex-col gap-3', className)}>
       <SectionTitle icon={Gauge} title="Meter readings" />
       {items.length === 0 ? (
         <p className="text-base text-fg-tertiary">{t('No meter reading yet.')}</p>
@@ -165,16 +166,32 @@ function MeterReadings({ items }) {
 export default function RoomHub() {
   const { code } = useParams()
   const base = useRoleBase()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [params] = useSearchParams()
   const { term } = useSession()
   const query = useQuery(['inventory', 'hub', code, term?.id], ({ signal }) => api.inventory.hub(code, { termId: term?.id }, { signal }))
   // The door code is changed here, in the Door codes page's modal; both screens refresh.
   const [changingCode, setChangingCode] = useState(false)
-  const breadcrumb = <Breadcrumb items={[{ label: 'Rooms', to: `${base}/inventory` }, { label: code }]} />
+  const backParam = params.get('back')
+  const backUrl = backParam?.startsWith('/') ? backParam : `${base}/inventory?room=${encodeURIComponent(code ?? '')}`
+  const handleBack = () => {
+    if (location.state?.fromInventory) navigate(-1)
+    else navigate(backUrl)
+  }
+  const topBar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={handleBack}>
+        {t('Back')}
+      </Button>
+      <Breadcrumb items={[{ label: 'Rooms', to: backUrl }, { label: code }]} />
+    </div>
+  )
   if (query.loading && !query.data) return <LoadingState />
   if (query.error) {
     return (
       <>
-        <PageHeader breadcrumb={breadcrumb} title={t('Room {code}', { code })} />
+        <PageHeader breadcrumb={topBar} title={t('Room {code}', { code })} />
         <ErrorState error={query.error} onRetry={query.reload} />
       </>
     )
@@ -184,16 +201,21 @@ export default function RoomHub() {
   const latestMeter = s.meterReadings[0]
   const inUse = d.furniture.filter((f) => f.status === 'In use').length
   const conformanceGap = c.missing.length + c.extra.length
+  const hereUrl = `${location.pathname}${location.search}`
+  const goFurniture = (itemId) =>
+    navigate(`${base}/furniture?room=${encodeURIComponent(d.room)}${itemId ? `&item=${encodeURIComponent(itemId)}` : ''}&from=room&back=${encodeURIComponent(hereUrl)}`, {
+      state: { fromInventory: true },
+    })
   return (
     <>
       <PageHeader
-        breadcrumb={breadcrumb}
+        breadcrumb={topBar}
         title={t('Room {code}', { code: d.room })}
         badge={<StatusTag status={c.status} />}
         description={[t('Block {code} · Floor {n}', { code: d.block, n: d.floor }), tr(d.roomType), d.term && t('{term}: {roomClass}', { term: d.term, roomClass: tr(d.roomClass) })].filter(Boolean).join(' · ')}
         actions={
           <>
-            <Button icon={Package} to={`${base}/furniture?room=${d.room}`}>
+            <Button icon={Package} onClick={() => goFurniture()}>
               Furniture
             </Button>
             {d.doorCode && (
@@ -208,7 +230,11 @@ export default function RoomHub() {
         <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Tile href="#residents" label="Residents" value={formatNumber(s.residents.length)} note={tr(d.roomType)} />
           <Tile
-            href="#furniture"
+            href={`${base}/furniture?room=${encodeURIComponent(d.room)}&from=room&back=${encodeURIComponent(hereUrl)}`}
+            onClick={(e) => {
+              e.preventDefault()
+              goFurniture()
+            }}
             label="Furniture"
             value={tr(c.status)}
             note={conformanceGap ? t('{n} items to fix', { n: conformanceGap }) : t('{n} items · {inUse} in use', { n: d.furniture.length, inUse })}
@@ -236,58 +262,70 @@ export default function RoomHub() {
           />
         </div>
 
-        <div className="flex flex-col items-start gap-4 xl:flex-row">
-          <div className="flex w-full min-w-0 flex-col gap-4 xl:flex-1">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-stretch">
+          <div className="flex min-w-0 flex-col gap-4">
             <Residents items={s.residents} link={(i) => `${base}/students/${i.id}`} />
-            <MeterReadings items={s.meterReadings} />
+            <MeterReadings items={s.meterReadings} className="flex-1" />
           </div>
-          <div className="flex w-full min-w-0 flex-col gap-4 xl:flex-1">
-            <Card id="furniture" className="flex scroll-mt-4 flex-col gap-3">
-              <SectionTitle icon={Package} title="Room tier and furniture" aside={d.furniture.length ? t('{n} items', { n: d.furniture.length }) : null} />
-              {(d.next || d.doorCode) && (
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-base">
-                  {d.next && <span className="text-fg">{t('Next term ({term}): {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}</span>}
-                  {d.doorCode && (
-                    <span className="flex items-center gap-2 text-fg">
-                      {t('Door code')}
-                      <StatusTag status={d.doorCode.status} />
-                      {d.doorCode.proposed && <Tag tone="info" dot={false}>New code waiting</Tag>}
-                    </span>
-                  )}
-                </div>
-              )}
-              {c.missing.length > 0 && <p className="text-sm text-error-fg">{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
-              {c.extra.length > 0 && <p className="text-sm text-fg-secondary">{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
-              {d.furniture.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm" aria-label={t('Furniture')}>
-                    <thead>
-                      <tr className="bg-subtle text-left text-fg-secondary">
-                        <th className="rounded-l-md px-2.5 py-1.5 font-medium">{t('Code')}</th>
-                        <th className="px-2.5 py-1.5 font-medium">{t('Type')}</th>
-                        <th className="rounded-r-md px-2.5 py-1.5 font-medium">{t('Status')}</th>
+          <Card id="furniture" className="flex h-full min-w-0 scroll-mt-4 flex-col gap-3">
+            <SectionTitle icon={Package} title="Room tier and furniture" aside={d.furniture.length ? t('{n} items', { n: d.furniture.length }) : null} />
+            {(d.next || d.doorCode) && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-base">
+                {d.next && <span className="text-fg">{t('Next term ({term}): {roomClass}', { term: d.next.term, roomClass: tr(d.next.roomClass) })}</span>}
+                {d.doorCode && (
+                  <span className="flex items-center gap-2 text-fg">
+                    {t('Door code')}
+                    <StatusTag status={d.doorCode.status} />
+                    {d.doorCode.proposed && <Tag tone="info" dot={false}>New code waiting</Tag>}
+                  </span>
+                )}
+              </div>
+            )}
+            {c.missing.length > 0 && <p className="text-sm text-error-fg">{t('Missing: {items}', { items: countLines(c.missing) })}</p>}
+            {c.extra.length > 0 && <p className="text-sm text-fg-secondary">{t('Remove: {items}', { items: countLines(c.extra) })}</p>}
+            {d.furniture.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm" aria-label={t('Furniture')}>
+                  <thead>
+                    <tr className="bg-subtle text-left text-fg-secondary">
+                      <th className="rounded-l-md px-2.5 py-1.5 font-medium">{t('Code')}</th>
+                      <th className="px-2.5 py-1.5 font-medium">{t('Type')}</th>
+                      <th className="rounded-r-md px-2.5 py-1.5 font-medium">{t('Status')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.furniture.map((f) => (
+                      <tr
+                        key={f.id}
+                        onClick={() => goFurniture(f.id)}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            goFurniture(f.id)
+                          }
+                        }}
+                        className="cursor-pointer border-b border-line transition-colors hover:bg-primary-subtle/60 focus-visible:bg-primary-subtle/60 focus-visible:outline-none"
+                      >
+                        <td className="px-2.5 py-2 font-semibold whitespace-nowrap text-fg-brand hover:underline tabular">{f.assetCode}</td>
+                        <td className="px-2.5 py-2 text-fg-secondary">{typeName(f)}</td>
+                        <td className="px-2.5 py-2">
+                          <StatusTag status={f.status} />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {d.furniture.map((f) => (
-                        <tr key={f.id} className="border-b border-line">
-                          <td className="px-2.5 py-2 font-semibold whitespace-nowrap text-fg tabular">{f.assetCode}</td>
-                          <td className="px-2.5 py-2 text-fg-secondary">{typeName(f)}</td>
-                          <td className="px-2.5 py-2">
-                            <StatusTag status={f.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</p>
-              )}
-            </Card>
-            <Section id="maintenance" icon={Wrench} title="Maintenance requests" items={s.maintenance} empty="No maintenance request for this room." link={(i) => `${base}/maintenance/${i.id}`} />
-            <Section id="inspections" icon={ClipboardCheck} title="Inspections" items={s.inspections} empty="No inspection of this room yet." />
-          </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-fg-tertiary">{t('No furniture recorded in this room.')}</p>
+            )}
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-stretch">
+          <Section id="maintenance" icon={Wrench} title="Maintenance requests" items={s.maintenance} empty="No maintenance request for this room." link={(i) => `${base}/maintenance/${i.id}`} />
+          <Section id="inspections" icon={ClipboardCheck} title="Inspections" items={s.inspections} empty="No inspection of this room yet." />
         </div>
       </div>
       {changingCode && <SetCodeModal room={{ room: d.room }} onClose={() => setChangingCode(false)} />}

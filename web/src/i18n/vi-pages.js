@@ -5199,10 +5199,28 @@ const staffToday = {
   'Your performance': 'Hiệu suất của bạn',
   'last 7 days': '7 ngày gần nhất',
   'Requests resolved': 'Việc đã xử lý',
-  'By day: no data yet': 'Theo ngày: chưa có dữ liệu',
   'On time': 'Đúng hạn',
   'Average handling time': 'Thời gian xử lý trung bình',
   'Most common issues': 'Loại sự cố hay gặp',
 }
 
-export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover, ...wave2, ...staffToday }
+// Rooms and beds: the door code popover and the way to and back from a room's furniture.
+const inventoryRoom = {
+  'Door code · {room}': 'Mã cửa · {room}',
+  'Code copied': 'Đã sao chép mã',
+  'New code (6 digits)': 'Mã mới (6 chữ số)',
+  'Code {code}': 'Mã {code}',
+  'Code hidden': 'Mã đang ẩn',
+  'Last changed: {date}': 'Đổi lần cuối: {date}',
+  'Set this code on the lock first. The old code stops working as soon as you confirm.': 'Hãy đặt mã này vào ổ khóa trước. Mã cũ ngừng hoạt động ngay khi bạn xác nhận.',
+  'The {n} residents of the room are told that the code changed (never the code itself).': '{n} cư dân trong phòng được báo là mã đã đổi (không kèm mã).',
+  'Confirm the change': 'Xác nhận đổi mã',
+  'Type a code': 'Nhập mã thủ công',
+  'Drop the new code': 'Bỏ mã mới',
+  'Every view is written to the audit log.': 'Mỗi lần xem mã đều được ghi vào nhật ký.',
+  'Furniture · {n} items': 'Nội thất · {n} món',
+  'Needs attention': 'Cần xử lý',
+  'Rooms and beds · {room}': 'Phòng và giường · {room}',
+}
+
+export default { ...auth, ...student, ...staff, ...manager, ...admin, ...accounts, ...inventory, ...registration, ...money, ...transition, ...operations, ...workspace, ...familyDay, ...tooltips, ...managerOverview, ...roomHandover, ...wave2, ...staffToday, ...inventoryRoom }

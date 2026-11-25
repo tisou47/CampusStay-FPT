@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { ArrowRight, Check, MoveRight, Package, Plus, X, QrCode } from 'lucide-react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { ArrowLeft, ArrowRight, Check, MoveRight, Package, Plus, X, QrCode } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -18,6 +18,7 @@ import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/
 import { Segmented, Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
+import { cx } from '@/lib/cx'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { useRoleBase } from '@/lib/useRoleBase'
@@ -210,15 +211,22 @@ function ItemDrawer({ id, statuses, onClose }) {
 function Items({ manages }) {
   const { block } = useSession()
   const [params] = useSearchParams()
+  const targetRoom = (params.get('room') ?? '').trim()
+  const targetItem = (params.get('item') ?? '').trim()
   const [location, setLocation] = useState('')
   const [typeId, setTypeId] = useState('')
   const [status, setStatus] = useState('')
-  const [q, setQ] = useState(params.get('room') ?? '')
-  const [search, setSearch] = useState(params.get('room') ?? '')
+  const [q, setQ] = useState(targetRoom)
+  const [search, setSearch] = useState(targetRoom)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [selected, setSelected] = useState([])
   const [modal, setModal] = useState(null)
+  useEffect(() => {
+    setQ(targetRoom)
+    setSearch(targetRoom)
+    setPage(1)
+  }, [targetRoom])
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(q.trim())
@@ -229,7 +237,21 @@ function Items({ manages }) {
   const request = { block: block ?? undefined, location: location || undefined, typeId: typeId || undefined, status: status || undefined, q: search || undefined, page, pageSize }
   const query = useQuery(['furniture', request], ({ signal }) => api.furniture.list(request, { signal }))
   const d = query.data
-  useEffect(() => setSelected([]), [block, location, typeId, status, search, page, pageSize])
+  const isTargetRoomItem = (i) => Boolean(targetRoom) && i.location?.kind === 'Room' && i.location?.room?.toUpperCase() === targetRoom.toUpperCase()
+  useEffect(() => {
+    if (!d?.items) {
+      setSelected([])
+      return
+    }
+    if (!targetRoom) {
+      setSelected([])
+      return
+    }
+    const matchingIds = d.items
+      .filter((i) => isTargetRoomItem(i) && i.status !== 'Disposed' && !i.plannedMove)
+      .map((i) => i.id)
+    setSelected(matchingIds)
+  }, [d, targetRoom, block, location, typeId, status, search, page, pageSize])
   const items = d?.items ?? []
   const movable = items.filter((i) => i.status !== 'Disposed' && !i.plannedMove)
   const allOnPage = movable.length > 0 && movable.every((i) => selected.includes(i.id))
@@ -299,29 +321,55 @@ function Items({ manages }) {
           </THead>
           <TBody>
             <TableStatus query={query} colSpan={6} rows={items} emptyIcon={Package} emptyTitle="No furniture matches these filters" />
-            {items.map((i) => (
-              <Tr key={i.id} selected={selected.includes(i.id)} onClick={() => setModal({ type: 'item', id: i.id })} className="[&>td]:h-12">
-                <Td onClick={stop}>
-                  <Checkbox aria-label={t('Select {code}', { code: i.assetCode })} checked={selected.includes(i.id)} disabled={!movable.includes(i)} onChange={() => toggle(i.id)} />
-                </Td>
-                <Td className="font-medium whitespace-nowrap">{i.assetCode}</Td>
-                <Td>
-                  <TwoLine primary={typeName(i)} secondary={tr(i.category)} />
-                </Td>
-                <Td>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <StatusTag status={i.status} />
-                    {i.condition && i.condition !== 'Good' && (
-                      <Tag tone={conditionTone[i.condition] ?? 'neutral'}>
-                        {conditionName(i.condition, d?.options?.conditionLevels)}
-                      </Tag>
-                    )}
-                  </div>
-                </Td>
-                <Td>{placeLabel(i.location)}</Td>
-                <Td className="text-sm text-fg-secondary">{i.plannedMove ? t('To {place}', { place: placeLabel(i.plannedMove.to) }) : '—'}</Td>
-              </Tr>
-            ))}
+            {items.map((i) => {
+              const inRoom = isTargetRoomItem(i)
+              const isClickedItem = Boolean(targetItem) && String(i.id) === String(targetItem)
+              const isChecked = selected.includes(i.id)
+              const highlighted = inRoom || isChecked
+              return (
+                <Tr
+                  key={i.id}
+                  selected={highlighted}
+                  onClick={() => setModal({ type: 'item', id: i.id })}
+                  className={cx(
+                    '[&>td]:h-12',
+                    highlighted && '[&>:first-child]:shadow-[inset_3px_0_0_var(--color-primary)]',
+                    isClickedItem && 'ring-2 ring-primary ring-inset',
+                  )}
+                >
+                  <Td onClick={stop}>
+                    <Checkbox aria-label={t('Select {code}', { code: i.assetCode })} checked={isChecked} disabled={!movable.includes(i)} onChange={() => toggle(i.id)} />
+                  </Td>
+                  <Td className={cx('whitespace-nowrap tabular', highlighted ? 'font-bold text-fg-brand' : 'font-medium text-fg')}>{i.assetCode}</Td>
+                  <Td>
+                    <TwoLine
+                      primary={typeName(i)}
+                      secondary={tr(i.category)}
+                      className={cx(highlighted && '[&>span:first-child]:font-bold [&>span:first-child]:text-fg')}
+                    />
+                  </Td>
+                  <Td>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <StatusTag status={i.status} />
+                      {i.condition && i.condition !== 'Good' && (
+                        <Tag tone={conditionTone[i.condition] ?? 'neutral'}>
+                          {conditionName(i.condition, d?.options?.conditionLevels)}
+                        </Tag>
+                      )}
+                    </div>
+                  </Td>
+                  <Td className={cx(highlighted ? 'font-bold text-fg-brand' : 'text-fg')}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {placeLabel(i.location)}
+                      {inRoom && <Check size={14} strokeWidth={2.5} className="shrink-0 text-fg-brand" aria-hidden="true" />}
+                    </span>
+                  </Td>
+                  <Td className={cx('text-sm', highlighted ? 'font-medium text-fg' : 'text-fg-secondary')}>
+                    {i.plannedMove ? t('To {place}', { place: placeLabel(i.plannedMove.to) }) : '—'}
+                  </Td>
+                </Tr>
+              )
+            })}
           </TBody>
         </Table>
         <div className="flex shrink-0 justify-end">
@@ -508,12 +556,37 @@ function Stock() {
 }
 
 export default function Furniture() {
-  const atManager = useRoleBase() === '/manager'
+  const base = useRoleBase()
+  const atManager = base === '/manager'
   const { user } = useSession()
   const manages = user?.role === 'manager'
   const [tab, setTab] = useState('items')
+  // Opened from a room of Rooms and beds (?from=inventory&back=…): a way back to that floor, room, filters and search.
+  // When the page was reached by that button, going back in history keeps the scroll too; a link opened afresh uses the URL.
+  const [params] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const from = params.get('from')
+  const back = (from === 'inventory' || from === 'room') && params.get('back')?.startsWith('/') ? params.get('back') : params.get('room') ? `${base}/inventory?room=${encodeURIComponent(params.get('room'))}` : null
   return (
     <>
+      {back && (
+        <div className="flex shrink-0 items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={ArrowLeft}
+            onClick={() => (location.state?.fromInventory ? navigate(-1) : navigate(back))}
+          >
+            {t('Back')}
+          </Button>
+          <span className="text-sm text-fg-secondary">
+            {from === 'room'
+              ? t('Room {code}', { code: params.get('room') ?? '' })
+              : t('Rooms and beds · {room}', { room: params.get('room') ?? '' })}
+          </span>
+        </div>
+      )}
       <PageHeader
         title="Furniture"
         description={atManager ? undefined : manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
