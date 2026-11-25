@@ -1716,6 +1716,7 @@ const manager = {
   "Could not save the action": "Không lưu được thao tác",
   "The request is no longer overdue and the owner was notified.": "Yêu cầu không còn bị quá hạn và người phụ trách đã được báo.",
   "Reassign to": "Giao lại cho",
+  "Submitted or under review": "Đã nộp hoặc đang xét duyệt",
   "Nobody works in this block yet.": "Tòa này chưa có nhân viên nào.",
   "Manager note": "Ghi chú của Quản lý",
   "Manager note…": "Ghi chú của Quản lý…",

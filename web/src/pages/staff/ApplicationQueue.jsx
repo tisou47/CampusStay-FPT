@@ -25,9 +25,9 @@ import { t, tr } from '@/i18n'
 // POST /applications/bulk-review { ids, decision: 'Approved' }
 
 const statusFilters = [
-  { value: 'Submitted,Under Review', label: 'Status: Submitted, Under Review' },
-  { value: '', label: 'Status: All' },
-  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: `Status: ${s}` })),
+  { value: 'Submitted,Under Review', label: 'Submitted or under review' },
+  { value: '', label: 'All' },
+  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: s })),
 ]
 const countTones = { Submitted: 'info', 'Under Review': 'info', Approved: 'info', Allocated: 'success', Waitlisted: 'warning', Rejected: 'error', Expired: 'neutral', Forfeited: 'neutral' }
 const reviewable = (r) => ['Submitted', 'Under Review'].includes(r.status)
@@ -112,7 +112,7 @@ export default function ApplicationQueue() {
           label="Status"
           value={status}
           onChange={(v) => filter(setStatus)({ target: { value: v } })}
-          options={statusFilters.map((o) => ({ value: o.value, label: String(o.label).replace(/^Status:\s*/i, '') }))}
+          options={statusFilters}
         />
         <FilterSelect
           label="Room type"
