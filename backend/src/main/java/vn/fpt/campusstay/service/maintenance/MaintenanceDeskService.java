@@ -484,6 +484,9 @@ public class MaintenanceDeskService {
         }
         RequestStore.Request r = inScope(idOrCode, true);
         boolean privateNote = internal || !r.source().equals("STUDENT");
+        if (!privateNote && r.status().equals("CLOSED")) { // the student can no longer answer (BE-OPS-14)
+            throw ApiException.conflict("REQUEST_CLOSED", "This request is closed: only internal notes can be added.");
+        }
         requests.event(r.id(), user.userId(), user.role().name(), null, message.trim(), privateNote,
                 Instant.now(clock));
         if (!privateNote) {

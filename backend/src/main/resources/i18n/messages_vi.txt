@@ -1147,3 +1147,4 @@ You already asked for a late check-in this Term. ⟶ Bạn đã gửi yêu cầu
 This Bed is in the student's own Room. Choose a Bed in another Room. ⟶ Giường này ở ngay phòng hiện tại của sinh viên. Hãy chọn giường ở phòng khác.
 The student does not live in a Room now: there is nothing to move. ⟶ Sinh viên hiện không ở phòng nào: không có gì để chuyển.
 No Bed is free in another Room for this student. ⟶ Không còn giường trống ở phòng khác cho sinh viên này.
+This request is closed: only internal notes can be added. ⟶ Yêu cầu này đã đóng: chỉ có thể thêm ghi chú nội bộ.

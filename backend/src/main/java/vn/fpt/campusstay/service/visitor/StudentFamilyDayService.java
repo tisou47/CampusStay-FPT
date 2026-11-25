@@ -177,6 +177,7 @@ public class StudentFamilyDayService {
     public MyFamilyDay register(String id, RegisterCommand cmd) {
         long me = currentUser.require(Role.STUDENT).userId();
         Day day = visible(FamilyDays.id(id, "Family Day"), me);
+        day = days.lock(day.id()); // re-read under the lock a cancellation takes (BE-3RD-14)
         Instant now = Instant.now(clock);
         String blocked = blockedBy(day, me, now);
         if (blocked != null) {
