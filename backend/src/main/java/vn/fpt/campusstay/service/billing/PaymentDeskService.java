@@ -63,7 +63,7 @@ public class PaymentDeskService {
     }
 
     private static final Map<String, String> TYPES = Map.of("deposit", "DEPOSIT", "balance", "BALANCE", "utility",
-            "UTILITY", "roomchange", "ROOM_CHANGE", "room_change", "ROOM_CHANGE", "damage", "DAMAGE");
+            "UTILITY", "roomchange", "ROOM_CHANGE", "room_change", "ROOM_CHANGE", "damage", "DAMAGE", "termfee", "TERM_FEE", "term_fee", "TERM_FEE");
 
     private final JdbcClient jdbc;
     private final InvoiceStore invoices;

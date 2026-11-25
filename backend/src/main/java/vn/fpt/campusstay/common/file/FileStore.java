@@ -28,6 +28,8 @@ import vn.fpt.campusstay.security.Tokens;
 @Service
 public class FileStore {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileStore.class);
+
     public static final Set<String> IMAGES_AND_PDF = Set.of("image/jpeg", "image/png", "application/pdf");
     public static final Set<String> IMAGES = Set.of("image/jpeg", "image/png");
 
@@ -107,11 +109,15 @@ public class FileStore {
     public Optional<FileContent> read(long id) {
         return jdbc.sql("SELECT storage_key FROM shared_file WHERE id = :id").param("id", id).query(String.class)
                 .optional()
-                .flatMap(key -> info(id).map(file -> {
+                .flatMap(key -> info(id).flatMap(file -> {
                     try {
-                        return new FileContent(file, Files.readAllBytes(root.resolve(key)));
+                        return Optional.of(new FileContent(file, Files.readAllBytes(root.resolve(key))));
+                    } catch (java.nio.file.NoSuchFileException e) {
+                        // The row outlived its bytes (another volume or FILES_DIR): "does not exist", not a 500.
+                        log.warn("Stored file {} has no bytes on disk", id);
+                        return Optional.empty();
                     } catch (IOException e) {
-                        throw new UncheckedIOException("Stored file " + id + " is missing", e);
+                        throw new UncheckedIOException("Stored file " + id + " could not be read", e);
                     }
                 }));
     }

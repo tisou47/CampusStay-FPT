@@ -11,6 +11,7 @@ import java.util.Set;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.event.AllocationMoved;
 import vn.fpt.campusstay.event.NextTermAllocationCancelled;
@@ -64,9 +65,12 @@ public class NextTermRequestsService {
     private final Lookups lookups;
     private final Clock clock;
 
+    private final Messages messages;
+
     public NextTermRequestsService(CurrentUser currentUser, BlockScope blockScope, NextTermContext context,
             RoomChangeService roomChanges, SwapService swaps,
-            StayRequestService stayRequests, Lookups lookups, Clock clock) {
+            StayRequestService stayRequests, Lookups lookups, Messages messages, Clock clock) {
+        this.messages = messages;
         this.lookups = lookups;
         this.currentUser = currentUser;
         this.blockScope = blockScope;
@@ -170,7 +174,8 @@ public class NextTermRequestsService {
                 }
                 decided++;
             } catch (ApiException e) {
-                failed.add(new Failure(t.kind(), t.id(), e.getMessage()));
+                // A 200 body is not translated by LocalizedErrors (BE-OPS-18).
+                failed.add(new Failure(t.kind(), t.id(), messages.forRequest(e.getMessage())));
             }
         }
         return new BulkResult(decided, failed);

@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.common.file.FileLinks;
 import vn.fpt.campusstay.common.file.FileStore;
+import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.dto.setting.TermSummary;
@@ -120,9 +121,12 @@ public class PaymentClaimService {
     private final AuditLog audit;
     private final Clock clock;
 
+    private final Messages messages;
+
     public PaymentClaimService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
             TermCatalog terms, Parameters parameters, FileStore files, FileLinks links, ApplicationEventPublisher events,
-            AuditLog audit, Clock clock) {
+            AuditLog audit, Messages messages, Clock clock) {
+        this.messages = messages;
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
@@ -268,7 +272,7 @@ public class PaymentClaimService {
                         .map(file -> new Receipt(file.name(), file.size(), links.link(file.id()))).orElse(null)))
                 .toList();
         return new ClaimPage(items, summary.count(), summary,
-                List.of("Deposit", "Balance", "Utility", "Room change", "Damage"));
+                List.of("Deposit", "Balance", "Utility", "Room change", "Damage", "Next-Term fee"));
     }
 
     // ---------------------------------------------------------------- Managers: decisions
@@ -311,12 +315,12 @@ public class PaymentClaimService {
             Optional<InvoiceStore.Invoice> inv = lockedInScope(code);
             Optional<Claim> claim = inv.flatMap(i -> openClaim(i.id()));
             if (inv.isEmpty() || claim.isEmpty()) {
-                skipped.add(new Skipped(code, inv.isEmpty() ? "This Invoice does not exist."
+                skipped.add(skip(code, inv.isEmpty() ? "This Invoice does not exist."
                         : "No payment claim is waiting for this Invoice."));
                 continue;
             }
             if (claim.get().receiptFileId() == null) {
-                skipped.add(new Skipped(code, "Attach the transfer receipt first."));
+                skipped.add(skip(code, "Attach the transfer receipt first."));
                 continue;
             }
             pay(inv.get(), claim.get(), user, claim.get().reference(), claim.get().receiptFileId());
@@ -361,6 +365,11 @@ public class PaymentClaimService {
         pay(inv, claim, user, ref != null ? ref : claim.reference(), receiptId);
     }
 
+    /** A 200 body is not translated by LocalizedErrors: the reason is given in the request's language (BE-APP-BIL-14). */
+    private Skipped skip(String code, String reason) {
+        return new Skipped(code, messages.forRequest(reason));
+    }
+
     private int rejectionsToCancel() {
         return Math.max(1, parameters.intValue("payment.rejections_to_cancel"));
     }
@@ -386,7 +395,7 @@ public class PaymentClaimService {
             Optional<InvoiceStore.Invoice> found = lockedInScope(code);
             Optional<Claim> claim = found.flatMap(i -> openClaim(i.id()));
             if (found.isEmpty() || claim.isEmpty()) {
-                skipped.add(new Skipped(code, found.isEmpty() ? "This Invoice does not exist."
+                skipped.add(skip(code, found.isEmpty() ? "This Invoice does not exist."
                         : "No payment claim is waiting for this Invoice."));
                 continue;
             }

@@ -363,6 +363,25 @@ class PaymentClaimIT {
         assertThat(claims.summarize(Instant.now().plusSeconds(60))).isZero();
     }
 
+    /** TC-BIL-500: next-Term fees can be filtered on Payments and in the claims queue (BE-APP-BIL-09). */
+    @Test
+    void nextTermFeesCanBeFiltered() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        getAs("/payments?type=termFee", manager).andExpect(status().isOk());
+        getAs("/payment-claims?type=Next-Term fee", manager).andExpect(status().isOk())
+                .andExpect(jsonPath("$.types", hasItem("Next-Term fee")));
+    }
+
+    /** TC-BIL-501: the reasons of skipped Invoices in a bulk decision come in the Manager's language (BE-APP-BIL-14). */
+    @Test
+    void skippedReasonsAreTranslated() throws Exception {
+        mvc.perform(post("/payment-claims/confirm").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A))
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "vi").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"invoiceIds\":[\"INV-NONE-1\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skipped[0].reason").value("Hóa đơn này không tồn tại."));
+    }
+
     private String balanceOf(String applicationCode) {
         return jdbc.sql("""
                 SELECT i.code FROM bil_invoice i JOIN app_application a ON a.id = i.application_id

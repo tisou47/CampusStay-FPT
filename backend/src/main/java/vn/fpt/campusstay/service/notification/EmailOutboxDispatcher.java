@@ -93,7 +93,8 @@ class EmailOutboxDispatcher {
             int attempts = p.attempts() + 1;
             boolean giveUp = attempts >= props.maxAttempts();
             Instant retryAt = Instant.now(clock).plus(props.retryBase().multipliedBy((long) attempts * attempts));
-            log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getMessage());
+            // SMTP replies quote the address: only the exception class in the log, the text stays in last_error (BE-PLT-19).
+            log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getClass().getSimpleName());
             jdbc.sql("""
                     UPDATE ntf_email_outbox SET attempts = :attempts, last_error = :error,
                            status = :status, not_before = :retryAt WHERE id = :id
