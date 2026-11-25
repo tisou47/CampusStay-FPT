@@ -110,9 +110,19 @@ public class DoorCodeRelease {
         return release("allocation_id_list", List.of(allocationId), allocationId) > 0;
     }
 
+    /** Hours from now to the end of the Term's last check-in day (at least 1), for the "file your inventory" notice. */
+    static int hoursUntilCheckInEnd(Optional<TermSummary> term, Instant now) {
+        LocalDate end = term.map(TermSummary::checkInEnd).orElse(null);
+        if (end == null) {
+            return 1;
+        }
+        Instant due = end.plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
+        return (int) Math.max(1, Math.ceilDiv(java.time.Duration.between(now, due).toMinutes(), 60));
+    }
+
     /**
-     * Whether a new resident must file a check-in inventory before receiving the code: the setting is on and they
-     * move into this Room (a first Allocation, or a next-Term Allocation in another Room).
+     * Whether a new resident is expected to file a check-in inventory: the setting is on and they move into this Room
+     * (a first Allocation, or a next-Term Allocation in another Room). Since 25/11/2026 the code no longer waits for it.
      */
     boolean needsInventory(Long previousBedId, long bedId) {
         if (!parameters.boolValue("handover.required")) {
@@ -179,16 +189,17 @@ public class DoorCodeRelease {
                 continue;
             }
             if (!Long.valueOf(w.id()).equals(forced) && needsInventory(w.previousBedId(), w.bedId())) {
-                // The student receives the code when they start the check-in inventory at the Room.
+                // Owner decision 25/11/2026: a paid resident gets the code when check-in opens, with or without the
+                // check-in inventory. The inventory stays expected until the last check-in day (HandoverCore.dueFor);
+                // without it the Room's record is final and Utility counts from this release.
                 if (!w.eligible()) {
                     jdbc.sql("""
                             UPDATE asg_allocation SET eligible_at = :now, handover_needed = TRUE, version = version + 1
                             WHERE id = :id
                             """).param("now", Timestamp.from(now)).param("id", w.id()).update();
                     events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
-                            parameters.intValue("handover.submit_hours")));
+                            hoursUntilCheckInEnd(termsById.get(w.termId()), now)));
                 }
-                continue;
             }
             if (Long.valueOf(w.id()).equals(forced)) {
                 jdbc.sql("UPDATE asg_allocation SET handover_needed = TRUE, eligible_at = coalesce(eligible_at, :now) "

@@ -57,6 +57,9 @@ class HandoverIT {
     HandoverJobService jobs;
 
     @Autowired
+    vn.fpt.campusstay.service.assignment.DoorCodeRelease release;
+
+    @Autowired
     FinanceService finance;
 
     StayFlow stay;
@@ -433,7 +436,11 @@ class HandoverIT {
                 .andExpect(jsonPath("$.source").value("Checked with Staff"));
     }
 
-    /** TC-ASG-057: a draft past its deadline becomes final with the Room's record; Utility counts from the code. */
+    /**
+     * TC-ASG-057: a draft past its deadline becomes final with the Room's record; Utility counts from the code's
+     * release, or from the approved late arrival day when that is later (this newcomer arrives late: owner decision
+     * 25/11/2026).
+     */
     @Test
     void deadlineClosesTheInventory() throws Exception {
         long allocation = newcomer(37, "A-205", "B");
@@ -447,8 +454,10 @@ class HandoverIT {
         mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(jsonPath("$.status").value("Final")).andExpect(jsonPath("$.source").value("Deadline passed"))
                 .andExpect(jsonPath("$.lateAllowed").value(true));
-        assertThat(jdbc.sql("SELECT utility_from = code_released_at FROM asg_allocation WHERE id = :id")
-                .param("id", allocation).query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("""
+                SELECT utility_from = (current_date + 2)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                FROM asg_allocation WHERE id = :id
+                """).param("id", allocation).query(Boolean.class).single()).isTrue();
         send(post("/students/me/handover/late"), student, "{\"note\":\"The fan was already broken.\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.lateAllowed").value(false));
     }
@@ -580,5 +589,44 @@ class HandoverIT {
         finance.markOverdue();
         assertThat(jdbc.sql("SELECT status FROM bil_invoice WHERE reference = :r").param("r", reference)
                 .query(String.class).single()).isEqualTo("OVERDUE");
+    }
+
+    /**
+     * TC-ASG-700 (owner decision 25/11/2026): once check-in is open, a paid newcomer receives the door code without
+     * starting the check-in inventory; the inventory is still expected.
+     */
+    @Test
+    void paidNewcomerGetsTheCodeWithoutTheInventory() throws Exception {
+        long allocation = newcomer(37, "A-207", "B");
+        doorCode("A-207");
+        release.releaseDue();
+        assertThat(jdbc.sql("SELECT code_released_at IS NOT NULL AND resident_at IS NOT NULL AND handover_needed "
+                + "FROM asg_allocation WHERE id = :id").param("id", allocation).query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("SELECT count(*) FROM asg_handover WHERE allocation_id = :id").param("id", allocation)
+                .query(Long.class).single()).isZero();
+        mvc.perform(get("/students/me/door-code").header(HttpHeaders.AUTHORIZATION, bearer(mvc, StayFlow.student(37))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("Ready"));
+    }
+
+    /**
+     * TC-ASG-701 (owner decision 25/11/2026): a resident who never opened the inventory is closed by the deadline with
+     * the Room's record: final, check-in recorded, Utility from the code's release.
+     */
+    @Test
+    void neverStartedInventoryIsClosedByTheDeadline() throws Exception {
+        long allocation = newcomer(37, "A-207", "B");
+        doorCode("A-207");
+        release.releaseDue();
+        // No late arrival any more and the Term's check-in is over: the deadline has passed.
+        jdbc.sql("DELETE FROM asg_late_check_in WHERE allocation_id = :a")
+                .param("a", allocation).update();
+        jdbc.sql("UPDATE asg_allocation SET code_released_at = now() - interval '3 days', "
+                + "resident_at = now() - interval '3 days' WHERE id = :a").param("a", allocation).update();
+        assertThat(jobs.closeDue()).isGreaterThanOrEqualTo(1);
+        assertThat(jdbc.sql("""
+                SELECT h.status = 'FINAL' AND h.source = 'AUTO' AND a.checked_in_at IS NOT NULL
+                       AND a.utility_from = a.code_released_at
+                FROM asg_allocation a JOIN asg_handover h ON h.allocation_id = a.id WHERE a.id = :id
+                """).param("id", allocation).query(Boolean.class).single()).isTrue();
     }
 }

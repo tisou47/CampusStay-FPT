@@ -127,7 +127,7 @@ public class DemoResetService {
             new StageInfo("D", "Check-in week",
                     "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
                             + "residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. "
-                            + "New residents start their check-in inventory to get the door code; inventories are drafts, "
+                            + "New residents have their door code and file the check-in inventory by the last check-in day; inventories are drafts, "
                             + "matching, waiting for Staff, checked in the Room or closed by their deadline."));
 
     private final JdbcClient jdbc;
