@@ -13,6 +13,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
+import { loadPortalTexts } from '@/i18n'
 const Announcements = () => import('@/pages/common/Announcements')
 const Profile = () => import('@/pages/common/Profile')
 const FamilyDays = () => import('@/pages/manager/FamilyDays')
@@ -168,7 +169,9 @@ function page(load, props) {
 
 /** A portal: role guard → layout → pages. */
 function portal(role, layout, children) {
-  return { path: role, element: <RequireRole role={role} />, children: [{ element: layout, children }] }
+  // The portal's Vietnamese texts load before its first page shows (WEB-ADM-32).
+  const texts = role === 'student' ? 'student' : 'office'
+  return { path: role, element: <RequireRole role={role} />, loader: () => loadPortalTexts(texts).then(() => null), children: [{ element: layout, children }] }
 }
 
 export const router = createBrowserRouter([

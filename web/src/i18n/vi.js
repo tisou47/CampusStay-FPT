@@ -8,7 +8,7 @@
  * Maintenance = bảo trì · Family Day = Ngày thăm thân. English is sentence case: "Room type", "your bed this term".
  *
  * This file holds the shell (menus, common words, statuses) and is always loaded; the screens' texts are in
- * ./vi-pages.js, loaded only when Vietnamese is in use (see loadLanguage in ./index.jsx).
+ * ./vi-pages.js, ./vi-student.js and ./vi-office.js, loaded only when Vietnamese is in use (see ./index.jsx).
  */
 
 const vi = {

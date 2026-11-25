@@ -2,7 +2,7 @@
 
 The one reference for wording on the web app (all four portals), the mobile app and the API's messages and emails.
 Mechanism: ADR-25 (`web/src/i18n/index.jsx`). English texts in the code are their own keys; Vietnamese is in
-`web/src/i18n/vi.js` (shell) and `vi-pages.js` (screens); English singular forms in `web/src/i18n/en-plurals.js`;
+`web/src/i18n/vi.js` (shell) and `vi-pages.js` (screens of every portal), `vi-student.js` and `vi-office.js` (one portal each, loaded with it); English singular forms in `web/src/i18n/en-plurals.js`;
 the API's Vietnamese in `backend/src/main/resources/i18n/messages_vi.txt`. Check with `npm run i18n:check` in `web/`.
 
 ## 1. Terms
