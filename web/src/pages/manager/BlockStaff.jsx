@@ -15,6 +15,7 @@ import { Drawer, Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -189,21 +190,41 @@ function WorkDrawer({ person, staff, onClose }) {
   const items = work.data?.items ?? []
   const key = (i) => `${i.type}:${i.id}`
 
-  // Receivers: the others of the list, on duty first, then the least loaded.
+  // What the receiver needs for the items ticked (all of them while none is ticked): to work in their Blocks and to
+  // handle their kinds of work, as the server checks. Who fits comes first, on duty first, then the least loaded;
+  // the others are listed with the reason and cannot be chosen.
+  const chosen = selected.size ? items.filter((i) => selected.has(key(i))) : items
+  const needBlocks = [...new Set(chosen.map((i) => i.block).filter(Boolean))]
+  const needHandles = [...new Set(chosen.map((i) => i.handle).filter(Boolean))]
   const receivers = useMemo(
     () =>
       staff
         .filter((s) => s.id !== person.id)
-        .sort((a, b) => (a.onDuty === b.onDuty ? a.open - b.open || a.name.localeCompare(b.name) : a.onDuty ? -1 : 1)),
-    [staff, person.id],
+        .map((s) => {
+          const missingBlocks = needBlocks.filter((b) => !s.blocks.includes(b))
+          const missingHandles = needHandles.filter((h) => !s.handles.includes(h))
+          return { ...s, missingBlocks, missingHandles, fits: !missingBlocks.length && !missingHandles.length }
+        })
+        .sort((a, b) => b.fits - a.fits || b.onDuty - a.onDuty || a.open - b.open || a.name.localeCompare(b.name)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [staff, person.id, needBlocks.join(), needHandles.join()],
   )
-  const receiver = receivers.find((s) => s.id === to)
+  const fitting = receivers.filter((s) => s.fits)
+  // A receiver chosen before the ticks changed may no longer fit: then nobody is chosen.
+  const receiver = receivers.find((s) => s.id === to && s.fits)
+  const why = (s) =>
+    [
+      s.missingBlocks.length ? t('not in Block {list}', { list: s.missingBlocks.join(', ') }) : null,
+      s.missingHandles.length ? t('does not handle {list}', { list: s.missingHandles.map(tr).join(', ') }) : null,
+    ]
+      .filter(Boolean)
+      .join('; ')
 
   const move = useMutation(
     () =>
       api.blockStaff.reassign(person.id, {
         items: items.filter((i) => selected.has(key(i))).map((i) => ({ type: i.type, id: i.id })),
-        toStaffId: to,
+        toStaffId: receiver?.id,
         note: note.trim(),
       }),
     {
@@ -236,7 +257,7 @@ function WorkDrawer({ person, staff, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" icon={ArrowRightLeft} onClick={() => move.run()} disabled={move.pending || selected.size === 0 || !to || !note.trim()}>
+          <Button variant="primary" icon={ArrowRightLeft} onClick={() => move.run()} disabled={move.pending || selected.size === 0 || !receiver || !note.trim()}>
             {t('Reassign selected ({n})', { n: selected.size })}
           </Button>
         </>
@@ -271,19 +292,57 @@ function WorkDrawer({ person, staff, onClose }) {
               </li>
             ))}
           </ul>
-          <Field label="Move to" required helper="The receiver must work in the item's Block and handle its kind of work.">
+          <Field
+            label="Move to"
+            required
+            helper={
+              needBlocks.length || needHandles.length
+                ? t('{n} can take {what}: they work in Block {blocks} and handle {handles}.', {
+                    n: fitting.length,
+                    what: selected.size ? t('the work ticked') : t('this work'),
+                    blocks: needBlocks.join(', ') || '—',
+                    handles: needHandles.map(tr).join(', ') || '—',
+                  })
+                : 'The receiver must work in the item’s Block and handle its kind of work.'
+            }
+          >
             {(id) => (
               <Select
                 id={id}
-                value={to}
+                value={receiver?.id ?? ''}
                 onChange={(e) => setTo(e.target.value)}
                 options={[
-                  { value: '', label: t('Choose a staff member') },
-                  ...receivers.map((s) => ({ value: s.id, label: `${s.name} · ${t('{n} open', { n: s.open })} · ${t(s.onDuty ? 'On duty' : 'Off duty')}` })),
+                  { value: '', label: fitting.length ? t('Choose a staff member') : t('Nobody fits this work') },
+                  ...receivers.map((s) => ({
+                    value: s.id,
+                    disabled: !s.fits,
+                    label: s.fits
+                      ? `${s.name} · ${t('{n} open', { n: s.open })} · ${t(s.onDuty ? 'On duty' : 'Off duty')}`
+                      : `${s.name} — ${why(s)}`,
+                  })),
                 ]}
               />
             )}
           </Field>
+          {fitting.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm text-fg-secondary">{t('Suggested:')}</span>
+              {fitting.slice(0, 3).map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setTo(s.id)}
+                  className={cx(
+                    'rounded-full border px-2.5 py-0.5 text-sm transition-colors',
+                    receiver?.id === s.id ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line text-fg hover:bg-subtle',
+                  )}
+                >
+                  {s.name} · {t('{n} open', { n: s.open })}
+                  {s.onDuty ? ` · ${t('On duty')}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
           <Field label="Why do you move this work?" required error={move.error?.fields?.note} helper="The receiver reads it; the Audit Log keeps it.">
             {(id) => <Textarea id={id} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />}
           </Field>
