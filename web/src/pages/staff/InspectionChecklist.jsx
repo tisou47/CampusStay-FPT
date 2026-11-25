@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { parseReading } from '@/lib/numbers'
 import { CalendarDays, CheckCheck, CircleCheck, Download, FileText, Printer } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -227,9 +228,8 @@ function Checklist({ run, room }) {
   const meterError = (key, unit) => {
     const raw = String(meters[key] ?? '').trim()
     if (raw === '') return t('Enter the reading ({unit}).', { unit })
-    const value = Number(raw)
-    if (!Number.isFinite(value)) return t('Enter a valid number.')
-    if (value < 0) return t('The reading cannot be negative.')
+    const value = parseReading(raw)
+    if (Number.isNaN(value)) return Number(raw) < 0 ? t('The reading cannot be negative.') : t('Enter a valid number.')
     const last = room.previousMeters?.[key]
     if (!meters.replaced && last != null && value < Number(last)) {
       return t('Lower than the last reading ({value} {unit}). Read the meter again.', { value: formatNumber(last), unit })
@@ -277,7 +277,7 @@ function Checklist({ run, room }) {
         }),
         meters:
           meters.electricity !== '' || meters.water !== ''
-            ? { electricity: Number(meters.electricity), water: Number(meters.water), replaced: meters.replaced }
+            ? { electricity: parseReading(meters.electricity), water: parseReading(meters.water), replaced: meters.replaced }
             : undefined,
       }),
     {
@@ -357,9 +357,7 @@ function Checklist({ run, room }) {
                 helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
               >
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
+                  inputMode="decimal"
                   disabled={done}
                   invalid={!done && touched.electricity && Boolean(electricityError)}
                   value={meters.electricity}
@@ -378,9 +376,7 @@ function Checklist({ run, room }) {
                 helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
               >
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
+                  inputMode="decimal"
                   disabled={done}
                   invalid={!done && touched.water && Boolean(waterError)}
                   value={meters.water}

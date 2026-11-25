@@ -11,7 +11,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionLossRates, conditionName, conditionOptions, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatVnd } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseDecimal, parseReading } from '@/lib/numbers'
 import { t, tr } from '@/i18n'
 
 // Check-out › furniture by condition (V78): the student's Bed items and the Room's shared items.
@@ -83,7 +83,7 @@ export function FurnitureConditions({
   const [present, setPresent] = useState(null)
   const studentPresent = present ?? Boolean(data?.studentPresent)
   // A reading that is not a number ("1.360" is ambiguous) must not be dropped silently on Save (final review #5).
-  const readingsBad = [electricity, water].some((v) => Number.isNaN(parseDecimal(v)))
+  const readingsBad = [electricity, water].some((v) => Number.isNaN(parseReading(v)))
 
   useEffect(() => {
     if (!data) return

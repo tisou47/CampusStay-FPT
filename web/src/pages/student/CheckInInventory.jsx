@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { parseReading } from '@/lib/numbers'
 import { Camera, CircleCheck, ClipboardList, KeyRound, Printer, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -115,10 +116,11 @@ function Form({ data }) {
   const [answers, setAnswers] = useState(Object.fromEntries(data.items.map((i) => [i.itemId, { condition: i.condition ?? '', note: i.note ?? '' }])))
   const [electricity, setElectricity] = useState(data.electricity ?? '')
   const [water, setWater] = useState(data.water ?? '')
+  const readingsBad = Number.isNaN(parseReading(electricity)) || Number.isNaN(parseReading(water))
   const body = () => ({
     items: Object.entries(answers).filter(([, a]) => a.condition).map(([itemId, a]) => ({ itemId, condition: a.condition, note: a.note || undefined })),
-    electricity: electricity === '' ? undefined : Number(electricity),
-    water: water === '' ? undefined : Number(water),
+    electricity: parseReading(electricity) ?? undefined,
+    water: parseReading(water) ?? undefined,
   })
   const save = useMutation(() => api.handover.save(body()), {
     invalidates: ['handover'],
@@ -197,10 +199,10 @@ function Form({ data }) {
         <span className="text-base font-medium text-fg">{t('Meters of the Room')}</span>
         <div className="flex flex-wrap gap-3">
           <Field label="Electricity (kWh)" required className="w-44">
-            <Input type="number" min="0" step="0.1" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
+            <Input inputMode="decimal" invalid={Number.isNaN(parseReading(electricity))} value={electricity} onChange={(e) => setElectricity(e.target.value)} />
           </Field>
           <Field label="Water (m³)" required className="w-44">
-            <Input type="number" min="0" step="0.1" value={water} onChange={(e) => setWater(e.target.value)} />
+            <Input inputMode="decimal" invalid={Number.isNaN(parseReading(water))} value={water} onChange={(e) => setWater(e.target.value)} />
           </Field>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -215,10 +217,10 @@ function Form({ data }) {
         Your answers are compared with the Room's record. A large difference brings Staff to the Room to check it with you, and the inventory you make together is the one that counts.
       </Alert>
       <div className="flex justify-end gap-2">
-        <Button onClick={() => save.run()} disabled={save.pending}>
+        <Button onClick={() => save.run()} disabled={save.pending || readingsBad}>
           Save draft
         </Button>
-        <Button variant="primary" onClick={() => submit.run()} disabled={submit.pending}>
+        <Button variant="primary" onClick={() => submit.run()} disabled={submit.pending || readingsBad}>
           Submit inventory
         </Button>
       </div>

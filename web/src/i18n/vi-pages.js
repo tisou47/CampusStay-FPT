@@ -1273,6 +1273,7 @@ const staff = {
   "The balance will be invoiced to the student": "Số tiền thiếu sẽ được lập hóa đơn cho sinh viên",
   "Confirm and complete": "Xác nhận và hoàn tất",
   "Go back": "Quay lại",
+  "Enter readings as numbers, e.g. 1234,5": "Nhập chỉ số bằng số, ví dụ 1234,5",
 }
 const manager = {
   "Late check-in approved": "Đã duyệt nhận phòng muộn",

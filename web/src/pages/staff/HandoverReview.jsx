@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { parseReading } from '@/lib/numbers'
 import { useSearchParams } from 'react-router'
 import { CalendarClock, CircleCheck, ClipboardList, Eye, ImageOff, Lock } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -158,12 +159,14 @@ function Verification({ detail, onClose }) {
   const [water, setWater] = useState(detail.water?.verified ?? detail.water?.student ?? '')
   // The student is in the Room with Staff: they agree in person and the inventory is final at once (no app step).
   const [present, setPresent] = useState(false)
+  const eBad = Number.isNaN(parseReading(electricity))
+  const wBad = Number.isNaN(parseReading(water))
   const save = useMutation(
     (mode) =>
       api.handover.verification(detail.row.id, {
         items: Object.entries(items).map(([itemId, v]) => ({ itemId, condition: v.condition, note: v.note || undefined })),
-        electricity: electricity === '' ? undefined : Number(electricity),
-        water: water === '' ? undefined : Number(water),
+        electricity: parseReading(electricity) ?? undefined,
+        water: parseReading(water) ?? undefined,
         send: mode === 'send',
         finalizeOnSite: mode === 'final',
       }),
@@ -192,13 +195,13 @@ function Verification({ detail, onClose }) {
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <Checkbox label="The student is here and agrees with what we found" checked={present} onChange={(e) => setPresent(e.target.checked)} />
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => save.run('save')} disabled={save.pending}>
+            <Button onClick={() => save.run('save')} disabled={save.pending || eBad || wBad}>
               Save
             </Button>
-            <Button onClick={() => save.run('send')} disabled={save.pending}>
+            <Button onClick={() => save.run('send')} disabled={save.pending || eBad || wBad}>
               Send to the student
             </Button>
-            <Button variant="primary" icon={CircleCheck} onClick={() => save.run('final')} disabled={!present || save.pending}>
+            <Button variant="primary" icon={CircleCheck} onClick={() => save.run('final')} disabled={!present || save.pending || eBad || wBad}>
               Sign the Final report in the Room
             </Button>
           </div>
@@ -266,7 +269,7 @@ function Verification({ detail, onClose }) {
                   })
             }
           >
-            <Input type="number" min="0" step="0.1" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
+            <Input inputMode="decimal" invalid={eBad} value={electricity} onChange={(e) => setElectricity(e.target.value)} />
           </Field>
           <Field
             label="Water (m³)"
@@ -284,7 +287,7 @@ function Verification({ detail, onClose }) {
                   })
             }
           >
-            <Input type="number" min="0" step="0.1" value={water} onChange={(e) => setWater(e.target.value)} />
+            <Input inputMode="decimal" invalid={wBad} value={water} onChange={(e) => setWater(e.target.value)} />
           </Field>
         </div>
       </div>
