@@ -4,7 +4,9 @@ spring:
   application:
     name: campusstay
   profiles:
-    default: dev
+    # A server started without a profile is production: no demo tools, no fixed door-code key, no API docs
+    # (BE-AUTH-10). Development sets dev explicitly (pom.xml for mvn spring-boot:run, infra/docker-compose.yml).
+    default: prod
   threads:
     virtual:
       enabled: true
@@ -46,17 +48,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics   # /actuator/metrics: Admin only (SecurityConfig)
   endpoint:
     health:
       probes:
         enabled: true
 
 springdoc:
+  # Off unless the dev profile turns them on: production does not publish the API map (BE-AUTH-07).
+  api-docs:
+    enabled: false
   # Request and response records share short names across controllers (CreateRequest, Saved …): without the
   # qualified name one schema would stand for all of them.
   use-fqn: true
   swagger-ui:
+    enabled: false
     path: /swagger-ui.html
     display-request-duration: true
     operations-sorter: method

@@ -6,6 +6,11 @@
 server:
   forward-headers-strategy: framework   # behind the reverse proxy / tunnel
 
+logging:
+  structured:
+    format:
+      console: ecs                      # one JSON line per event (D2): docker logs can be searched by field
+
 # The base data (db/seed) is not loaded unless asked for. To load it, set
 # SPRING_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/seed in the server's .env and keep it: the seed is
 # idempotent. If it is ever removed after the seed was loaded, set

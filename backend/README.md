@@ -16,7 +16,7 @@ REST API for the CampusStay FPT dormitory system: one Spring Boot 4.1 applicatio
    ```
    Check: `docker compose -f infra/docker-compose.yml ps` shows `db` as healthy.
 2. Open `backend/` in IntelliJ as a Maven project, JDK 21.
-3. Run `CampusStayApplication` (profile `dev` is the default). Flyway creates the schema and loads the base data (see below).
+3. Run `mvn spring-boot:run` (it sets the `dev` profile), or `CampusStayApplication` in the IDE with the active profile `dev` (`-Dspring.profiles.active=dev`): without a profile the server starts as `prod` (BE-AUTH-10). Flyway creates the schema and loads the base data (see below). Swagger UI (`/api/swagger-ui.html`) and `/api/v3/api-docs` exist only in `dev`.
 4. Check: `curl http://localhost:8080/api/actuator/health` → `{"status":"UP"}`.
 5. Sign in:
    ```bash

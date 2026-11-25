@@ -3,6 +3,9 @@ package vn.fpt.campusstay.service.auth;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -23,9 +26,18 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
 class JdbcUserDirectory implements UserDirectory {
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcUserDirectory(JdbcClient jdbc) {
+    JdbcUserDirectory(JdbcClient jdbc, Clock clock) {
         this.jdbc = jdbc;
+        this.clock = clock;
+    }
+
+    @Override
+    public boolean signedIn(long userId) {
+        return jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM auth_session WHERE user_id = :id AND revoked_at IS NULL AND expires_at > :now)
+                """).param("id", userId).param("now", Timestamp.from(Instant.now(clock))).query(Boolean.class).single();
     }
 
     @Override

@@ -29,6 +29,20 @@ class SecurityConfigCorsTest {
                 .isEqualTo("https://campusstay-fpt-git-main-tisou.vercel.app");
     }
 
+    /** TC-AUTH-302: BE-AUTH-09: the production setting admits this project's previews and not other Vercel projects. */
+    @Test
+    void admitsOnlyThisProjectsPreviews() {
+        CorsConfiguration config = cors("https://campusstay-fpt-ten.vercel.app",
+                "regex:https://campusstay-[a-z0-9]{9}-tisou[.]vercel[.]app",
+                "regex:https://campusstay-fpt-git-[a-z0-9-]+-tisou[.]vercel[.]app");
+        assertThat(config.checkOrigin("https://campusstay-1qin9eihu-tisou.vercel.app")).isNotNull();
+        assertThat(config.checkOrigin("https://campusstay-fpt-git-fix-wave3-tisou.vercel.app")).isNotNull();
+        assertThat(config.checkOrigin("https://campusstay-fpt-ten.vercel.app")).isNotNull();
+        assertThat(config.checkOrigin("https://campusstay-evil-tisou.vercel.app")).isNull();
+        assertThat(config.checkOrigin("https://campusstay-x.evil-tisou.vercel.app")).isNull();
+        assertThat(config.checkOrigin("https://campusstay-1qin9eihu-tisou.vercel.app.evil.example")).isNull();
+    }
+
     /** TC-AUTH-035 (negative): other origins are refused, and a blank setting keeps CORS closed. */
     @Test
     void refusesOtherOriginsAndBlankSetting() {

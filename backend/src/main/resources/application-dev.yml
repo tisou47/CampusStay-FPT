@@ -19,6 +19,12 @@ campusstay:
   door-codes:
     key: ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=   # development only; servers set DOOR_CODE_KEY
 
+springdoc:            # Swagger UI and /v3/api-docs (tools/postman/generate-postman.mjs reads them)
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 logging:
   level:
     vn.fpt.campusstay: DEBUG

@@ -75,4 +75,12 @@ class FileLinksRegressionIT {
         mvc.perform(get("/files/" + id).param("exp", past).param("sig", sig)).andExpect(status().isNotFound());
         mvc.perform(get("/files/" + id)).andExpect(status().isNotFound());
     }
+
+    /** TC-MNT-301: BE-PLT-16: an inline file is sandboxed, so nothing in it runs on the API origin. */
+    @Test
+    void inlineFilesAreSandboxed() throws Exception {
+        mvc.perform(get(path(store()))).andExpect(status().isOk())
+                .andExpect(header().string("Content-Security-Policy", "sandbox; default-src 'none'"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    }
 }

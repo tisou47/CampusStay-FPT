@@ -8,7 +8,7 @@ Java 21 · Spring Boot 4.1.x (Spring Framework 7, Spring Security 7, Hibernate 7
 ## Commands
 ```bash
 docker compose -f infra/docker-compose.yml up -d db mail   # Postgres + Mailpit
-mvn spring-boot:run                                         # profile dev, http://localhost:8080/api
+mvn spring-boot:run                                         # profile dev (pom.xml; default is prod), http://localhost:8080/api
 mvn test                                                    # unit tests + LayeringTest
 mvn verify                                                  # + *IT integration tests (Docker required)
 ```
