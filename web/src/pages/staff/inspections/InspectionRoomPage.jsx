@@ -456,7 +456,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
                   </Td>
                   <Td>
                     {done ? (
-                      <span className="text-sm text-fg">{r.note || '—'}</span>
+                      <span className="text-sm text-fg">{r.note ? tr(r.note) : '—'}</span>
                     ) : (
                       <Input
                         size="sm"

@@ -39,7 +39,7 @@ class HandoverNotificationListener {
 
     @EventListener
     void on(CheckInAvailable e) {
-        notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "hours", String.valueOf(e.hours())),
+        notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
                 "/student/room/inventory");
     }
 

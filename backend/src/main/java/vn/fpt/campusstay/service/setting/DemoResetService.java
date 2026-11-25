@@ -126,9 +126,11 @@ public class DemoResetService {
                             + "fees released their Beds and Round 2 can fill the free Beds."),
             new StageInfo("D", "Check-in week",
                     "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
-                            + "residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. "
-                            + "New residents start their check-in inventory to get the door code; inventories are drafts, "
-                            + "matching, waiting for Staff, checked in the Room or closed by their deadline."));
+                            + "residents receive (report 1, sent to the Managers) and rotated their door codes, and Term N+1's "
+                            + "check-in opened three days ago: paid new residents received the door code that day with their "
+                            + "check-in inventory open (report 2, due at the end of the check-in period); inventories are not "
+                            + "filed yet, drafts, matching, waiting for Staff or checked in the Room. One Room waits for its "
+                            + "door code and its report 1 repair (D22)."));
 
     private final JdbcClient jdbc;
     private final JdbcTemplate template;

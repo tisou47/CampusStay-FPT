@@ -53,7 +53,7 @@ class DemoResetIT {
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager01@fpt.edu.vn")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D12')].scenarioVi").isNotEmpty())
                 // The scenario texts hold ";": every line keeps its eight columns (the place stays the place).
-                .andExpect(jsonPath("$.scenarios", hasSize(21)))
+                .andExpect(jsonPath("$.scenarios", hasSize(22)))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D03')].whereVi", contains("Sinh viên › Đăng ký · Manager › Tài chính › Xác nhận thanh toán")))
                 .andExpect(jsonPath("$.files", hasSize(5)))
                 .andExpect(jsonPath("$.lastReset").isEmpty());

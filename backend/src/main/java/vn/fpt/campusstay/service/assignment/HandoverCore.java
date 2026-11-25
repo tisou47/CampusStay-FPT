@@ -29,6 +29,7 @@ import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.service.setting.Parameters;
+import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
  * The check-in inventory's records (V78) and the rules both the student's and Staff's screens share: the Room's
@@ -84,10 +85,12 @@ class HandoverCore {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final TermCatalog terms;
 
     HandoverCore(JdbcClient jdbc, Inventory inventory, InspectionRecords inspections, Billing billing,
             Residences residences, Parameters parameters, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            Clock clock, TermCatalog terms) {
+        this.terms = terms;
         this.jdbc = jdbc;
         this.inventory = inventory;
         this.inspections = inspections;
@@ -267,9 +270,13 @@ class HandoverCore {
 
     // ---------------------------------------------------------------- writes
 
-    /** A new inventory for the Allocation: its items with their baseline, and the Room's meters before it. */
+    /**
+     * A new inventory for the Allocation: its items with their baseline, and the Room's meters before it. It is due at
+     * the end of the Term's check-in period (user decision 25/11/2026: the Admin's "check-in until" day); a student
+     * who receives the Room after that day (an approved late check-in) has {@code handover.submit_hours}.
+     */
     long open(Alloc a, Inventory.BedSlot bed, Instant now) {
-        Instant due = now.plus(Duration.ofHours(parameters.intValue("handover.submit_hours")));
+        Instant due = dueOf(a.termId(), now);
         Optional<InspectionRecords.Meters> meters = baselineMeters(bed.roomId());
         long id = jdbc.sql("""
                 INSERT INTO asg_handover (allocation_id, room_id, status, opened_at, due_at, baseline_electricity,
@@ -289,6 +296,13 @@ class HandoverCore {
                     .param("source", b == null ? null : b.source()).update();
         }
         return id;
+    }
+
+    private Instant dueOf(long termId, Instant now) {
+        Instant fallback = now.plus(Duration.ofHours(parameters.intValue("handover.submit_hours")));
+        return terms.findPublished(termId).map(t -> t.checkInEnd())
+                .map(end -> end.plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant().minusSeconds(1))
+                .filter(end -> end.isAfter(now)).orElse(fallback);
     }
 
     /** Compares the student's answers with the baseline and stores the result. */

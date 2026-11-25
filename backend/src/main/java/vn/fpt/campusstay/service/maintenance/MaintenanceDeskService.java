@@ -158,11 +158,14 @@ public class MaintenanceDeskService {
     private final Clock clock;
     private final RequestAudience audience;
     private final BlockSettings blockSettings;
+    private final ReportOneRepairs reportOne;
 
     public MaintenanceDeskService(JdbcClient jdbc, RequestStore requests, MaintenanceService labels,
             CurrentUser currentUser, BlockScope blockScope, Residences residences, Inventory inventory,
             UserDirectory users, Lookups lookups, FileStore files, FileLinks links, ApplicationEventPublisher events,
-            AuditLog audit, Clock clock, RequestAudience audience, BlockSettings blockSettings) {
+            AuditLog audit, Clock clock, RequestAudience audience, BlockSettings blockSettings,
+            ReportOneRepairs reportOne) {
+        this.reportOne = reportOne;
         this.audience = audience;
         this.blockSettings = blockSettings;
         this.jdbc = jdbc;
@@ -478,6 +481,11 @@ public class MaintenanceDeskService {
                 if (status.equals("RESOLVED") && furnitureItem != null) {
                     events.publishEvent(new FurnitureRepairLogged(furnitureItem, r.code(), r.title(), "Resolved",
                             user.userId()));
+                }
+                // Report 1 follows the repair: done once resolved in an empty Room (a resident confirms it
+                // otherwise), or once closed.
+                if (status.equals("CLOSED") || status.equals("RESOLVED") && audience.residentsOf(r.roomId()).isEmpty()) {
+                    reportOne.repaired(r);
                 }
             }
         }

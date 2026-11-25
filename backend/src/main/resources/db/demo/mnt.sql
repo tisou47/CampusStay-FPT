@@ -201,58 +201,31 @@ SELECT b.id, 'Kiểm tra định kỳ điện nước & PCCC · Tòa ' || b.code
 FROM inv_building b CROSS JOIN demo_t t
 WHERE b.code BETWEEN 'A' AND 'H';
 
+-- Report 1 of the turnover: done before check-in opened and sent to the Managers the day before (user decision
+-- 25/11/2026: every Room new residents receive is inspected before they get the code on the check-in day).
 INSERT INTO mnt_inspection_run (schedule_id, building_id, checklist_id, run_date, due_at, inspector_id, status,
                                 submitted_at, created_at)
-SELECT s.id, s.building_id, c.id, t.n_end + 1, ((t.today + 2) + TIME '17:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
-       s.assignee_id, 'IN_PROGRESS', NULL,
+SELECT s.id, s.building_id, c.id, t.n_end + 1, ((t.x_ci_start - 1) + TIME '23:59') AT TIME ZONE 'Asia/Ho_Chi_Minh',
+       coalesce(s.assignee_id, (SELECT id FROM demo_staff WHERE account = 'staff' || lower(b.code) || '02')),
+       'SUBMITTED', ((t.x_ci_start - 1) + TIME '18:00') AT TIME ZONE 'Asia/Ho_Chi_Minh',
        ((t.n_end + 1) + TIME '06:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
 FROM mnt_inspection_schedule s CROSS JOIN demo_t t
+JOIN inv_building b ON b.id = s.building_id
 JOIN mnt_checklist c ON c.family_key = 'DEMO_TURNOVER' AND c.status = 'PUBLISHED'
 WHERE t.stage = 'D' AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %';
 
+-- Every Room was inspected on n_end + 1 or n_end + 2 (furniture and meters), except the Room of D9: not reachable,
+-- so its new residents have no record to compare with.
 INSERT INTO mnt_inspection_room (run_id, room_id, status, inspected_at, electricity, water, inspected_by)
 SELECT ru.id, r.room_id,
-       CASE WHEN r.room_id IN (
-                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
-                UNION
-                (SELECT room_id FROM demo_checkin
-                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
-                 ORDER BY room_code LIMIT 1)
-            ) THEN 'PENDING'
-            ELSE 'INSPECTED' END,
-       CASE WHEN r.room_id NOT IN (
-                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
-                UNION
-                (SELECT room_id FROM demo_checkin
-                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
-                 ORDER BY room_code LIMIT 1)
-            )
-            THEN ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
-                 + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120) END,
-       CASE WHEN r.room_id NOT IN (
-                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
-                UNION
-                (SELECT room_id FROM demo_checkin
-                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
-                 ORDER BY room_code LIMIT 1)
-            ) THEN m.e END,
-       CASE WHEN r.room_id NOT IN (
-                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
-                UNION
-                (SELECT room_id FROM demo_checkin
-                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
-                 ORDER BY room_code LIMIT 1)
-            ) THEN m.w END,
-       CASE WHEN r.room_id NOT IN (
-                SELECT room_id FROM demo_checkin WHERE named = 1 OR scenario = 'S12'
-                UNION
-                (SELECT room_id FROM demo_checkin
-                 WHERE block = 'A' AND state = 'READY' AND named IS DISTINCT FROM 1 AND scenario IS DISTINCT FROM 'S12'
-                 ORDER BY room_code LIMIT 1)
-            )
-            THEN coalesce(ru.inspector_id,
-                 (SELECT id FROM demo_staff WHERE account = 'staff' || lower((SELECT code FROM inv_building WHERE id = ru.building_id)) || '02')) END
+       CASE WHEN r.room_id = d9.room_id THEN 'UNREACHABLE' ELSE 'INSPECTED' END,
+       ((t.n_end + 1 + abs(hashtext('day' || r.room_id)) % 2) + TIME '09:00') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+           + interval '4 minutes' * (abs(hashtext('min' || r.room_id)) % 120),
+       CASE WHEN r.room_id IS DISTINCT FROM d9.room_id THEN m.e END,
+       CASE WHEN r.room_id IS DISTINCT FROM d9.room_id THEN m.w END,
+       ru.inspector_id
 FROM (SELECT DISTINCT room_id, building_id FROM demo_checkin) r CROSS JOIN demo_t t
+LEFT JOIN (SELECT room_id FROM demo_checkin WHERE named = 9 LIMIT 1) d9 ON TRUE
 JOIN mnt_inspection_run ru ON ru.building_id = r.building_id AND ru.run_date = t.n_end + 1
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_room_meter m ON m.room_id = r.room_id
@@ -274,6 +247,75 @@ FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
 JOIN demo_checkin_item i ON i.room_id = ir.room_id
 WHERE ir.status = 'INSPECTED';
+
+-- Each item report 1 found Damaged opened its repair, as an inspection does: still open when check-in started (the
+-- repair was not done in time), assigned to the Block's Maintenance Technician; the desk of D8's Room is staffa01's
+-- (D22): its Room has no student who started an inventory yet, so resolving it makes the desk Good in report 1.
+INSERT INTO mnt_request (code, term_id, room_id, building_id, room_code, reporter_id, source, title, description,
+                         category, location, urgency, priority, staff_may_enter, status, assignee_id, sla_due_at,
+                         reported_at, furniture_item_id)
+SELECT 'MR-DEMO-I' || row_number() OVER (ORDER BY ir.room_id, i.item_id), t.x_id, ir.room_id, ro.building_id, ro.code,
+       ir.inspected_by, 'INSPECTION', ft.name || ' ' || f.asset_code || ' needs a repair',
+       'Failed in inspection INS-' || ir.run_id || '.', 'FURNITURE', 'ROOM', 'NORMAL', 'MEDIUM', TRUE, 'ASSIGNED',
+       CASE WHEN ir.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8 LIMIT 1)
+            THEN (SELECT id FROM demo_staff WHERE account = 'staffa01')
+            ELSE coalesce((SELECT id FROM demo_staff WHERE account = 'staff' || lower(bl.code) || '02'), ir.inspected_by) END,
+       t.now + interval '2 days', ir.inspected_at, i.item_id
+FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
+JOIN demo_checkin_item i ON i.room_id = ir.room_id AND i.condition = 'DAMAGED'
+JOIN inv_furniture_item f ON f.id = i.item_id JOIN inv_furniture_type ft ON ft.id = f.furniture_type_id
+JOIN inv_room ro ON ro.id = ir.room_id JOIN inv_building bl ON bl.id = ro.building_id
+CROSS JOIN demo_t t
+WHERE ir.status = 'INSPECTED' AND t.stage = 'D';
+
+UPDATE mnt_inspection_room_check c SET created_request_id = r.id
+FROM mnt_request r JOIN mnt_inspection_room ir ON ir.room_id = r.room_id
+WHERE r.code LIKE 'MR-DEMO-I%' AND c.inspection_room_id = ir.id
+  AND c.check_key = 'FURNITURE:' || r.furniture_item_id
+  AND ir.run_id IN (SELECT ru.id FROM mnt_inspection_run ru JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id
+                    WHERE s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %');
+
+INSERT INTO mnt_request_event (request_id, actor_id, actor_role, text, internal, at)
+SELECT r.id, r.reporter_id, 'STAFF', 'Created from inspection INS-' || ir.run_id, FALSE, r.reported_at
+FROM mnt_request r JOIN mnt_inspection_room_check c ON c.created_request_id = r.id
+JOIN mnt_inspection_room ir ON ir.id = c.inspection_room_id
+WHERE r.code LIKE 'MR-DEMO-I%';
+
+INSERT INTO mnt_request_event (request_id, actor_id, actor_role, text, internal, at)
+SELECT r.id, NULL, NULL, 'Assigned to ' || u.display_name || ' (inspection)', FALSE, r.reported_at + interval '5 minutes'
+FROM mnt_request r JOIN auth_user u ON u.id = r.assignee_id
+WHERE r.code LIKE 'MR-DEMO-I%';
+
+UPDATE mnt_request SET code = 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0') WHERE code LIKE 'MR-DEMO-I%';
+
+-- What report 1 recorded on each item reaches the furniture records, as the live events do (FurnitureDamaged, then
+-- FurnitureRepairLogged "Reported"): Worn keeps the item In use as Worn; Damaged makes it Broken, with its history
+-- (status changed by the inspection, repair reported). Resolving the repair turns it In use and Good again.
+UPDATE inv_furniture_item f
+SET condition = c.condition, status = CASE WHEN c.condition IN ('DAMAGED', 'MISSING') THEN 'BROKEN' ELSE f.status END,
+    updated_at = ir.inspected_at, version = f.version + 1
+FROM mnt_inspection_room_check c JOIN mnt_inspection_room ir ON ir.id = c.inspection_room_id
+JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
+CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND f.id = substring(c.check_key FROM 11)::bigint AND c.check_key LIKE 'FURNITURE:%'
+  AND c.condition IN ('WORN', 'DAMAGED', 'MISSING');
+
+INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
+SELECT substring(c.check_key FROM 11)::bigint, 'STATUS', 'In use', 'Broken',
+       left('Inspection INS-' || ir.run_id || coalesce(': ' || c.note, ''), 500), ir.inspected_by, ir.inspected_at
+FROM mnt_inspection_room_check c JOIN mnt_inspection_room ir ON ir.id = c.inspection_room_id
+JOIN mnt_inspection_run ru ON ru.id = ir.run_id
+JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
+CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND c.check_key LIKE 'FURNITURE:%' AND c.condition IN ('DAMAGED', 'MISSING');
+
+INSERT INTO inv_furniture_event (item_id, kind, from_value, to_value, reason, by_user, at)
+SELECT r.furniture_item_id, 'REPAIR', r.code, 'Reported', left(r.title, 500), r.reporter_id,
+       r.reported_at + interval '1 second'
+FROM mnt_request r JOIN mnt_inspection_room_check c ON c.created_request_id = r.id
+WHERE r.source = 'INSPECTION' AND r.furniture_item_id IS NOT NULL;
 
 -- ---------- open runs of the Block's first Staff (every stage) ----------
 -- Two weekly checks started by the Managers and assigned to staff<block>01, still in progress, so the Staff page lists

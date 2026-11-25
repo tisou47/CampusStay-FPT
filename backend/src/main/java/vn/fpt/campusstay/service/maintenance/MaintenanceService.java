@@ -86,10 +86,13 @@ public class MaintenanceService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final RequestAudience audience;
+    private final ReportOneRepairs reportOne;
 
     public MaintenanceService(JdbcClient jdbc, RequestStore requests, CurrentUser currentUser, BlockScope blockScope,
             Residences residences, UserDirectory users, Lookups lookups, Parameters parameters, FileStore files,
-            Inventory inventory, ApplicationEventPublisher events, Clock clock, RequestAudience audience) {
+            Inventory inventory, ApplicationEventPublisher events, Clock clock, RequestAudience audience,
+            ReportOneRepairs reportOne) {
+        this.reportOne = reportOne;
         this.audience = audience;
         this.jdbc = jdbc;
         this.requests = requests;
@@ -261,6 +264,7 @@ public class MaintenanceService {
                     WHERE id = :id
                     """).param("now", Timestamp.from(now)).param("id", r.id()).update();
             requests.event(r.id(), me, "STUDENT", "Fix confirmed by the student", note, false, now);
+            reportOne.repaired(r);
         } else {
             jdbc.sql("""
                     UPDATE mnt_request SET status = :status, resolved_at = NULL, confirmed_fixed = FALSE,

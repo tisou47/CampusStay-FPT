@@ -418,8 +418,8 @@ class InspectionIT {
 
     /**
      * TC-MNT-018: every finished Room of an inspection is a report kept with its Room (user decision 25/11/2026): the
-     * report summary lists it (once the run is sent to the Managers) with the inspection and the inspector, filtered by
-     * kind (report 1 pre-arrival or other inspections) or by Room; pending Rooms and unsent runs are not reports, and
+     * report summary lists it as soon as Staff save it, with the inspection and the inspector, filtered by kind
+     * (report 1 pre-arrival or other inspections) or by Room; pending Rooms are not reports, and
      * another Block's Staff cannot read them.
      */
     @Test
@@ -453,10 +453,11 @@ class InspectionIT {
         getAs("/inspection-reports?q=" + code, bearer(mvc, MANAGER_A)).andExpect(jsonPath("$.total").value(1));
         getAs("/inspection-reports?kind=Periodic&q=" + code, staff).andExpect(jsonPath("$.total").value(1));
         getAs("/inspection-reports?kind=Pre-arrival&q=" + code, staff).andExpect(jsonPath("$.total").value(0));
-        // A run not sent to the Managers yet is not a report of its Rooms.
+        // A Room is a report as soon as Staff save it, before the run is sent to the Managers.
         jdbc.sql("UPDATE mnt_inspection_run SET status = 'IN_PROGRESS', submitted_at = NULL WHERE id = :id").param("id", run)
                 .update();
-        getAs("/inspection-reports?room=A-509", staff).andExpect(jsonPath("$.items[*].runId").value(not(hasItem(code))));
+        getAs("/inspection-reports?room=A-509", staff)
+                .andExpect(jsonPath("$.items[?(@.runId == '" + code + "')].submitted").value(hasItem(false)));
         getAs("/inspection-reports?block=A", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
         getAs("/inspection-reports?room=A-509", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isNotFound());
     }

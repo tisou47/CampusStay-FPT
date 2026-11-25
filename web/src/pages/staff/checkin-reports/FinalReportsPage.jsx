@@ -277,14 +277,14 @@ function InspectionReports({ kind }) {
 /** The inspection reports as a table (also used by a Room's profile in Rooms and beds, without the Room column). */
 export function InspectionReportTable({ query, items, onOpen, showRoom = true }) {
   return (
-    <Table fill tableClassName="table-fixed">
+    <Table fill tableClassName="table-fixed min-w-[1240px]">
       <THead>
         <tr>
           <Th className="w-28">{t('Run')}</Th>
           {showRoom && <Th className="w-28">{t('Room')}</Th>}
           <Th>{t('Inspection')}</Th>
-          <Th className="w-36">{t('Result')}</Th>
-          <Th className="w-44">{t('Inspector')}</Th>
+          <Th className="w-60">{t('Result')}</Th>
+          <Th className="w-44">{t('Inspected by')}</Th>
           <Th className="w-40">{t('Inspected')}</Th>
           <Th className="w-36">{t('Sent to managers')}</Th>
         </tr>
@@ -293,7 +293,7 @@ export function InspectionReportTable({ query, items, onOpen, showRoom = true })
         <TableStatus query={query} colSpan={showRoom ? 7 : 6} rows={items} emptyIcon={FileText} emptyTitle="No inspection reports yet" />
         {items.map((r) => (
           <Tr key={`${r.runId}-${r.room}`} onClick={() => onOpen(r)} className="cursor-pointer [&>td]:h-14">
-            <Td className="font-mono text-sm font-medium text-fg">{r.runId}</Td>
+            <Td className="font-mono text-sm font-medium whitespace-nowrap text-fg">{r.runId}</Td>
             {showRoom && <Td className="font-medium tabular">{r.room}</Td>}
             <Td>
               <div className="flex min-w-0 flex-col">

@@ -104,7 +104,7 @@ WITH pick AS (
     WHERE u.demo AND u.status = 'ACTIVE' AND s.cohort = 'K21'
       AND s.gender = (SELECT trim(gender) FROM inv_building WHERE code = 'A')
       AND s.user_id NOT IN (SELECT student_id FROM demo_reserved))
--- S40 ready to start (approved late arrival), S41 inventory started, S42 filed with a major difference,
+-- S40 waits for A-901's new door code (approved late arrival), S41 inventory started, S42 filed with a major difference,
 -- S43 final (S42's roommate), S44 Staff visit the Room, S45 resident with shared damage to confirm.
 SELECT p.student_id, p.code, v.scenario, b.id AS bed_id, r.id AS room_id, r.code AS room_code, r.building_id,
        (1000 + (r.id % 97) * 7 + 80)::numeric(10,1) AS meter_e, (30 + r.id % 40 + 6)::numeric(10,1) AS meter_w
@@ -350,10 +350,11 @@ GROUP BY r.id;
 
 -- Every new student who keeps a Bed of N+1 (and S12, who moves to A-603) and the state of their check-in inventory.
 -- Named cases (D1-D9) are the first student of nine Rooms of Block A; the others are spread by hash:
---   READY       paid, code set, not started yet         DRAFT     started, due later
+--   OPENED      code received on the check-in day, nothing filed yet (READY and AUTO become OPENED below)
+--   DRAFT       started, due at the end of the check-in period
 --   MATCHED     filed, matching: final at once          MINOR     filed, one item Damaged: waits for Staff
 --   MAJOR       filed, a meter far above the record     VERIFYING Staff come to the Room today
---   AUTO        deadline passed: the Room's record      WAITING   the Room's door code is not set yet (D8)
+--   WAITING     the Room's door code is not set yet (D8), or the Balance is not paid (S17)
 --   NO_RECORD   the Room was not reachable in the inspection: nothing to compare with (D9)
 CREATE TEMP TABLE demo_checkin ON COMMIT DROP AS
 WITH arrivals AS (
@@ -389,7 +390,8 @@ FROM placed p LEFT JOIN named nm ON nm.student_id = p.student_id;
 -- Everyone in the Room of D8 waits for its door code; everyone in the Room of D9 has no inspection record.
 UPDATE demo_checkin c SET state = 'WAITING'
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8);
-UPDATE demo_checkin c SET state = CASE WHEN c.state IN ('MINOR', 'MAJOR', 'VERIFYING') THEN 'MATCHED' ELSE c.state END
+-- The Room of D9 was not reachable in report 1: everyone in it filed an inventory that became the record.
+UPDATE demo_checkin c SET state = 'NO_RECORD'
 WHERE c.room_id = (SELECT room_id FROM demo_checkin WHERE named = 9);
 -- Everyone in the three clean demo rooms (D1's room, S12's A-603, and the extra READY room in Block A) starts READY from scratch (no handover yet).
 UPDATE demo_checkin c SET state = 'READY'
@@ -402,6 +404,11 @@ WHERE c.room_id IN (
 );
 -- A late arrival whose Balance is not paid yet (S17) is waiting for the payment.
 UPDATE demo_checkin SET state = 'WAITING' WHERE scenario = 'S17';
+-- Since 25/11/2026 a paid new resident receives the door code on the check-in day and their inventory opens by
+-- itself: nobody waits to press a start button (READY), and nobody is closed by the deadline yet (AUTO), since the
+-- inventory is due at the end of the check-in period (x_ci_end), still ahead. Both are OPENED: code received, nothing
+-- filed yet; if still nothing is filed by x_ci_end, report 1 becomes the final report and Utility counts from the code.
+UPDATE demo_checkin SET state = 'OPENED' WHERE state IN ('READY', 'AUTO');
 
 -- What the pre-arrival inspection found in those Rooms (read by asg.sql as the record and written by mnt.sql): most
 -- items Good, a few Worn or Damaged (already reported for repair), never charged to the new residents.
@@ -411,6 +418,14 @@ SELECT i.id AS item_id, i.room_id, i.bed_id, ft.code AS type_code,
                                                     ELSE 'GOOD' END AS condition
 FROM inv_furniture_item i JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id
 WHERE i.status <> 'DISPOSED' AND i.room_id IN (SELECT room_id FROM demo_checkin);
+
+-- The Room of D8 (its door code is not set, so no student started an inventory there) has its first desk Damaged in
+-- report 1, with the open repair it made, assigned to staffa01 (mnt.sql): resolving it turns the desk Good again in
+-- report 1, and the residents who receive the Room afterwards compare their inventory with a Good desk.
+UPDATE demo_checkin_item i SET condition = 'DAMAGED'
+WHERE i.item_id = (SELECT x.item_id FROM demo_checkin_item x
+                   WHERE x.type_code = 'DESK' AND x.room_id = (SELECT room_id FROM demo_checkin WHERE named = 8)
+                   ORDER BY x.item_id LIMIT 1);
 
 CREATE INDEX ix_demo_res_student ON demo_res (student_id);
 CREATE INDEX ix_demo_res_room ON demo_res (room_id);

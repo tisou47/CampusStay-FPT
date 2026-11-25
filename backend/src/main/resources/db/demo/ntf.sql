@@ -63,3 +63,21 @@ SELECT 'OPERATIONS', 'RESIDENTS', t.n_id, 'Check-out before ' || to_char(t.n_end
        TRUE, t.now - interval '2 days', 'MANUAL', (SELECT id FROM demo_staff WHERE account = 'manager01'),
        t.now - interval '2 days'
 FROM demo_t t WHERE t.stage IN ('C', 'D');
+
+-- Check-in week (D): every new resident who received the door code on the check-in day was told so, with the end of the
+-- check-in period as the inventory's deadline (user decision 25/11/2026); those who already filed have read it.
+INSERT INTO ntf_notification (user_id, event_key, title, body, title_vi, body_vi, link, created_at, read_at)
+SELECT a.student_id, 'CHECK_IN_AVAILABLE', 'Your door code is ready · Room ' || r.code,
+       'Open My Room to see the door code and go into the Room. You may file the check-in inventory until '
+           || to_char(h.due_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM/YYYY')
+           || '; if you do not, the Room''s recorded condition is used and Utility counts from when you received the code.',
+       'Bạn đã có mã cửa · Phòng ' || r.code,
+       'Mở Phòng của tôi để xem mã cửa và vào phòng. Bạn có thể nộp biên bản kiểm kê nhận phòng đến '
+           || to_char(h.due_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM/YYYY')
+           || '; nếu không nộp, hệ thống dùng tình trạng phòng đã ghi nhận và tính điện nước từ lúc bạn nhận mã cửa.',
+       '/student/room/inventory', a.code_released_at,
+       CASE WHEN h.submitted_at IS NOT NULL OR h.status = 'FINAL' THEN a.code_released_at + interval '1 hour' END
+FROM asg_handover h JOIN asg_allocation a ON a.id = h.allocation_id
+JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id
+CROSS JOIN demo_t t
+WHERE t.stage = 'D' AND a.term_id = t.x_id AND a.code_released_at IS NOT NULL;

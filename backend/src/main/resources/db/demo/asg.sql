@@ -153,8 +153,9 @@ FROM asg_proposal_item p JOIN asg_run ru ON ru.id = p.run_id
 WHERE p.building_id IS NOT NULL;
 
 -- ---------- check-in inventories (S40–S45, every stage) ----------
--- Term N places on floor 9 of Block A. S40 paid and has an approved late arrival: they may start the inventory
--- (staffa01 has still to inspect A-901). S41 started it 6 hours ago; S42 filed it with a missing wardrobe and a
+-- Term N places on floor 9 of Block A. S40 paid and has an approved late arrival, but A-901 waits for a new door
+-- code (InventoryDemoData) and staffa01 has still to inspect it: once the code is confirmed, the release gives S40 the
+-- code and opens the inventory by itself (no start button since 25/11/2026). S41 started it 6 hours ago; S42 filed it with a missing wardrobe and a
 -- meter far above the Room's record (Major difference, for Staff to review); S43 is S42's roommate whose
 -- inventory is final (it prefills S42's shared items); S44's inventory waits for Staff's visit today; S45 has lived
 -- in A-905 since the start of the Term and is asked to confirm damage to a shared item.
@@ -166,7 +167,7 @@ INSERT INTO asg_allocation (term_id, application_id, student_id, bed_id, status,
 SELECT t.n_id, (SELECT ap.id FROM app_application ap WHERE ap.term_id = t.n_id AND ap.student_id = h.student_id),
        h.student_id, h.bed_id, 'ACTIVE', 'MANUAL', t.now - interval '20 days',
        (SELECT id FROM demo_staff WHERE account = 'manager01'), w.since, w.since,
-       coalesce(w.since, t.now - interval '2 hours'), TRUE, w.final, w.final, s.id
+       w.since, TRUE, w.final, w.final, s.id
 FROM demo_handover h CROSS JOIN demo_t t
 JOIN asg_stay s ON s.student_id = h.student_id AND s.first_term_id = t.n_id
 JOIN (SELECT d.student_id,
@@ -266,7 +267,9 @@ WHERE t.stage = 'D' AND x.term_id = t.x_id AND x.student_id = d.student_id AND d
 -- When each new resident opened, filed and closed the inventory (see demo_checkin in plan.sql for the states).
 CREATE TEMP TABLE demo_checkin_time ON COMMIT DROP AS
 WITH b AS (
-    SELECT c.*, t.now, t.today, (t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS ci_open
+    SELECT c.*, t.now, t.today, (t.x_ci_start + TIME '08:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' AS ci_open,
+           -- Due at the end of the check-in period (user decision 25/11/2026), no longer 48 hours after the code.
+           ((t.x_ci_end + 1)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh') - interval '1 second' AS ci_due
     FROM demo_checkin c CROSS JOIN demo_t t),
 o AS (
     SELECT b.*, CASE
@@ -275,16 +278,14 @@ o AS (
         WHEN b.state = 'DRAFT' THEN b.now - interval '1 hour' * (2 + b.h % 18)
         WHEN b.state IN ('MINOR', 'MAJOR') THEN b.now - interval '1 hour' * (10 + b.h % 14)
         WHEN b.state = 'VERIFYING' THEN b.now - interval '30 hours'
-        WHEN b.state = 'AUTO' THEN b.ci_open + interval '1 minute' * (b.h % 50) END AS opened
+        WHEN b.state = 'OPENED' THEN b.ci_open + interval '1 minute' * (b.h % 50) END AS opened
     FROM b)
-SELECT o.*, o.opened + interval '48 hours' AS due,
+SELECT o.*, o.ci_due AS due,
        CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
             WHEN o.state IN ('MINOR', 'MAJOR') THEN o.now - interval '1 hour' * (1 + o.h % 8)
             WHEN o.state = 'VERIFYING' THEN o.now - interval '26 hours' END AS submitted,
-       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
-            WHEN o.state = 'AUTO' THEN o.opened + interval '48 hours 10 minutes' END AS finalized,
-       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours'
-            WHEN o.state = 'AUTO' THEN o.opened END AS utility_from
+       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours' END AS finalized,
+       CASE WHEN o.state IN ('MATCHED', 'NO_RECORD') THEN o.opened + interval '2 hours' END AS utility_from
 FROM o;
 
 UPDATE asg_allocation x SET eligible_at = CASE WHEN c.state = 'WAITING' THEN NULL ELSE c.ci_open END,
@@ -299,22 +300,21 @@ INSERT INTO asg_handover (allocation_id, room_id, status, source, opened_at, due
                           verify_requested_at, verify_requested_by, visit_at, verified_electricity, verified_water,
                           finalized_at, utility_from, reminders_sent)
 SELECT x.id, c.room_id,
-       CASE c.state WHEN 'DRAFT' THEN 'DRAFT' WHEN 'MINOR' THEN 'SUBMITTED' WHEN 'MAJOR' THEN 'SUBMITTED'
+       CASE c.state WHEN 'DRAFT' THEN 'DRAFT' WHEN 'OPENED' THEN 'DRAFT' WHEN 'MINOR' THEN 'SUBMITTED' WHEN 'MAJOR' THEN 'SUBMITTED'
                     WHEN 'VERIFYING' THEN 'VERIFYING' ELSE 'FINAL' END,
-       CASE c.state WHEN 'AUTO' THEN 'AUTO' WHEN 'MATCHED' THEN 'STUDENT' WHEN 'NO_RECORD' THEN 'STUDENT' END,
+       CASE c.state WHEN 'MATCHED' THEN 'STUDENT' WHEN 'NO_RECORD' THEN 'STUDENT' END,
        c.opened, c.due, c.submitted,
        CASE c.state WHEN 'MATCHED' THEN m.e + 1.5 WHEN 'NO_RECORD' THEN m.e + 1.5 WHEN 'MINOR' THEN m.e + 2
                     WHEN 'MAJOR' THEN m.e + 45 WHEN 'VERIFYING' THEN m.e + 38
-                    WHEN 'DRAFT' THEN m.e + 2 WHEN 'AUTO' THEN m.e END,
-       CASE WHEN c.state IN ('MATCHED', 'NO_RECORD', 'MINOR', 'MAJOR', 'VERIFYING', 'DRAFT') THEN m.w + 0.1
-            WHEN c.state = 'AUTO' THEN m.w END,
+                    WHEN 'DRAFT' THEN m.e + 2 END,
+       CASE WHEN c.state IN ('MATCHED', 'NO_RECORD', 'MINOR', 'MAJOR', 'VERIFYING', 'DRAFT') THEN m.w + 0.1 END,
        CASE WHEN c.state = 'NO_RECORD' THEN m.e - 12 ELSE m.e END,
        CASE WHEN c.state = 'NO_RECORD' THEN m.w - 1 ELSE m.w END,
        CASE WHEN c.state = 'NO_RECORD' THEN NULL
             ELSE ((t.n_end + 2) + TIME '15:00') AT TIME ZONE 'Asia/Ho_Chi_Minh' END,
        CASE c.state WHEN 'MINOR' THEN 'MINOR' WHEN 'MAJOR' THEN 'MAJOR' WHEN 'VERIFYING' THEN 'MAJOR'
                     WHEN 'DRAFT' THEN 'MINOR'
-                    WHEN 'MATCHED' THEN 'MATCHED' WHEN 'NO_RECORD' THEN 'MATCHED' WHEN 'AUTO' THEN 'MATCHED' END,
+                    WHEN 'MATCHED' THEN 'MATCHED' WHEN 'NO_RECORD' THEN 'MATCHED' END,
        CASE c.state WHEN 'MINOR' THEN 'Desk: Good → Damaged'
                     WHEN 'MAJOR' THEN 'Wardrobe: Good → Missing' || chr(10) || 'Electricity +45 kWh (allowed 6 kWh)'
                     WHEN 'VERIFYING' THEN 'Electricity +38 kWh (allowed 7.5 kWh)' END,
@@ -344,7 +344,7 @@ FROM asg_handover ho JOIN asg_allocation x ON x.id = ho.allocation_id
 JOIN demo_checkin_time c ON c.student_id = x.student_id
 JOIN demo_checkin_item i ON i.room_id = c.room_id AND (i.bed_id IS NULL OR i.bed_id = c.bed_id)
 CROSS JOIN LATERAL (SELECT CASE
-        WHEN c.state = 'AUTO' THEN coalesce(i.condition, 'GOOD')
+        WHEN c.state = 'OPENED' THEN NULL
         WHEN c.state = 'DRAFT' AND i.type_code = 'DESK' AND i.condition = 'GOOD' THEN 'WORN'
         WHEN c.state = 'MINOR' AND i.type_code = 'DESK' THEN 'DAMAGED'
         WHEN c.state = 'MAJOR' AND i.type_code = 'WRD' THEN 'MISSING'

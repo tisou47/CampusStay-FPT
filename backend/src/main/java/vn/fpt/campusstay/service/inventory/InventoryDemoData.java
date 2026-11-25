@@ -39,6 +39,8 @@ class InventoryDemoData implements DemoData {
         jdbc.execute("DELETE FROM inv_door_code_task");
         jdbc.execute("DELETE FROM inv_door_code");
         jdbc.execute("DELETE FROM inv_room_class_term");
+        // Furniture history (status changes, repairs) is business data: the base data has none.
+        jdbc.execute("DELETE FROM inv_furniture_event WHERE kind IN ('STATUS', 'REPAIR')");
         // Damage recorded while trying a stage (inspections, inventories, check-outs) goes with the business data:
         // the base data has no broken item.
         jdbc.execute("""
@@ -75,7 +77,23 @@ class InventoryDemoData implements DemoData {
         });
         if ("D".equals(stage.code())) {
             rotateForCheckIn();
+        } else {
+            awaitA901Code();
         }
+    }
+
+    /**
+     * Stages A–C: A-901 waits for a new door code (its last resident left), so S40, paid with an approved late arrival,
+     * does not receive the Room yet. Once staffa01 inspects A-901 and confirms its new code, the release gives S40 the
+     * code and opens their check-in inventory by itself (user decision 25/11/2026: no start button).
+     */
+    private void awaitA901Code() {
+        jdbc.update("""
+                INSERT INTO inv_door_code_task (room_id, reason, created_at)
+                SELECT r.id, 'CHECK_OUT', t.now - interval '1 day' FROM inv_room r CROSS JOIN demo_t t
+                WHERE r.code = 'A-901'
+                  AND NOT EXISTS (SELECT 1 FROM inv_door_code_task k WHERE k.room_id = r.id AND k.done_at IS NULL)
+                """);
     }
 
     /**

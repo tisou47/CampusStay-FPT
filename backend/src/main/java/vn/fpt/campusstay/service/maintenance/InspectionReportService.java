@@ -23,8 +23,8 @@ import vn.fpt.campusstay.service.inventory.Inventory;
 
 /**
  * Every Room report of the inspections (user decision 25/11/2026): whatever the Manager scheduled (a pre-arrival
- * check, Wi-Fi, fire safety …), each Room an inspector finished is one report, kept with its Room once the run is
- * sent to the Managers. Staff and Managers read them; students never do (they see only their own check-in inventory). The back office's
+ * check, Wi-Fi, fire safety …), each Room an inspector finished is one report, kept with its Room as soon as
+ * Staff save it (whether or not the run is sent to the Managers yet). Staff and Managers read them; students never do (they see only their own check-in inventory). The back office's
  * report summary lists them beside the students' check-in inventories, and Rooms and beds shows a Room's own.
  */
 @Service
@@ -103,7 +103,7 @@ public class InspectionReportService {
                 JOIN mnt_inspection_run r ON r.id = ir.run_id
                 JOIN mnt_checklist c ON c.id = r.checklist_id
                 LEFT JOIN mnt_inspection_schedule s ON s.id = r.schedule_id
-                WHERE r.building_id IN (:scope) AND ir.status <> 'PENDING' AND r.status = 'SUBMITTED'
+                WHERE r.building_id IN (:scope) AND ir.status <> 'PENDING'
                   AND (CAST(:kind AS VARCHAR) IS NULL OR coalesce(s.kind, 'PERIODIC') = :kind)
                 ORDER BY coalesce(ir.inspected_at, r.submitted_at, r.created_at) DESC, r.id DESC, ir.id
                 """).param("scope", List.copyOf(scope)).param("kind", kindCode(kind))

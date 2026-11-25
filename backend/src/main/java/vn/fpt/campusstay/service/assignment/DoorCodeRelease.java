@@ -209,9 +209,11 @@ public class DoorCodeRelease {
                 stays.joinStay(w.id(), now);
             }
             if (needsReport && !Long.valueOf(w.id()).equals(forced) && handovers.ofAllocation(w.id(), false).isEmpty()) {
-                handovers.allocation(w.id()).ifPresent(a -> handovers.open(a, bed, now));
-                events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
-                        parameters.intValue("handover.submit_hours")));
+                handovers.allocation(w.id()).ifPresent(a -> {
+                    long id = handovers.open(a, bed, now);
+                    events.publishEvent(new CheckInAvailable(w.studentId(), bed.roomCode(),
+                            handovers.byId(id, false).orElseThrow().dueAt()));
+                });
             }
             byRoom.computeIfAbsent(bed.roomCode(), r -> new ArrayList<>()).add(w.studentId());
         }
