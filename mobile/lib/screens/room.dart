@@ -160,7 +160,7 @@ class _Room extends StatelessWidget {
                 style: HeroCard.soft.copyWith(fontSize: 14),
               ),
               const SizedBox(height: 6),
-              const _DoorCode(),
+              const DoorCodeCard(),
             ],
           ),
         ),
@@ -562,14 +562,14 @@ class _NextTermCard extends StatelessWidget {
 
 /// The Room's door code (ADR-23), one line in the Room card: shown on request for 30 seconds; every view is written to
 /// the Audit Log.
-class _DoorCode extends StatefulWidget {
-  const _DoorCode();
+class DoorCodeCard extends StatefulWidget {
+  const DoorCodeCard({super.key});
 
   @override
-  State<_DoorCode> createState() => _DoorCodeState();
+  State<DoorCodeCard> createState() => DoorCodeCardState();
 }
 
-class _DoorCodeState extends State<_DoorCode> {
+class DoorCodeCardState extends State<DoorCodeCard> {
   Json? _door;
   bool _failed = false;
   String? _code;

@@ -17,6 +17,7 @@ import { formatCurrency, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 import { ConditionGuide } from './room/ConditionGuide'
+import { DoorCodeCard } from './room/RoomAccessAndFinance'
 
 // Student › My room › Check-in inventory. The student never sees what the dormitory recorded about the Room.
 // GET /students/me/handover → { id, status: Not needed | Waiting | Ready | Draft | Submitted | Verifying | Final, room, bed,
@@ -77,7 +78,7 @@ function Start({ data }) {
   const [open, setOpen] = useState(false)
   const start = useMutation(() => api.handover.start(), {
     invalidates: ['handover', 'allocation', 'door-code'],
-    onSuccess: () => notify({ title: 'Inventory started', message: 'Your door code is on My room. File the inventory before the deadline.' }),
+    onSuccess: () => notify({ title: 'Inventory started', message: 'Answer each item and the meters, then submit before the deadline.' }),
     onError: (e) => notifyError(e, 'Could not start the inventory'),
   })
   const ready = data.status === 'Ready'
@@ -85,7 +86,9 @@ function Start({ data }) {
     <Card className="flex flex-col gap-3">
       <CardHeader
         title="Receive your Room"
-        description="At the Room, start the check-in inventory: you receive the door code and record the condition of your Bed's items, the shared items and the meters."
+        description={data.dueAt
+          ? t("Your door code is above. File the check-in inventory by {date}: Utility then counts from your own meter reading. Without it, the Room's recorded condition is used and Utility counts from the day you received the code.", { date: formatDateTime(data.dueAt) })
+          : "Your door code is above. File the check-in inventory: record the condition of your Bed's items, the shared items and the meters."}
       />
       <ul className="flex flex-col gap-1.5">
         {data.checks.map((c) => (
@@ -104,12 +107,12 @@ function Start({ data }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Start the check-in inventory?"
-        description={t("Do it when you are at the Room. You receive the door code now, and you have {n} hours to file the inventory: after that the Room's recorded condition is used and you can no longer report damage that was already there.", { n: data.submitHours ?? 48 })} // shortcut: 48 until the B8 API (submitHours) is deployed, then drop the fallback
+        description={t("Do it at the Room. Submit it by {date}: after that the Room's recorded condition is used and you can no longer report damage that was already there.", { date: data.dueAt ? formatDateTime(data.dueAt) : '—' })}
         footer={
           <>
             <Button onClick={() => setOpen(false)}>Not yet</Button>
             <Button variant="primary" disabled={start.pending} onClick={() => start.run().then(() => setOpen(false))}>
-              I am at the Room, start
+              Start
             </Button>
           </>
         }
@@ -550,9 +553,16 @@ export default function CheckInInventory() {
                 </EmptyBlock>
               </Card>
             ) : d.status === 'Waiting' || d.status === 'Ready' ? (
-              <Start data={d} />
+              <>
+                {/* Owner decision 25/11/2026: the code is released when check-in opens, before any inventory. */}
+                <DoorCodeCard />
+                <Start data={d} />
+              </>
             ) : d.status === 'Draft' ? (
-              <Form key={d.id} data={d} />
+              <>
+                <DoorCodeCard />
+                <Form key={d.id} data={d} />
+              </>
             ) : (
               <Summary data={d} />
             )
