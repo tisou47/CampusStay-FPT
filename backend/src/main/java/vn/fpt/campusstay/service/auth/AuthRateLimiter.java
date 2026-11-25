@@ -1,28 +1,26 @@
 package vn.fpt.campusstay.service.auth;
 
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.exception.ApiException;
 
 /**
- * Per-client limits on the anonymous auth endpoints (review findings BE-AUTH-02, BE-AUTH-03), in memory like the
- * assistant's hourly limit: a restart forgets them. The client is {@code RequestInfo.ip()}, the real address behind
+ * Per-client limits on the anonymous auth endpoints (review findings BE-AUTH-02, BE-AUTH-03), counted in
+ * {@code auth_rate_event} (D1): a restart or a second server keeps them. An event
+ * commits in its own transaction, so it stays even when the request that recorded it fails. The client is {@code RequestInfo.ip()}, the real address behind
  * the proxy (prod sets {@code server.forward-headers-strategy}). Only failed sign-ins count, so a school network
  * where many people share one address still signs in.
  */
 @Component
 public class AuthRateLimiter {
-
-    private static final int SWEEP_EVERY = 1000;
 
     /** A bucket: how many events per window before the client gets 429. */
     public enum Bucket {
@@ -44,12 +42,11 @@ public class AuthRateLimiter {
         }
     }
 
-    private final Map<String, Deque<Instant>> events = new ConcurrentHashMap<>();
-    /** Records since the last sweep of clients whose events all expired. */
-    private final AtomicInteger sinceSweep = new AtomicInteger();
+    private final JdbcClient jdbc;
     private final Clock clock;
 
-    public AuthRateLimiter(Clock clock) {
+    public AuthRateLimiter(JdbcClient jdbc, Clock clock) {
+        this.jdbc = jdbc;
         this.clock = clock;
     }
 
@@ -66,60 +63,26 @@ public class AuthRateLimiter {
         }
     }
 
+    /** Records one event (committed even when the caller rolls back) and drops the bucket's expired ones. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(Bucket bucket, String client) {
-        Deque<Instant> times = events.computeIfAbsent(key(bucket, client), k -> new ArrayDeque<>());
-        synchronized (times) {
-            prune(times, bucket);
-            times.addLast(Instant.now(clock));
-        }
-        if (sinceSweep.incrementAndGet() >= SWEEP_EVERY) {
-            sinceSweep.set(0);
-            sweep();
-        }
+        Instant now = Instant.now(clock);
+        jdbc.sql("DELETE FROM auth_rate_event WHERE bucket = :b AND at <= :from")
+                .param("b", bucket.name()).param("from", Timestamp.from(now.minus(bucket.window))).update();
+        jdbc.sql("INSERT INTO auth_rate_event (bucket, client, at) VALUES (:b, :c, :now)")
+                .param("b", bucket.name()).param("c", key(client)).param("now", Timestamp.from(now)).update();
     }
 
     /** Events of the bucket from the client within its window. */
     public int count(Bucket bucket, String client) {
-        Deque<Instant> times = events.get(key(bucket, client));
-        if (times == null) {
-            return 0;
-        }
-        synchronized (times) {
-            prune(times, bucket);
-            if (times.isEmpty()) {
-                events.remove(key(bucket, client), times);
-            }
-            return times.size();
-        }
+        return jdbc.sql("SELECT count(*) FROM auth_rate_event WHERE bucket = :b AND client = :c AND at > :from")
+                .param("b", bucket.name()).param("c", key(client))
+                .param("from", Timestamp.from(Instant.now(clock).minus(bucket.window))).query(Integer.class).single();
     }
 
     public void clear(Bucket bucket, String client) {
-        events.remove(key(bucket, client));
-    }
-
-    /** Drops the keys whose events all expired: one pass every {@value #SWEEP_EVERY} records (M4). */
-    private void sweep() {
-        events.forEach((key, times) -> {
-            Bucket bucket = Bucket.valueOf(key.substring(0, key.indexOf('|')));
-            synchronized (times) {
-                prune(times, bucket);
-                if (times.isEmpty()) {
-                    events.remove(key, times);
-                }
-            }
-        });
-    }
-
-    /** Keys held, for the tests. */
-    int keys() {
-        return events.size();
-    }
-
-    private void prune(Deque<Instant> times, Bucket bucket) {
-        Instant from = Instant.now(clock).minus(bucket.window);
-        while (!times.isEmpty() && !times.peekFirst().isAfter(from)) {
-            times.pollFirst();
-        }
+        jdbc.sql("DELETE FROM auth_rate_event WHERE bucket = :b AND client = :c")
+                .param("b", bucket.name()).param("c", key(client)).update();
     }
 
     /** Loopback = a developer's machine or the tests: never limited (production sees the real client). */
@@ -127,7 +90,7 @@ public class AuthRateLimiter {
         return client == null || client.equals("127.0.0.1") || client.equals("0:0:0:0:0:0:0:1") || client.equals("::1");
     }
 
-    private static String key(Bucket bucket, String client) {
-        return bucket.name() + "|" + (client == null ? "-" : client);
+    private static String key(String client) {
+        return client == null ? "-" : client;
     }
 }

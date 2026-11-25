@@ -7,14 +7,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.text.Normalizer;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,6 +24,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 import vn.fpt.campusstay.common.i18n.Locales;
@@ -97,12 +97,13 @@ public class AssistantService {
     private final CurrentUser currentUser;
     private final Clock clock;
     private final Map<String, String> guides = new ConcurrentHashMap<>();
-    private final Map<Long, Deque<Instant>> asked = new ConcurrentHashMap<>();
+    private final JdbcClient jdbc;
     /** Signs the answers of this run of the server; after a restart older answers are simply left out. */
     private final byte[] signingKey = new byte[32];
 
     AssistantService(AssistantModel model, StudentData data, AssistantProperties config,
-            CurrentUser currentUser, Clock clock) {
+            CurrentUser currentUser, JdbcClient jdbc, Clock clock) {
+        this.jdbc = jdbc;
         this.model = model;
         this.data = data;
         this.config = config;
@@ -186,19 +187,22 @@ public class AssistantService {
         }
     }
 
-    /** Counts a question against the student's hourly limit. */
+    /**
+     * Counts a question against the student's hourly limit, kept in {@code ast_question} (D1) so a restart or a second
+     * server does not reset it. One statement: the count and the insert see the same rows.
+     */
     private void take(long userId) {
         Instant now = Instant.now(clock);
-        Deque<Instant> times = asked.computeIfAbsent(userId, id -> new ArrayDeque<>());
-        synchronized (times) {
-            while (!times.isEmpty() && !times.peekFirst().isAfter(now.minus(WINDOW))) {
-                times.pollFirst();
-            }
-            if (times.size() >= config.requestsPerHour()) {
-                throw ApiException.tooManyRequests("ASSISTANT_LIMIT",
-                        "You have asked many questions in the last hour. Try again later.");
-            }
-            times.addLast(now);
+        Timestamp from = Timestamp.from(now.minus(WINDOW));
+        jdbc.sql("DELETE FROM ast_question WHERE asked_at <= :from").param("from", from).update();
+        int taken = jdbc.sql("""
+                INSERT INTO ast_question (user_id, asked_at)
+                SELECT :user, :now WHERE (SELECT count(*) FROM ast_question WHERE user_id = :user AND asked_at > :from) < :limit
+                """).param("user", userId).param("now", Timestamp.from(now)).param("from", from)
+                .param("limit", config.requestsPerHour()).update();
+        if (taken == 0) {
+            throw ApiException.tooManyRequests("ASSISTANT_LIMIT",
+                    "You have asked many questions in the last hour. Try again later.");
         }
     }
 
