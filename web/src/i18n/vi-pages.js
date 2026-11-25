@@ -1737,6 +1737,10 @@ const manager = {
   "Follows the default shifts": "Theo ca mặc định",
   "Use default": "Về ca mặc định",
   "Whole week to default": "Cả tuần về ca mặc định",
+  "Overlaps {shift}": "Trùng với ca {shift}",
+  "Overlaps {shift}: a shift must start after the one before it ends.": "Trùng với ca {shift}: ca sau phải bắt đầu khi ca trước đã kết thúc.",
+  "This day is over: its shifts can no longer change.": "Ngày này đã qua: không thể sửa ca nữa.",
+  "Changing a day here changes this week only, at once: in or out of shift follows it. Days already over are locked.": "Sửa một ngày ở đây chỉ đổi tuần này và có hiệu lực ngay: trạng thái trong ca hay ngoài ca theo lịch mới. Các ngày đã qua bị khóa.",
   // Reassigning work: who fits (25/11/2026)
   "not in Block {list}": "không thuộc tòa {list}",
   "does not handle {list}": "không phụ trách {list}",

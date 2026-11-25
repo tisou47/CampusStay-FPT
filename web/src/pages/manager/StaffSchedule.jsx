@@ -48,20 +48,47 @@ function addDays(iso, n) {
 const dayMonth = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 const sortShifts = (list) => [...list].sort((a, b) => a.weekday - b.weekday || a.start.localeCompare(b.start))
 
-/** One person's shifts on one day: remove some, add a preset or custom hours, then save the person's week. */
+const DAY_MIN = 24 * 60
+const WEEK_MIN = 7 * DAY_MIN
+const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+/** The shift as minutes from Monday 00:00; an overnight shift ends on the next day (Sunday's on the next Monday). */
+function span(s) {
+  const start = (s.weekday - 1) * DAY_MIN + minutes(s.start)
+  const end = (s.weekday - 1) * DAY_MIN + minutes(s.end)
+  return [start, end <= start ? end + DAY_MIN : end]
+}
+/** The first shift of `week` that `shift` overlaps (as the server checks: shifts that only meet do not), else null. */
+function overlapWith(shift, week) {
+  const [a0, a1] = span(shift)
+  return week.find((other) => {
+    const [b0, b1] = span(other)
+    return [-WEEK_MIN, 0, WEEK_MIN].some((w) => a0 < b1 + w && b0 + w < a1)
+  }) ?? null
+}
+const label = (s) => `${t(DAYS[s.weekday - 1])} ${s.start}–${s.end}`
+
+/**
+ * One person's shifts on one day: remove some, add a preset or custom hours, then save the person's week. A shift
+ * that would overlap another one of the week (this day's, or the night shift of the day before running into it) cannot
+ * be added: its preset is off and the reason is shown.
+ */
 function DayModal({ person, weekday, date, onSave, saving, error, onClose, description = 'Only this week changes; the default weekly shifts stay as they are.' }) {
   const [list, setList] = useState(person.shifts.filter((s) => s.weekday === weekday))
   const [custom, setCustom] = useState({ start: '08:00', end: '17:00' })
+  const others = person.shifts.filter((s) => s.weekday !== weekday)
+  const week = [...others, ...list]
+  const clash = (start, end) => (start === end ? null : overlapWith({ weekday, start, end }, week))
   const add = (start, end) => {
-    if (start === end || list.some((s) => s.start === start)) return
+    if (start === end || clash(start, end)) return
     setList([...list, { weekday, start, end }].sort((a, b) => a.start.localeCompare(b.start)))
   }
-  const save = () => onSave(sortShifts([...person.shifts.filter((s) => s.weekday !== weekday), ...list]))
+  const customClash = clash(custom.start, custom.end)
+  const save = () => onSave(sortShifts([...others, ...list]))
   return (
     <Modal
       open
       onClose={onClose}
-      width={520}
+      width={560}
       title={date ? t('{name} · {day} {date}', { name: person.name, day: t(DAYS[weekday - 1]), date: dayMonth(date) }) : t('{name} · every {day}', { name: person.name, day: t(DAYS[weekday - 1]) })}
       description={description}
       footer={
@@ -73,7 +100,7 @@ function DayModal({ person, weekday, date, onSave, saving, error, onClose, descr
         </>
       }
     >
-      {error && <Alert type="error" title="Could not save">{error.message}</Alert>}
+      {error && <Alert type="error" title="Could not save">{error.details?.fields?.shifts ?? error.message}</Alert>}
       <div className="flex min-h-9 flex-wrap items-center gap-1.5">
         {list.length === 0 && <span className="text-base text-fg-tertiary">{t('Day off')}</span>}
         {list.map((s) => (
@@ -87,25 +114,32 @@ function DayModal({ person, weekday, date, onSave, saving, error, onClose, descr
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
-          <Button key={p.key} size="sm" onClick={() => add(p.start, p.end)}>
-            {`${t(p.label)} ${p.start}–${p.end}`}
-          </Button>
-        ))}
+        {PRESETS.map((p) => {
+          const hit = clash(p.start, p.end)
+          return (
+            <Button key={p.key} size="sm" onClick={() => add(p.start, p.end)} disabled={Boolean(hit)} tip={hit ? t('Overlaps {shift}', { shift: label(hit) }) : undefined}>
+              {`${t(p.label)} ${p.start}–${p.end}`}
+            </Button>
+          )
+        })}
         {list.length > 0 && (
           <Button size="sm" variant="text" onClick={() => setList([])}>
             Day off
           </Button>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-fg-secondary">{t('Custom hours…')}</span>
-        <Select aria-label={t('Start')} wrapperClassName="w-24 shrink-0" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })} options={TIMES} />
-        <span aria-hidden="true">–</span>
-        <Select aria-label={t('End')} wrapperClassName="w-24 shrink-0" value={custom.end} onChange={(e) => setCustom({ ...custom, end: e.target.value })} options={TIMES} />
-        <Button size="sm" onClick={() => add(custom.start, custom.end)} disabled={custom.start === custom.end}>
-          Add
-        </Button>
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-fg-secondary">{t('Custom hours…')}</span>
+          <Select aria-label={t('Start')} wrapperClassName="w-24 shrink-0" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })} options={TIMES} />
+          <span aria-hidden="true">–</span>
+          <Select aria-label={t('End')} wrapperClassName="w-24 shrink-0" value={custom.end} onChange={(e) => setCustom({ ...custom, end: e.target.value })} options={TIMES} />
+          {custom.end < custom.start && <span className="text-sm text-fg-secondary">({t('overnight')})</span>}
+          <Button size="sm" onClick={() => add(custom.start, custom.end)} disabled={custom.start === custom.end || Boolean(customClash)}>
+            Add
+          </Button>
+        </div>
+        {customClash && <p className="text-sm text-error-fg">{t('Overlaps {shift}: a shift must start after the one before it ends.', { shift: label(customClash) })}</p>}
       </div>
     </Modal>
   )
@@ -119,7 +153,7 @@ function thisMonday() {
 }
 
 /** One row of the week grid: a person and their shifts per day; a day opens the editor. */
-function ShiftRow({ person, editable, start, badge, action, onEdit }) {
+function ShiftRow({ person, editable, pastDays = 0, badge, action, onEdit }) {
   return (
     <Tr>
       <Td>
@@ -133,14 +167,17 @@ function ShiftRow({ person, editable, start, badge, action, onEdit }) {
       </Td>
       {DAYS.map((name, i) => {
         const mine = person.shifts.filter((s) => s.weekday === i + 1)
+        const past = i < pastDays
+        const open = editable && !past
         return (
-          <Td key={name} className="p-1 align-top">
+          <Td key={name} className={cx('p-1 align-top', past && 'bg-subtle/60')}>
             <button
               type="button"
-              disabled={!editable}
+              disabled={!open}
               onClick={() => onEdit(i + 1)}
+              title={past ? t('This day is over: its shifts can no longer change.') : undefined}
               aria-label={t('Edit {name} on {day}', { name: person.name, day: t(name) })}
-              className={cx('flex min-h-14 w-full flex-col items-start gap-1 rounded-md p-1.5 text-left', editable && 'hover:bg-subtle')}
+              className={cx('flex min-h-14 w-full flex-col items-start gap-1 rounded-md p-1.5 text-left', open && 'hover:bg-subtle', past && 'opacity-60')}
             >
               {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
               {mine.map((s) => (
@@ -157,13 +194,13 @@ function ShiftRow({ person, editable, start, badge, action, onEdit }) {
   )
 }
 
-function GridHead({ start }) {
+function GridHead({ start, pastDays = 0 }) {
   return (
     <THead>
       <tr>
         <Th className="w-60">Staff</Th>
         {DAYS.map((name, i) => (
-          <Th key={name}>
+          <Th key={name} className={i < pastDays ? 'text-fg-tertiary' : undefined}>
             {start ? `${t(name)} ${dayMonth(addDays(start, i))}` : t(name)}
           </Th>
         ))}
@@ -227,6 +264,8 @@ export default function StaffSchedule() {
   const needle = fold(q.trim())
   const shown = needle ? staff.filter((p) => fold(p.name).includes(needle)) : staff
   const current = thisMonday()
+  // In this week the days before today are over: shown, not editable (the server keeps them as recorded too).
+  const pastDays = d?.start === current ? Math.round((Date.parse(`${campusToday()}T00:00:00Z`) - Date.parse(`${current}T00:00:00Z`)) / 86400000) : 0
 
   const save = useMutation(({ id, shifts }) => api.weekSchedule.setWeek(id, start, { shifts }), {
     invalidates: ['week-schedule', 'block-staff', 'me-duty'],
@@ -342,7 +381,7 @@ export default function StaffSchedule() {
             <p className="shrink-0 text-sm text-fg-secondary">
               {[
                 t('{n} of {total} staff have their own shifts this week; the others follow the default weekly shifts.', { n: planned, total: staff.length }),
-                d.editable ? (d.nextWeek ? t('Changing a day here changes this week only.') : t('Changing a day here changes this week only, at once: in or out of shift follows it.')) : null,
+                d.editable ? (d.nextWeek ? t('Changing a day here changes this week only.') : t('Changing a day here changes this week only, at once: in or out of shift follows it. Days already over are locked.')) : null,
                 d.nextWeek && d.sentAt ? t('Sent by {by} on {at}.', { by: d.sentBy, at: formatDateTime(d.sentAt) }) : null,
               ]
                 .filter(Boolean)
@@ -351,7 +390,7 @@ export default function StaffSchedule() {
           )}
 
           <Table fill className="min-h-[420px] shrink-0" tableClassName="table-fixed">
-            <GridHead start={d?.start} />
+            <GridHead start={d?.start} pastDays={pastDays} />
             <TBody>
               <TableStatus query={query} rows={shown} colSpan={9} emptyIcon={CalendarDays} emptyTitle={needle ? 'No staff match this name' : 'No staff in these blocks'} />
               {shown.map((p) => (
@@ -359,6 +398,7 @@ export default function StaffSchedule() {
                   key={p.id}
                   person={p}
                   editable={d.editable}
+                  pastDays={pastDays}
                   onEdit={(weekday) => setEditing({ person: p, weekday })}
                   badge={<span>{p.planned ? <Tag tone="warning">Own shifts this week</Tag> : <Tag>Follows the default shifts</Tag>}</span>}
                   action={
