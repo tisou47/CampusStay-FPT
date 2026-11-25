@@ -15,7 +15,7 @@ import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { campusToday, formatDateTime } from '@/lib/format'
+import { campusToday, formatDateTime, formatTime } from '@/lib/format'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
@@ -380,7 +380,7 @@ function VisitWindowField({ value, onChange, hours }) {
   const opens = hours?.from ?? '00:00'
   const closes = hours?.until ?? '23:00'
   const today = campusToday()
-  const now = campusNowTime()
+  const now = formatTime(new Date()) // "HH:mm" on the campus clock
   // A start must still be ahead: today's hours already begun are greyed out.
   const past = (d, s) => d === today && s <= now
   const firstStart = (d) => {
@@ -424,10 +424,6 @@ function VisitWindowField({ value, onChange, hours }) {
       )}
     </Field>
   )
-}
-
-function campusNowTime() {
-  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
 }
 
 function nextDay(isoDay) {
