@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.Actor;
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.job.ScheduledJobs;
 import vn.fpt.campusstay.service.auth.RefundAccounts;
 import vn.fpt.campusstay.service.setting.Parameters;
 
@@ -34,8 +35,11 @@ public class RefundAccountRetention {
     private final Parameters parameters;
     private final AuditLog audit;
     private final Clock clock;
+    private final ScheduledJobs jobs;
 
-    RefundAccountRetention(JdbcClient jdbc, RefundAccounts accounts, Parameters parameters, AuditLog audit, Clock clock) {
+    RefundAccountRetention(JdbcClient jdbc, RefundAccounts accounts, Parameters parameters, AuditLog audit, Clock clock,
+            ScheduledJobs jobs) {
+        this.jobs = jobs;
         this.jdbc = jdbc;
         this.accounts = accounts;
         this.parameters = parameters;
@@ -63,6 +67,6 @@ public class RefundAccountRetention {
 
     @Scheduled(cron = "${campusstay.bil.refund-account-retention-cron:0 30 3 * * *}", zone = "Asia/Ho_Chi_Minh")
     void daily() {
-        run();
+        jobs.run("bil.refund-account-retention", this::run);
     }
 }
