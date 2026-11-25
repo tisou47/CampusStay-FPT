@@ -122,6 +122,19 @@ public class FinanceService {
 
     // ---------------------------------------------------------------- figures and lists
 
+    /**
+     * The search of a list: part of the student's name or student code (and of the Invoice code when {@code code}),
+     * any case; blank = no condition. The pattern goes in {@code params} as {@code :q}, LIKE wildcards escaped.
+     */
+    private static String search(String alias, boolean code, String q, Map<String, Object> params) {
+        if (q == null || q.isBlank()) {
+            return "";
+        }
+        params.put("q", "%" + q.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
+        return " AND (" + alias + ".student_name ILIKE :q OR " + alias + ".student_code ILIKE :q"
+                + (code ? " OR " + alias + ".code ILIKE :q" : "") + ")";
+    }
+
     @Transactional(readOnly = true)
     public Summary summary(Long termId, String block) {
         currentUser.require(Permission.VIEW_FINANCE);
@@ -153,11 +166,12 @@ public class FinanceService {
     }
 
     @Transactional(readOnly = true)
-    public InvoicePage invoices(Long termId, String block, PageQuery page) {
+    public InvoicePage invoices(Long termId, String block, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        String where = " FROM bil_invoice i WHERE i.term_id = :term AND i.status <> 'VOID' AND " + s.where("i");
+        String where = " FROM bil_invoice i WHERE i.term_id = :term AND i.status <> 'VOID' AND " + s.where("i")
+                + search("i", true, q, params);
         long total = jdbc.sql("SELECT count(*)" + where).params(params).query(Long.class).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
@@ -172,11 +186,12 @@ public class FinanceService {
     }
 
     @Transactional(readOnly = true)
-    public OverduePage overdue(Long termId, String block, PageQuery page) {
+    public OverduePage overdue(Long termId, String block, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        String where = " FROM bil_invoice i WHERE i.term_id = :term AND " + OVERDUE + " AND " + s.where("i");
+        String where = " FROM bil_invoice i WHERE i.term_id = :term AND " + OVERDUE + " AND " + s.where("i")
+                + search("i", true, q, params);
         long total = jdbc.sql("SELECT count(*)" + where).params(params).query(Long.class).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
@@ -253,11 +268,12 @@ public class FinanceService {
 
     /** @param status Pending, Approved, Rejected or Paid */
     @Transactional(readOnly = true)
-    public RefundPage refunds(Long termId, String block, String status, PageQuery page) {
+    public RefundPage refunds(Long termId, String block, String status, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        StringBuilder where = new StringBuilder(" FROM bil_refund r WHERE r.term_id = :term AND " + s.where("r"));
+        StringBuilder where = new StringBuilder(" FROM bil_refund r WHERE r.term_id = :term AND " + s.where("r")
+                + search("r", false, q, params));
         if (status != null && !status.isBlank()) {
             String code = REFUND_STATUSES.entrySet().stream().filter(e -> e.getValue().equalsIgnoreCase(status.trim()))
                     .map(Map.Entry::getKey).findFirst()

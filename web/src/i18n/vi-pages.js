@@ -4656,6 +4656,13 @@ const workspace = {
   "Choose your bank from the list again and confirm the account.": "Hãy chọn lại ngân hàng trong danh sách và xác nhận tài khoản.",
   "Percent": "Tỷ lệ",
   "Remind to enter it": "Nhắc nhập tài khoản",
+  // Manager › Payments: details panels (25/11/2026)
+  "Refund {id}": "Khoản hoàn {id}",
+  "{p}% of {paid}": "{p}% của {paid}",
+  "Rejected before": "Đã bị từ chối",
+  "Search student name or student code": "Tìm theo tên hoặc mã số sinh viên",
+  "Search student, student code or invoice": "Tìm theo sinh viên, mã số sinh viên hoặc mã hóa đơn",
+  "Nothing matches this search": "Không có kết quả phù hợp",
   "{name} is asked to enter the bank account for the refund.": "Đã nhắc {name} nhập tài khoản ngân hàng nhận tiền hoàn.",
   "Uploading…": "Đang tải lên…",
   "Replace": "Thay",

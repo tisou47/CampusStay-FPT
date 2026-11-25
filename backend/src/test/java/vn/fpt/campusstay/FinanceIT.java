@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import vn.fpt.campusstay.service.billing.FinanceService;
 
-/** Block Finance: overdue Invoices and reminders, figures, refunds (TC-BIL-020, 021, 040). */
+/** Block Finance: overdue Invoices and reminders, figures, refunds, search (TC-BIL-020, 021, 040, 050). */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -226,5 +226,64 @@ class FinanceIT {
         getAs("/refunds", manager).andExpect(jsonPath(row + ".account.bank", hasItem("Vietcombank")));
         // The other tests of the class count the Term's pending refunds.
         jdbc.sql("DELETE FROM bil_refund WHERE id = :id").param("id", refund).update();
+    }
+
+    /**
+     * TC-BIL-050: Collections and refunds search their three lists by part of the student's name (any case) or
+     * student code, and the Invoice lists also by Invoice code; LIKE wildcards are plain text; a blank search lists all.
+     */
+    @Test
+    void financeListsSearchByStudent() throws Exception {
+        java.util.List<Long> refunds = new java.util.ArrayList<>();
+        java.util.List<String> invoices = java.util.List.of("INV-TT31-Q31", "INV-TT31-Q32");
+        try {
+            // The lists show the name the Invoice or refund was made with: fixed ones, to search a word of them.
+            java.util.Map<Integer, String> names = java.util.Map.of(31, "Nguyen Khanh", 32, "Pham Lan");
+            for (int n : new int[] {31, 32}) {
+                refunds.add(jdbc.sql("""
+                        INSERT INTO bil_refund (term_id, student_id, building_id, source_type, source_id, reason,
+                                                paid_amount, amount, status, student_name, student_code, gender)
+                        SELECT :term, u.id, b.id, 'CHECK_OUT', 0, 'Utility Deposit settlement', 600000, 300000,
+                               'PENDING', :name, s.student_code, s.gender
+                        FROM auth_user u JOIN auth_student s ON s.user_id = u.id, inv_building b
+                        WHERE u.email = :email AND b.code = 'A'
+                        RETURNING id
+                        """).param("term", termId).param("name", names.get(n)).param("email", student(n))
+                        .query(Long.class).single());
+                jdbc.sql("""
+                        INSERT INTO bil_invoice (code, term_id, student_id, building_id, type, title, amount, status,
+                                                 transfer_content, due_at, student_name, student_code, gender)
+                        SELECT :code, :term, u.id, b.id, 'DAMAGE', 'Check-out balance', 150000, 'UNPAID', :content,
+                               now() - interval '2 days', :name, s.student_code, s.gender
+                        FROM auth_user u JOIN auth_student s ON s.user_id = u.id, inv_building b
+                        WHERE u.email = :email AND b.code = 'A'
+                        """).param("code", "INV-TT31-Q" + n).param("term", termId).param("content", "CSTAYQ" + n)
+                        .param("name", names.get(n)).param("email", student(n)).update();
+            }
+            String manager = bearer(mvc, MANAGER_A);
+
+            getAs("/refunds?q=190031", manager)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.total").value(1))
+                    .andExpect(jsonPath("$.items[0].studentCode").value("SE190031"));
+            getAs("/refunds?q=KHANH", manager) // any case
+                    .andExpect(jsonPath("$.total").value(1))
+                    .andExpect(jsonPath("$.items[0].studentCode").value("SE190031"));
+            getAs("/refunds?q=%25", manager).andExpect(jsonPath("$.total").value(0));
+            getAs("/refunds", manager).andExpect(jsonPath("$.total", greaterThanOrEqualTo(2)));
+
+            getAs("/finance/overdue?q=se190032", manager)
+                    .andExpect(jsonPath("$.total").value(1))
+                    .andExpect(jsonPath("$.items[0].invoiceId").value("INV-TT31-Q32"));
+            getAs("/invoices?q=TT31-Q31", manager)
+                    .andExpect(jsonPath("$.total").value(1))
+                    .andExpect(jsonPath("$.items[0].id").value("INV-TT31-Q31"));
+            getAs("/invoices?q=_", manager).andExpect(jsonPath("$.total").value(0));
+        } finally {
+            // The other tests of the class count the Term's pending refunds and overdue Invoices.
+            jdbc.sql("DELETE FROM bil_refund WHERE id IN (:ids)").param("ids", refunds.isEmpty() ? java.util.List.of(-1L)
+                    : refunds).update();
+            jdbc.sql("DELETE FROM bil_invoice WHERE code IN (:codes)").param("codes", invoices).update();
+        }
     }
 }

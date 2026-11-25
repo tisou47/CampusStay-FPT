@@ -299,10 +299,10 @@ Dashboards and approval counts: C-36.
 - `GET /next-term-fees?termId` → `{ term, dueAt, count, total, groups: [{ block, roomType, roomClass, count, total }], blockers: [{ code, text }], issued: { at, by, count, paid, total } | null, leavers }` · `POST /next-term-fees/issue` `{ termId }` → `{ issued, total, notices }` (A-41)
 - `GET /reconciliations?termId` → `{ term, terms, runs, openItems, resolved, people }` · `GET /reconciliations/template?kind=enrolled|leavers` → XLSX · `POST /reconciliations` (multipart) `termId, kind, file` → `{ run, term, items }` · `GET /reconciliations/{id}` → `{ run, term, items }` · `POST /reconciliations/{id}/items/{itemId}/resolve` `{ outcome: 'Not enrolled'|'Enrolled', note }` → item (A-46)
 - `GET /finance/summary?termId&block` → `{ invoiced, invoices, collected, overdueCount, overdueAmount, refundsPendingCount, refundsPendingAmount }`
-- `GET /refunds?termId&block&status&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
+- `GET /refunds?termId&block&status&q&page&pageSize` → `{ items: [{ id, name, studentCode, reason, rule, paid, amount, proposedLabel, exception, status }], total }`
 - `POST /refunds/{id}/decision` `{ decision, note? }` (note required when rejecting or approving an exception) → `204`
-- `GET /finance/overdue?termId&block&page&pageSize` → `{ items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }` · `POST /finance/reminders` `{ invoiceIds }` → `{ sent }`
-- `GET /invoices?termId&block&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }`
+- `GET /finance/overdue?termId&block&q&page&pageSize` → `{ items: [{ invoiceId, name, studentCode, typeLabel, amount, dueAt, daysOverdue, remindedAt }], total }` · `POST /finance/reminders` `{ invoiceIds }` → `{ sent }`
+- `GET /invoices?termId&block&q&page&pageSize` → `{ items: [{ id, name, studentCode, typeLabel, amount, dueAt, status }], total }` · `q` (these three lists, 25/11/2026): part of the student's name or student code, any case; the Invoice lists also match the Invoice code
 
 Late check-ins, refunds, overdue Invoices and reminders: C-28.
 - `GET /block-staff?block` → `{ items: [{ id, name, title, handles, blocks, open, openByType: { Maintenance, Room change, Inspection }, overdue, oldestOpenAt, resolved7d, onDuty, overloaded }], summary: { total, shared, averageOpen, onDuty, deskOnDuty, open, overdue, overloaded, maxOpen }, queue: [{ type, label, count, link }], handleOptions, roleOptions }` (most open work first; A-77)
