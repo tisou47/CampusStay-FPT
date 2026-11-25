@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../common.dart';
 import '../files.dart';
+import 'room.dart' show DoorCodeCard;
 
 /// The check-in inventory (web Student › My room › Check-in inventory, contract A-81): the four conditions and the
 /// start (the door code), each item of the Bed and the shared items with a condition, a note and photos, the meters,
@@ -85,7 +86,9 @@ class _HandoverCardState extends State<HandoverCard> {
     final (String? title, String? body, Tone tone) = switch (status) {
       'Ready' => (
         t('You can receive your Room', 'Bạn đã có thể nhận phòng'),
-        t('At the Room, start the check-in inventory to get the door code.', 'Khi đến phòng, hãy bắt đầu kiểm kê để nhận mã cửa.'),
+        h.str('dueAt') == null
+            ? t('Your door code is on this screen. File the check-in inventory.', 'Mã cửa ở ngay trên màn hình này. Hãy nộp biên bản kiểm kê.')
+            : '${t('Your door code is on this screen. File the check-in inventory by', 'Mã cửa ở ngay trên màn hình này. Hãy nộp biên bản kiểm kê trước')} ${moment(h.str('dueAt'))}.',
         Tone.info,
       ),
       'Draft' => (
@@ -148,6 +151,8 @@ class HandoverScreen extends StatelessWidget {
           final status = h.str('status');
           return Cards(
             children: [
+              // Owner decision 25/11/2026: the door code comes with check-in, before any inventory.
+              if (status == 'Waiting' || status == 'Ready' || status == 'Draft') const DoorCodeCard(),
               if (status == 'Not needed')
                 EmptyState(
                   icon: Icons.assignment_outlined,
@@ -187,16 +192,16 @@ class _StartState extends State<_Start> {
       context,
       title: t('Start the check-in inventory?', 'Bắt đầu kiểm kê nhận phòng?'),
       body: t(
-        'Do it when you are at the Room. You receive the door code now and have 48 hours to file the inventory: after that the Room\'s recorded condition is used and you can no longer report damage that was already there.',
-        'Hãy bấm khi bạn đã ở phòng. Bạn nhận mã cửa ngay và có 48 giờ để nộp biên bản: sau đó hệ thống dùng tình trạng đã ghi nhận của phòng và bạn không thể báo hư hỏng có sẵn nữa.',
+        'Do it at the Room. Submit it before the deadline: after that the Room\'s recorded condition is used, Utility counts from the day you received the code, and you can no longer report damage that was already there.',
+        'Hãy làm khi đang ở phòng. Nộp trước hạn: sau thời hạn, hệ thống dùng tình trạng đã ghi nhận của phòng, điện nước tính từ ngày bạn nhận mã và bạn không thể báo hư hỏng có sẵn nữa.',
       ),
-      yes: t('I am at the Room, start', 'Tôi đã ở phòng, bắt đầu'),
+      yes: t('Start', 'Bắt đầu'),
     );
     if (!ok) return;
     setState(() => _busy = true);
     final done = await attempt(
       () => Api.post('/students/me/handover/start'),
-      success: t('Inventory started. Your door code is on My Room.', 'Đã bắt đầu kiểm kê. Mã cửa nằm ở Phòng của tôi.'),
+      success: t('Inventory started. Answer each item and the meters, then submit.', 'Đã bắt đầu kiểm kê. Khai từng món và chỉ số điện nước rồi nộp.'),
     );
     if (mounted) setState(() => _busy = false);
     if (done != null) await widget.reload();
@@ -208,8 +213,8 @@ class _StartState extends State<_Start> {
     return Section(
       title: t('Receive your Room', 'Nhận phòng'),
       subtitle: t(
-        'At the Room, start the check-in inventory: you receive the door code and record your Bed\'s items, the shared items and the meters.',
-        'Khi đến phòng, hãy bắt đầu kiểm kê: bạn nhận mã cửa và ghi tình trạng đồ của giường bạn, đồ dùng chung và công tơ.',
+        'Filed by the deadline, Utility counts from your own meter reading. Record your Bed\'s items, the shared items and the meters.',
+        'Nộp đúng hạn thì điện nước tính từ chỉ số bạn ghi. Ghi tình trạng đồ của giường bạn, đồ dùng chung và công tơ.',
       ),
       children: [
         for (final c in widget.data.objects('checks'))
@@ -553,7 +558,7 @@ class _Charges extends StatelessWidget {
             tone: Tone.warning,
             title: '${t('Did you damage', 'Bạn có làm hỏng')} ${furnitureName(c)} ${c.text('assetCode')}?',
             body:
-                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: nobody is charged.', 'sẽ tính khi trả phòng. Từ chối: không ai bị tính.')}',
+                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: a Manager reviews it and decides.', 'sẽ tính khi trả phòng. Từ chối: ban quản lý xem xét và quyết định.')}',
             action: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

@@ -14,6 +14,7 @@ import { cx } from '@/lib/cx'
 import { formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { COLLECTED_RULE, collectedNote } from '@/lib/money'
 import { t, tr } from '@/i18n'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 
 // SCR-HOME-04 Admin Dashboard (Figma 63:1768)
 // GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null,
@@ -148,6 +149,8 @@ export default function AdminDashboard() {
           note={k ? t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) }) : null}
         />
       </div>
+
+      <WorkInboxPanel className="shrink-0" />
 
       <div className="grid min-h-72 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1fr)_auto] gap-4">
         <Card className="row-span-2 flex min-h-0 flex-col gap-2.5">

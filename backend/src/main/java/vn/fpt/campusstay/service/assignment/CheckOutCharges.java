@@ -128,7 +128,7 @@ class CheckOutCharges {
         Map<Long, String> acknowledgedCondition = new HashMap<>();
         jdbc.sql("""
                 SELECT furniture_item_id, condition, amount FROM asg_damage_claim
-                WHERE allocation_id = :a AND status = 'ACKNOWLEDGED'
+                WHERE allocation_id = :a AND (status = 'ACKNOWLEDGED' OR manager_review = 'KEPT')
                 """).param("a", allocationId).query((rs, i) -> {
                     acknowledged.merge(rs.getLong("furniture_item_id"), rs.getLong("amount"), Long::sum);
                     acknowledgedCondition.put(rs.getLong("furniture_item_id"), rs.getString("condition"));

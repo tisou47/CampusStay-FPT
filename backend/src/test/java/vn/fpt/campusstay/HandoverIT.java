@@ -57,6 +57,9 @@ class HandoverIT {
     HandoverJobService jobs;
 
     @Autowired
+    vn.fpt.campusstay.service.assignment.DoorCodeRelease release;
+
+    @Autowired
     FinanceService finance;
 
     StayFlow stay;
@@ -433,7 +436,11 @@ class HandoverIT {
                 .andExpect(jsonPath("$.source").value("Checked with Staff"));
     }
 
-    /** TC-ASG-057: a draft past its deadline becomes final with the Room's record; Utility counts from the code. */
+    /**
+     * TC-ASG-057: a draft past its deadline becomes final with the Room's record; Utility counts from the code's
+     * release, or from the approved late arrival day when that is later (this newcomer arrives late: owner decision
+     * 25/11/2026).
+     */
     @Test
     void deadlineClosesTheInventory() throws Exception {
         long allocation = newcomer(37, "A-205", "B");
@@ -447,8 +454,10 @@ class HandoverIT {
         mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student))
                 .andExpect(jsonPath("$.status").value("Final")).andExpect(jsonPath("$.source").value("Deadline passed"))
                 .andExpect(jsonPath("$.lateAllowed").value(true));
-        assertThat(jdbc.sql("SELECT utility_from = code_released_at FROM asg_allocation WHERE id = :id")
-                .param("id", allocation).query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("""
+                SELECT utility_from = (current_date + 2)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                FROM asg_allocation WHERE id = :id
+                """).param("id", allocation).query(Boolean.class).single()).isTrue();
         send(post("/students/me/handover/late"), student, "{\"note\":\"The fan was already broken.\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.lateAllowed").value(false));
     }
@@ -522,6 +531,47 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-702 (owner decision 25/11/2026): shared damage the student declined waits for a Manager on the check-out
+     * charges; Staff cannot decide it; kept, it is charged as if acknowledged; dropped, nobody pays.
+     */
+    @Test
+    void declinedDamageIsDecidedByAManager() throws Exception {
+        long allocation = newcomer(39, "A-207", "A");
+        jdbc.sql("UPDATE asg_allocation SET resident_at = now(), code_released_at = now() WHERE id = :id")
+                .param("id", allocation).update();
+        List<String> shared = jdbc.sql("""
+                SELECT 'furniture-' || i.id FROM inv_furniture_item i JOIN inv_room r ON r.id = i.room_id
+                WHERE r.code = 'A-207' AND i.bed_id IS NULL ORDER BY i.id
+                """).query(String.class).list();
+        String staff = bearer(mvc, STAFF_A);
+        String manager = bearer(mvc, MANAGER_A);
+        String student = bearer(mvc, StayFlow.student(39));
+        String kept = JsonPath.read(json(send(post("/check-outs/" + allocation + "/damage-claims"), staff,
+                "{\"itemId\":\"" + shared.getFirst() + "\",\"condition\":\"Damaged\"}").andExpect(status().isOk())),
+                "$.id");
+        String dropped = JsonPath.read(json(send(post("/check-outs/" + allocation + "/damage-claims"), staff,
+                "{\"itemId\":\"" + shared.getLast() + "\",\"condition\":\"Missing\"}").andExpect(status().isOk())),
+                "$.id");
+        send(post("/students/me/damage-claims/" + kept), student, "{\"acknowledge\":false}").andExpect(status().isOk());
+        send(post("/students/me/damage-claims/" + dropped), student, "{\"acknowledge\":false}").andExpect(status().isOk());
+
+        mvc.perform(get("/check-out-reviews").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].claimId").value(Matchers.hasItems(kept, dropped)));
+        send(post("/check-out-reviews/claims/" + kept), staff, "{\"keep\":true,\"note\":\"Seen in the Room\"}")
+                .andExpect(status().isForbidden());
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":true}").andExpect(status().isBadRequest());
+
+        send(post("/check-out-reviews/claims/" + dropped), manager, "{\"keep\":false,\"note\":\"Worn, not broken\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":true,\"note\":\"Seen in the Room\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(Matchers.greaterThan(0)));
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":false,\"note\":\"again\"}")
+                .andExpect(status().isConflict());
+        mvc.perform(get("/check-out-reviews").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].claimId").value(Matchers.not(Matchers.hasItems(kept))));
+    }
+
+    /**
      * TC-ASG-062: damage Staff record on a shared item at a check-out is split evenly among the Room's residents: the
      * leaver's line carries their share (with the rounding remainder), and when the check-out is completed each
      * roommate gets a DAMAGE Invoice for theirs, which becomes Overdue like any charge when it is not paid in time.
@@ -580,5 +630,44 @@ class HandoverIT {
         finance.markOverdue();
         assertThat(jdbc.sql("SELECT status FROM bil_invoice WHERE reference = :r").param("r", reference)
                 .query(String.class).single()).isEqualTo("OVERDUE");
+    }
+
+    /**
+     * TC-ASG-700 (owner decision 25/11/2026): once check-in is open, a paid newcomer receives the door code without
+     * starting the check-in inventory; the inventory is still expected.
+     */
+    @Test
+    void paidNewcomerGetsTheCodeWithoutTheInventory() throws Exception {
+        long allocation = newcomer(37, "A-207", "B");
+        doorCode("A-207");
+        release.releaseDue();
+        assertThat(jdbc.sql("SELECT code_released_at IS NOT NULL AND resident_at IS NOT NULL AND handover_needed "
+                + "FROM asg_allocation WHERE id = :id").param("id", allocation).query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("SELECT count(*) FROM asg_handover WHERE allocation_id = :id").param("id", allocation)
+                .query(Long.class).single()).isZero();
+        mvc.perform(get("/students/me/door-code").header(HttpHeaders.AUTHORIZATION, bearer(mvc, StayFlow.student(37))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("Ready"));
+    }
+
+    /**
+     * TC-ASG-701 (owner decision 25/11/2026): a resident who never opened the inventory is closed by the deadline with
+     * the Room's record: final, check-in recorded, Utility from the code's release.
+     */
+    @Test
+    void neverStartedInventoryIsClosedByTheDeadline() throws Exception {
+        long allocation = newcomer(37, "A-207", "B");
+        doorCode("A-207");
+        release.releaseDue();
+        // No late arrival any more and the Term's check-in is over: the deadline has passed.
+        jdbc.sql("DELETE FROM asg_late_check_in WHERE allocation_id = :a")
+                .param("a", allocation).update();
+        jdbc.sql("UPDATE asg_allocation SET code_released_at = now() - interval '3 days', "
+                + "resident_at = now() - interval '3 days' WHERE id = :a").param("a", allocation).update();
+        assertThat(jobs.closeDue()).isGreaterThanOrEqualTo(1);
+        assertThat(jdbc.sql("""
+                SELECT h.status = 'FINAL' AND h.source = 'AUTO' AND a.checked_in_at IS NOT NULL
+                       AND a.utility_from = a.code_released_at
+                FROM asg_allocation a JOIN asg_handover h ON h.allocation_id = a.id WHERE a.id = :id
+                """).param("id", allocation).query(Boolean.class).single()).isTrue();
     }
 }

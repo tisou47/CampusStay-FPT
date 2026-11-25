@@ -58,7 +58,36 @@ public class HandoverJobService {
             jdbc.sql("UPDATE asg_handover_item SET condition = NULL WHERE handover_id = :h").param("h", id).update();
             core.finalize(core.byId(id, false).orElseThrow(), a, "AUTO", null, now);
         }
-        return due.size();
+        return due.size() + closeNeverStarted(now);
+    }
+
+    /**
+     * Residents who received the code but never opened the inventory (owner decision 25/11/2026): past the deadline
+     * their inventory is opened and made final at once with the Room's record, so Utility counts from the code's
+     * release (or the approved late arrival) and the check-in is recorded.
+     */
+    private int closeNeverStarted(Instant now) {
+        List<Long> waiting = jdbc.sql("""
+                SELECT a.id FROM asg_allocation a
+                WHERE a.status = 'ACTIVE' AND a.handover_needed AND a.code_released_at IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM asg_handover h WHERE h.allocation_id = a.id AND h.status <> 'CANCELLED')
+                ORDER BY a.id FOR UPDATE OF a SKIP LOCKED
+                """).query(Long.class).list();
+        int closed = 0;
+        for (long allocationId : waiting) {
+            HandoverCore.Alloc a = core.allocation(allocationId).orElseThrow();
+            if (core.dueFor(a).map(due -> due.isAfter(now)).orElse(true)) {
+                continue;
+            }
+            Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
+            if (bed == null) {
+                continue;
+            }
+            long id = core.open(a, bed, now);
+            core.finalize(core.byId(id, false).orElseThrow(), a, "AUTO", null, now);
+            closed++;
+        }
+        return closed;
     }
 
     /** @return reminders sent */

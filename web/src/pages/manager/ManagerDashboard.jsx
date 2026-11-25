@@ -24,6 +24,7 @@ import { MANAGER_STAGES } from '@/app/managerFlow'
 import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { stageSteps } from '@/components/layout/FlowTrail'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 import { Button } from '@/components/ui/Button'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Avatar } from '@/components/ui/Display'
@@ -377,6 +378,8 @@ export default function ManagerDashboard() {
           noteClassName="text-xs"
         />
       </div>
+
+      <WorkInboxPanel className="shrink-0" />
 
       {/* Row 4: Main Balanced 2-Column Bento Grid (Left 7/12, Right 5/12) */}
       <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-12 xl:gap-5">

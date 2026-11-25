@@ -37,9 +37,9 @@ import vn.fpt.campusstay.service.setting.Parameters;
 import vn.fpt.campusstay.service.setting.TermCatalog;
 
 /**
- * The student's check-in inventory (My Room). When the four conditions hold (paid, check-in started, the Room's code
- * confirmed, not past the arrival deadline) the student starts it at the Room: they receive the door code and have
- * {@code handover.submit_hours} to answer each item of their Bed and the Room's shared items and read the meters.
+ * The student's check-in inventory (My Room). The door code is released when check-in opens (DoorCodeRelease, owner
+ * decision 25/11/2026); the student files the inventory by the last check-in day or their approved arrival day
+ * (HandoverCore.dueFor), answering each item of their Bed and the Room's shared items and reading the meters.
  * The student never sees what inspections recorded: the comparison is for Staff only. For a shared Room the shared
  * items show what roommates' final inventories said, to confirm or correct.
  */
@@ -126,7 +126,7 @@ public class StudentHandoverService {
         long me = currentUser.require(Role.STUDENT).userId();
         Optional<HandoverCore.Alloc> alloc = focus(me);
         if (alloc.isEmpty()) {
-            return empty("Not needed", null, List.of());
+            return empty("Not needed", null, List.of(), null);
         }
         HandoverCore.Alloc a = alloc.get();
         Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
@@ -134,7 +134,8 @@ public class StudentHandoverService {
         if (live.isEmpty()) {
             List<Check> checks = checks(a, bed);
             boolean ready = checks.stream().allMatch(Check::passed);
-            return empty(ready ? "Ready" : "Waiting", bed, checks);
+            // dueAt before the inventory exists: the deadline to file it (last check-in day or approved arrival)
+            return empty(ready ? "Ready" : "Waiting", bed, checks, core.dueFor(a).orElse(null));
         }
         return view(live.get(), a, bed);
     }
@@ -471,9 +472,9 @@ public class StudentHandoverService {
         jdbc.sql("SELECT id FROM asg_allocation WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).single();
     }
 
-    private View empty(String status, Inventory.BedSlot bed, List<Check> checks) {
+    private View empty(String status, Inventory.BedSlot bed, List<Check> checks, Instant due) {
         return new View(null, status, bed == null ? null : bed.roomCode(), bed == null ? null : bed.bedLabel(), checks,
-                null, null, null, null, false, null, null, null, null, null, null, null, List.of(), List.of(),
+                null, due, null, null, false, null, null, null, null, null, null, null, List.of(), List.of(),
                 parameters.boolValue("handover.photos_required"), parameters.intValue("handover.max_photos"), null, false,
                 null, inventory.conditionLevels(), parameters.intValue("handover.submit_hours"));
     }

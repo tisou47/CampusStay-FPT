@@ -505,6 +505,8 @@ export const api = {
   banks: g('/banks'),
   /** Back-office search in the top bar: { q } → { q, items: [{ kind, id, title, detail }] } (spec §11.3). */
   search: (q, opts) => http.get('/search', { q }, opts),
+  /** The work waiting for the caller, most urgent first: { at, items: [{ kind, link, count, overdue, dueSoon, oldestAt }] }. */
+  workSummary: (opts) => http.get('/work/summary', undefined, opts),
   dashboards: {
     staff: g('/dashboards/staff'),
     manager: g('/dashboards/manager'),
@@ -647,6 +649,8 @@ export const api = {
     record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
     reviews: g('/check-out-reviews'),
     decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
+    /** Shared damage the student declined (owner decision 25/11/2026): { keep, note }. */
+    decideClaim: (claimId, body) => http.post(`/check-out-reviews/claims/${claimId}`, body),
     mine: g('/students/me/check-out'),
     agree: () => http.post('/students/me/check-out/agree'),
     answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),

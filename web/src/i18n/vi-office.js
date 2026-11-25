@@ -1704,7 +1704,6 @@ export default {
   "Enter readings": "Nhập chỉ số",
   "Inspection {name}: {done} of {n} rooms": "Kiểm tra {name}: {done}/{n} phòng",
   "{done} of {n} checked in today": "Hôm nay {done}/{n} đã nhận phòng",
-  "{n} overdue": "{n} quá hạn",
   "{n} resolved in 7 days": "Đã xử lý {n} trong 7 ngày",
   "Requests waiting for someone": "Yêu cầu đang chờ người nhận",
   "Check-ins today": "Nhận phòng hôm nay",
@@ -2249,4 +2248,5 @@ export default {
   "Keep the rule the refund was opened with, or apply a rule the Admin added.": "Giữ quy tắc lúc mở khoản hoàn, hoặc áp một quy tắc do Admin thêm.",
   "As opened: {rule}": "Như lúc mở: {rule}",
   "Refund rule": "Quy tắc hoàn tiền",
+  "Declined by the student": "Sinh viên đã từ chối",
 }
