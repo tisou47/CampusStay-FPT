@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { Download, Wrench } from 'lucide-react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { ArrowLeft, Download, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -21,7 +21,7 @@ import { t, tr } from '@/i18n'
 
 // SCR-MNT-10 Maintenance Queue (Figma 42:2251). Shared with the Manager portal, where it also holds the overdue
 // requests (SCR-REQ-21, user decision 24/11/2026: one page for the repair work). The tabs replace the filter tiles:
-// Open · Unassigned · Overdue (Managers) · All (the status filter shows only there).
+// All (first and the default; the status filter shows only there) · Open · Unassigned · Overdue (Managers).
 // GET /maintenance-requests?termId&block&q&status&priority&category&assigneeId&page&pageSize → {
 //   items: [{ id, room, title (shown on hover), category, priority, reportedAt, assignee: { id, name } | null, status, slaDueAt }], total,
 //   summary: { open, urgent, urgentUnassigned, unassigned, oldestUnassignedAt, resolvedThisWeek, waitingConfirmation } }
@@ -41,8 +41,11 @@ const tabFilters = {
 export default function MaintenanceQueue() {
   const atManager = useRoleBase() === '/manager'
   const navigate = useNavigate()
+  const location = useLocation()
   const base = useRoleBase()
   const [params, setParams] = useSearchParams()
+  // Opened from a room of Rooms and beds (?from=inventory&back=…): a way back to that floor, room, filters and search.
+  const back = params.get('from') === 'inventory' && params.get('back')?.startsWith('/') ? params.get('back') : null
   const scope = useScopeQuery()
   const { notifyError } = useToast()
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))
@@ -50,7 +53,8 @@ export default function MaintenanceQueue() {
   // A room search (from the room hub) looks at every request of the room; a status link opens the All tab.
   const initialStatus = params.get('status') ?? ''
   const tabParam = params.get('tab')
-  const tab = (tabParam === 'overdue' && !atManager) || !tabParam ? (params.get('room') || (initialStatus && initialStatus !== 'open') ? 'all' : 'open') : tabParam
+  // The page opens on All (a status link keeps its own filter there).
+  const tab = (['overdue', 'unassigned'].includes(tabParam) && !atManager) || !tabParam ? (initialStatus === 'open' ? 'open' : 'all') : tabParam
   const [q, setQ] = useState(params.get('room') ?? '')
   const [search, setSearch] = useState(params.get('room') ?? '')
   const [status, setStatus] = useState(initialStatus === 'open' ? '' : initialStatus)
@@ -90,14 +94,23 @@ export default function MaintenanceQueue() {
   }
 
   const tabs = [
-    { key: 'open', label: 'Open', count: s?.open },
-    { key: 'unassigned', label: 'Unassigned', count: s?.unassigned },
-    ...(atManager ? [{ key: 'overdue', label: 'Overdue', count: overdue.data ? overdueOpen : undefined }] : []),
     { key: 'all', label: 'All' },
+    { key: 'open', label: 'Open', count: s?.open },
+    // Staff see only the requests assigned to them: no Unassigned tab and no Assignee column.
+    ...(atManager ? [{ key: 'unassigned', label: 'Unassigned', count: s?.unassigned }] : []),
+    ...(atManager ? [{ key: 'overdue', label: 'Overdue', count: overdue.data ? overdueOpen : undefined }] : []),
   ]
 
   return (
     <>
+      {back && (
+        <div className="flex shrink-0 items-center gap-3">
+          <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={() => (location.state?.fromInventory ? navigate(-1) : navigate(back))}>
+            {t('Back')}
+          </Button>
+          <span className="text-sm text-fg-secondary">{t('Rooms and beds · {room}', { room: params.get('room') ?? '' })}</span>
+        </div>
+      )}
       <PageHeader
         title="Maintenance"
         description={atManager ? undefined : 'Students set urgency; staff set the final priority.'}
@@ -130,7 +143,8 @@ export default function MaintenanceQueue() {
               {tab === 'all' && <FilterSelect label="Status" value={status} onChange={pick(setStatus)} options={statusFilters} />}
               <FilterSelect label="Priority" value={priority} onChange={pick(setPriority)} options={[{ value: '', label: 'All' }, ...(options.data?.priorities ?? []).map((p) => ({ value: p, label: tr(p) }))]} />
               <FilterSelect label="Category" value={category} onChange={pick(setCategory)} options={[{ value: '', label: 'All' }, ...(options.data?.categories ?? []).map((c) => ({ value: c, label: tr(c) }))]} />
-              {tab !== 'unassigned' && (
+              {/* Who is in charge is the Managers' filter: Staff do not filter the queue by assignee. */}
+              {atManager && tab !== 'unassigned' && (
                 <FilterSelect
                   label="Assignee"
                   value={assigneeId}
@@ -149,13 +163,13 @@ export default function MaintenanceQueue() {
                 <Th className="w-[13%]">Category</Th>
                 <Th className="w-[11%]">Priority</Th>
                 <Th className="w-[15%]">Reported</Th>
-                <Th>Assignee</Th>
+                {atManager && <Th>Assignee</Th>}
                 <Th className="w-[12%]">Status</Th>
                 <Th className="w-[12%]">Time left</Th>
               </tr>
             </THead>
             <TBody>
-              <TableStatus query={query} colSpan={8} emptyIcon={Wrench} emptyTitle={tab === 'unassigned' ? 'Every request has someone in charge' : 'No maintenance requests match these filters'} />
+              <TableStatus query={query} colSpan={atManager ? 8 : 7} emptyIcon={Wrench} emptyTitle={tab === 'unassigned' ? 'Every request has someone in charge' : 'No maintenance requests match these filters'} />
               {items.map((r) => (
                 <Tr key={r.id} onClick={() => navigate(`${base}/maintenance/${r.id}`)} className="[&>td]:h-12">
                   <Td className="font-medium whitespace-nowrap text-fg-brand">
@@ -167,7 +181,7 @@ export default function MaintenanceQueue() {
                     <StatusTag status={r.priority} />
                   </Td>
                   <Td className="whitespace-nowrap text-fg-secondary tabular">{formatDateTime(r.reportedAt)}</Td>
-                  <Td className={cx('max-w-0 truncate', !r.assignee && 'text-fg-tertiary')}>{r.assignee?.name ?? t('Unassigned')}</Td>
+                  {atManager && <Td className={cx('max-w-0 truncate', !r.assignee && 'text-fg-tertiary')}>{r.assignee?.name ?? t('Unassigned')}</Td>}
                   <Td>
                     <StatusTag status={r.status} />
                   </Td>

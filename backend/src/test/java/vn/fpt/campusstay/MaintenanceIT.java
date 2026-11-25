@@ -175,18 +175,21 @@ class MaintenanceIT {
         livesIn(18, "A-303", "A");
         String auth = bearer(mvc, student(18));
         String id = reported(auth, "Urgent");
-        String staff = bearer(mvc, STAFF_A);
+        // The Manager sees the new request and assigns it; Staff see a request once it is theirs (TC-MNT-009).
+        String manager = bearer(mvc, MANAGER_B);
+        String staff = bearer(mvc, STAFF_A2);
         long a2 = userId(STAFF_A2);
 
-        getAs("/maintenance-requests?status=open&assigneeId=none&priority=High", staff)
+        getAs("/maintenance-requests?status=open&assigneeId=none&priority=High", manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[*].id", hasItem(id)))
                 .andExpect(jsonPath("$.summary.urgentUnassigned").isNumber());
-        getAs("/maintenance-requests/options?for=staff", staff)
+        getAs("/maintenance-requests/options?for=staff", bearer(mvc, STAFF_A))
                 .andExpect(jsonPath("$.priorities[0]").value("High"))
                 .andExpect(jsonPath("$.staff[0].id").value(String.valueOf(a2)))
                 .andExpect(jsonPath("$.staff[0].skills[0]").value("Maintenance"));
-        String detail = getAs("/maintenance-requests/" + id, staff)
+        getAs("/maintenance-requests/" + id, staff).andExpect(status().isNotFound());
+        String detail = getAs("/maintenance-requests/" + id, manager)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reporter.role").value("Student"))
                 .andExpect(jsonPath("$.urgency").value("Urgent"))
@@ -208,14 +211,14 @@ class MaintenanceIT {
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
 
         String path = "/maintenance-requests/" + id;
-        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(userId(MANAGER_B)))
+        patchAs(path, manager, "{\"assigneeId\":\"%d\"}".formatted(userId(MANAGER_B)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.assigneeId").isString());
-        patchAs(path, staff, "{\"visitWindow\":\"tomorrow afternoon\"}")
+        patchAs(path, manager, "{\"visitWindow\":\"tomorrow afternoon\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.visitWindow").isString());
         String day = LocalDate.now(TimeConfig.CAMPUS_ZONE).plusDays(1).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        patchAs(path, staff, "{\"priority\":\"Medium\",\"assigneeId\":\"%d\",\"visitWindow\":\"%s 14:00 - 16:00\"}"
+        patchAs(path, manager, "{\"priority\":\"Medium\",\"assigneeId\":\"%d\",\"visitWindow\":\"%s 14:00 - 16:00\"}"
                 .formatted(a2, day)).andExpect(status().isNoContent());
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("Assigned"))
@@ -224,6 +227,9 @@ class MaintenanceIT {
                 .andExpect(jsonPath("$.assignee.name").value("Vo Thanh Tung"))
                 .andExpect(jsonPath("$.visitWindow").value(day + " 14:00 – 16:00"))
                 .andExpect(jsonPath("$.suggestedAssigneeId").value((Object) null));
+        getAs(path, bearer(mvc, STAFF_A)).andExpect(status().isNotFound());
+        getAs("/maintenance-requests?status=open", staff).andExpect(jsonPath("$.items[*].assignee.id",
+                everyItem(org.hamcrest.Matchers.is(String.valueOf(a2)))));
         getAs("/notifications", auth).andExpect(jsonPath("$.items[0].title").value("Maintenance update"));
 
         postJson(path + "/updates", staff, "{\"message\":\"Order the valve first.\",\"internal\":true}")
@@ -242,7 +248,7 @@ class MaintenanceIT {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_RESOLVED"));
         // The person in charge does the work.
-        String assigneeAuth = bearer(mvc, STAFF_A2);
+        String assigneeAuth = staff;
         patchAs(path, assigneeAuth, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
         patchAs(path, assigneeAuth, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         postJson(path + "/confirm", auth, "{\"fixed\":false,\"comment\":\"Still leaking at night.\"}")
@@ -260,8 +266,9 @@ class MaintenanceIT {
     }
 
     /**
-     * TC-MNT-009: only the person in charge changes the status; another Staff member of the Block takes the request
-     * over first (recorded in its history), and a Manager may act on any request.
+     * TC-MNT-009: Staff see and work only the Maintenance Requests assigned to them: another person's or an unassigned
+     * one is not found in the queue, the detail or a change, and they cannot assign it to someone else; the person in
+     * charge changes its status and may give it back; a Manager assigns, moves and acts on any request.
      */
     @Test
     void personInChargeChangesTheStatus() throws Exception {
@@ -269,22 +276,138 @@ class MaintenanceIT {
         String id = reported(bearer(mvc, student(24)), "Normal");
         String path = "/maintenance-requests/" + id;
         String staff = bearer(mvc, STAFF_A);
+        String other = bearer(mvc, STAFF_A2);
+        String manager = bearer(mvc, MANAGER_B);
         long a1 = userId(STAFF_A);
         long a2 = userId(STAFF_A2);
-        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(a2)).andExpect(status().isNoContent());
+        getAs(path, staff).andExpect(status().isNotFound());
+        getAs("/maintenance-requests?q=" + id, staff).andExpect(jsonPath("$.total").value(0));
+        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(a1)).andExpect(status().isNotFound());
+        patchAs(path, manager, "{\"assigneeId\":\"%d\"}".formatted(a2)).andExpect(status().isNoContent());
 
-        patchAs(path, staff, "{\"status\":\"In progress\"}")
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ASSIGNED_TO_SOMEONE_ELSE"))
-                .andExpect(jsonPath("$.message").value(startsWith("This request is assigned to Vo Thanh Tung.")));
-        patchAs(path, staff, "{\"assigneeId\":\"%d\",\"status\":\"In progress\"}".formatted(a1))
-                .andExpect(status().isNoContent());
+        getAs(path, staff).andExpect(status().isNotFound());
+        patchAs(path, staff, "{\"status\":\"In progress\"}").andExpect(status().isNotFound());
+        getAs("/maintenance-requests?q=" + id, other).andExpect(jsonPath("$.total").value(1));
+        patchAs(path, other, "{\"assigneeId\":\"%d\"}".formatted(a1))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("STAFF_ASSIGN_SELF_ONLY"));
+        patchAs(path, other, "{\"status\":\"In progress\"}").andExpect(status().isNoContent());
+
+        // The Manager moves it: the new person in charge works it, the former one no longer sees it.
+        patchAs(path, manager, "{\"assigneeId\":\"%d\"}".formatted(a1)).andExpect(status().isNoContent());
+        getAs(path, other).andExpect(status().isNotFound());
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("In progress"))
                 .andExpect(jsonPath("$.assignee.id").value(String.valueOf(a1)));
 
-        patchAs(path, bearer(mvc, MANAGER_B), "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        patchAs(path, manager, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         getAs(path, staff).andExpect(jsonPath("$.status").value("Resolved"));
+    }
+
+    /**
+     * TC-MNT-016: a new visit window starts from now on, within one day and inside the Block's desk hours (07:30 –
+     * 21:00 in the test seed); an unchanged window saves with other fields, and the detail gives the hours.
+     */
+    @Test
+    void visitWindowKeepsToTheBlocksHours() throws Exception {
+        livesIn(17, "A-307", "A");
+        String id = reported(bearer(mvc, student(17)), "Normal");
+        String path = "/maintenance-requests/" + id;
+        String staff = bearer(mvc, STAFF_A);
+        patchAs(path, bearer(mvc, MANAGER_B), "{\"assigneeId\":\"%d\"}".formatted(userId(STAFF_A)))
+                .andExpect(status().isNoContent());
+        DateTimeFormatter dmy = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate today = LocalDate.now(TimeConfig.CAMPUS_ZONE);
+        String yesterday = today.minusDays(1).format(dmy);
+        String tomorrow = today.plusDays(1).format(dmy);
+        String later = today.plusDays(2).format(dmy);
+
+        patchAs(path, staff, "{\"visitWindow\":\"%s 09:00 - 10:00\"}".formatted(yesterday))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.visitWindow")
+                        .value("The visit cannot start in the past. Choose a later time."));
+        patchAs(path, staff, "{\"visitWindow\":\"%s 06:00 - 08:00\"}".formatted(tomorrow))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.visitWindow")
+                        .value("Plan the visit within the Block's hours, 07:30 – 21:00."));
+        patchAs(path, staff, "{\"visitWindow\":\"%s 20:00 - 22:00\"}".formatted(tomorrow))
+                .andExpect(status().isBadRequest());
+        patchAs(path, staff, "{\"visitWindow\":\"%s 20:00 - %s 08:00\"}".formatted(tomorrow, later))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.visitWindow").value("The visit starts and ends on the same day."));
+
+        patchAs(path, staff, "{\"visitWindow\":\"%s 07:30 - 09:00\"}".formatted(tomorrow))
+                .andExpect(status().isNoContent());
+        // A window planned earlier is kept as is when other fields change, even once its time has passed.
+        jdbc.sql("UPDATE mnt_request SET visit_window_start = now() - interval '2 hours', "
+                + "visit_window_end = now() - interval '1 hour' WHERE code = :c").param("c", id).update();
+        String kept = JsonPath.read(getAs(path, staff).andReturn().getResponse().getContentAsString(), "$.visitWindow");
+        patchAs(path, staff, "{\"priority\":\"Low\",\"visitWindow\":\"%s\"}".formatted(kept))
+                .andExpect(status().isNoContent());
+        getAs(path, staff)
+                .andExpect(jsonPath("$.visitHours.from").value("07:30"))
+                .andExpect(jsonPath("$.visitHours.until").value("21:00"))
+                .andExpect(jsonPath("$.priority").value("Low"));
+    }
+
+    /**
+     * TC-MNT-017: a request an inspection opened in a Room reaches the students living there: it is in their requests
+     * ({@code reportedByYou: false}), they open it, hear about the planned visit and public updates and, once it is
+     * resolved, confirm the fix to close it; a student of another Room neither sees nor confirms it.
+     */
+    @Test
+    void roomResidentsFollowAnInspectionRequest() throws Exception {
+        livesIn(22, "A-307", "B");
+        livesIn(23, "A-308", "A");
+        String staff = bearer(mvc, STAFF_A);
+        long staffId = userId(STAFF_A);
+        String code = jdbc.sql("""
+                WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
+                INSERT INTO mnt_request (id, code, term_id, room_id, building_id, room_code, reporter_id, source, title,
+                                         description, category, location, urgency, priority, staff_may_enter,
+                                         reported_at, assignee_id, status)
+                OVERRIDING SYSTEM VALUE
+                SELECT next.id, 'MR-' || lpad(next.id::text, 6, '0'), :term, r.id, r.building_id, r.code, :staff,
+                       'INSPECTION', 'Desk DESK-A307B needs a repair', 'Failed in inspection INS-1.', 'FURNITURE',
+                       'ROOM', 'NORMAL', 'MEDIUM', TRUE, now(), :staff, 'ASSIGNED'
+                FROM next, inv_room r WHERE r.code = 'A-307'
+                RETURNING code
+                """).param("term", termId).param("staff", staffId).query(String.class).single();
+        String path = "/maintenance-requests/" + code;
+        String resident = bearer(mvc, student(22));
+        String neighbour = bearer(mvc, student(23));
+
+        String day = LocalDate.now(TimeConfig.CAMPUS_ZONE).plusDays(1).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        patchAs(path, staff, "{\"visitWindow\":\"%s 14:00 - 15:00\"}".formatted(day)).andExpect(status().isNoContent());
+        postJson(path + "/updates", staff, "{\"message\":\"Bringing a new drawer.\"}").andExpect(status().isNoContent());
+
+        getAs("/students/me/requests?kind=maintenance", resident)
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].reportedByYou".formatted(code)).value(hasItem(false)))
+                .andExpect(jsonPath("$.items[?(@.id == '%s')].visitWindow".formatted(code))
+                        .value(hasItem(day + " 14:00 – 15:00")));
+        getAs(path, resident)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reportedByYou").value(false))
+                .andExpect(jsonPath("$.events[*].message", hasItem("Bringing a new drawer.")));
+        assertThat(jdbc.sql("""
+                SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.link = '/student/requests'
+                """).param("e", student(22)).query(Long.class).single()).isGreaterThanOrEqualTo(2);
+        postJson(path + "/confirm", resident, "{\"fixed\":true}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOT_RESOLVED"));
+
+        getAs("/students/me/requests?kind=maintenance", neighbour)
+                .andExpect(jsonPath("$.items[*].id", not(hasItem(code))));
+        getAs(path, neighbour).andExpect(status().isNotFound());
+
+        // Once resolved, a student living in the Room ends the flow by confirming the fix.
+        patchAs(path, staff, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        postJson(path + "/confirm", neighbour, "{\"fixed\":true}").andExpect(status().isNotFound());
+        postJson(path + "/confirm", resident, "{\"fixed\":true}").andExpect(status().isNoContent());
+        getAs(path, resident)
+                .andExpect(jsonPath("$.status").value("Closed"))
+                .andExpect(jsonPath("$.events[*].message", hasItem("Fix confirmed by the student")));
     }
 
     /** TC-MNT-003: the queue is scoped: another Block's Staff neither see nor count the request; Managers do (ADR-19). */
@@ -302,7 +425,8 @@ class MaintenanceIT {
         getAs("/maintenance-requests?block=A", staffB)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
-        getAs("/maintenance-requests?q=" + id, bearer(mvc, STAFF_A))
+        getAs("/maintenance-requests?q=" + id, bearer(mvc, STAFF_A)).andExpect(jsonPath("$.total").value(0));
+        getAs("/maintenance-requests?q=" + id, bearer(mvc, MANAGER_B))
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.items[0].room").value("A-304"))
                 .andExpect(jsonPath("$.items[0].priority").value("Medium"))

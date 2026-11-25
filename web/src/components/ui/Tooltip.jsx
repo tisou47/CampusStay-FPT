@@ -186,9 +186,9 @@ export function Truncate({ children, tip, as: Tag = 'span', side = 'top', align 
  * A small "?" next to a label, a heading or a figure, explaining what it means or what happens next.
  * Keyboard users reach it with Tab; the text is also its accessible name.
  */
-export function InfoTip({ label, title, side = 'top', align = 'center', size = 14, className }) {
+export function InfoTip({ label, title, side = 'top', align = 'center', size = 14, ariaLabel, className }) {
   if (!label && !title) return null
-  const name = [title, label].filter((x) => typeof x === 'string').map(tx).join('. ')
+  const name = ariaLabel ?? [title, label].filter((x) => typeof x === 'string').map(tx).join('. ')
   return (
     <Tooltip label={label} title={title} side={side} align={align} className="align-middle">
       <button

@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Clock,
   KeyRound,
-  PackageCheck,
   Search,
   UserX,
   Zap,
@@ -35,7 +34,7 @@ import { DatePicker } from '@/components/ui/date-time'
 // GET /check-in/today?termId&block → { date, block, expected, checkedIn, waiting, blocked, recent: [{ name, bed, at }] }
 // GET /check-in/lookup?termId&q → { student: { name, studentCode, room, bed, block, floor,
 //   status: 'ready'|'blocked'|'checked-in'|'not-allocated', checks: [{ label, passed }], owes: { balance, utilityDeposit } | null,
-//   checkedInAt, handOverItems: [string] } | null }
+//   checkedInAt } | null } (nothing is handed over at the desk: the student enters with the door code)
 // POST /check-in { studentCode, items, note } → { checkedInAt }
 // POST /late-check-ins (multipart) studentCode, reason, requestedFor (YYYY-MM-DD), termId?, evidence? → { id }
 //   — for a student whose check-in window closed; a Manager decides it in Decisions › Late check-in
@@ -129,17 +128,14 @@ function LateCheckInModal({ person, termId, onClose }) {
 function StudentPanel({ person, termId, onDone }) {
   const { notify, notifyError } = useToast()
   const { term } = useSession()
-  const items = person.handOverItems ?? []
-  const [checked, setChecked] = useState(() => new Set())
   const [note, setNote] = useState('')
   const [late, setLate] = useState(false)
 
   useEffect(() => {
-    setChecked(new Set())
+    setNote('')
   }, [person.studentCode])
 
   const ready = person.status === 'ready'
-  const all = checked.size === items.length
   const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
   const hStatus = person.handoverStatus
   const inRoomWithReport =
@@ -175,22 +171,14 @@ function StudentPanel({ person, termId, onDone }) {
     ) : (
       statusTag[person.status]
     )
-  const confirm = useMutation(() => api.desk.checkIn({ termId, studentCode: person.studentCode, items: [...checked], note: note.trim() || undefined }), {
+  const confirm = useMutation(() => api.desk.checkIn({ termId, studentCode: person.studentCode, items: [], note: note.trim() || undefined }), {
     invalidates: ['check-in', 'dashboard'],
     onSuccess: () => {
-      notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed }) })
+      notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The stay and the utility count have started.', { room: person.room, bed: person.bed }) })
       onDone?.()
     },
     onError: (e) => notifyError(e, 'Could not check in'),
   })
-
-  const toggleItem = (item) =>
-    setChecked((s) => {
-      const next = new Set(s)
-      if (next.has(item)) next.delete(item)
-      else next.add(item)
-      return next
-    })
 
   return (
     <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -344,7 +332,7 @@ function StudentPanel({ person, termId, onDone }) {
             }
           >
             <div className="flex flex-col gap-1">
-              <p>{t('Assets were handed over and the student’s QR pass now opens the block gates.')}</p>
+              <p>{t('The student enters with the door code in their app.')}</p>
               <p className="font-medium text-fg">
                 {t('Utility billing started from: {from}', {
                   from: formatDateTime(person.utilityFrom ?? person.checkedInAt),
@@ -364,72 +352,18 @@ function StudentPanel({ person, termId, onDone }) {
         )}
 
         {ready && (
-          <section className="flex flex-col gap-3.5 rounded-xl bg-subtle/40 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <PackageCheck size={18} aria-hidden="true" className="text-fg-brand" />
-                <p className="text-base font-semibold text-fg">
-                  {t('Asset hand-over · Bed {bed}', { bed: person.bed })}
+          <section className="flex flex-col gap-3 rounded-xl bg-subtle/40 p-4">
+            <div className="flex items-start gap-2.5">
+              <KeyRound size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
+              <div className="flex flex-col gap-0.5">
+                <p className="text-base font-semibold text-fg">{t('Confirm check-in · Bed {bed}', { bed: person.bed })}</p>
+                <p className="text-sm text-fg-secondary">
+                  {t('Nothing is handed over at the desk: the student enters the room with the door code in their app. Confirming starts the stay and the utility count from now.')}
                 </p>
-                <span
-                  className={cx(
-                    'rounded-full px-2.5 py-0.5 text-xs font-semibold tabular',
-                    all ? 'bg-success-bg text-success-fg' : 'bg-warning-bg text-warning-fg',
-                  )}
-                >
-                  {checked.size}/{items.length}
-                </span>
               </div>
-              {items.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="text"
-                  onClick={() => setChecked(all ? new Set() : new Set(items))}
-                >
-                  {all ? t('Deselect all') : t('Select all')}
-                </Button>
-              )}
             </div>
-
-            {/* Large Hit-Target Asset Handover Tiles */}
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {items.map((item) => {
-                const isSelected = checked.has(item)
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    role="checkbox"
-                    aria-checked={isSelected}
-                    onClick={() => toggleItem(item)}
-                    className={cx(
-                      'flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors',
-                      isSelected
-                        ? 'bg-brand-subtle text-fg'
-                        : 'bg-surface text-fg-secondary hover:bg-subtle',
-                    )}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cx(
-                        'flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors',
-                        isSelected
-                          ? 'bg-primary text-white'
-                          : 'border-2 border-line-strong bg-surface',
-                      )}
-                    >
-                      {isSelected && <Check size={14} strokeWidth={2.5} />}
-                    </span>
-                    <span className={cx('text-sm font-medium', isSelected ? 'font-semibold text-fg' : 'text-fg-secondary')}>
-                      {tr(item)}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <Field label="Condition notes" helper={all ? undefined : 'Tick every item the student received before you confirm.'}>
-              {(id) => <Textarea id={id} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Scratches, stains or missing items" />}
+            <Field label="Check-in note">
+              {(id) => <Textarea id={id} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything to remember about this check-in" />}
             </Field>
           </section>
         )}
@@ -438,19 +372,15 @@ function StudentPanel({ person, termId, onDone }) {
       {/* 3. Sticky Check-In Confirmation Footer */}
       {ready && (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-6 py-3.5 shadow-card">
-          <p className="text-sm text-fg-secondary">
-            {all
-              ? t('{room} · Bed {bed}. The QR pass is active.', { room: person.room, bed: person.bed })
-              : t('Tick every item the student received before you confirm.')}
-          </p>
+          <p className="text-sm text-fg-secondary">{t('{room} · Bed {bed}', { room: person.room, bed: person.bed })}</p>
           <div className="flex items-center gap-2.5">
             <Button onClick={onDone}>Cancel</Button>
             <Button
-              tip="Tick every item of the checklist first. The stay starts and a meter reading is taken."
+              tip="The stay starts and a meter reading is taken."
               variant="primary"
               size="lg"
               icon={Check}
-              disabled={!all || confirm.pending}
+              disabled={confirm.pending}
               onClick={() => confirm.run()}
             >
               Confirm check-in

@@ -122,7 +122,8 @@ class OperationsIT {
         Instant before = Instant.now();
         String urgent = report(student, "Urgent", ac);
         String normal = report(student, "Normal", null);
-        String staff = bearer(mvc, STAFF_A);
+        // Unassigned requests are the Managers': Staff see only the ones assigned to them (TC-MNT-009).
+        String staff = bearer(mvc, MANAGER_A);
         String detail = getAs("/maintenance-requests/" + urgent, staff).andExpect(status().isOk())
                 .andExpect(jsonPath("$.furnitureItem.id").value(ac))
                 .andExpect(jsonPath("$.furnitureOptions[*].id", hasItem(ac)))
@@ -135,7 +136,7 @@ class OperationsIT {
                 .andExpect(jsonPath("$.items[0].slaDueAt").isString());
 
         long a2 = stay.userId(STAFF_A2);
-        patchAs("/maintenance-requests/" + urgent, staff, "{\"assigneeId\":\"%d\"}".formatted(a2))
+        patchAs("/maintenance-requests/" + urgent, bearer(mvc, MANAGER_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isNoContent());
         // The person in charge does the work (TC-MNT-009).
         String assignee = bearer(mvc, STAFF_A2);
@@ -189,8 +190,11 @@ class OperationsIT {
                 .andExpect(jsonPath("$.items[?(@.kind == 'student')].detail", hasItem(org.hamcrest.Matchers.startsWith(studentCode))));
         getAs("/search?q=A504", manager)
                 .andExpect(jsonPath("$.items[?(@.kind == 'room')].id", hasItem("A-504")));
+        getAs("/search?q=" + code, manager)
+                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')].id", hasItem(code)));
+        // Staff find only the Maintenance Requests assigned to them: this one has nobody yet.
         getAs("/search?q=" + code, bearer(mvc, STAFF_A))
-                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')].id", hasItem(code)))
+                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')]").isEmpty())
                 .andExpect(jsonPath("$.items[?(@.kind == 'student')]").isEmpty());
         String staffB = bearer(mvc, STAFF_B2);
         getAs("/search?q=A-504", staffB).andExpect(jsonPath("$.items[?(@.kind == 'room')]", hasSize(0)));
@@ -207,7 +211,7 @@ class OperationsIT {
         }
         String code = report(bearer(mvc, StayFlow.student(34)), "Normal", null);
         long a2 = stay.userId(STAFF_A2);
-        patchAs("/maintenance-requests/" + code, bearer(mvc, STAFF_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
+        patchAs("/maintenance-requests/" + code, bearer(mvc, MANAGER_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isNoContent());
         String page = getAs("/routing-rules?block=A", bearer(mvc, MANAGER_A)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.staff[*].name", hasItem("Vo Thanh Tung")))

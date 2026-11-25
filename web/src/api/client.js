@@ -59,6 +59,24 @@ function buildUrl(path, query) {
 let shiftConfirmer = null
 // Changes refused at the same moment share one question, so a second one never replaces the first dialog.
 let pendingConfirm = null
+// Once confirmed, the question is not asked again in the same sign-in: later changes carry X-Shift-Acknowledged at
+// once. The API still records each one as made outside the shift for the Managers. Kept per session token, so a
+// new sign-in (or another account) asks again.
+const SHIFT_ACK_KEY = 'campusstay.shiftAck'
+function shiftAcknowledged(token) {
+  try {
+    return !!token && sessionStorage.getItem(SHIFT_ACK_KEY) === token.slice(-24)
+  } catch {
+    return false
+  }
+}
+function rememberShiftAck(token) {
+  try {
+    if (token) sessionStorage.setItem(SHIFT_ACK_KEY, token.slice(-24))
+  } catch {
+    /* storage blocked: the dialog simply comes back next time */
+  }
+}
 
 export function setShiftConfirmer(fn) {
   shiftConfirmer = fn
@@ -86,6 +104,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
         'Accept-Language': getLang(),
         ...(body != null && !isForm && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
+        ...(method !== 'GET' && shiftAcknowledged(token) && { 'X-Shift-Acknowledged': 'true' }),
         ...headers,
       },
       body: body == null ? undefined : isForm ? body : JSON.stringify(body),
@@ -107,6 +126,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
   }
   if (res.status === 428 && data?.code === 'SHIFT_CONFIRM_REQUIRED' && shiftConfirmer && !headers?.['X-Shift-Acknowledged']) {
     if (await confirmShift({ message: data.message, ...data.details })) {
+      rememberShiftAck(token)
       return request(path, { method, query, body, signal, headers: { ...headers, 'X-Shift-Acknowledged': 'true' } })
     }
     throw new ApiError(t('Cancelled: nothing was changed.'), { status: 428, code: 'SHIFT_CANCELLED' })
