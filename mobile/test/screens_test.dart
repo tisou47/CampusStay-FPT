@@ -146,6 +146,29 @@ void main() {
     expect(find.text('Pay with VietQR'), findsOneWidget);
   });
 
+  testWidgets('Invoice payment: a rejected transfer shows the reason, the new deadline and what is left (D4)', (tester) async {
+    useApi({
+      '/invoices/INV-1/payment': {
+        'invoice': {'id': 'INV-1', 'title': 'Deposit', 'amount': 900000, 'status': 'Unpaid', 'dueAt': _future},
+        'qr': null,
+        'bank': null,
+        'transferContent': 'CS INV1',
+        'claim': {
+          'status': 'Rejected',
+          'rejected': 1,
+          'rejectionsToCancel': 2,
+          'lastRejection': {'reason': 'No matching transfer', 'at': _past, 'dueAt': '2026-12-01T10:00:00Z'},
+        },
+        'canClaim': true,
+      },
+    });
+    await show(tester, const InvoiceScreen(id: 'INV-1'));
+    expect(find.textContaining('No matching transfer'), findsOneWidget);
+    expect(find.textContaining('New deadline: 1 Dec 2026 17:00'), findsOneWidget);
+    expect(find.textContaining('One more rejection cancels this Invoice'), findsOneWidget);
+    expect(find.textContaining('1 of 2 that cancel this Invoice'), findsOneWidget);
+  });
+
   testWidgets('Invoice payment: the transfer content and "I have transferred"', (tester) async {
     useApi({
       '/invoices/INV-1/payment': {

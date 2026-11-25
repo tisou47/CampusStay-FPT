@@ -429,7 +429,7 @@ class InvoiceScreen extends StatefulWidget {
   State<InvoiceScreen> createState() => _InvoiceScreenState();
 }
 
-class _InvoiceScreenState extends State<InvoiceScreen> {
+class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserver {
   final _reference = TextEditingController();
   Json? _data;
   Object? _error;
@@ -445,18 +445,47 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    _startTicker();
+  }
+
+  void _startTicker() {
+    _tick?.cancel();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _data?.obj('qr')?.str('expiresAt') != null) setState(() {});
     });
   }
 
+  // MOB-23: no polling while the app is in the background (push announces the decision); back in front, ask at once.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startTicker();
+      _load();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _poll?.cancel();
+      _tick?.cancel();
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _poll?.cancel();
     _tick?.cancel();
     _reference.dispose();
     super.dispose();
+  }
+
+  /// Rejections still allowed before the Invoice is cancelled: `rejectionsLeft` (D4), else `rejectionsToCancel` (B8)
+  /// less `rejected`; null for an Invoice that is never cancelled (Utility, charges) or an older server.
+  static int? _rejectionsLeft(Json? claim) {
+    final left = claim?.number('rejectionsLeft') ??
+        (claim?.number('rejectionsToCancel') == null
+            ? null
+            : claim!.number('rejectionsToCancel')! - (claim.number('rejected') ?? 0));
+    return left == null || left < 1 ? null : left.toInt();
   }
 
   bool get _waiting => _data?.obj('invoice')?.str('status') == 'Awaiting confirmation';
@@ -484,7 +513,9 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
       if (mounted) setState(() => _error = e);
     }
     _poll?.cancel();
-    if (mounted && _waiting) _poll = Timer(const Duration(seconds: 15), _load);
+    final foreground = WidgetsBinding.instance.lifecycleState != AppLifecycleState.paused &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.hidden;
+    if (mounted && _waiting && foreground) _poll = Timer(const Duration(seconds: 15), _load);
   }
 
   Future<void> _loadImage(String? url) async {
@@ -680,10 +711,22 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
               Alert(
                 tone: Tone.warning,
                 title: t('Transfer not confirmed', 'Khoản chuyển chưa được xác nhận'),
-                body: t(
-                  'A Manager could not confirm your transfer: ${rejection.text('reason')}. Check the transfer content and report it again before the deadline.',
-                  'Quản lý chưa xác nhận được khoản chuyển: ${rejection.text('reason')}. Hãy kiểm tra nội dung chuyển khoản và báo lại trước hạn.',
-                ),
+                body: [
+                  t(
+                    'A Manager could not confirm your transfer: ${rejection.text('reason')}. Check the transfer content and report it again before the deadline.',
+                    'Quản lý chưa xác nhận được khoản chuyển: ${rejection.text('reason')}. Hãy kiểm tra nội dung chuyển khoản và báo lại trước hạn.',
+                  ),
+                  // D4 (BE-APP-BIL-19): the new deadline and how many rejections are left, when the server sends them.
+                  if (rejection.str('dueAt') != null)
+                    t('New deadline: ${moment(rejection.str('dueAt'))}.', 'Hạn mới: ${moment(rejection.str('dueAt'))}.'),
+                  if (_rejectionsLeft(claim) != null)
+                    t(
+                      _rejectionsLeft(claim) == 1
+                          ? 'One more rejection cancels this Invoice.'
+                          : '${_rejectionsLeft(claim)} more rejections cancel this Invoice.',
+                      'Thêm ${_rejectionsLeft(claim)} lần bị từ chối nữa thì hoá đơn này bị huỷ.',
+                    ),
+                ].join(' '),
               ),
             Section(
               title: t('Paid already? Tell the dormitory', 'Đã chuyển khoản? Báo cho KTX'),
@@ -711,8 +754,8 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         context,
                         title: t('Did you transfer the money?', 'Bạn đã chuyển khoản chưa?'),
                         body: t(
-                          'A Manager checks it against the bank statement. A report rejected twice cancels a Deposit or a Balance.',
-                          'Quản lý sẽ đối chiếu với sao kê. Bị từ chối hai lần sẽ huỷ tiền cọc hoặc tiền phòng.',
+                          'A Manager checks it against the bank statement. A report rejected too often cancels a Deposit, a Balance or a next-Term fee.',
+                          'Quản lý sẽ đối chiếu với sao kê. Bị từ chối quá số lần cho phép sẽ huỷ tiền cọc, tiền phòng hoặc phí kỳ sau.',
                         ),
                         yes: t('I have transferred', 'Tôi đã chuyển khoản'),
                         no: t('Not yet', 'Chưa'),
@@ -742,10 +785,15 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                   ),
                 if ((claim?.number('rejected') ?? 0) > 0)
                   Note(
-                    t(
-                      'Transfers rejected so far: ${claim!.number('rejected')}. Two rejections cancel a Deposit or a Balance.',
-                      'Số lần bị từ chối: ${claim.number('rejected')}. Hai lần bị từ chối sẽ huỷ khoản cọc hoặc tiền phòng.',
-                    ),
+                    claim?.number('rejectionsToCancel') != null
+                        ? t(
+                            'Transfers rejected so far: ${claim!.number('rejected')} of ${claim.number('rejectionsToCancel')} that cancel this Invoice.',
+                            'Số lần bị từ chối: ${claim.number('rejected')}/${claim.number('rejectionsToCancel')} lần thì hoá đơn bị huỷ.',
+                          )
+                        : t(
+                            'Transfers rejected so far: ${claim!.number('rejected')}.',
+                            'Số lần bị từ chối: ${claim.number('rejected')}.',
+                          ),
                   ),
               ],
             ),

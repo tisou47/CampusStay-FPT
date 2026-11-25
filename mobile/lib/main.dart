@@ -73,8 +73,18 @@ class _CampusStayAppState extends State<CampusStayApp> with WidgetsBindingObserv
     final session = _session;
     if (session == null) return;
     try {
-      final user = await Api.get('/auth/me');
-      final updated = await widget.store.save(session.token, user.obj('user') ?? user);
+      final me = await Api.get('/auth/me');
+      final user = me.obj('user') ?? me;
+      // MOB-19: pushes and emails follow the phone's language, like the app's own texts.
+      final locale = isVietnamese() ? 'vi' : 'en';
+      if (user.str('locale') != null && user.str('locale') != locale) {
+        try {
+          await Api.put('/auth/me/locale', {'locale': locale});
+        } on ApiException {
+          // the account keeps its language; tried again next time
+        }
+      }
+      final updated = await widget.store.save(session.token, user);
       if (mounted) setState(() => _session = updated);
     } on ApiException {
       // keep the saved session; a 401 signs out on its own
